@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T11:14:05Z",
+  "plugin": "EFProcedural",
+  "engine": "UE 5.8",
+  "target_pcg_extended_toolkit": "0.76.2",
+  "import": {
+    "policy": "descriptor plus Source only; 27 allowlisted files; Binaries, Intermediate, Saved, Content, and Config excluded",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFProcedural_ImportReceipt.json",
+    "receipt_length": 8794,
+    "receipt_sha256": "79E6B2EF6B2C28C8D40400AB860A69A2834090671C81377EFB4DEFC12BA4695C",
+    "descriptor_sha256": "9B533B8BD2C5B161740E633DB2EB7EB726257813866410C3D77CD08B83F341D7"
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 26,
+    "log": "Saved/Migration/Logs/Phase3_EFProcedural_EditorBuild_20260713.log",
+    "log_length": 14640,
+    "log_sha256": "C61EB649B91088B9CE3023FD3AED4D6C265CB3B3F30141ADFB61805AC83BE36A"
+  },
+  "game_build": {
+    "result": "PASS_ON_RETRY",
+    "first_attempt": {
+      "result": "INCONCLUSIVE_CLIENT_TIMEOUT_AFTER_FINAL_LINK_STARTED",
+      "build_actions": 11,
+      "log": "Saved/Migration/Logs/Phase3_EFProcedural_GameBuild_20260713.log",
+      "log_length": 5028,
+      "log_sha256": "09EF83884FBD1BBE94431F346A9B1E42C7DCC46BB5EDEC8854E018E72F794FB4"
+    },
+    "retry": {
+      "exit_code": 0,
+      "build_actions": 0,
+      "target_up_to_date": true,
+      "log": "Saved/Migration/Logs/Phase3_EFProcedural_GameBuild_20260713_Retry.log",
+      "log_length": 2060,
+      "log_sha256": "976BBC358A6800BA9C510427B4E14091640DCD15363556E502D691B7E992D7A3"
+    }
+  },
+  "config": {
+    "applied": [
+      "four class redirects from retired project-owned procedural symbols to compiled EFProcedural classes"
+    ],
+    "deferred": [
+      "EFProceduralSettings section because its DungeonGeneration, BP_MassiveDungeon, and BP_StartPoint paths are not present in target Content"
+    ]
+  },
+  "ue57_registry_investigation": {
+    "execution_result": "PASS",
+    "migration_conclusion": "INCONCLUSIVE",
+    "method": "exact-hash packages staged only under target Saved/Migration; Asset Registry scans only; no package loads, saves, or live target Content writes",
+    "seed_count": 3,
+    "harness_receipt": "Saved/Migration/Phase3/EFProcedural57HarnessReceipt.json",
+    "harness_receipt_length": 2370,
+    "harness_receipt_sha256": "0EF53229E00058630A10C476D794953B3FB2E8B2F813A3915593A3CD9878A3C5",
+    "initial_probe": "Saved/Migration/Phase3/EFProceduralDependencies57.json",
+    "initial_probe_length": 10572,
+    "initial_probe_sha256": "C050157E61AA4CB6E0429B78A0A204E51FE15540A28BA37B2332E868FD6BBBAE",
+    "closure_staging_receipt": "Saved/Migration/Phase3/EFProcedural57ClosureStagingReceipt.json",
+    "closure_staging_receipt_length": 184273,
+    "closure_staging_receipt_sha256": "3DD9EAC8245A2DE980FFA9C43AC1C82F151BFDEDAB0B7DA549D3E20DFF182794",
+    "closure_probe": "Saved/Migration/Phase3/EFProceduralClosure57.json",
+    "closure_probe_length": 287171,
+    "closure_probe_sha256": "B3B885D0E9E1F8F21E7B318CA49090032EA254C52EDBF5C2CC5CC1478D5EFE53",
+    "closure_probe_log": "Saved/Migration/Logs/Phase3_EFProcedural_ClosureProbeFinal_UE57.log",
+    "closure_probe_log_length": 98531,
+    "closure_probe_log_sha256": "822423755A0B2FDA803013970477E5D5231A719E9F435BF3C149E08498327305",
+    "staged_package_count": 242,
+    "staged_total_bytes": 93828494,
+    "reachable_staged_package_count": 242,
+    "external_source_only_count": 0,
+    "target_existing_dependency_count": 12,
+    "unclassified_game_dependencies": [
+      "/Game/Massive/MassiveDungeon/Demo/LevelInstance/PCGDA_Table"
+    ],
+    "editor_module_metadata_candidate_count": 5,
+    "packages_loaded": 0,
+    "packages_saved": 0,
+    "reason_inconclusive": "Asset Registry closure cannot prove hidden object references inside opaque PCG and Blueprint packages. Static inspection also reaches project systems, legacy enemy classes, and target-authoritative FullSample/Daz packages, so the 242 staged packages are an inspection set and not an approved migration allowlist."
+  },
+  "content_decision": {
+    "status": "PENDING_CONTENT_DEPENDENCIES",
+    "policy": "Do not migrate procedural assets until EFProjectSystems compiles and the legacy enemy references are cut explicitly.",
+    "required_remaps": {
+      "DA_DemoSpawner": [
+        "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP",
+        "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+        "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP"
+      ]
+    },
+    "excluded": [
+      "source PCGExtendedToolkit 0.75.8",
+      "legacy FullSample/GASP/Daz packages already owned by target",
+      "demo ExternalActors and demo maps",
+      "PCGEditor as a runtime or cook dependency"
+    ]
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "target_acfu_modified": false,
+    "target_daz_assets_modified": false,
+    "live_target_content_modified": false
+  },
+  "pending_qa": [
+    "Port EFLevelFlow and EFProjectSystems before reopening the procedural content gate.",
+    "Build an exact post-remap package allowlist and migrate only through Unreal AssetTools staging.",
+    "Compile/load every migrated Blueprint and PCG asset in UE 5.8.",
+    "Exercise DungeonGeneration readiness, start point, navigation, enemy spawning, cancellation, and cleanup in PIE.",
+    "Run cook/package and packaged-runtime smoke gates."
+  ],
+  "status": "CODE_ONLY_EDITOR_GAME_BUILD_PASS_CONTENT_DEPENDENCIES_PENDING"
+}

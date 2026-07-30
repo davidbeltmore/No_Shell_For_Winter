@@ -1,0 +1,67 @@
+{
+  "evidence": {
+    "build_logs": {
+      "editor": "Saved/Migration/Logs/Phase4_ModernUI_EditorBuild58.log",
+      "game": "Saved/Migration/Logs/Phase4_ModernUI_GameBuild58.log"
+    },
+    "content_logs": {
+      "migration57": "Saved/Migration/Logs/Phase4_ModernUI57_Migration.log",
+      "resave58": "Saved/Migration/Logs/Phase4_ModernUI58_Resave.log",
+      "validation57": "Saved/Migration/Logs/Phase4_ModernUI57_Validation.log"
+    },
+    "core_content_automation": "Saved/Migration/Automation/Phase4_EFProjectSystems_CoreContent_20260713_modernui/index.json",
+    "harness": "Saved/Migration/Phase4/ModernUI57HarnessReceipt.json",
+    "migration57": "Saved/Migration/Phase4/ModernUI57Migration.json",
+    "native_automation": "Saved/Migration/Automation/Phase3_EFProjectSystems_Native_20260713_modernui/index.json",
+    "protected_gate": "Saved/Migration/Evidence/ProtectedInvariantVerification.json",
+    "resave58": "Saved/Migration/Phase4/ModernUI58Resave.json",
+    "source_gate": "Saved/Migration/Evidence/SourceReadOnlyVerification.json",
+    "validation57": "Saved/Migration/Phase4/ModernUI57Validation.json"
+  },
+  "gates": {
+    "always_cook_config_present": true,
+    "automation": {
+      "core_content_succeeded": 9,
+      "failed": 0,
+      "native_succeeded": 71,
+      "not_run": 0,
+      "succeeded_with_warnings": 0,
+      "total_succeeded": 80
+    },
+    "editor_build": "PASS",
+    "external_game_dependencies": 0,
+    "game_build": "PASS",
+    "isolated_ue57_harness": "ISOLATED_MODERN_UI_HARNESS_PASS",
+    "protected_target_invariants": "PASS",
+    "redirectors": 0,
+    "source_read_only": "PASS",
+    "ue57_assettools_exact_migration": "ASSETTOOLS_EXACT_MODERN_UI_MIGRATION_PASS",
+    "ue57_read_only_load_compile": "UE57_MODERN_UI_READ_ONLY_LOAD_COMPILE_PASS",
+    "ue58_load_compile_resave": "UE58_MODERN_UI_LOAD_COMPILE_RESAVE_PASS"
+  },
+  "generated_utc": "2026-07-13T12:45:22.050577+00:00",
+  "pending": [
+    "PIE input and runtime scenarios",
+    "visible visual QA",
+    "cook manifest validation for all 127 packages",
+    "package",
+    "packaged runtime"
+  ],
+  "schema_version": 1,
+  "scope": {
+    "font_faces": 7,
+    "root_counts": {
+      "/Game/_Game/Widgets/Attributes": 27,
+      "/Game/_Game/Widgets/Chronicle": 23,
+      "/Game/_Game/Widgets/InnerState": 24,
+      "/Game/_Game/Widgets/InnerDoctrineAltar": 36,
+      "/Game/_Game/Widgets/Status": 17
+    },
+    "source_bytes": 12370672,
+    "source_packages_migrated": 127,
+    "textures": 54,
+    "unique_native_parents": 52,
+    "widget_blueprints_compiled": 66
+  },
+  "status": "CONTENT_CONFIG_BUILD_PASS_PIE_VISUAL_COOK_PACKAGE_PENDING"
+}

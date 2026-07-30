@@ -1,0 +1,78 @@
+{
+  "content_commit": "95fcd1b",
+  "evidence": {
+    "build_logs": {
+      "editor": "Saved/Migration/Logs/Phase4_DungeonGeneration_EditorBuild58.log",
+      "game": "Saved/Migration/Logs/Phase4_DungeonGeneration_GameBuild58.log"
+    },
+    "content_logs": {
+      "migration57": "Saved/Migration/Logs/Phase4_DungeonGeneration57_Migration_Resume.log",
+      "resave58": "Saved/Migration/Logs/Phase4_DungeonGeneration58_Resave.log",
+      "validation57": "Saved/Migration/Logs/Phase4_DungeonGeneration57_Validation_Retry.log"
+    },
+    "harness": "Saved/Migration/Phase4/DungeonGeneration/DungeonGeneration57HarnessReceipt.json",
+    "migration57": "Saved/Migration/Phase4/DungeonGeneration/DungeonGeneration57Migration.json",
+    "post_migration57_gate": "Saved/Migration/Phase4/DungeonGeneration/Gates/POST_MIGRATION57_SafetyGate.json",
+    "post_resave58_gate": "Saved/Migration/Phase4/DungeonGeneration/Gates/POST_RESAVE58_SafetyGate.json",
+    "prior_logs": {
+      "migration57_assettools_run": "Saved/Migration/Logs/Phase4_DungeonGeneration57_Migration.log",
+      "validation57_api_probe": "Saved/Migration/Logs/Phase4_DungeonGeneration57_Validation.log"
+    },
+    "resave58": "Saved/Migration/Phase4/DungeonGeneration/DungeonGeneration58Resave.json",
+    "validation57": "Saved/Migration/Phase4/DungeonGeneration/DungeonGeneration57Validation.json"
+  },
+  "gates": {
+    "editor_build": "PASS",
+    "game_build": "PASS",
+    "isolated_ue57_harness": "ISOLATED_DUNGEON_GENERATION57_HARNESS_PASS",
+    "protected_target_invariants_after_ue57": "PASS",
+    "protected_target_invariants_after_ue58": "PASS",
+    "source_read_only_after_ue57": "PASS",
+    "source_read_only_after_ue58": "PASS",
+    "target_delta_exact": true,
+    "ue57_assettools_exact_migration": "ASSETTOOLS_EXACT_DUNGEON_GENERATION_MIGRATION_PASS",
+    "ue57_read_only_map_load": "UE57_DUNGEON_GENERATION_READ_ONLY_LOAD_PASS",
+    "ue58_load_save_reload": "UE58_DUNGEON_GENERATION_LOAD_RESAVE_RELOAD_PASS"
+  },
+  "generated_utc": "2026-07-13T13:33:41.227652+00:00",
+  "pending": [
+    "PIE runtime validation on the migrated map",
+    "visible procedural and navigation QA",
+    "cook and cooked-manifest validation",
+    "package",
+    "packaged runtime",
+    "/Game/Procedural/DoorToLevel",
+    "/Game/Calysto/Dungeon/Blueprint/BP_MassiveDungeon",
+    "canonical StartPoint discovery/spawn",
+    "full procedural dungeon generation and cleanup flow"
+  ],
+  "process_notes": [
+    "The first UE 5.7 validation attempt used an unavailable AssetData.object_path property; the compatible get_soft_object_path retry passed without saving the map.",
+    "The first UE 5.7 migration run migrated exactly one package, then stopped at an invalid byte-identity assertion because AssetTools reserialized the map. The resume gate verified that exact one-package delta before UE 5.8 resave."
+  ],
+  "schema_version": 1,
+  "scope": {
+    "asset_class": "World",
+    "engine_dependencies": [
+      "/Engine/EngineMaterials/WorldGridMaterial",
+      "/Script/NavigationSystem",
+      "/Script/PCG"
+    ],
+    "external_game_dependencies": 0,
+    "package": "/Game/Procedural/Maps/DungeonGeneration",
+    "required_actor_classes": [
+      "NavMeshBoundsVolume",
+      "PCGWorldActor",
+      "PlayerStart"
+    ],
+    "sidecars_or_external_packages": 0,
+    "source_length": 58016,
+    "source_packages_migrated": 1,
+    "source_sha256": "B6758C3A98EC06B3E31DCFA6A1A5179403F63C0A53B227E41BF1902E1569FF8F",
+    "streaming_levels": 0,
+    "target_length": 58272,
+    "target_sha256": "4262B37586D7626F2C912AD81BE7FFF27EEA2615130919B5B85339E7B77E39E1",
+    "world_partitioned": false
+  },
+  "status": "CONTENT_BUILD_MAP_LOAD_PASS_PIE_VISUAL_COOK_PACKAGE_DUNGEON_RUNTIME_PENDING"
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:52:29Z",
+  "plugin": "ACFTrainingSystem",
+  "engine": "UE 5.8",
+  "target_acfu": "4.3.5",
+  "import": {
+    "policy": "descriptor plus Source only; 12 allowlisted files; Binaries, Intermediate, Saved, Content, and Config excluded",
+    "receipt": "Docs/Migration/Evidence/Phase3_ACFTrainingSystem_ImportReceipt.json",
+    "receipt_length": 4257,
+    "receipt_sha256": "97080B5440BDF48701263E4D2B9D70ED71909D2008D39388689ADA23C29F5EAC"
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 14,
+    "log": "Saved/Migration/Logs/Phase3_ACFTrainingSystem_EditorBuild_20260713.log",
+    "log_length": 11084,
+    "log_sha256": "8AC61874B69F1F3C27BB7057DCDF3905C1E7AC6C9161AECBF7EABD0BE11FF9FF"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 8,
+    "log": "Saved/Migration/Logs/Phase3_ACFTrainingSystem_GameBuild_20260713.log",
+    "log_length": 4624,
+    "log_sha256": "F22A754A75E693F1A3C5307BF9F72C72B0B25F75E552DBD2504EBE9FCE5E4078"
+  },
+  "asset_migration": {
+    "package": "/Game/ExportedAnimations/Anim_KA_Idle53_Seiza_Loop1",
+    "source_sha256": "B5397DA1F395DE4C3D2BEC31B6D8498C36FC17EBE6A77BADEAEE378D36DA1DCC",
+    "source_length": 621597,
+    "method": "target-hosted isolated UE 5.7 harness plus AssetTools migrate_packages with ignore_dependencies=true",
+    "staged_packages": 3,
+    "migrated_packages": 1,
+    "load_only_staging_dependencies": [
+      "/Game/DazToUnreal/Female/Female",
+      "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin"
+    ],
+    "harness_receipt": "Saved/Migration/Phase3/ACFTrainingAnimation57HarnessReceipt.json",
+    "harness_receipt_length": 2616,
+    "harness_receipt_sha256": "8A71ED4E390D83FC919318C8CF139AC45668D64EB26BD36D05691A3193082D63",
+    "migration_evidence": "Saved/Migration/Phase3/ACFTrainingAnimation57Migration.json",
+    "migration_evidence_sha256": "75880157868A13D31EE8391C0700AA2DBBB64A2D96E3E795652FBF0F801E922A",
+    "migration_log": "Saved/Migration/Logs/Phase3_ACFTrainingSystem_AnimationMigration_UE57_Retry.log",
+    "migration_log_length": 95355,
+    "migration_log_sha256": "57EAC57A78ED6E78FDF624AEC89813A5092B3B0FFFF70146555B9FEE3EF6FD4C",
+    "forbidden_indirect_dependencies_absent": 10,
+    "protected_target_dependencies_unchanged": true
+  },
+  "ue58_asset_validation": {
+    "result": "PASS",
+    "class": "AnimSequence",
+    "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+    "dependency_count": 9,
+    "target_length": 621968,
+    "target_sha256": "075F215945E0262BF189DAE947B6AAAB53DCFCC3D043E776D392E0D8035A5176",
+    "idempotent_resave": true,
+    "evidence": "Saved/Migration/Phase3/ACFTrainingAnimation58Validation.json",
+    "evidence_sha256": "1A84A5C2B9E2AF764009DBB3A0DE267BFDB2680195B4F340C4738C6501F49826",
+    "log": "Saved/Migration/Logs/Phase3_ACFTrainingSystem_AnimationValidation_UE58_Final.log",
+    "log_length": 506395,
+    "log_sha256": "BC11C850736FE7384D39F34E84B2C536D61D5B822027C1659CFE046A78275E83"
+  },
+  "static_contract": {
+    "specialized_source_audit": "PASS",
+    "specialized_target_audit": "PASS",
+    "default_training_ids": ["PushUps", "JumpRope", "ReadBook", "Meditate"],
+    "acf_modifier_application": "AddAttributeSetModifier",
+    "primary_attribute_reward_modifier": "PrimaryAttributesMod"
+  },
+  "recovery_note": {
+    "incident": "The first dependency-free harness attempt produced an unloadable partial package because the animation skeleton was unavailable.",
+    "resolution": "The Editor deletion path removed the partial package; the retry staged exact-hash Female and skeleton packages only inside Saved, then migrated only the animation root.",
+    "raw_filesystem_asset_delete_used": false
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "source_plugin_unchanged": true,
+    "target_acfu_modified": false,
+    "target_daz_assets_modified": false
+  },
+  "pending_qa": [
+    "Add /Game/ExportedAnimations to the target AlwaysCook roots during the Phase 4 config merge.",
+    "Integrate the training component and its UI/action entry points with the authoritative Player after EFProjectSystems is ported.",
+    "Exercise ARS/GAS rewards, requirement gates, cancellation, replication, persistence, and every minigame delegate in PIE.",
+    "Run cook/package and packaged-runtime smoke gates."
+  ],
+  "status": "BUILD_EDITOR_GAME_ASSET_PASS_RUNTIME_COOK_QA_PENDING"
+}

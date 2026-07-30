@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:03:30Z",
+  "plugin": "CodeWidgetDesignerBridge",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 23 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_CodeWidgetDesignerBridge_ImportReceipt.json",
+    "receipt_sha256": "8363A72B34C825371CBAE536ADF5C58363BDF3C2E6CFCDF3CAC4F60A58153196",
+    "source_target_hashes_match": true
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "uht_generated_files": 22,
+    "build_actions": 22,
+    "log": "Saved/Migration/Logs/Phase3_CodeWidgetDesignerBridge_EditorBuild_20260713.log",
+    "log_length": 13986,
+    "log_sha256": "EF8F639145DEF2472FEB2CAEB531AAFCB15824E2FB0A33BBCB1F7292A1D5C94F"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 5,
+    "log": "Saved/Migration/Logs/Phase3_CodeWidgetDesignerBridge_GameBuild_20260713.log",
+    "log_length": 4600,
+    "log_sha256": "A1970D0F020B89611F8419969E91FAB5628E2FA2941575DCA390791C783294EB"
+  },
+  "warnings": [
+    "Editor build dependency warnings belong to BpGeneratorUltimate, not CodeWidgetDesignerBridge."
+  ],
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Run Preflight and ValidateOnly after an EFProjectSystems provider exists.",
+    "Generate, compile, save, reload, validate, and Editor-delete one controlled WBP.",
+    "Cook, package, and runtime resolver smoke test in the final QA phases."
+  ],
+  "status": "BUILD_EDITOR_GAME_PASS_QA_PENDING"
+}

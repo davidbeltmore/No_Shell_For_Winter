@@ -1,0 +1,294 @@
+{
+  "content_commit": "ec10c8e",
+  "evidence": {
+    "build_logs": {
+      "editor": "Saved/Migration/Logs/Phase4_DirtyPawnAssets_EditorBuild58.log",
+      "game": "Saved/Migration/Logs/Phase4_DirtyPawnAssets_GameBuild58.log"
+    },
+    "content_logs": {
+      "migration57": "Saved/Migration/Logs/Phase4_DirtyPawnAssets57_Migration_Resume.log",
+      "resave58": "Saved/Migration/Logs/Phase4_DirtyPawnAssets58_Resave.log",
+      "validation57": "Saved/Migration/Logs/Phase4_DirtyPawnAssets57_Validation.log"
+    },
+    "harness": "Saved/Migration/Phase4/DirtyPawnAssets/DirtyPawnAssets57HarnessReceipt.json",
+    "migration57": "Saved/Migration/Phase4/DirtyPawnAssets/DirtyPawnAssets57Migration.json",
+    "post_migration57_gate": "Saved/Migration/Phase4/DirtyPawnAssets/Gates/POST_MIGRATION57_SafetyGate.json",
+    "post_resave58_gate": "Saved/Migration/Phase4/DirtyPawnAssets/Gates/POST_RESAVE58_SafetyGate.json",
+    "prior_migration_log": "Saved/Migration/Logs/Phase4_DirtyPawnAssets57_Migration.log",
+    "resave58": "Saved/Migration/Phase4/DirtyPawnAssets/DirtyPawnAssets58Resave.json",
+    "runtime_log": "Saved/Migration/Logs/Phase4_EFProjectSystems_DefeatPIE_DirtyPawn_20260713_084332.log",
+    "runtime_report": "Saved/Migration/Automation/Phase4_EFProjectSystems_DefeatPIE_DirtyPawn_20260713_084332/index.json",
+    "validation57": "Saved/Migration/Phase4/DirtyPawnAssets/DirtyPawnAssets57Validation.json"
+  },
+  "gates": {
+    "editor_build": "PASS",
+    "focused_runtime_binding_contract": "PASS_WITH_EXPECTED_WARNINGS",
+    "game_build": "PASS",
+    "isolated_ue57_harness": "ISOLATED_DIRTYPAWN_ASSETS57_HARNESS_PASS",
+    "protected_target_invariants_after_ue57": "PASS",
+    "protected_target_invariants_after_ue58": "PASS",
+    "source_read_only_after_ue57": "PASS",
+    "source_read_only_after_ue58": "PASS",
+    "target_delta_exact": true,
+    "ue57_assettools_exact_migration": "ASSETTOOLS_EXACT_DIRTYPAWN_ASSETS_MIGRATION_PASS",
+    "ue57_prior_hash_stop_recovered": "PASS",
+    "ue57_read_only_load": "UE57_DIRTYPAWN_ASSETS_READ_ONLY_LOAD_PASS",
+    "ue58_load_compile_resave_reload": "UE58_DIRTYPAWN_ASSETS_LOAD_COMPILE_RESAVE_RELOAD_PASS",
+    "ue58_material_shader_log_errors": 0
+  },
+  "generated_utc": "2026-07-13T13:45:02+00:00",
+  "packages": [
+    {
+      "class": "Texture2D",
+      "package": "/Game/DirtyPawnSystem/Demo/Character/Characters/Mannequins/Textures/Manny/T_Manny_01_D",
+      "source_length": 5671240,
+      "source_sha256": "47CF420ED20BFE200907775D89FB1A08F6D8FAF19A90C4DD9C46F2FB722DC23A",
+      "target_dependencies": [],
+      "target_length": 5671244,
+      "target_sha256": "B9AA799F7D7FB85A06B841BA7A5634EDDE88B3321CDDB984D9521DC8BB9C3F9C"
+    },
+    {
+      "class": "Texture2D",
+      "package": "/Game/DirtyPawnSystem/Demo/StarterContent/Textures/T_Perlin_Noise_M",
+      "source_length": 6804350,
+      "source_sha256": "9709239B17825D08BC603D4F9321D209AD980D4A1FB91242C5971BAFDA6ED421",
+      "target_dependencies": [],
+      "target_length": 6804354,
+      "target_sha256": "C764F4DEE49A3164C2DB68DC348AF7F96D834C93A6B7050A76A0E76D25715313"
+    },
+    {
+      "class": "Material",
+      "package": "/Game/DirtyPawnSystem/Materials/DAZ/M_DirtyPawn_DAZSkinWrapper",
+      "source_length": 255891,
+      "source_sha256": "392D4DDFE8E8DD00278364E2F71385960720257614BB30679135C073B417D0F9",
+      "target_dependencies": [
+        "/Engine/EngineMaterials/DefaultDiffuse",
+        "/Engine/EngineMaterials/T_Default_Normal",
+        "/Engine/EngineResources/DefaultTexture",
+        "/Engine/Functions/Engine_MaterialFunctions01/Gradient/LinearGradient",
+        "/Engine/Functions/Engine_MaterialFunctions01/ImageAdjustment/CheapContrast",
+        "/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture",
+        "/Game/DirtyPawnSystem/Demo/Character/Characters/Mannequins/Textures/Manny/T_Manny_01_D",
+        "/Game/DirtyPawnSystem/Demo/StarterContent/Textures/T_Perlin_Noise_M",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Blood/MF_Blood_Mask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SandSnow_Mask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Mud/MF_MudHeight_BaseColor",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_BaseColor",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_Normal",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_Roughness",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/Smear/MF_Smear_Mask",
+        "/Game/DirtyPawnSystem/Textures/T_BloodScratch_Alpha",
+        "/Game/DirtyPawnSystem/Textures/T_Noise_Normal",
+        "/Game/DirtyPawnSystem/Textures/T_Perlin_Noise_M",
+        "/Game/_Game/Textures/leakage_sfhkcazc_4k/T_Leakage_sfhkcazc_2K_Mask"
+      ],
+      "target_length": 254983,
+      "target_sha256": "8B1300367692C76E352A973405DA0B52E6F0EB12598676753B8BCDBAE76812A0"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Blood/MF_Blood_Mask",
+      "source_length": 22408,
+      "source_sha256": "57BDD2550E8A1586A9999CAB8307CDB4BA52A926C9B0B9EDF2FCD66045BB852E",
+      "target_dependencies": [
+        "/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture",
+        "/Game/DirtyPawnSystem/Textures/T_BloodScratch_Alpha"
+      ],
+      "target_length": 22411,
+      "target_sha256": "624AA998C2BA16B112A24F6E8C25C8A732B821E6A2C2474B5E311FADF86E8F60"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SandSnow_Mask",
+      "source_length": 23681,
+      "source_sha256": "56FBDDDD6762F8CD54DAF49BE8B8B4EA098BD08626C79926FEDB35AA4CDFEA7D",
+      "target_dependencies": [
+        "/Engine/Functions/Engine_MaterialFunctions01/ImageAdjustment/CheapContrast",
+        "/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture",
+        "/Game/DirtyPawnSystem/Demo/StarterContent/Textures/T_Perlin_Noise_M"
+      ],
+      "target_length": 23623,
+      "target_sha256": "7F480D232EDEC4F8788F09ADB1B0DE025143B13D23CFFD3505ED4AF93841D45E"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask",
+      "source_length": 12443,
+      "source_sha256": "02D08E46CC2DE5E92BD9559EDF802DA42FD42460E313F7B754CE0F129DD969F6",
+      "target_dependencies": [],
+      "target_length": 12385,
+      "target_sha256": "BD8E38FE8AB3D3D4FFE824512EE2D26657635D04AF21F5256715D777E04F4932"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Mud/MF_MudHeight_BaseColor",
+      "source_length": 30871,
+      "source_sha256": "191537151EAD8A64A90F18C7BF19BD5711DDBAF7C5CEE9A2B122706F1CFA6124",
+      "target_dependencies": [
+        "/Game/DirtyPawnSystem/Demo/Character/Characters/Mannequins/Textures/Manny/T_Manny_01_D",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask"
+      ],
+      "target_length": 30813,
+      "target_sha256": "C25E59CBC89C94963C3489C116C6A3E76536C1FB0777F5AF45BEA8776B379A15"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_BaseColor",
+      "source_length": 20559,
+      "source_sha256": "1370B08DEB27C2103029D615080E3A130AC0B50F3B62FAC78164A17B64F294B7",
+      "target_dependencies": [
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SandSnow_Mask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask"
+      ],
+      "target_length": 20501,
+      "target_sha256": "79A9410A7425B195C69DFEB263970AF3FFBE0ED809D3ACBBCC6D7F8166226825"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_Normal",
+      "source_length": 21777,
+      "source_sha256": "47CDF279EC8493331CACD9FFCB05754A0FD3F303E4786063E450BB1AE0839665",
+      "target_dependencies": [
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SandSnow_Mask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask",
+        "/Game/DirtyPawnSystem/Textures/T_Noise_Normal"
+      ],
+      "target_length": 21719,
+      "target_sha256": "22A792E6C1C25F16840B3881F051ECCC2EFCC55C8D9B1013447CC51D737A542C"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand/MF_Sand_Roughness",
+      "source_length": 28930,
+      "source_sha256": "59D6D1E3B53A7AC68318BB618398C988C1A06FC3AFD72CC691535ECDA20AC4CB",
+      "target_dependencies": [
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SandSnow_Mask",
+        "/Game/DirtyPawnSystem/Materials/Functions/DPS/MF_SkinnedHeightMask"
+      ],
+      "target_length": 28872,
+      "target_sha256": "40B0D21C365181901273D51059A1DA601FA9A752D25D627E6AB776F8BFA98C1C"
+    },
+    {
+      "class": "MaterialFunction",
+      "package": "/Game/DirtyPawnSystem/Materials/Functions/DPS/Smear/MF_Smear_Mask",
+      "source_length": 24293,
+      "source_sha256": "D75FDB123DEADA3C94BE1EC96D41370450784E7F6D103A84AE515D043BC8EDDA",
+      "target_dependencies": [
+        "/Engine/Functions/Engine_MaterialFunctions01/ImageAdjustment/CheapContrast",
+        "/Engine/Functions/Engine_MaterialFunctions01/Texturing/WorldAlignedTexture",
+        "/Game/DirtyPawnSystem/Demo/StarterContent/Textures/T_Perlin_Noise_M"
+      ],
+      "target_length": 24296,
+      "target_sha256": "26A78880B9F9B5EF874289A3D198F4DF3A11C44E0B8D304EDEB98438B1671F19"
+    },
+    {
+      "class": "Texture2D",
+      "package": "/Game/DirtyPawnSystem/Textures/T_BloodScratch_Alpha",
+      "source_length": 3151543,
+      "source_sha256": "B47114C5A32143F9D904E37D64CBB1DB3EEF0BC4F3C2E8F72CA9EEB0C3DB58F2",
+      "target_dependencies": [
+        "/Script/InterchangeEngine"
+      ],
+      "target_length": 3151607,
+      "target_sha256": "CC777F3C5CD26A6E5CF36CB4A896E127F771188FA7F56A0EF0A6D5FB1C551248"
+    },
+    {
+      "class": "Texture2D",
+      "package": "/Game/DirtyPawnSystem/Textures/T_Noise_Normal",
+      "source_length": 44168853,
+      "source_sha256": "4FCDADCE5A057901DC58A2D01C4F1222788A57776CEB9C300237C96A5962E252",
+      "target_dependencies": [
+        "/Script/InterchangeEngine"
+      ],
+      "target_length": 44168917,
+      "target_sha256": "C33E6A8C5BD38FAFFCD736E3A014002EB6F05AB6C2C1081289F081BF8C81B446"
+    },
+    {
+      "class": "Texture2D",
+      "package": "/Game/DirtyPawnSystem/Textures/T_Perlin_Noise_M",
+      "source_length": 6790192,
+      "source_sha256": "A723B32150877CFFE0C0CCD63012645A6F164A7EA3060F997DC02F9B04FE233A",
+      "target_dependencies": [],
+      "target_length": 6790196,
+      "target_sha256": "8FF3AEA4932D01F0F864825011B34732DEEB4C83B6C66C53E4AC2D17BAA0E249"
+    },
+    {
+      "class": "Texture2D",
+      "package": "/Game/_Game/Textures/leakage_sfhkcazc_4k/T_Leakage_sfhkcazc_2K_Mask",
+      "source_length": 3103406,
+      "source_sha256": "524C8FA141E6822957DB8FB078162D23A1EBE51174B7352A0437C8AE1211FF6A",
+      "target_dependencies": [
+        "/Script/InterchangeEngine"
+      ],
+      "target_length": 3103278,
+      "target_sha256": "078E8D9CA853A81931B188AB75A661F2A371496FFD13A079753DEFA01CC2F3EE"
+    }
+  ],
+  "pending": [
+    "visible wet/water/wash QA",
+    "visible mud QA and persistence sequence",
+    "visible blood and smear QA",
+    "visible snow, sand, and dirt/burn QA",
+    "DirtyPawn wrapper compatibility with the project tattoo paths",
+    "blood texture alpha-channel API and rendered-alpha confirmation",
+    "Phase 7 authoritative Female/Player morph-physics constraint audit",
+    "cook and cooked-manifest validation for all 15 packages",
+    "package",
+    "packaged runtime"
+  ],
+  "process_notes": [
+    "The first UE 5.7 AssetTools run migrated exactly 15 packages, then stopped at an invalid byte-identity assertion after four assets were legitimately reserialized.",
+    "The resume path verified the exact prior 15-package target delta and hash-stop provenance before UE 5.8 resave.",
+    "The focused runtime contract proves wrapper resolution and six material bindings in each of six successful Defeat-flow tests; it is not visual DirtyPawn acceptance."
+  ],
+  "runtime_contract": {
+    "automation_failed": 0,
+    "automation_not_run": 0,
+    "automation_succeeded": 0,
+    "automation_succeeded_with_warnings": 6,
+    "dirty_pawn_runtime_error_count": 0,
+    "morph_physics_warning_count": 14812,
+    "morph_physics_warning_disposition": "PENDING_PHASE7_PLAYER_DAZ_MORPH_PHYSICS",
+    "pie_lifecycle_error_count": 0,
+    "ready_bindings_6_count": 6,
+    "scope": "Focused Defeat-flow PIE integration and DirtyPawn wrapper/material binding readiness; not effect visual acceptance.",
+    "test_result_success_count": 6,
+    "tests": [
+      "Defeat.Flow.PIE.CancelledPresentationRestoresMovement",
+      "Defeat.Flow.PIE.CombatStruggleLose",
+      "Defeat.Flow.PIE.CombatStruggleWin",
+      "Defeat.Flow.PIE.OutOfCombatRecovery",
+      "Defeat.Flow.PIE.RepeatKnockoutSameCombat",
+      "NoShellForWinter.Defeat.Flow.PIE.TravelArrivalPrivatePresentationCancelRestoresMovement"
+    ],
+    "wrapper_material_missing_count": 0
+  },
+  "schema_version": 1,
+  "scope": {
+    "class_counts": {
+      "Material": 1,
+      "MaterialFunction": 8,
+      "Texture2D": 6
+    },
+    "material_functions_compiled": 8,
+    "materials_compiled": 1,
+    "redirectors": 0,
+    "source_bytes": 70130437,
+    "source_fingerprint": "8F58CFD389DA0D63D2633D372C5DE251496EC53F53EEC15FE51AB160C46AEC36",
+    "source_packages_migrated": 15,
+    "target_bytes": 70129199,
+    "target_fingerprint": "773CC5A9423B7C250041FF4F2FD4BFBC0EE5725456C26AA6AA244FC0CCF94D34",
+    "textures_loaded": 6,
+    "unexpected_game_dependencies": 0
+  },
+  "status": "CONTENT_BUILD_RUNTIME_BINDING_CONTRACT_PASS_VISUAL_ALPHA_COOK_PACKAGE_PENDING",
+  "texture_limits": {
+    "blood_texture_alpha": "PENDING_API_AND_VISUAL_CONFIRMATION",
+    "blood_texture_dimensions": [
+      2048,
+      2048
+    ],
+    "note": "The UE 5.8 commandlet proved dimensions only; it did not promote alpha-channel or rendered blood acceptance."
+  }
+}

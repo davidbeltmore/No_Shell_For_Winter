@@ -1,0 +1,27 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Character Creation ACFU Bridge",
+	"Description": "Optional ACFU-oriented gameplay bridge for character creation movement locking and ability cancellation.",
+	"Category": "EF",
+	"CanContainContent": false,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "EFCharacterCreation",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "EFCharacterCreationACFURuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

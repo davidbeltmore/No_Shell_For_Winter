@@ -1,0 +1,69 @@
+{
+  "evidence": {
+    "automation": "Saved/Migration/Automation/Phase4_EFProjectSystems_CoreContent_20260713_corecontent_clean/index.json",
+    "build_logs": {
+      "editor": "Saved/Migration/Logs/Phase4_CoreContent_DefeatVisual_EditorBuild58.log",
+      "game": "Saved/Migration/Logs/Phase4_CoreContent_DefeatVisual_GameBuild58.log"
+    },
+    "core_migration57": "Saved/Migration/Phase4/EFProjectCoreContent57Migration.json",
+    "core_resave58": "Saved/Migration/Phase4/EFProjectCoreContent58Resave.json",
+    "core_validation57": "Saved/Migration/Phase4/EFProjectCoreContent57Validation.json",
+    "defeat_migration57": "Saved/Migration/Phase4/DefeatVisualMigration57.json",
+    "defeat_resave58": "Saved/Migration/Phase4/DefeatVisualResave58.json",
+    "preview_import58": "Saved/Migration/Phase4/CharacterBackgroundPreviewImport58.json",
+    "protected_gate": "Saved/Migration/Evidence/ProtectedInvariantVerification.json",
+    "settings58": "Saved/Migration/Phase4/EFProjectCoreSettings58.json",
+    "source_gate": "Saved/Migration/Evidence/SourceReadOnlyVerification.json"
+  },
+  "gates": {
+    "automation": {
+      "failed": 0,
+      "not_run": 0,
+      "succeeded": 9,
+      "succeeded_with_warnings": 0
+    },
+    "editor_build": "PASS",
+    "game_build": "PASS",
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "stale_defeat_preload_paths_removed": true,
+    "structural_soft_assets": {
+      "existing": 9,
+      "missing": [
+        "/Game/Procedural/DoorToLevel",
+        "/Game/Procedural/Maps/DungeonGeneration"
+      ],
+      "total": 11
+    },
+    "ue57_core_assettools": "ASSETTOOLS_EXACT_BATCH_MIGRATION_PASS",
+    "ue57_core_read_only_validation": "UE57_POST_MIGRATION_READ_ONLY_VALIDATION_PASS",
+    "ue57_defeat_visual_assettools": "ASSETTOOLS_EXACT_DEFEAT_VISUAL_MIGRATION_PASS",
+    "ue58_core_resave": "UE58_LOAD_COMPILE_CONTRACT_RESAVE_PASS",
+    "ue58_defeat_visual_resave": "UE58_DEFEAT_VISUAL_LOAD_COMPILE_RESAVE_PASS",
+    "ue58_effective_settings": "UE58_EFFECTIVE_CORE_SETTINGS_PASS",
+    "ue58_preview_texture_import": "UE58_ASSETTOOLS_TEXTURE_IMPORT_PASS"
+  },
+  "generated_utc": "2026-07-13T12:24:56.792448+00:00",
+  "pending": [
+    "PIE runtime scenarios",
+    "visible visual QA",
+    "cook",
+    "package",
+    "packaged runtime",
+    "DoorToLevel",
+    "DungeonGeneration"
+  ],
+  "release_values": {
+    "pain_per_applied_damage": 0.009999999776482582,
+    "preview_texture": "/Game/_Game/Images/T_ProjectCharacterBackgroundPreview.T_ProjectCharacterBackgroundPreview"
+  },
+  "schema_version": 1,
+  "scope": {
+    "defeat_visual_registered_packages": 13,
+    "raw_files_verified": 1,
+    "source_packages_migrated": 31,
+    "target_texture_packages_generated": 1,
+    "widget_blueprints_compiled": 2
+  },
+  "status": "CONTENT_CONFIG_BUILD_AUTOMATION_PASS_PIE_VISUAL_COOK_PACKAGE_PENDING"
+}

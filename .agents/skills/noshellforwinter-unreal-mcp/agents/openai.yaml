@@ -1,0 +1,15 @@
+interface:
+  display_name: "NoShellForWinter Unreal MCP"
+  short_description: "Contexto vivo del Unreal Editor 5.8"
+  default_prompt: "Use $noshellforwinter-unreal-mcp to inspect the live NoShellForWinter Unreal Editor context before changing the project."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "unreal-mcp"
+      description: "Native Unreal Engine 5.8 editor MCP server"
+      transport: "streamable_http"
+      url: "http://127.0.0.1:8000/mcp"
+
+policy:
+  allow_implicit_invocation: true

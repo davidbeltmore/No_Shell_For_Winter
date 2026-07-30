@@ -1,0 +1,53 @@
+﻿{
+    "schema_version":  1,
+    "captured_utc":  "2026-07-13T08:11:37.5124326Z",
+    "sets":  [
+                 {
+                     "name":  "ACFU_4_3_5",
+                     "root":  "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5",
+                     "file_count":  5043,
+                     "total_bytes":  6170659421,
+                     "manifest":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Reports\\Phase0_ACFU_4_3_5_Manifest_Before.csv",
+                     "manifest_sha256":  "69F46CACC120E44AC3B1729342E059CCD24D77D01534CB4E0F36C4A8A26D87F9"
+                 },
+                 {
+                     "name":  "DazToUnreal_5_8_0_491",
+                     "root":  "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\DazToUnreal",
+                     "file_count":  213,
+                     "total_bytes":  172602860,
+                     "manifest":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Reports\\Phase0_DazToUnreal_5_8_0_491_Manifest_Before.csv",
+                     "manifest_sha256":  "523200EBEED3B1284445C0570029CE746C10D4E5039B41AAD769544166E2B491"
+                 },
+                 {
+                     "name":  "Target_Daz_Assets",
+                     "root":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal",
+                     "file_count":  189,
+                     "total_bytes":  980685486,
+                     "manifest":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Reports\\Phase0_Target_Daz_Assets_Manifest_Before.csv",
+                     "manifest_sha256":  "A0F3176C7AFF078DC3D8669D93D1A65ACA6D520AF6938F593500967835414FAA"
+                 }
+             ],
+    "authoritative_assets":  [
+                                 {
+                                     "path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\Player.uasset",
+                                     "length":  124646,
+                                     "sha256":  "0614B40D06F04F64E71C95E218F905C494AC9C5B161F6ABE280BDB366747DA14"
+                                 },
+                                 {
+                                     "path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female.uasset",
+                                     "length":  62494640,
+                                     "sha256":  "B3BC3B6AEDF79C025F826305EFB219F827E3BE487DF7F2F7A4DC31FF17377BAB"
+                                 },
+                                 {
+                                     "path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple.uasset",
+                                     "length":  15185307,
+                                     "sha256":  "350B862EC2CC547BC1820F17559880C25ACCCC063A669906E8FE6F1F8C17F780"
+                                 },
+                                 {
+                                     "path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male.uasset",
+                                     "length":  170735765,
+                                     "sha256":  "97D7CBD410788F02D6CC7AAEBE80ADCDC167C9BFB1FB6E3CA56B8DDBCBFE55DC"
+                                 }
+                             ],
+    "frederick_asset_resolution":  "PENDING_RUNTIME_INSPECTION"
+}

@@ -1,0 +1,41 @@
+{
+  "plugin": "Plugins/DirtyPawnRuntime",
+  "asset_root": "/Game/DirtyPawnSystem",
+  "runtime_assets": [
+    "/Game/DirtyPawnSystem/Materials/DAZ/M_DirtyPawn_DAZSkinWrapper",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Wet",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Mud",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Blood",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Smear",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Sand",
+    "/Game/DirtyPawnSystem/Materials/Functions/DPS/Snow",
+    "/Game/DirtyPawnSystem/Materials/Water",
+    "/Game/DirtyPawnSystem/Textures/T_BloodScratch_Alpha",
+    "/Game/DirtyPawnSystem/Textures/T_Noise_Normal",
+    "/Game/DirtyPawnSystem/Textures/T_Scratch_Normal",
+    "/Game/DirtyPawnSystem/Textures/T_Perlin_Noise_M",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Water",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Water_Mud",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Water_Bleach",
+    "/Game/DirtyPawnSystem/Blueprints/BP_FadeWashVolume",
+    "/Game/DirtyPawnSystem/Blueprints/BP_FadeSandSnowVolume",
+    "/Game/DirtyPawnSystem/Blueprints/BP_InteriorVolume",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Sand",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Snow",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Blood",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Burn",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Dirt",
+    "/Game/DirtyPawnSystem/Blueprints/BP_Smear"
+  ],
+  "qa_tools": [
+    "Tools/DirtyPawnRuntime/create_dirty_pawn_material_wrapper.py",
+    "Tools/DirtyPawnRuntime/test_dirty_pawn_precision_bands.py",
+    "Tools/DirtyPawnRuntime/test_dirty_pawn_visual_runtime.py",
+    "Tools/DirtyPawnRuntime/run_dirty_pawn_clean_start_visual_capture.ps1"
+  ],
+  "notes": [
+    "Migrate assets through Unreal Editor or AssetTools, not raw filesystem moves.",
+    "DirtyPawnRuntime must remain free of EFProjectSystems dependencies.",
+    "Project-specific gameplay effects should listen to DirtyPawn state queries/delegates from another module."
+  ]
+}

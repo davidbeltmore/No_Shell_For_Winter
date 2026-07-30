@@ -1,0 +1,62 @@
+{
+  "schema_version": 2,
+  "captured_utc": "2026-07-13T09:39:00Z",
+  "entries": [
+    {
+      "path": "Saved/Migration/Logs/Phase1_GenerateProjectFiles_Retry_20260713.log",
+      "result": "PASS",
+      "exit_code": 0,
+      "length": 17648,
+      "sha256": "22C75A9FE47872B197E77770D738855413BECD43CCC85AF4E815B5584AC4672B"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_DevelopmentEditor_Build_20260713.log",
+      "result": "PASS",
+      "exit_code": 0,
+      "length": 10296,
+      "sha256": "01D526B359D3FF05D55FAC4EA573AE7E05B35A566F40E20D287C2FF845004A9A"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_DevelopmentGame_Build_20260713.log",
+      "result": "PASS",
+      "exit_code": 0,
+      "length": 11186,
+      "sha256": "A01F8133B621B4B7632BA2BD6425646AE14B8EDB2CFC2D7EC9653C735101F009"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_20260713.log",
+      "result": "FAIL_PREEXISTING",
+      "exit_code": 83,
+      "length": 1620778,
+      "sha256": "76FA6973A7FEAD1810E9E280AEC6B83320BBD2AE1E9EDC60A704E9938F50B79F"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_AfterRedirect_20260713.log",
+      "result": "FAIL_PREEXISTING_REDUCED",
+      "exit_code": 5,
+      "length": 1312547,
+      "sha256": "202A5120FF01312932C1A4D97BA540E910B67BDB315CB22FBDDE417E30EE851A"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_AfterOrphanCleanup_20260713.log",
+      "result": "BLOCKED_EXTERNAL",
+      "exit_code": 2,
+      "length": 1296665,
+      "sha256": "653BA7B7F8E064CA9F083C95A45DABDB3522F37F71F66EB78E959D7CF801432A"
+    },
+    {
+      "path": "Saved/Migration/Logs/Phase1_MinimalCook_TestMap_20260713.log",
+      "result": "PASS",
+      "exit_code": 0,
+      "length": 1028812,
+      "sha256": "FD7C5C75F9E563102575951A5286EBEE2549F3F936F11274B434DF9332AB13A0"
+    },
+    {
+      "path": "Saved/Migration/PIE_Baseline_Python/20260713_040617/UnrealEditor_BaselinePython.log",
+      "result": "PASS",
+      "exit_code": 0,
+      "length": 690174,
+      "sha256": "86FFEF31797C9DEF2F91EDE19119848C7AAB0F53AA52AFA220EF782A7FBC67ED"
+    }
+  ]
+}

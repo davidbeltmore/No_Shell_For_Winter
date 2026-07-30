@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-07-13T09:38:14.4414072Z",
+  "result": "PASS",
+  "sets": [
+    {
+      "name": "ACFU_4_3_5",
+      "expected_file_count": 5043,
+      "current_file_count": 5043,
+      "mismatch_count": 0,
+      "result": "PASS"
+    },
+    {
+      "name": "DazToUnreal_5_8_0_491",
+      "expected_file_count": 213,
+      "current_file_count": 213,
+      "mismatch_count": 0,
+      "result": "PASS"
+    },
+    {
+      "name": "Target_Daz_Assets",
+      "expected_file_count": 189,
+      "current_file_count": 189,
+      "mismatch_count": 0,
+      "result": "PASS"
+    }
+  ],
+  "authoritative_assets": {
+    "Player": "PASS",
+    "Female": "PASS",
+    "Multiple": "PASS",
+    "Male": "PASS"
+  },
+  "mismatch_count": 0,
+  "full_runtime_evidence": "Saved/Migration/Evidence/Phase1_ProtectedInvariantVerification.json",
+  "full_runtime_evidence_sha256": "8C081E8E99D38602339F65F9162D7E95E9C935E05DDDCE37528340E0A18C96C7"
+}

@@ -1,0 +1,75 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "EF Project Systems",
+	"Description": "Project-owned gameplay, survival, ascension, targeting, locomotion, and migration helpers rebuilt on top of ACF 5.7.",
+	"Category": "EF",
+	"CanContainContent": true,
+	"Installed": false,
+	"EnabledByDefault": true,
+	"Plugins": [
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		},
+		{
+			"Name": "AscentCombatFramework",
+			"Enabled": true
+		},
+		{
+			"Name": "ACFTrainingSystem",
+			"Enabled": true
+		},
+		{
+			"Name": "EFCharacterCreation",
+			"Enabled": true
+		},
+		{
+			"Name": "EFLevelFlow",
+			"Enabled": true
+		},
+		{
+			"Name": "EFProcedural",
+			"Enabled": true
+		},
+		{
+			"Name": "CodeWidgetDesignerBridge",
+			"Enabled": true
+		},
+		{
+			"Name": "DirtyPawnRuntime",
+			"Enabled": true
+		},
+		{
+			"Name": "SkinnedDecalComponent",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "EFProjectSystemsCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProjectSystemsGameplay",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProjectSystemsUI",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProjectSystemsEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

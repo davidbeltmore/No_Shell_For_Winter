@@ -1,0 +1,140 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:00:22.8419933Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "CodeWidgetDesignerBridge",
+    "modules":  [
+                    "CodeWidgetDesignerBridge",
+                    "CodeWidgetDesignerBridgeEditor"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/CodeWidgetDesignerBridge",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\CodeWidgetDesignerBridge",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  23,
+    "total_bytes":  119458,
+    "files":  [
+                  {
+                      "relative_path":  "CodeWidgetDesignerBridge.uplugin",
+                      "length":  572,
+                      "sha256":  "23C65F1EDD60890A149AA5587FCF17CD66C31DA0DFB0B3EDB652D8775BCB336F"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridge/CodeWidgetDesignerBridge.Build.cs",
+                      "length":  327,
+                      "sha256":  "4A87D031B470FE9059557AF81565CB8814CB5C535463D40C88B13D1908355094"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridge/Private/CodeWidgetDesignerBridgeModule.cpp",
+                      "length":  99,
+                      "sha256":  "AA92AE05267C7A34F24E14289E1A4686144162ADBDE51E8D7CC8AABDED0F25A7"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridge/Public/CodeWidgetDesignerTreeProvider.h",
+                      "length":  9740,
+                      "sha256":  "C8E5BD8122E6A1EE0FBFB4795C6515DFCD4688C4F4D9BB11ED05F0C7C76E7131"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/CodeWidgetDesignerBridgeEditor.Build.cs",
+                      "length":  606,
+                      "sha256":  "5B75FF9F985B22B2F2EADEC42E90ED48AF694CA87A905AEA5060D364483C7350"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetAuditRuntimeCommandlet.cpp",
+                      "length":  11572,
+                      "sha256":  "06893CEB6882DA4F06FC6DB71EBD39B966CA7BE54DFF70B0AF950216CB128E4E"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetAuditRuntimeCommandlet.h",
+                      "length":  301,
+                      "sha256":  "9DCE559046FFEA2D15EF54EACD81AE42D18BA9421C02B0194F4133B84D6B7B9F"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetCleanRebuildCommandlet.cpp",
+                      "length":  1482,
+                      "sha256":  "A48284B7510BA5BCBFD6C4D9F0E087BD06367C10720239D8FF63E252EE28BE85"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetCleanRebuildCommandlet.h",
+                      "length":  301,
+                      "sha256":  "D8BF1B619BBDD2651BEEE837A27A1C8E2A57A7F359D1F034A8E9FC4D0297D8FA"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetCommandletUtils.h",
+                      "length":  3859,
+                      "sha256":  "E50DD95619E402CADFFAF41C1DF25854B874B55CFA3815E94C13EA024947AD23"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetDesignerBridgeEditorModule.cpp",
+                      "length":  105,
+                      "sha256":  "F09FD465534C010EEE82ED589FD8A71A4C0007CB3B61B77995DB9F18F65A3FA6"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetPreflightWBPCommandlet.cpp",
+                      "length":  1669,
+                      "sha256":  "6D3F55A264F3CF5108DCC6C42ECA1895CD988E542C22F77E98D81BE762B63B37"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetPreflightWBPCommandlet.h",
+                      "length":  301,
+                      "sha256":  "C9D6A8F3713D68D79AA13B7C4E6411A96208A5EACAA00E2000490D870F9C353D"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetSetTextFontSizeCommandlet.cpp",
+                      "length":  4567,
+                      "sha256":  "EB8C47B808455CDDBA425342CC1CA7F4D920538122D36C519F3359B704AF1E84"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetSetTextFontSizeCommandlet.h",
+                      "length":  310,
+                      "sha256":  "0663F31B264318B23C2153BFF15B6EF37694F5A0A2CE78FAC2753D374CF91C49"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetToWBPBridgeLibrary.cpp",
+                      "length":  71919,
+                      "sha256":  "27C8F900F95285AD15EC05EE3623D96DB66C035F107E9AB7F77F669FB0F77973"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetToWBPCommandlet.cpp",
+                      "length":  5737,
+                      "sha256":  "E155C402C3C60C416CB2B33F2A3EEB3466881FB88460E48091C93A3041BB7B16"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetToWBPCommandlet.h",
+                      "length":  280,
+                      "sha256":  "1926497DD164F3BEBCFF6B791B08CF370CD0564729A8393D6B5013542EDF8DB2"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetToWBPManifestCommandlet.cpp",
+                      "length":  1536,
+                      "sha256":  "5F5AE86986C6EC5B66B9196EE928D8890525B27C627A731C9F0A500A5FCB24B3"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetToWBPManifestCommandlet.h",
+                      "length":  304,
+                      "sha256":  "9B8544BB2007DCEAE2E08CCB43E8711163CA3231A28E62C217867B332F03EE50"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetValidateWBPCommandlet.cpp",
+                      "length":  1488,
+                      "sha256":  "9A910560EC101CC49EB2802883732BA17D069E23FA789C5AF0DED45EF84AE4C0"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Private/CodeWidgetValidateWBPCommandlet.h",
+                      "length":  298,
+                      "sha256":  "D13957F52E2A6374743FD8005E82C84DFEB547A3E96EDB900E10FDE11300BBE6"
+                  },
+                  {
+                      "relative_path":  "Source/CodeWidgetDesignerBridgeEditor/Public/CodeWidgetToWBPBridgeLibrary.h",
+                      "length":  2085,
+                      "sha256":  "30EF4F27E91B273555D7F981B804808DB7C8FC2CB1F986F8EB803C1707CB3AB7"
+                  }
+              ]
+}

@@ -1,0 +1,54 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:29:32.7816132Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFCharacterCreationACFUBridge",
+    "modules":  [
+                    "EFCharacterCreationACFURuntime"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFCharacterCreationACFUBridge",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationACFUBridge",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  6,
+    "total_bytes":  3851,
+    "files":  [
+                  {
+                      "relative_path":  "EFCharacterCreationACFUBridge.uplugin",
+                      "length":  594,
+                      "sha256":  "C8B1D5C397F04815A26725431B4AA88BFA042C5F57BA38D3CA0D8C56F26EDD26"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationACFURuntime/EFCharacterCreationACFURuntime.Build.cs",
+                      "length":  404,
+                      "sha256":  "6A54F460B687733CB9A1A5DBEBD00EEA716CEFC4FB7F1BB6FD470BA38A9931DB"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationACFURuntime/Private/EFCharacterCreationACFUBridge.cpp",
+                      "length":  1258,
+                      "sha256":  "720DBD8D48A3A271625AD52E79C5285F30BA74B651A771701B9F3D41EC27FCAE"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationACFURuntime/Private/EFCharacterCreationACFURuntime.cpp",
+                      "length":  1047,
+                      "sha256":  "DBED1ECAB9110EFDE08216B380B55A3F4342BC67473F3735D0ED833342D447D4"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationACFURuntime/Public/EFCharacterCreationACFUBridge.h",
+                      "length":  227,
+                      "sha256":  "906F24445715E3147594E4F5401DAD26FC5BAAF4DBFDDF76835FA7A1C4AA1DB8"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationACFURuntime/Public/EFCharacterCreationACFURuntime.h",
+                      "length":  321,
+                      "sha256":  "974F216B50C89E6C82505927004533980F9C6BD3B0E0CAE336A6BFD260E2972B"
+                  }
+              ]
+}

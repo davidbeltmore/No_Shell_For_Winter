@@ -1,0 +1,162 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:54:53.7455328Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFProcedural",
+    "modules":  [
+                    "EFProceduralRuntime",
+                    "EFProceduralACFURuntime",
+                    "EFProceduralPCGRuntime",
+                    "EFProceduralEditor"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFProcedural",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProcedural",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  27,
+    "total_bytes":  72029,
+    "files":  [
+                  {
+                      "relative_path":  "EFProcedural.uplugin",
+                      "length":  745,
+                      "sha256":  "9B533B8BD2C5B161740E633DB2EB7EB726257813866410C3D77CD08B83F341D7"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralACFURuntime/EFProceduralACFURuntime.Build.cs",
+                      "length":  358,
+                      "sha256":  "E9C49058A465B6926391CE5CFC6DB4E4D67C8176A352B61991C57350254F6B9B"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralACFURuntime/Private/EFProceduralACFU.cpp",
+                      "length":  2073,
+                      "sha256":  "F021BCBDC675325415D180DA4A652880AC8891C58CD076BFA3238DAE86495534"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralACFURuntime/Private/EFProceduralACFURuntime.cpp",
+                      "length":  153,
+                      "sha256":  "F113272D2521B2BC2A52E4377A7BCF7E20D0EB53D5036F7C6AD1C16F3E07A310"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralACFURuntime/Public/EFProceduralACFU.h",
+                      "length":  330,
+                      "sha256":  "4C187C1870DFCB6608709BC11364D328F4BD1764454BA888095DDD8EEDF8617C"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralACFURuntime/Public/EFProceduralACFURuntime.h",
+                      "length":  125,
+                      "sha256":  "3C557318DC4E1238516D05E4299B0B60F4525B45B4DFFB3853DF6D424309EDBC"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralEditor/EFProceduralEditor.Build.cs",
+                      "length":  409,
+                      "sha256":  "F33202CC858D4A2644A7419812337C1A6599CBF0998991CEF00AC786E0D7CE84"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralEditor/Private/EFProceduralEditor.cpp",
+                      "length":  240,
+                      "sha256":  "2140E757687F07A7A14D6211A850ABEFB46A554AD5E187635F0D89B7A6BC6310"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralEditor/Private/EFProceduralEditorCoordinator.cpp",
+                      "length":  2269,
+                      "sha256":  "FB10E5F388D6920F1FCC386CE1FAC325F5DF4C2732AFE8A877649172D1CD79A9"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralEditor/Public/EFProceduralEditor.h",
+                      "length":  204,
+                      "sha256":  "1C6CB63CB4903762A9477C4E6A4C3C498F644152D20440F7452DCCEB1334C590"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralEditor/Public/EFProceduralEditorCoordinator.h",
+                      "length":  599,
+                      "sha256":  "4B4EFCD8CCA2A8B16DC10B8E8E4EEECB83F39534F683A0683E406C2139DE7220"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralPCGRuntime/EFProceduralPCGRuntime.Build.cs",
+                      "length":  526,
+                      "sha256":  "39C162B6AD48449A256E486D04F4C7B806C76D80D82C3D72F758D9F5A3713859"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralPCGRuntime/Private/EFProceduralPCGRuntime.cpp",
+                      "length":  150,
+                      "sha256":  "2810A677807B38FD674940CD6DE5A395387BD0DCFA686E32285F136F443AB0DA"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralPCGRuntime/Private/EFProceduralPCGSubsystem.cpp",
+                      "length":  40643,
+                      "sha256":  "B72F73E1B14C53ABF68067BCC64E5FAE0A4037FF0CC1C114FE9520A879CE1354"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralPCGRuntime/Public/EFProceduralPCGRuntime.h",
+                      "length":  124,
+                      "sha256":  "127C31FBDA59466F1BA5E50CA174C4E51BEB73457925324D84AED41F704E374C"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralPCGRuntime/Public/EFProceduralPCGSubsystem.h",
+                      "length":  4710,
+                      "sha256":  "E44D1A9BB7ED8BB982089DA24AA277D5208EA5E93BD1F7F46757B625AE9A3E5C"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/EFProceduralRuntime.Build.cs",
+                      "length":  350,
+                      "sha256":  "977073410372E570A79F635B5C24BBCF3F9A4DEF4FB70F0A3C45175A33AA04C6"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Private/EFProceduralRuntime.cpp",
+                      "length":  141,
+                      "sha256":  "A78BD6E0BD72027601E8FF56979B42C99A130FA808E4E7D5F5F107649F756222"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Private/EFProceduralRuntimeSubsystem.cpp",
+                      "length":  4446,
+                      "sha256":  "850EBF38D29CC5EE987B9FE3BEA8F518083A924933F1CEB95AA1824D0644160F"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Private/EFProceduralSettings.cpp",
+                      "length":  4759,
+                      "sha256":  "E9FB7B6CD9620569D29BA42A1AFE53726281DCE086D073617137743749EE64A3"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/EFProceduralProjectPreset.h",
+                      "length":  1506,
+                      "sha256":  "386FA9769EBD0C6ADD014F53B5D4A7D7239E608E58D7138BF6A23E6E37272579"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/EFProceduralRuntime.h",
+                      "length":  121,
+                      "sha256":  "9AF9286E40D58E14A202FCA1C1750AC4CB3052CEDB393138924E2195BCB577CD"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/EFProceduralRuntimeSubsystem.h",
+                      "length":  1413,
+                      "sha256":  "223D6F4A4B1458E53DC9A06CED408304846C200E2E5FA8F49F14B6B808C75C51"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/EFProceduralSettings.h",
+                      "length":  4301,
+                      "sha256":  "7A42E72C32AC484E1DDC24B2A20F9E7B270ADC813D9EB2802C227A182933EE56"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/Interfaces/LevelReadinessProvider.h",
+                      "length":  405,
+                      "sha256":  "8255DA27DA2E5B9FFBAD2042E0DF3AB20CF5F7EAF3B910011ACC33DF322DF451"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/Interfaces/PlayerStartResolver.h",
+                      "length":  441,
+                      "sha256":  "30FDC603B4993BAA4208D2B9B21E65880A96D0F63413BB5F6DCA7B097F32938D"
+                  },
+                  {
+                      "relative_path":  "Source/EFProceduralRuntime/Public/Interfaces/SpawnPostProcessor.h",
+                      "length":  488,
+                      "sha256":  "36B52838D80EC1ACFCFC0FF378BE3D4BE4798D9017A5A438AD5C65209031F8D6"
+                  }
+              ]
+}

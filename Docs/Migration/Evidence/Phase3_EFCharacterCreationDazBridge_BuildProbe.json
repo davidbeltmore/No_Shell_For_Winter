@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:39:00Z",
+  "plugin": "EFCharacterCreationDazBridge",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 4 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFCharacterCreationDazBridge_ImportReceipt.json",
+    "receipt_sha256": "F61519AFD36062575E3D5A7D83FD382A0B9B4112CBC1593D896B9B6AE04F3B4E",
+    "source_target_hashes_match": true
+  },
+  "patches_required": [],
+  "project_plugins": {
+    "EFCharacterCreationDazBridge": true,
+    "DeformerGraph": true,
+    "DazToUnreal_target_version_preserved": "5.8.0.491"
+  },
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 9,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreationDazBridge_EditorBuild_20260713.log",
+    "log_length": 10836,
+    "log_sha256": "5137667C081F8308610728895F6EA1A65116C625A0B009F1E7C8092611E0961D"
+  },
+  "game_build": {
+    "result": "PASS_EDITOR_MODULE_EXCLUDED",
+    "exit_code": 0,
+    "build_actions": 3,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreationDazBridge_GameBuild_20260713.log",
+    "log_length": 4098,
+    "log_sha256": "F2B54C0BA68959C77703673669FB115C2E36BBF43132C63CF54BB34C0F518F2C"
+  },
+  "read_only_probe": {
+    "result": "PASS",
+    "official_ue58_deformer": "/DeformerGraph/Deformers/DG_DualQuatSkin_Morph_Cloth.DG_DualQuatSkin_Morph_Cloth",
+    "project_collection_absent": true,
+    "assets_saved": false,
+    "meshes": [
+      "/Game/DazToUnreal/Female/Female.Female",
+      "/Game/DazToUnreal/Multiple/Multiple.Multiple",
+      "/Game/DazToUnreal/Male/Male.Male"
+    ],
+    "common_skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+    "all_physics_assets_present": true,
+    "all_post_process_anim_blueprints_unassigned": true,
+    "all_default_mesh_deformers_unassigned": true,
+    "all_target_mesh_deformer_collections_unassigned": true,
+    "evidence": "Saved/Migration/Phase3/EFCharacterCreationDazBridgeReadOnlyProbe58.json",
+    "evidence_sha256": "77A4F65C302EEDE6A967A9AB0C27F8CAFD3FA7A56383822445E5F5754CCF6808",
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreationDazBridge_ReadOnlyProbe_UE58_Retry1.log",
+    "log_sha256": "7303C9AAC456A08C003D9617FFC090E976E58BE9A134D30BD8E3774E6261044A"
+  },
+  "mutating_commands_not_run": [
+    "EFCharacterCreation.SyncDazDualQuatMorph",
+    "EFCharacterCreation.RepairDazDQCorrectives",
+    "EFCharacterCreation.AuditDazDQCorrectives"
+  ],
+  "gates": {
+    "protected_target_invariants": "PASS_189_DAZ_ASSETS_UNCHANGED",
+    "source_read_only": "PASS",
+    "target_daz_plugin_unchanged": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Keep sync/repair commands blocked while Female, Multiple, Male, and the target Daz tree are protected invariants.",
+    "If DQ/JCM mutation is later authorized, redesign the bridge to avoid resaving protected meshes and require dedicated visual regression evidence.",
+    "Cook/package smoke with DeformerGraph enabled in final QA phases."
+  ],
+  "status": "EDITOR_BUILD_READ_ONLY_PROBE_PASS_MUTATING_COMMANDS_BLOCKED"
+}

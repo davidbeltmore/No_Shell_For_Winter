@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:06:00Z",
+  "plugin": "DirtyPawnRuntime",
+  "engine": "UE 5.8",
+  "import": {
+    "code_policy": "descriptor plus Source only; 13 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_DirtyPawnRuntime_ImportReceipt.json",
+    "receipt_sha256": "F79C2CBE5EB1E79E188AF00121AA31369D74F2885E0FD72E2B82AF3BFBC5E1E9",
+    "source_target_code_hashes_match": true,
+    "support_files": [
+      {
+        "path": "Plugins/DirtyPawnRuntime/DirtyPawnRuntime.Portability.json",
+        "sha256": "D40E321BBD06E1F9EF14DAE667DD9FF8ABE13946F68F3B8BC90F1755CE8D9B76",
+        "source_target_match": true
+      },
+      {
+        "path": "Plugins/DirtyPawnRuntime/PORTABILITY.md",
+        "sha256": "70C5694E805F11EEC79376CA030FA71D52C79573035558741AAB8F8D628D2474",
+        "source_target_match": true
+      }
+    ]
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 21,
+    "log": "Saved/Migration/Logs/Phase3_DirtyPawnRuntime_EditorBuild_20260713.log",
+    "log_length": 13370,
+    "log_sha256": "F67F9A1A292B30D58B7DE67CE8F6C852AED674ECE7FFC74BF12ACC27A2BB2655"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 8,
+    "log": "Saved/Migration/Logs/Phase3_DirtyPawnRuntime_GameBuild_20260713.log",
+    "log_length": 4650,
+    "log_sha256": "9685025BA5A766C082FEFF3D187ED8A2F1AE0BB1DD613944ADF5BF1A9BBD922B"
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Migrate only the portability manifest asset closure through Unreal AssetTools, excluding _Quarantine.",
+    "Verify UDirtyPawnWorldSubsystem OnWorldBeginPlay in PIE.",
+    "Run Dirty Pawn visual persistence and wash compositor QA after project assets are present.",
+    "Cook/package/runtime smoke in final QA phases."
+  ],
+  "status": "BUILD_EDITOR_GAME_PASS_CONTENT_AND_QA_PENDING"
+}

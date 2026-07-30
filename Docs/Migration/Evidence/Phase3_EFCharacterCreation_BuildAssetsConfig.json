@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:28:02Z",
+  "plugin": "EFCharacterCreation",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 26 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFCharacterCreation_ImportReceipt.json",
+    "receipt_sha256": "F7DA6FF9A73979F25787E9140AB84A4A5AD22868D22A193637F36BAC24562913",
+    "source_target_hashes_match": true
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 23,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_CodeOnly_EditorBuild_20260713.log",
+    "log_length": 13838,
+    "log_sha256": "833A3E67ED89C5755FAE7D3BD26580940563727D01792BA9D805A2963EB112CF"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 14,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_GameBuild_20260713.log",
+    "log_length": 6268,
+    "log_sha256": "7139A45D385552266AF063BB13DD146C10937B0611B7A1F9B3D5282880EC319B"
+  },
+  "widget_asset_migration": {
+    "result": "ASSETTOOLS_UE57_TO_UE58_PASS",
+    "source_project_writable": false,
+    "harness": "Saved/Migration/Phase3/EFCharacterCreation57Harness",
+    "package_count": 2,
+    "migration_evidence": "Saved/Migration/Phase3/EFCharacterCreationWidgets57Migration.json",
+    "migration_evidence_sha256": "F27E76DAD8D75C7F22420EE836AA547F160A2028FEAC4661635CF89DFB285BDC",
+    "migration_log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_WidgetMigration_UE57_Retry1.log",
+    "migration_log_sha256": "32AD5CFE5CC744A04D7CF4AF064BC5B30BB6B255F9E7EEE42EC4EA06898648F0",
+    "ue58_resave_evidence": "Saved/Migration/Phase3/EFCharacterCreationWidgets58Resave.json",
+    "ue58_resave_evidence_sha256": "86A3560A75953D500CCA2AF6CF739B3C66A0B3F5C0C8E27F96441C6853CBB3A3",
+    "ue58_resave_log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_Widgets_Resave_UE58_Retry2.log",
+    "ue58_resave_log_sha256": "6F18087D83702CB2751F60103FB0226B0FEFD8791A06D031526CACA18D305207",
+    "packages": [
+      {
+        "asset": "/EFCharacterCreation/UI/WBP_EFCharacterCreationRoot",
+        "native_parent": "/Script/EFCharacterCreationRuntime.EFCharacterCreationRootWidget",
+        "ue57_sha256": "CD0D49FDB14FA87D130B13D8E0FC09A766ED7F48248A5357E03982EA99F591A4",
+        "ue58_sha256": "ED0D8BF41558AC50085807C332D17B3B0C5BFFED274468FC9FED192CCD52444B"
+      },
+      {
+        "asset": "/EFCharacterCreation/UI/WBP_EFMorphSlider",
+        "native_parent": "/Script/EFCharacterCreationRuntime.EFMorphSliderWidget",
+        "ue57_sha256": "0D5D3E8599B60F8DC864A9FFB475FCE89EF56AFC9E5CC9CB757A1F4017543569",
+        "ue58_sha256": "C6756CA267AA758132475CAD85267CA5BA9397E99F1FF4BC0A9738B9E15BFF01"
+      }
+    ],
+    "post_resave_compile": {
+      "result": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "failed_loads": 0,
+      "log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_Widgets_Compile_UE58_PostResave.log",
+      "log_sha256": "FD38C59097EF82CD50CB4CEA83E21F4061645DC0A99234BF85505FA5B66D4E9F"
+    }
+  },
+  "effective_config": {
+    "result": "PASS",
+    "location": "Config/DefaultGame.ini",
+    "source_plugin_config_copied": false,
+    "auto_enter_testing_map": false,
+    "auto_open_on_compatible_main_pawn": false,
+    "body_mesh_options": [
+      "/Game/DazToUnreal/Female/Female.Female"
+    ],
+    "root_widget_class": "/EFCharacterCreation/UI/WBP_EFCharacterCreationRoot.WBP_EFCharacterCreationRoot_C",
+    "morph_slider_widget_class": "/EFCharacterCreation/UI/WBP_EFMorphSlider.WBP_EFMorphSlider_C",
+    "evidence": "Saved/Migration/Phase3/EFCharacterCreationSettings58.json",
+    "evidence_sha256": "D757D16F2F37FE1E18F3FA1745C3E65BEEF73D3D88E6D7178EE2D0484014CBAB",
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreation_Settings_UE58_Retry2.log",
+    "log_sha256": "EBB5D498EC15DBCD49D6AC139F66E7D5BC08CF6824F13FE0A22757B3C7A5E7DB"
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Verify manual Period activation, input ownership, camera, and clean close in visible PIE.",
+    "Verify morph slider changes on authoritative Female and persistence behavior.",
+    "Validate ACFU, clothing, and Daz bridges after their dependent ports.",
+    "Cook/package/runtime smoke in final QA phases."
+  ],
+  "status": "BUILD_EDITOR_GAME_ASSETS_CONFIG_PASS_RUNTIME_QA_PENDING"
+}

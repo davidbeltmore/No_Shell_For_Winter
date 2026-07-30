@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T11:24:56Z",
+  "plugin": "EFLevelFlow",
+  "engine": "UE 5.8",
+  "target_acfu": "4.3.5",
+  "import": {
+    "policy": "descriptor plus Source only; 8 allowlisted files; Binaries, Intermediate, Saved, Content, and Config excluded",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFLevelFlow_ImportReceipt.json",
+    "receipt_length": 3108,
+    "receipt_sha256": "EAF6A084F11CF154FE28DDC3A563B8587D3DB36E8D20339D5F39A7F076F1F663",
+    "descriptor_sha256": "EA946BCC94587A7DEA16AD2DF19D2A868DF5A8333498DEC87A9DFAC8FF7AD89F"
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 20,
+    "log": "Saved/Migration/Logs/Phase3_EFLevelFlow_EditorBuild_20260713.log",
+    "log_length": 14050,
+    "log_sha256": "7D0A046C04AD25A7AF3AD912B0626BD316063A945906A41090B6E399F1CD4633"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 9,
+    "log": "Saved/Migration/Logs/Phase3_EFLevelFlow_GameBuild_20260713.log",
+    "log_length": 5040,
+    "log_sha256": "12408DFAE4B60BA10933739188933B29423E1D55E65A04EEDD154185D9CFF762"
+  },
+  "ue58_structural_probe": {
+    "result": "PASS",
+    "evidence": "Saved/Migration/Phase3/EFLevelFlowReadOnlyProbe58.json",
+    "evidence_length": 1880,
+    "evidence_sha256": "34FEEA593076AE8AED1FD135EE2B66C8460055397A6E92B435835F7F2FBBD2B7",
+    "log": "Saved/Migration/Logs/Phase3_EFLevelFlow_ReadOnlyProbe_UE58_Retry2.log",
+    "log_length": 504072,
+    "log_sha256": "C19B6C18804E521CFD55FFF559F2FD6E0F0D80C2CA549BA8051830C707F0667E",
+    "classes_loaded": [
+      "/Script/EFLevelFlowRuntime.EFLevelFlowSettings",
+      "/Script/EFLevelFlowRuntime.EFLevelFlowSubsystem"
+    ],
+    "subsystem_contract": "GameInstanceSubsystem subclass",
+    "effective_defaults": {
+      "delayed_spawn_map_names": ["DungeonGeneration"],
+      "max_resolve_attempts": 900,
+      "loading_poll_interval_seconds": 0.1,
+      "minimum_loading_screen_seconds": 10.0,
+      "freeze_pawn_during_loading": true,
+      "block_player_input_during_loading": true
+    },
+    "loading_widget": {
+      "class": "/AscentCombatFramework/UITools/Widgets/ANS_LoadingScreen_WB.ANS_LoadingScreen_WB_C",
+      "is_user_widget": true,
+      "target_asset_length": 154025,
+      "target_asset_sha256": "B7375AD7F3CC4C414D16D51C8221234D7AC9265089448932BD78211FE85D835B"
+    },
+    "map_load_requested": false,
+    "asset_save_requested": false
+  },
+  "probe_recovery": [
+    {
+      "attempt": 1,
+      "result": "TEST_SCRIPT_API_ERROR",
+      "reason": "Native UClass did not expose get_super_class through UE Python; replaced by class_is_child_of.",
+      "log": "Saved/Migration/Logs/Phase3_EFLevelFlow_ReadOnlyProbe_UE58_Attempt1.log",
+      "log_sha256": "841F56F9D17723936E6E43519DFD9B27F0BF956C2CF17315790ADFF02B569AA6"
+    },
+    {
+      "attempt": 2,
+      "result": "UNSUPPORTED_DIRECT_REDIRECT_PROBE",
+      "reason": "load_class on an absent old script module does not exercise serialized CoreRedirect resolution; the final probe verifies exact config lines and loadable destination classes instead.",
+      "log": "Saved/Migration/Logs/Phase3_EFLevelFlow_ReadOnlyProbe_UE58_Retry1.log",
+      "log_sha256": "B1627B30247A41AF1DD65B6BAE331E219F9961E902DD57FE995EC541469FD392"
+    }
+  ],
+  "config": {
+    "applied": [
+      "EFLevelFlow enabled in NoShellForWinter.uproject",
+      "two CalystoLevelFlowRuntime class redirects added after destination classes compiled"
+    ],
+    "deferred": [
+      "serialized old-reference redirect test until a migrated old asset is available",
+      "no settings section is required because the source uses native defaults"
+    ]
+  },
+  "content_decision": {
+    "status": "PENDING_PROCEDURAL_CONTENT",
+    "missing_map": "/Game/Procedural/Maps/DungeonGeneration",
+    "policy": "Do not load or raw-copy the map; migrate it later through the gated EFProcedural AssetTools flow."
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "target_acfu_modified": false,
+    "target_daz_assets_modified": false,
+    "live_target_content_modified": false
+  },
+  "pending_qa": [
+    "Migrate and load DungeonGeneration only after the procedural content dependency gate opens.",
+    "Exercise loading overlay duration, pawn freeze/placement, floor adjustment, input restoration, camera repair, AI grace period, and multi-PIE isolation.",
+    "Validate serialized CoreRedirect resolution with a real migrated old reference.",
+    "Run cook/package and packaged-runtime smoke gates."
+  ],
+  "status": "CODE_ONLY_EDITOR_GAME_STRUCTURAL_PASS_CONTENT_RUNTIME_COOK_PENDING"
+}

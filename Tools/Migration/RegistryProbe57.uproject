@@ -1,0 +1,12 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.7",
+  "Category": "MigrationTools",
+  "Description": "Read-only UE 5.7 Asset Registry dump harness for the LADS migration.",
+  "Plugins": [
+    {
+      "Name": "PythonScriptPlugin",
+      "Enabled": true
+    }
+  ]
+}

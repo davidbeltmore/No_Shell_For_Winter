@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Clothing Morph",
+	"Description": "Copies shared or compatible body morph targets to clothing meshes and lets you scale clothing morphs to reduce clipping.",
+	"Category": "Character",
+	"CanContainContent": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "EFClothingMorphRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "EFCharacterCreation",
+			"Enabled": true
+		}
+	]
+}

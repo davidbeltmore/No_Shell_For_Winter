@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-07-17T22:32:34-05:00",
+  "project": "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+  "configuration": "Development",
+  "platform": "Win64",
+  "package_root": "Saved\\Migration\\Phase5\\Package\\ChronicleDynamicRows_20260717\\Windows",
+  "executable": {
+    "path": "Saved\\Migration\\Phase5\\Package\\ChronicleDynamicRows_20260717\\Windows\\NoShellForWinter\\Binaries\\Win64\\NoShellForWinter.exe",
+    "size_bytes": 399499264,
+    "sha256": "1A089DE7A60F706D706F1E6D1F4603557ABBA1B73A4BB1770E6D28D9C348A8AC"
+  },
+  "arguments": [
+    "-nullrhi",
+    "-nosound",
+    "-unattended",
+    "-NoSplash"
+  ],
+  "alive_after_seconds": 20,
+  "fatal_error_observed": false,
+  "cleanup": "Only the packaged-game PID was stopped after the observation window.",
+  "result": "PASS"
+}

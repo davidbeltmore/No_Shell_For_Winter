@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "run_id": "20260713_040617",
+  "generated_utc": "2026-07-13T09:07:30.3866797Z",
+  "result": "PASS",
+  "automation": "Unreal Python built-in fallback",
+  "mcp_transport": "PASS",
+  "uecp_tool_status": "BLOCKED_EXTERNAL_LICENSE",
+  "map": "/Game/FullSample/Test",
+  "stable_samples": 3,
+  "cleanup": "CLEAN",
+  "runtime": {
+    "game_mode_class": "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimateGameModeBP.ACFUltimateGameModeBP_C",
+    "player_controller_class": "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP.ACFUltimatePlayerControllerBP_C",
+    "pawn_class": "/Game/FullSample/Player.Player_C",
+    "visible_widget_class": "/AscentCombatFramework/UITools/Widgets/ANS_DefaultHUD_WB.ANS_DefaultHUD_WB_C",
+    "visible_mesh_component": "SkeletalMesh",
+    "visible_mesh_asset": "/Game/DazToUnreal/Female/Female.Female",
+    "visible_anim_instance_class": "/Game/FullSample/GASP/ACF_GenericRetarget_ABP.ACF_GenericRetarget_ABP_C",
+    "compatibility_mesh_component": "CharacterMesh0",
+    "compatibility_mesh_asset": "/Game/DazToUnreal/Female/Female.Female",
+    "compatibility_anim_instance_class": "/Game/FullSample/Animations/AnimBPs/ACF_MMHumanoid_ABP.ACF_MMHumanoid_ABP_C"
+  },
+  "acf_runtime_probes": {
+    "vendor_assets_loaded": 4,
+    "new_gas_classes_loaded": true,
+    "legacy_module_classes_absent_expected": true,
+    "serializable_attribute_rows": [
+      "Strength",
+      "Intelligence",
+      "Endurance",
+      "Constitution",
+      "Dexterity"
+    ],
+    "health_attribute": "Health"
+  },
+  "window_screenshot": {
+    "path": "Saved/Migration/PIE_Baseline_Python/20260713_040617/PIE_Test_Window.png",
+    "width": 1936,
+    "height": 1048,
+    "sha256": "75F28E01895B95EB875517BCA910D22555FA2ED2C267678656ACDA54CF653062",
+    "visual_review": "PASS"
+  },
+  "viewport_screenshot": {
+    "path": "Saved/Migration/PIE_Baseline_Python/20260713_040617/PIE_Test_Viewport.png",
+    "width": 1280,
+    "height": 720,
+    "sha256": "7CDCC968A6D41E15A2DA5DDB05290DEF6DE82DF4E557CEA737D0878D26132F83",
+    "visual_review": "PASS"
+  },
+  "git_state_match": true,
+  "protected_assets_match": true,
+  "fatal_count": 0,
+  "ensure_count": 0,
+  "known_nonfatal_error": "LogTemp: Error: Can't Start the quest"
+}

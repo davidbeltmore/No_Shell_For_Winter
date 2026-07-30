@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "ACF Training System",
+	"Description": "Portable player training component and extensible minigame contract for Ascent Combat Framework primary attribute progression.",
+	"Category": "ACF",
+	"CanContainContent": true,
+	"Installed": false,
+	"EnabledByDefault": true,
+	"Plugins": [
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "AscentCombatFramework",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "ACFTrainingSystem",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

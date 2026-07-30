@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "project_file": "NoShellForWinter.uproject",
+  "destination_root": "/Game/_Game/Textures/UI/Themes",
+  "output_directory": "Saved/HudThemeRework",
+  "variant_texture_policy": {
+    "lod_group": "TEXTUREGROUP_UI",
+    "never_stream": true,
+    "virtual_texture_streaming": false
+  },
+  "native_texture_packages": [
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_CardFrame",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Divider",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Frame",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Haze",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_HudPill",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Celerity",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Charisma",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Cunning",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Default",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Defensive",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Faith",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Offensive",
+    "/Game/_Game/Widgets/Attributes/Assets/Textures/T_InnerDoctrine_Icon_Willpower",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Badge",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Divider",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Frame",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Glyph",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Haze",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_HudPill",
+    "/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_RowFrame",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Divider",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Frame",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Haze",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_HudPill",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Medallion",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Panel",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_PipEmpty",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_PipFilled",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_RowFrame",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Spark",
+    "/Game/_Game/Widgets/InnerState/Assets/Textures/T_InnerState_Vignette",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Divider",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Footer",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Frame",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Glyph",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Haze",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Celerity",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Charisma",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Cunning",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Default",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Defensive",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Faith",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Offensive",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Icon_Willpower",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_RowFrame",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_StatBox",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Celerity",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Charisma",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Cunning",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Default",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Defensive",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Faith",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Offensive",
+    "/Game/_Game/Widgets/InnerDoctrineAltar/Assets/Textures/T_InnerDoctrine_Altar_Watermark_Willpower",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Actions",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Back",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Basic",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Cancel",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Combat",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Emotes",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Objects",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Partner",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Person",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Social",
+    "/Game/UI/Emote/Textures/T_ActionMenu_Icon_Special",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_Arrow",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_BackdropVignette",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_GlowStreak",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_MainPanel",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_Noise",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetChamber",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetPulse",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetRing",
+    "/Game/UI/Defeat/Struggle/Textures/T_Struggle_TopPanel"
+  ],
+  "themes": [
+    {
+      "id": "Red",
+      "display_name": "Red / Crimson",
+      "shadow": "#260708",
+      "midtone": "#B52E2C",
+      "highlight": "#FFD4CC",
+      "saturation": 0.94
+    },
+    {
+      "id": "Blue",
+      "display_name": "Blue / Cobalt",
+      "shadow": "#061B35",
+      "midtone": "#1B70B8",
+      "highlight": "#CDEBFF",
+      "saturation": 0.94
+    },
+    {
+      "id": "Purple",
+      "display_name": "Purple / Amethyst",
+      "shadow": "#1B0A32",
+      "midtone": "#743DB2",
+      "highlight": "#EAD8FF",
+      "saturation": 0.94
+    },
+    {
+      "id": "Green",
+      "display_name": "Green / Emerald",
+      "shadow": "#061F16",
+      "midtone": "#25835B",
+      "highlight": "#D0F7E5",
+      "saturation": 0.9
+    },
+    {
+      "id": "Black",
+      "display_name": "Black / Graphite",
+      "shadow": "#080A0E",
+      "midtone": "#4B535E",
+      "highlight": "#E9EDF2",
+      "saturation": 0.42
+    }
+  ],
+  "source_roots": [
+    {
+      "root": "/Game/_Game/Widgets",
+      "label": "ProjectWidgets",
+      "required": true
+    },
+    {
+      "root": "/Game/_Game/Icons",
+      "label": "ProjectHudIcons",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/ActionMenu",
+      "label": "ActionMenu",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/Emote/Textures",
+      "label": "EmoteActionMenu",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/Defeat/Struggle/Textures",
+      "label": "DefeatStruggle",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/InnerDoctrine/Altar/Textures",
+      "label": "LegacyInnerDoctrineAltar",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/InnerDoctrine/Textures",
+      "label": "LegacyInnerDoctrine",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/InnerState/Textures",
+      "label": "LegacyInnerState",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/Survival/Icons",
+      "label": "SurvivalIcons",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/StorySelection",
+      "label": "StorySelection",
+      "required": false
+    },
+    {
+      "root": "/Game/_Game/StorySelection",
+      "label": "ProjectStorySelection",
+      "required": false
+    },
+    {
+      "root": "/Game/UI/Chronicle",
+      "label": "LegacyChronicle",
+      "required": false
+    }
+  ]
+}

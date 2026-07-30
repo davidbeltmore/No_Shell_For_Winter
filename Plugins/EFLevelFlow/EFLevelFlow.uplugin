@@ -1,0 +1,31 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Level Flow",
+	"Description": "Reusable level transition and runtime loading flow for EF gameplay systems.",
+	"Category": "EF",
+	"CanContainContent": false,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "AscentCombatFramework",
+			"Enabled": true
+		},
+		{
+			"Name": "EFProcedural",
+			"Enabled": true
+		},
+		{
+			"Name": "EFCharacterCreation",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "EFLevelFlowRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

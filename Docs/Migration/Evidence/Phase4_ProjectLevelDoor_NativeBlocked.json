@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-07-13T19:26:32.3642096Z",
+  "status": "NATIVE_BUILD_PASS_AUTOMATION_GUARDED_BLOCKED_EXTERNAL_ACFU_PDB_INVARIANT",
+  "content_commit": "PENDING_BLOCKER_RESOLUTION",
+  "scope": {
+    "adapter": "/Script/EFLevelFlowRuntime.ProjectLevelDoor",
+    "legacy_asset_path_to_preserve": "/Game/Procedural/DoorToLevel",
+    "destination_world": "/Game/Procedural/Maps/DungeonGeneration",
+    "native_runtime_travel_owner": "AProjectLevelDoor::OnInteractedByPawn_Implementation",
+    "target_content_packages_created": 0,
+    "source_packages_modified": 0,
+    "direct_marketplace_write_operations_requested_or_performed": 0,
+    "scope_decisions": {
+      "savegame_migration_legacy_slots_and_als_persistence": "OUT_OF_SCOPE_BY_USER",
+      "visual_qa": "USER_OWNED_OUT_OF_SCOPE",
+      "decision_utc": "2026-07-13",
+      "acceptance_note": "These are scope dispositions, not PASS results; existing native contract facts and historical evidence are retained."
+    }
+  },
+  "native_files": [
+    {
+      "path": "Plugins/EFLevelFlow/Source/EFLevelFlowRuntime/EFLevelFlowRuntime.Build.cs",
+      "length": 582,
+      "sha256": "FA2A53CDE32453327AE1D773E9A9BFB8C3D8233F7FD835B093952E0517DB835B"
+    },
+    {
+      "path": "Plugins/EFLevelFlow/Source/EFLevelFlowRuntime/Public/Actors/ProjectLevelDoor.h",
+      "length": 2482,
+      "sha256": "50E0304AF107311A00EF2FAB43FBB3977522C7A3D114BE3AB8C6785856B6401E"
+    },
+    {
+      "path": "Plugins/EFLevelFlow/Source/EFLevelFlowRuntime/Private/Actors/ProjectLevelDoor.cpp",
+      "length": 5247,
+      "sha256": "DB3B6A5349D76C8A6C98E66004DE5EB6B5CF06794EBF8FCE844F1E1264DCAC0A"
+    }
+  ],
+  "native_contract": {
+    "acf_parent": "/Script/AscentCombatFramework.ACFBaseInteractableActor",
+    "als_interface": "/Script/AscentSaveSystem.ALSSavableInterface",
+    "destination_package_preflight": true,
+    "interaction_disabled_when_destination_absent": true,
+    "duplicate_travel_latch": true,
+    "server_and_local_interaction_cleanup": true,
+    "is_enabled_save_game": true,
+    "legacy_is_enabled_property_flags_hex": "0x01000005",
+    "legacy_save_game_flag_hex": "0x01000000",
+    "travel_requested_saved": false,
+    "persistence_note": "The legacy IsEnabled bool carried CPF_SaveGame; the native adapter preserves the same name, type, and save flag while keeping the one-shot travel latch transient.",
+    "local_cleanup_note": "ACFU LocalInteract assigns CurrentInteractingActor immediately before the local interface callback; the adapter uses the supported EndInteraction API from that callback. Eventual client null replication remains a PIE gate."
+  },
+  "prepared_automation": {
+    "status": "STATIC_VALIDATION_PASS_EXECUTION_BLOCKED_BY_PRE_STAGE_GATE",
+    "scripts": [
+      "Tools/Migration/Test-DoorToLevelMigrationGates.ps1",
+      "Tools/Migration/Prepare-DoorToLevel57Harness.ps1",
+      "Tools/Migration/Validate-DoorToLevelVisualAssets57.py",
+      "Tools/Migration/Migrate-DoorToLevelVisualAssets57.py",
+      "Tools/Migration/Rebuild-Validate-DoorToLevel58.py"
+    ],
+    "visual_allowlist_package_count": 4,
+    "visual_allowlist_source_bytes": 189704,
+    "visual_allowlist_fingerprint": "4477D83F3722FA80674C18791BB2A85DCCE5DBE19FD57D17B52C20BE716212CC",
+    "legacy_blueprint_reference_sha256": "7EDF9F4A24D14F03AF2AE3F6A111696CF4AAC79052C225BCE90429D06935D016",
+    "legacy_blueprint_policy": "READ_ONLY_REFERENCE_ONLY_REBUILD_IN_UE58",
+    "pre_stage_gate": {
+      "result": "EXPECTED_STOP_BEFORE_MUTATION",
+      "source_read_only": "PASS",
+      "protected_invariants": "FAIL",
+      "harness_count_after_stop": 0,
+      "target_allowlist_package_count_after_stop": 0,
+      "source_evidence": "Saved/Migration/Phase4/DoorToLevel/Gates/PRE_STAGE_SourceReadOnly.json",
+      "source_evidence_sha256": "D22E0B32677964F26AF01C3477850D2D6D22C361730DE1A7DC0740F927AAEB4D",
+      "protected_evidence": "Saved/Migration/Phase4/DoorToLevel/Gates/PRE_STAGE_ProtectedInvariants.json",
+      "protected_evidence_sha256": "A470EBE2C0ED57E024BCFEF5B272E77A0E9BDAC4382424121641767E2C6988C1"
+    }
+  },
+  "gates": {
+    "editor_build": {
+      "result": "PASS",
+      "actions": 5,
+      "log": "Saved/Migration/Logs/Phase4_ProjectLevelDoor_EditorBuild58_Final3.log",
+      "log_sha256": "184ABF211E03BAB3CF34B2E15F2346D69C99FFED06219A1FB3F9D0F60863E95C"
+    },
+    "game_build": {
+      "result": "PASS",
+      "actions": 4,
+      "log": "Saved/Migration/Logs/Phase4_ProjectLevelDoor_GameBuild58_Final3.log",
+      "log_sha256": "FD840EAB6C2002FBB0BC5644430F1B86CE7D5D5258C523BC28FF4E25E0AAB955"
+    },
+    "source_read_only_after_build": {
+      "result": "PASS",
+      "evidence": "Saved/Migration/Phase4/ProjectLevelDoor/SourceReadOnlyAfterNativeFinal3.json",
+      "evidence_sha256": "96E761599FE17B67354AA2D76B096495B4C3ED6128811BB287667ABF670B2A4A"
+    },
+    "protected_invariants_before_final_builds": {
+      "result": "PASS",
+      "verified_utc": "2026-07-13T19:05:34.6228180Z",
+      "evidence": "Saved/Migration/Phase4/ProjectLevelDoor/ProtectedInvariantsAfterNative.json",
+      "evidence_sha256": "F6FEABC93014F93276ED38590F231865CDE86BA1B06F958B9E002D6DF237FEFA"
+    },
+    "protected_invariants_after_final_builds": {
+      "result": "FAIL",
+      "verified_utc": "2026-07-13T19:35:11.9495057Z",
+      "mismatch_count": 1,
+      "known_mismatch_unchanged_across_final3_builds": true,
+      "evidence": "Saved/Migration/Phase4/ProjectLevelDoor/ProtectedInvariantsAfterNativeFinal3.json",
+      "evidence_sha256": "7311AD3D2A63962C941505C4704DF205D52048AED5ECFBE0E7032106CDBB3CA9"
+    },
+    "blueprint_rebuild": "BLOCKED_EXTERNAL",
+    "pie": "PENDING",
+    "visual_qa": "USER_OWNED_OUT_OF_SCOPE",
+    "als_persistence_and_legacy_slots": "OUT_OF_SCOPE_BY_USER",
+    "cook": "PENDING",
+    "package": "PENDING",
+    "packaged_runtime": "PENDING"
+  },
+  "acfu_pdb_forensics": {
+    "classification": "PROTECTED_VENDOR_BINARY_HASH_DRIFT_CONFIRMED_NOT_FALSE_POSITIVE",
+    "relative_path": "Binaries/Win64/UnrealEditor-AscentSaveSystem.pdb",
+    "length_expected": 64294912,
+    "length_actual": 64294912,
+    "sha256_expected": "A1AE0CBC7666FF2EEABAB90A2A294768A3066A4FF8CC372CC2260547E8CA296E",
+    "sha256_actual": "8B60C050DFA054D77CB3CFCD12F366F7F8F738FA4E79C6F1C2DFB7427B273A90",
+    "sha1_official": "10AEE2FD77C1F4C2EDA6B7DCF65EE43EA1687F96",
+    "sha1_actual": "0FA23EC6644DCC9C312298EBC986AF4285403BCF",
+    "official_epic_manifest": "D:/Unreal Engine 5/Library/UE_5.8/.egstore/4C5F4A3D4BD11EA8C568D9AE5B0DE544.manifest",
+    "official_epic_manifest_sha1": "D8AB25AF5D1D1C74FCD1CAB8BF764B64E973839C",
+    "official_epic_manifest_sha256": "443383BD236CD6FC8316566C11C1A3CBDB5C0644E7060EE2E45E7D268062DDBF",
+    "detached_official_reconstruction": "Saved/Migration/Phase4/ProjectLevelDoor/ACFUOfficialDetached/UnrealEditor-AscentSaveSystem.pdb",
+    "detached_reconstruction_matches_baseline": true,
+    "pdb_guid": "947F3258-C1B4-4529-8164-D6C4F84CFE9E",
+    "pdb_age": 1,
+    "pdb_guid_matches_runtime_dll": true,
+    "msf_stream_count": 71,
+    "differing_msf_streams": [2],
+    "logical_stream_2_differing_byte_count": 1,
+    "file_offset": 13485727,
+    "file_offset_hex": "0xCDC69F",
+    "msf_block": 3292,
+    "logical_stream_2_offset": 7870111,
+    "logical_stream_2_offset_hex": "0x78169F",
+    "type_index_hex": "0x1DCE7",
+    "leaf_hex": "0x1505",
+    "leaf_name": "LF_STRUCTURE",
+    "record_offset": 55,
+    "expected_byte_hex": "65",
+    "actual_byte_hex": "45",
+    "expected_symbol": "FGPUBreadcrumbCrashData",
+    "actual_symbol": "FGPUBrEadcrumbCrashData",
+    "bit_delta": "0x20 cleared",
+    "window_utc": {
+      "last_protected_pass": "2026-07-13T19:05:34.6228180Z",
+      "first_protected_fail": "2026-07-13T19:08:57.7872639Z"
+    },
+    "build_action_observation": "The intervening Editor and Game UBT logs list only project-owned EFLevelFlow/NoShellForWinter actions and no ACFU or AscentSaveSystem compile/link/PDB action.",
+    "cause": "UNRESOLVED_ONE_BIT_SILENT_FILE_DRIFT",
+    "attribution": "No evidence is sufficient to attribute the byte change to UBT, UBA, Codex, or another concrete process.",
+    "repair_performed": false,
+    "repair_policy": "No Marketplace or Engine plugin file may be written under the current migration rules. The detached official reconstruction is evidence only."
+  },
+  "pending": [
+    "Repair or officially verify the installed ACFU 4.3.5 PDB outside this migration action, then obtain a full protected-invariant PASS.",
+    "Rerun the DoorToLevel PRE_STAGE gate.",
+    "Run the isolated UE 5.7 visual validation and exact four-package AssetTools migration.",
+    "Rebuild and reload the thin UE 5.8 DoorToLevel Blueprint at the preserved public asset path.",
+    "Validate ACF interaction, level travel, map marker, and quest target in PIE.",
+    "Complete cook/cooked-manifest, package, and packaged-runtime gates."
+  ],
+  "out_of_scope_by_user": [
+    "SaveGame migration and compatibility with legacy save slots.",
+    "ProjectLevelDoor ALS persistence/save-load validation.",
+    "All visual QA; execution and acceptance are owned by the user."
+  ]
+}

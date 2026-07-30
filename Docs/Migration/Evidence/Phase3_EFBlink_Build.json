@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:08:00Z",
+  "plugin": "EFBlink",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 12 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFBlink_ImportReceipt.json",
+    "receipt_sha256": "8C2121CDB800F8A93CDCA90DF040B0F847F938894886735115AD625B63431163",
+    "source_target_hashes_match": true
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 10,
+    "log": "Saved/Migration/Logs/Phase3_EFBlink_EditorBuild_20260713.log",
+    "log_length": 9886,
+    "log_sha256": "70E63D18363200CE5FC59EC423E922542E10330746872EF59A8C57C7A13DAC56"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 8,
+    "log": "Saved/Migration/Logs/Phase3_EFBlink_GameBuild_20260713.log",
+    "log_length": 4932,
+    "log_sha256": "CC8EAF011947736272FC1E93F0ADE1F251C636605128B8F53AD2EEE409600697"
+  },
+  "static_contract": {
+    "female_asset": "/Game/DazToUnreal/Female/Female",
+    "required_morph_names_present_in_authoritative_target_binary": [
+      "Blink",
+      "Eyelid Thickness",
+      "Eyelid Angle Upper Outer",
+      "Eyelid Angle Lower Outer",
+      "Eyeball Position Depth"
+    ],
+    "legacy_redirects": "PENDING_PHASE4_CONFIG_MERGE"
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "NOT_APPLICABLE_RUNTIME_ONLY"
+  },
+  "pending_qa": [
+    "Merge the EFEspabilarRuntime to EFBlinkRuntime redirects in Phase 4.",
+    "Verify component resolution and a visible blink pulse on authoritative Female in PIE.",
+    "Cook/package/runtime smoke in final QA phases."
+  ],
+  "status": "BUILD_EDITOR_GAME_PASS_CONFIG_AND_VISUAL_QA_PENDING"
+}

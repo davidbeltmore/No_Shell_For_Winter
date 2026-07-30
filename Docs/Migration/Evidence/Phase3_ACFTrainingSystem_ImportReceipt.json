@@ -1,0 +1,84 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:39:34.3667932Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "ACFTrainingSystem",
+    "modules":  [
+                    "ACFTrainingSystem"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/ACFTrainingSystem",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\ACFTrainingSystem",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  12,
+    "total_bytes":  46670,
+    "files":  [
+                  {
+                      "relative_path":  "ACFTrainingSystem.uplugin",
+                      "length":  594,
+                      "sha256":  "868C9064E416D45E5EB8872CC1D0E38F68D9775154ACF84D282AE4D7C43F3D23"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/ACFTrainingSystem.Build.cs",
+                      "length":  559,
+                      "sha256":  "59AD3374FAB8B63FA33E7D86D76218A1511D7B21B0698BDCEA557EDDC488110F"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Private/ACFTrainingComponent.cpp",
+                      "length":  22563,
+                      "sha256":  "2C675F0B4BB610313667F6E2B424C9A2FE57C9C3BCE22E90561FA0928FE9922E"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Private/ACFTrainingMinigameBase.cpp",
+                      "length":  969,
+                      "sha256":  "2FEB37CEB27F422106C83A0A8AC1C1FD5DD1A67FF6BB51145F05AF057257A452"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Private/ACFTrainingSettings.cpp",
+                      "length":  4164,
+                      "sha256":  "81CE600854308B98C0B22FFE319D2AFFDB451C39EB996A08794C2D17385EBF77"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Private/ACFTrainingSystem.cpp",
+                      "length":  235,
+                      "sha256":  "86A3FBA828D9E6E10D10583828CFACE370FDAD3080AB091F8C4135F9217EF69A"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Private/ACFTrainingTypes.cpp",
+                      "length":  825,
+                      "sha256":  "58A4F77FFC8B4FEBD94ED15047D7737ECD4E82E0AD18DF60AEAC01CEB9ECCADC"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Public/ACFTrainingComponent.h",
+                      "length":  8816,
+                      "sha256":  "5168D0BA6599C29D2E1AD8943800E6656CDE9CDFBEE6D44553F5B6BF6E21B818"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Public/ACFTrainingMinigameBase.h",
+                      "length":  1878,
+                      "sha256":  "5969422BFD1370D3192418EC8601F80C2B7198A8235BF9DBBC92C77FEE951584"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Public/ACFTrainingSettings.h",
+                      "length":  1100,
+                      "sha256":  "31E1FCAB653F5F4EE67A671718BA6D483137887C0106EBD3482C675918EFD9CE"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Public/ACFTrainingSystem.h",
+                      "length":  201,
+                      "sha256":  "0EBFE0C2BEFEF1B7804FB5414E2D298C059424D951BFD66583F7C6F2CA2B737F"
+                  },
+                  {
+                      "relative_path":  "Source/ACFTrainingSystem/Public/ACFTrainingTypes.h",
+                      "length":  4766,
+                      "sha256":  "1933F4485F3D230445A0079AD9DC1EB6EE9FE8B22E0470639429751BD832F969"
+                  }
+              ]
+}

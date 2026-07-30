@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-07-13T09:36:10Z",
+  "initial": {
+    "exit_code": 83,
+    "failing_assets": 34,
+    "unique_compiler_messages": 61,
+    "tp_third_person_occurrences": 269,
+    "log": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_20260713.log"
+  },
+  "after_core_redirects": {
+    "exit_code": 5,
+    "failing_assets": 2,
+    "unique_compiler_messages": 5,
+    "tp_third_person_occurrences": 0,
+    "log": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_AfterRedirect_20260713.log"
+  },
+  "after_orphan_cleanup": {
+    "exit_code": 2,
+    "target_owned_failing_assets": 0,
+    "vendor_failing_assets": 1,
+    "vendor_asset": "/AscentCombatFramework/Blueprints/Abilities/ACF_PickAction_BP",
+    "unique_compiler_messages": 2,
+    "tp_third_person_occurrences": 0,
+    "process_fatal_count": 0,
+    "process_ensure_count": 0,
+    "result": "BLOCKED_EXTERNAL",
+    "log": "Saved/Migration/Logs/Phase1_CompileAllBlueprints_AfterOrphanCleanup_20260713.log"
+  }
+}

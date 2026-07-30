@@ -1,0 +1,84 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:07:35.5686638Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFBlink",
+    "modules":  [
+                    "EFBlinkRuntime"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFBlink",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFBlink",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  12,
+    "total_bytes":  29335,
+    "files":  [
+                  {
+                      "relative_path":  "EFBlink.uplugin",
+                      "length":  385,
+                      "sha256":  "A5B4AC3FE902FF12791DA60766C2D5F83A5A3E40852E5E2B0B507C29554DF4D2"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/EFBlinkRuntime.Build.cs",
+                      "length":  321,
+                      "sha256":  "78A20AC240BED06EBCD6DAD895BD62E90B754F912E1F5BDE7F7507AF3FB8E50D"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Private/EFBlinkMorphComponent.cpp",
+                      "length":  12511,
+                      "sha256":  "79485C99ECED78E204E99FDF75AEC2A25E49CFF057743A45230E594F89F7B293"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Private/EFBlinkPlayerSubsystem.cpp",
+                      "length":  4916,
+                      "sha256":  "C36E48783B7F63D06AA416C264C91919F739E32C4B9C12035C77944F97BF6892"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Private/EFBlinkRuntime.cpp",
+                      "length":  218,
+                      "sha256":  "A4DBF1B3325EEB2B26BB4D6C69BB95E4560EBD20F6EB6368DD9EC6A7EC642C68"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Private/EFBlinkSettings.cpp",
+                      "length":  199,
+                      "sha256":  "8D4F8B76AB8974969DE7325E7482D1F115498BB84217DE642CA85690386E6752"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Private/EFBlinkTypes.cpp",
+                      "length":  618,
+                      "sha256":  "173551095677179FDDF8DC93B92EDE073895B31BB7AE051B2286B9A5B10C7459"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Public/EFBlinkMorphComponent.h",
+                      "length":  6005,
+                      "sha256":  "D6BAC09361051A1635B9B6BF563F624D9B7322883A94C80BD02C20BD95648580"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Public/EFBlinkPlayerSubsystem.h",
+                      "length":  1244,
+                      "sha256":  "1111466725E4E0730039006BA93E9EB4DDB642E3229B5EBDB42ECD6A6D9DB525"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Public/EFBlinkRuntime.h",
+                      "length":  250,
+                      "sha256":  "64C9742AE85D73D6E6E2880CCFA77E42F905707850B9BD71F41328FD87C50B50"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Public/EFBlinkSettings.h",
+                      "length":  1704,
+                      "sha256":  "41033AC64377FD143CA4742B2A18160012531C7A617A5ADB48CC078B131C1EE0"
+                  },
+                  {
+                      "relative_path":  "Source/EFBlinkRuntime/Public/EFBlinkTypes.h",
+                      "length":  964,
+                      "sha256":  "FB509D33548BFB8473E0F1ECA69543E625626760827C0516DEFD7A63814C3FE6"
+                  }
+              ]
+}

@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T11:51:31.2753115Z",
+  "plugin": "EFProjectSystems",
+  "engine": "UE 5.8.0-55116800",
+  "target_acfu": "4.3.5",
+  "source_head": "8808ee6493b6c8e73b58fca30d9d5f1c1bca77b4",
+  "target_parent_commit": "0ca2462b0e62fca1facb59a402192aa190daa723",
+  "import": {
+    "result": "SOURCE_ONLY_IMPORT_PASS",
+    "file_count": 289,
+    "source_file_count": 288,
+    "total_bytes": 3491166,
+    "receipt": "Docs/Migration/Evidence/Public_Evidence_Redaction.md",
+    "receipt_length": 88361,
+    "receipt_sha256": "0C4852655788885A86916C9A298843FF97EFD88AEFFEC217367344B8DD47CCDE",
+    "excluded": [
+      "Binaries",
+      "Intermediate",
+      "Saved",
+      "DerivedDataCache",
+      "Content",
+      "Config"
+    ]
+  },
+  "target_patches": {
+    "modified_imported_files": 10,
+    "reasons": [
+      "ACFU 4.3.5 FComponentFX output argument",
+      "UE 5.8 ProcessDelegate<UObject> migration",
+      "WITH_EDITORONLY_DATA metadata fallback",
+      "WITH_EDITOR debug API guard",
+      "target-authoritative ACF enemy class remap"
+    ],
+    "target_acfu_modified": false,
+    "target_daz_modified": false
+  },
+  "editor_build": {
+    "result": "PASS",
+    "compiled_actions": 27,
+    "compiled_log": "Saved/Migration/Logs/Phase3_EFProjectSystems_EditorBuild_20260713_TargetEnemyRemap.log",
+    "compiled_log_length": 16992,
+    "compiled_log_sha256": "DAAEA2378A592FFE2E3D60CBB506D1479E549BC77A6FBA167BCBE72144551994",
+    "final_confirmation_actions": 0,
+    "final_confirmation_log": "Saved/Migration/Logs/Phase3_EFProjectSystems_EditorBuild_20260713_Final.log",
+    "final_confirmation_log_length": 6584,
+    "final_confirmation_log_sha256": "70DA59FC0FBD793199E0E35388F32B1D77A4B380D92809AAA688BE2DD46173D4"
+  },
+  "game_build": {
+    "result": "PASS",
+    "compiled_actions": 20,
+    "compiled_log": "Saved/Migration/Logs/Phase3_EFProjectSystems_GameBuild_20260713_TargetEnemyRemap.log",
+    "compiled_log_length": 6712,
+    "compiled_log_sha256": "A7639391E073D7B52462F46D6ACA752933000A31C55FE07A6E46C34C4FCCD394",
+    "final_confirmation_actions": 0,
+    "final_confirmation_log": "Saved/Migration/Logs/Phase3_EFProjectSystems_GameBuild_20260713_Final.log",
+    "final_confirmation_log_length": 2206,
+    "final_confirmation_log_sha256": "2441F73A4BBD6A4C2B4DB5A9B9840A2F9D74FD92E1941866B7BD9D7081DB4B41"
+  },
+  "ue58_structural_probe": {
+    "result": "PASS_SOFT_ASSETS_PENDING",
+    "checks_passed": 46,
+    "checks_failed": 0,
+    "class_contracts": 10,
+    "project_tag_count": 58,
+    "soft_packages_existing": 3,
+    "soft_packages_missing": 8,
+    "filesystem_artifacts_missing": 1,
+    "evidence": "Saved/Migration/Phase3/EFProjectSystemsReadOnlyProbe58.json",
+    "evidence_length": 15872,
+    "evidence_sha256": "6379C5F85F71224F7AC453DE6B79A76B97878CB2E33DB77730ACFA6F6DD31E0C",
+    "log": "Saved/Migration/Logs/Phase3_EFProjectSystems_StructuralProbe58.log",
+    "log_length": 507012,
+    "log_sha256": "C218A28559107B866C674F4A4CB8C4DABC204CCC5FCF9577933F717FD9CF4AC4",
+    "map_load_requested": false,
+    "content_asset_load_requested": false,
+    "blueprint_compile_requested": false,
+    "asset_save_requested": false
+  },
+  "native_automation": {
+    "result": "PASS",
+    "runner": "Tools/Migration/Run-EFProjectSystemsNativeAutomation.ps1",
+    "runner_length": 4487,
+    "runner_sha256": "857ADD0ACF0F6690D5B596D8C396DB05513389B9A84B47038DFCF04F388ABCA0",
+    "inventory_count": 87,
+    "strict_native_selected": 71,
+    "succeeded": 71,
+    "succeeded_with_warnings": 0,
+    "failed": 0,
+    "not_run": 0,
+    "asset_fallback_tests_deferred": 9,
+    "content_hard_tests_deferred": 1,
+    "pie_tests_deferred": 6,
+    "report": "Saved/Migration/Automation/Phase3_EFProjectSystems_Native_20260713_Final/index.json",
+    "report_length": 29233,
+    "report_sha256": "B119A83D86269470330435896ABAD2EBF6BFA82EC69238576807F3C2B1DBA9B8",
+    "log": "Saved/Migration/Logs/Phase3_EFProjectSystems_NativeAutomation_20260713_Final.log",
+    "log_length": 494476,
+    "log_sha256": "100438E7961B0466A2FF159728F09ACF05885D5CD23DA3779E864B214BA2C02C"
+  },
+  "config": {
+    "result": "SELECTIVE_STRUCTURAL_PASS",
+    "redirect_count": 5,
+    "project_tag_count": 58,
+    "owner_section_count": 6,
+    "duplicate_sections": 0,
+    "temporary_values_rejected": true,
+    "target_authoritative_enemy_packages_present": 3,
+    "serialized_redirect_resolution": "PENDING_ALLOWLISTED_ASSET_LOAD",
+    "runtime_input_contract": "PENDING_PIE",
+    "cook_roots_validation": "PENDING_COOK"
+  },
+  "gates": {
+    "source_read_only": "PASS",
+    "source_gate_evidence": "Saved/Migration/Evidence/SourceReadOnlyVerification.json",
+    "source_gate_evidence_sha256": "8552E13E801014E1B1D82687ACC8EE8BE04DD57556DC954D7A83F65F2B336C69",
+    "known_protected_sets": "PASS",
+    "protected_set_counts": {
+      "acfu": 5043,
+      "daz_plugin": 213,
+      "target_daz_assets": 189
+    },
+    "protected_gate_evidence": "Saved/Migration/Evidence/ProtectedInvariantVerification.json",
+    "protected_gate_evidence_sha256": "9CB4EEEC6772B2DE8A9E13083D1D2383AB4964A706F4D01C205BC24534DD394E",
+    "player_female_multiple_male": "PASS",
+    "frederick_identity": "PENDING_RUNTIME_IDENTITY",
+    "live_content_modified_by_this_wave": false
+  },
+  "known_non_blocking_deprecations": [
+    "ProjectAnimationDiagnosticsLibrary.cpp uses deprecated GetBonePosesForTime",
+    "ProjectDefeatFlowPieTests.cpp uses deprecated InputKey(FInputKeyParams)"
+  ],
+  "blueprint_compile": "PENDING_CONTENT",
+  "pie": "PENDING_CONTENT",
+  "visual_qa": "PENDING_CONTENT",
+  "cook": "PENDING_CONTENT",
+  "package": "PENDING_CONTENT",
+  "packaged_runtime": "PENDING_CONTENT",
+  "status": "EDITOR_GAME_CONFIG_STRUCTURAL_NATIVE_AUTOMATION_PASS_CONTENT_BLUEPRINT_PIE_VISUAL_COOK_PACKAGE_PENDING"
+}

@@ -1,0 +1,155 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:10:18.5963380Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFCharacterCreation",
+    "modules":  [
+                    "EFCharacterCreationRuntime",
+                    "EFCharacterCreationEditor"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFCharacterCreation",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreation",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  26,
+    "total_bytes":  259876,
+    "files":  [
+                  {
+                      "relative_path":  "EFCharacterCreation.uplugin",
+                      "length":  546,
+                      "sha256":  "ACB295524A7AE5535231F58102F115115656B0E1269ACD5F51AB0B8D5278FC2F"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationEditor/EFCharacterCreationEditor.Build.cs",
+                      "length":  369,
+                      "sha256":  "76AF2FDE915853259D45DFB064222738755530A53A9DCE2ABD4ECAED9DCFA9DE"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationEditor/Private/EFCharacterCreationEditor.cpp",
+                      "length":  159,
+                      "sha256":  "238F799ED6E055521522BC4101E112108D774919C87ED717882ADF09D7F8DCCF"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationEditor/Public/EFCharacterCreationEditor.h",
+                      "length":  127,
+                      "sha256":  "D6B64774756110F1A7A8D1D7F666643954CB2F3E6187DF97561B1372CFEEB105"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/EFCharacterCreationRuntime.Build.cs",
+                      "length":  441,
+                      "sha256":  "734A2E3C2BE1D5F32C82359EB538F26316029F301156442EFF4982958181AF92"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCreationBootstrapActor.cpp",
+                      "length":  749,
+                      "sha256":  "E61707CF79C17B092932573192E267E853A5C568602720518B7534B81BF6E45D"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCreationGameplayHooks.cpp",
+                      "length":  396,
+                      "sha256":  "01594C267BEF2AF08059B7119D6A6874FC9410791362B887F51BAB2E44F0A10F"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCreationRuntime.cpp",
+                      "length":  162,
+                      "sha256":  "9681A8E72402760DF59BAA89D0AFEC4D1AB31C88B896D39912CEF9B7344C29D2"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCreationSettings.cpp",
+                      "length":  5137,
+                      "sha256":  "1B1C7DF5762E331B613C2F2F98AA8E16DA4C42D35E596F92DF1A66DE46476A4F"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCreationSubsystem.cpp",
+                      "length":  38169,
+                      "sha256":  "CDA266AC933CB69D537A7FAB5E60BFF92AAD9F8DDF5F217995C578643EF68A29"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCustomizationComponent.cpp",
+                      "length":  56317,
+                      "sha256":  "40D9CE3A4DFF5DE84468C545A1B88D386C4EACC7392F8EAF5C0C7884368D5DFC"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFCharacterCustomizationSaveGame.cpp",
+                      "length":  1197,
+                      "sha256":  "F880A734AE1F7361DF5FD4AA50DDD2413A2B67FFBF6B6803EAA77D42822287E9"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/EFMorphPhysicsConstraintComponent.cpp",
+                      "length":  25408,
+                      "sha256":  "98A4D5DEACA4A7D3A1210A86F75865BA48DBD1CEAAE96C59C8A7466BBA1DD12C"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/UI/EFCharacterCreationRootWidget.cpp",
+                      "length":  69061,
+                      "sha256":  "88D94333B52A56D84E86E080B0DB0A26BFC0CCE10F5B5AE047A775BEC207B3D1"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Private/UI/EFMorphSliderWidget.cpp",
+                      "length":  12166,
+                      "sha256":  "FBB6257B6811C02EDE1E8BC1AA86059F309508CA12D2316D1B87B4C58CA7E7AB"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationBootstrapActor.h",
+                      "length":  789,
+                      "sha256":  "85377061F0A7FC86B6E2D2F71E0C81AA67BEF608E984DB72B46F39E8E2071956"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationGameplayHooks.h",
+                      "length":  529,
+                      "sha256":  "B5A44E3E660AAF310634F50101D0DD1B6757A7EFB7F30006FB5BEC6DB16DA0C9"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationRuntime.h",
+                      "length":  128,
+                      "sha256":  "0B127A0198351F7515DD67EAAD3F93CE99536EAD2DAC7EFF9A819E7C8980092D"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationSettings.h",
+                      "length":  5497,
+                      "sha256":  "586B4414ED197FB5E0115BEB105D31A5C8962A4A9B4F14E595BDB80BE4BAF3CB"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationSubsystem.h",
+                      "length":  5817,
+                      "sha256":  "930C99EC4FD128F7AE45C18B32E1144C5587EACF545A9D203BB9519E1BE31F37"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCreationTypes.h",
+                      "length":  5570,
+                      "sha256":  "32CE8D55192539DCE16AC8D8082AF0D2ACF22659968A3655894EA69EFD005EBE"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCustomizationComponent.h",
+                      "length":  8782,
+                      "sha256":  "E048A6078D727B4BFC2173B350E25CD75AC2CEF55217859A792E89ECCF8B2F50"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFCharacterCustomizationSaveGame.h",
+                      "length":  944,
+                      "sha256":  "29DCBEE00A507129F5BB9572C6B78ED56E0A1F13B41CFC57D9B68AE0E4FA2341"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/EFMorphPhysicsConstraintComponent.h",
+                      "length":  7152,
+                      "sha256":  "EA58B79251282945DAB7B5B54B0E69A4CD9EF13082E5A23E842408DA7413DEAD"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/UI/EFCharacterCreationRootWidget.h",
+                      "length":  12260,
+                      "sha256":  "A1B890F3359B24AFC1D840BA10D0DBD207510F1EA3854E491185986B5015810B"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationRuntime/Public/UI/EFMorphSliderWidget.h",
+                      "length":  2004,
+                      "sha256":  "A90EE1D5C5FBDF745545A98EFD50284953EFB0C5DF2128B4EBE34403C57326BF"
+                  }
+              ]
+}

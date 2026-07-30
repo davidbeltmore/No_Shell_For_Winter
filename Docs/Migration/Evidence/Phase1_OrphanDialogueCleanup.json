@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-07-13T09:31:49.399104+00:00",
+  "operation": "QUARANTINE_THEN_DELETE_VIA_UNREAL_EDITOR_ASSETTOOLS",
+  "asset_path": "/Game/FullSample/Integrations/ATSIntegrations/Dialogue/SampleDialogueButton_WBP",
+  "quarantine_path": "/Game/_MigrationQuarantine/Phase1_20260713/SampleDialogueButton_WBP",
+  "original_sha256": "9A94F4E897501F9266029CF87EF27DCFC93EB2B257532BFB15D2A65C3150CF6F",
+  "quarantine_sha256_after_editor_rename": "C1D70A9F13E2BE3AB62B676041C7F4AB808357108A5F35DBEA6876DC581F593C",
+  "referencers_before": [],
+  "referencers_in_quarantine": [],
+  "old_owner_present": false,
+  "current_player_present": true,
+  "current_acfu_dialogue_present": true,
+  "quarantine_empty_after_delete": true,
+  "result": "PASS"
+}

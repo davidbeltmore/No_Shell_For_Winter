@@ -1,0 +1,2 @@
+/EFCharacterCreation/UI/WBP_EFCharacterCreationRoot.WBP_EFCharacterCreationRoot
+/EFCharacterCreation/UI/WBP_EFMorphSlider.WBP_EFMorphSlider

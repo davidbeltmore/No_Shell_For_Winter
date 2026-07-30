@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:31:00Z",
+  "plugin": "EFCharacterCreationACFUBridge",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 6 allowlisted files; no Binaries, Intermediate, Saved, Content, or Config",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFCharacterCreationACFUBridge_ImportReceipt.json",
+    "receipt_sha256": "48196B2E66D9D4AB530C5B5EB4456022B809A8FFC9BC018A75864052B0305107",
+    "source_target_hashes_match": true
+  },
+  "patches_required": [],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 13,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreationACFUBridge_EditorBuild_20260713.log",
+    "log_length": 12210,
+    "log_sha256": "5D150DA649C66F9CA66A588A21F40CA7D2AC0136E3630F950B680A81451169FB"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 5,
+    "log": "Saved/Migration/Logs/Phase3_EFCharacterCreationACFUBridge_GameBuild_20260713.log",
+    "log_length": 4618,
+    "log_sha256": "CCC28952F9AE318009761ADA0D2244C034A25CB26F5E578BCF96DDF349E65B86"
+  },
+  "static_contract": {
+    "acf_character_movement_component_present_in_target_acfu": true,
+    "set_can_move_function_present_in_target_acfu": true,
+    "acf_character_implements_ability_system_interface": true,
+    "cancel_all_abilities_api_present": true,
+    "target_acfu_modified": false
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Open and close Character Creator in PIE and verify ACF movement lock restoration.",
+    "Verify active ability cancellation through the project gameplay hook.",
+    "Repeat movement RPC behavior in standalone and listen-server/client sessions.",
+    "Cook/package/runtime smoke in final QA phases."
+  ],
+  "status": "BUILD_EDITOR_GAME_PASS_RUNTIME_QA_PENDING"
+}

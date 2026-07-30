@@ -1,0 +1,35 @@
+# Unreal generated artifacts
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+
+# IDE-generated files
+.vscode/*
+!.vscode/mcp.json
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.user
+*.xcodeproj/
+*.xcworkspace/
+
+# Local assistant/vendor reference cache
+.claude/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+__pycache__/
+*.py[cod]
+*.tmp
+*.temp
+*.bak
+*.old
+*~

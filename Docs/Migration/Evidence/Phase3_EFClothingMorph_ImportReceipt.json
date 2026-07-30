@@ -1,0 +1,49 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:32:05.9196380Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFClothingMorph",
+    "modules":  [
+                    "EFClothingMorphRuntime"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFClothingMorph",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFClothingMorph",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  5,
+    "total_bytes":  97533,
+    "files":  [
+                  {
+                      "relative_path":  "EFClothingMorph.uplugin",
+                      "length":  509,
+                      "sha256":  "953DED3D1089E96C6FF9B8F78031E003890405A488E81A0593E80DD3C41C0602"
+                  },
+                  {
+                      "relative_path":  "Source/EFClothingMorphRuntime/EFClothingMorphRuntime.Build.cs",
+                      "length":  365,
+                      "sha256":  "38BBD7FAF0911ECFB2FA8872B64EB9CE478ED00A286DCF52F7BA0A1BCDE7D937"
+                  },
+                  {
+                      "relative_path":  "Source/EFClothingMorphRuntime/Private/EFClothingMorphComponent.cpp",
+                      "length":  67764,
+                      "sha256":  "60A8EEEE393D1E086EDA592AADD5FE8554778E74806118D264F4FF186DC24214"
+                  },
+                  {
+                      "relative_path":  "Source/EFClothingMorphRuntime/Private/EFClothingMorphRuntimeModule.cpp",
+                      "length":  97,
+                      "sha256":  "33F802F4AFDA4AC3A461E4A0341CEB568345532C5F7E153B393AE5966FBBFCF2"
+                  },
+                  {
+                      "relative_path":  "Source/EFClothingMorphRuntime/Public/EFClothingMorphComponent.h",
+                      "length":  28798,
+                      "sha256":  "AF09A990BDFFC46FAB95AD90F6AFA878D656BB50463B0EDA7B6E89B6A744BA90"
+                  }
+              ]
+}

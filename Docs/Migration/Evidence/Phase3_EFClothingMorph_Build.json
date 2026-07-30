@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "verified_utc": "2026-07-13T10:34:00Z",
+  "plugin": "EFClothingMorph",
+  "engine": "UE 5.8",
+  "import": {
+    "policy": "descriptor plus Source only; 5 allowlisted files; README, Binaries, Intermediate, Saved, Content, and Config excluded",
+    "receipt": "Docs/Migration/Evidence/Phase3_EFClothingMorph_ImportReceipt.json",
+    "receipt_sha256": "0AFE04946E13BF98ACCB8FCA1E0D242CE35F7672252579DA23E2273D1F5B5E25"
+  },
+  "patches_required": [
+    {
+      "file": "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphComponent.cpp",
+      "reason": "Destroy the reflected GetModularMeshes return array on every path instead of leaking its allocated elements during repeated refreshes.",
+      "implementation": "Replace raw FMemory_Alloca parameter storage with FStructOnScope RAII.",
+      "source_sha256": "60A8EEEE393D1E086EDA592AADD5FE8554778E74806118D264F4FF186DC24214",
+      "target_sha256": "E0A79978B0094BA026917B515FDFCB18FF9BDE3C2A678BC850AC6BE850905826"
+    }
+  ],
+  "editor_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 4,
+    "log": "Saved/Migration/Logs/Phase3_EFClothingMorph_EditorBuild_PostPatch_20260713.log",
+    "log_length": 9176,
+    "log_sha256": "AA07E80273D62577A501670F0F3EA879D98EBE4A1A7F7D115109E9121B7476A2"
+  },
+  "game_build": {
+    "result": "PASS",
+    "exit_code": 0,
+    "build_actions": 6,
+    "log": "Saved/Migration/Logs/Phase3_EFClothingMorph_GameBuild_20260713.log",
+    "log_length": 4770,
+    "log_sha256": "A41689B03AADD2704127FEBF7DB82C3EF366DFB17E17058F0237C23F86976FA8"
+  },
+  "static_contract": {
+    "acf_equipment_component_present_in_target_acfu": true,
+    "acf_armor_slot_component_present_in_target_acfu": true,
+    "get_modular_meshes_present_in_target_acfu": true,
+    "on_equipped_armor_changed_present_in_target_acfu": true,
+    "slot_and_modular_part_fields_present_in_target_acfu": true,
+    "target_acfu_modified": false
+  },
+  "gates": {
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "runtime_editor_dependency_separation": "PASS"
+  },
+  "pending_qa": [
+    "Integrate UEFClothingMorphComponent with the authoritative Player without replacing Player or Female.",
+    "Verify equip/unequip delegate refresh and modular mesh slot resolution in PIE.",
+    "Verify extreme body morph propagation to clothing and leader-pose behavior.",
+    "Run CPU/memory soak after the Player integration and cook/package smoke."
+  ],
+  "status": "BUILD_EDITOR_GAME_PASS_PLAYER_INTEGRATION_QA_PENDING"
+}

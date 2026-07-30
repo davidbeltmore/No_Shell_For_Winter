@@ -1,0 +1,70 @@
+{
+  "evidence": {
+    "build_logs": {
+      "editor": "Saved/Migration/Logs/Phase4_ProceduralContracts_EditorBuild58.log",
+      "game": "Saved/Migration/Logs/Phase4_ProceduralContracts_GameBuild58.log"
+    },
+    "content_logs": {
+      "migration57": "Saved/Migration/Logs/Phase4_ProceduralContracts57_Migration_Resume.log",
+      "resave58": "Saved/Migration/Logs/Phase4_ProceduralContracts58_Resave.log",
+      "validation57": "Saved/Migration/Logs/Phase4_ProceduralContracts57_Validation.log"
+    },
+    "harness": "Saved/Migration/Phase4/EFProceduralContracts57HarnessReceipt.json",
+    "migration57": "Saved/Migration/Phase4/EFProceduralContracts57Migration.json",
+    "prior_migration_log": "Saved/Migration/Logs/Phase4_ProceduralContracts57_Migration.log",
+    "protected_gate": "Saved/Migration/Evidence/ProtectedInvariantVerification.json",
+    "resave58": "Saved/Migration/Phase4/EFProceduralContracts58Resave.json",
+    "source_gate": "Saved/Migration/Evidence/SourceReadOnlyVerification.json",
+    "validation57": "Saved/Migration/Phase4/EFProceduralContracts57Validation.json"
+  },
+  "excluded_runtime_assets": [
+    "/Game/Calysto/Dungeon/Blueprint/BP_MassiveDungeon",
+    "/Game/Procedural/Maps/DungeonGeneration",
+    "/Game/Procedural/DoorToLevel"
+  ],
+  "gates": {
+    "editor_build": "PASS",
+    "game_build": "PASS",
+    "ignore_dependencies": true,
+    "isolated_ue57_harness": "ISOLATED_PROCEDURAL_CONTRACTS_HARNESS_PASS",
+    "protected_target_invariants": "PASS",
+    "source_read_only": "PASS",
+    "target_delta_exact": true,
+    "ue57_assettools_exact_migration": "ASSETTOOLS_EXACT_PROCEDURAL_CONTRACTS_MIGRATION_PASS",
+    "ue57_read_only_load_compile": "UE57_PROCEDURAL_CONTRACTS_READ_ONLY_LOAD_COMPILE_PASS",
+    "ue58_load_compile_resave": "UE58_PROCEDURAL_CONTRACTS_LOAD_COMPILE_RESAVE_PASS"
+  },
+  "generated_utc": "2026-07-13T13:08:23.760087+00:00",
+  "pending": [
+    "PIE runtime and canonical StartPoint discovery/spawn validation",
+    "visible visual QA",
+    "cook and cooked-manifest validation for all 20 packages",
+    "package",
+    "packaged runtime",
+    "/Game/Calysto/Dungeon/Blueprint/BP_MassiveDungeon",
+    "/Game/Procedural/Maps/DungeonGeneration",
+    "/Game/Procedural/DoorToLevel",
+    "full procedural dungeon generation and cleanup flow"
+  ],
+  "schema_version": 1,
+  "scope": {
+    "blueprint_parent_counts": {
+      "/Script/Engine.Actor": 1,
+      "/Script/Engine.PrimaryDataAsset": 5
+    },
+    "calysto_data_contracts": 19,
+    "canonical_start_point_blueprint": 1,
+    "class_counts": {
+      "Blueprint": 6,
+      "UserDefinedEnum": 2,
+      "UserDefinedStruct": 12
+    },
+    "compiled_blueprints": 6,
+    "external_game_dependencies": 0,
+    "redirectors": 0,
+    "source_bytes": 223283,
+    "source_fingerprint": "30A8ACBD998EBD41242A3BD850C8CBB3E7E6A19D63D72E632D0BB897917FA006",
+    "source_packages_migrated": 20
+  },
+  "status": "CONTENT_BUILD_PASS_PIE_VISUAL_COOK_PACKAGE_DUNGEON_RUNTIME_PENDING"
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "cohort": "TattooShopRuntime35",
+  "package_count": 35,
+  "source_bytes": 5679074,
+  "automatic_tattoo_table": "/Game/_Game/AutomaticTattoo/DT_AutomaticTattoos",
+  "automatic_tattoo_textures": [
+    "/Game/TattooShop/Texture/T_Bunny",
+    "/Game/TattooShop/Texture/T_HappyBirthday",
+    "/Game/TattooShop/Texture/T_Heart",
+    "/Game/TattooShop/Texture/T_Pentagram"
+  ],
+  "excluded_packages": [
+    "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar",
+    "/Game/TattooShop/Blueprints/BP_TSGameMode",
+    "/Game/TattooShop/Blueprints/BP_TSGameInstance",
+    "/Game/TattooShop/Blueprints/BP_TSSaveGame",
+    "/Game/TattooShop/Blueprints/Widget/WPB_Helper"
+  ],
+  "excluded_prefixes": [
+    "/Game/TattooShop/MultiplayerTestMap",
+    "/Game/TattooShop/ThirdPersonTemplateAssets",
+    "/Game/TattooShop/Demo",
+    "/Game/ExportedAnimations"
+  ],
+  "assets": [
+    {"package":"/Game/TattooShop/Blueprints/Interface/BPI_CharacterCustomization","class":"Blueprint","length":58272,"sha256":"AE0A5CBDB920018A3BB0A90BC2BFB51230C72C12E2670662C780548838465BEB"},
+    {"package":"/Game/TattooShop/Blueprints/Interface/BPI_CommonUI","class":"Blueprint","length":8968,"sha256":"9789CAC589417A2F275467CF0CB38A92E631FE8F91FB3F258FE0473E921118DC"},
+    {"package":"/Game/TattooShop/Blueprints/Library/BPFL_Tattoo","class":"Blueprint","length":80181,"sha256":"0DDB8337054D8EFEC4B61FCEB7FFDB0EA5D831DCD5E3F1FE5DE9B2B14BA657F5"},
+    {"package":"/Game/TattooShop/Blueprints/Stucts/S_TatMaterials","class":"UserDefinedStruct","length":8112,"sha256":"6229EC0B119EAFA8AFEFB1D8E425988003BA706BB514BB7A2455395EBBB3E342"},
+    {"package":"/Game/TattooShop/Blueprints/Stucts/S_TattooSaveFiles","class":"UserDefinedStruct","length":35175,"sha256":"00E300E04CB824A3DACBF2BD9168FD0A0AF573DADA33B5F5FA5C9FD64FEBE66C"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/BP_TextRender","class":"Blueprint","length":90445,"sha256":"D454AA71131FC1AE8202ECD780C4A42053939A45AC3932AE5A7FE3E564875F1E"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_AssetPreviewer","class":"WidgetBlueprint","length":695478,"sha256":"A73E868203066483845383DB95C124C9D84C85960FE384DD10A21D9D22B83649"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_ColorPicker","class":"WidgetBlueprint","length":587630,"sha256":"09F2B2EA81722376A61423C4CC97EC0D82A6758AD678D018967CDA32A54F0925"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_DragaWGT","class":"WidgetBlueprint","length":201743,"sha256":"8A4214E739F18772F8DEE8AF65884BC12273287A8701710B6CCC5009D5479569"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_T2T","class":"WidgetBlueprint","length":479357,"sha256":"567EC43028D6AB5FC94F346C8535E94B99E5D90979B72D7C2FF247CF0DEE2EA4"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_TattooCard","class":"WidgetBlueprint","length":139079,"sha256":"3E766EA9068B27A9C105F93462B001F9B0D7BC6F84C0D8C7C17EA38D2560CA02"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_TattooCustomization","class":"WidgetBlueprint","length":1200470,"sha256":"FB90DD7EE9141A6FFF8B4ED26AE062D8807BF88EDE055107BEF7DE49D628D87C"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_TattooShop","class":"WidgetBlueprint","length":353266,"sha256":"0ED0B7BC01FEDBF6F85FF7B0EEE2C7928D7A73168F5454B8C11C4B3969819EF4"},
+    {"package":"/Game/TattooShop/Blueprints/Widget/WBP_TattooviewerInst","class":"WidgetBlueprint","length":70756,"sha256":"223D4E5F63CA6C3A312F4E826E4EA26218398954D871F5FA72692E0533815B3F"},
+    {"package":"/Game/TattooShop/Fonts/F_RobotoDistanceField","class":"Font","length":74633,"sha256":"E649A2E79060CC6AD65CC16B890B6153C87FEB0AF7071600F8B6C54C8E693E15"},
+    {"package":"/Game/TattooShop/Input/IA_CloseTattooShop","class":"InputAction","length":1152,"sha256":"D21BDC0D21663D7CA16BDE533EFEFEF9D2C0DB257955DBBF84C487DDBAECA486"},
+    {"package":"/Game/TattooShop/Input/IA_EnableCamOffset","class":"InputAction","length":1152,"sha256":"0035F33BBEDEBCE127968EC567359DBC1D27E401EAE7CB429B2F9B89041B01D0"},
+    {"package":"/Game/TattooShop/Input/IA_EnableCamRotate","class":"InputAction","length":1152,"sha256":"A9896CFFF635729DCA856B965D1FA824D9BB48EBAEAEDAE753A34163602ED661"},
+    {"package":"/Game/TattooShop/Input/IA_OpenTattooShop","class":"InputAction","length":1148,"sha256":"DC7C3A406A7EF0CBFD4731CF09983ED25CA89BB389ACA1F58F031B5282032394"},
+    {"package":"/Game/TattooShop/Input/IA_TattooCamOffSet","class":"InputAction","length":1348,"sha256":"4891817437C15B3E54EF036679B795F131A90F5319D9B613F96D81979B18A49D"},
+    {"package":"/Game/TattooShop/Input/IA_TattooCamOrbit","class":"InputAction","length":1344,"sha256":"66B856639A78D33273D2AAC9E196B0C59A0196C68482E0A938C127F6A15B6AE8"},
+    {"package":"/Game/TattooShop/Input/IMC_Menu","class":"InputMappingContext","length":5747,"sha256":"D78AC9A1BA0DAA3EDA7BA9EE13934ABEDA984566ED450426799D96170C03CC80"},
+    {"package":"/Game/TattooShop/Materials/M_ColorPicker","class":"Material","length":19948,"sha256":"809AA6D841C145503B207A96207E6CFA8F02C9D6D6CC73258C56C27C3A6B87B5"},
+    {"package":"/Game/TattooShop/Materials/M_MenuBackGround","class":"Material","length":14478,"sha256":"4520310467C38540C490666FBD4F056EC764BEE7FA44F3D67D7EEA518C76F955"},
+    {"package":"/Game/TattooShop/Materials/M_MenuBackGround_Inst_L","class":"MaterialInstanceConstant","length":7013,"sha256":"85DAAEC3911B127A192403ABEA9DC71A0CBD991403B02B27FECBBB3C9C4EF8E6"},
+    {"package":"/Game/TattooShop/Materials/M_MenuBackGround_Inst_R","class":"MaterialInstanceConstant","length":5084,"sha256":"26DF22749710ACF769ABC07792467400E6301A2A9F078F8492F72EC384D382ED"},
+    {"package":"/Game/TattooShop/Materials/M_SV","class":"Material","length":16876,"sha256":"CEE2E3C631E5225B39CA6BCBD5CB8F6422219B744A8CD3E4CC756B1027D26509"},
+    {"package":"/Game/TattooShop/Materials/M_TattooShop","class":"Material","length":185444,"sha256":"E3C200997CF7376D8E1C645126F671FA2AA6CDD16EEFBD42630C36E387FC75CA"},
+    {"package":"/Game/TattooShop/Materials/MaterialFunctions/MF_OffsetUV","class":"MaterialFunction","length":8929,"sha256":"2D9DB895B20A42511D029C3511941704C356CB52509152EAA3DD9547E7BFD93A"},
+    {"package":"/Game/TattooShop/Materials/MaterialFunctions/MF_RenderDepth","class":"MaterialFunction","length":11361,"sha256":"378A1B180E9DBDCB434719606071AC0881636D9EE72CC014E82B1FA1E3538DD4"},
+    {"package":"/Game/TattooShop/Materials/MaterialFunctions/MF_UVWarp","class":"MaterialFunction","length":176145,"sha256":"38C15A786CE451D39251EDD92D4CCAACC6C669F0C896047C78ABAEE24F3FB031"},
+    {"package":"/Game/TattooShop/Texture/T_Bunny","class":"Texture2D","length":1088968,"sha256":"2B02113B877A77A3F8DFEA0895DDCB76FA11CBBBC1CD05CE13B70A7D52D9414F"},
+    {"package":"/Game/TattooShop/Texture/T_HappyBirthday","class":"Texture2D","length":13944,"sha256":"A70A759748B773D50360C25AB4B9CBDC94F4D55EAB781F28107374551F7F6B88"},
+    {"package":"/Game/TattooShop/Texture/T_Heart","class":"Texture2D","length":17084,"sha256":"3A4896E61023BF8FB9C95B117144586C60D427F1EFA1BDBC791E08E3091147D3"},
+    {"package":"/Game/TattooShop/Texture/T_Pentagram","class":"Texture2D","length":17192,"sha256":"893EB665E6E2EC30347F1B66418BDE35255D13B011399695377803DFA8F74792"}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Character Creation",
+	"Description": "Reusable character customization plugin with built-in UI defaults and extensibility hooks for Daz and gameplay bridges.",
+	"Category": "EF",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "EFCharacterCreationRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFCharacterCreationEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

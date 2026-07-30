@@ -1,0 +1,27 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Character Creation Daz Bridge",
+	"Description": "Editor-only bridge that validates DazToUnreal availability for the EF character creation plugin.",
+	"Category": "EF",
+	"CanContainContent": false,
+	"Installed": true,
+	"Plugins": [
+		{
+			"Name": "EFCharacterCreation",
+			"Enabled": true
+		},
+		{
+			"Name": "DazToUnreal",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "EFCharacterCreationDazBridgeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

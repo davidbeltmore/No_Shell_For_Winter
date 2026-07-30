@@ -1,0 +1,44 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:35:02.9199437Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFCharacterCreationDazBridge",
+    "modules":  [
+                    "EFCharacterCreationDazBridgeEditor"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFCharacterCreationDazBridge",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationDazBridge",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  4,
+    "total_bytes":  48207,
+    "files":  [
+                  {
+                      "relative_path":  "EFCharacterCreationDazBridge.uplugin",
+                      "length":  581,
+                      "sha256":  "D4103A96BF4FF119F56A5232F3DAABBF8692EC67A0B89FBF3670A988BE989002"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationDazBridgeEditor/EFCharacterCreationDazBridgeEditor.Build.cs",
+                      "length":  600,
+                      "sha256":  "97536726A1B36860D3E00D8BFB40E26C93163445C9395757EDEAC6797BA45ED1"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationDazBridgeEditor/Private/EFCharacterCreationDazBridgeEditor.cpp",
+                      "length":  46452,
+                      "sha256":  "57FD725E827955E507CCF84688E2104D1E4A984E0F7EF1FAF53EFEDE90106C82"
+                  },
+                  {
+                      "relative_path":  "Source/EFCharacterCreationDazBridgeEditor/Public/EFCharacterCreationDazBridgeEditor.h",
+                      "length":  574,
+                      "sha256":  "761C78876AE55BF6B93E0EE29C703DF41A51C930A44BC65815A9A4B63364A9D8"
+                  }
+              ]
+}

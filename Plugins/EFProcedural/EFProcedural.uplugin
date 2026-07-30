@@ -1,0 +1,38 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "EF Procedural",
+	"Description": "Reusable procedural runtime with integrated ACFU bridge, PCG bootstrap and editor coordination.",
+	"Category": "EF",
+	"CanContainContent": false,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "PCG",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "EFProceduralRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProceduralACFURuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProceduralPCGRuntime",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFProceduralEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

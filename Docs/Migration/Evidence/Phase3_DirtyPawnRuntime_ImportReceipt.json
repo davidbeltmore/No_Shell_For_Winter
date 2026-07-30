@@ -1,0 +1,90 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T10:04:57.7607768Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "DirtyPawnRuntime",
+    "modules":  [
+                    "DirtyPawnRuntime",
+                    "DirtyPawnRuntimeEditor"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/DirtyPawnRuntime",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\DirtyPawnRuntime",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  13,
+    "total_bytes":  149648,
+    "files":  [
+                  {
+                      "relative_path":  "DirtyPawnRuntime.uplugin",
+                      "length":  545,
+                      "sha256":  "8CA7D4AEC8CFAE851EA599E209B5FCB45B3930AF6D9E0BE31F4C8613EF3F464B"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/DirtyPawnRuntime.Build.cs",
+                      "length":  338,
+                      "sha256":  "537F950B100A7468776D08782B4DAE77D4CF881A4D69F4A16957BC8CBA89E8CC"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Private/DirtyPawnComponent.cpp",
+                      "length":  89860,
+                      "sha256":  "C7275E75F28DE738BE148B26FB2C1F37790AF0254A133053AF08502ED08C99A9"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Private/DirtyPawnRuntime.cpp",
+                      "length":  194,
+                      "sha256":  "D0171AF0E720983D847D22FD868E09CDD46DEBBFF9CD2AC4E8F28598F1F5EE8B"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Private/DirtyPawnVolumeActors.cpp",
+                      "length":  15650,
+                      "sha256":  "7A18AF6E659BFFEAC9AEDBFF45F9563015EAD84CEC2C8B943139C5572898F7D9"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Private/DirtyPawnWorldSubsystem.cpp",
+                      "length":  3649,
+                      "sha256":  "3AD6AFA76D51CECFBBABAE43ABEF4076A12A6C7A51F63F933DFDE3A26B7DE672"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Public/DirtyPawnComponent.h",
+                      "length":  32758,
+                      "sha256":  "4B6C847D17282FBCCE576CBF35A71EC436AC74CF99B559C2C59E05DB49EBC69B"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Public/DirtyPawnRuntime.h",
+                      "length":  206,
+                      "sha256":  "F5E8D8D1F975CA4C0DEB0A54A364A19309C4E93A6889383F49CBED08FD2C8280"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Public/DirtyPawnVolumeActors.h",
+                      "length":  4795,
+                      "sha256":  "F785502BA61D60843CBF3DC98FDBD2C7DC7D4B39491945711513E5F09679795D"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntime/Public/DirtyPawnWorldSubsystem.h",
+                      "length":  748,
+                      "sha256":  "CD44A09193C9D9BB26CC7DD9A530F76CA672CCC971A6FA05C2B330A247C9585A"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntimeEditor/DirtyPawnRuntimeEditor.Build.cs",
+                      "length":  469,
+                      "sha256":  "05A9664835A1C67A7F0DCB68027955CEFF3044E0197A8A4C881049561BD8CF1B"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntimeEditor/Private/DirtyPawnRuntimeEditor.cpp",
+                      "length":  224,
+                      "sha256":  "B5AF8AC82B018D49118CEAC6FE9C309A9701833BF152DB6E6827235E9B4FC4D5"
+                  },
+                  {
+                      "relative_path":  "Source/DirtyPawnRuntimeEditor/Public/DirtyPawnRuntimeEditor.h",
+                      "length":  212,
+                      "sha256":  "D21D55ED38BE004FC28AFDEEA64FDC306E09273669F066F983881FF69456BFE8"
+                  }
+              ]
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "FASTIMPORT_20260713_1948",
+  "status": "PASS_WITH_KNOWN_ACFU_PDB_QUARANTINE",
+  "scope": {
+    "savegame_and_legacy_slots": "OUT_OF_SCOPE_BY_USER",
+    "visual_qa": "USER_OWNED_OUT_OF_SCOPE",
+    "pie": "PENDING",
+    "cook_and_package": "PENDING"
+  },
+  "native_builds": {
+    "editor": "Saved/Migration/Logs/Phase4_ProjectLevelDoor_EditorBuild58_Final3.log",
+    "game": "Saved/Migration/Logs/Phase4_ProjectLevelDoor_GameBuild58_Final3.log",
+    "result": "PASS"
+  },
+  "assets": [
+    {
+      "package": "/Game/Procedural/DoorToLevel",
+      "file": "Content/Procedural/DoorToLevel.uasset",
+      "length": 17870,
+      "sha256": "06097A777F1640C8DEFBC1A857712E7A2ACEE75CE1D827E9BF2318006217B5EB"
+    },
+    {
+      "package": "/Game/Calysto/Dungeon/Demo/LowPoly/Material/M_BaseMaterial",
+      "file": "Content/Calysto/Dungeon/Demo/LowPoly/Material/M_BaseMaterial.uasset",
+      "length": 15381,
+      "sha256": "31A60110384339C7158D571AF71C13B2DAF3C4B887B2140BF631745C9D6AAFB5"
+    },
+    {
+      "package": "/Game/Calysto/Dungeon/Demo/LowPoly/Material/M_Metal",
+      "file": "Content/Calysto/Dungeon/Demo/LowPoly/Material/M_Metal.uasset",
+      "length": 19100,
+      "sha256": "2511427AEA3261E323951B65235032583D533F333680124C15E23D01512AE0C6"
+    },
+    {
+      "package": "/Game/Calysto/Dungeon/Demo/LowPoly/Texture/T_Palette",
+      "file": "Content/Calysto/Dungeon/Demo/LowPoly/Texture/T_Palette.uasset",
+      "length": 99606,
+      "sha256": "5940C2BC93E419C055A9A05943BCBF8D2B650AEA0EB21EDD8E6E182FFB903F89"
+    },
+    {
+      "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_SquaredArchedWoodenDoors",
+      "file": "Content/Calysto/Dungeon/Mesh/DungeonMesh/SM_SquaredArchedWoodenDoors.uasset",
+      "length": 54112,
+      "sha256": "CB185E0AF5F7F09DB631BF491AB2ABC21BCCC2A32796B9F14F6B2EE238FC4360"
+    }
+  ],
+  "ue58_rebuild": {
+    "evidence": "Saved/Migration/Phase4/DoorToLevel/Runs/FASTIMPORT_20260713_1948/DoorToLevel58Rebuild.json",
+    "evidence_sha256": "D87A476FC17E8EC4BB0A101F099ECD1AE79D49962E009A422EB9C46E54542919",
+    "status": "UE58_DOOR_TO_LEVEL_REBUILD_RESAVE_RELOAD_PASS",
+    "blueprint_compile_before_save": "UP_TO_DATE",
+    "blueprint_compile_after_reload": "UP_TO_DATE",
+    "target_delta_exact": true
+  },
+  "fresh_read_only_load": {
+    "evidence": "Saved/Migration/Phase4/DoorToLevel/Runs/FASTIMPORT_20260713_1948/DoorToLevel58FreshLoad.json",
+    "evidence_sha256": "10691108790D880F13DAA1ED7DB4B6267BC46F9D1E3F7F9BA5DED46AF1B0F305",
+    "log": "Saved/Migration/Phase4/DoorToLevel/Runs/FASTIMPORT_20260713_1948/Logs/UE58_DoorFreshLoad_Retry1.log",
+    "status": "UE58_DOOR_TO_LEVEL_FRESH_READ_ONLY_LOAD_PASS",
+    "commandlet_exit_code": 0,
+    "asset_files_unchanged": true
+  },
+  "post_resave_integrity": {
+    "evidence": "Saved/Migration/Phase4/DoorToLevel/Runs/FASTIMPORT_20260713_1948/Gates/POST_RESAVE58_SafetyGate.json",
+    "evidence_sha256": "07231B9831666C2952BB136AC610DA794E490C7451D2385D212473DACE23A80F",
+    "status": "DOOR_TO_LEVEL_SOURCE_PROTECTED_SAFETY_PASS",
+    "source_read_only": "PASS",
+    "protected_assets_other_than_known_pdb": "PASS",
+    "known_acfu_pdb_drift": "PASS_EXPECTED_DELTA_KNOWN_ACFU_PDB_QUARANTINE"
+  }
+}

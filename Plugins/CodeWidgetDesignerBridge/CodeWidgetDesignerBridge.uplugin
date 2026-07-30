@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "Code Widget Designer Bridge",
+	"Description": "Editor tooling that converts native C++ UMG widget trees into editable Widget Blueprints while keeping C++ as the logic layer.",
+	"Category": "UI",
+	"CanContainContent": false,
+	"Installed": false,
+	"EnabledByDefault": true,
+	"Modules": [
+		{
+			"Name": "CodeWidgetDesignerBridge",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CodeWidgetDesignerBridgeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

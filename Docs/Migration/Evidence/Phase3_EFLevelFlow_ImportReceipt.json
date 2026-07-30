@@ -1,0 +1,64 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-07-13T11:17:55.3878733Z",
+    "status":  "SOURCE_ONLY_IMPORT_PASS",
+    "plugin":  "EFLevelFlow",
+    "modules":  [
+                    "EFLevelFlowRuntime"
+                ],
+    "source_plugin":  "legacy_private_build/Plugins/EFLevelFlow",
+    "target_plugin":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFLevelFlow",
+    "policy":  "Descriptor and Source files only; per-file allowlisted import.",
+    "excluded_trees":  [
+                           "Binaries",
+                           "Intermediate",
+                           "Saved",
+                           "DerivedDataCache",
+                           "Content",
+                           "Config"
+                       ],
+    "file_count":  8,
+    "total_bytes":  33381,
+    "files":  [
+                  {
+                      "relative_path":  "EFLevelFlow.uplugin",
+                      "length":  582,
+                      "sha256":  "EA946BCC94587A7DEA16AD2DF19D2A868DF5A8333498DEC87A9DFAC8FF7AD89F"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/EFLevelFlowRuntime.Build.cs",
+                      "length":  539,
+                      "sha256":  "ABCA997DBD3EC3F5C37B31CECB42FF314D22EBE038B0BDEEF87E865E947A6529"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Private/EFLevelFlowRuntime.cpp",
+                      "length":  138,
+                      "sha256":  "E2C8024170540D8A9428BA1E1E56BC3A5A0EEB2AB85A1767CBD5F81C3BB6F442"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Private/EFLevelFlowSettings.cpp",
+                      "length":  622,
+                      "sha256":  "073B86F8C425BB217AF671F9DD27E80A2DA633282D1101E433D0439A39988782"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Private/EFLevelFlowSubsystem.cpp",
+                      "length":  26985,
+                      "sha256":  "E5C5EA75A937C06ED7A258E9C24081BAF09CA27EBD41115F9E13C4F5A8FA3C83"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Public/EFLevelFlowRuntime.h",
+                      "length":  120,
+                      "sha256":  "CB5CA2D99251079074E0B809F9D3748D5A2B81C3252BD5CE2B672090E1E8090C"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Public/EFLevelFlowSettings.h",
+                      "length":  1164,
+                      "sha256":  "D076910B7987A2D70032300FF27AE2AB59E48563A08D2CA59B28F7C344BFF4AE"
+                  },
+                  {
+                      "relative_path":  "Source/EFLevelFlowRuntime/Public/EFLevelFlowSubsystem.h",
+                      "length":  3231,
+                      "sha256":  "48F7DCB7CAEC1852CFDCADA56AF6EC6BEA839753B85A04F8753E2DB149FB446F"
+                  }
+              ]
+}
