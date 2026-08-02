@@ -29,6 +29,7 @@ Target, writable:
 - Never resave the source with UE 5.8.
 - Never overwrite target ACFU with the old plugin.
 - Never overwrite target DazToUnreal.
+- Never launch or leave an editor receipt with `DazToUnreal` or `EFCharacterCreationDazBridge` disabled. The current precompiled Daz plugin may require a temporary UBT-only exclusion; use `Tools/Migration/Build-NoShellForWinterEditor58.ps1`, which repairs the receipt immediately, and launch through `Tools/Migration/Launch-NoShellForWinterEditor58.ps1`.
 - Never directly modify Marketplace or Engine plugins.
 - Never bulk-copy Content, Config, Plugins, Saved, Intermediate or Binaries.
 - Never overwrite `/Game/FullSample` or `Player` wholesale.

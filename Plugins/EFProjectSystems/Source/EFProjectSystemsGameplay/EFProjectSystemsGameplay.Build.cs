@@ -68,6 +68,11 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"Json"
 		});
 
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicSystemLibraries.Add("Comdlg32.lib");
+		}
+
 		if (Target.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[]

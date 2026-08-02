@@ -7,6 +7,7 @@
 
 class APlayerController;
 class APawn;
+class UGridPanel;
 class UInputComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
@@ -16,6 +17,7 @@ class UTexture;
 class UTexture2D;
 class UUserWidget;
 class UWidget;
+class SWidget;
 
 struct FProjectTattooShopInputSnapshot
 {
@@ -53,6 +55,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Project|TattooShop")
 	bool IsTattooShopOpen() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Project|TattooShop|Runtime Textures")
+	bool RequestUploadRuntimeTattooTexture();
+
+	UFUNCTION(BlueprintCallable, Category = "Project|TattooShop|Runtime Textures")
+	bool RequestDeleteRuntimeTattooTexture();
+
 	UFUNCTION(BlueprintPure, Category = "Project|TattooShop|Automation")
 	UUserWidget* GetTattooShopWidgetForAutomation() const;
 
@@ -84,6 +92,12 @@ private:
 	UFUNCTION()
 	void HandleTrackedPawnChanged(APawn* OldPawn, APawn* NewPawn);
 
+	UFUNCTION()
+	void HandleRuntimeUploadClicked();
+
+	UFUNCTION()
+	void HandleRuntimeDeleteClicked();
+
 	void HandleTogglePressed();
 	bool CanUseTattooShopPawn(APawn* Pawn) const;
 	UUserWidget* EnsureTattooShopWidget(APlayerController* PlayerController, APawn* Pawn);
@@ -92,8 +106,34 @@ private:
 	void SetTattooShopActorReference(UUserWidget* Widget, APawn* Pawn) const;
 	TSubclassOf<UUserWidget> ResolveTattooShopWidgetClass();
 	TSubclassOf<UUserWidget> ResolveAssetPreviewWidgetClass();
+	TSubclassOf<UUserWidget> ResolveTattooViewerCardWidgetClass();
 	void MountWidgetInHostedPanel(UUserWidget* Widget, UPanelWidget* HostPanel, bool bClearHost) const;
 	void CaptureAssetPreviewWidget();
+	void BindTattooShopRuntimeButtons(UUserWidget* TattooShopWidget);
+	UUserWidget* ResolveTrackedAssetPreviewWidget();
+	UGridPanel* ResolveAssetPreviewGrid(UUserWidget* PreviewWidget) const;
+	bool RefreshRuntimeTattooCards(UUserWidget* PreferredPreviewWidget = nullptr);
+	UTexture2D* LoadPngTextureFromFile(const FString& FilePath, const FString& TextureObjectName);
+	bool OpenNativePngFileDialog(const FString& DialogTitle, FString& OutSelectedFilePath) const;
+	FString GetRuntimeTattooTextureDirectory() const;
+	FString NormalizeTattooFilePath(const FString& FilePath) const;
+	FString MakeRuntimeTattooDisplayName(const FString& StoredFilePath) const;
+	FString MakeUniqueRuntimeTattooDestination(const FString& SourceFilePath) const;
+	bool IsRuntimeTattooCard(UWidget* CardWidget) const;
+	bool FindRuntimeTattooFileForTexture(UTexture2D* Texture, FString& OutFilePath) const;
+	UTexture2D* ResolveTattooCardTexture(UWidget* CardWidget) const;
+	FString ResolveTattooCardDisplayName(UWidget* CardWidget, UTexture2D* Texture) const;
+	void GatherDeletableTattooTextures(TArray<UTexture2D*>& OutTextures, TArray<FString>& OutDisplayNames);
+	bool ShowDeleteTattooTextureMenu();
+	void DismissDeleteTattooTextureMenu();
+	bool DeleteTattooTexture(UTexture2D* Texture, const FString& DisplayName);
+	bool DeleteGameTattooTextureAsset(UTexture2D* Texture) const;
+	void CollectTattooCardsForTexture(UPanelWidget* Panel, UTexture2D* Texture, const FString& TextureName, TArray<UWidget*>& OutCards) const;
+	UUserWidget* CreateRuntimeTattooCard(UUserWidget* PreviewWidget, UTexture2D* Texture, const FText& DisplayName);
+	void SetRuntimeWidgetObjectProperty(UObject* Target, FName PropertyName, UObject* Value) const;
+	void SetRuntimeWidgetTextProperty(UObject* Target, FName PropertyName, const FText& Value) const;
+	FString GetRuntimeWidgetTextProperty(UObject* Target, FName PropertyName) const;
+	void LayoutRuntimeTattooCardPanel(UPanelWidget* Panel, int32 ColumnLimit) const;
 	void RepairTattooCustomizationRuntime();
 	UUserWidget* FindLiveTattooCustomizationWidget() const;
 	USkeletalMeshComponent* EnsureRuntimeTattooBaseComponent(
@@ -144,6 +184,12 @@ private:
 	TSubclassOf<UUserWidget> TattooAssetPreviewWidgetClass;
 
 	UPROPERTY(Transient)
+	TSubclassOf<UUserWidget> TattooViewerCardWidgetClass;
+
+	UPROPERTY(Transient)
+	TMap<FString, TObjectPtr<UTexture2D>> RuntimeTattooTextureCache;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> TrackedAssetPreviewWidget;
 
 	UPROPERTY(Transient)
@@ -168,6 +214,8 @@ private:
 	TObjectPtr<USkeletalMeshComponent> RuntimeTattooBaseComponent;
 
 	FProjectTattooShopInputSnapshot InputSnapshot;
+	TSharedPtr<SWidget> ActiveDeleteMenuSlateWidget;
 	bool bTattooShopOpen = false;
 	bool bTattooShopHostedInPanel = false;
+	bool bRuntimeTattooCardsInitialized = false;
 };

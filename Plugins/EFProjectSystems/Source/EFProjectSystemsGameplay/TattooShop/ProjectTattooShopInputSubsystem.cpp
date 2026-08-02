@@ -278,6 +278,9 @@ void UProjectTattooShopInputSubsystem::Initialize(FSubsystemCollectionBase& Coll
 	TattooAssetPreviewHostPanel = nullptr;
 	TattooShopWidgetClass = nullptr;
 	TattooAssetPreviewWidgetClass = nullptr;
+	TattooViewerCardWidgetClass = nullptr;
+	RuntimeTattooTextureCache.Reset();
+	ActiveDeleteMenuSlateWidget.Reset();
 	TrackedAssetPreviewWidget = nullptr;
 	MirroredOverlayTarget = nullptr;
 	LastMirroredOverlayMaterial = nullptr;
@@ -288,10 +291,13 @@ void UProjectTattooShopInputSubsystem::Initialize(FSubsystemCollectionBase& Coll
 	RuntimeTattooBaseComponent = nullptr;
 	InputSnapshot = FProjectTattooShopInputSnapshot();
 	bTattooShopOpen = false;
+	bRuntimeTattooCardsInitialized = false;
 }
 
 void UProjectTattooShopInputSubsystem::Deinitialize()
 {
+	DismissDeleteTattooTextureMenu();
+	RuntimeTattooTextureCache.Reset();
 	DetachFromTrackedPlayerController();
 	Super::Deinitialize();
 }
@@ -303,6 +309,18 @@ void UProjectTattooShopInputSubsystem::Tick(float DeltaTime)
 	NormalizeTattooCardGrid(TrackedTattooShopWidget.Get());
 	NormalizeTattooCardGrid(TrackedAssetPreviewWidget.Get());
 	SynchronizeTattooOverlayToVisibleSkin();
+
+	if (bTattooShopOpen && IsValid(TrackedTattooShopWidget))
+	{
+		BindTattooShopRuntimeButtons(TrackedTattooShopWidget.Get());
+		if (!bRuntimeTattooCardsInitialized)
+		{
+			if (UUserWidget* PreviewWidget = ResolveTrackedAssetPreviewWidget())
+			{
+				bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(PreviewWidget);
+			}
+		}
+	}
 }
 
 TStatId UProjectTattooShopInputSubsystem::GetStatId() const
@@ -693,6 +711,7 @@ void UProjectTattooShopInputSubsystem::DetachFromTrackedPlayerController()
 	TrackedPlayerPawn = nullptr;
 	TrackedTattooShopWidget = nullptr;
 	TrackedAssetPreviewWidget = nullptr;
+	bRuntimeTattooCardsInitialized = false;
 	TattooShopHostPanel = nullptr;
 	TattooAssetPreviewHostPanel = nullptr;
 	RuntimeTattooCustomizationWidget = nullptr;
@@ -740,6 +759,7 @@ void UProjectTattooShopInputSubsystem::HandleTrackedPawnChanged(APawn* OldPawn, 
 	TrackedPlayerPawn = NewPawn;
 	TrackedTattooShopWidget = nullptr;
 	TrackedAssetPreviewWidget = nullptr;
+	bRuntimeTattooCardsInitialized = false;
 	RuntimeTattooCustomizationWidget = nullptr;
 	RuntimeTattooMID = nullptr;
 	LastRuntimeTattooTexture = nullptr;
@@ -990,6 +1010,7 @@ void UProjectTattooShopInputSubsystem::CaptureAssetPreviewWidget()
 	TrackedAssetPreviewWidget = PreviewWidget;
 	MountWidgetInHostedPanel(PreviewWidget, TattooAssetPreviewHostPanel, true);
 	NormalizeTattooCardGrid(PreviewWidget);
+	bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(PreviewWidget);
 	UE_LOG(
 		LogProjectTattooShopInput,
 		Log,
@@ -1658,6 +1679,7 @@ void UProjectTattooShopInputSubsystem::OpenTattooShop()
 	}
 
 	Widget->SetVisibility(ESlateVisibility::Visible);
+	BindTattooShopRuntimeButtons(Widget);
 	NormalizeTattooCardGrid(Widget);
 	if (!bTattooShopHostedInPanel)
 	{
@@ -1665,11 +1687,13 @@ void UProjectTattooShopInputSubsystem::OpenTattooShop()
 	}
 
 	bTattooShopOpen = true;
+	bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(ResolveTrackedAssetPreviewWidget());
 	UE_LOG(LogProjectTattooShopInput, Log, TEXT("[TattooShop] Opened for pawn %s with widget %s."), *GetNameSafe(Pawn), *GetNameSafe(Widget));
 }
 
 void UProjectTattooShopInputSubsystem::CloseTattooShop()
 {
+	DismissDeleteTattooTextureMenu();
 	UUserWidget* Widget = TrackedTattooShopWidget.Get();
 	if (!Widget && TrackedPlayerPawn)
 	{
@@ -1703,6 +1727,7 @@ void UProjectTattooShopInputSubsystem::CloseTattooShop()
 
 	bTattooShopOpen = false;
 	bTattooShopHostedInPanel = false;
+	bRuntimeTattooCardsInitialized = false;
 	UE_LOG(LogProjectTattooShopInput, Log, TEXT("[TattooShop] Closed."));
 }
 
