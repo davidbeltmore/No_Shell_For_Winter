@@ -15,6 +15,7 @@ param(
     [int]$EditorReadyTimeoutSeconds = 240,
     [int]$PIEReadyTimeoutSeconds = 45,
     [switch]$CharacterCreationInfoOnly,
+    [switch]$TattooTabOnly,
     [switch]$KeepPIE,
     [switch]$DryRun
 )
@@ -299,7 +300,7 @@ try {
     $report.editor_window = $editorWindow | Select-Object Title, Left, Top, Right, Bottom, Width, Height
     Capture-Window $editorWindow '01_hub_editor_before_pie.png'
 
-    if ($CharacterCreationInfoOnly) {
+    if ($CharacterCreationInfoOnly -or $TattooTabOnly) {
         Send-AltP $editorWindow 'start_pie_alt_p'
     }
     else {
@@ -321,6 +322,14 @@ try {
         $report.automation_completed = $true
         $report.status = 'VISUAL_REVIEW_REQUIRED'
         $report.result_note = 'Review 03. PASS requires the Info tab to show Name plus exactly Male and Female.'
+    }
+    elseif ($TattooTabOnly) {
+        Click-Relative $pieWindow $TattooTabX $TattooTabY 'tattoo_tab'
+        Capture-Window $pieWindow '04_tattoo_tab_open.png'
+        $report.flow = @('HUB', 'PIE', 'CharacterCreation.Period', 'TattooTab')
+        $report.automation_completed = $true
+        $report.status = 'VISUAL_REVIEW_REQUIRED'
+        $report.result_note = 'Review 04. PASS requires both SkinnedDecal Tattoo panels to remain inside the Character Creation host without overlap or clipping.'
     }
     else {
         Click-Relative $pieWindow $TattooTabX $TattooTabY 'tattoo_tab'

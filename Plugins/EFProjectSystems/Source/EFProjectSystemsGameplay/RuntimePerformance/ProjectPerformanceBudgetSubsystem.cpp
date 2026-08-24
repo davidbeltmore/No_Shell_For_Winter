@@ -3,38 +3,20 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Defeat/ProjectDefeatFlowSettings.h"
 #include "EFProjectEnemySettings.h"
-#include "Engine/AssetManager.h"
-#include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
+#include "Engine/GameInstance.h"
 #include "GameFramework/Pawn.h"
-#include "Intimacy/ProjectIntimacySettings.h"
 #include "NiagaraComponent.h"
 #include "RuntimePerformance/ProjectPerformanceBudgetSettings.h"
+#include "RuntimePerformance/ProjectRuntimeAssetPreloadSubsystem.h"
 
 namespace ProjectPerformanceBudgetPrivate
 {
-	static const TCHAR* StruggleUiAssetPaths[] =
-	{
-		TEXT("/Game/UI/Defeat/Struggle/Fonts/FF_Cinzel.FF_Cinzel"),
-		TEXT("/Game/UI/Defeat/Struggle/Fonts/FF_BarlowSemiCondensed.FF_BarlowSemiCondensed"),
-		TEXT("/Game/UI/Defeat/Struggle/Fonts/FF_BarlowSemiCondensedMedium.FF_BarlowSemiCondensedMedium"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_TopPanel.T_Struggle_TopPanel"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_MainPanel.T_Struggle_MainPanel"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetChamber.T_Struggle_TargetChamber"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetRing.T_Struggle_TargetRing"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_TargetPulse.T_Struggle_TargetPulse"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_Arrow.T_Struggle_Arrow"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_GlowStreak.T_Struggle_GlowStreak"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_Noise.T_Struggle_Noise"),
-		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_BackdropVignette.T_Struggle_BackdropVignette")
-	};
-
 	static float SquaredDistanceTo(const AActor* Actor, const FVector& Location)
 	{
 		return IsValid(Actor) ? FVector::DistSquared(Actor->GetActorLocation(), Location) : TNumericLimits<float>::Max();
@@ -48,20 +30,31 @@ namespace ProjectPerformanceBudgetPrivate
 		}
 	}
 
-	static void AddValidAssetPath(TArray<FSoftObjectPath>& AssetsToPreload, const TCHAR* AssetPath)
-	{
-		const FSoftObjectPath SoftPath(AssetPath);
-		if (SoftPath.IsValid())
-		{
-			AssetsToPreload.AddUnique(SoftPath);
-		}
-	}
 }
 
 void UProjectPerformanceBudgetSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	ResolveRuntimeEnemyClasses();
+
+	const UProjectPerformanceBudgetSettings* Settings = UProjectPerformanceBudgetSettings::Get();
+	if (Settings && Settings->bEnableRuntimeBudgeting)
+	{
+		if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+		{
+			if (const UProjectRuntimeAssetPreloadSubsystem* PreloadSubsystem =
+				GameInstance->GetSubsystem<UProjectRuntimeAssetPreloadSubsystem>();
+				PreloadSubsystem && PreloadSubsystem->IsRuntimePreloadComplete())
+			{
+				PreloadSubsystem->CopyResidentEnemyClasses(RuntimeEnemyClasses);
+				return;
+			}
+		}
+
+		if (!Settings->bPreloadRuntimeCombatAssets)
+		{
+			ResolveRuntimeEnemyClasses(true);
+		}
+	}
 }
 
 void UProjectPerformanceBudgetSubsystem::Deinitialize()
@@ -77,11 +70,6 @@ void UProjectPerformanceBudgetSubsystem::Tick(const float DeltaTime)
 	if (!Settings || !Settings->bEnableRuntimeBudgeting)
 	{
 		return;
-	}
-
-	if (!bRuntimePreloadRequested && Settings->bPreloadRuntimeCombatAssets)
-	{
-		RequestRuntimePreload(*Settings);
 	}
 
 	UpdateAccumulatorSeconds += DeltaTime;
@@ -120,7 +108,7 @@ FProjectPerformanceBudgetSnapshot UProjectPerformanceBudgetSubsystem::GetLastSna
 	return LastSnapshot;
 }
 
-void UProjectPerformanceBudgetSubsystem::ResolveRuntimeEnemyClasses()
+void UProjectPerformanceBudgetSubsystem::ResolveRuntimeEnemyClasses(const bool bAllowSynchronousLoad)
 {
 	RuntimeEnemyClasses.Reset();
 
@@ -132,75 +120,16 @@ void UProjectPerformanceBudgetSubsystem::ResolveRuntimeEnemyClasses()
 
 	for (const FSoftClassPath& EnemyClassPath : EnemySettings->RuntimeEnemyClasses)
 	{
-		UClass* EnemyClass = Cast<UClass>(EnemyClassPath.TryLoad());
+		UClass* EnemyClass = Cast<UClass>(EnemyClassPath.ResolveObject());
+		if (!EnemyClass && bAllowSynchronousLoad)
+		{
+			EnemyClass = Cast<UClass>(EnemyClassPath.TryLoad());
+		}
 		if (EnemyClass && EnemyClass->IsChildOf(APawn::StaticClass()))
 		{
 			RuntimeEnemyClasses.AddUnique(EnemyClass);
 		}
 	}
-}
-
-void UProjectPerformanceBudgetSubsystem::RequestRuntimePreload(const UProjectPerformanceBudgetSettings& Settings)
-{
-	bRuntimePreloadRequested = true;
-
-	TArray<FSoftObjectPath> AssetsToPreload;
-	AssetsToPreload.Reserve(Settings.AdditionalPreloadAssets.Num() + 8);
-
-	const UEFProjectEnemySettings* EnemySettings = UEFProjectEnemySettings::Get();
-	if (EnemySettings)
-	{
-		for (const FSoftClassPath& EnemyClassPath : EnemySettings->RuntimeEnemyClasses)
-		{
-			if (EnemyClassPath.IsValid())
-			{
-				AssetsToPreload.AddUnique(EnemyClassPath);
-			}
-		}
-	}
-
-	if (const UProjectDefeatFlowSettings* DefeatSettings = UProjectDefeatFlowSettings::Get())
-	{
-		const FSoftObjectPath KnockoutWidgetPath = DefeatSettings->KnockoutStruggleWidgetClass.ToSoftObjectPath();
-		if (KnockoutWidgetPath.IsValid())
-		{
-			AssetsToPreload.AddUnique(KnockoutWidgetPath);
-		}
-	}
-
-	if (const UProjectIntimacySettings* IntimacySettings = UProjectIntimacySettings::Get())
-	{
-		if (IntimacySettings->SocialCardRowsTable.IsValid())
-		{
-			AssetsToPreload.AddUnique(IntimacySettings->SocialCardRowsTable);
-		}
-	}
-
-	for (const TCHAR* AssetPath : ProjectPerformanceBudgetPrivate::StruggleUiAssetPaths)
-	{
-		ProjectPerformanceBudgetPrivate::AddValidAssetPath(AssetsToPreload, AssetPath);
-	}
-
-	for (const FSoftObjectPath& AssetPath : Settings.AdditionalPreloadAssets)
-	{
-		if (AssetPath.IsValid())
-		{
-			AssetsToPreload.AddUnique(AssetPath);
-		}
-	}
-
-	if (AssetsToPreload.IsEmpty())
-	{
-		return;
-	}
-
-	RuntimePreloadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
-		AssetsToPreload,
-		FStreamableDelegate(),
-		FStreamableManager::AsyncLoadHighPriority,
-		false,
-		false,
-		TEXT("ProjectRuntimeCombatPreload"));
 }
 
 void UProjectPerformanceBudgetSubsystem::ApplyBudgets()
@@ -214,7 +143,24 @@ void UProjectPerformanceBudgetSubsystem::ApplyBudgets()
 
 	if (RuntimeEnemyClasses.IsEmpty())
 	{
-		ResolveRuntimeEnemyClasses();
+		if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+		{
+			if (const UProjectRuntimeAssetPreloadSubsystem* PreloadSubsystem =
+				GameInstance->GetSubsystem<UProjectRuntimeAssetPreloadSubsystem>();
+				PreloadSubsystem && PreloadSubsystem->IsRuntimePreloadRequested())
+			{
+				if (!PreloadSubsystem->IsRuntimePreloadComplete())
+				{
+					return;
+				}
+				PreloadSubsystem->CopyResidentEnemyClasses(RuntimeEnemyClasses);
+			}
+		}
+
+		if (RuntimeEnemyClasses.IsEmpty() && !Settings->bPreloadRuntimeCombatAssets)
+		{
+			ResolveRuntimeEnemyClasses(true);
+		}
 	}
 
 	TArray<APawn*> Enemies;

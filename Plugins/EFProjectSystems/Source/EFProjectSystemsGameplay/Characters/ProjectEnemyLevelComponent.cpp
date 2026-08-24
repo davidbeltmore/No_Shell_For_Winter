@@ -875,6 +875,11 @@ namespace ProjectEnemyLevelComponentPrivate
 	}
 }
 
+int32 UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(const int32 LogicalLevel)
+{
+	return LogicalLevel > 0 ? FMath::Min(LogicalLevel, 100) : 0;
+}
+
 UProjectEnemyLevelComponent::UProjectEnemyLevelComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -908,13 +913,19 @@ void UProjectEnemyLevelComponent::SetAssignedLevelData(
 	bLevelAssigned = AssignedLevel > 0;
 	bGameplayScalingApplied = false;
 	GameplayScaledLevel = INDEX_NONE;
+	bAscentSyncEvaluated = false;
+	bAscentSyncSatisfied = false;
+	LastPhysicalAscentLevel = INDEX_NONE;
 }
 
 bool UProjectEnemyLevelComponent::SyncAssignedLevelToAscent(FString& OutDiagnosticMessage)
 {
 	OutDiagnosticMessage.Reset();
+	bAscentSyncEvaluated = true;
+	bAscentSyncSatisfied = false;
+	LastPhysicalAscentLevel = ResolvePhysicalAscentLevel(AssignedLevel);
 
-	if (!bLevelAssigned)
+	if (!bLevelAssigned || LastPhysicalAscentLevel <= 0)
 	{
 		OutDiagnosticMessage = TEXT("No assigned level is available yet.");
 		return false;
@@ -938,6 +949,10 @@ bool UProjectEnemyLevelComponent::SyncAssignedLevelToAscent(FString& OutDiagnost
 	const bool bShouldReinitializeStatistics = Settings->bReinitializeAscentStatisticsOnLevelSync;
 	if (!bShouldSyncLevelingComponent && !bShouldReinitializeStatistics)
 	{
+		// The project-owned component remains authoritative when ACF synchronization
+		// is disabled. Recording the capped physical value still lets the Director
+		// verify that no Winter level could be forwarded above 100.
+		bAscentSyncSatisfied = true;
 		OutDiagnosticMessage = TEXT("Ascent level synchronization is disabled; using project-owned enemy level only.");
 		return false;
 	}
@@ -945,36 +960,74 @@ bool UProjectEnemyLevelComponent::SyncAssignedLevelToAscent(FString& OutDiagnost
 	UActorComponent* LevelingComponent = ProjectEnemyLevelComponentPrivate::FindComponentByClassHint<UActorComponent>(Owner, { TEXT("ARSLevelingComponent") });
 	UActorComponent* StatisticsComponent = ProjectEnemyLevelComponentPrivate::FindComponentByClassHint<UActorComponent>(Owner, { TEXT("ACFGASStatisticsComponent"), TEXT("ARSStatisticsComponent") });
 
-	bool bTouchedAscent = false;
+	// V4 Winter levels remain authoritative in this project-owned component and
+	// its linear scaling. ACF data/curves have only been certified through level
+	// 100, so never pass a larger physical level into Marketplace components.
+	const int32 PhysicalAscentLevel = LastPhysicalAscentLevel;
+	bool bLevelingSyncSucceeded = !bShouldSyncLevelingComponent;
 	if (bShouldSyncLevelingComponent && LevelingComponent)
 	{
-		bTouchedAscent |= UProjectRuntimeReflectionLibrary::InvokeInt32Function(LevelingComponent, TEXT("ForceSetLevel"), AssignedLevel);
+		bLevelingSyncSucceeded = UProjectRuntimeReflectionLibrary::InvokeInt32Function(
+			LevelingComponent,
+			TEXT("ForceSetLevel"),
+			PhysicalAscentLevel);
 	}
 
+	bool bStatisticsSyncSucceeded = !bShouldReinitializeStatistics;
 	if (bShouldReinitializeStatistics && StatisticsComponent)
 	{
-		if (!UProjectRuntimeReflectionLibrary::InvokeInt32Function(StatisticsComponent, TEXT("SetNewLevelAndReinitialize"), AssignedLevel))
+		bStatisticsSyncSucceeded = UProjectRuntimeReflectionLibrary::InvokeInt32Function(
+				StatisticsComponent,
+				TEXT("SetNewLevelAndReinitialize"),
+				PhysicalAscentLevel);
+		if (!bStatisticsSyncSucceeded)
 		{
-			UProjectRuntimeReflectionLibrary::InvokeNoArgFunction(StatisticsComponent, TEXT("SetNewLevelAndReinitialize"));
+			bStatisticsSyncSucceeded = UProjectRuntimeReflectionLibrary::InvokeNoArgFunction(
+				StatisticsComponent,
+				TEXT("SetNewLevelAndReinitialize"));
 		}
-
-		bTouchedAscent = true;
 	}
 
-	int32 ReflectedLevel = 0;
-	if (LevelingComponent && UProjectRuntimeReflectionLibrary::InvokeInt32ReturnFunction(LevelingComponent, TEXT("GetCurrentLevel"), ReflectedLevel))
+	int32 ReflectedLevel = INDEX_NONE;
+	bool bPhysicalLevelVerified = !bShouldSyncLevelingComponent;
+	if (bShouldSyncLevelingComponent
+		&& LevelingComponent
+		&& bLevelingSyncSucceeded
+		&& UProjectRuntimeReflectionLibrary::InvokeInt32ReturnFunction(
+			LevelingComponent,
+			TEXT("GetCurrentLevel"),
+			ReflectedLevel))
 	{
-		OutDiagnosticMessage = FString::Printf(TEXT("ARS level synchronized to %d."), ReflectedLevel);
+		bPhysicalLevelVerified = ReflectedLevel == PhysicalAscentLevel;
+	}
+
+	bAscentSyncSatisfied = bLevelingSyncSucceeded
+		&& bStatisticsSyncSucceeded
+		&& bPhysicalLevelVerified;
+	if (bAscentSyncSatisfied)
+	{
+		OutDiagnosticMessage = FString::Printf(
+			TEXT("ARS physical level synchronized to %d (project logical level %d)."),
+			PhysicalAscentLevel,
+			AssignedLevel);
 		return true;
 	}
 
-	if (bTouchedAscent)
+	if (bShouldSyncLevelingComponent && ReflectedLevel != INDEX_NONE && ReflectedLevel != PhysicalAscentLevel)
 	{
-		OutDiagnosticMessage = TEXT("Touched ARS components but could not read back GetCurrentLevel.");
-		return true;
+		OutDiagnosticMessage = FString::Printf(
+			TEXT("ARS physical level mismatch: expected %d, observed %d (logical level %d)."),
+			PhysicalAscentLevel,
+			ReflectedLevel,
+			AssignedLevel);
+		return false;
 	}
 
-	OutDiagnosticMessage = TEXT("No enabled ARS sync target was present on this enemy.");
+	OutDiagnosticMessage = FString::Printf(
+		TEXT("Enabled ARS synchronization failed (leveling=%s, statistics=%s, readback=%s)."),
+		bLevelingSyncSucceeded ? TEXT("ready") : TEXT("failed"),
+		bStatisticsSyncSucceeded ? TEXT("ready") : TEXT("failed"),
+		bPhysicalLevelVerified ? TEXT("ready") : TEXT("failed"));
 	return false;
 }
 
@@ -1201,7 +1254,7 @@ bool UProjectEnemyLevelComponent::ApplyGameplayScaling(const UProjectEnemyLevelS
 		ChannelState.LastAppliedValue = ObservedValue;
 		UE_LOG(
 			LogProjectEnemyLevelComponent,
-			Log,
+			VeryVerbose,
 			TEXT("Enemy level scaling %s [%s] level=%d baseline=%.2f target=%.2f observed=%.2f"),
 			*GetNameSafe(Owner),
 			*LogicalAttributeName.ToString(),
@@ -1341,9 +1394,94 @@ bool UProjectEnemyLevelComponent::HasAssignedLevel() const
 	return bLevelAssigned;
 }
 
+bool UProjectEnemyLevelComponent::ValidateDirectorLevelState(
+	const int32 ExpectedLogicalLevel,
+	FString& OutFailureReason) const
+{
+	OutFailureReason.Reset();
+	if (ExpectedLogicalLevel <= 0)
+	{
+		OutFailureReason = TEXT("Expected Director logical level must be positive.");
+		return false;
+	}
+
+	if (!bLevelAssigned || AssignedLevel != ExpectedLogicalLevel)
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("Director logical level mismatch: expected %d, assigned %d."),
+			ExpectedLogicalLevel,
+			AssignedLevel);
+		return false;
+	}
+
+	if (WorldTier != ExpectedLogicalLevel
+		|| MinRolledLevel != ExpectedLogicalLevel
+		|| MaxRolledLevel != ExpectedLogicalLevel)
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("Director level metadata is not exact: tier=%d range=[%d,%d], expected %d."),
+			WorldTier,
+			MinRolledLevel,
+			MaxRolledLevel,
+			ExpectedLogicalLevel);
+		return false;
+	}
+
+	const int32 ExpectedPhysicalLevel = ResolvePhysicalAscentLevel(ExpectedLogicalLevel);
+	if (!bAscentSyncEvaluated
+		|| !bAscentSyncSatisfied
+		|| LastPhysicalAscentLevel != ExpectedPhysicalLevel)
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("Director physical level is not ready: expected %d, recorded %d, evaluated=%s, satisfied=%s."),
+			ExpectedPhysicalLevel,
+			LastPhysicalAscentLevel,
+			bAscentSyncEvaluated ? TEXT("true") : TEXT("false"),
+			bAscentSyncSatisfied ? TEXT("true") : TEXT("false"));
+		return false;
+	}
+
+	const float ExpectedNormalizedLevel = FMath::Clamp(
+		(static_cast<float>(ExpectedPhysicalLevel) - 1.0f) / 99.0f,
+		0.0f,
+		1.0f);
+	if (!FMath::IsFinite(NormalizedLevel)
+		|| !FMath::IsNearlyEqual(NormalizedLevel, ExpectedNormalizedLevel, KINDA_SMALL_NUMBER))
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("Director normalized level mismatch: expected %.6f, assigned %.6f."),
+			ExpectedNormalizedLevel,
+			NormalizedLevel);
+		return false;
+	}
+
+	if (!HasGameplayScalingAppliedForLevel(ExpectedLogicalLevel))
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("Gameplay scaling is not applied for logical level %d (scaled level %d)."),
+			ExpectedLogicalLevel,
+			GameplayScaledLevel);
+		return false;
+	}
+
+	if (!IsValid(PreferredTargetPointComponent.Get())
+		|| !PreferredTargetPointComponent->IsRegistered())
+	{
+		OutFailureReason = TEXT("The preferred target point is missing or unregistered.");
+		return false;
+	}
+
+	return true;
+}
+
 int32 UProjectEnemyLevelComponent::GetAssignedLevel() const
 {
 	return AssignedLevel;
+}
+
+int32 UProjectEnemyLevelComponent::GetPhysicalAscentLevel() const
+{
+	return bLevelAssigned ? ResolvePhysicalAscentLevel(AssignedLevel) : 0;
 }
 
 int32 UProjectEnemyLevelComponent::GetWorldTier() const
@@ -1374,6 +1512,15 @@ USceneComponent* UProjectEnemyLevelComponent::GetPreferredTargetPointComponent()
 bool UProjectEnemyLevelComponent::HasGameplayScalingBaseline() const
 {
 	return bScalingBaselineCaptured;
+}
+
+bool UProjectEnemyLevelComponent::HasGameplayScalingAppliedForLevel(
+	const int32 ExpectedLogicalLevel) const
+{
+	return ExpectedLogicalLevel > 0
+		&& bScalingBaselineCaptured
+		&& bGameplayScalingApplied
+		&& GameplayScaledLevel == ExpectedLogicalLevel;
 }
 
 bool UProjectEnemyLevelComponent::TryGetDisplayHealthSnapshot(

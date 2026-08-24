@@ -5,6 +5,8 @@
 #include "Items/ACFWorldItem.h"
 #include "Survival/ProjectSurvivalConsumableBlueprintLibrary.h"
 #include "Survival/ProjectSurvivalLog.h"
+#include "Survival/ProjectSurvivalStatusCatalog.h"
+#include "Survival/ProjectSurvivalStatusTypes.h"
 
 #if WITH_EDITOR
 #include "Containers/ScriptArray.h"
@@ -12,6 +14,7 @@
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraphSchema_K2.h"
 #include "Engine/Blueprint.h"
+#include "Engine/DataTable.h"
 #include "GameFramework/Pawn.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_DynamicCast.h"
@@ -218,9 +221,14 @@ namespace
 		return true;
 	}
 
-	bool ConfigureWorldItemPickupDefaults(UBlueprint* Blueprint, const TSubclassOf<UACFItem>& ItemClass, const int32 ItemCount, const float MeshScale)
+	bool ConfigureWorldItemPickupDefaults(
+		UBlueprint* Blueprint,
+		const TSubclassOf<UACFItem>& ItemClass,
+		UStaticMesh* WorldMesh,
+		const int32 ItemCount,
+		const float MeshScale)
 	{
-		if (!Blueprint || !ItemClass)
+		if (!Blueprint || !ItemClass || !WorldMesh)
 		{
 			return false;
 		}
@@ -284,6 +292,7 @@ namespace
 
 		*EntryValue = PickupItem;
 		WorldItemCDO->SetItemMesh(PickupItem);
+		ObjectMeshComponent->SetStaticMesh(WorldMesh);
 		ObjectMeshComponent->SetRelativeScale3D(FVector(FMath::Max(MeshScale, KINDA_SMALL_NUMBER)));
 		Blueprint->MarkPackageDirty();
 
@@ -317,18 +326,23 @@ bool UProjectSurvivalConsumableEditorLibrary::ConfigureBlueprintAsSurvivalConsum
 #endif
 }
 
-bool UProjectSurvivalConsumableEditorLibrary::ConfigureBlueprintAsWorldItemPickup(UBlueprint* Blueprint, TSubclassOf<UACFItem> ItemClass, const int32 ItemCount, const float MeshScale)
+bool UProjectSurvivalConsumableEditorLibrary::ConfigureBlueprintAsWorldItemPickup(
+	UBlueprint* Blueprint,
+	TSubclassOf<UACFItem> ItemClass,
+	UStaticMesh* WorldMesh,
+	const int32 ItemCount,
+	const float MeshScale)
 {
 #if !WITH_EDITOR
 	UE_LOG(LogProjectSurvival, Warning, TEXT("[ProjectSurvivalConsumableEditor] ConfigureBlueprintAsWorldItemPickup is editor-only"));
 	return false;
 #else
-	if (!Blueprint || !ItemClass)
+	if (!Blueprint || !ItemClass || !WorldMesh)
 	{
 		return false;
 	}
 
-	if (!ConfigureWorldItemPickupDefaults(Blueprint, ItemClass, ItemCount, MeshScale))
+	if (!ConfigureWorldItemPickupDefaults(Blueprint, ItemClass, WorldMesh, ItemCount, MeshScale))
 	{
 		return false;
 	}
@@ -340,11 +354,90 @@ bool UProjectSurvivalConsumableEditorLibrary::ConfigureBlueprintAsWorldItemPicku
 	UE_LOG(
 		LogProjectSurvival,
 		Log,
-		TEXT("[ProjectSurvivalConsumableEditor] Configured pickup blueprint %s ItemClass=%s Count=%d MeshScale=%.3f"),
+		TEXT("[ProjectSurvivalConsumableEditor] Configured pickup blueprint %s ItemClass=%s WorldMesh=%s Count=%d MeshScale=%.3f"),
 		*GetNameSafe(Blueprint),
 		*GetNameSafe(ItemClass.Get()),
+		*GetPathNameSafe(WorldMesh),
 		FMath::Max(ItemCount, 1),
 		MeshScale);
+	return true;
+#endif
+}
+
+bool UProjectSurvivalConsumableEditorLibrary::EnsureNutritionAlcoholStatusRows(UDataTable* StatusTable)
+{
+#if !WITH_EDITOR
+	UE_LOG(LogProjectSurvival, Warning, TEXT("[ProjectSurvivalConsumableEditor] EnsureNutritionAlcoholStatusRows is editor-only"));
+	return false;
+#else
+	if (!StatusTable || StatusTable->GetRowStruct() != FProjectSurvivalStatusTableRow::StaticStruct())
+	{
+		return false;
+	}
+
+	auto MakeRow = [](const FProjectSurvivalStatusDefinition& Definition)
+	{
+		FProjectSurvivalStatusTableRow Row;
+		Row.StatusName = Definition.StatusName;
+		Row.DisplayName = Definition.DisplayName;
+		Row.Description = Definition.Description;
+		Row.SourceNeedName = Definition.SourceNeedName;
+		Row.SourceEntryName = Definition.SourceEntryName;
+		Row.SourceType = Definition.SourceType;
+		Row.ThresholdMode = Definition.ThresholdMode;
+		Row.ActivationThresholdNormalized = Definition.ActivationThresholdNormalized;
+		Row.DeactivationThresholdNormalized = Definition.DeactivationThresholdNormalized;
+		Row.IconTextureAsset = Definition.IconTextureAsset;
+		Row.MinimalIconName = Definition.MinimalIconName;
+		Row.DamagePerSecond = Definition.DamagePerSecond;
+		Row.DurationSeconds = Definition.DurationSeconds;
+		Row.bBlocksHealthRecovery = Definition.bBlocksHealthRecovery;
+		Row.bTriggerAtNeedEmpty = Definition.bTriggerAtNeedEmpty;
+		Row.bTriggersExhaustionSequence = Definition.bTriggersExhaustionSequence;
+		Row.bInvertMovementInput = Definition.bInvertMovementInput;
+		Row.MovementInputScale = Definition.MovementInputScale;
+		Row.ReapplyPolicy = Definition.ReapplyPolicy;
+		Row.AttributeModifiers = Definition.AttributeModifiers;
+		Row.NeedDecayModifiers = Definition.NeedDecayModifiers;
+		Row.SensationModifiers = Definition.SensationModifiers;
+		Row.Tint = Definition.Tint;
+		Row.HudPriority = Definition.HudPriority;
+		Row.HudSlotSize = Definition.HudSlotSize;
+		Row.HudIconSize = Definition.HudIconSize;
+		Row.HudIconSlotOffset = Definition.HudIconSlotOffset;
+		Row.HudSlotOffset = Definition.HudSlotOffset;
+		Row.HudNameFontAsset = Definition.HudNameFontAsset;
+		Row.HudDescriptionFontAsset = Definition.HudDescriptionFontAsset;
+		Row.HudMetaFontAsset = Definition.HudMetaFontAsset;
+		Row.HudNameFontSize = Definition.HudNameFontSize;
+		Row.HudDescriptionFontSize = Definition.HudDescriptionFontSize;
+		Row.HudMetaFontSize = Definition.HudMetaFontSize;
+		Row.HudNameTextColor = Definition.HudNameTextColor;
+		Row.HudDescriptionTextColor = Definition.HudDescriptionTextColor;
+		Row.HudMetaTextColor = Definition.HudMetaTextColor;
+		Row.HudNameTextOffset = Definition.HudNameTextOffset;
+		Row.HudDescriptionTextOffset = Definition.HudDescriptionTextOffset;
+		Row.HudDurationTextOffset = Definition.HudDurationTextOffset;
+		Row.HudDamageTextOffset = Definition.HudDamageTextOffset;
+		return Row;
+	};
+
+	const FProjectSurvivalStatusCatalog& Catalog = GetProjectSurvivalStatusCatalog();
+	for (const FName StatusName : { FName(TEXT("WellFed")), FName(TEXT("Alcoholized")) })
+	{
+		const FProjectSurvivalStatusDefinition* Definition = Catalog.StatusDefinitions.FindByPredicate(
+			[StatusName](const FProjectSurvivalStatusDefinition& Candidate)
+			{
+				return Candidate.StatusName == StatusName;
+			});
+		if (!Definition)
+		{
+			return false;
+		}
+		StatusTable->AddRow(StatusName, MakeRow(*Definition));
+	}
+
+	StatusTable->MarkPackageDirty();
 	return true;
 #endif
 }

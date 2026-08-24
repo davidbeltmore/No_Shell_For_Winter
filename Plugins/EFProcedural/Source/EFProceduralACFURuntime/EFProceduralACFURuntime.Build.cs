@@ -11,7 +11,9 @@ public class EFProceduralACFURuntime : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"EFProceduralRuntime"
+			"EFProceduralRuntime",
+			"AscentCombatFramework",
+			"Json"
 		});
 	}
 }

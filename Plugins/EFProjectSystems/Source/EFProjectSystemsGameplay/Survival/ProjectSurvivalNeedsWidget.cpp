@@ -17,6 +17,7 @@
 #include "Engine/Texture2D.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Survival/ProjectSurvivalNeedsComponent.h"
+#include "Survival/ProjectSurvivalNeedsSettings.h"
 #include "Survival/ProjectSurvivalNeedsTypes.h"
 #include "UI/ProjectWidgetClassResolver.h"
 #include "Styling/CoreStyle.h"
@@ -831,6 +832,11 @@ TArray<FProjectInnerStateRowDisplayData> UProjectSurvivalNeedsWidget::BuildResol
 
 		for (const FProjectSurvivalSensationSnapshot& Snapshot : NeedsComponent->BuildSensationSnapshots())
 		{
+			if (IsEntryHiddenFromHud(Snapshot.SensationName))
+			{
+				continue;
+			}
+
 			ProjectInnerStateWidgetPrivate::FProjectInnerStateRuntimeData& RuntimeData = RuntimeDataByName.FindOrAdd(Snapshot.SensationName);
 			RuntimeData.CurrentValue = Snapshot.CurrentValue;
 			RuntimeData.MaxValue = Snapshot.MaxValue;
@@ -851,7 +857,7 @@ TArray<FProjectInnerStateRowDisplayData> UProjectSurvivalNeedsWidget::BuildResol
 
 	for (const FProjectInnerStateEntryDefinition& Definition : Definitions)
 	{
-		if (Definition.EntryName.IsNone())
+		if (Definition.EntryName.IsNone() || IsEntryHiddenFromHud(Definition.EntryName))
 		{
 			continue;
 		}
@@ -914,6 +920,12 @@ TArray<FProjectInnerStateRowDisplayData> UProjectSurvivalNeedsWidget::BuildResol
 	}
 
 	return FinalRows;
+}
+
+bool UProjectSurvivalNeedsWidget::IsEntryHiddenFromHud(const FName EntryName)
+{
+	const UProjectSurvivalNeedsSettings* NeedsSettings = UProjectSurvivalNeedsSettings::Get();
+	return NeedsSettings && NeedsSettings->HiddenHudEntryNames.Contains(EntryName);
 }
 
 bool UProjectSurvivalNeedsWidget::DoesRowLayoutNeedRebuild(const TArray<FProjectInnerStateRowDisplayData>& InRowData) const

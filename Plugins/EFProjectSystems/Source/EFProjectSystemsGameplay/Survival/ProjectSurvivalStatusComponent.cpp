@@ -108,6 +108,24 @@ namespace
 		return -RawInput;
 	}
 
+	bool EvaluateThresholdStatus(
+		const bool bWasActive,
+		const float NormalizedValue,
+		const EProjectSurvivalStatusThresholdMode ThresholdMode,
+		const float ActivationThresholdNormalized,
+		const float DeactivationThresholdNormalized)
+	{
+		const float Value = FMath::Clamp(NormalizedValue, 0.f, 1.f);
+		const float ActivationThreshold = FMath::Clamp(ActivationThresholdNormalized, 0.f, 1.f);
+		const float DeactivationThreshold = FMath::Clamp(DeactivationThresholdNormalized, 0.f, 1.f);
+		if (ThresholdMode == EProjectSurvivalStatusThresholdMode::AtOrAbove)
+		{
+			return bWasActive ? Value > DeactivationThreshold : Value >= ActivationThreshold;
+		}
+
+		return bWasActive ? Value < DeactivationThreshold : Value <= ActivationThreshold;
+	}
+
 	void SetPixel(TArray<FColor>& Pixels, const int32 Size, const int32 X, const int32 Y, const FColor Color)
 	{
 		if (X < 0 || Y < 0 || X >= Size || Y >= Size)
@@ -304,6 +322,27 @@ namespace
 			DrawLine(Pixels, Size, ToPixels(0.44f, 0.18f, Size), ToPixels(0.44f, 0.40f, Size), Size * 0.04f, White);
 			DrawLine(Pixels, Size, ToPixels(0.66f, 0.18f, Size), ToPixels(0.66f, 0.80f, Size), Size * 0.06f, White);
 			DrawFilledTriangle(Pixels, Size, ToPixels(0.56f, 0.18f, Size), ToPixels(0.76f, 0.18f, Size), ToPixels(0.66f, 0.42f, Size), White);
+			return;
+		}
+
+		if (MinimalIconName == TEXT("Status.WellFed"))
+		{
+			DrawLine(Pixels, Size, ToPixels(0.22f, 0.48f, Size), ToPixels(0.78f, 0.48f, Size), Size * 0.055f, White);
+			DrawFilledEllipse(Pixels, Size, ToPixels(0.50f, 0.57f, Size), Size * 0.25f, Size * 0.14f, White);
+			DrawLine(Pixels, Size, ToPixels(0.36f, 0.76f, Size), ToPixels(0.64f, 0.76f, Size), Size * 0.05f, White);
+			return;
+		}
+
+		if (MinimalIconName == TEXT("Status.Alcoholized"))
+		{
+			DrawLine(Pixels, Size, ToPixels(0.43f, 0.18f, Size), ToPixels(0.57f, 0.18f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.46f, 0.20f, Size), ToPixels(0.46f, 0.35f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.54f, 0.20f, Size), ToPixels(0.54f, 0.35f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.46f, 0.35f, Size), ToPixels(0.34f, 0.48f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.54f, 0.35f, Size), ToPixels(0.66f, 0.48f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.34f, 0.48f, Size), ToPixels(0.34f, 0.82f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.66f, 0.48f, Size), ToPixels(0.66f, 0.82f, Size), Size * 0.055f, White);
+			DrawLine(Pixels, Size, ToPixels(0.34f, 0.82f, Size), ToPixels(0.66f, 0.82f, Size), Size * 0.055f, White);
 			return;
 		}
 
@@ -792,6 +831,8 @@ TArray<FProjectSurvivalStatusSnapshot> UProjectSurvivalStatusComponent::BuildAct
 		Snapshot.DisplayName = Definition.DisplayName;
 		Snapshot.Description = Definition.Description;
 		Snapshot.SourceNeedName = Definition.SourceNeedName;
+		Snapshot.SourceEntryName = Definition.SourceEntryName;
+		Snapshot.SourceType = Definition.SourceType;
 		Snapshot.MinimalIconName = Definition.MinimalIconName;
 		Snapshot.DamagePerSecond = Definition.DamagePerSecond;
 		Snapshot.RemainingDurationSeconds = RemainingDurationSeconds;
@@ -1073,15 +1114,29 @@ void UProjectSurvivalStatusComponent::UpdateStatuses(const float DeltaTime)
 		const bool bImmune = IsStatusImmune(Definition.StatusName) && !DebugBypassImmunityStatusNames.Contains(Definition.StatusName);
 		const bool bWasActive = ActiveStatusByName.FindRef(Definition.StatusName);
 		bool bNeedIsEmpty = false;
+		bool bThresholdActive = false;
 
 		if (!bImmune && Definition.bTriggerAtNeedEmpty && NeedsComponent && !Definition.SourceNeedName.IsNone())
 		{
 			bNeedIsEmpty = NeedsComponent->GetNeedCurrentValue(Definition.SourceNeedName) <= ProjectSurvivalStatusNeedEmptyThreshold;
 		}
 
+		if (!bImmune && NeedsComponent && !Definition.SourceEntryName.IsNone() && Definition.SourceType != EProjectSurvivalStatusSourceType::None)
+		{
+			const float NormalizedValue = Definition.SourceType == EProjectSurvivalStatusSourceType::Sensation
+				? NeedsComponent->GetSensationNormalizedValue(Definition.SourceEntryName)
+				: NeedsComponent->GetNeedNormalizedValue(Definition.SourceEntryName);
+			bThresholdActive = EvaluateThresholdStatus(
+				bWasActive,
+				NormalizedValue,
+				Definition.ThresholdMode,
+				Definition.ActivationThresholdNormalized,
+				Definition.DeactivationThresholdNormalized);
+		}
+
 		const bool bTimedActive = !bImmune && IsTimedStatusActive(Definition.StatusName, CurrentTimeSeconds);
 		const bool bForcedActive = !bImmune && ForcedActiveStatusNames.Contains(Definition.StatusName);
-		if (Definition.bTriggersExhaustionSequence && (bNeedIsEmpty || bTimedActive || bForcedActive) && !bExhaustionSequenceActive)
+		if (Definition.bTriggersExhaustionSequence && (bNeedIsEmpty || bThresholdActive || bTimedActive || bForcedActive) && !bExhaustionSequenceActive)
 		{
 			float RemainingDurationSeconds = 0.f;
 			IsTimedStatusActive(Definition.StatusName, CurrentTimeSeconds, &RemainingDurationSeconds);
@@ -1090,6 +1145,7 @@ void UProjectSurvivalStatusComponent::UpdateStatuses(const float DeltaTime)
 
 		const bool bShouldBeActive = !bImmune && (ForcedActiveStatusNames.Contains(Definition.StatusName)
 			|| bNeedIsEmpty
+			|| bThresholdActive
 			|| (Definition.bTriggersExhaustionSequence && bExhaustionSequenceActive)
 			|| bTimedActive);
 
@@ -1303,6 +1359,21 @@ float UProjectSurvivalStatusComponent::AutomationResolveInvertedMovementInput(
 	const float RawInput)
 {
 	return ResolveInvertedMovementInput(RawInput);
+}
+
+bool UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(
+	const bool bWasActive,
+	const float NormalizedValue,
+	const EProjectSurvivalStatusThresholdMode ThresholdMode,
+	const float ActivationThresholdNormalized,
+	const float DeactivationThresholdNormalized)
+{
+	return EvaluateThresholdStatus(
+		bWasActive,
+		NormalizedValue,
+		ThresholdMode,
+		ActivationThresholdNormalized,
+		DeactivationThresholdNormalized);
 }
 #endif
 

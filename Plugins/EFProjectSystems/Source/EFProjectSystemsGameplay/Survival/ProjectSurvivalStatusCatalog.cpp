@@ -51,6 +51,8 @@ const FProjectSurvivalStatusCatalog& GetProjectSurvivalStatusCatalog()
 			TEXT("ExtremePain"),
 			TEXT("Dirty"),
 			TEXT("Sweaty"),
+			TEXT("WellFed"),
+			TEXT("Alcoholized"),
 			TEXT("KnockedOut")
 		};
 
@@ -63,6 +65,23 @@ const FProjectSurvivalStatusCatalog& GetProjectSurvivalStatusCatalog()
 		Thirst.SourceNeedName = TEXT("Thirst");
 		Thirst.bBlocksHealthRecovery = true;
 		Thirst.bTriggerAtNeedEmpty = true;
+
+		FProjectSurvivalStatusDefinition WellFed = MakeStatus(TEXT("WellFed"), TEXT("WELL FED"), TEXT("Status.WellFed"), 0.f, 0.f, 400, TEXT("Hunger is above ninety percent."));
+		WellFed.SourceEntryName = TEXT("Hunger");
+		WellFed.SourceType = EProjectSurvivalStatusSourceType::Need;
+		WellFed.ThresholdMode = EProjectSurvivalStatusThresholdMode::AtOrAbove;
+		WellFed.ActivationThresholdNormalized = 0.90f;
+		WellFed.DeactivationThresholdNormalized = 0.75f;
+		WellFed.Tint = EFProjectUIPalette::InnerStateHunger();
+
+		FProjectSurvivalStatusDefinition Alcoholized = MakeStatus(TEXT("Alcoholized"), TEXT("ALCOHOLIZED"), TEXT("Status.Alcoholized"), 0.f, 0.f, 710, TEXT("Alcohol is impairing movement while it is metabolized."));
+		Alcoholized.SourceEntryName = TEXT("Alcohol");
+		Alcoholized.SourceType = EProjectSurvivalStatusSourceType::Sensation;
+		Alcoholized.ThresholdMode = EProjectSurvivalStatusThresholdMode::AtOrAbove;
+		Alcoholized.ActivationThresholdNormalized = 0.25f;
+		Alcoholized.DeactivationThresholdNormalized = 0.10f;
+		Alcoholized.MovementInputScale = 0.85f;
+		Alcoholized.Tint = EFProjectUIPalette::Warning();
 
 		FProjectSurvivalStatusDefinition SleepDeprived = MakeStatus(TEXT("SleepDeprived"), TEXT("SLEEP DEPRIVED"), TEXT("Status.Exhausted"), 0.f, 0.f, 520, TEXT("Sleep is empty and exhaustion pressure is rising."));
 		SleepDeprived.SourceNeedName = TEXT("Sleep");
@@ -134,6 +153,8 @@ const FProjectSurvivalStatusCatalog& GetProjectSurvivalStatusCatalog()
 		Data.StatusDefinitions = {
 			Starving,
 			Thirst,
+			WellFed,
+			Alcoholized,
 			Tired,
 			SleepDeprived,
 			Exhausted,

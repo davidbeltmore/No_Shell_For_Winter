@@ -4,22 +4,27 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
+#include "Engine/Canvas.h"
 #include "Engine/DataTable.h"
 #include "Engine/SkinnedAsset.h"
 #include "Engine/Texture.h"
 #include "Engine/Texture2D.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Intimacy/ProjectIntimacySubsystem.h"
+#include "Kismet/KismetRenderingLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "Misc/SecureHash.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "SkinnedDecalSampler.h"
 #include "TattooShop/ProjectAutomaticTattooTypes.h"
 #include "TattooShop/ProjectTattooShopInputSubsystem.h"
+#include "TattooShop/ProjectTattooShopSettings.h"
 #include "UObject/UObjectGlobals.h"
 
 #include <initializer_list>
@@ -33,6 +38,11 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 	constexpr float DefaultTattooDecalSize = 6.0f;
 	constexpr float DefaultTattooDecalDepth = 2.0f;
 	constexpr int32 MinimumMaxDecals = 128;
+	constexpr int32 HardMaximumManualTattooCount = 32;
+	constexpr int32 HardMaximumProjectTattooCount = 64;
+	constexpr int32 DefaultRuntimeAtlasCellSize = 512;
+	constexpr int32 HardMaximumRuntimeAtlasSize = 4096;
+	constexpr float RuntimeAtlasCellFill = 0.92f;
 	constexpr int32 TattooShopPreviewReservedDecalIndex = 10;
 	constexpr float ProjectionDistance = 12.0f;
 
@@ -57,6 +67,39 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 	const FName EmissiveStrengthParameterName(TEXT("DecalEmissive Strength"));
 	const FName UseEmissiveParameterName(TEXT("DecaulUseEmissive"));
 	const FName TattooShopPreviewAtlasRowName(TEXT("__TattooShopPreview"));
+
+	struct FRuntimeTattooLimits
+	{
+		int32 MaximumManualTattoos = HardMaximumManualTattooCount;
+		int32 MaximumTotalLayers = HardMaximumProjectTattooCount;
+		int32 AtlasCellSize = DefaultRuntimeAtlasCellSize;
+		int32 MaximumAtlasSize = HardMaximumRuntimeAtlasSize;
+	};
+
+	FRuntimeTattooLimits ResolveRuntimeTattooLimits()
+	{
+		FRuntimeTattooLimits Limits;
+		if (const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get())
+		{
+			Limits.AtlasCellSize = FMath::Clamp(Settings->AtlasCellSize, 64, DefaultRuntimeAtlasCellSize);
+			Limits.MaximumAtlasSize = FMath::Clamp(
+				Settings->MaxAtlasSize,
+				Limits.AtlasCellSize,
+				HardMaximumRuntimeAtlasSize);
+
+			const int32 CellsPerAxis = FMath::Max(1, Limits.MaximumAtlasSize / Limits.AtlasCellSize);
+			const int32 AtlasCapacity = CellsPerAxis * CellsPerAxis;
+			Limits.MaximumTotalLayers = FMath::Clamp(
+				Settings->MaxTotalTattooLayers,
+				1,
+				FMath::Min(HardMaximumProjectTattooCount, AtlasCapacity));
+			Limits.MaximumManualTattoos = FMath::Clamp(
+				Settings->MaxManualTattoos,
+				1,
+				FMath::Min(HardMaximumManualTattooCount, Limits.MaximumTotalLayers));
+		}
+		return Limits;
+	}
 
 	FColor AverageEdgeColor(const FColor* Pixels, const int32 Width, const int32 Height)
 	{
@@ -192,7 +235,8 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 	FString BuildOverlayMaterialSignature(
 		USkinnedDecalSampler* Sampler,
 		const TArray<FName>& RowNames,
-		const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows)
+		const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows,
+		const TMap<FName, FProjectTattooParameters>* ManualParametersByRow = nullptr)
 	{
 		FString Signature = FString::Printf(
 			TEXT("Sampler=%s|Overlay=%s|Rows=%d"),
@@ -218,6 +262,33 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 				TattooRow ? TattooRow->Size : 0.0f,
 				TattooRow ? TattooRow->RotationDegrees : 0.0f,
 				TattooRow ? TattooRow->ProjectionDistance : 0.0f);
+
+			if (ManualParametersByRow)
+			{
+				if (const FProjectTattooParameters* Parameters = ManualParametersByRow->Find(RowNames[RowIndex]))
+				{
+					Signature += FString::Printf(
+						TEXT(":Manual:Enabled=%d:Layer=%d:Preset=%d:Anchor=%s:OffsetX=%.6f:OffsetY=%.6f:Size=%.6f:RotationDegrees=%.6f:ProjectionDistance=%.6f:UseTint=%d:Opacity=%.6f:Color=%.6f,%.6f,%.6f,%.6f:RuntimeMissing=%d:Asset=%s:Runtime=%s"),
+						Parameters->bEnabled ? 1 : 0,
+						Parameters->LayerOrder,
+						static_cast<int32>(Parameters->PlacementPreset),
+						*Parameters->AnchorBone.ToString(),
+						Parameters->OffsetX,
+						Parameters->OffsetY,
+						Parameters->Size,
+						Parameters->RotationDegrees,
+						Parameters->ProjectionDistance,
+						Parameters->bUseTint ? 1 : 0,
+						FMath::Clamp(Parameters->Opacity, 0.0f, 1.0f),
+						Parameters->Color.R,
+						Parameters->Color.G,
+						Parameters->Color.B,
+						Parameters->Color.A,
+						Parameters->bRuntimeTextureMissing ? 1 : 0,
+						*Parameters->TextureAssetPath.ToString(),
+						*Parameters->RuntimeTextureId);
+				}
+			}
 		}
 
 		return Signature;
@@ -933,9 +1004,13 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 		{
 			Score += 25;
 		}
-		if (Component->IsVisible())
+		if (Component->IsVisible() && !Component->bHiddenInGame)
 		{
-			Score += 25;
+			Score += 2000;
+		}
+		else
+		{
+			Score -= 4000;
 		}
 
 		return Score;
@@ -948,14 +1023,25 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::Initialize(FSubsystemCollection
 
 	AppliedPawn = nullptr;
 	AppliedSampler = nullptr;
+	AppliedTargetMesh = nullptr;
 	AutomaticTattooDecalIndices.Reset();
+	ManualTattooDecalIndices.Reset();
 	AutomaticTattooSubUVByRow.Reset();
 	AutomaticTattooPlacementSignatures.Reset();
+	ManualTattooPlacementSignatures.Reset();
 	AutomaticTattooEffectiveOffsets.Reset();
 	AutomaticTattooCompositeSourceCountByRow.Reset();
 	AutomaticTattooCompositeGroupKeyByRow.Reset();
 	RuntimeDebugPlacementOverrides.Reset();
 	RuntimeDebugForcedActiveRows.Reset();
+	ManualTattooRowNames.Reset();
+	ManualTattooRows.Reset();
+	ManualTattooParametersByRow.Reset();
+	ManualTattooTexturesByRow.Reset();
+	ManualTattooStateSignature.Reset();
+	RuntimeAutomaticTattooAtlasTexture = nullptr;
+	RuntimeAutomaticTattooAtlasRenderTarget = nullptr;
+	RuntimeAtlasSourceTextures.Reset();
 	AutomaticTattooAtlasSubImagesX = 1;
 	AutomaticTattooAtlasSubImagesY = 1;
 	CachedOverlaySampler = nullptr;
@@ -969,6 +1055,8 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::Initialize(FSubsystemCollection
 void UProjectDefaultTattooSkinnedDecalSubsystem::Deinitialize()
 {
 	ClearProjectTattooLayers(AppliedPawn.Get());
+	RuntimeAutomaticTattooAtlasTexture = nullptr;
+	RuntimeAutomaticTattooAtlasRenderTarget = nullptr;
 	RuntimeDebugPlacementOverrides.Reset();
 	RuntimeDebugForcedActiveRows.Reset();
 	Super::Deinitialize();
@@ -987,9 +1075,12 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::Tick(const float DeltaTime)
 	{
 		AppliedPawn = nullptr;
 		AppliedSampler = nullptr;
+		AppliedTargetMesh = nullptr;
 		AutomaticTattooDecalIndices.Reset();
+		ManualTattooDecalIndices.Reset();
 		AutomaticTattooSubUVByRow.Reset();
 		AutomaticTattooPlacementSignatures.Reset();
+		ManualTattooPlacementSignatures.Reset();
 		AutomaticTattooEffectiveOffsets.Reset();
 		AutomaticTattooCompositeSourceCountByRow.Reset();
 		AutomaticTattooCompositeGroupKeyByRow.Reset();
@@ -1027,6 +1118,11 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::Tick(const float DeltaTime)
 	else
 	{
 		RetryCooldownSeconds = ProjectDefaultTattooSkinnedDecalPrivate::RuntimePollDelaySeconds;
+	}
+
+	if (!EnsureManualTattoos(Pawn) && !ManualTattooRowNames.IsEmpty())
+	{
+		RetryCooldownSeconds = ProjectDefaultTattooSkinnedDecalPrivate::RetryDelaySeconds;
 	}
 
 	if (bTattooShopPreviewForAutomation && !bTattooShopPreviewApplied)
@@ -1082,6 +1178,129 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::HasActiveAutomaticTattoo(APawn*
 	}
 
 	return AppliedPawn.IsValid();
+}
+
+bool UProjectDefaultTattooSkinnedDecalSubsystem::HasActiveManualTattoo(APawn* Pawn) const
+{
+	return !ManualTattooDecalIndices.IsEmpty()
+		&& AppliedSampler.IsValid()
+		&& (!IsValid(Pawn) || AppliedPawn.Get() == Pawn);
+}
+
+void UProjectDefaultTattooSkinnedDecalSubsystem::SynchronizeManualTattoos(
+	APawn* Pawn,
+	const TArray<FProjectTattooRecord>& Records,
+	const TMap<FGuid, UTexture2D*>& TextureByTattooId)
+{
+	const ProjectDefaultTattooSkinnedDecalPrivate::FRuntimeTattooLimits Limits =
+		ProjectDefaultTattooSkinnedDecalPrivate::ResolveRuntimeTattooLimits();
+	TArray<FProjectTattooRecord> SortedRecords = Records;
+	SortedRecords.Sort([](const FProjectTattooRecord& Left, const FProjectTattooRecord& Right)
+	{
+		if (Left.Parameters.LayerOrder != Right.Parameters.LayerOrder)
+		{
+			return Left.Parameters.LayerOrder < Right.Parameters.LayerOrder;
+		}
+		return Left.TattooId.ToString(EGuidFormats::Digits) < Right.TattooId.ToString(EGuidFormats::Digits);
+	});
+
+	FString Signature;
+	for (const FProjectTattooRecord& Record : SortedRecords)
+	{
+		const UTexture2D* const* Texture = TextureByTattooId.Find(Record.TattooId);
+		const UTexture2D* TextureObject = Texture ? *Texture : nullptr;
+		Signature += FString::Printf(
+			TEXT("%s|TexturePath=%s|Texture=%p|Resource=%p|Enabled=%d|Layer=%d|Preset=%d|Anchor=%s|OffsetX=%.6f|OffsetY=%.6f|Size=%.6f|RotationDegrees=%.6f|ProjectionDistance=%.6f|UseTint=%d|Opacity=%.6f|Color=%.6f,%.6f,%.6f,%.6f|RuntimeMissing=%d|Asset=%s|Runtime=%s;"),
+			*Record.TattooId.ToString(EGuidFormats::Digits),
+			*GetPathNameSafe(TextureObject),
+			static_cast<const void*>(TextureObject),
+			static_cast<const void*>(TextureObject ? TextureObject->GetResource() : nullptr),
+			Record.Parameters.bEnabled ? 1 : 0,
+			Record.Parameters.LayerOrder,
+			static_cast<int32>(Record.Parameters.PlacementPreset),
+			*Record.Parameters.AnchorBone.ToString(),
+			Record.Parameters.OffsetX,
+			Record.Parameters.OffsetY,
+			Record.Parameters.Size,
+			Record.Parameters.RotationDegrees,
+			Record.Parameters.ProjectionDistance,
+			Record.Parameters.bUseTint ? 1 : 0,
+			FMath::Clamp(Record.Parameters.Opacity, 0.0f, 1.0f),
+			Record.Parameters.Color.R,
+			Record.Parameters.Color.G,
+			Record.Parameters.Color.B,
+			Record.Parameters.Color.A,
+			Record.Parameters.bRuntimeTextureMissing ? 1 : 0,
+			*Record.Parameters.TextureAssetPath.ToString(),
+			*Record.Parameters.RuntimeTextureId);
+	}
+	USkeletalMeshComponent* CurrentTargetMesh = ResolveTargetMesh(Pawn);
+	if (Signature == ManualTattooStateSignature
+		&& AppliedPawn.Get() == Pawn
+		&& AppliedTargetMesh.Get() == CurrentTargetMesh)
+	{
+		RestoreSkinnedDecalOverlayIfNeeded();
+		return;
+	}
+
+	ClearManualTattoos(IsValid(Pawn) ? Pawn : AppliedPawn.Get());
+	CachedOverlayMaterialSignature.Reset();
+	ManualTattooRowNames.Reset();
+	ManualTattooRows.Reset();
+	ManualTattooParametersByRow.Reset();
+	ManualTattooTexturesByRow.Reset();
+
+	int32 EligibleManualTattooCount = 0;
+	int32 AcceptedManualTattooCount = 0;
+	for (const FProjectTattooRecord& Record : SortedRecords)
+	{
+		UTexture2D* const* Texture = TextureByTattooId.Find(Record.TattooId);
+		if (!Record.TattooId.IsValid()
+			|| !Record.Parameters.bEnabled
+			|| Record.Parameters.bRuntimeTextureMissing
+			|| !Texture
+			|| !IsValid(*Texture))
+		{
+			continue;
+		}
+		++EligibleManualTattooCount;
+		if (AcceptedManualTattooCount >= Limits.MaximumManualTattoos)
+		{
+			continue;
+		}
+
+		const FName RowName(*FString::Printf(TEXT("__Manual_%s"), *Record.TattooId.ToString(EGuidFormats::Digits)));
+		FProjectAutomaticTattooTableRow& Row = ManualTattooRows.AddDefaulted_GetRef();
+		Row.TattooTexture = *Texture;
+		Row.PlacementPreset = Record.Parameters.PlacementPreset;
+		Row.AnchorBone = Record.Parameters.AnchorBone;
+		Row.OffsetX = Record.Parameters.OffsetX;
+		Row.OffsetY = Record.Parameters.OffsetY;
+		Row.Size = Record.Parameters.Size;
+		Row.RotationDegrees = Record.Parameters.RotationDegrees;
+		Row.ProjectionDistance = Record.Parameters.ProjectionDistance;
+		Row.bEnabled = true;
+		ManualTattooRowNames.Add(RowName);
+		ManualTattooParametersByRow.Add(RowName, Record.Parameters);
+		ManualTattooTexturesByRow.Add(RowName, *Texture);
+		++AcceptedManualTattooCount;
+	}
+
+	if (EligibleManualTattooCount > Limits.MaximumManualTattoos)
+	{
+		UE_LOG(
+			LogProjectDefaultTattooSkinnedDecal,
+			Warning,
+			TEXT("[TattooSkinnedDecal] Manual tattoo input was limited to %d valid layers (received %d eligible records)."),
+			Limits.MaximumManualTattoos,
+			EligibleManualTattooCount);
+	}
+
+	ManualTattooStateSignature = Signature;
+	if (!ManualTattooRowNames.IsEmpty())
+	{
+		EnsureManualTattoos(Pawn);
+	}
 }
 
 bool UProjectDefaultTattooSkinnedDecalSubsystem::IsAutomaticTattooUnlockedForAutomation() const
@@ -1542,6 +1761,8 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::IsTattooShopOpen() const
 
 bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pawn)
 {
+	const ProjectDefaultTattooSkinnedDecalPrivate::FRuntimeTattooLimits Limits =
+		ProjectDefaultTattooSkinnedDecalPrivate::ResolveRuntimeTattooLimits();
 	if (!IsValid(Pawn) || !IsAutomaticTattooUnlockedForAutomation())
 	{
 		return false;
@@ -1550,6 +1771,13 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pa
 	if (AppliedPawn.IsValid() && AppliedPawn.Get() != Pawn)
 	{
 		ClearProjectTattooLayers(AppliedPawn.Get());
+	}
+
+	if (!ManualTattooRowNames.IsEmpty())
+	{
+		// The combined automatic+manual atlas is configured and the two families
+		// are spawned together by EnsureManualTattoos. Avoid rebuilding it here.
+		return EnsureManualTattoos(Pawn);
 	}
 
 	TArray<FName> ActiveRowNames;
@@ -1564,6 +1792,16 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pa
 	TArray<FProjectAutomaticTattooTableRow> EffectiveActiveRowValues;
 	TArray<const FProjectAutomaticTattooTableRow*> ActiveRows;
 	BuildEffectiveTattooRows(ActiveRowNames, SourceActiveRows, EffectiveActiveRowValues, ActiveRows);
+	if (ActiveRowNames.Num() > Limits.MaximumTotalLayers)
+	{
+		ActiveRowNames.SetNum(Limits.MaximumTotalLayers);
+		ActiveRows.SetNum(Limits.MaximumTotalLayers);
+		UE_LOG(
+			LogProjectDefaultTattooSkinnedDecal,
+			Warning,
+			TEXT("[TattooSkinnedDecal] Active automatic tattoo layers were limited to %d."),
+			Limits.MaximumTotalLayers);
+	}
 
 	USkeletalMeshComponent* TargetMesh = ResolveTargetMesh(Pawn);
 	if (!IsValid(TargetMesh) || !IsValid(TargetMesh->GetSkinnedAsset()))
@@ -1573,9 +1811,24 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pa
 
 	TArray<FName> AtlasRowNames = ActiveRowNames;
 	TArray<const FProjectAutomaticTattooTableRow*> AtlasRows = ActiveRows;
+	const int32 MaximumManualRowsForAtlas = FMath::Min(
+		Limits.MaximumManualTattoos,
+		FMath::Max(0, Limits.MaximumTotalLayers - AtlasRowNames.Num()));
+	for (int32 ManualIndex = 0;
+		ManualIndex < ManualTattooRowNames.Num()
+			&& ManualIndex < ManualTattooRows.Num()
+			&& ManualIndex < MaximumManualRowsForAtlas;
+		++ManualIndex)
+	{
+		AtlasRowNames.Add(ManualTattooRowNames[ManualIndex]);
+		AtlasRows.Add(&ManualTattooRows[ManualIndex]);
+	}
 	if (bTattooShopPreviewForAutomation || bTattooShopPreviewApplied)
 	{
-		AppendTattooShopPreviewAtlasRow(AtlasRowNames, AtlasRows);
+		if (AtlasRowNames.Num() < Limits.MaximumTotalLayers)
+		{
+			AppendTattooShopPreviewAtlasRow(AtlasRowNames, AtlasRows);
+		}
 	}
 
 	USkinnedDecalSampler* Sampler = ResolveOrCreateSampler(Pawn);
@@ -1583,7 +1836,6 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pa
 	{
 		return false;
 	}
-
 	TSet<FName> ActiveRowSet;
 	for (const FName ActiveRowName : ActiveRowNames)
 	{
@@ -1667,6 +1919,382 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureAutomaticTattoo(APawn* Pa
 	}
 
 	return bAllActiveRowsReady && !AutomaticTattooDecalIndices.IsEmpty();
+}
+
+void UProjectDefaultTattooSkinnedDecalSubsystem::GetManualTattooRuntimeDebugSnapshots(
+	TArray<FProjectManualTattooRuntimeDebugSnapshot>& OutSnapshots) const
+{
+	OutSnapshots.Reset();
+
+	TArray<FColor> AtlasPixels;
+	int32 AtlasWidth = 0;
+	int32 AtlasHeight = 0;
+	if (RuntimeAutomaticTattooAtlasRenderTarget)
+	{
+		AtlasWidth = RuntimeAutomaticTattooAtlasRenderTarget->SizeX;
+		AtlasHeight = RuntimeAutomaticTattooAtlasRenderTarget->SizeY;
+		if (FTextureRenderTargetResource* Resource = RuntimeAutomaticTattooAtlasRenderTarget->GameThread_GetRenderTargetResource())
+		{
+			FReadSurfaceDataFlags ReadFlags(RCM_UNorm);
+			ReadFlags.SetLinearToGamma(false);
+			Resource->ReadPixels(AtlasPixels, ReadFlags);
+		}
+	}
+
+	const int32 SafeSubImagesX = FMath::Max(1, AutomaticTattooAtlasSubImagesX);
+	const int32 SafeSubImagesY = FMath::Max(1, AutomaticTattooAtlasSubImagesY);
+	const int32 CellWidth = AtlasWidth > 0 ? AtlasWidth / SafeSubImagesX : 0;
+	const int32 CellHeight = AtlasHeight > 0 ? AtlasHeight / SafeSubImagesY : 0;
+
+	for (const FName RowName : ManualTattooRowNames)
+	{
+		const FString RowString = RowName.ToString();
+		constexpr const TCHAR* ManualPrefix = TEXT("__Manual_");
+		if (!RowString.StartsWith(ManualPrefix))
+		{
+			continue;
+		}
+
+		FGuid TattooId;
+		if (!FGuid::ParseExact(RowString.RightChop(FCString::Strlen(ManualPrefix)), EGuidFormats::Digits, TattooId))
+		{
+			continue;
+		}
+
+		FProjectManualTattooRuntimeDebugSnapshot& Snapshot = OutSnapshots.AddDefaulted_GetRef();
+		Snapshot.TattooId = TattooId;
+		Snapshot.RowName = RowName;
+		Snapshot.DecalIndex = ManualTattooDecalIndices.Contains(RowName)
+			? ManualTattooDecalIndices.FindRef(RowName)
+			: INDEX_NONE;
+		Snapshot.SubUV = AutomaticTattooSubUVByRow.Contains(RowName)
+			? AutomaticTattooSubUVByRow.FindRef(RowName)
+			: INDEX_NONE;
+		Snapshot.AtlasSubImagesX = SafeSubImagesX;
+		Snapshot.AtlasSubImagesY = SafeSubImagesY;
+		Snapshot.TattooTexturePath = GetPathNameSafe(ManualTattooTexturesByRow.FindRef(RowName));
+
+		if (const FProjectTattooParameters* Parameters = ManualTattooParametersByRow.Find(RowName))
+		{
+			const FString State = FString::Printf(
+				TEXT("%s|%s|%d|%d|%s|%.6f|%.6f|%.6f|%.6f|%.6f|%d|%.6f|%.6f,%.6f,%.6f,%.6f|%s|%s"),
+				*TattooId.ToString(EGuidFormats::Digits),
+				*Snapshot.TattooTexturePath,
+				Parameters->bEnabled ? 1 : 0,
+				Parameters->LayerOrder,
+				*Parameters->AnchorBone.ToString(),
+				Parameters->OffsetX,
+				Parameters->OffsetY,
+				Parameters->Size,
+				Parameters->RotationDegrees,
+				Parameters->ProjectionDistance,
+				Parameters->bUseTint ? 1 : 0,
+				Parameters->Opacity,
+				Parameters->Color.R,
+				Parameters->Color.G,
+				Parameters->Color.B,
+				Parameters->Color.A,
+				*Parameters->TextureAssetPath.ToString(),
+				*Parameters->RuntimeTextureId);
+			Snapshot.StateHash = FMD5::HashAnsiString(*State);
+		}
+
+		if (CellWidth <= 0 || CellHeight <= 0 || Snapshot.SubUV < 0 || AtlasPixels.Num() != AtlasWidth * AtlasHeight)
+		{
+			continue;
+		}
+
+		const int32 CellX = Snapshot.SubUV % SafeSubImagesX;
+		const int32 CellY = Snapshot.SubUV / SafeSubImagesX;
+		if (CellX < 0 || CellX >= SafeSubImagesX || CellY < 0 || CellY >= SafeSubImagesY)
+		{
+			continue;
+		}
+
+		const int32 MinX = CellX * CellWidth;
+		const int32 MinY = CellY * CellHeight;
+		const int32 MaxX = FMath::Min(MinX + CellWidth, AtlasWidth);
+		const int32 MaxY = FMath::Min(MinY + CellHeight, AtlasHeight);
+		Snapshot.AtlasCellRect = FIntRect(MinX, MinY, MaxX, MaxY);
+		Snapshot.MinimumAlpha = 255;
+		Snapshot.MaximumAlpha = 0;
+		int32 VisibleMinX = CellWidth;
+		int32 VisibleMinY = CellHeight;
+		int32 VisibleMaxX = -1;
+		int32 VisibleMaxY = -1;
+		TArray<FColor> CellPixels;
+		CellPixels.Reserve((MaxX - MinX) * (MaxY - MinY));
+		for (int32 Y = MinY; Y < MaxY; ++Y)
+		{
+			for (int32 X = MinX; X < MaxX; ++X)
+			{
+				const FColor Pixel = AtlasPixels[Y * AtlasWidth + X];
+				CellPixels.Add(Pixel);
+				Snapshot.MinimumAlpha = FMath::Min(Snapshot.MinimumAlpha, Pixel.A);
+				Snapshot.MaximumAlpha = FMath::Max(Snapshot.MaximumAlpha, Pixel.A);
+				if (Pixel.A > 0)
+				{
+					++Snapshot.NonTransparentPixelCount;
+					const int32 LocalX = X - MinX;
+					const int32 LocalY = Y - MinY;
+					VisibleMinX = FMath::Min(VisibleMinX, LocalX);
+					VisibleMinY = FMath::Min(VisibleMinY, LocalY);
+					VisibleMaxX = FMath::Max(VisibleMaxX, LocalX);
+					VisibleMaxY = FMath::Max(VisibleMaxY, LocalY);
+				}
+			}
+		}
+
+		if (Snapshot.NonTransparentPixelCount > 0)
+		{
+			Snapshot.VisiblePixelBounds = FIntRect(VisibleMinX, VisibleMinY, VisibleMaxX + 1, VisibleMaxY + 1);
+		}
+		if (!CellPixels.IsEmpty())
+		{
+			Snapshot.AtlasCellPixelHash = FMD5::HashBytes(
+				reinterpret_cast<const uint8*>(CellPixels.GetData()),
+				CellPixels.Num() * static_cast<int32>(sizeof(FColor)));
+		}
+	}
+}
+
+bool UProjectDefaultTattooSkinnedDecalSubsystem::GetManualTattooRuntimeDebugSnapshot(
+	const FGuid& TattooId,
+	FProjectManualTattooRuntimeDebugSnapshot& OutSnapshot) const
+{
+	TArray<FProjectManualTattooRuntimeDebugSnapshot> Snapshots;
+	GetManualTattooRuntimeDebugSnapshots(Snapshots);
+	if (const FProjectManualTattooRuntimeDebugSnapshot* Snapshot = Snapshots.FindByPredicate(
+		[&TattooId](const FProjectManualTattooRuntimeDebugSnapshot& Candidate)
+		{
+			return Candidate.TattooId == TattooId;
+		}))
+	{
+		OutSnapshot = *Snapshot;
+		return true;
+	}
+	return false;
+}
+
+bool UProjectDefaultTattooSkinnedDecalSubsystem::EnsureManualTattoos(APawn* Pawn)
+{
+	const ProjectDefaultTattooSkinnedDecalPrivate::FRuntimeTattooLimits Limits =
+		ProjectDefaultTattooSkinnedDecalPrivate::ResolveRuntimeTattooLimits();
+	if (!IsValid(Pawn))
+	{
+		return false;
+	}
+	if (ManualTattooRowNames.IsEmpty())
+	{
+		if (!ManualTattooDecalIndices.IsEmpty())
+		{
+			ClearManualTattoos(Pawn);
+		}
+		return true;
+	}
+
+	TArray<FName> AtlasRowNames;
+	TArray<const FProjectAutomaticTattooTableRow*> SourceAutomaticRows;
+	ResolveAutomaticTattooRows(AtlasRowNames, SourceAutomaticRows, true);
+	TArray<FProjectAutomaticTattooTableRow> EffectiveAutomaticRowValues;
+	TArray<const FProjectAutomaticTattooTableRow*> AtlasRows;
+	BuildEffectiveTattooRows(
+		AtlasRowNames,
+		SourceAutomaticRows,
+		EffectiveAutomaticRowValues,
+		AtlasRows);
+	if (AtlasRowNames.Num() > Limits.MaximumTotalLayers)
+	{
+		AtlasRowNames.SetNum(Limits.MaximumTotalLayers);
+		AtlasRows.SetNum(Limits.MaximumTotalLayers);
+	}
+	const int32 MaximumManualRowsForAtlas = FMath::Min(
+		Limits.MaximumManualTattoos,
+		FMath::Max(0, Limits.MaximumTotalLayers - AtlasRowNames.Num()));
+	const int32 DesiredManualRowCount = FMath::Min3(
+		ManualTattooRowNames.Num(),
+		ManualTattooRows.Num(),
+		MaximumManualRowsForAtlas);
+	for (int32 ManualIndex = 0;
+		ManualIndex < ManualTattooRowNames.Num()
+			&& ManualIndex < ManualTattooRows.Num()
+			&& ManualIndex < MaximumManualRowsForAtlas;
+		++ManualIndex)
+	{
+		AtlasRowNames.Add(ManualTattooRowNames[ManualIndex]);
+		AtlasRows.Add(&ManualTattooRows[ManualIndex]);
+	}
+	if (bTattooShopPreviewForAutomation || bTattooShopPreviewApplied)
+	{
+		if (AtlasRowNames.Num() < Limits.MaximumTotalLayers)
+		{
+			AppendTattooShopPreviewAtlasRow(AtlasRowNames, AtlasRows);
+		}
+	}
+
+	USkeletalMeshComponent* TargetMesh = ResolveTargetMesh(Pawn);
+	USkinnedDecalSampler* Sampler = ResolveOrCreateSampler(Pawn);
+	if (!ConfigureSampler(Sampler, TargetMesh) || !ConfigureOverlayMaterial(Sampler, AtlasRowNames, AtlasRows))
+	{
+		return false;
+	}
+	TSet<FName> DesiredAutomaticRows;
+	for (int32 RowIndex = 0; RowIndex < AtlasRowNames.Num(); ++RowIndex)
+	{
+		if (RowIndex < AtlasRows.Num()
+			&& AtlasRows[RowIndex]
+			&& !ManualTattooParametersByRow.Contains(AtlasRowNames[RowIndex])
+			&& AtlasRowNames[RowIndex] != ProjectDefaultTattooSkinnedDecalPrivate::TattooShopPreviewAtlasRowName)
+		{
+			DesiredAutomaticRows.Add(AtlasRowNames[RowIndex]);
+		}
+	}
+	for (const TPair<FName, int32>& Existing : AutomaticTattooDecalIndices)
+	{
+		if (!DesiredAutomaticRows.Contains(Existing.Key))
+		{
+			ClearTattooLayer(Pawn, Existing.Value);
+		}
+	}
+	for (auto It = AutomaticTattooDecalIndices.CreateIterator(); It; ++It)
+	{
+		if (!DesiredAutomaticRows.Contains(It.Key()))
+		{
+			AutomaticTattooPlacementSignatures.Remove(It.Key());
+			AutomaticTattooEffectiveOffsets.Remove(It.Key());
+			It.RemoveCurrent();
+		}
+	}
+
+	bool bAllReady = true;
+	for (int32 RowIndex = 0; RowIndex < AtlasRowNames.Num() && RowIndex < AtlasRows.Num(); ++RowIndex)
+	{
+		const FName RowName = AtlasRowNames[RowIndex];
+		const FProjectAutomaticTattooTableRow* Row = AtlasRows[RowIndex];
+		if (!Row
+			|| ManualTattooParametersByRow.Contains(RowName)
+			|| RowName == ProjectDefaultTattooSkinnedDecalPrivate::TattooShopPreviewAtlasRowName)
+		{
+			continue;
+		}
+
+		FName AnchorBone = Row->AnchorBone;
+		if (AnchorBone.IsNone() || !TargetMesh || TargetMesh->GetBoneIndex(AnchorBone) == INDEX_NONE)
+		{
+			AnchorBone = ProjectDefaultTattooSkinnedDecalPrivate::ResolvePresetAnchorBone(TargetMesh, Row->PlacementPreset);
+		}
+		if (AnchorBone.IsNone() || !TargetMesh || TargetMesh->GetBoneIndex(AnchorBone) == INDEX_NONE)
+		{
+			AnchorBone = ResolveAnchorBone(TargetMesh);
+		}
+
+		const int32 SubUV = AutomaticTattooSubUVByRow.FindRef(RowName);
+		const FString PlacementSignature = ProjectDefaultTattooSkinnedDecalPrivate::BuildTattooPlacementSignature(
+			RowName,
+			Row,
+			AnchorBone,
+			SubUV);
+		if (AutomaticTattooDecalIndices.Contains(RowName)
+			&& AutomaticTattooPlacementSignatures.FindRef(RowName) == PlacementSignature)
+		{
+			continue;
+		}
+
+		if (const int32* ExistingIndex = AutomaticTattooDecalIndices.Find(RowName))
+		{
+			ClearTattooLayer(Pawn, *ExistingIndex);
+			AutomaticTattooDecalIndices.Remove(RowName);
+			AutomaticTattooPlacementSignatures.Remove(RowName);
+		}
+		bAllReady &= ApplyAutomaticTattooLayer(Pawn, INDEX_NONE, RowName, Row, SubUV);
+	}
+
+	TSet<FName> DesiredRows;
+	for (int32 ManualIndex = 0;
+		ManualIndex < ManualTattooRowNames.Num() && ManualIndex < MaximumManualRowsForAtlas;
+		++ManualIndex)
+	{
+		DesiredRows.Add(ManualTattooRowNames[ManualIndex]);
+	}
+	for (const TPair<FName, int32>& Existing : ManualTattooDecalIndices)
+	{
+		if (!DesiredRows.Contains(Existing.Key))
+		{
+			ClearTattooLayer(Pawn, Existing.Value);
+		}
+	}
+	for (auto It = ManualTattooDecalIndices.CreateIterator(); It; ++It)
+	{
+		if (!DesiredRows.Contains(It.Key()))
+		{
+			ManualTattooPlacementSignatures.Remove(It.Key());
+			It.RemoveCurrent();
+		}
+	}
+
+	for (int32 ManualIndex = 0;
+		ManualIndex < ManualTattooRowNames.Num()
+			&& ManualIndex < ManualTattooRows.Num()
+			&& ManualIndex < MaximumManualRowsForAtlas;
+		++ManualIndex)
+	{
+		const FName RowName = ManualTattooRowNames[ManualIndex];
+		const FProjectAutomaticTattooTableRow& Row = ManualTattooRows[ManualIndex];
+		FName AnchorBone = Row.AnchorBone;
+		if (AnchorBone.IsNone() || !TargetMesh || TargetMesh->GetBoneIndex(AnchorBone) == INDEX_NONE)
+		{
+			AnchorBone = ProjectDefaultTattooSkinnedDecalPrivate::ResolvePresetAnchorBone(TargetMesh, Row.PlacementPreset);
+		}
+		if (AnchorBone.IsNone() || !TargetMesh || TargetMesh->GetBoneIndex(AnchorBone) == INDEX_NONE)
+		{
+			AnchorBone = ResolveAnchorBone(TargetMesh);
+		}
+		const int32 SubUV = AutomaticTattooSubUVByRow.FindRef(RowName);
+		const FString PlacementSignature = ProjectDefaultTattooSkinnedDecalPrivate::BuildTattooPlacementSignature(
+			RowName, &Row, AnchorBone, SubUV);
+		if (ManualTattooDecalIndices.Contains(RowName)
+			&& ManualTattooPlacementSignatures.FindRef(RowName) == PlacementSignature)
+		{
+			continue;
+		}
+
+		if (const int32* ExistingIndex = ManualTattooDecalIndices.Find(RowName))
+		{
+			ClearTattooLayer(Pawn, *ExistingIndex);
+			ManualTattooDecalIndices.Remove(RowName);
+			ManualTattooPlacementSignatures.Remove(RowName);
+		}
+
+		TMap<FName, int32> UsedLayerIndices = AutomaticTattooDecalIndices;
+		for (const TPair<FName, int32>& ManualLayer : ManualTattooDecalIndices)
+		{
+			UsedLayerIndices.Add(ManualLayer.Key, ManualLayer.Value);
+		}
+		const int32 SpawnedIndex = ProjectDefaultTattooSkinnedDecalPrivate::ResolveProjectDecalIndex(
+			INDEX_NONE,
+			TattooShopPreviewDecalIndex,
+			Sampler ? Sampler->MaxDecals : ProjectDefaultTattooSkinnedDecalPrivate::MinimumMaxDecals,
+			UsedLayerIndices);
+		FSkinnedDecalData DecalData;
+		FVector ReferenceLocation = FVector::ZeroVector;
+		FQuat ReferenceRotation = FQuat::Identity;
+		if (SpawnedIndex == INDEX_NONE || !ProjectDefaultTattooSkinnedDecalPrivate::BuildReferencePoseDecalData(
+			TargetMesh, AnchorBone, &Row, SpawnedIndex, SubUV, DecalData, ReferenceLocation, ReferenceRotation))
+		{
+			bAllReady = false;
+			continue;
+		}
+
+		Sampler->RemoveDecal(SpawnedIndex);
+		Sampler->SpawnDecalFromData(DecalData);
+		ManualTattooDecalIndices.Add(RowName, SpawnedIndex);
+		ManualTattooPlacementSignatures.Add(RowName, PlacementSignature);
+		AppliedPawn = Pawn;
+		AppliedSampler = Sampler;
+	}
+	return bAllReady
+		&& ManualTattooDecalIndices.Num() == DesiredManualRowCount
+		&& AutomaticTattooDecalIndices.Num() == DesiredAutomaticRows.Num();
 }
 
 bool UProjectDefaultTattooSkinnedDecalSubsystem::TryApplyTattooShopPreview(APawn* Pawn)
@@ -1847,11 +2475,16 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::ApplyAutomaticTattooLayer(
 		return false;
 	}
 
+	TMap<FName, int32> UsedLayerIndices = AutomaticTattooDecalIndices;
+	for (const TPair<FName, int32>& ManualLayer : ManualTattooDecalIndices)
+	{
+		UsedLayerIndices.Add(ManualLayer.Key, ManualLayer.Value);
+	}
 	const int32 SpawnedDecalIndex = ProjectDefaultTattooSkinnedDecalPrivate::ResolveProjectDecalIndex(
 		DecalIndex,
 		TattooShopPreviewDecalIndex,
 		Sampler ? Sampler->MaxDecals : ProjectDefaultTattooSkinnedDecalPrivate::MinimumMaxDecals,
-		AutomaticTattooDecalIndices);
+		UsedLayerIndices);
 	if (SpawnedDecalIndex == INDEX_NONE)
 	{
 		UE_LOG(
@@ -1939,9 +2572,25 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::ClearAutomaticTattoo(APawn* Paw
 	{
 		Sampler = Pawn->FindComponentByClass<USkinnedDecalSampler>();
 	}
-	if (!bTattooShopPreviewApplied && IsValid(Sampler) && IsValid(Sampler->Mesh) && Sampler->Mesh->GetOverlayMaterial() == Sampler->OverlayBlendMaterialDynamic)
+	if (!bTattooShopPreviewApplied
+		&& ManualTattooDecalIndices.IsEmpty()
+		&& IsValid(Sampler)
+		&& IsValid(Sampler->Mesh)
+		&& Sampler->Mesh->GetOverlayMaterial() == Sampler->OverlayBlendMaterialDynamic)
 	{
 		Sampler->Mesh->SetOverlayMaterial(nullptr);
+	}
+}
+
+void UProjectDefaultTattooSkinnedDecalSubsystem::ClearManualTattoos(APawn* Pawn)
+{
+	TArray<int32> LayersToClear;
+	ManualTattooDecalIndices.GenerateValueArray(LayersToClear);
+	ManualTattooDecalIndices.Reset();
+	ManualTattooPlacementSignatures.Reset();
+	for (const int32 DecalIndex : LayersToClear)
+	{
+		ClearTattooLayer(Pawn, DecalIndex);
 	}
 }
 
@@ -1958,7 +2607,11 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::ClearTattooShopPreviewLayer(APa
 	{
 		Sampler = Pawn->FindComponentByClass<USkinnedDecalSampler>();
 	}
-	if (AutomaticTattooDecalIndices.IsEmpty() && IsValid(Sampler) && IsValid(Sampler->Mesh) && Sampler->Mesh->GetOverlayMaterial() == Sampler->OverlayBlendMaterialDynamic)
+	if (AutomaticTattooDecalIndices.IsEmpty()
+		&& ManualTattooDecalIndices.IsEmpty()
+		&& IsValid(Sampler)
+		&& IsValid(Sampler->Mesh)
+		&& Sampler->Mesh->GetOverlayMaterial() == Sampler->OverlayBlendMaterialDynamic)
 	{
 		Sampler->Mesh->SetOverlayMaterial(nullptr);
 	}
@@ -1967,9 +2620,11 @@ void UProjectDefaultTattooSkinnedDecalSubsystem::ClearTattooShopPreviewLayer(APa
 void UProjectDefaultTattooSkinnedDecalSubsystem::ClearProjectTattooLayers(APawn* Pawn)
 {
 	ClearTattooShopPreviewLayer(Pawn);
+	ClearManualTattoos(Pawn);
 	ClearAutomaticTattoo(Pawn);
 	AppliedPawn = nullptr;
 	AppliedSampler = nullptr;
+	AppliedTargetMesh = nullptr;
 	AutomaticTattooPlacementSignatures.Reset();
 	AutomaticTattooEffectiveOffsets.Reset();
 	AutomaticTattooCompositeSourceCountByRow.Reset();
@@ -2097,6 +2752,7 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::ConfigureSampler(USkinnedDecalS
 	}
 
 	const bool bAlreadyConfiguredForTarget = Sampler->Mesh == TargetMesh && Sampler->OverlayBlendMaterialDynamic != nullptr;
+	const bool bTargetChanged = AppliedTargetMesh.IsValid() && AppliedTargetMesh.Get() != TargetMesh;
 
 	if (Sampler->Mesh && Sampler->Mesh != TargetMesh)
 	{
@@ -2118,12 +2774,23 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::ConfigureSampler(USkinnedDecalS
 		CachedOverlaySampler = nullptr;
 		CachedOverlayMaterialSignature.Reset();
 		Sampler->SetMeshComponent(TargetMesh, false);
+		if (bTargetChanged)
+		{
+			// Decal indices/signatures describe data owned by the old sampler mesh.
+			// Force every layer to respawn against the replacement visible body.
+			AutomaticTattooDecalIndices.Reset();
+			ManualTattooDecalIndices.Reset();
+			AutomaticTattooPlacementSignatures.Reset();
+			ManualTattooPlacementSignatures.Reset();
+			bTattooShopPreviewApplied = false;
+		}
 	}
 	else if (TargetMesh->GetOverlayMaterial() != Sampler->OverlayBlendMaterialDynamic)
 	{
 		TargetMesh->SetOverlayMaterial(Sampler->OverlayBlendMaterialDynamic);
 	}
 
+	AppliedTargetMesh = TargetMesh;
 	return Sampler->OverlayBlendMaterialDynamic != nullptr;
 }
 
@@ -2143,10 +2810,14 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::ConfigureOverlayMaterial(
 	}
 
 	const FString OverlayMaterialSignature =
-		ProjectDefaultTattooSkinnedDecalPrivate::BuildOverlayMaterialSignature(Sampler, RowNames, TattooRows);
+		ProjectDefaultTattooSkinnedDecalPrivate::BuildOverlayMaterialSignature(
+			Sampler,
+			RowNames,
+			TattooRows,
+			&ManualTattooParametersByRow);
 	if (CachedOverlaySampler.Get() == Sampler
 		&& CachedOverlayMaterialSignature == OverlayMaterialSignature
-		&& RuntimeAutomaticTattooAtlasTexture
+		&& (RuntimeAutomaticTattooAtlasRenderTarget || RuntimeAutomaticTattooAtlasTexture)
 		&& RuntimeNeutralCompactTexture
 		&& !AutomaticTattooSubUVByRow.IsEmpty())
 	{
@@ -2158,7 +2829,7 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::ConfigureOverlayMaterial(
 	TMap<FName, int32> SubUVByRow;
 	TMap<FName, int32> CompositeSourceCountByRow;
 	TMap<FName, FString> CompositeGroupKeyByRow;
-	UTexture2D* TattooAtlasTexture = CreateAutomaticTattooAtlas(
+	UTexture* TattooAtlasTexture = CreateAutomaticTattooAtlas(
 		RowNames,
 		TattooRows,
 		SubImagesX,
@@ -2459,7 +3130,7 @@ bool UProjectDefaultTattooSkinnedDecalSubsystem::AppendTattooShopPreviewAtlasRow
 	return true;
 }
 
-UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtlas(
+UTexture* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtlas(
 	const TArray<FName>& RowNames,
 	const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows,
 	int32& OutSubImagesX,
@@ -2468,6 +3139,8 @@ UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtl
 	TMap<FName, int32>& OutCompositeSourceCountByRow,
 	TMap<FName, FString>& OutCompositeGroupKeyByRow)
 {
+	const ProjectDefaultTattooSkinnedDecalPrivate::FRuntimeTattooLimits Limits =
+		ProjectDefaultTattooSkinnedDecalPrivate::ResolveRuntimeTattooLimits();
 	OutSubImagesX = 1;
 	OutSubImagesY = 1;
 	OutSubUVByRow.Reset();
@@ -2478,6 +3151,157 @@ UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtl
 	{
 		return nullptr;
 	}
+
+	struct FRuntimeAtlasSource
+	{
+		FName RowName = NAME_None;
+		UTexture2D* Texture = nullptr;
+		FLinearColor DrawColor = FLinearColor::White;
+		int32 Width = 1;
+		int32 Height = 1;
+	};
+
+	TArray<FRuntimeAtlasSource> RuntimeSources;
+	RuntimeAtlasSourceTextures.Reset();
+	RuntimeSources.Reserve(FMath::Min(RowNames.Num(), Limits.MaximumTotalLayers));
+	for (int32 RowIndex = 0;
+		RowIndex < TattooRows.Num()
+			&& RowIndex < RowNames.Num()
+			&& RuntimeSources.Num() < Limits.MaximumTotalLayers;
+		++RowIndex)
+	{
+		const FName RowName = RowNames[RowIndex];
+		UTexture2D* SourceTexture = ResolveTattooTexture(TattooRows[RowIndex]);
+		if (RowName.IsNone() || !IsValid(SourceTexture))
+		{
+			continue;
+		}
+
+		// T_Heart and legacy TattooShop textures are colour-keyed images rather
+		// than transparent PNGs.  Feeding their raw RGB to the atlas makes the
+		// entire rectangular card opaque on the initial spawn.  Reuse the
+		// established mask conversion before the canvas copies the source.
+		UTexture2D* MaskedTexture = CreateMaskedTattooTexture(SourceTexture);
+		if (!IsValid(MaskedTexture))
+		{
+			continue;
+		}
+		RuntimeAtlasSourceTextures.Add(MaskedTexture);
+
+		FRuntimeAtlasSource& RuntimeSource = RuntimeSources.AddDefaulted_GetRef();
+		RuntimeSource.RowName = RowName;
+		RuntimeSource.Texture = MaskedTexture;
+		RuntimeSource.Width = FMath::Max(1, MaskedTexture->GetSizeX());
+		RuntimeSource.Height = FMath::Max(1, MaskedTexture->GetSizeY());
+		if (const FProjectTattooParameters* Parameters = ManualTattooParametersByRow.Find(RowName))
+		{
+			const FLinearColor EffectiveTint = Parameters->bUseTint
+				? Parameters->Color
+				: FLinearColor::White;
+			RuntimeSource.DrawColor = FLinearColor(
+				FMath::Max(0.0f, EffectiveTint.R),
+				FMath::Max(0.0f, EffectiveTint.G),
+				FMath::Max(0.0f, EffectiveTint.B),
+				FMath::Clamp(Parameters->Opacity, 0.0f, 1.0f));
+		}
+	}
+
+	if (RuntimeSources.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	// One atlas cell per logical row is intentional: two GUIDs must never own
+	// the same color image or SubUV, even when they share placement values.
+	OutSubImagesX = FMath::Max(1, FMath::CeilToInt(FMath::Sqrt(static_cast<float>(RuntimeSources.Num()))));
+	OutSubImagesY = FMath::Max(1, FMath::CeilToInt(static_cast<float>(RuntimeSources.Num()) / static_cast<float>(OutSubImagesX)));
+	const int32 AtlasWidth = Limits.AtlasCellSize * OutSubImagesX;
+	const int32 AtlasHeight = Limits.AtlasCellSize * OutSubImagesY;
+	if (AtlasWidth > Limits.MaximumAtlasSize || AtlasHeight > Limits.MaximumAtlasSize)
+	{
+		UE_LOG(
+			LogProjectDefaultTattooSkinnedDecal,
+			Error,
+			TEXT("[TattooSkinnedDecal] Refusing atlas %dx%d: configured maximum is %d (cell=%d layers=%d)."),
+			AtlasWidth,
+			AtlasHeight,
+			Limits.MaximumAtlasSize,
+			Limits.AtlasCellSize,
+			RuntimeSources.Num());
+		return nullptr;
+	}
+
+	RuntimeAutomaticTattooAtlasRenderTarget = UKismetRenderingLibrary::CreateRenderTarget2D(
+		this,
+		AtlasWidth,
+		AtlasHeight,
+		RTF_RGBA8_SRGB,
+		FLinearColor::Transparent,
+		false,
+		false);
+	if (!RuntimeAutomaticTattooAtlasRenderTarget)
+	{
+		return nullptr;
+	}
+
+	RuntimeAutomaticTattooAtlasRenderTarget->TargetGamma = 2.2f;
+	RuntimeAutomaticTattooAtlasRenderTarget->AddressX = TA_Clamp;
+	RuntimeAutomaticTattooAtlasRenderTarget->AddressY = TA_Clamp;
+	UKismetRenderingLibrary::ClearRenderTarget2D(this, RuntimeAutomaticTattooAtlasRenderTarget, FLinearColor::Transparent);
+
+	UCanvas* Canvas = nullptr;
+	FVector2D CanvasSize = FVector2D::ZeroVector;
+	FDrawToRenderTargetContext RenderTargetContext;
+	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(
+		this,
+		RuntimeAutomaticTattooAtlasRenderTarget,
+		Canvas,
+		CanvasSize,
+		RenderTargetContext);
+	if (!IsValid(Canvas))
+	{
+		RuntimeAutomaticTattooAtlasRenderTarget = nullptr;
+		return nullptr;
+	}
+
+	for (int32 AtlasIndex = 0; AtlasIndex < RuntimeSources.Num(); ++AtlasIndex)
+	{
+		const FRuntimeAtlasSource& RuntimeSource = RuntimeSources[AtlasIndex];
+		const int32 CellX = AtlasIndex % OutSubImagesX;
+		const int32 CellY = AtlasIndex / OutSubImagesX;
+		const float CellSize = static_cast<float>(Limits.AtlasCellSize);
+		const float FitSize = CellSize * ProjectDefaultTattooSkinnedDecalPrivate::RuntimeAtlasCellFill;
+		const float SourceAspect = static_cast<float>(RuntimeSource.Width) / static_cast<float>(RuntimeSource.Height);
+		const FVector2D DrawSize = SourceAspect >= 1.0f
+			? FVector2D(FitSize, FitSize / SourceAspect)
+			: FVector2D(FitSize * SourceAspect, FitSize);
+		const FVector2D DrawPosition(
+			static_cast<float>(CellX) * CellSize + (CellSize - DrawSize.X) * 0.5f,
+			static_cast<float>(CellY) * CellSize + (CellSize - DrawSize.Y) * 0.5f);
+
+		Canvas->K2_DrawTexture(
+			RuntimeSource.Texture,
+			DrawPosition,
+			DrawSize,
+			FVector2D::ZeroVector,
+			FVector2D::UnitVector,
+			RuntimeSource.DrawColor,
+			// Every tattoo owns its cell, so overwrite RGBA verbatim instead of
+			// premultiplying RGB through a translucent canvas blend.
+			BLEND_Opaque,
+			0.0f,
+			FVector2D::ZeroVector);
+
+		OutSubUVByRow.Add(RuntimeSource.RowName, AtlasIndex);
+		OutCompositeSourceCountByRow.Add(RuntimeSource.RowName, 1);
+		OutCompositeGroupKeyByRow.Add(RuntimeSource.RowName, RuntimeSource.RowName.ToString());
+	}
+
+	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, RenderTargetContext);
+	RuntimeAutomaticTattooAtlasTexture = nullptr;
+	return RuntimeAutomaticTattooAtlasRenderTarget.Get();
+
+#if 0
 
 	struct FAtlasSource
 	{
@@ -2570,8 +3394,23 @@ UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtl
 			{
 				const int32 PixelIndex = Y * Width + X;
 				FColor Pixel = SourcePixels[PixelIndex];
+				if (const FProjectTattooParameters* ManualParameters = ManualTattooParametersByRow.Find(RowName))
+				{
+					const uint8 OriginalAlpha = Pixel.A;
+					if (ManualParameters->bUseTint)
+					{
+						const FLinearColor SourceLinear = Pixel.ReinterpretAsLinear();
+						FLinearColor Tinted = SourceLinear * ManualParameters->Color;
+						Tinted.A = static_cast<float>(OriginalAlpha) / 255.0f;
+						Pixel = Tinted.ToFColor(true);
+					}
+				}
 				const uint8 DerivedAlpha = ProjectDefaultTattooSkinnedDecalPrivate::DeriveTattooAlpha(Pixel, BackgroundColor);
-				Pixel.A = bSourceAlphaHasMask ? Pixel.A : DerivedAlpha;
+				const float ManualOpacity = ManualTattooParametersByRow.Contains(RowName)
+					? FMath::Clamp(ManualTattooParametersByRow.FindChecked(RowName).Opacity, 0.0f, 1.0f)
+					: 1.0f;
+				Pixel.A = static_cast<uint8>(FMath::RoundToInt(
+					static_cast<float>(bSourceAlphaHasMask ? Pixel.A : DerivedAlpha) * ManualOpacity));
 				if (Pixel.A > 8)
 				{
 					++VisiblePixelCount;
@@ -2729,6 +3568,7 @@ UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::CreateAutomaticTattooAtl
 		bAtlasSRGB);
 
 	return RuntimeAutomaticTattooAtlasTexture.Get();
+#endif
 }
 
 UTexture2D* UProjectDefaultTattooSkinnedDecalSubsystem::ResolveTattooTexture(

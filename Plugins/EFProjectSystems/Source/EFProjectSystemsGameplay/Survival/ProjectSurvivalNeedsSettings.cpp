@@ -8,6 +8,7 @@ namespace
 	const FName MadnessName(TEXT("Madness"));
 	const FName PainName(TEXT("Pain"));
 	const FName CurseName(TEXT("Curse"));
+	const FName AlcoholName(TEXT("Alcohol"));
 }
 
 UProjectSurvivalNeedsSettings::UProjectSurvivalNeedsSettings()
@@ -28,6 +29,11 @@ UProjectSurvivalNeedsSettings::UProjectSurvivalNeedsSettings()
 		FProjectSurvivalSensationState(MadnessName, 0.f, 100.f),
 		FProjectSurvivalSensationState(PainName, 0.f, 100.f),
 		FProjectSurvivalSensationState(CurseName, 0.f, 100.f),
+		FProjectSurvivalSensationState(AlcoholName, 0.f, 100.f, -0.25f),
+	};
+
+	HiddenHudEntryNames = {
+		AlcoholName,
 	};
 
 	AffectedSecondaryAttributes = {

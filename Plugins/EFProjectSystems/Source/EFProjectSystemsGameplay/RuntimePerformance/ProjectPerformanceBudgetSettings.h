@@ -20,7 +20,7 @@ public:
 	bool bEnableRuntimeBudgeting = false;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Runtime")
-	bool bPreloadRuntimeCombatAssets = false;
+	bool bPreloadRuntimeCombatAssets = true;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Runtime", meta = (ClampMin = "0.1"))
 	float BudgetUpdateIntervalSeconds = 0.5f;

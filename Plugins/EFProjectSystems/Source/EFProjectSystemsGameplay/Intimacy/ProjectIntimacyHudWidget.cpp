@@ -51,6 +51,10 @@ namespace ProjectIntimacyHudWidgetPrivate
 	{
 		return EFProjectUIPalette::PrimaryText();
 	}
+	FLinearColor RushTint()
+	{
+		return EFProjectUIPalette::Positive();
+	}
 	FLinearColor MediaFrameTint()
 	{
 		return EFProjectUIPalette::PanelFill(0.72f);
@@ -58,11 +62,12 @@ namespace ProjectIntimacyHudWidgetPrivate
 	constexpr float PanelRightOffset = -28.0f;
 	constexpr float PanelBottomOffset = -34.0f;
 	constexpr float DefaultPanelWidth = 470.0f;
-	constexpr float DefaultPanelHeight = 360.0f;
+	constexpr float DefaultPanelHeight = 420.0f;
 	constexpr float MediaPanelWidth = DefaultPanelWidth;
-	constexpr float MediaPanelHeight = DefaultPanelHeight;
+	constexpr float MediaPanelHeight = 580.0f;
 	constexpr float MediaFrameWidth = 442.0f;
 	constexpr float MediaFrameHeight = 150.0f;
+	constexpr int32 MaxSourceMediaTextureCacheEntries = 16;
 
 	void ApplyPanelSize(USizeBox* PanelSizeBox, const float Width, const float Height)
 	{
@@ -132,6 +137,15 @@ void UProjectIntimacyHudWidget::NativeConstruct()
 	CacheNamedWidgets();
 	RefreshVisuals();
 	ReapplyProjectThemeAfterNativeConstruct();
+}
+
+void UProjectIntimacyHudWidget::NativeOnProjectThemeApplied(
+	const EEFProjectHUDThemePreset Preset,
+	const FProjectHUDThemeColors& Theme,
+	const int32 Revision)
+{
+	Super::NativeOnProjectThemeApplied(Preset, Theme, Revision);
+	ApplyThemeColors();
 }
 
 void UProjectIntimacyHudWidget::NativeTick(const FGeometry& MyGeometry, const float InDeltaTime)
@@ -253,11 +267,31 @@ void UProjectIntimacyHudWidget::EnsureDefaultWidgetTree()
 	SessionProgressBar->SetFillColorAndOpacity(ProjectIntimacyHudWidgetPrivate::RoseTint());
 	if (UVerticalBoxSlot* ProgressBarSlot = RootBox->AddChildToVerticalBox(SessionProgressBar))
 	{
-		ProgressBarSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+		ProgressBarSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
+	}
+
+	PartnerClimaxText = MakeTextBlock(TEXT("PartnerClimaxText"), 13, ProjectIntimacyHudWidgetPrivate::MutedTint(), false);
+	if (UVerticalBoxSlot* PartnerClimaxTextSlot = RootBox->AddChildToVerticalBox(PartnerClimaxText))
+	{
+		PartnerClimaxTextSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 2.0f));
+	}
+
+	PartnerClimaxBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("PartnerClimaxBar"));
+	PartnerClimaxBar->SetFillColorAndOpacity(ProjectIntimacyHudWidgetPrivate::VioletTint());
+	if (UVerticalBoxSlot* PartnerClimaxBarSlot = RootBox->AddChildToVerticalBox(PartnerClimaxBar))
+	{
+		PartnerClimaxBarSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
 	}
 
 	MetaText = MakeTextBlock(TEXT("MetaText"), 12, ProjectIntimacyHudWidgetPrivate::MutedTint(), false);
 	RootBox->AddChildToVerticalBox(MetaText);
+
+	OrgasmRushText = MakeTextBlock(TEXT("OrgasmRushText"), 12, ProjectIntimacyHudWidgetPrivate::RushTint(), true);
+	if (UVerticalBoxSlot* OrgasmRushSlot = RootBox->AddChildToVerticalBox(OrgasmRushText))
+	{
+		OrgasmRushSlot->SetPadding(FMargin(0.0f, 5.0f, 0.0f, 0.0f));
+	}
+	OrgasmRushText->SetVisibility(ESlateVisibility::Collapsed);
 
 	PleaseText = MakeTextBlock(TEXT("PleaseText"), 12, ProjectIntimacyHudWidgetPrivate::VioletTint(), false);
 	if (UVerticalBoxSlot* PleaseTextSlot = RootBox->AddChildToVerticalBox(PleaseText))
@@ -324,7 +358,10 @@ void UProjectIntimacyHudWidget::CacheNamedWidgets()
 	PartnerText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("PartnerText")));
 	SessionProgressText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("SessionProgressText")));
 	SessionProgressBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("SessionProgressBar")));
+	PartnerClimaxText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("PartnerClimaxText")));
+	PartnerClimaxBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("PartnerClimaxBar")));
 	MetaText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("MetaText")));
+	OrgasmRushText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("OrgasmRushText")));
 	OptionsBox = Cast<UVerticalBox>(WidgetTree->FindWidget(TEXT("OptionsBox")));
 	MediaFrameSizeBox = Cast<USizeBox>(WidgetTree->FindWidget(TEXT("MediaFrameSizeBox")));
 	MediaFrameBorder = Cast<UBorder>(WidgetTree->FindWidget(TEXT("MediaFrameBorder")));
@@ -343,11 +380,6 @@ void UProjectIntimacyHudWidget::RefreshVisuals()
 		StopMediaCue();
 	}
 
-	if (PanelBorder)
-	{
-		PanelBorder->SetBrushColor(ProjectIntimacyHudWidgetPrivate::PanelTint());
-	}
-
 	if (HeaderText)
 	{
 		HeaderText->SetText(ProjectIntimacyHudWidgetPrivate::ModeToText(CachedSnapshot.HudMode));
@@ -361,28 +393,70 @@ void UProjectIntimacyHudWidget::RefreshVisuals()
 	if (SessionProgressText)
 	{
 		SessionProgressText->SetText(FText::FromString(FString::Printf(
-			TEXT("Session Progress %.0f%%  |  Peak %.0f%%  |  Rate %.1f/s"),
-			CachedSnapshot.SessionProgress,
-			CachedSnapshot.SessionPeak,
-			CachedSnapshot.SessionProgressPerSecond)));
+			TEXT("Player Climax %.0f%%  |  +%.1f%%/s"),
+			CachedSnapshot.PlayerClimax,
+			CachedSnapshot.PlayerClimaxPerSecond)));
 	}
 
 	if (SessionProgressBar)
 	{
-		SessionProgressBar->SetPercent(FMath::Clamp(CachedSnapshot.SessionProgress / 100.0f, 0.0f, 1.0f));
+		SessionProgressBar->SetPercent(FMath::Clamp(CachedSnapshot.PlayerClimax / 100.0f, 0.0f, 1.0f));
+	}
+
+	if (PartnerClimaxText)
+	{
+		PartnerClimaxText->SetText(FText::FromString(FString::Printf(
+			TEXT("Partner Climax %.0f%%  |  +%.1f%%/s"),
+			CachedSnapshot.PartnerClimax,
+			CachedSnapshot.PartnerClimaxPerSecond)));
+	}
+
+	if (PartnerClimaxBar)
+	{
+		PartnerClimaxBar->SetPercent(FMath::Clamp(CachedSnapshot.PartnerClimax / 100.0f, 0.0f, 1.0f));
 	}
 
 	if (MetaText)
 	{
-		MetaText->SetVisibility(ESlateVisibility::Collapsed);
-		MetaText->SetText(FText::GetEmpty());
+		MetaText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		MetaText->SetText(FText::FromString(FString::Printf(
+			TEXT("Orgasms  You %d  |  Partner %d     Curse -%.1f%%/s"),
+			CachedSnapshot.PlayerOrgasmCount,
+			CachedSnapshot.PartnerOrgasmCount,
+			FMath::Max(0.0f, CachedSnapshot.CurseReductionPercentPerSecond))));
+	}
+
+	if (OrgasmRushText)
+	{
+		TArray<FString> RushParticipants;
+		if (CachedSnapshot.bPlayerOrgasmRush)
+		{
+			RushParticipants.Add(FString::Printf(
+				TEXT("You %.1fs"),
+				FMath::Max(0.0f, CachedSnapshot.PlayerOrgasmRushRemaining)));
+		}
+		if (CachedSnapshot.bPartnerOrgasmRush)
+		{
+			RushParticipants.Add(FString::Printf(
+				TEXT("Partner %.1fs"),
+				FMath::Max(0.0f, CachedSnapshot.PartnerOrgasmRushRemaining)));
+		}
+
+		const bool bRushVisible = RushParticipants.Num() > 0;
+		OrgasmRushText->SetVisibility(bRushVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		OrgasmRushText->SetText(bRushVisible
+			? FText::FromString(FString::Printf(TEXT("ORGASM RUSH  |  %s"), *FString::Join(RushParticipants, TEXT("  |  "))))
+			: FText::GetEmpty());
 	}
 
 	if (PleaseText)
 	{
 		PleaseText->SetVisibility(CachedSnapshot.bPleaseActive ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		PleaseText->SetText(FText::FromString(FString::Printf(
-			TEXT("Please %d/%d  |  Hits %d  |  Bonus progress %.0f"),
+			TEXT("Please (%s) %d/%d  |  Hits %d  |  Bonus Climax %.0f"),
+			CachedSnapshot.PleaseClimaxTarget == EProjectIntimacyClimaxTarget::Player
+				? TEXT("Player")
+				: TEXT("Partner"),
 			FMath::Clamp(CachedSnapshot.PleaseAttemptIndex + 1, 1, FMath::Max(1, CachedSnapshot.PleaseAttemptCount)),
 			CachedSnapshot.PleaseAttemptCount,
 			CachedSnapshot.PleaseSuccessCount,
@@ -397,11 +471,90 @@ void UProjectIntimacyHudWidget::RefreshVisuals()
 
 	if (StatusText)
 	{
-		StatusText->SetVisibility(ESlateVisibility::Collapsed);
-		StatusText->SetText(FText::GetEmpty());
+		FString FooterText;
+		if (!CachedSnapshot.StatusText.IsEmpty())
+		{
+			FooterText = CachedSnapshot.StatusText.ToString();
+		}
+		if (!CachedSnapshot.HintText.IsEmpty())
+		{
+			if (!FooterText.IsEmpty())
+			{
+				FooterText += TEXT("  |  ");
+			}
+			FooterText += CachedSnapshot.HintText.ToString();
+		}
+		StatusText->SetVisibility(FooterText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+		StatusText->SetText(FText::FromString(FooterText));
 	}
 
-	RebuildOptionRows();
+	RefreshOptionRowsIfNeeded();
+}
+
+void UProjectIntimacyHudWidget::ApplyThemeColors()
+{
+	const auto SetTextColor = [](UTextBlock* TextBlock, const FLinearColor& Color)
+	{
+		if (TextBlock)
+		{
+			TextBlock->SetColorAndOpacity(FSlateColor(Color));
+		}
+	};
+
+	if (PanelBorder)
+	{
+		PanelBorder->SetBrushColor(ProjectIntimacyHudWidgetPrivate::PanelTint());
+	}
+	if (MediaFrameBorder)
+	{
+		MediaFrameBorder->SetBrushColor(ProjectIntimacyHudWidgetPrivate::MediaFrameTint());
+	}
+
+	SetTextColor(HeaderText, ProjectIntimacyHudWidgetPrivate::RoseTint());
+	SetTextColor(PartnerText, ProjectIntimacyHudWidgetPrivate::TextTint());
+	SetTextColor(SessionProgressText, ProjectIntimacyHudWidgetPrivate::MutedTint());
+	SetTextColor(PartnerClimaxText, ProjectIntimacyHudWidgetPrivate::MutedTint());
+	SetTextColor(MetaText, ProjectIntimacyHudWidgetPrivate::MutedTint());
+	SetTextColor(OrgasmRushText, ProjectIntimacyHudWidgetPrivate::RushTint());
+	SetTextColor(PleaseText, ProjectIntimacyHudWidgetPrivate::VioletTint());
+	SetTextColor(StatusText, ProjectIntimacyHudWidgetPrivate::MutedTint());
+
+	if (SessionProgressBar)
+	{
+		SessionProgressBar->SetFillColorAndOpacity(ProjectIntimacyHudWidgetPrivate::RoseTint());
+	}
+	if (PartnerClimaxBar)
+	{
+		PartnerClimaxBar->SetFillColorAndOpacity(ProjectIntimacyHudWidgetPrivate::VioletTint());
+	}
+	if (PleaseBar)
+	{
+		PleaseBar->SetFillColorAndOpacity(ProjectIntimacyHudWidgetPrivate::VioletTint());
+	}
+
+	for (int32 Index = 0; Index < OptionTextBlocks.Num(); ++Index)
+	{
+		SetTextColor(
+			OptionTextBlocks[Index],
+			Index == CachedSnapshot.SelectedOptionIndex
+				? ProjectIntimacyHudWidgetPrivate::SelectedTint()
+				: ProjectIntimacyHudWidgetPrivate::TextTint());
+	}
+
+	if (MediaImage && ActiveMediaTexture)
+	{
+		MediaImage->SetBrushFromTexture(ResolveProjectThemeTexture(ActiveMediaTexture), true);
+		MediaImage->SetColorAndOpacity(ResolveProjectThemeImageTint(MediaImage, FLinearColor::White));
+	}
+}
+
+void UProjectIntimacyHudWidget::RefreshOptionRowsIfNeeded()
+{
+	const uint32 CurrentSignature = BuildOptionRowsSignature();
+	if (!bOptionRowsInitialized || CurrentSignature != LastOptionRowsSignature)
+	{
+		RebuildOptionRows();
+	}
 }
 
 void UProjectIntimacyHudWidget::RebuildOptionRows()
@@ -437,6 +590,24 @@ void UProjectIntimacyHudWidget::RebuildOptionRows()
 		}
 		OptionTextBlocks.Add(OptionText);
 	}
+
+	LastOptionRowsSignature = BuildOptionRowsSignature();
+	bOptionRowsInitialized = true;
+}
+
+uint32 UProjectIntimacyHudWidget::BuildOptionRowsSignature() const
+{
+	uint32 Signature = GetTypeHash(static_cast<uint8>(CachedSnapshot.HudMode));
+	Signature = HashCombine(Signature, GetTypeHash(CachedSnapshot.SelectedOptionIndex));
+	Signature = HashCombine(Signature, GetTypeHash(CachedSnapshot.Options.Num()));
+
+	for (const FProjectIntimacyHudOption& Option : CachedSnapshot.Options)
+	{
+		Signature = HashCombine(Signature, GetTypeHash(Option.OptionId));
+		Signature = HashCombine(Signature, GetTypeHash(Option.Label.ToString()));
+	}
+
+	return Signature;
 }
 
 void UProjectIntimacyHudWidget::StopMediaCue()
@@ -523,7 +694,7 @@ UTexture2D* UProjectIntimacyHudWidget::LoadSourceImageTexture(const FString& Sou
 		return nullptr;
 	}
 
-	if (ResolvedPath.StartsWith(TEXT("/Game/")))
+	if (ResolvedPath.StartsWith(TEXT("/Game/"), ESearchCase::IgnoreCase))
 	{
 		ResolvedPath = FPaths::Combine(FPaths::ProjectContentDir(), ResolvedPath.RightChop(6));
 	}
@@ -531,7 +702,27 @@ UTexture2D* UProjectIntimacyHudWidget::LoadSourceImageTexture(const FString& Sou
 	{
 		ResolvedPath = FPaths::Combine(FPaths::ProjectContentDir(), ResolvedPath);
 	}
+	ResolvedPath = FPaths::ConvertRelativePathToFull(ResolvedPath);
 	FPaths::NormalizeFilename(ResolvedPath);
+	FPaths::CollapseRelativeDirectories(ResolvedPath);
+
+	FString CacheKey = ResolvedPath;
+#if PLATFORM_WINDOWS
+	CacheKey.ToLowerInline();
+#endif
+
+	if (TObjectPtr<UTexture2D>* CachedTexture = SourceMediaTextureCache.Find(CacheKey))
+	{
+		if (IsValid(CachedTexture->Get()))
+		{
+			SourceMediaTextureCacheOrder.Remove(CacheKey);
+			SourceMediaTextureCacheOrder.Add(CacheKey);
+			return CachedTexture->Get();
+		}
+
+		SourceMediaTextureCache.Remove(CacheKey);
+		SourceMediaTextureCacheOrder.Remove(CacheKey);
+	}
 
 	TArray<uint8> CompressedData;
 	if (!FFileHelper::LoadFileToArray(CompressedData, *ResolvedPath))
@@ -579,7 +770,33 @@ UTexture2D* UProjectIntimacyHudWidget::LoadSourceImageTexture(const FString& Sou
 	FMemory::Memcpy(TextureData, RawData.GetData(), RawData.Num());
 	Mip.BulkData.Unlock();
 	Texture->UpdateResource();
-	LoadedMediaTextures.Add(Texture);
+
+	while (SourceMediaTextureCache.Num() >= ProjectIntimacyHudWidgetPrivate::MaxSourceMediaTextureCacheEntries)
+	{
+		bool bEvictedEntry = false;
+		for (int32 Index = 0; Index < SourceMediaTextureCacheOrder.Num(); ++Index)
+		{
+			const FString CandidateKey = SourceMediaTextureCacheOrder[Index];
+			const TObjectPtr<UTexture2D>* CandidateTexture = SourceMediaTextureCache.Find(CandidateKey);
+			if (CandidateTexture && CandidateTexture->Get() == ActiveMediaTexture.Get())
+			{
+				continue;
+			}
+
+			SourceMediaTextureCache.Remove(CandidateKey);
+			SourceMediaTextureCacheOrder.RemoveAt(Index);
+			bEvictedEntry = true;
+			break;
+		}
+
+		if (!bEvictedEntry)
+		{
+			break;
+		}
+	}
+
+	SourceMediaTextureCache.Add(CacheKey, Texture);
+	SourceMediaTextureCacheOrder.Add(CacheKey);
 	return Texture;
 }
 

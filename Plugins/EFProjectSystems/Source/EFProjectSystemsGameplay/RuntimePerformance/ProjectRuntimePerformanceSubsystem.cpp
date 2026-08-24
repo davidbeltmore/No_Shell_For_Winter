@@ -37,10 +37,13 @@
 #include "HAL/PlatformMemory.h"
 #include "Dom/JsonObject.h"
 #include "HAL/IConsoleManager.h"
+#include "InputCoreTypes.h"
+#include "InputKeyEventArgs.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/App.h"
 #include "Misc/CommandLine.h"
+#include "Misc/Crc.h"
 #include "Misc/DateTime.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FileHelper.h"
@@ -48,6 +51,7 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "NiagaraComponent.h"
+#include "NavigationPath.h"
 #include "NavigationSystem.h"
 #include "RenderTimer.h"
 #include "DynamicRHI.h"
@@ -76,9 +80,18 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectRuntimePerformance, Log, All);
 
 namespace ProjectRuntimePerformancePrivate
 {
+	const FName DungeonSmoke58BenchmarkId(TEXT("DungeonSmoke58"));
+	const FName DungeonNaturalGameplay58BenchmarkId(TEXT("DungeonNaturalGameplay58"));
+	const FName DungeonAcceptance58BenchmarkId(TEXT("DungeonAcceptance58"));
+	const FName DungeonFullStackDiagnostic58BenchmarkId(TEXT("DungeonFullStackDiagnostic58"));
 	const FName DungeonCombatStableBenchmarkId(TEXT("DungeonCombatStable"));
 	const FName DungeonGameplayRealBenchmarkId(TEXT("DungeonGameplayReal"));
 	const FName DungeonFullStackOverloadBenchmarkId(TEXT("DungeonFullStackOverload"));
+	const FName StageAcceptanceTraversal(TEXT("TraversalStreaming"));
+	const FName StageAcceptanceCombat(TEXT("CombatEight"));
+	const FName StageAcceptanceDirtyHud(TEXT("CombatDirtyPawnHud"));
+	const FName StageNaturalDungeonBootstrap(TEXT("DungeonBootstrapPreReady"));
+	const FName StageNaturalTraversal(TEXT("NaturalTraversal"));
 	const FName StageExplorationUI(TEXT("ExplorationUI"));
 	const FName StageEnemySoloMelee(TEXT("EnemySoloMelee"));
 	const FName StageEnemySoloRanged(TEXT("EnemySoloRanged"));
@@ -119,6 +132,19 @@ namespace ProjectRuntimePerformancePrivate
 	const FName SystemRuntimePerformanceBudget(TEXT("Runtime Performance Budget"));
 	static constexpr int32 FullStackDirtyPawnWorkloadStepCount = 6;
 
+	FName NormalizeBenchmarkId(const FName BenchmarkId)
+	{
+		if (BenchmarkId == DungeonCombatStableBenchmarkId || BenchmarkId == DungeonGameplayRealBenchmarkId)
+		{
+			return DungeonAcceptance58BenchmarkId;
+		}
+		if (BenchmarkId == DungeonFullStackOverloadBenchmarkId)
+		{
+			return DungeonFullStackDiagnostic58BenchmarkId;
+		}
+		return BenchmarkId;
+	}
+
 	struct FFullStackStageTemplate
 	{
 		FName StageId = NAME_None;
@@ -126,6 +152,24 @@ namespace ProjectRuntimePerformancePrivate
 		double DurationFraction = 0.0;
 		bool bRequired = true;
 	};
+
+	const TArray<FFullStackStageTemplate>& GetAcceptanceStageTemplates()
+	{
+		static const TArray<FFullStackStageTemplate> Templates = {
+			{ StageAcceptanceTraversal, TEXT("Traversal and Streaming"), 0.25, true },
+			{ StageAcceptanceCombat, TEXT("Combat Eight Enemies"), 0.50, true },
+			{ StageAcceptanceDirtyHud, TEXT("Combat, DirtyPawn and HUD"), 0.25, true },
+		};
+		return Templates;
+	}
+
+	const TArray<FFullStackStageTemplate>& GetNaturalGameplayStageTemplates()
+	{
+		static const TArray<FFullStackStageTemplate> Templates = {
+			{ StageNaturalTraversal, TEXT("Natural Dungeon Traversal"), 1.0, true },
+		};
+		return Templates;
+	}
 
 	static const TArray<FFullStackStageTemplate>& GetFullStackStageTemplates()
 	{
@@ -158,7 +202,6 @@ namespace ProjectRuntimePerformancePrivate
 		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_GlowStreak.T_Struggle_GlowStreak"),
 		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_Noise.T_Struggle_Noise"),
 		TEXT("/Game/UI/Defeat/Struggle/Textures/T_Struggle_BackdropVignette.T_Struggle_BackdropVignette"),
-		TEXT("/Game/_Game/Images/Intimacy/Preview_IntimacyImage.Preview_IntimacyImage"),
 	};
 
 	static void AddValidBenchmarkPreloadPath(TArray<FSoftObjectPath>& OutPaths, const TCHAR* Path)
@@ -271,6 +314,11 @@ void UProjectRuntimePerformanceSubsystem::Tick(const float DeltaTime)
 
 	TotalElapsedSeconds += DeltaTime;
 	PhaseElapsedSeconds += DeltaTime;
+	if (IsNaturalGameplay58Profile()
+		&& (Phase == EBenchmarkPhase::PendingTravel || Phase == EBenchmarkPhase::Preparing))
+	{
+		CaptureNaturalBootstrapSample(DeltaTime);
+	}
 
 	if (Phase == EBenchmarkPhase::PendingTravel)
 	{
@@ -320,6 +368,93 @@ bool UProjectRuntimePerformanceSubsystem::IsTickable() const
 #endif
 }
 
+bool UProjectRuntimePerformanceSubsystem::RequestDungeonSmoke58(const bool bQuitOnFinish)
+{
+#if UE_BUILD_SHIPPING
+	(void)bQuitOnFinish;
+	return false;
+#else
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	FProjectRuntimePerformanceBenchmarkRequest Request;
+	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonSmoke58BenchmarkId;
+	Request.DurationSeconds = Settings ? Settings->SmokeDurationSeconds : 30.0f;
+	Request.EnemyCount = Settings ? Settings->AcceptanceEnemyCount : 8;
+	Request.Seed = Settings ? Settings->AcceptanceSeed : 42;
+	Request.QualityPreset = Settings ? Settings->DefaultQualityPreset : FName(TEXT("Balanced58"));
+	Request.bQuitOnFinish = bQuitOnFinish;
+	Request.bStrictScenarioFailures = true;
+	return RequestBenchmark(Request);
+#endif
+}
+
+bool UProjectRuntimePerformanceSubsystem::RequestDungeonNaturalGameplay58(
+	const float DurationSeconds,
+	const bool bQuitOnFinish)
+{
+#if UE_BUILD_SHIPPING
+	(void)DurationSeconds;
+	(void)bQuitOnFinish;
+	return false;
+#else
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	FProjectRuntimePerformanceBenchmarkRequest Request;
+	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonNaturalGameplay58BenchmarkId;
+	Request.DurationSeconds = DurationSeconds;
+	Request.EnemyCount = -1;
+	Request.Seed = Settings ? Settings->AcceptanceSeed : 42;
+	Request.QualityPreset = Settings ? Settings->DefaultQualityPreset : FName(TEXT("Balanced58"));
+	Request.bQuitOnFinish = bQuitOnFinish;
+	Request.bStrictScenarioFailures = true;
+	return RequestBenchmark(Request);
+#endif
+}
+
+bool UProjectRuntimePerformanceSubsystem::RequestDungeonAcceptance58(
+	const float DurationSeconds,
+	const int32 EnemyCount,
+	const bool bQuitOnFinish)
+{
+#if UE_BUILD_SHIPPING
+	(void)DurationSeconds;
+	(void)EnemyCount;
+	(void)bQuitOnFinish;
+	return false;
+#else
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	FProjectRuntimePerformanceBenchmarkRequest Request;
+	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonAcceptance58BenchmarkId;
+	Request.DurationSeconds = DurationSeconds;
+	Request.EnemyCount = EnemyCount;
+	Request.Seed = Settings ? Settings->AcceptanceSeed : 42;
+	Request.QualityPreset = Settings ? Settings->DefaultQualityPreset : FName(TEXT("Balanced58"));
+	Request.bQuitOnFinish = bQuitOnFinish;
+	Request.bStrictScenarioFailures = true;
+	return RequestBenchmark(Request);
+#endif
+}
+
+bool UProjectRuntimePerformanceSubsystem::RequestDungeonFullStackDiagnostic58(
+	const float DurationSeconds,
+	const bool bQuitOnFinish)
+{
+#if UE_BUILD_SHIPPING
+	(void)DurationSeconds;
+	(void)bQuitOnFinish;
+	return false;
+#else
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	FProjectRuntimePerformanceBenchmarkRequest Request;
+	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonFullStackDiagnostic58BenchmarkId;
+	Request.DurationSeconds = DurationSeconds;
+	Request.EnemyCount = Settings ? Settings->FullStackOverloadEnemyCap : 8;
+	Request.Seed = Settings ? Settings->AcceptanceSeed : 42;
+	Request.QualityPreset = Settings ? Settings->DefaultQualityPreset : FName(TEXT("Balanced58"));
+	Request.bQuitOnFinish = bQuitOnFinish;
+	Request.bStrictScenarioFailures = true;
+	return RequestBenchmark(Request);
+#endif
+}
+
 bool UProjectRuntimePerformanceSubsystem::RequestDefaultDungeonCombatBenchmark(
 	const float DurationSeconds,
 	const int32 EnemyCount,
@@ -331,11 +466,7 @@ bool UProjectRuntimePerformanceSubsystem::RequestDefaultDungeonCombatBenchmark(
 	(void)bQuitOnFinish;
 	return false;
 #else
-	FProjectRuntimePerformanceBenchmarkRequest Request;
-	Request.DurationSeconds = DurationSeconds;
-	Request.EnemyCount = EnemyCount;
-	Request.bQuitOnFinish = bQuitOnFinish;
-	return RequestBenchmark(Request);
+	return RequestDungeonAcceptance58(DurationSeconds, EnemyCount >= 0 ? EnemyCount : 8, bQuitOnFinish);
 #endif
 }
 
@@ -348,12 +479,7 @@ bool UProjectRuntimePerformanceSubsystem::RequestDungeonGameplayRealBenchmark(
 	(void)bQuitOnFinish;
 	return false;
 #else
-	FProjectRuntimePerformanceBenchmarkRequest Request;
-	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonGameplayRealBenchmarkId;
-	Request.DurationSeconds = DurationSeconds;
-	Request.EnemyCount = 0;
-	Request.bQuitOnFinish = bQuitOnFinish;
-	return RequestBenchmark(Request);
+	return RequestDungeonAcceptance58(DurationSeconds, 8, bQuitOnFinish);
 #endif
 }
 
@@ -368,16 +494,8 @@ bool UProjectRuntimePerformanceSubsystem::RequestDungeonFullStackOverloadBenchma
 	(void)bQuitOnFinish;
 	return false;
 #else
-	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
-	FProjectRuntimePerformanceBenchmarkRequest Request;
-	Request.BenchmarkId = ProjectRuntimePerformancePrivate::DungeonFullStackOverloadBenchmarkId;
-	Request.DurationSeconds = DurationSeconds;
-	Request.EnemyCount = EnemyCount >= 0
-		? EnemyCount
-		: (Settings ? Settings->FullStackOverloadEnemyCap : 8);
-	Request.bQuitOnFinish = bQuitOnFinish;
-	Request.bStrictScenarioFailures = Settings ? Settings->bStrictFullStackScenarioFailures : true;
-	return RequestBenchmark(Request);
+	(void)EnemyCount;
+	return RequestDungeonFullStackDiagnostic58(DurationSeconds, bQuitOnFinish);
 #endif
 }
 
@@ -494,7 +612,11 @@ double UProjectRuntimePerformanceSubsystem::AverageSlowestFps(
 
 bool UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(const FName BenchmarkId)
 {
-	return BenchmarkId == ProjectRuntimePerformancePrivate::DungeonCombatStableBenchmarkId
+	return BenchmarkId == ProjectRuntimePerformancePrivate::DungeonSmoke58BenchmarkId
+		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonNaturalGameplay58BenchmarkId
+		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonAcceptance58BenchmarkId
+		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackDiagnostic58BenchmarkId
+		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonCombatStableBenchmarkId
 		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonGameplayRealBenchmarkId
 		|| BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackOverloadBenchmarkId;
 }
@@ -509,9 +631,56 @@ TArray<FName> UProjectRuntimePerformanceSubsystem::BuildFullStackStageIds()
 	return StageIds;
 }
 
+TArray<FName> UProjectRuntimePerformanceSubsystem::BuildAcceptanceStageIds()
+{
+	TArray<FName> StageIds;
+	for (const ProjectRuntimePerformancePrivate::FFullStackStageTemplate& Template : ProjectRuntimePerformancePrivate::GetAcceptanceStageTemplates())
+	{
+		StageIds.Add(Template.StageId);
+	}
+	return StageIds;
+}
+
+TArray<FName> UProjectRuntimePerformanceSubsystem::BuildNaturalGameplayStageIds()
+{
+	TArray<FName> StageIds;
+	for (const ProjectRuntimePerformancePrivate::FFullStackStageTemplate& Template : ProjectRuntimePerformancePrivate::GetNaturalGameplayStageTemplates())
+	{
+		StageIds.Add(Template.StageId);
+	}
+	return StageIds;
+}
+
 bool UProjectRuntimePerformanceSubsystem::ShouldFailForScenarioIssue(const bool bStrictScenarioFailures, const bool bRequiredStage)
 {
 	return bStrictScenarioFailures && bRequiredStage;
+}
+
+FProjectRuntimePerformanceGateResult UProjectRuntimePerformanceSubsystem::EvaluateAcceptanceMetrics(
+	const FProjectRuntimePerformanceMetrics& Metrics,
+	const double MinimumAverageFps,
+	const double MinimumMedianFps,
+	const double MinimumOnePercentLowFps,
+	const double MaximumP99FrameMs,
+	const int32 MaximumHitchesOver100Ms)
+{
+	FProjectRuntimePerformanceGateResult Result;
+	auto Require = [&Result](const bool bCondition, const FString& Failure)
+	{
+		if (!bCondition)
+		{
+			Result.FailureReasons.Add(Failure);
+		}
+	};
+
+	Require(Metrics.FrameSampleCount > 0, TEXT("NoMeasuredFrames"));
+	Require(Metrics.AverageFps >= MinimumAverageFps, FString::Printf(TEXT("AverageFps<%.2f"), MinimumAverageFps));
+	Require(Metrics.MedianFps >= MinimumMedianFps, FString::Printf(TEXT("MedianFps<%.2f"), MinimumMedianFps));
+	Require(Metrics.OnePercentLowFps >= MinimumOnePercentLowFps, FString::Printf(TEXT("OnePercentLowFps<%.2f"), MinimumOnePercentLowFps));
+	Require(Metrics.P99FrameMs <= MaximumP99FrameMs, FString::Printf(TEXT("P99FrameMs>%.2f"), MaximumP99FrameMs));
+	Require(Metrics.HitchesOver100Ms <= MaximumHitchesOver100Ms, FString::Printf(TEXT("HitchesOver100Ms>%d"), MaximumHitchesOver100Ms));
+	Result.bPassed = Result.FailureReasons.IsEmpty();
+	return Result;
 }
 
 void UProjectRuntimePerformanceSubsystem::MaybeStartCommandLineBenchmark()
@@ -545,7 +714,7 @@ void UProjectRuntimePerformanceSubsystem::MaybeStartCommandLineBenchmark()
 
 	bCommandLineChecked = true;
 
-	const FName BenchmarkId(*BenchmarkName);
+	const FName BenchmarkId = ProjectRuntimePerformancePrivate::NormalizeBenchmarkId(FName(*BenchmarkName));
 	if (!IsSupportedBenchmarkId(BenchmarkId))
 	{
 		UE_LOG(LogProjectRuntimePerformance, Warning, TEXT("Unsupported benchmark id '%s'."), *BenchmarkName);
@@ -555,7 +724,11 @@ void UProjectRuntimePerformanceSubsystem::MaybeStartCommandLineBenchmark()
 	FProjectRuntimePerformanceBenchmarkRequest Request;
 	Request.BenchmarkId = BenchmarkId;
 	Request.DurationSeconds = -1.0f;
-	Request.EnemyCount = -1;
+	Request.EnemyCount = BenchmarkId == ProjectRuntimePerformancePrivate::DungeonNaturalGameplay58BenchmarkId
+		? -1
+		: Settings->AcceptanceEnemyCount;
+	Request.Seed = Settings->AcceptanceSeed;
+	Request.QualityPreset = Settings->DefaultQualityPreset;
 	Request.bQuitOnFinish = FParse::Param(FCommandLine::Get(), TEXT("ProjectPerfQuitOnFinish"));
 	Request.bStrictScenarioFailures = FParse::Param(FCommandLine::Get(), TEXT("ProjectPerfStrictScenarioFailures"));
 
@@ -571,7 +744,15 @@ void UProjectRuntimePerformanceSubsystem::MaybeStartCommandLineBenchmark()
 		Request.EnemyCount = EnemyCountOverride;
 	}
 
-	if (BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackOverloadBenchmarkId)
+	FParse::Value(FCommandLine::Get(), TEXT("ProjectPerfSeed="), Request.Seed);
+	FString QualityPresetOverride;
+	if (FParse::Value(FCommandLine::Get(), TEXT("ProjectPerfQualityPreset="), QualityPresetOverride))
+	{
+		Request.QualityPreset = FName(*QualityPresetOverride);
+	}
+	FParse::Value(FCommandLine::Get(), TEXT("ProjectPerfCommit="), Request.SourceCommit);
+
+	if (BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackDiagnostic58BenchmarkId)
 	{
 		Request.bStrictScenarioFailures |= Settings->bStrictFullStackScenarioFailures;
 		if (Request.EnemyCount < 0)
@@ -602,8 +783,54 @@ bool UProjectRuntimePerformanceSubsystem::RequestBenchmark(const FProjectRuntime
 		return false;
 	}
 
+	FProjectRuntimePerformanceBenchmarkRequest NormalizedRequest = Request;
+	NormalizedRequest.BenchmarkId = ProjectRuntimePerformancePrivate::NormalizeBenchmarkId(Request.BenchmarkId);
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	if (NormalizedRequest.Seed == 0)
+	{
+		NormalizedRequest.Seed = Settings ? Settings->AcceptanceSeed : 42;
+	}
+	if (NormalizedRequest.QualityPreset.IsNone())
+	{
+		NormalizedRequest.QualityPreset = Settings ? Settings->DefaultQualityPreset : FName(TEXT("Balanced58"));
+	}
+	if (NormalizedRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonAcceptance58BenchmarkId
+		|| NormalizedRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonSmoke58BenchmarkId)
+	{
+		const int32 RequiredEnemyCount = Settings ? Settings->AcceptanceEnemyCount : 8;
+		if (NormalizedRequest.EnemyCount < 0)
+		{
+			NormalizedRequest.EnemyCount = RequiredEnemyCount;
+		}
+		if (NormalizedRequest.EnemyCount != RequiredEnemyCount)
+		{
+			UE_LOG(
+				LogProjectRuntimePerformance,
+				Error,
+				TEXT("UE 5.8 acceptance requires exactly %d enemies; requested=%d."),
+				RequiredEnemyCount,
+				NormalizedRequest.EnemyCount);
+			return false;
+		}
+		NormalizedRequest.bStrictScenarioFailures = true;
+	}
+	else if (NormalizedRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonNaturalGameplay58BenchmarkId)
+	{
+		if (NormalizedRequest.EnemyCount >= 0)
+		{
+			UE_LOG(
+				LogProjectRuntimePerformance,
+				Error,
+				TEXT("DungeonNaturalGameplay58 does not accept a benchmark enemy override; requested=%d."),
+				NormalizedRequest.EnemyCount);
+			return false;
+		}
+		NormalizedRequest.EnemyCount = -1;
+		NormalizedRequest.bStrictScenarioFailures = true;
+	}
+
 	ResetRuntimeState();
-	ActiveRequest = Request;
+	ActiveRequest = NormalizedRequest;
 	ActiveRunId = BuildRunId();
 	AppendEvent(TEXT("request_received"));
 
@@ -633,16 +860,23 @@ void UProjectRuntimePerformanceSubsystem::BeginPreparing()
 {
 	Phase = EBenchmarkPhase::Preparing;
 	PhaseElapsedSeconds = 0.0;
+	if (!ApplyBenchmarkQualityPreset())
+	{
+		FinishBenchmark(false, TEXT("QualityPresetApplyFailed"));
+		return;
+	}
 	AppendEvent(TEXT("preparing"));
 }
 
 void UProjectRuntimePerformanceSubsystem::StartWarmupOrRun()
 {
-	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
-	const float WarmupSeconds = Settings ? FMath::Max(0.0f, Settings->WarmupSeconds) : 0.0f;
+	const float WarmupSeconds = FMath::Max(0.0f, ResolveActiveWarmupSeconds());
 
-	CleanupBenchmarkVisualState(true);
-	StabilizeBenchmarkCamera(FullStackStartTransform);
+	if (!IsNaturalGameplay58Profile())
+	{
+		CleanupBenchmarkVisualState(true);
+		StabilizeBenchmarkCamera(FullStackStartTransform);
+	}
 	BenchmarkElapsedSeconds = 0.0;
 	PhaseElapsedSeconds = 0.0;
 	Phase = WarmupSeconds > KINDA_SMALL_NUMBER ? EBenchmarkPhase::Warmup : EBenchmarkPhase::Running;
@@ -692,6 +926,13 @@ void UProjectRuntimePerformanceSubsystem::ResetRuntimeState()
 			Component->OnDamageApplied.RemoveDynamic(this, &ThisClass::HandleBenchmarkDamageApplied);
 		}
 	}
+	for (const TWeakObjectPtr<UACFDamageHandlerComponent>& ComponentPtr : BoundAcfDamageTelemetryComponents)
+	{
+		if (UACFDamageHandlerComponent* Component = ComponentPtr.Get())
+		{
+			Component->OnDamageReceived.RemoveDynamic(this, &ThisClass::HandleAcfDamageReceived);
+		}
+	}
 
 	Phase = EBenchmarkPhase::Idle;
 	ActiveRequest = FProjectRuntimePerformanceBenchmarkRequest();
@@ -720,14 +961,20 @@ void UProjectRuntimePerformanceSubsystem::ResetRuntimeState()
 	CachedBenchmarkRuntimeEnemyClasses.Reset();
 	bCachedBenchmarkRuntimeEnemyClassesResolved = false;
 	BoundDamageTelemetryComponents.Reset();
+	BoundAcfDamageTelemetryComponents.Reset();
 	FullStackStages.Reset();
 	FullStackSceneSuppressionStates.Reset();
 	Samples.Reset();
+	NaturalBootstrapSamples.Reset();
 	SystemMetricAccumulators.Reset();
 	RuntimeBenchmarkPreloadHandle.Reset();
+	bBenchmarkPreloadRequested = false;
+	bBenchmarkPreloadCompleted = false;
 	CurrentWorldSnapshot = FProjectRuntimePerformanceWorldSnapshot();
 	PeakWorldSnapshot = FProjectRuntimePerformanceWorldSnapshot();
+	NaturalBootstrapWorldSnapshot = FProjectRuntimePerformanceWorldSnapshot();
 	WorldSnapshotElapsedSeconds = 0.0;
+	NaturalBootstrapSnapshotElapsedSeconds = 0.0;
 	LastObservedMapName.Reset();
 	FullStackStartTransform = FTransform::Identity;
 	DamageGuardedActor.Reset();
@@ -764,6 +1011,29 @@ void UProjectRuntimePerformanceSubsystem::ResetRuntimeState()
 	CurrentStageName.Reset();
 	CurrentStageId = NAME_None;
 	CurrentScenarioFlags.Reset();
+	AcceptanceRoutePoints.Reset();
+	AcceptanceRoutePointIndex = 0;
+	NaturalRouteDirection = 1;
+	NaturalRouteReversalCount = 0;
+	NaturalInitialEnemyCount = 0;
+	ActiveAcceptanceStageIndex = INDEX_NONE;
+	AcceptanceStageElapsedSeconds = 0.0;
+	AcceptanceIntegrityElapsedSeconds = 0.0;
+	AcceptanceCombatInputElapsedSeconds = 0.0;
+	AcceptanceStartLocation = FVector::ZeroVector;
+	AcceptanceLastPlayerLocation = FVector::ZeroVector;
+	AcceptanceTraversalDistance = 0.0;
+	AcceptanceAttackInputCount = 0;
+	AcceptanceDodgeInputCount = 0;
+	bAcceptanceRouteBuilt = false;
+	bAcceptanceEnemiesSpawned = false;
+	bAcceptanceDirtyWorkloadStarted = false;
+	bAcceptanceUiOpened = false;
+	bAcceptanceScenarioFailed = false;
+	AcceptanceScenarioFailureReason.Reset();
+	NaturalGameplayIntegrityElapsedSeconds = 0.0;
+	bNaturalGameplayScenarioFailed = false;
+	NaturalGameplayScenarioFailureReason.Reset();
 }
 
 void UProjectRuntimePerformanceSubsystem::TickPreparing(const float DeltaTime)
@@ -787,6 +1057,50 @@ void UProjectRuntimePerformanceSubsystem::TickPreparing(const float DeltaTime)
 		return;
 	}
 
+	if (IsNaturalGameplay58Profile())
+	{
+		if (!bBenchmarkPreloadRequested)
+		{
+			bBenchmarkPreloadRequested = true;
+			bBenchmarkPreloadCompleted = true;
+			ResolveConfiguredRuntimeEnemyClasses(false);
+			TSharedPtr<FJsonObject> PreloadFields = MakeShared<FJsonObject>();
+			PreloadFields->SetStringField(TEXT("reason"), TEXT("NaturalGameplayUsesProductRuntimeState"));
+			PreloadFields->SetNumberField(TEXT("resident_enemy_class_count"), CachedBenchmarkRuntimeEnemyClasses.Num());
+			AppendEvent(TEXT("targeted_preload_skipped"), PreloadFields);
+		}
+	}
+	else
+	{
+		if (!bBenchmarkPreloadRequested)
+		{
+			bBenchmarkPreloadRequested = true;
+			RequestBenchmarkTargetedPreload();
+			return;
+		}
+
+		if (RuntimeBenchmarkPreloadHandle.IsValid() && !RuntimeBenchmarkPreloadHandle->HasLoadCompleted())
+		{
+			if (PhaseElapsedSeconds >= TimeoutSeconds)
+			{
+				FinishBenchmark(false, TEXT("TargetedPreloadTimeout"));
+			}
+			return;
+		}
+
+		if (!bBenchmarkPreloadCompleted)
+		{
+			ResolveConfiguredRuntimeEnemyClasses();
+			bBenchmarkPreloadCompleted = true;
+
+			TSharedPtr<FJsonObject> PreloadFields = MakeShared<FJsonObject>();
+			PreloadFields->SetBoolField(TEXT("handle_valid"), RuntimeBenchmarkPreloadHandle.IsValid());
+			PreloadFields->SetNumberField(TEXT("resident_enemy_class_count"), CachedBenchmarkRuntimeEnemyClasses.Num());
+			PreloadFields->SetNumberField(TEXT("preparation_elapsed_seconds"), PhaseElapsedSeconds);
+			AppendEvent(TEXT("targeted_preload_completed"), PreloadFields);
+		}
+	}
+
 	VisualSafeStartRetrySeconds += DeltaTime;
 	if (VisualSafeStartRetrySeconds < 0.5)
 	{
@@ -805,10 +1119,38 @@ void UProjectRuntimePerformanceSubsystem::TickPreparing(const float DeltaTime)
 		}
 		return;
 	}
-	TeleportPlayerToBenchmarkStart(VisualSafeStartTransform);
+	TeleportPlayerToBenchmarkStart(VisualSafeStartTransform, !IsNaturalGameplay58Profile());
 	FullStackStartTransform = VisualSafeStartTransform;
 	BindDamageTelemetry(PlayerPawn);
-	if (IsStableCombatProfile())
+	if (IsNaturalGameplay58Profile())
+	{
+		InitializeNaturalGameplayStage();
+		bAcceptanceRouteBuilt = BuildAcceptanceRoute(PlayerPawn);
+		AcceptanceStartLocation = PlayerPawn->GetActorLocation();
+		AcceptanceLastPlayerLocation = AcceptanceStartLocation;
+		if (!bAcceptanceRouteBuilt)
+		{
+			FinishBenchmark(false, TEXT("NaturalGameplayNavigationRouteUnavailable"));
+			return;
+		}
+		SpawnedEnemyCount = 0;
+		NaturalInitialEnemyCount = CountActiveBenchmarkEnemies();
+	}
+	else if (IsAcceptance58Profile() || IsSmoke58Profile())
+	{
+		RemovePreexistingRuntimeEnemiesForBenchmark();
+		InitializeAcceptanceStages();
+		bAcceptanceRouteBuilt = BuildAcceptanceRoute(PlayerPawn);
+		AcceptanceStartLocation = PlayerPawn->GetActorLocation();
+		AcceptanceLastPlayerLocation = AcceptanceStartLocation;
+		if (!bAcceptanceRouteBuilt)
+		{
+			FinishBenchmark(false, TEXT("AcceptanceNavigationRouteUnavailable"));
+			return;
+		}
+		SpawnedEnemyCount = 0;
+	}
+	else if (IsStableCombatProfile())
 	{
 		SpawnedEnemyCount = SpawnBenchmarkEnemies(VisualSafeStartTransform);
 	}
@@ -830,13 +1172,78 @@ void UProjectRuntimePerformanceSubsystem::TickPreparing(const float DeltaTime)
 	Fields->SetBoolField(TEXT("strict_scenario_failures"), ActiveRequest.bStrictScenarioFailures);
 	Fields->SetBoolField(TEXT("vanilla_ai_perception"), !ShouldUseDirectBenchmarkEnemyTargeting());
 	Fields->SetBoolField(TEXT("direct_ai_targeting"), ShouldUseDirectBenchmarkEnemyTargeting());
+	Fields->SetBoolField(TEXT("benchmark_enemy_spawning"), !IsNaturalGameplay58Profile());
+	Fields->SetBoolField(TEXT("native_player_camera"), IsNaturalGameplay58Profile());
+	Fields->SetNumberField(TEXT("natural_enemy_count"), NaturalInitialEnemyCount);
 	Fields->SetStringField(TEXT("map"), GetCurrentShortMapName());
 	Fields->SetStringField(TEXT("start_location"), VisualSafeStartTransform.GetLocation().ToCompactString());
 	AppendEvent(TEXT("scenario_ready"), Fields);
 
-	RequestBenchmarkTargetedPreload();
-	ResolveConfiguredRuntimeEnemyClasses();
 	StartWarmupOrRun();
+}
+
+void UProjectRuntimePerformanceSubsystem::CaptureNaturalBootstrapSample(const float DeltaTime)
+{
+	UWorld* World = GetWorld();
+	NaturalBootstrapSnapshotElapsedSeconds += DeltaTime;
+	if (World && (NaturalBootstrapSnapshotElapsedSeconds >= 1.0 || NaturalBootstrapSamples.IsEmpty()))
+	{
+		NaturalBootstrapSnapshotElapsedSeconds = 0.0;
+		FProjectRuntimePerformanceWorldSnapshot Snapshot;
+		Snapshot.UsedPhysicalMemoryBytes = ReadUsedPhysicalMemoryBytes();
+		Snapshot.TexturePoolSizeMb = ReadTexturePoolSizeMb();
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (!IsValid(Actor))
+			{
+				continue;
+			}
+
+			++Snapshot.ActorCount;
+			if (Actor->IsA<APawn>())
+			{
+				++Snapshot.PawnCount;
+			}
+
+			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents(Actor);
+			Actor->GetComponents(SkeletalMeshComponents);
+			Snapshot.SkeletalMeshComponentCount += SkeletalMeshComponents.Num();
+
+			TInlineComponentArray<UNiagaraComponent*> NiagaraComponents(Actor);
+			Actor->GetComponents(NiagaraComponents);
+			Snapshot.NiagaraComponentCount += NiagaraComponents.Num();
+		}
+		NaturalBootstrapWorldSnapshot = Snapshot;
+	}
+
+	FProjectRuntimePerformanceFrameSample Sample;
+	Sample.FrameNumber = GFrameCounter;
+	Sample.TimeSeconds = TotalElapsedSeconds;
+	Sample.DeltaSeconds = DeltaTime;
+	Sample.FrameMs = static_cast<double>(DeltaTime) * 1000.0;
+	Sample.GameThreadMs = ReadGameThreadMs();
+	Sample.RenderThreadMs = ReadRenderThreadMs();
+	Sample.GpuMs = ReadGpuMs();
+	Sample.Fps = DeltaTime > SMALL_NUMBER ? 1.0 / static_cast<double>(DeltaTime) : 0.0;
+	Sample.StageId = ProjectRuntimePerformancePrivate::StageNaturalDungeonBootstrap;
+	Sample.StageName = TEXT("Dungeon Bootstrap Before Ready");
+	Sample.MapName = GetCurrentShortMapName();
+	Sample.ActorCount = NaturalBootstrapWorldSnapshot.ActorCount;
+	Sample.PawnCount = NaturalBootstrapWorldSnapshot.PawnCount;
+	Sample.SkeletalMeshComponentCount = NaturalBootstrapWorldSnapshot.SkeletalMeshComponentCount;
+	Sample.NiagaraComponentCount = NaturalBootstrapWorldSnapshot.NiagaraComponentCount;
+	Sample.UsedMemoryMb = static_cast<double>(NaturalBootstrapWorldSnapshot.UsedPhysicalMemoryBytes) / (1024.0 * 1024.0);
+	Sample.bAsyncLoading = IsAsyncLoading && IsAsyncLoading();
+	if (World)
+	{
+		if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0))
+		{
+			Sample.PlayerLocation = PlayerPawn->GetActorLocation();
+			Sample.PlayerSpeedCmPerSecond = PlayerPawn->GetVelocity().Size2D();
+		}
+	}
+	NaturalBootstrapSamples.Add(MoveTemp(Sample));
 }
 
 void UProjectRuntimePerformanceSubsystem::TickSampling(const float DeltaTime)
@@ -844,15 +1251,28 @@ void UProjectRuntimePerformanceSubsystem::TickSampling(const float DeltaTime)
 	bSyntheticBenchmarkWorkThisFrame = false;
 	SyntheticBenchmarkReasonThisFrame.Reset();
 
-	CleanupBenchmarkVisualState(false);
-	ApplyAutopilot(DeltaTime);
-
 	BenchmarkElapsedSeconds += DeltaTime;
-	if (Phase == EBenchmarkPhase::Running && IsFullStackOverloadProfile())
+	if (Phase == EBenchmarkPhase::Running && IsNaturalGameplay58Profile())
+	{
+		TickNaturalGameplayScenario(DeltaTime);
+	}
+	else if (Phase == EBenchmarkPhase::Running && (IsAcceptance58Profile() || IsSmoke58Profile()))
+	{
+		TickAcceptanceScenario(DeltaTime);
+	}
+	else if (Phase == EBenchmarkPhase::Running && IsFullStackOverloadProfile())
 	{
 		TickFullStackScenario(DeltaTime);
 	}
-	UpdateBenchmarkCameraActor(false);
+	if (!IsNaturalGameplay58Profile())
+	{
+		CleanupBenchmarkVisualState(false);
+	}
+	ApplyAutopilot(DeltaTime);
+	if (!IsNaturalGameplay58Profile())
+	{
+		UpdateBenchmarkCameraActor(false);
+	}
 	MaybeCaptureBenchmarkVisualScreenshot();
 
 	PeakPhysicalMemoryBytes = FMath::Max(PeakPhysicalMemoryBytes, ReadUsedPhysicalMemoryBytes());
@@ -864,6 +1284,7 @@ void UProjectRuntimePerformanceSubsystem::TickSampling(const float DeltaTime)
 	}
 
 	FProjectRuntimePerformanceFrameSample Sample;
+	Sample.FrameNumber = GFrameCounter;
 	Sample.TimeSeconds = BenchmarkElapsedSeconds;
 	Sample.DeltaSeconds = DeltaTime;
 	Sample.FrameMs = static_cast<double>(DeltaTime) * 1000.0;
@@ -885,7 +1306,18 @@ void UProjectRuntimePerformanceSubsystem::TickSampling(const float DeltaTime)
 		&& !FullStackSceneSuppressionStates.IsEmpty();
 	Sample.StageId = CurrentStageId;
 	Sample.StageName = CurrentStageName;
+	Sample.MapName = GetCurrentShortMapName();
 	Sample.ScenarioFlags = CurrentScenarioFlags;
+	if (UWorld* World = GetWorld())
+	{
+		if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0))
+		{
+			Sample.PlayerLocation = PlayerPawn->GetActorLocation();
+			Sample.PlayerSpeedCmPerSecond = PlayerPawn->GetVelocity().Size2D();
+		}
+	}
+	Sample.TraversalDistance = AcceptanceTraversalDistance;
+	Sample.RoutePointIndex = AcceptanceRoutePointIndex;
 	CopyWorldSnapshotToSample(Sample);
 	Samples.Add(Sample);
 
@@ -898,26 +1330,72 @@ void UProjectRuntimePerformanceSubsystem::TickSampling(const float DeltaTime)
 		RefreshBenchmarkEnemyAI();
 	}
 
-	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
-	const float WarmupSeconds = Settings ? FMath::Max(0.0f, Settings->WarmupSeconds) : 0.0f;
+	const float WarmupSeconds = FMath::Max(0.0f, ResolveActiveWarmupSeconds());
 	const float DurationSeconds = ResolveActiveDurationSeconds();
 
 	if (Phase == EBenchmarkPhase::Warmup && PhaseElapsedSeconds >= WarmupSeconds)
 	{
 		Phase = EBenchmarkPhase::Running;
 		PhaseElapsedSeconds = 0.0;
+		if (IsAcceptance58Profile() || IsSmoke58Profile())
+		{
+			BeginAcceptanceStage(0);
+		}
+		else if (IsNaturalGameplay58Profile())
+		{
+			BeginNaturalGameplayStage();
+		}
 		AppendEvent(TEXT("sampling_started"));
 		return;
 	}
 
 	if (Phase == EBenchmarkPhase::Running && PhaseElapsedSeconds >= FMath::Max(1.0f, DurationSeconds))
 	{
-		FinishBenchmark(true, TEXT("Completed"));
+		if (IsNaturalGameplay58Profile())
+		{
+			CompleteNaturalGameplayStage();
+			FString IntegrityFailure;
+			if (!ValidateNaturalGameplayIntegrity(IntegrityFailure))
+			{
+				FailNaturalGameplayScenario(IntegrityFailure);
+			}
+		}
+		else if (IsAcceptance58Profile() || IsSmoke58Profile())
+		{
+			if (FullStackStages.IsValidIndex(ActiveAcceptanceStageIndex))
+			{
+				CompleteAcceptanceStage(ActiveAcceptanceStageIndex);
+			}
+			FString IntegrityFailure;
+			if (!ValidateAcceptanceIntegrity(IntegrityFailure))
+			{
+				FailAcceptanceScenario(IntegrityFailure);
+			}
+		}
+		FinishBenchmark(
+			!bNaturalGameplayScenarioFailed && !bAcceptanceScenarioFailed && !bFullStackScenarioFailed,
+			bNaturalGameplayScenarioFailed
+				? NaturalGameplayScenarioFailureReason
+				: (bAcceptanceScenarioFailed
+					? AcceptanceScenarioFailureReason
+					: (bFullStackScenarioFailed ? FullStackScenarioFailureReason : TEXT("Completed"))));
 	}
 }
 
 void UProjectRuntimePerformanceSubsystem::ApplyAutopilot(const float DeltaTime)
 {
+	if (IsNaturalGameplay58Profile())
+	{
+		ApplyNaturalGameplayAutopilot(DeltaTime);
+		return;
+	}
+
+	if (IsAcceptance58Profile() || IsSmoke58Profile())
+	{
+		ApplyAcceptanceAutopilot(DeltaTime);
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
 	AController* Controller = PlayerPawn ? PlayerPawn->GetController() : nullptr;
@@ -946,6 +1424,196 @@ void UProjectRuntimePerformanceSubsystem::ApplyAutopilot(const float DeltaTime)
 	PlayerPawn->AddMovementInput(Right, FMath::Sin(Time * 0.83f) * 0.45f);
 }
 
+void UProjectRuntimePerformanceSubsystem::ApplyAcceptanceAutopilot(const float DeltaTime)
+{
+	UWorld* World = GetWorld();
+	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
+	AController* Controller = PlayerPawn ? PlayerPawn->GetController() : nullptr;
+	if (!PlayerPawn || !Controller || Phase != EBenchmarkPhase::Running)
+	{
+		return;
+	}
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		PlayerController->SetIgnoreMoveInput(false);
+		PlayerController->SetIgnoreLookInput(false);
+	}
+
+	const FVector CurrentLocation = PlayerPawn->GetActorLocation();
+	if (!AcceptanceLastPlayerLocation.IsNearlyZero())
+	{
+		AcceptanceTraversalDistance += FVector::Dist2D(CurrentLocation, AcceptanceLastPlayerLocation);
+	}
+	AcceptanceLastPlayerLocation = CurrentLocation;
+
+	if (CurrentStageId == ProjectRuntimePerformancePrivate::StageAcceptanceTraversal)
+	{
+		if (!AcceptanceRoutePoints.IsValidIndex(AcceptanceRoutePointIndex))
+		{
+			return;
+		}
+
+		FVector ToTarget = AcceptanceRoutePoints[AcceptanceRoutePointIndex] - CurrentLocation;
+		ToTarget.Z = 0.0f;
+		if (ToTarget.SizeSquared() < FMath::Square(120.0f))
+		{
+			++AcceptanceRoutePointIndex;
+			if (!AcceptanceRoutePoints.IsValidIndex(AcceptanceRoutePointIndex))
+			{
+				return;
+			}
+			ToTarget = AcceptanceRoutePoints[AcceptanceRoutePointIndex] - CurrentLocation;
+			ToTarget.Z = 0.0f;
+		}
+
+		if (!ToTarget.IsNearlyZero())
+		{
+			FRotator LookRotation = ToTarget.Rotation();
+			LookRotation.Pitch = 0.0f;
+			LookRotation.Roll = 0.0f;
+			Controller->SetControlRotation(LookRotation);
+			PlayerPawn->AddMovementInput(ToTarget.GetSafeNormal(), 1.0f);
+		}
+		return;
+	}
+
+	APawn* NearestEnemy = nullptr;
+	double NearestDistanceSquared = TNumericLimits<double>::Max();
+	for (const TWeakObjectPtr<APawn>& EnemyPtr : SpawnedEnemies)
+	{
+		if (APawn* EnemyPawn = EnemyPtr.Get())
+		{
+			const double DistanceSquared = FVector::DistSquared2D(CurrentLocation, EnemyPawn->GetActorLocation());
+			if (DistanceSquared < NearestDistanceSquared)
+			{
+				NearestDistanceSquared = DistanceSquared;
+				NearestEnemy = EnemyPawn;
+			}
+		}
+	}
+
+	if (!NearestEnemy)
+	{
+		return;
+	}
+
+	FVector ToEnemy = NearestEnemy->GetActorLocation() - CurrentLocation;
+	ToEnemy.Z = 0.0f;
+	if (ToEnemy.IsNearlyZero())
+	{
+		return;
+	}
+
+	FRotator LookRotation = ToEnemy.Rotation();
+	LookRotation.Pitch = 0.0f;
+	LookRotation.Roll = 0.0f;
+	Controller->SetControlRotation(LookRotation);
+	const FVector Forward = ToEnemy.GetSafeNormal();
+	const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward);
+	const float Distance = FMath::Sqrt(static_cast<float>(NearestDistanceSquared));
+	const float ForwardScale = Distance > 500.0f ? 0.75f : (Distance < 240.0f ? -0.35f : 0.15f);
+	PlayerPawn->AddMovementInput(Forward, ForwardScale);
+	PlayerPawn->AddMovementInput(Right, FMath::Sin(static_cast<float>(BenchmarkElapsedSeconds) * 0.9f) * 0.55f);
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		AcceptanceCombatInputElapsedSeconds += DeltaTime;
+		if (AcceptanceCombatInputElapsedSeconds >= 1.1)
+		{
+			AcceptanceCombatInputElapsedSeconds = 0.0;
+			PlayerController->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftMouseButton, IE_Pressed, 1.0f));
+			PlayerController->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftMouseButton, IE_Released, 0.0f));
+			++AcceptanceAttackInputCount;
+			if (AcceptanceAttackInputCount % 4 == 0)
+			{
+				PlayerController->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+				PlayerController->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+				++AcceptanceDodgeInputCount;
+			}
+		}
+	}
+}
+
+void UProjectRuntimePerformanceSubsystem::ApplyNaturalGameplayAutopilot(const float DeltaTime)
+{
+	UWorld* World = GetWorld();
+	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
+	AController* Controller = PlayerPawn ? PlayerPawn->GetController() : nullptr;
+	if (!PlayerPawn || !Controller || Phase != EBenchmarkPhase::Running)
+	{
+		return;
+	}
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		PlayerController->SetIgnoreMoveInput(false);
+		PlayerController->SetIgnoreLookInput(false);
+	}
+
+	const FVector CurrentLocation = PlayerPawn->GetActorLocation();
+	if (!AcceptanceLastPlayerLocation.IsNearlyZero())
+	{
+		AcceptanceTraversalDistance += FVector::Dist2D(CurrentLocation, AcceptanceLastPlayerLocation);
+	}
+	AcceptanceLastPlayerLocation = CurrentLocation;
+
+	if (!AcceptanceRoutePoints.IsValidIndex(AcceptanceRoutePointIndex))
+	{
+		return;
+	}
+
+	FVector ToTarget = AcceptanceRoutePoints[AcceptanceRoutePointIndex] - CurrentLocation;
+	ToTarget.Z = 0.0f;
+	if (ToTarget.SizeSquared() < FMath::Square(120.0f))
+	{
+		int32 NextPointIndex = AcceptanceRoutePointIndex + NaturalRouteDirection;
+		if (!AcceptanceRoutePoints.IsValidIndex(NextPointIndex))
+		{
+			NaturalRouteDirection *= -1;
+			++NaturalRouteReversalCount;
+			NextPointIndex = AcceptanceRoutePointIndex + NaturalRouteDirection;
+		}
+		if (AcceptanceRoutePoints.IsValidIndex(NextPointIndex))
+		{
+			AcceptanceRoutePointIndex = NextPointIndex;
+			ToTarget = AcceptanceRoutePoints[AcceptanceRoutePointIndex] - CurrentLocation;
+			ToTarget.Z = 0.0f;
+		}
+	}
+
+	if (!ToTarget.IsNearlyZero())
+	{
+		FRotator LookRotation = ToTarget.Rotation();
+		LookRotation.Pitch = 0.0f;
+		LookRotation.Roll = 0.0f;
+		Controller->SetControlRotation(LookRotation);
+		PlayerPawn->AddMovementInput(ToTarget.GetSafeNormal(), 1.0f);
+	}
+
+	(void)DeltaTime;
+}
+
+bool UProjectRuntimePerformanceSubsystem::IsSmoke58Profile() const
+{
+	return ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonSmoke58BenchmarkId;
+}
+
+bool UProjectRuntimePerformanceSubsystem::IsNaturalGameplay58Profile() const
+{
+	return ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonNaturalGameplay58BenchmarkId;
+}
+
+bool UProjectRuntimePerformanceSubsystem::IsAcceptance58Profile() const
+{
+	return ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonAcceptance58BenchmarkId;
+}
+
+bool UProjectRuntimePerformanceSubsystem::IsDiagnostic58Profile() const
+{
+	return ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackDiagnostic58BenchmarkId;
+}
+
 bool UProjectRuntimePerformanceSubsystem::IsStableCombatProfile() const
 {
 	return ActiveRequest.BenchmarkId.IsNone()
@@ -959,7 +1627,8 @@ bool UProjectRuntimePerformanceSubsystem::IsRealGameplayProfile() const
 
 bool UProjectRuntimePerformanceSubsystem::IsFullStackOverloadProfile() const
 {
-	return ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackOverloadBenchmarkId;
+	return IsDiagnostic58Profile()
+		|| ActiveRequest.BenchmarkId == ProjectRuntimePerformancePrivate::DungeonFullStackOverloadBenchmarkId;
 }
 
 float UProjectRuntimePerformanceSubsystem::ResolveActiveDurationSeconds() const
@@ -972,9 +1641,25 @@ float UProjectRuntimePerformanceSubsystem::ResolveActiveDurationSeconds() const
 
 	if (!Settings)
 	{
-		return IsStableCombatProfile() ? 180.0f : (IsFullStackOverloadProfile() ? 540.0f : 300.0f);
+		return IsSmoke58Profile() ? 30.0f : (IsNaturalGameplay58Profile() ? 60.0f : 120.0f);
 	}
 
+	if (IsSmoke58Profile())
+	{
+		return Settings->SmokeDurationSeconds;
+	}
+	if (IsAcceptance58Profile())
+	{
+		return Settings->AcceptanceDurationSeconds;
+	}
+	if (IsNaturalGameplay58Profile())
+	{
+		return Settings->NaturalGameplayDurationSeconds;
+	}
+	if (IsDiagnostic58Profile())
+	{
+		return Settings->DiagnosticDurationSeconds;
+	}
 	if (IsStableCombatProfile())
 	{
 		return Settings->DefaultDurationSeconds;
@@ -986,6 +1671,24 @@ float UProjectRuntimePerformanceSubsystem::ResolveActiveDurationSeconds() const
 	}
 
 	return Settings->RealGameplayDurationSeconds;
+}
+
+float UProjectRuntimePerformanceSubsystem::ResolveActiveWarmupSeconds() const
+{
+	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
+	if (!Settings)
+	{
+		return IsSmoke58Profile() || IsNaturalGameplay58Profile() ? 10.0f : 15.0f;
+	}
+	if (IsSmoke58Profile())
+	{
+		return Settings->SmokeWarmupSeconds;
+	}
+	if (IsNaturalGameplay58Profile())
+	{
+		return Settings->NaturalGameplayWarmupSeconds;
+	}
+	return Settings->AcceptanceWarmupSeconds;
 }
 
 int32 UProjectRuntimePerformanceSubsystem::ResolveFullStackEnemyCap() const
@@ -1267,7 +1970,9 @@ bool UProjectRuntimePerformanceSubsystem::ResolveGroundedBenchmarkLocation(
 	return false;
 }
 
-void UProjectRuntimePerformanceSubsystem::TeleportPlayerToBenchmarkStart(const FTransform& StartTransform)
+void UProjectRuntimePerformanceSubsystem::TeleportPlayerToBenchmarkStart(
+	const FTransform& StartTransform,
+	const bool bUseBenchmarkCamera)
 {
 	UWorld* World = GetWorld();
 	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
@@ -1287,8 +1992,19 @@ void UProjectRuntimePerformanceSubsystem::TeleportPlayerToBenchmarkStart(const F
 		Character->UnCrouch(false);
 	}
 
-	CleanupBenchmarkVisualState(true);
-	StabilizeBenchmarkCamera(StartTransform);
+	if (bUseBenchmarkCamera)
+	{
+		CleanupBenchmarkVisualState(true);
+		StabilizeBenchmarkCamera(StartTransform);
+	}
+	else if (APlayerController* PlayerController = Cast<APlayerController>(PlayerPawn->GetController()))
+	{
+		PlayerController->SetIgnoreMoveInput(false);
+		PlayerController->SetIgnoreLookInput(false);
+		PlayerController->SetShowMouseCursor(false);
+		PlayerController->SetInputMode(FInputModeGameOnly());
+		PlayerController->SetViewTarget(PlayerPawn);
+	}
 }
 
 void UProjectRuntimePerformanceSubsystem::CleanupBenchmarkVisualState(const bool bCancelInteractions)
@@ -1816,7 +2532,10 @@ void UProjectRuntimePerformanceSubsystem::MaybeCaptureBenchmarkVisualScreenshot(
 void UProjectRuntimePerformanceSubsystem::RequestBenchmarkTargetedPreload()
 {
 #if !UE_BUILD_SHIPPING
-	if (!IsFullStackOverloadProfile() && !IsStableCombatProfile())
+	if (!IsFullStackOverloadProfile()
+		&& !IsStableCombatProfile()
+		&& !IsAcceptance58Profile()
+		&& !IsSmoke58Profile())
 	{
 		return;
 	}
@@ -1945,6 +2664,128 @@ void UProjectRuntimePerformanceSubsystem::MarkBenchmarkSyntheticWork(const float
 	AppendEvent(TEXT("benchmark_synthetic_work"), Fields);
 }
 
+bool UProjectRuntimePerformanceSubsystem::ApplyBenchmarkQualityPreset()
+{
+	const FName Preset = ActiveRequest.QualityPreset.IsNone() ? FName(TEXT("Balanced58")) : ActiveRequest.QualityPreset;
+	if (Preset == TEXT("Current") || Preset == TEXT("QualityCurrent"))
+	{
+		return true;
+	}
+
+	const bool bBalanced = Preset == TEXT("Balanced58");
+	const bool bPerformance = Preset == TEXT("Performance58");
+	if (!bBalanced && !bPerformance)
+	{
+		UE_LOG(LogProjectRuntimePerformance, Error, TEXT("Unsupported performance preset: %s"), *Preset.ToString());
+		return false;
+	}
+
+	auto SetCVar = [](const TCHAR* Name, const float Value) -> bool
+	{
+		IConsoleVariable* Variable = IConsoleManager::Get().FindConsoleVariable(Name);
+		if (!Variable)
+		{
+			UE_LOG(LogProjectRuntimePerformance, Warning, TEXT("Performance preset CVar is unavailable: %s"), Name);
+			return false;
+		}
+		Variable->Set(Value, ECVF_SetByGameSetting);
+		return true;
+	};
+
+	bool bApplied = true;
+	bApplied &= SetCVar(TEXT("sg.ResolutionQuality"), bBalanced ? 100.0f : 85.0f);
+	bApplied &= SetCVar(TEXT("sg.ViewDistanceQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.AntiAliasingQuality"), 2.0f);
+	bApplied &= SetCVar(TEXT("sg.ShadowQuality"), bBalanced ? 2.0f : 0.0f);
+	bApplied &= SetCVar(TEXT("sg.GlobalIlluminationQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.ReflectionQuality"), 1.0f);
+	bApplied &= SetCVar(TEXT("sg.PostProcessQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.TextureQuality"), 3.0f);
+	bApplied &= SetCVar(TEXT("sg.EffectsQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.FoliageQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.ShadingQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("sg.LandscapeQuality"), bBalanced ? 2.0f : 1.0f);
+	bApplied &= SetCVar(TEXT("r.DynamicRes.OperationMode"), 2.0f);
+	bApplied &= SetCVar(TEXT("r.DynamicRes.MinScreenPercentage"), 80.0f);
+	bApplied &= SetCVar(TEXT("r.DynamicRes.MaxScreenPercentage"), 100.0f);
+	bApplied &= SetCVar(TEXT("r.DynamicRes.FrameTimeBudget"), 16.6667f);
+	bApplied &= SetCVar(TEXT("r.VSync"), 0.0f);
+	IConsoleManager::Get().CallAllConsoleVariableSinks();
+
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("preset"), Preset.ToString());
+	Fields->SetBoolField(TEXT("all_cvars_available"), bApplied);
+	Fields->SetStringField(TEXT("effective_cvar_hash"), BuildEffectiveCVarHash());
+	AppendEvent(TEXT("quality_preset_applied"), Fields);
+	return bApplied;
+}
+
+FString UProjectRuntimePerformanceSubsystem::BuildEffectiveCVarSnapshot() const
+{
+	static const TCHAR* Names[] = {
+		TEXT("sg.ResolutionQuality"),
+		TEXT("sg.ViewDistanceQuality"),
+		TEXT("sg.AntiAliasingQuality"),
+		TEXT("sg.ShadowQuality"),
+		TEXT("sg.GlobalIlluminationQuality"),
+		TEXT("sg.ReflectionQuality"),
+		TEXT("sg.PostProcessQuality"),
+		TEXT("sg.TextureQuality"),
+		TEXT("sg.EffectsQuality"),
+		TEXT("sg.FoliageQuality"),
+		TEXT("sg.ShadingQuality"),
+		TEXT("sg.LandscapeQuality"),
+		TEXT("r.DynamicRes.OperationMode"),
+		TEXT("r.DynamicRes.MinScreenPercentage"),
+		TEXT("r.DynamicRes.MaxScreenPercentage"),
+		TEXT("r.DynamicRes.FrameTimeBudget"),
+		TEXT("r.ScreenPercentage"),
+		TEXT("r.VSync"),
+		TEXT("r.ViewDistanceScale"),
+		TEXT("r.SkeletalMeshLODBias"),
+		TEXT("r.ShadowQuality"),
+		TEXT("r.Shadow.CSM.MaxCascades"),
+		TEXT("r.Shadow.MaxResolution"),
+		TEXT("r.Shadow.DistanceScale"),
+		TEXT("r.Shadow.Virtual.Enable"),
+		TEXT("r.DistanceFieldShadowing"),
+		TEXT("r.VolumetricFog"),
+		TEXT("r.Lumen.DiffuseIndirect.Allow"),
+		TEXT("r.Lumen.ScreenProbeGather.DownsampleFactor"),
+		TEXT("r.Lumen.Reflections.Allow"),
+		TEXT("r.SSR.Quality"),
+		TEXT("r.Streaming.PoolSize"),
+		TEXT("r.Streaming.MipBias"),
+		TEXT("r.Streaming.AmortizeCPUToGPUCopy"),
+		TEXT("r.Streaming.MaxNumTexturesToStreamPerFrame"),
+		TEXT("fx.Niagara.QualityLevel"),
+		TEXT("pcg.Quality"),
+		TEXT("r.MaterialQualityLevel"),
+		TEXT("r.RayTracing"),
+		TEXT("r.Nanite.ProjectEnabled"),
+		TEXT("r.CullInstances"),
+		TEXT("r.CreateShadersOnLoad"),
+		TEXT("r.PSOPrecaching"),
+		TEXT("s.AsyncLoadingThreadEnabled"),
+		TEXT("s.AsyncPostLoadEnabled"),
+	};
+
+	TArray<FString> Values;
+	Values.Reserve(UE_ARRAY_COUNT(Names));
+	for (const TCHAR* Name : Names)
+	{
+		const IConsoleVariable* Variable = IConsoleManager::Get().FindConsoleVariable(Name);
+		Values.Add(FString::Printf(TEXT("%s=%s"), Name, Variable ? *Variable->GetString() : TEXT("<missing>")));
+	}
+	return FString::Join(Values, TEXT(";"));
+}
+
+FString UProjectRuntimePerformanceSubsystem::BuildEffectiveCVarHash() const
+{
+	const FString Snapshot = BuildEffectiveCVarSnapshot();
+	return FString::Printf(TEXT("%08x"), FCrc::StrCrc32(*Snapshot));
+}
+
 int32 UProjectRuntimePerformanceSubsystem::SpawnBenchmarkEnemies(const FTransform& StartTransform)
 {
 	UWorld* World = GetWorld();
@@ -2044,9 +2885,30 @@ APawn* UProjectRuntimePerformanceSubsystem::SpawnBenchmarkEnemyByClassHint(
 	}
 
 	FSoftClassPath SelectedClassPath;
+	const FString HintString = ClassHint.ToString();
+	FString ArchetypeHint = HintString;
+	FString GenderHint;
+	if (HintString.EndsWith(TEXT("Female"), ESearchCase::IgnoreCase))
+	{
+		ArchetypeHint.LeftChopInline(6);
+		GenderHint = TEXT("Female");
+	}
+	else if (HintString.EndsWith(TEXT("Male"), ESearchCase::IgnoreCase))
+	{
+		ArchetypeHint.LeftChopInline(4);
+		GenderHint = TEXT("Male");
+	}
 	for (const FSoftClassPath& EnemyClassPath : EnemySettings->RuntimeEnemyClasses)
 	{
-		if (EnemyClassPath.ToString().Contains(ClassHint.ToString(), ESearchCase::IgnoreCase))
+		const FString ClassPathString = EnemyClassPath.ToString();
+		const bool bArchetypeMatches = ArchetypeHint.IsEmpty()
+			|| ClassPathString.Contains(ArchetypeHint, ESearchCase::IgnoreCase);
+		const bool bGenderMatches = GenderHint.IsEmpty()
+			|| (GenderHint.Equals(TEXT("Male"), ESearchCase::IgnoreCase)
+				? ClassPathString.Contains(TEXT("Male"), ESearchCase::IgnoreCase)
+					&& !ClassPathString.Contains(TEXT("Female"), ESearchCase::IgnoreCase)
+				: ClassPathString.Contains(TEXT("Female"), ESearchCase::IgnoreCase));
+		if (bArchetypeMatches && bGenderMatches)
 		{
 			SelectedClassPath = EnemyClassPath;
 			break;
@@ -2256,7 +3118,7 @@ bool UProjectRuntimePerformanceSubsystem::ShouldUseDirectBenchmarkEnemyTargeting
 		&& !Settings->bUseVanillaAIPerceptionForBenchmarks;
 }
 
-void UProjectRuntimePerformanceSubsystem::ResolveConfiguredRuntimeEnemyClasses() const
+void UProjectRuntimePerformanceSubsystem::ResolveConfiguredRuntimeEnemyClasses(const bool bAllowSynchronousLoad) const
 {
 	const UEFProjectEnemySettings* EnemySettings = UEFProjectEnemySettings::Get();
 	if (bCachedBenchmarkRuntimeEnemyClassesResolved || !EnemySettings)
@@ -2274,7 +3136,7 @@ void UProjectRuntimePerformanceSubsystem::ResolveConfiguredRuntimeEnemyClasses()
 		}
 
 		UClass* EnemyClass = Cast<UClass>(EnemyClassPath.ResolveObject());
-		if (!EnemyClass)
+		if (!EnemyClass && bAllowSynchronousLoad)
 		{
 			EnemyClass = Cast<UClass>(EnemyClassPath.TryLoad());
 		}
@@ -2292,7 +3154,7 @@ bool UProjectRuntimePerformanceSubsystem::IsConfiguredRuntimeEnemyPawn(const APa
 		return false;
 	}
 
-	ResolveConfiguredRuntimeEnemyClasses();
+	ResolveConfiguredRuntimeEnemyClasses(!IsNaturalGameplay58Profile());
 	for (const TWeakObjectPtr<UClass>& EnemyClassPtr : CachedBenchmarkRuntimeEnemyClasses)
 	{
 		if (const UClass* EnemyClass = EnemyClassPtr.Get())
@@ -2368,6 +3230,522 @@ int32 UProjectRuntimePerformanceSubsystem::CountActiveBenchmarkEnemies() const
 		}
 	}
 	return ActiveEnemyCount;
+}
+
+void UProjectRuntimePerformanceSubsystem::InitializeNaturalGameplayStage()
+{
+	FullStackStages.Reset();
+	const double DurationSeconds = FMath::Max(1.0f, ResolveActiveDurationSeconds());
+	for (const ProjectRuntimePerformancePrivate::FFullStackStageTemplate& Template : ProjectRuntimePerformancePrivate::GetNaturalGameplayStageTemplates())
+	{
+		FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages.AddDefaulted_GetRef();
+		Stage.StageId = Template.StageId;
+		Stage.StageName = Template.StageName;
+		Stage.DurationFraction = Template.DurationFraction;
+		Stage.StartSeconds = 0.0;
+		Stage.EndSeconds = DurationSeconds;
+		Stage.bRequired = Template.bRequired;
+	}
+}
+
+void UProjectRuntimePerformanceSubsystem::BeginNaturalGameplayStage()
+{
+	if (FullStackStages.IsEmpty())
+	{
+		FailNaturalGameplayScenario(TEXT("NaturalGameplayStageUnavailable"));
+		return;
+	}
+
+	FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[0];
+	Stage.bStarted = true;
+	CurrentStageId = Stage.StageId;
+	CurrentStageName = Stage.StageName;
+	CurrentScenarioFlags = TEXT("natural_dungeon_population;navigation_walk;native_player_camera");
+
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("stage_id"), Stage.StageId.ToString());
+	Fields->SetStringField(TEXT("stage_name"), Stage.StageName);
+	Fields->SetNumberField(TEXT("natural_enemy_count"), NaturalInitialEnemyCount);
+	Fields->SetNumberField(TEXT("route_point_count"), AcceptanceRoutePoints.Num());
+	AppendEvent(TEXT("stage_started"), Fields);
+}
+
+void UProjectRuntimePerformanceSubsystem::CompleteNaturalGameplayStage()
+{
+	if (FullStackStages.IsEmpty())
+	{
+		return;
+	}
+
+	FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[0];
+	Stage.bCompleted = !Stage.bFailed;
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("stage_id"), Stage.StageId.ToString());
+	Fields->SetStringField(TEXT("stage_name"), Stage.StageName);
+	Fields->SetBoolField(TEXT("success"), Stage.bCompleted);
+	Fields->SetStringField(TEXT("failure_reason"), Stage.FailureReason);
+	Fields->SetNumberField(TEXT("traversal_distance"), AcceptanceTraversalDistance);
+	Fields->SetNumberField(TEXT("route_reversals"), NaturalRouteReversalCount);
+	AppendEvent(TEXT("stage_completed"), Fields);
+}
+
+void UProjectRuntimePerformanceSubsystem::TickNaturalGameplayScenario(const float DeltaTime)
+{
+	NaturalGameplayIntegrityElapsedSeconds += DeltaTime;
+	if (NaturalGameplayIntegrityElapsedSeconds < 1.0)
+	{
+		return;
+	}
+	NaturalGameplayIntegrityElapsedSeconds = 0.0;
+
+	UWorld* World = GetWorld();
+	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
+	if (!PlayerPawn || !PlayerPawn->GetController())
+	{
+		FailNaturalGameplayScenario(TEXT("NaturalGameplayPlayerOrControllerMissing"));
+	}
+	if (SpawnedEnemyCount != 0 || !SpawnedEnemies.IsEmpty())
+	{
+		FailNaturalGameplayScenario(TEXT("NaturalGameplayBenchmarkEnemyContamination"));
+	}
+}
+
+bool UProjectRuntimePerformanceSubsystem::ValidateNaturalGameplayIntegrity(FString& OutReason) const
+{
+	const UProjectPerformanceBudgetSettings* BudgetSettings = UProjectPerformanceBudgetSettings::Get();
+	if (BudgetSettings
+		&& (BudgetSettings->bEnableRuntimeBudgeting
+			|| BudgetSettings->bApplyEnemyActorTickBudget
+			|| BudgetSettings->bApplyEnemyAnimationBudget
+			|| BudgetSettings->bApplyEnemyMovementTickBudget
+			|| BudgetSettings->bCullExcessRuntimeEnemies
+			|| BudgetSettings->bApplyWorldVfxBudget))
+	{
+		OutReason = TEXT("BLOCKED_BY_SAFETY:RuntimePerformanceBudgetEnabled");
+		return false;
+	}
+	if (!bAcceptanceRouteBuilt || AcceptanceRoutePoints.Num() < 2)
+	{
+		OutReason = TEXT("NaturalGameplayRouteNotBuilt");
+		return false;
+	}
+	if (AcceptanceTraversalDistance < 600.0)
+	{
+		OutReason = FString::Printf(TEXT("NaturalGameplayTraversalTooShort:%.1f"), AcceptanceTraversalDistance);
+		return false;
+	}
+	if (SpawnedEnemyCount != 0 || !SpawnedEnemies.IsEmpty())
+	{
+		OutReason = TEXT("NaturalGameplayBenchmarkEnemyContamination");
+		return false;
+	}
+	if (NaturalInitialEnemyCount <= 0)
+	{
+		OutReason = TEXT("NaturalGameplayDungeonGeneratedNoEnemies");
+		return false;
+	}
+	if (BenchmarkCameraActor.IsValid())
+	{
+		OutReason = TEXT("NaturalGameplayBenchmarkCameraActive");
+		return false;
+	}
+	if (AcceptanceAttackInputCount != 0 || AcceptanceDodgeInputCount != 0)
+	{
+		OutReason = TEXT("NaturalGameplaySyntheticCombatInputDetected");
+		return false;
+	}
+	return true;
+}
+
+void UProjectRuntimePerformanceSubsystem::FailNaturalGameplayScenario(const FString& Reason)
+{
+	if (bNaturalGameplayScenarioFailed)
+	{
+		return;
+	}
+	bNaturalGameplayScenarioFailed = true;
+	NaturalGameplayScenarioFailureReason = Reason;
+	if (!FullStackStages.IsEmpty())
+	{
+		FullStackStages[0].bFailed = true;
+		FullStackStages[0].FailureReason = Reason;
+	}
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("reason"), Reason);
+	AppendEvent(TEXT("natural_gameplay_scenario_failed"), Fields);
+}
+
+void UProjectRuntimePerformanceSubsystem::InitializeAcceptanceStages()
+{
+	FullStackStages.Reset();
+	const double DurationSeconds = FMath::Max(1.0f, ResolveActiveDurationSeconds());
+	double CursorSeconds = 0.0;
+	for (const ProjectRuntimePerformancePrivate::FFullStackStageTemplate& Template : ProjectRuntimePerformancePrivate::GetAcceptanceStageTemplates())
+	{
+		FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages.AddDefaulted_GetRef();
+		Stage.StageId = Template.StageId;
+		Stage.StageName = Template.StageName;
+		Stage.DurationFraction = Template.DurationFraction;
+		Stage.StartSeconds = CursorSeconds;
+		CursorSeconds += DurationSeconds * Template.DurationFraction;
+		Stage.EndSeconds = CursorSeconds;
+		Stage.bRequired = Template.bRequired;
+	}
+	if (!FullStackStages.IsEmpty())
+	{
+		FullStackStages.Last().EndSeconds = DurationSeconds;
+	}
+}
+
+bool UProjectRuntimePerformanceSubsystem::BuildAcceptanceRoute(APawn* PlayerPawn)
+{
+	UWorld* World = GetWorld();
+	UNavigationSystemV1* NavigationSystem = World ? FNavigationSystem::GetCurrent<UNavigationSystemV1>(World) : nullptr;
+	if (!World || !PlayerPawn || !NavigationSystem)
+	{
+		return false;
+	}
+
+	const FVector Start = PlayerPawn->GetActorLocation();
+	FRandomStream RandomStream(ActiveRequest.Seed);
+	const float BaseAngleDegrees = RandomStream.FRandRange(0.0f, 360.0f);
+	const float CandidateDistances[] = { 3200.0f, 2600.0f, 2000.0f, 1500.0f };
+	TArray<FVector> BestPathPoints;
+	double BestPathLength = 0.0;
+
+	for (int32 DistanceIndex = 0; DistanceIndex < UE_ARRAY_COUNT(CandidateDistances); ++DistanceIndex)
+	{
+		for (int32 DirectionIndex = 0; DirectionIndex < 8; ++DirectionIndex)
+		{
+			const float AngleRadians = FMath::DegreesToRadians(BaseAngleDegrees + DirectionIndex * 45.0f);
+			const FVector Candidate = Start + FVector(
+				FMath::Cos(AngleRadians) * CandidateDistances[DistanceIndex],
+				FMath::Sin(AngleRadians) * CandidateDistances[DistanceIndex],
+				0.0f);
+			FNavLocation ProjectedLocation;
+			if (!NavigationSystem->ProjectPointToNavigation(Candidate, ProjectedLocation, FVector(350.0f, 350.0f, 500.0f)))
+			{
+				continue;
+			}
+
+			UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(
+				World,
+				Start,
+				ProjectedLocation.Location,
+				PlayerPawn);
+			if (!Path || !Path->IsValid() || Path->IsPartial() || Path->PathPoints.Num() < 2)
+			{
+				continue;
+			}
+
+			double PathLength = 0.0;
+			for (int32 PointIndex = 1; PointIndex < Path->PathPoints.Num(); ++PointIndex)
+			{
+				PathLength += FVector::Dist(Path->PathPoints[PointIndex - 1], Path->PathPoints[PointIndex]);
+			}
+			if (PathLength > BestPathLength)
+			{
+				BestPathLength = PathLength;
+				BestPathPoints = Path->PathPoints;
+			}
+		}
+	}
+
+	if (BestPathLength < 1000.0 || BestPathPoints.Num() < 2)
+	{
+		return false;
+	}
+
+	AcceptanceRoutePoints = MoveTemp(BestPathPoints);
+	AcceptanceRoutePointIndex = 1;
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetNumberField(TEXT("seed"), ActiveRequest.Seed);
+	Fields->SetNumberField(TEXT("point_count"), AcceptanceRoutePoints.Num());
+	Fields->SetNumberField(TEXT("path_length"), BestPathLength);
+	AppendEvent(
+		IsNaturalGameplay58Profile()
+			? TEXT("natural_navigation_route_resolved")
+			: TEXT("acceptance_navigation_route_resolved"),
+		Fields);
+	return true;
+}
+
+int32 UProjectRuntimePerformanceSubsystem::SpawnAcceptanceEnemies(const FTransform& StartTransform)
+{
+	static const FName RequiredEnemyHints[] = {
+		TEXT("MeleeMale"),
+		TEXT("MeleeFemale"),
+		TEXT("RangedMale"),
+		TEXT("RangedFemale"),
+		TEXT("MageMale"),
+		TEXT("MageFemale"),
+		TEXT("MeleeMale"),
+		TEXT("RangedFemale"),
+	};
+
+	int32 SpawnCount = 0;
+	for (int32 EnemyIndex = 0; EnemyIndex < UE_ARRAY_COUNT(RequiredEnemyHints); ++EnemyIndex)
+	{
+		if (SpawnBenchmarkEnemyByClassHint(StartTransform, RequiredEnemyHints[EnemyIndex], EnemyIndex, true))
+		{
+			++SpawnCount;
+		}
+	}
+	return SpawnCount;
+}
+
+void UProjectRuntimePerformanceSubsystem::BeginAcceptanceStage(const int32 StageIndex)
+{
+	if (!FullStackStages.IsValidIndex(StageIndex))
+	{
+		FailAcceptanceScenario(TEXT("AcceptanceStageIndexInvalid"));
+		return;
+	}
+
+	ActiveAcceptanceStageIndex = StageIndex;
+	AcceptanceStageElapsedSeconds = 0.0;
+	FullStackActionElapsedSeconds = 0.0;
+	FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[StageIndex];
+	Stage.bStarted = true;
+	CurrentStageId = Stage.StageId;
+	CurrentStageName = Stage.StageName;
+	CurrentScenarioFlags.Reset();
+
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("stage_id"), Stage.StageId.ToString());
+	Fields->SetStringField(TEXT("stage_name"), Stage.StageName);
+	Fields->SetNumberField(TEXT("start_seconds"), Stage.StartSeconds);
+	Fields->SetNumberField(TEXT("end_seconds"), Stage.EndSeconds);
+	AppendEvent(TEXT("stage_started"), Fields);
+
+	UWorld* World = GetWorld();
+	APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
+	if (!PlayerPawn)
+	{
+		FailAcceptanceScenario(TEXT("AcceptancePlayerMissing"));
+		return;
+	}
+
+	if (Stage.StageId == ProjectRuntimePerformancePrivate::StageAcceptanceCombat)
+	{
+		FullStackStartTransform = PlayerPawn->GetActorTransform();
+		SpawnedEnemyCount = SpawnAcceptanceEnemies(FullStackStartTransform);
+		bAcceptanceEnemiesSpawned = SpawnedEnemyCount == 8;
+		if (!bAcceptanceEnemiesSpawned)
+		{
+			FailAcceptanceScenario(FString::Printf(TEXT("AcceptanceEnemySpawnCount:%d/8"), SpawnedEnemyCount));
+		}
+	}
+	else if (Stage.StageId == ProjectRuntimePerformancePrivate::StageAcceptanceDirtyHud)
+	{
+		bAcceptanceUiOpened = OpenFullStackHudAndChronicles();
+		bAcceptanceDirtyWorkloadStarted = true;
+		FullStackDirtyPaintApplyCount = 0;
+		bFullStackDirtyWorkloadApplied = false;
+		if (!bAcceptanceUiOpened || !ApplyFullStackDirtyPawnWorkload(PlayerPawn))
+		{
+			FailAcceptanceScenario(TEXT("AcceptanceDirtyPawnOrHudStartFailed"));
+		}
+	}
+}
+
+void UProjectRuntimePerformanceSubsystem::CompleteAcceptanceStage(const int32 StageIndex)
+{
+	if (!FullStackStages.IsValidIndex(StageIndex))
+	{
+		return;
+	}
+	FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[StageIndex];
+	Stage.bCompleted = !Stage.bFailed;
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("stage_id"), Stage.StageId.ToString());
+	Fields->SetStringField(TEXT("stage_name"), Stage.StageName);
+	Fields->SetBoolField(TEXT("success"), !Stage.bFailed);
+	Fields->SetStringField(TEXT("failure_reason"), Stage.FailureReason);
+	AppendEvent(TEXT("stage_completed"), Fields);
+}
+
+void UProjectRuntimePerformanceSubsystem::TickAcceptanceScenario(const float DeltaTime)
+{
+	if (!FullStackStages.IsValidIndex(ActiveAcceptanceStageIndex))
+	{
+		FailAcceptanceScenario(TEXT("AcceptanceStageScheduleUnavailable"));
+		return;
+	}
+
+	AcceptanceStageElapsedSeconds += DeltaTime;
+	FullStackActionElapsedSeconds += DeltaTime;
+	FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[ActiveAcceptanceStageIndex];
+
+	if (Stage.StageId != ProjectRuntimePerformancePrivate::StageAcceptanceTraversal)
+	{
+		if (FMath::Fmod(AcceptanceStageElapsedSeconds, 0.5) < DeltaTime)
+		{
+			RefreshBenchmarkEnemyAI();
+		}
+		if (FMath::Fmod(AcceptanceStageElapsedSeconds, 2.0) < DeltaTime)
+		{
+			UWorld* World = GetWorld();
+			if (APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr)
+			{
+				ApplyBenchmarkPlayerDamageGuard(PlayerPawn, true);
+				RemoveBenchmarkBlockingMenus();
+				FProjectGameplayDebugCommandExecutor::RestoreAcfHealth(PlayerPawn);
+			}
+		}
+	}
+
+	if (Stage.StageId == ProjectRuntimePerformancePrivate::StageAcceptanceDirtyHud
+		&& !bFullStackDirtyWorkloadApplied
+		&& FullStackActionElapsedSeconds >= 0.65)
+	{
+		FullStackActionElapsedSeconds = 0.0;
+		UWorld* World = GetWorld();
+		if (APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr)
+		{
+			if (!ApplyFullStackDirtyPawnWorkload(PlayerPawn))
+			{
+				FailAcceptanceScenario(TEXT("AcceptanceDirtyPawnStepFailed"));
+			}
+		}
+	}
+
+	AcceptanceIntegrityElapsedSeconds += DeltaTime;
+	if (AcceptanceIntegrityElapsedSeconds >= 1.0)
+	{
+		AcceptanceIntegrityElapsedSeconds = 0.0;
+		FString IntegrityFailure;
+		if (Stage.StageId != ProjectRuntimePerformancePrivate::StageAcceptanceTraversal
+			&& !ValidateAcceptanceIntegrity(IntegrityFailure))
+		{
+			FailAcceptanceScenario(IntegrityFailure);
+		}
+	}
+
+	if (bAcceptanceScenarioFailed && ActiveRequest.bStrictScenarioFailures)
+	{
+		FinishBenchmark(false, AcceptanceScenarioFailureReason);
+		return;
+	}
+
+	if (PhaseElapsedSeconds >= Stage.EndSeconds)
+	{
+		CompleteAcceptanceStage(ActiveAcceptanceStageIndex);
+		const int32 NextStageIndex = ActiveAcceptanceStageIndex + 1;
+		if (FullStackStages.IsValidIndex(NextStageIndex))
+		{
+			BeginAcceptanceStage(NextStageIndex);
+		}
+	}
+}
+
+bool UProjectRuntimePerformanceSubsystem::ValidateAcceptanceIntegrity(FString& OutReason) const
+{
+	const UProjectPerformanceBudgetSettings* BudgetSettings = UProjectPerformanceBudgetSettings::Get();
+	if (BudgetSettings
+		&& (BudgetSettings->bEnableRuntimeBudgeting
+			|| BudgetSettings->bApplyEnemyActorTickBudget
+			|| BudgetSettings->bApplyEnemyAnimationBudget
+			|| BudgetSettings->bApplyEnemyMovementTickBudget
+			|| BudgetSettings->bCullExcessRuntimeEnemies
+			|| BudgetSettings->bApplyWorldVfxBudget))
+	{
+		OutReason = TEXT("BLOCKED_BY_SAFETY:RuntimePerformanceBudgetEnabled");
+		return false;
+	}
+	if (!bAcceptanceRouteBuilt || AcceptanceRoutePoints.Num() < 2)
+	{
+		OutReason = TEXT("AcceptanceRouteNotBuilt");
+		return false;
+	}
+	if (CurrentStageId != ProjectRuntimePerformancePrivate::StageAcceptanceTraversal
+		&& AcceptanceTraversalDistance < 600.0)
+	{
+		OutReason = FString::Printf(TEXT("AcceptanceTraversalTooShort:%.1f"), AcceptanceTraversalDistance);
+		return false;
+	}
+
+	if (CurrentStageId != ProjectRuntimePerformancePrivate::StageAcceptanceTraversal)
+	{
+		int32 ValidEnemyCount = 0;
+		for (const TWeakObjectPtr<APawn>& EnemyPtr : SpawnedEnemies)
+		{
+			const APawn* EnemyPawn = EnemyPtr.Get();
+			if (!EnemyPawn)
+			{
+				continue;
+			}
+			++ValidEnemyCount;
+			if (!EnemyPawn->GetController())
+			{
+				OutReason = FString::Printf(TEXT("AcceptanceEnemyWithoutController:%s"), *GetNameSafe(EnemyPawn));
+				return false;
+			}
+			if (EnemyPawn->IsHidden() || EnemyPawn->GetActorEnableCollision() == false)
+			{
+				OutReason = FString::Printf(TEXT("AcceptanceEnemySuppressed:%s"), *GetNameSafe(EnemyPawn));
+				return false;
+			}
+			const ACharacter* EnemyCharacter = Cast<ACharacter>(EnemyPawn);
+			const USkeletalMeshComponent* Mesh = EnemyCharacter ? EnemyCharacter->GetMesh() : nullptr;
+			if (!Mesh || !Mesh->GetAnimInstance() || !Mesh->IsComponentTickEnabled())
+			{
+				OutReason = FString::Printf(TEXT("AcceptanceEnemyAnimationInactive:%s"), *GetNameSafe(EnemyPawn));
+				return false;
+			}
+		}
+		if (ValidEnemyCount != 8)
+		{
+			OutReason = FString::Printf(TEXT("AcceptanceEnemyCount:%d/8"), ValidEnemyCount);
+			return false;
+		}
+	}
+
+	if (CurrentStageId == ProjectRuntimePerformancePrivate::StageAcceptanceDirtyHud
+		&& (!bAcceptanceUiOpened || !bAcceptanceDirtyWorkloadStarted))
+	{
+		OutReason = TEXT("AcceptanceHudOrDirtyPawnInactive");
+		return false;
+	}
+	const bool bAtScenarioEnd = PhaseElapsedSeconds >= ResolveActiveDurationSeconds() - 0.25f;
+	if (bAtScenarioEnd
+		&& CurrentStageId == ProjectRuntimePerformancePrivate::StageAcceptanceDirtyHud
+		&& !bFullStackDirtyWorkloadApplied)
+	{
+		OutReason = FString::Printf(TEXT("AcceptanceDirtyPawnIncomplete:%d/6"), FullStackDirtyPaintApplyCount);
+		return false;
+	}
+	if (bAtScenarioEnd
+		&& CurrentStageId == ProjectRuntimePerformancePrivate::StageAcceptanceDirtyHud
+		&& FullStackEnemyToPlayerDamageCount + FullStackPlayerToEnemyDamageCount <= 0)
+	{
+		OutReason = TEXT("AcceptanceNoRealDamageEvents");
+		return false;
+	}
+
+	OutReason.Reset();
+	return true;
+}
+
+void UProjectRuntimePerformanceSubsystem::FailAcceptanceScenario(const FString& Reason)
+{
+	if (bAcceptanceScenarioFailed)
+	{
+		return;
+	}
+	bAcceptanceScenarioFailed = true;
+	AcceptanceScenarioFailureReason = Reason;
+	if (FullStackStages.IsValidIndex(ActiveAcceptanceStageIndex))
+	{
+		FProjectRuntimePerformanceFullStackStage& Stage = FullStackStages[ActiveAcceptanceStageIndex];
+		Stage.bFailed = true;
+		Stage.FailureReason = Reason;
+	}
+	TSharedPtr<FJsonObject> Fields = MakeShared<FJsonObject>();
+	Fields->SetStringField(TEXT("stage_id"), CurrentStageId.ToString());
+	Fields->SetStringField(TEXT("reason"), Reason);
+	Fields->SetBoolField(TEXT("strict"), ActiveRequest.bStrictScenarioFailures);
+	AppendEvent(TEXT("acceptance_scenario_failed"), Fields);
 }
 
 void UProjectRuntimePerformanceSubsystem::InitializeFullStackStages()
@@ -2989,24 +4367,38 @@ void UProjectRuntimePerformanceSubsystem::TrackScenarioActor(AActor* Actor)
 
 void UProjectRuntimePerformanceSubsystem::BindDamageTelemetry(AActor* Actor)
 {
-	UProjectCombatAttributeComponent* CombatAttributeComponent = Actor
-		? Actor->FindComponentByClass<UProjectCombatAttributeComponent>()
-		: nullptr;
-	if (!CombatAttributeComponent)
+	if (!Actor)
 	{
 		return;
 	}
 
-	for (const TWeakObjectPtr<UProjectCombatAttributeComponent>& ComponentPtr : BoundDamageTelemetryComponents)
+	if (UProjectCombatAttributeComponent* CombatAttributeComponent = Actor->FindComponentByClass<UProjectCombatAttributeComponent>())
 	{
-		if (ComponentPtr.Get() == CombatAttributeComponent)
+		bool bAlreadyBound = false;
+		for (const TWeakObjectPtr<UProjectCombatAttributeComponent>& ComponentPtr : BoundDamageTelemetryComponents)
 		{
-			return;
+			bAlreadyBound |= ComponentPtr.Get() == CombatAttributeComponent;
+		}
+		if (!bAlreadyBound)
+		{
+			CombatAttributeComponent->OnDamageApplied.AddUniqueDynamic(this, &ThisClass::HandleBenchmarkDamageApplied);
+			BoundDamageTelemetryComponents.Add(CombatAttributeComponent);
 		}
 	}
 
-	CombatAttributeComponent->OnDamageApplied.AddUniqueDynamic(this, &ThisClass::HandleBenchmarkDamageApplied);
-	BoundDamageTelemetryComponents.Add(CombatAttributeComponent);
+	if (UACFDamageHandlerComponent* DamageHandler = Actor->FindComponentByClass<UACFDamageHandlerComponent>())
+	{
+		bool bAlreadyBound = false;
+		for (const TWeakObjectPtr<UACFDamageHandlerComponent>& ComponentPtr : BoundAcfDamageTelemetryComponents)
+		{
+			bAlreadyBound |= ComponentPtr.Get() == DamageHandler;
+		}
+		if (!bAlreadyBound)
+		{
+			DamageHandler->OnDamageReceived.AddUniqueDynamic(this, &ThisClass::HandleAcfDamageReceived);
+			BoundAcfDamageTelemetryComponents.Add(DamageHandler);
+		}
+	}
 }
 
 bool UProjectRuntimePerformanceSubsystem::ApplyBenchmarkDamage(
@@ -3692,6 +5084,39 @@ void UProjectRuntimePerformanceSubsystem::HandleBenchmarkDamageApplied(
 	}
 }
 
+void UProjectRuntimePerformanceSubsystem::HandleAcfDamageReceived(const FACFDamageEvent& DamageEvent)
+{
+	if (DamageEvent.FinalDamage <= 0.0f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	const APawn* PlayerPawn = World ? UGameplayStatics::GetPlayerPawn(World, 0) : nullptr;
+	if (DamageEvent.DamageReceiver == PlayerPawn)
+	{
+		for (const TWeakObjectPtr<APawn>& EnemyPtr : SpawnedEnemies)
+		{
+			if (EnemyPtr.Get() == DamageEvent.DamageDealer)
+			{
+				++FullStackEnemyToPlayerDamageCount;
+				return;
+			}
+		}
+	}
+	if (DamageEvent.DamageDealer == PlayerPawn)
+	{
+		for (const TWeakObjectPtr<APawn>& EnemyPtr : SpawnedEnemies)
+		{
+			if (EnemyPtr.Get() == DamageEvent.DamageReceiver)
+			{
+				++FullStackPlayerToEnemyDamageCount;
+				return;
+			}
+		}
+	}
+}
+
 void UProjectRuntimePerformanceSubsystem::UpdateWorldSnapshot()
 {
 	UWorld* World = GetWorld();
@@ -4033,6 +5458,10 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	TArray<double> MeasuredRenderThreadMs;
 	TArray<double> MeasuredGpuMs;
 	TArray<double> SyntheticBenchmarkFrameMs;
+	TArray<double> NaturalBootstrapFrameMs;
+	TArray<double> NaturalBootstrapGameThreadMs;
+	TArray<double> NaturalBootstrapRenderThreadMs;
+	TArray<double> NaturalBootstrapGpuMs;
 	int32 ExcludedFrameSampleCount = 0;
 	int32 SyntheticBenchmarkFrameSampleCount = 0;
 	int32 ExpectedIntimacySuppressionFrameSampleCount = 0;
@@ -4068,6 +5497,22 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 			}
 		}
 	}
+	for (const FProjectRuntimePerformanceFrameSample& Sample : NaturalBootstrapSamples)
+	{
+		NaturalBootstrapFrameMs.Add(Sample.FrameMs);
+		if (Sample.GameThreadMs > 0.0)
+		{
+			NaturalBootstrapGameThreadMs.Add(Sample.GameThreadMs);
+		}
+		if (Sample.RenderThreadMs > 0.0)
+		{
+			NaturalBootstrapRenderThreadMs.Add(Sample.RenderThreadMs);
+		}
+		if (Sample.GpuMs > 0.0)
+		{
+			NaturalBootstrapGpuMs.Add(Sample.GpuMs);
+		}
+	}
 
 	double MeasuredDurationSeconds = 0.0;
 	for (const double FrameMs : MeasuredFrameMs)
@@ -4077,6 +5522,7 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 
 	LastMetrics = BuildMetrics(MeasuredFrameMs);
 	const FProjectRuntimePerformanceMetrics SyntheticBenchmarkMetrics = BuildMetrics(SyntheticBenchmarkFrameMs);
+	const FProjectRuntimePerformanceMetrics NaturalBootstrapMetrics = BuildMetrics(NaturalBootstrapFrameMs);
 
 	auto AverageValue = [](const TArray<double>& Values) -> double
 	{
@@ -4106,11 +5552,12 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 
 	TArray<FString> CsvLines;
 	CsvLines.Reserve(Samples.Num() + 1);
-	CsvLines.Add(TEXT("time_seconds,delta_seconds,frame_ms,game_thread_ms,render_thread_ms,gpu_ms,fps,used_memory_mb,stage_id,stage_name,scenario_flags,actor_count,pawn_count,benchmark_spawned_enemy_count,world_runtime_enemy_count,budget_observed_enemy_count,active_combat_enemy_count,full_rate_enemy_count,runtime_enemy_count,budget_runtime_enemy_count,budget_full_rate_enemy_count,budget_mid_rate_enemy_count,budget_far_rate_enemy_count,budget_suspended_enemy_count,budget_niagara_component_count,runtime_enemy_without_controller_count,hidden_runtime_enemy_count,collision_disabled_runtime_enemy_count,enemy_mesh_tick_disabled_count,enemy_mesh_forced_lod_count,enemy_mesh_update_rate_optimization_count,skeletal_mesh_component_count,niagara_component_count,visible_widget_count,active_status_count,chronicle_entry_count,dirty_paint_active_count,intimacy_active,lockpick_active,debug_command_count,async_loading,excluded_from_metrics,synthetic_benchmark_work,synthetic_reason,expected_intimacy_suppression,warmup"));
+	CsvLines.Add(TEXT("frame_number,time_seconds,delta_seconds,frame_ms,game_thread_ms,render_thread_ms,gpu_ms,fps,used_memory_mb,stage_id,stage_name,map_name,scenario_flags,player_x,player_y,player_z,player_speed_cm_s,traversal_distance,route_point_index,actor_count,pawn_count,benchmark_spawned_enemy_count,world_runtime_enemy_count,budget_observed_enemy_count,active_combat_enemy_count,full_rate_enemy_count,runtime_enemy_count,budget_runtime_enemy_count,budget_full_rate_enemy_count,budget_mid_rate_enemy_count,budget_far_rate_enemy_count,budget_suspended_enemy_count,budget_niagara_component_count,runtime_enemy_without_controller_count,hidden_runtime_enemy_count,collision_disabled_runtime_enemy_count,enemy_mesh_tick_disabled_count,enemy_mesh_forced_lod_count,enemy_mesh_update_rate_optimization_count,skeletal_mesh_component_count,niagara_component_count,visible_widget_count,active_status_count,chronicle_entry_count,dirty_paint_active_count,intimacy_active,lockpick_active,debug_command_count,async_loading,excluded_from_metrics,synthetic_benchmark_work,synthetic_reason,expected_intimacy_suppression,warmup"));
 	for (const FProjectRuntimePerformanceFrameSample& Sample : Samples)
 	{
 		CsvLines.Add(FString::Printf(
-			TEXT("%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%d,%s,%s,%s,%s,%s,%s"),
+			TEXT("%llu,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%s,%s,%s,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%d,%s,%s,%s,%s,%s,%s"),
+			static_cast<unsigned long long>(Sample.FrameNumber),
 			Sample.TimeSeconds,
 			Sample.DeltaSeconds,
 			Sample.FrameMs,
@@ -4121,7 +5568,14 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 			Sample.UsedMemoryMb,
 			*Sample.StageId.ToString(),
 			*Sample.StageName.Replace(TEXT(","), TEXT(";")),
+			*Sample.MapName.Replace(TEXT(","), TEXT(";")),
 			*Sample.ScenarioFlags.Replace(TEXT(","), TEXT(";")),
+			Sample.PlayerLocation.X,
+			Sample.PlayerLocation.Y,
+			Sample.PlayerLocation.Z,
+			Sample.PlayerSpeedCmPerSecond,
+			Sample.TraversalDistance,
+			Sample.RoutePointIndex,
 			Sample.ActorCount,
 			Sample.PawnCount,
 			Sample.BenchmarkSpawnedEnemyCount,
@@ -4159,6 +5613,39 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 			Sample.bWarmup ? TEXT("true") : TEXT("false")));
 	}
 	FFileHelper::SaveStringArrayToFile(CsvLines, *FPaths::Combine(RunDirectory, TEXT("samples.csv")));
+
+	TArray<FString> BootstrapCsvLines;
+	BootstrapCsvLines.Reserve(NaturalBootstrapSamples.Num() + 1);
+	BootstrapCsvLines.Add(TEXT("frame_number,total_elapsed_seconds,frame_ms,game_thread_ms,render_thread_ms,gpu_ms,fps,used_memory_mb,map_name,player_x,player_y,player_z,player_speed_cm_s,actor_count,pawn_count,skeletal_mesh_component_count,niagara_component_count,async_loading"));
+	for (const FProjectRuntimePerformanceFrameSample& Sample : NaturalBootstrapSamples)
+	{
+		BootstrapCsvLines.Add(FString::Printf(
+			TEXT("%llu,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%s,%.3f,%.3f,%.3f,%.3f,%d,%d,%d,%d,%s"),
+			static_cast<unsigned long long>(Sample.FrameNumber),
+			Sample.TimeSeconds,
+			Sample.FrameMs,
+			Sample.GameThreadMs,
+			Sample.RenderThreadMs,
+			Sample.GpuMs,
+			Sample.Fps,
+			Sample.UsedMemoryMb,
+			*Sample.MapName.Replace(TEXT(","), TEXT(";")),
+			Sample.PlayerLocation.X,
+			Sample.PlayerLocation.Y,
+			Sample.PlayerLocation.Z,
+			Sample.PlayerSpeedCmPerSecond,
+			Sample.ActorCount,
+			Sample.PawnCount,
+			Sample.SkeletalMeshComponentCount,
+			Sample.NiagaraComponentCount,
+			Sample.bAsyncLoading ? TEXT("true") : TEXT("false")));
+	}
+	if (!NaturalBootstrapSamples.IsEmpty())
+	{
+		FFileHelper::SaveStringArrayToFile(
+			BootstrapCsvLines,
+			*FPaths::Combine(RunDirectory, TEXT("bootstrap_samples.csv")));
+	}
 	WriteSystemMetricsCsv(RunDirectory, MeasuredDurationSeconds);
 
 	int32 TrackedActiveEnemyCount = 0;
@@ -4178,6 +5665,134 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	const bool bDirectAiTargeting = ShouldUseDirectBenchmarkEnemyTargeting();
 	const double PeakMemoryMb = static_cast<double>(FMath::Max(PeakPhysicalMemoryBytes, ReadPeakPhysicalMemoryBytes())) / (1024.0 * 1024.0);
 	const float DurationSeconds = ResolveActiveDurationSeconds();
+	const FString EffectiveCVarSnapshot = BuildEffectiveCVarSnapshot();
+	const FString EffectiveCVarHash = BuildEffectiveCVarHash();
+	const FProjectRuntimePerformanceGateResult GateResult = EvaluateAcceptanceMetrics(
+		LastMetrics,
+		Settings ? Settings->MinimumAverageFps : 60.0,
+		Settings ? Settings->MinimumMedianFps : 60.0,
+		Settings ? Settings->MinimumOnePercentLowFps : 55.0,
+		Settings ? Settings->MaximumP99FrameMs : 18.2,
+		Settings ? Settings->MaximumHitchesOver100Ms : 0);
+	const bool bAcceptanceProfile = IsAcceptance58Profile();
+	const bool bAcceptanceGatePassed = bAcceptanceProfile
+		&& bSuccess
+		&& !bAcceptanceScenarioFailed
+		&& GateResult.bPassed;
+
+	auto BuildHitchValues = [](
+		const TArray<FProjectRuntimePerformanceFrameSample>& SourceSamples,
+		const bool bMeasuredOnly,
+		int32& OutGameThreadDominant,
+		int32& OutRenderThreadDominant,
+		int32& OutGpuDominant,
+		int32& OutMixedOrUnknown,
+		int32& OutAsyncLoading) -> TArray<TSharedPtr<FJsonValue>>
+	{
+		TArray<const FProjectRuntimePerformanceFrameSample*> HitchSamples;
+		for (const FProjectRuntimePerformanceFrameSample& Sample : SourceSamples)
+		{
+			if (Sample.FrameMs <= 50.0
+				|| (bMeasuredOnly && (Sample.bWarmup || Sample.bExcludedFromMetrics)))
+			{
+				continue;
+			}
+			HitchSamples.Add(&Sample);
+		}
+		HitchSamples.Sort([](
+			const FProjectRuntimePerformanceFrameSample& Left,
+			const FProjectRuntimePerformanceFrameSample& Right)
+		{
+			return Left.FrameMs > Right.FrameMs;
+		});
+
+		TArray<TSharedPtr<FJsonValue>> Values;
+		const int32 ValueCount = FMath::Min(20, HitchSamples.Num());
+		Values.Reserve(ValueCount);
+		for (int32 Index = 0; Index < ValueCount; ++Index)
+		{
+			const FProjectRuntimePerformanceFrameSample& Sample = *HitchSamples[Index];
+			const double LargestThreadMs = FMath::Max3(Sample.GameThreadMs, Sample.RenderThreadMs, Sample.GpuMs);
+			FString DominantThread = TEXT("MixedOrUnknown");
+			if (LargestThreadMs > 0.0 && LargestThreadMs >= Sample.FrameMs * 0.5)
+			{
+				if (LargestThreadMs == Sample.GameThreadMs)
+				{
+					DominantThread = TEXT("GameThread");
+					++OutGameThreadDominant;
+				}
+				else if (LargestThreadMs == Sample.RenderThreadMs)
+				{
+					DominantThread = TEXT("RenderThread");
+					++OutRenderThreadDominant;
+				}
+				else
+				{
+					DominantThread = TEXT("GPU");
+					++OutGpuDominant;
+				}
+			}
+			else
+			{
+				++OutMixedOrUnknown;
+			}
+			if (Sample.bAsyncLoading)
+			{
+				++OutAsyncLoading;
+			}
+
+			TSharedRef<FJsonObject> HitchObject = MakeShared<FJsonObject>();
+			HitchObject->SetNumberField(TEXT("frame_number"), static_cast<double>(Sample.FrameNumber));
+			HitchObject->SetNumberField(TEXT("time_seconds"), Sample.TimeSeconds);
+			HitchObject->SetNumberField(TEXT("frame_ms"), Sample.FrameMs);
+			HitchObject->SetNumberField(TEXT("game_thread_ms"), Sample.GameThreadMs);
+			HitchObject->SetNumberField(TEXT("render_thread_ms"), Sample.RenderThreadMs);
+			HitchObject->SetNumberField(TEXT("gpu_ms"), Sample.GpuMs);
+			HitchObject->SetStringField(TEXT("observed_dominant_thread"), DominantThread);
+			HitchObject->SetBoolField(TEXT("async_loading"), Sample.bAsyncLoading);
+			HitchObject->SetStringField(TEXT("map"), Sample.MapName);
+			HitchObject->SetStringField(TEXT("stage_id"), Sample.StageId.ToString());
+			HitchObject->SetNumberField(TEXT("actor_count"), Sample.ActorCount);
+			HitchObject->SetNumberField(TEXT("pawn_count"), Sample.PawnCount);
+			HitchObject->SetNumberField(TEXT("world_runtime_enemy_count"), Sample.WorldRuntimeEnemyCount);
+			HitchObject->SetNumberField(TEXT("niagara_component_count"), Sample.NiagaraComponentCount);
+			HitchObject->SetNumberField(TEXT("player_x"), Sample.PlayerLocation.X);
+			HitchObject->SetNumberField(TEXT("player_y"), Sample.PlayerLocation.Y);
+			HitchObject->SetNumberField(TEXT("player_z"), Sample.PlayerLocation.Z);
+			HitchObject->SetNumberField(TEXT("player_speed_cm_s"), Sample.PlayerSpeedCmPerSecond);
+			HitchObject->SetNumberField(TEXT("traversal_distance"), Sample.TraversalDistance);
+			HitchObject->SetNumberField(TEXT("route_point_index"), Sample.RoutePointIndex);
+			Values.Add(MakeShared<FJsonValueObject>(HitchObject));
+		}
+		return Values;
+	};
+
+	int32 MeasuredGameThreadDominantHitches = 0;
+	int32 MeasuredRenderThreadDominantHitches = 0;
+	int32 MeasuredGpuDominantHitches = 0;
+	int32 MeasuredMixedOrUnknownHitches = 0;
+	int32 MeasuredAsyncLoadingHitches = 0;
+	const TArray<TSharedPtr<FJsonValue>> MeasuredHitchValues = BuildHitchValues(
+		Samples,
+		true,
+		MeasuredGameThreadDominantHitches,
+		MeasuredRenderThreadDominantHitches,
+		MeasuredGpuDominantHitches,
+		MeasuredMixedOrUnknownHitches,
+		MeasuredAsyncLoadingHitches);
+	int32 BootstrapGameThreadDominantHitches = 0;
+	int32 BootstrapRenderThreadDominantHitches = 0;
+	int32 BootstrapGpuDominantHitches = 0;
+	int32 BootstrapMixedOrUnknownHitches = 0;
+	int32 BootstrapAsyncLoadingHitches = 0;
+	const TArray<TSharedPtr<FJsonValue>> BootstrapHitchValues = BuildHitchValues(
+		NaturalBootstrapSamples,
+		false,
+		BootstrapGameThreadDominantHitches,
+		BootstrapRenderThreadDominantHitches,
+		BootstrapGpuDominantHitches,
+		BootstrapMixedOrUnknownHitches,
+		BootstrapAsyncLoadingHitches);
 
 	const TSharedRef<FJsonObject> MetricsObject = MakeShared<FJsonObject>();
 	MetricsObject->SetNumberField(TEXT("average_fps"), LastMetrics.AverageFps);
@@ -4206,6 +5821,11 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	MetricsObject->SetNumberField(TEXT("p95_render_thread_ms"), PercentileValue(MeasuredRenderThreadMs, 0.95));
 	MetricsObject->SetNumberField(TEXT("average_gpu_ms"), AverageValue(MeasuredGpuMs));
 	MetricsObject->SetNumberField(TEXT("p95_gpu_ms"), PercentileValue(MeasuredGpuMs, 0.95));
+	MetricsObject->SetNumberField(TEXT("top_hitches_game_thread_dominant"), MeasuredGameThreadDominantHitches);
+	MetricsObject->SetNumberField(TEXT("top_hitches_render_thread_dominant"), MeasuredRenderThreadDominantHitches);
+	MetricsObject->SetNumberField(TEXT("top_hitches_gpu_dominant"), MeasuredGpuDominantHitches);
+	MetricsObject->SetNumberField(TEXT("top_hitches_mixed_or_unknown"), MeasuredMixedOrUnknownHitches);
+	MetricsObject->SetNumberField(TEXT("top_hitches_during_async_loading"), MeasuredAsyncLoadingHitches);
 	MetricsObject->SetNumberField(TEXT("texture_pool_size_mb"), CurrentWorldSnapshot.TexturePoolSizeMb);
 	MetricsObject->SetNumberField(TEXT("actor_count_peak"), PeakWorldSnapshot.ActorCount);
 	MetricsObject->SetNumberField(TEXT("pawn_count_peak"), PeakWorldSnapshot.PawnCount);
@@ -4249,6 +5869,28 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	MetricsObject->SetNumberField(TEXT("player_to_enemy_damage_events"), FullStackPlayerToEnemyDamageCount);
 	MetricsObject->SetNumberField(TEXT("async_loading_sample_count"), AsyncLoadingSampleCount);
 	MetricsObject->SetNumberField(TEXT("map_travel_count"), MapTravelCount);
+
+	const TSharedRef<FJsonObject> NaturalBootstrapMetricsObject = MakeShared<FJsonObject>();
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("sample_count"), NaturalBootstrapMetrics.FrameSampleCount);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("average_fps"), NaturalBootstrapMetrics.AverageFps);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("median_fps"), NaturalBootstrapMetrics.MedianFps);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("one_percent_low_fps"), NaturalBootstrapMetrics.OnePercentLowFps);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("p95_frame_ms"), NaturalBootstrapMetrics.P95FrameMs);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("p99_frame_ms"), NaturalBootstrapMetrics.P99FrameMs);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("hitches_over_50_ms"), NaturalBootstrapMetrics.HitchesOver50Ms);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("hitches_over_100_ms"), NaturalBootstrapMetrics.HitchesOver100Ms);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("hitches_over_500_ms"), NaturalBootstrapMetrics.HitchesOver500Ms);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("average_game_thread_ms"), AverageValue(NaturalBootstrapGameThreadMs));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("p95_game_thread_ms"), PercentileValue(NaturalBootstrapGameThreadMs, 0.95));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("average_render_thread_ms"), AverageValue(NaturalBootstrapRenderThreadMs));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("p95_render_thread_ms"), PercentileValue(NaturalBootstrapRenderThreadMs, 0.95));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("average_gpu_ms"), AverageValue(NaturalBootstrapGpuMs));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("p95_gpu_ms"), PercentileValue(NaturalBootstrapGpuMs, 0.95));
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("top_hitches_game_thread_dominant"), BootstrapGameThreadDominantHitches);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("top_hitches_render_thread_dominant"), BootstrapRenderThreadDominantHitches);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("top_hitches_gpu_dominant"), BootstrapGpuDominantHitches);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("top_hitches_mixed_or_unknown"), BootstrapMixedOrUnknownHitches);
+	NaturalBootstrapMetricsObject->SetNumberField(TEXT("top_hitches_during_async_loading"), BootstrapAsyncLoadingHitches);
 
 	TArray<TSharedPtr<FJsonValue>> SegmentValues;
 	if (!FullStackStages.IsEmpty())
@@ -4367,6 +6009,20 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	MetadataObject->SetStringField(TEXT("platform"), FPlatformProperties::PlatformName());
 	MetadataObject->SetStringField(TEXT("configuration"), LexToString(FApp::GetBuildConfiguration()));
 	MetadataObject->SetStringField(TEXT("map"), GetCurrentShortMapName());
+	MetadataObject->SetStringField(TEXT("cpu"), FPlatformMisc::GetCPUBrand());
+	MetadataObject->SetStringField(TEXT("gpu"), FPlatformMisc::GetPrimaryGPUBrand());
+	MetadataObject->SetNumberField(
+		TEXT("ram_mb"),
+		static_cast<double>(FPlatformMemory::GetConstants().TotalPhysical) / (1024.0 * 1024.0));
+	MetadataObject->SetNumberField(TEXT("resolution_x"), GSystemResolution.ResX);
+	MetadataObject->SetNumberField(TEXT("resolution_y"), GSystemResolution.ResY);
+	MetadataObject->SetStringField(TEXT("rhi"), FApp::GetGraphicsRHI());
+	MetadataObject->SetStringField(TEXT("source_commit"), ActiveRequest.SourceCommit);
+	MetadataObject->SetNumberField(TEXT("seed"), ActiveRequest.Seed);
+	MetadataObject->SetStringField(TEXT("quality_preset"), ActiveRequest.QualityPreset.ToString());
+	MetadataObject->SetStringField(TEXT("effective_cvar_hash"), EffectiveCVarHash);
+	MetadataObject->SetStringField(TEXT("effective_cvars"), EffectiveCVarSnapshot);
+	MetadataObject->SetStringField(TEXT("gpu_driver"), TEXT("PENDING_RUNNER_METADATA"));
 
 	const TSharedRef<FJsonObject> SummaryObject = MakeShared<FJsonObject>();
 	SummaryObject->SetStringField(TEXT("run_id"), ActiveRunId);
@@ -4376,7 +6032,38 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	SummaryObject->SetStringField(TEXT("utc_completed"), FDateTime::UtcNow().ToIso8601());
 	SummaryObject->SetNumberField(TEXT("duration_seconds"), DurationSeconds);
 	SummaryObject->SetNumberField(TEXT("measured_duration_seconds"), MeasuredDurationSeconds);
-	SummaryObject->SetNumberField(TEXT("warmup_seconds"), Settings ? Settings->WarmupSeconds : 0.0f);
+	SummaryObject->SetNumberField(TEXT("warmup_seconds"), ResolveActiveWarmupSeconds());
+	SummaryObject->SetNumberField(TEXT("seed"), ActiveRequest.Seed);
+	SummaryObject->SetStringField(TEXT("quality_preset"), ActiveRequest.QualityPreset.ToString());
+	SummaryObject->SetStringField(TEXT("effective_cvar_hash"), EffectiveCVarHash);
+	SummaryObject->SetBoolField(TEXT("gate_evaluated"), bAcceptanceProfile);
+	SummaryObject->SetBoolField(TEXT("gate_pass"), bAcceptanceGatePassed);
+	SummaryObject->SetBoolField(
+		TEXT("scenario_pass"),
+		bSuccess && !bNaturalGameplayScenarioFailed && !bAcceptanceScenarioFailed && !bFullStackScenarioFailed);
+	SummaryObject->SetStringField(
+		TEXT("scenario_failure_reason"),
+		bNaturalGameplayScenarioFailed
+			? NaturalGameplayScenarioFailureReason
+			: (bAcceptanceScenarioFailed ? AcceptanceScenarioFailureReason : FullStackScenarioFailureReason));
+	SummaryObject->SetBoolField(TEXT("natural_gameplay_profile"), IsNaturalGameplay58Profile());
+	SummaryObject->SetBoolField(TEXT("benchmark_enemy_spawning_enabled"), !IsNaturalGameplay58Profile());
+	SummaryObject->SetBoolField(TEXT("targeted_benchmark_preload_skipped"), IsNaturalGameplay58Profile());
+	SummaryObject->SetBoolField(TEXT("uses_native_player_camera"), IsNaturalGameplay58Profile() && !BenchmarkCameraActor.IsValid());
+	SummaryObject->SetNumberField(TEXT("natural_initial_enemy_count"), NaturalInitialEnemyCount);
+	SummaryObject->SetNumberField(TEXT("natural_final_enemy_count"), WorldActiveEnemyCount);
+	SummaryObject->SetNumberField(TEXT("natural_route_reversal_count"), NaturalRouteReversalCount);
+	SummaryObject->SetNumberField(TEXT("natural_traversal_distance"), AcceptanceTraversalDistance);
+	SummaryObject->SetBoolField(TEXT("acceptance_route_built"), bAcceptanceRouteBuilt);
+	SummaryObject->SetNumberField(TEXT("acceptance_route_point_count"), AcceptanceRoutePoints.Num());
+	SummaryObject->SetNumberField(TEXT("acceptance_traversal_distance"), AcceptanceTraversalDistance);
+	SummaryObject->SetNumberField(
+		TEXT("real_damage_event_count"),
+		FullStackEnemyToPlayerDamageCount + FullStackPlayerToEnemyDamageCount);
+	SummaryObject->SetNumberField(TEXT("real_attack_input_count"), AcceptanceAttackInputCount);
+	SummaryObject->SetNumberField(TEXT("real_dodge_input_count"), AcceptanceDodgeInputCount);
+	SummaryObject->SetNumberField(TEXT("dirty_pawn_workload_steps"), FullStackDirtyPaintApplyCount);
+	SummaryObject->SetBoolField(TEXT("hud_opened"), bAcceptanceUiOpened || bFullStackHudOpened);
 	SummaryObject->SetNumberField(TEXT("enemy_spawn_count"), SpawnedEnemyCount);
 	SummaryObject->SetNumberField(TEXT("active_enemy_count"), ActiveEnemyCount);
 	SummaryObject->SetNumberField(TEXT("tracked_active_enemy_count"), TrackedActiveEnemyCount);
@@ -4393,6 +6080,7 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	SummaryObject->SetBoolField(TEXT("direct_ai_targeting"), bDirectAiTargeting);
 	SummaryObject->SetStringField(TEXT("run_directory"), RunDirectory);
 	SummaryObject->SetStringField(TEXT("samples_path"), FPaths::Combine(RunDirectory, TEXT("samples.csv")));
+	SummaryObject->SetStringField(TEXT("bootstrap_samples_path"), FPaths::Combine(RunDirectory, TEXT("bootstrap_samples.csv")));
 	SummaryObject->SetStringField(TEXT("events_path"), FPaths::Combine(RunDirectory, TEXT("events.jsonl")));
 	SummaryObject->SetStringField(TEXT("system_metrics_path"), FPaths::Combine(RunDirectory, TEXT("system_metrics.csv")));
 	SummaryObject->SetStringField(TEXT("visual_screenshot_path"), FPaths::Combine(RunDirectory, TEXT("visual_check.png")));
@@ -4402,9 +6090,18 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 	SummaryObject->SetNumberField(TEXT("benchmark_synthetic_frame_count"), SyntheticBenchmarkFrameSampleCount);
 	SummaryObject->SetNumberField(TEXT("expected_intimacy_suppression_frame_count"), ExpectedIntimacySuppressionFrameSampleCount);
 	SummaryObject->SetObjectField(TEXT("metrics"), MetricsObject);
+	SummaryObject->SetObjectField(TEXT("natural_bootstrap_metrics"), NaturalBootstrapMetricsObject);
+	SummaryObject->SetArrayField(TEXT("top_measured_hitches"), MeasuredHitchValues);
+	SummaryObject->SetArrayField(TEXT("top_bootstrap_hitches"), BootstrapHitchValues);
 	SummaryObject->SetObjectField(TEXT("metadata"), MetadataObject);
 	SummaryObject->SetArrayField(TEXT("segments"), SegmentValues);
 	SummaryObject->SetArrayField(TEXT("system_metrics"), BuildSystemMetricValues(MeasuredDurationSeconds));
+	TArray<TSharedPtr<FJsonValue>> GateFailureValues;
+	for (const FString& FailureReason : GateResult.FailureReasons)
+	{
+		GateFailureValues.Add(MakeShared<FJsonValueString>(FailureReason));
+	}
+	SummaryObject->SetArrayField(TEXT("gate_failure_reasons"), GateFailureValues);
 
 	LastSummaryJson = ProjectRuntimePerformancePrivate::JsonToString(SummaryObject);
 	FFileHelper::SaveStringToFile(LastSummaryJson, *FPaths::Combine(RunDirectory, TEXT("summary.json")));
@@ -4420,7 +6117,7 @@ void UProjectRuntimePerformanceSubsystem::WriteArtifacts(const bool bSuccess, co
 FString UProjectRuntimePerformanceSubsystem::BuildRunId() const
 {
 	const FString BenchmarkName = ActiveRequest.BenchmarkId.IsNone()
-		? ProjectRuntimePerformancePrivate::DungeonCombatStableBenchmarkId.ToString()
+		? ProjectRuntimePerformancePrivate::DungeonAcceptance58BenchmarkId.ToString()
 		: ActiveRequest.BenchmarkId.ToString();
 	return FString::Printf(
 		TEXT("%s_%s"),
@@ -4431,7 +6128,7 @@ FString UProjectRuntimePerformanceSubsystem::BuildRunId() const
 FString UProjectRuntimePerformanceSubsystem::ResolveOutputRoot() const
 {
 	const UProjectRuntimePerformanceSettings* Settings = UProjectRuntimePerformanceSettings::Get();
-	const FString RelativePath = Settings ? Settings->OutputRelativePath : TEXT("Automation/Performance");
+	const FString RelativePath = Settings ? Settings->OutputRelativePath : TEXT("Automation/Performance58");
 	return FPaths::ConvertRelativePathToFull(FPaths::IsRelative(RelativePath)
 		? FPaths::Combine(FPaths::ProjectSavedDir(), RelativePath)
 		: RelativePath);

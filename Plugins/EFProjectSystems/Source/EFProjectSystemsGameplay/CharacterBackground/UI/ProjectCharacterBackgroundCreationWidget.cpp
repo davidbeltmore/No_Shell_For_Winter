@@ -5,6 +5,7 @@
 #include "CharacterBackground/ProjectCharacterBackgroundSettings.h"
 #include "CharacterBackground/UI/ProjectCharacterBackgroundEffectEntryWidget.h"
 #include "CharacterBackground/UI/ProjectCharacterBackgroundOptionEntryWidget.h"
+#include "EFCharacterCreationSubsystem.h"
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
@@ -147,11 +148,39 @@ void UProjectCharacterBackgroundCreationWidget::NativeOnInitialized()
 void UProjectCharacterBackgroundCreationWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	if (!CharacterCreationActiveChangedHandle.IsValid())
+	{
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UEFCharacterCreationSubsystem* CharacterCreation = GameInstance->GetSubsystem<UEFCharacterCreationSubsystem>())
+			{
+				CharacterCreationActiveChangedHandle = CharacterCreation->OnCharacterCreationActiveChanged().AddUObject(
+					this,
+					&ThisClass::HandleCharacterCreationActiveChanged);
+			}
+		}
+	}
 	BuildWidgetTree();
 	InitializeVisualTree();
 	RefreshDisplay();
 	FocusCreationWidget();
 	ReapplyProjectThemeAfterNativeConstruct();
+}
+
+void UProjectCharacterBackgroundCreationWidget::NativeDestruct()
+{
+	if (CharacterCreationActiveChangedHandle.IsValid())
+	{
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UEFCharacterCreationSubsystem* CharacterCreation = GameInstance->GetSubsystem<UEFCharacterCreationSubsystem>())
+			{
+				CharacterCreation->OnCharacterCreationActiveChanged().Remove(CharacterCreationActiveChangedHandle);
+			}
+		}
+		CharacterCreationActiveChangedHandle.Reset();
+	}
+	Super::NativeDestruct();
 }
 
 FReply UProjectCharacterBackgroundCreationWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -1078,6 +1107,21 @@ void UProjectCharacterBackgroundCreationWidget::GoBack()
 
 bool UProjectCharacterBackgroundCreationWidget::HandleMenuKey(const FKey& Key)
 {
+	// StorySelection owns keyboard focus in UI-only mode. Route the established
+	// Period contract into Character Creation so TattooShop remains available
+	// here without introducing a map-specific TattooShop shortcut.
+	if (Key == EKeys::Period)
+	{
+		if (UGameInstance* GameInstance = GetGameInstance())
+		{
+			if (UEFCharacterCreationSubsystem* CharacterCreation = GameInstance->GetSubsystem<UEFCharacterCreationSubsystem>())
+			{
+				CharacterCreation->ToggleCharacterCreationMode();
+				return true;
+			}
+		}
+	}
+
 	if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up)
 	{
 		NavigateSelection(-1);
@@ -1103,6 +1147,15 @@ bool UProjectCharacterBackgroundCreationWidget::HandleMenuKey(const FKey& Key)
 	}
 
 	return false;
+}
+
+void UProjectCharacterBackgroundCreationWidget::HandleCharacterCreationActiveChanged(const bool bIsActive)
+{
+	SetVisibility(bIsActive ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	if (!bIsActive)
+	{
+		FocusCreationWidget();
+	}
 }
 
 FText UProjectCharacterBackgroundCreationWidget::BuildBackstorySubtitle(const FProjectCharacterBackstoryData& Data) const

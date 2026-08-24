@@ -5,6 +5,8 @@
 
 class UBlueprint;
 class UACFItem;
+class UDataTable;
+class UStaticMesh;
 
 UCLASS()
 class EFPROJECTSYSTEMSGAMEPLAY_API UProjectSurvivalConsumableEditorLibrary : public UBlueprintFunctionLibrary
@@ -16,5 +18,13 @@ public:
 	static bool ConfigureBlueprintAsSurvivalConsumable(UBlueprint* Blueprint);
 
 	UFUNCTION(BlueprintCallable, Category = "Survival|Editor")
-	static bool ConfigureBlueprintAsWorldItemPickup(UBlueprint* Blueprint, TSubclassOf<UACFItem> ItemClass, int32 ItemCount = 1, float MeshScale = 1.f);
+	static bool ConfigureBlueprintAsWorldItemPickup(
+		UBlueprint* Blueprint,
+		TSubclassOf<UACFItem> ItemClass,
+		UStaticMesh* WorldMesh,
+		int32 ItemCount = 1,
+		float MeshScale = 1.f);
+
+	UFUNCTION(BlueprintCallable, Category = "Survival|Editor")
+	static bool EnsureNutritionAlcoholStatusRows(UDataTable* StatusTable);
 };

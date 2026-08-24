@@ -124,6 +124,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Project|Emote")
 	int32 GetActiveEmoteValue() const;
 
+	/** Authoritative ACF AI-manager battle state used by fail-closed interactions. */
+	UFUNCTION(BlueprintPure, Category = "Project|Emote|Combat")
+	bool IsACFBattleActive() const;
+
 protected:
 	UFUNCTION()
 	void HandleTrackedPawnChanged(APawn* OldPawn, APawn* NewPawn);
@@ -170,7 +174,6 @@ private:
 	bool ShouldSkipDelayedMovementRecovery() const;
 	bool IsGamePauseBlockingEmoteFlow() const;
 	bool IsCombatBlockingEmoteMenu() const;
-	bool IsACFBattleActive() const;
 	bool TryInvokeBoolFunction(UObject* TargetObject, FName FunctionName) const;
 	void RefreshActiveEmoteInputCapture();
 	void ApplyActiveEmoteInputCapture();

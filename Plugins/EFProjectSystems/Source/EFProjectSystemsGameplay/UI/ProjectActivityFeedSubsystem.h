@@ -122,7 +122,7 @@ protected:
 	void HandleEnemyDamageApplied(AActor* SourceActor, FName DamageType, float RequestedDamage, float AppliedDamage, float RemainingValue, bool bKilledTarget);
 
 private:
-	void LoadEnemyTargetClasses();
+	bool LoadEnemyTargetClasses();
 	void TryResolveRuntimeContext();
 	void AttachToPlayerController(APlayerController* PlayerController);
 	void DetachFromTrackedPlayerController(bool bRemoveWidget);
@@ -210,6 +210,8 @@ private:
 	TObjectPtr<UActorComponent> CachedInventoryComponent;
 
 	bool bInitialEnemyScanPending = true;
+	bool bEnemyTargetClassesPending = true;
+	bool bHasPendingEnemyBindings = true;
 	bool bExpanded = false;
 	bool bHasInventorySnapshot = false;
 	bool bHasObservedExperience = false;
@@ -224,6 +226,7 @@ private:
 	double LastLevelPollTimeSeconds = -1.0;
 	double LastInventoryPollTimeSeconds = -1.0;
 	double LastEnemyAwarenessPollTimeSeconds = -1.0;
+	double NextEnemyMaintenanceTimeSeconds = 0.0;
 
 	bool bHasPendingHeal = false;
 	float PendingHealAmount = 0.0f;

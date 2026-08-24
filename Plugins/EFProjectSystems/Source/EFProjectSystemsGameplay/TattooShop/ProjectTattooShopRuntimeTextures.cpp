@@ -104,23 +104,16 @@ namespace ProjectTattooShopRuntimeTexturesPrivate
 		const int32 Y1 = FMath::Min(Y0 + 1, SourceHeight - 1);
 		const float FractionX = FMath::Clamp(SourceX - static_cast<float>(X0), 0.0f, 1.0f);
 		const float FractionY = FMath::Clamp(SourceY - static_cast<float>(Y0), 0.0f, 1.0f);
-
 		const FColor& TopLeft = SourcePixels[Y0 * SourceWidth + X0];
 		const FColor& TopRight = SourcePixels[Y0 * SourceWidth + X1];
 		const FColor& BottomLeft = SourcePixels[Y1 * SourceWidth + X0];
 		const FColor& BottomRight = SourcePixels[Y1 * SourceWidth + X1];
-
-		auto InterpolateChannel = [FractionX, FractionY](
-			const uint8 TopLeftValue,
-			const uint8 TopRightValue,
-			const uint8 BottomLeftValue,
-			const uint8 BottomRightValue) -> uint8
+		auto InterpolateChannel = [FractionX, FractionY](const uint8 TL, const uint8 TR, const uint8 BL, const uint8 BR) -> uint8
 		{
-			const float Top = FMath::Lerp(static_cast<float>(TopLeftValue), static_cast<float>(TopRightValue), FractionX);
-			const float Bottom = FMath::Lerp(static_cast<float>(BottomLeftValue), static_cast<float>(BottomRightValue), FractionX);
+			const float Top = FMath::Lerp(static_cast<float>(TL), static_cast<float>(TR), FractionX);
+			const float Bottom = FMath::Lerp(static_cast<float>(BL), static_cast<float>(BR), FractionX);
 			return static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(FMath::Lerp(Top, Bottom, FractionY)), 0, 255));
 		};
-
 		return FColor(
 			InterpolateChannel(TopLeft.R, TopRight.R, BottomLeft.R, BottomRight.R),
 			InterpolateChannel(TopLeft.G, TopRight.G, BottomLeft.G, BottomRight.G),
@@ -143,36 +136,27 @@ namespace ProjectTattooShopRuntimeTexturesPrivate
 		OutCanvasHeight = 0;
 		OutDrawWidth = 0;
 		OutDrawHeight = 0;
-
 		const int64 SourcePixelCount = static_cast<int64>(SourceWidth) * static_cast<int64>(SourceHeight);
-		if (SourceWidth <= 0
-			|| SourceHeight <= 0
+		if (SourceWidth <= 0 || SourceHeight <= 0
 			|| SourceBgraData.Num() < SourcePixelCount * static_cast<int64>(sizeof(FColor)))
 		{
 			return false;
 		}
-
 		const int32 SourceMaximumDimension = FMath::Max(SourceWidth, SourceHeight);
 		const int32 DesiredCanvasSize = FMath::RoundUpToPowerOfTwo(
 			FMath::Max(1, FMath::CeilToInt(static_cast<float>(SourceMaximumDimension) / OpaqueTattooCanvasFill)));
-		const int32 CanvasSize = FMath::Clamp(
-			DesiredCanvasSize,
-			MinimumOpaqueTattooCanvasSize,
-			MaximumOpaqueTattooCanvasSize);
+		const int32 CanvasSize = FMath::Clamp(DesiredCanvasSize, MinimumOpaqueTattooCanvasSize, MaximumOpaqueTattooCanvasSize);
 		const int32 MaximumDrawDimension = FMath::Max(1, FMath::FloorToInt(static_cast<float>(CanvasSize) * OpaqueTattooCanvasFill));
 		const float FitScale = FMath::Min(
 			static_cast<float>(MaximumDrawDimension) / static_cast<float>(SourceWidth),
 			static_cast<float>(MaximumDrawDimension) / static_cast<float>(SourceHeight));
-
 		const int32 DrawWidth = FMath::Max(1, FMath::RoundToInt(static_cast<float>(SourceWidth) * FitScale));
 		const int32 DrawHeight = FMath::Max(1, FMath::RoundToInt(static_cast<float>(SourceHeight) * FitScale));
 		const int32 DrawStartX = (CanvasSize - DrawWidth) / 2;
 		const int32 DrawStartY = (CanvasSize - DrawHeight) / 2;
-
 		OutBgraData.SetNumZeroed(static_cast<int64>(CanvasSize) * static_cast<int64>(CanvasSize) * static_cast<int64>(sizeof(FColor)));
 		const FColor* SourcePixels = reinterpret_cast<const FColor*>(SourceBgraData.GetData());
 		FColor* DestinationPixels = reinterpret_cast<FColor*>(OutBgraData.GetData());
-
 		for (int32 DestinationY = 0; DestinationY < DrawHeight; ++DestinationY)
 		{
 			const float SourceY = ((static_cast<float>(DestinationY) + 0.5f) / static_cast<float>(DrawHeight))
@@ -185,13 +169,13 @@ namespace ProjectTattooShopRuntimeTexturesPrivate
 					BilinearSampleBgra(SourcePixels, SourceWidth, SourceHeight, SourceX, SourceY);
 			}
 		}
-
 		OutCanvasWidth = CanvasSize;
 		OutCanvasHeight = CanvasSize;
 		OutDrawWidth = DrawWidth;
 		OutDrawHeight = DrawHeight;
 		return true;
 	}
+
 }
 
 bool UProjectTattooShopInputSubsystem::RequestUploadRuntimeTattooTexture()
@@ -231,6 +215,12 @@ bool UProjectTattooShopInputSubsystem::RequestUploadRuntimeTattooTexture()
 
 	RuntimeTattooTextureCache.Remove(NormalizeTattooFilePath(DestinationFilePath));
 	bRuntimeTattooCardsInitialized = false;
+	if (UsesSkinnedDecalTattooShop())
+	{
+		RefreshProjectTattooShopUI();
+		UE_LOG(LogProjectTattooShopRuntimeTextures, Display, TEXT("[TattooShop] Uploaded PNG for project-owned library: %s."), *DestinationFilePath);
+		return true;
+	}
 	const bool bRefreshed = RefreshRuntimeTattooCards(ResolveTrackedAssetPreviewWidget());
 	bRuntimeTattooCardsInitialized = bRefreshed;
 	UE_LOG(LogProjectTattooShopRuntimeTextures, Display, TEXT("[TattooShop] Uploaded PNG: %s Refresh=%d."), *DestinationFilePath, bRefreshed ? 1 : 0);
@@ -622,12 +612,12 @@ bool FProjectTattooShopOpaqueCanvasTest::RunTest(const FString& Parameters)
 			DrawHeight));
 	TestEqual(TEXT("Opaque tattoo canvas is square"), CanvasWidth, CanvasHeight);
 	TestTrue(TEXT("Opaque tattoo canvas has transparent padding"), DrawWidth < CanvasWidth && DrawHeight < CanvasHeight);
-
 	const FColor* CanvasColors = reinterpret_cast<const FColor*>(CanvasPixels.GetData());
 	TestEqual(TEXT("Opaque tattoo canvas corner is transparent"), CanvasColors[0].A, static_cast<uint8>(0));
 	TestTrue(
 		TEXT("Opaque tattoo image remains visible at canvas center"),
-		CanvasColors[(CanvasHeight / 2) * CanvasWidth + CanvasWidth / 2].A == ProjectTattooShopRuntimeTexturesPrivate::FullyOpaqueAlpha);
+		CanvasColors[(CanvasHeight / 2) * CanvasWidth + CanvasWidth / 2].A
+			== ProjectTattooShopRuntimeTexturesPrivate::FullyOpaqueAlpha);
 
 	TArray64<uint8> TransparentPixels = OpaquePixels;
 	reinterpret_cast<FColor*>(TransparentPixels.GetData())[0].A = 0;
@@ -975,7 +965,7 @@ void UProjectTattooShopInputSubsystem::DismissDeleteTattooTextureMenu()
 bool UProjectTattooShopInputSubsystem::DeleteTattooTexture(UTexture2D* Texture, const FString& DisplayName)
 {
 	UUserWidget* PreviewWidget = ResolveTrackedAssetPreviewWidget();
-	if (!IsValid(PreviewWidget) || !IsValid(Texture))
+	if ((!UsesSkinnedDecalTattooShop() && !IsValid(PreviewWidget)) || !IsValid(Texture))
 	{
 		return false;
 	}
@@ -989,6 +979,11 @@ bool UProjectTattooShopInputSubsystem::DeleteTattooTexture(UTexture2D* Texture, 
 			return false;
 		}
 		RuntimeTattooTextureCache.Remove(RuntimeFilePath);
+		if (UsesSkinnedDecalTattooShop())
+		{
+			RefreshProjectTattooShopUI();
+			return true;
+		}
 		SetRuntimeWidgetObjectProperty(PreviewWidget, ProjectTattooShopRuntimeTexturesPrivate::SelectedAssetTexturePropertyName, nullptr);
 		SetRuntimeWidgetTextProperty(PreviewWidget, ProjectTattooShopRuntimeTexturesPrivate::SelectedAssetNamePropertyName, FText::GetEmpty());
 		bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(PreviewWidget);

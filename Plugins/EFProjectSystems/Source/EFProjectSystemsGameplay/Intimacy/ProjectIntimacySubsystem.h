@@ -5,6 +5,7 @@
 #include "ContentPolicy/ProjectOptionalMatureContentProvider.h"
 #include "InputCoreTypes.h"
 #include "Intimacy/ProjectIntimacyTypes.h"
+#include "Social/ProjectSocialTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Tickable.h"
 #include "ProjectIntimacySubsystem.generated.h"
@@ -15,6 +16,7 @@ class APawn;
 class UDataTable;
 class UInputComponent;
 class UProjectEmoteComponent;
+class UProjectInnerDoctrineComponent;
 class UProjectIntimacyHudWidget;
 class UProjectIntimacyPartnerComponent;
 class UProjectIntimacySaveGame;
@@ -29,7 +31,8 @@ struct FProjectIntimacyResolvedOption
 	EProjectIntimacyTalkAction TalkAction = EProjectIntimacyTalkAction::None;
 	FName CategoryId = NAME_None;
 	FGameplayTagContainer TalkTags;
-	float SessionProgressGain = 0.0f;
+	float ClimaxGain = 0.0f;
+	EProjectIntimacyClimaxTarget ClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
 	int32 AffectDelta = 0;
 	float AnimationRate = 1.0f;
 	bool bCanBeCorrectTalkOption = true;
@@ -39,17 +42,29 @@ struct FProjectIntimacyResolvedOption
 
 struct FProjectIntimacyRuntimeSession
 {
+	TWeakObjectPtr<AActor> PlayerActor;
 	TWeakObjectPtr<AActor> PartnerActor;
 	TWeakObjectPtr<UProjectIntimacyPartnerComponent> PartnerComponent;
+	TWeakObjectPtr<UProjectInnerDoctrineComponent> CurseDoctrineComponent;
 	FString PartnerId;
-	float SessionProgress = 0.0f;
-	float SessionProgressPerSecond = 0.0f;
+	float PlayerClimax = 0.0f;
+	float PartnerClimax = 0.0f;
+	float ClimaxMaximum = 100.0f;
+	float PlayerClimaxPerSecond = 0.0f;
+	float PartnerClimaxPerSecond = 0.0f;
 	float SessionTimeSeconds = 0.0f;
 	float AnimationRate = 1.0f;
-	float SessionPeak = 0.0f;
-	float SessionPeakThreshold = 25.0f;
-	float SessionPeakMultiplier = 1.0f;
-	float SessionPeakRecoveryRemaining = 0.0f;
+	float ClimaxIntensityMultiplier = 1.0f;
+	float OrgasmRushRemaining = 0.0f;
+	EProjectIntimacySessionState SessionState = EProjectIntimacySessionState::BuildingClimax;
+	EProjectIntimacyClimaxTarget OrgasmRushTarget = EProjectIntimacyClimaxTarget::Partner;
+	bool bPlayerOrgasmRush = false;
+	bool bPartnerOrgasmRush = false;
+	float LastOrgasmEventTimeSeconds = -FLT_MAX;
+	int32 PlayerSessionOrgasmCount = 0;
+	int32 PartnerSessionOrgasmCount = 0;
+	float CurseUpdateAccumulator = 0.0f;
+	float HudRefreshAccumulator = 0.0f;
 	EProjectIntimacyPersonality EffectivePersonality = EProjectIntimacyPersonality::Nice;
 	float TalkCooldownRemaining = 0.0f;
 	FName CorrectTalkOptionId = NAME_None;
@@ -58,8 +73,8 @@ struct FProjectIntimacyRuntimeSession
 	FName ActiveItemCategoryId = NAME_None;
 	int32 SelectedOptionIndex = 0;
 	bool bHudVisible = false;
-	bool bSatisfied = false;
 	bool bPleaseActive = false;
+	EProjectIntimacyClimaxTarget PleaseClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
 	int32 PleaseAttemptIndex = 0;
 	int32 PleaseSuccessCount = 0;
 	float PleaseElapsedSeconds = 0.0f;
@@ -68,6 +83,19 @@ struct FProjectIntimacyRuntimeSession
 	float PleaseTargetCenter = 0.5f;
 	float PleaseTargetHalfRange = 0.08f;
 	FText StatusText;
+};
+
+struct FProjectIntimacySocialOverrideState
+{
+	TWeakObjectPtr<AActor> PlayerActor;
+	TWeakObjectPtr<AActor> PartnerActor;
+	FProjectSocialParticipantState PlayerState;
+	FProjectSocialParticipantState PartnerState;
+	bool bPlayerWasRegistered = false;
+	bool bPartnerWasRegistered = false;
+	bool bPlayerOriginallyConsented = false;
+	bool bPartnerOriginallyConsented = false;
+	bool bActive = false;
 };
 
 UCLASS()
@@ -118,6 +146,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Project|Intimacy")
 	float GetCurrentSessionPeak() const;
 
+	UFUNCTION(BlueprintPure, Category = "Project|Intimacy|Climax")
+	float GetPlayerClimax() const;
+
+	UFUNCTION(BlueprintPure, Category = "Project|Intimacy|Climax")
+	float GetPartnerClimax() const;
+
+	UFUNCTION(BlueprintPure, Category = "Project|Intimacy|Climax")
+	bool IsOrgasmRushActive() const;
+
 	UFUNCTION(BlueprintPure, Category = "Project|Intimacy")
 	float GetTalkCooldownRemaining() const;
 
@@ -138,6 +175,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Project|Intimacy|Automation")
 	bool ForceSessionPeakForAutomation();
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Intimacy|Automation")
+	bool ForcePartnerOrgasmForAutomation();
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Intimacy|Automation")
+	bool ForcePlayerOrgasmForAutomation();
 
 	UFUNCTION(BlueprintCallable, Category = "Project|Intimacy")
 	void RequestToggleHud();
@@ -191,11 +234,11 @@ private:
 	void DetachFromTrackedPlayerController();
 	void BindInputToTrackedPlayerController();
 	void UnbindInputFromTrackedPlayerController();
+	void SetSessionNavigationInputCaptureEnabled(bool bEnabled);
 	bool ResolveActiveIntimacyPartner(AActor*& OutPartnerActor, UProjectIntimacyPartnerComponent*& OutPartnerComponent) const;
 	void StartSession(AActor* PartnerActor, UProjectIntimacyPartnerComponent* PartnerComponent);
 	void UpdateActiveSession(float DeltaTime);
 	void EndSession(bool bCancelled);
-	void FinishSatisfiedSession();
 	void CancelActiveSession();
 	void EnsureHudWidget();
 	void RefreshHudWidget();
@@ -213,9 +256,10 @@ private:
 	void StartPlease();
 	void StartNextPleaseAttempt();
 	void ResolvePleasePress();
-	void ApplySessionProgress(float Amount, const FText& ReasonText);
-	void UpdateSessionPeakIntensity(float DeltaTime);
-	void TriggerSessionPeak(int32 PeakCount);
+	void ApplyClimaxGain(EProjectIntimacyClimaxTarget Target, float Amount, const FText& ReasonText);
+	void UpdateOrgasmRushState(float DeltaTime);
+	void TriggerOrgasm(EProjectIntimacyClimaxTarget Target, int32 OrgasmCount);
+	void UpdateCurseRecovery(float DeltaTime);
 	float ComputeEffectiveAnimationRate() const;
 	void ApplyAnimationRate(float NewRate);
 	void RestoreAnimationRates();
@@ -235,16 +279,22 @@ private:
 	FProjectIntimacyEligibilityContext BuildEligibilityContext(
 		AActor* PartnerActor,
 		const UProjectIntimacyPartnerComponent* PartnerComponent) const;
+	bool IsCharismaMasteryTargetRoute(
+		AActor* PartnerActor,
+		const UProjectIntimacyPartnerComponent* PartnerComponent) const;
+	bool IsCharismaTargetedPartnerClass(const AActor* PartnerActor) const;
+	UProjectIntimacyPartnerComponent* ResolveOrCreateTargetParticipant(AActor* PartnerActor) const;
 	void RegisterSocialParticipants(
 		AActor* PartnerActor,
 		const UProjectIntimacyPartnerComponent* PartnerComponent,
 		bool bEstablishConsent);
+	void RestoreCharismaSocialOverride();
 	void EnsureHubSocialProductRoute();
 	bool IsHubSocialProductMap() const;
 	bool EnsureMaturePresentationRegistered(AActor* PartnerActor, FText& OutFailureReason);
 	bool BeginIntimacySceneAction(AActor* PartnerActor);
 	void EndMaturePresentationRegistration(bool bNotifyPolicy);
-	void ClearConsentForPartner(AActor* PartnerActor);
+	void ClearConsentForPartner(AActor* PartnerActor, AActor* PlayerActorOverride = nullptr);
 	void ClearActiveSessionConsent();
 
 	void HandleToggleHudPressed();
@@ -277,6 +327,7 @@ private:
 	TObjectPtr<UProjectIntimacySaveGame> IntimacySaveGame;
 
 	FProjectIntimacyRuntimeSession ActiveSession;
+	FProjectIntimacySocialOverrideState CharismaSocialOverride;
 	TSet<FName> RuntimeUnlockedAutomaticTattooIds;
 	TArray<FProjectIntimacyResolvedOption> ResolvedOptions;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> CachedMeshRates;

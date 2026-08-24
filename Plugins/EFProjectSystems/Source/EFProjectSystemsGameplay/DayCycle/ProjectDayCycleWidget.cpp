@@ -34,6 +34,18 @@ namespace ProjectDayCycleWidgetPrivate
 		return EFProjectUIPalette::AccentMuted();
 	}
 
+	FText Format24HourTime(const float NormalizedDayProgress)
+	{
+		constexpr int32 MinutesPerDay = 24 * 60;
+		const int32 TotalMinutes = FMath::Clamp(
+			FMath::FloorToInt(FMath::Clamp(NormalizedDayProgress, 0.0f, 1.0f) * static_cast<float>(MinutesPerDay)),
+			0,
+			MinutesPerDay - 1);
+		const int32 Hours = TotalMinutes / 60;
+		const int32 Minutes = TotalMinutes % 60;
+		return FText::FromString(FString::Printf(TEXT("%02d:%02d"), Hours, Minutes));
+	}
+
 	UTextBlock* AddPhaseLabel(UWidgetTree* WidgetTree, UHorizontalBox* Parent, const FName Name, const FText& Text)
 	{
 		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), Name);
@@ -90,7 +102,14 @@ void UProjectDayCycleWidget::ApplySnapshot(const FProjectDayCycleSnapshot& Snaps
 		return;
 	}
 
-	DayText->SetText(FText::Format(LOCTEXT("DayLabel", "DAY {0}"), FText::AsNumber(Snapshot.DayNumber)));
+	DayText->SetText(FText::Format(
+		LOCTEXT("DayAndFloorLabel", "DAY {0} - FLOOR {1}"),
+		FText::AsNumber(Snapshot.DayNumber),
+		FText::AsNumber(Snapshot.FloorNumber)));
+	if (CurrentTimeText)
+	{
+		CurrentTimeText->SetText(ProjectDayCycleWidgetPrivate::Format24HourTime(Snapshot.NormalizedDayProgress));
+	}
 
 	const float SegmentPosition = FMath::Clamp(Snapshot.NormalizedDayProgress, 0.0f, 1.0f) * 3.0f;
 	UpdateSegment(MorningBar, MorningLabel, FMath::Clamp(SegmentPosition, 0.0f, 1.0f), Snapshot.Phase == EProjectDayPhase::Morning, ProjectDayCycleWidgetPrivate::MorningColor());
@@ -110,7 +129,7 @@ void UProjectDayCycleWidget::BuildWidgetTree()
 
 	USizeBox* FrameSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("DayCycleFrameSize"));
 	FrameSize->SetWidthOverride(420.0f);
-	FrameSize->SetHeightOverride(88.0f);
+	FrameSize->SetHeightOverride(104.0f);
 	if (UCanvasPanelSlot* FrameSlot = RootCanvas->AddChildToCanvas(FrameSize))
 	{
 		FrameSlot->SetAnchors(FAnchors(0.5f, 0.0f));
@@ -135,6 +154,16 @@ void UProjectDayCycleWidget::BuildWidgetTree()
 	if (UVerticalBoxSlot* DayTextSlot = Content->AddChildToVerticalBox(DayText))
 	{
 		DayTextSlot->SetHorizontalAlignment(HAlign_Fill);
+	}
+
+	CurrentTimeText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CurrentTimeText"));
+	CurrentTimeText->SetText(LOCTEXT("InitialTimeLabel", "00:00"));
+	CurrentTimeText->SetJustification(ETextJustify::Center);
+	CurrentTimeText->SetColorAndOpacity(FSlateColor(EFProjectUIPalette::MutedText(0.92f)));
+	CurrentTimeText->SetFont(FCoreStyle::GetDefaultFontStyle(TEXT("Regular"), 11));
+	if (UVerticalBoxSlot* CurrentTimeSlot = Content->AddChildToVerticalBox(CurrentTimeText))
+	{
+		CurrentTimeSlot->SetHorizontalAlignment(HAlign_Fill);
 	}
 
 	UHorizontalBox* Labels = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("PhaseLabels"));

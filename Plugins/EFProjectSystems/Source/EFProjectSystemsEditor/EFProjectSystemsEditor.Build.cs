@@ -27,6 +27,7 @@ public class EFProjectSystemsEditor : ModuleRules
 			"EFProjectSystemsCore",
 			"EFProjectSystemsGameplay",
 			"EFProjectSystemsUI",
+			"EFProceduralRuntime",
 			"EFProceduralEditor"
 		});
 
@@ -41,6 +42,7 @@ public class EFProjectSystemsEditor : ModuleRules
 			"IKRigEditor",
 			"Json",
 			"JsonUtilities",
+			"RenderCore",
 			"UMG",
 			"Slate",
 			"SlateCore",

@@ -1,6 +1,8 @@
 #include "AbilitySystemComponent.h"
 #include "Actors/ACFCharacter.h"
+#include "Calysto/ProjectCalystoPopulationBridgeV4.h"
 #include "EFCharacterCreationGameplayHooks.h"
+#include "Features/IModularFeatures.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayTagContainer.h"
 #include "Intimacy/ProjectIntimacyPartnerComponent.h"
@@ -77,10 +79,22 @@ public:
 	virtual void StartupModule() override
 	{
 		IdentityChangedHandle = EFCharacterCreationGameplayHooks::OnIdentityChanged().AddStatic(&ProjectSystemsGameplayModulePrivate::HandleCharacterCreationIdentityChanged);
+		check(!CalystoPopulationBridgeV4.IsValid());
+		CalystoPopulationBridgeV4 = MakeUnique<FProjectCalystoPopulationBridgeV4>();
+		IModularFeatures::Get().RegisterModularFeature(
+			IEFCalystoPopulationBridgeV4::GetModularFeatureName(),
+			CalystoPopulationBridgeV4.Get());
 	}
 
 	virtual void ShutdownModule() override
 	{
+		if (CalystoPopulationBridgeV4.IsValid())
+		{
+			IModularFeatures::Get().UnregisterModularFeature(
+				IEFCalystoPopulationBridgeV4::GetModularFeatureName(),
+				CalystoPopulationBridgeV4.Get());
+			CalystoPopulationBridgeV4.Reset();
+		}
 		if (IdentityChangedHandle.IsValid())
 		{
 			EFCharacterCreationGameplayHooks::OnIdentityChanged().Remove(IdentityChangedHandle);
@@ -90,6 +104,7 @@ public:
 
 private:
 	FDelegateHandle IdentityChangedHandle;
+	TUniquePtr<FProjectCalystoPopulationBridgeV4> CalystoPopulationBridgeV4;
 };
 
 IMPLEMENT_MODULE(FEFProjectSystemsGameplayModule, EFProjectSystemsGameplay)

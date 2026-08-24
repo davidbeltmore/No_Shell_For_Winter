@@ -1,6 +1,10 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Survival/ProjectSurvivalNeedsComponent.h"
+#include "Survival/ProjectSurvivalNeedsSettings.h"
+#include "Survival/ProjectSurvivalNeedsWidget.h"
+#include "Survival/ProjectSurvivalStatusCatalog.h"
 #include "Survival/ProjectSurvivalStatusComponent.h"
 #include "Survival/ProjectSurvivalStatusSettings.h"
 #include "Survival/ProjectSurvivalStatusTypes.h"
@@ -160,6 +164,104 @@ bool FProjectSurvivalStatusInvertedInputMagnitudeTest::RunTest(const FString& Pa
 		FMath::IsNearlyEqual(
 			UProjectSurvivalStatusComponent::AutomationResolveInvertedMovementInput(-0.35f),
 			0.35f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectSurvivalThresholdHysteresisTest,
+	"NoShellForWinter.Survival.Status.ThresholdHysteresis",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectSurvivalThresholdHysteresisTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	TestFalse(TEXT("WellFed stays inactive below activation"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(false, 0.89f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.90f, 0.75f));
+	TestTrue(TEXT("WellFed activates at ninety percent"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(false, 0.90f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.90f, 0.75f));
+	TestTrue(TEXT("WellFed remains active inside hysteresis band"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(true, 0.80f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.90f, 0.75f));
+	TestFalse(TEXT("WellFed clears at seventy-five percent"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(true, 0.75f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.90f, 0.75f));
+	TestFalse(TEXT("Alcoholized stays inactive below twenty-five percent"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(false, 0.24f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.25f, 0.10f));
+	TestTrue(TEXT("Alcoholized activates at twenty-five percent"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(false, 0.25f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.25f, 0.10f));
+	TestTrue(TEXT("Alcoholized remains active while metabolizing through the hysteresis band"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(true, 0.15f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.25f, 0.10f));
+	TestFalse(TEXT("Alcoholized clears at ten percent"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(true, 0.10f, EProjectSurvivalStatusThresholdMode::AtOrAbove, 0.25f, 0.10f));
+	TestTrue(TEXT("Below-threshold mode remains available for future status definitions"), UProjectSurvivalStatusComponent::AutomationEvaluateThresholdStatus(false, 0.10f, EProjectSurvivalStatusThresholdMode::AtOrBelow, 0.10f, 0.25f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectSurvivalNutritionAlcoholDefaultsTest,
+	"NoShellForWinter.Survival.Status.NutritionAlcoholDefaults",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectSurvivalNutritionAlcoholDefaultsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+	const UProjectSurvivalNeedsSettings* NeedsSettings = UProjectSurvivalNeedsSettings::Get();
+	TestNotNull(TEXT("Needs settings should exist"), NeedsSettings);
+	if (!NeedsSettings)
+	{
+		return false;
+	}
+
+	const FProjectSurvivalSensationState* Alcohol = NeedsSettings->DefaultSensations.FindByPredicate([](const FProjectSurvivalSensationState& Sensation)
+	{
+		return Sensation.SensationName == TEXT("Alcohol");
+	});
+	TestNotNull(TEXT("Alcohol should be a default sensation"), Alcohol);
+	if (Alcohol)
+	{
+		TestTrue(TEXT("Alcohol should start empty"), FMath::IsNearlyZero(Alcohol->CurrentValue));
+		TestTrue(TEXT("Alcohol should use a one hundred point range"), FMath::IsNearlyEqual(Alcohol->MaxValue, 100.f));
+		TestTrue(TEXT("Alcohol should metabolize at 0.25 points per second"), FMath::IsNearlyEqual(Alcohol->PassiveDeltaPerSecond, -0.25f));
+	}
+	TestTrue(TEXT("Alcohol should be hidden from the Needs HUD"), NeedsSettings->HiddenHudEntryNames.Contains(TEXT("Alcohol")));
+	TestTrue(TEXT("Needs widget filter should hide Alcohol"), UProjectSurvivalNeedsWidget::IsEntryHiddenFromHud(TEXT("Alcohol")));
+	TestFalse(TEXT("Needs widget filter should keep Hunger visible"), UProjectSurvivalNeedsWidget::IsEntryHiddenFromHud(TEXT("Hunger")));
+
+	const FProjectSurvivalStatusCatalog& Catalog = GetProjectSurvivalStatusCatalog();
+	const FProjectSurvivalStatusDefinition* WellFed = Catalog.StatusDefinitions.FindByPredicate([](const FProjectSurvivalStatusDefinition& Definition)
+	{
+		return Definition.StatusName == TEXT("WellFed");
+	});
+	const FProjectSurvivalStatusDefinition* Alcoholized = Catalog.StatusDefinitions.FindByPredicate([](const FProjectSurvivalStatusDefinition& Definition)
+	{
+		return Definition.StatusName == TEXT("Alcoholized");
+	});
+	const FProjectSurvivalStatusDefinition* Starving = Catalog.StatusDefinitions.FindByPredicate([](const FProjectSurvivalStatusDefinition& Definition)
+	{
+		return Definition.StatusName == TEXT("Starving");
+	});
+	TestNotNull(TEXT("WellFed should exist"), WellFed);
+	TestNotNull(TEXT("Alcoholized should exist"), Alcoholized);
+	TestNotNull(TEXT("Legacy Starving should remain"), Starving);
+	if (WellFed)
+	{
+		TestEqual(TEXT("WellFed should use Hunger"), WellFed->SourceEntryName, FName(TEXT("Hunger")));
+		TestEqual(TEXT("WellFed should be cosmetic"), WellFed->MovementInputScale, 1.f);
+		TestEqual(TEXT("WellFed should not alter attributes"), WellFed->AttributeModifiers.Num(), 0);
+		TestEqual(TEXT("WellFed should not alter need decay"), WellFed->NeedDecayModifiers.Num(), 0);
+	}
+	if (Alcoholized)
+	{
+		TestEqual(TEXT("Alcoholized should use Alcohol"), Alcoholized->SourceEntryName, FName(TEXT("Alcohol")));
+		TestTrue(TEXT("Alcoholized should reduce movement by fifteen percent"), FMath::IsNearlyEqual(Alcoholized->MovementInputScale, 0.85f));
+		TestFalse(TEXT("Alcoholized should not invert movement"), Alcoholized->bInvertMovementInput);
+	}
+	if (Starving)
+	{
+		TestTrue(TEXT("Legacy empty-need activation remains enabled"), Starving->bTriggerAtNeedEmpty);
+		TestEqual(TEXT("Legacy Starving source remains Hunger"), Starving->SourceNeedName, FName(TEXT("Hunger")));
+	}
+
+	TestTrue(
+		TEXT("Passive metabolism should remove ten Alcohol points in forty seconds"),
+		FMath::IsNearlyEqual(UProjectSurvivalNeedsComponent::AutomationIntegrateSensationValue(30.f, 100.f, -0.25f, 40.f), 20.f));
+	TestTrue(
+		TEXT("Passive metabolism should clamp Alcohol at zero"),
+		FMath::IsNearlyZero(UProjectSurvivalNeedsComponent::AutomationIntegrateSensationValue(2.f, 100.f, -0.25f, 40.f)));
+	TestTrue(
+		TEXT("Alcohol stacking should clamp at one hundred"),
+		FMath::IsNearlyEqual(UProjectSurvivalNeedsComponent::AutomationIntegrateSensationValue(90.f, 100.f, 30.f, 1.f), 100.f));
+
 	return true;
 }
 

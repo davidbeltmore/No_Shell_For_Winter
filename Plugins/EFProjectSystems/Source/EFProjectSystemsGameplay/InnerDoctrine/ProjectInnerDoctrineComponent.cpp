@@ -120,6 +120,7 @@ void UProjectInnerDoctrineComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	PassiveCurseDecaySuppressionSources.Reset();
 	InitializeAttributeStorage();
 	RefreshCachedComponents();
 	LoadPersistentState();
@@ -145,6 +146,7 @@ void UProjectInnerDoctrineComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 		StatusComponent->ClearStatusImmunitySource(WillpowerImmunitySourceId);
 	}
 	ActiveCurseZonePresenceTokens.Reset();
+	PassiveCurseDecaySuppressionSources.Reset();
 
 	if (LocomotionOverrideComponent)
 	{
@@ -633,6 +635,31 @@ float UProjectInnerDoctrineComponent::GetCurseMax() const
 bool UProjectInnerDoctrineComponent::IsCursed() const
 {
 	return bCursedEpisodeActive;
+}
+
+bool UProjectInnerDoctrineComponent::SetPassiveCurseDecaySuppressed(
+	const FName SourceId,
+	const bool bSuppressed)
+{
+	if (SourceId.IsNone())
+	{
+		return false;
+	}
+
+	if (bSuppressed)
+	{
+		const bool bWasAlreadySuppressed =
+			PassiveCurseDecaySuppressionSources.Contains(SourceId);
+		PassiveCurseDecaySuppressionSources.Add(SourceId);
+		return !bWasAlreadySuppressed;
+	}
+
+	return PassiveCurseDecaySuppressionSources.Remove(SourceId) > 0;
+}
+
+bool UProjectInnerDoctrineComponent::IsPassiveCurseDecaySuppressed() const
+{
+	return PassiveCurseDecaySuppressionSources.Num() > 0;
 }
 
 bool UProjectInnerDoctrineComponent::RegisterCurseZonePresence(
@@ -1431,6 +1458,7 @@ void UProjectInnerDoctrineComponent::MarkCombatImpact()
 void UProjectInnerDoctrineComponent::UpdateCurse(const float DeltaTime)
 {
 	if (DeltaTime <= 0.f
+		|| IsPassiveCurseDecaySuppressed()
 		|| bCursedEpisodeActive
 		|| ActiveCurseZonePresenceTokens.Num() > 0
 		|| bCombatStateActive)

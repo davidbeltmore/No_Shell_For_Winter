@@ -16,7 +16,6 @@
 #include "InputCoreTypes.h"
 #include "Intimacy/ProjectIntimacySettings.h"
 #include "Intimacy/ProjectIntimacySubsystem.h"
-#include "Intimacy/ProjectIntimacyPartnerComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lockpicking/ProjectLockpickableComponent.h"
 #include "Locomotion/ProjectEmoteComponent.h"
@@ -1530,19 +1529,21 @@ bool UProjectEmoteSubsystem::IsCombatBlockingEmoteMenu() const
 		return false;
 	}
 
-	// T + Y is an explicit contextual interaction request. A selected enemy or
-	// companion with an Intimacy partner identity must keep the Partner/Social/
-	// Actions menu available even while ACF still reports the surrounding battle.
+	// T + Y is an explicit contextual interaction request. Bypass the combat menu
+	// lock only for a target that passes Intimacy's fail-closed request preflight.
 	if (TrackedEmoteComponent)
 	{
-		if (const AActor* CurrentTarget = TrackedEmoteComponent->GetCurrentInteractionTargetActor())
+		AActor* CurrentTarget = TrackedEmoteComponent->GetCurrentInteractionTargetActor();
+		const UWorld* World = GetWorld();
+		const UProjectIntimacySubsystem* IntimacySubsystem = World
+			? World->GetSubsystem<UProjectIntimacySubsystem>()
+			: nullptr;
+		FText FailureReason;
+		if (CurrentTarget
+			&& IntimacySubsystem
+			&& IntimacySubsystem->CanRequestIntimacyWithPartner(CurrentTarget, FailureReason))
 		{
-			const UProjectIntimacyPartnerComponent* PartnerComponent =
-				CurrentTarget->FindComponentByClass<UProjectIntimacyPartnerComponent>();
-			if (PartnerComponent && PartnerComponent->bSocialCompanion)
-			{
-				return false;
-			}
+			return false;
 		}
 	}
 

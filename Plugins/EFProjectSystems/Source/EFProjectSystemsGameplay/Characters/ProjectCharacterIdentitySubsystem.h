@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "UObject/ObjectKey.h"
 #include "ProjectCharacterIdentitySubsystem.generated.h"
 
 class AActor;
@@ -29,7 +30,7 @@ public:
 	static bool IsMaleGenderTag(FGameplayTag GenderTag);
 
 private:
-	void LoadConfiguredClasses();
+	bool LoadConfiguredClasses();
 	void ProcessExistingPawns();
 	void HandleActorSpawned(AActor* SpawnedActor);
 	bool ProcessPawn(APawn* Pawn) const;
@@ -41,6 +42,8 @@ private:
 	TArray<TSubclassOf<APawn>> MaleCharacterClasses;
 	TArray<TSubclassOf<APawn>> FemaleCharacterClasses;
 	TArray<TWeakObjectPtr<APawn>> PendingPawns;
+	TSet<TObjectKey<APawn>> ProcessedPawns;
 	float SecondsUntilNextIdentityAudit = 0.0f;
 	bool bInitialPawnScanPending = true;
+	bool bConfiguredClassesPending = true;
 };

@@ -81,7 +81,7 @@ public:
 	bool bNonHostileVerified = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Eligibility")
-	bool bOutsideCombat = true;
+	bool bOutsideCombat = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Eligibility")
 	bool bIntimacyZoneAllowed = false;

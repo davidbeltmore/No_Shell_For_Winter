@@ -38,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Sensations")
 	TArray<FProjectSurvivalSensationState> DefaultSensations;
 
+	UPROPERTY(EditAnywhere, Config, Category = "Sensations")
+	TArray<FName> HiddenHudEntryNames;
+
 	UPROPERTY(EditAnywhere, Config, Category = "Attributes")
 	TArray<FName> AffectedSecondaryAttributes;
 };

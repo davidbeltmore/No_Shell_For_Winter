@@ -39,11 +39,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Project|Intimacy")
 	void OnIntimacySnapshotApplied(const FProjectIntimacySessionSnapshot& InSnapshot);
 
+protected:
+	virtual void NativeOnProjectThemeApplied(
+		EEFProjectHUDThemePreset Preset,
+		const FProjectHUDThemeColors& Theme,
+		int32 Revision) override;
+
 private:
 	void EnsureDefaultWidgetTree();
 	void CacheNamedWidgets();
 	void RefreshVisuals();
+	void ApplyThemeColors();
+	void RefreshOptionRowsIfNeeded();
 	void RebuildOptionRows();
+	uint32 BuildOptionRowsSignature() const;
 	void StopMediaCue();
 	void UpdateMediaCue(float InDeltaTime);
 	class UTexture2D* ResolveMediaTexture(const FProjectIntimacyMediaCueRow& Cue);
@@ -76,7 +85,16 @@ private:
 	TObjectPtr<UProgressBar> SessionProgressBar;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> PartnerClimaxText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> PartnerClimaxBar;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> MetaText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> OrgasmRushText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> OptionsBox;
@@ -109,9 +127,13 @@ private:
 	TObjectPtr<class UTexture2D> ActiveMediaTexture;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<class UTexture2D>> LoadedMediaTextures;
+	TMap<FString, TObjectPtr<class UTexture2D>> SourceMediaTextureCache;
+
+	TArray<FString> SourceMediaTextureCacheOrder;
 
 	FProjectIntimacyMediaCueRow ActiveMediaCue;
 	float ActiveMediaElapsedSeconds = 0.0f;
 	bool bMediaCueActive = false;
+	uint32 LastOptionRowsSignature = 0;
+	bool bOptionRowsInitialized = false;
 };

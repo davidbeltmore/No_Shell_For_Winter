@@ -84,6 +84,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "NeuralMorphModel",
+			"Enabled": true
+		},
+		{
 			"Name": "NiagaraFluids",
 			"Enabled": true
 		},

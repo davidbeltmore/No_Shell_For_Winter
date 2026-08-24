@@ -44,6 +44,84 @@ namespace EFProjectDynamicThemePrivate
 		return FLinearColor(Color.R, Color.G, Color.B, Alpha);
 	}
 
+	FLinearColor LightenRgb(const FLinearColor& Color, const float Amount)
+	{
+		return FLinearColor(
+			FMath::Lerp(Color.R, 1.0f, Amount),
+			FMath::Lerp(Color.G, 1.0f, Amount),
+			FMath::Lerp(Color.B, 1.0f, Amount),
+			Color.A);
+	}
+
+	FLinearColor DarkenRgb(const FLinearColor& Color, const float Amount)
+	{
+		return FLinearColor(
+			FMath::Lerp(Color.R, 0.0f, Amount),
+			FMath::Lerp(Color.G, 0.0f, Amount),
+			FMath::Lerp(Color.B, 0.0f, Amount),
+			Color.A);
+	}
+
+	FLinearColor DeepRedAction(const FLinearColor& Negative, const float Intensity)
+	{
+		// Destructive actions should read as restrained burgundy in dark HUDs,
+		// not as a bright warning-orange. Keep the active theme's negative hue
+		// while suppressing green/blue and controlling luminance explicitly.
+		return FLinearColor(
+			FMath::Clamp(Negative.R * Intensity, 0.0f, 1.0f),
+			FMath::Clamp(Negative.G * Intensity * 0.40f, 0.0f, 1.0f),
+			FMath::Clamp(Negative.B * Intensity * 0.62f, 0.0f, 1.0f),
+			Negative.A);
+	}
+
+	bool IsPositiveActionName(const FString& Name)
+	{
+		return ContainsAny(Name, {
+			TEXT("AcceptButton"),
+			TEXT("AcceptLabel"),
+			TEXT("ConfirmButton"),
+			TEXT("ConfirmLabel"),
+			TEXT("PositiveButton"),
+			TEXT("PositiveLabel") });
+	}
+
+	bool IsDestructiveActionName(const FString& Name)
+	{
+		return ContainsAny(Name, {
+			TEXT("DeleteButton"),
+			TEXT("DeleteLabel"),
+			TEXT("RemoveButton"),
+			TEXT("RemoveLabel"),
+			TEXT("DangerButton"),
+			TEXT("DangerLabel") });
+	}
+
+	bool IsPrimaryActionName(const FString& Name)
+	{
+		return ContainsAny(Name, {
+			TEXT("AddButton"),
+			TEXT("EditButton"),
+			TEXT("UploadButton"),
+			TEXT("PrimaryButton") });
+	}
+
+	bool IsActionTextName(const FString& Name)
+	{
+		// Action labels are resolved before the generic "Label" semantic so
+		// their foreground stays legible over saturated button fills. Limit
+		// Add/Edit to conventional label names to avoid recoloring descriptive
+		// editor text merely because its owner contains "Editor".
+		return IsPositiveActionName(Name)
+			|| IsDestructiveActionName(Name)
+			|| ContainsAny(Name, {
+				TEXT("UploadLabel"),
+				TEXT("PrimaryLabel"),
+				TEXT("AddLabel"),
+				TEXT("AddText"),
+				TEXT("EditLabel"),
+				TEXT("EditText") });
+	}
+
 	bool IsWhiteColorMultiplier(const FLinearColor& Color)
 	{
 		return FMath::IsNearlyEqual(Color.R, 1.0f, 0.03f)
@@ -199,6 +277,10 @@ namespace EFProjectDynamicThemePrivate
 		{
 			return Theme.Warning;
 		}
+		if (IsActionTextName(Name))
+		{
+			return Theme.TitleText;
+		}
 		if (ContainsAny(Name, {
 			TEXT("Cost"),
 			TEXT("Value"),
@@ -231,16 +313,17 @@ namespace EFProjectDynamicThemePrivate
 		FButtonStyle& Style,
 		const FLinearColor& Normal,
 		const FLinearColor& Hovered,
-		const FLinearColor& Pressed)
+		const FLinearColor& Pressed,
+		const FLinearColor& Disabled)
 	{
 		SetBrushTintPreservingAlpha(Style.Normal, Normal);
 		SetBrushTintPreservingAlpha(Style.Hovered, Hovered);
 		SetBrushTintPreservingAlpha(Style.Pressed, Pressed);
-		SetBrushTintPreservingAlpha(Style.Disabled, Normal);
+		SetBrushTintPreservingAlpha(Style.Disabled, Disabled);
 		SetRoundedOutlinePreservingAlpha(Style.Normal, Hovered);
 		SetRoundedOutlinePreservingAlpha(Style.Hovered, Pressed);
 		SetRoundedOutlinePreservingAlpha(Style.Pressed, Pressed);
-		SetRoundedOutlinePreservingAlpha(Style.Disabled, Normal);
+		SetRoundedOutlinePreservingAlpha(Style.Disabled, Disabled);
 	}
 
 	UEFProjectDynamicThemeSubsystem* ResolveSubsystem(UWorld* World)
@@ -721,14 +804,55 @@ void UEFProjectDynamicThemeSubsystem::ApplyThemeToWidget(
 					| ReplaceBrushTexture(Style.Disabled, Preset);
 				if (!bHasNativeBrush)
 				{
-					if (bIsCharacterCreationTab
-						&& bIsActiveCharacterCreationTab)
+					// Character-creation tabs keep their established active/inactive
+					// semantics even if a tab happens to use an action-like name.
+					if (bIsCharacterCreationTab)
+					{
+						if (bIsActiveCharacterCreationTab)
+						{
+							TintButtonBrushes(
+								Style,
+								WithAlpha(Theme.AccentMuted, 0.98f),
+								WithAlpha(Theme.Accent, 0.99f),
+								WithAlpha(Theme.AccentSoft, 0.99f),
+								WithAlpha(Theme.SectionFill, 0.62f));
+						}
+						else
+						{
+							TintButtonBrushes(
+								Style,
+								WithAlpha(Theme.SectionFill, 0.96f),
+								WithAlpha(Theme.AccentMuted, 0.98f),
+								WithAlpha(Theme.Accent, 0.98f),
+								WithAlpha(Theme.SectionFill, 0.62f));
+						}
+					}
+					else if (IsPositiveActionName(Name))
 					{
 						TintButtonBrushes(
 							Style,
-							WithAlpha(Theme.AccentMuted, 0.98f),
+							WithAlpha(Theme.Positive, 0.98f),
+							WithAlpha(LightenRgb(Theme.Positive, 0.16f), 0.99f),
+							WithAlpha(DarkenRgb(Theme.Positive, 0.18f), 0.99f),
+							WithAlpha(Theme.SectionFill, 0.62f));
+					}
+					else if (IsDestructiveActionName(Name))
+					{
+						TintButtonBrushes(
+							Style,
+							WithAlpha(DeepRedAction(Theme.Negative, 0.48f), 0.96f),
+							WithAlpha(DeepRedAction(Theme.Negative, 0.62f), 0.99f),
+							WithAlpha(DeepRedAction(Theme.Negative, 0.36f), 0.99f),
+							WithAlpha(Theme.SectionFill, 0.62f));
+					}
+					else if (IsPrimaryActionName(Name))
+					{
+						TintButtonBrushes(
+							Style,
+							WithAlpha(Theme.AccentMuted, 0.96f),
 							WithAlpha(Theme.Accent, 0.99f),
-							WithAlpha(Theme.AccentSoft, 0.99f));
+							WithAlpha(Theme.AccentSoft, 0.99f),
+							WithAlpha(Theme.SectionFill, 0.62f));
 					}
 					else
 					{
@@ -736,7 +860,8 @@ void UEFProjectDynamicThemeSubsystem::ApplyThemeToWidget(
 							Style,
 							WithAlpha(Theme.SectionFill, 0.96f),
 							WithAlpha(Theme.AccentMuted, 0.98f),
-							WithAlpha(Theme.Accent, 0.98f));
+							WithAlpha(Theme.Accent, 0.98f),
+							WithAlpha(Theme.SectionFill, 0.62f));
 					}
 				}
 				Button->SetStyle(Style);

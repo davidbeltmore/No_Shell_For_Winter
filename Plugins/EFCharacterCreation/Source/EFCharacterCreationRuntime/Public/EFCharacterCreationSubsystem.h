@@ -14,6 +14,8 @@ class UEFCharacterCustomizationComponent;
 class UInputComponent;
 class USpringArmComponent;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FEFCharacterCreationActiveChanged, bool /* bIsActive */);
+
 UCLASS()
 class EFCHARACTERCREATIONRUNTIME_API UEFCharacterCreationSubsystem : public UGameInstanceSubsystem
 {
@@ -42,6 +44,7 @@ public:
 
 	bool IsCharacterCreationActive() const { return bIsCharacterCreationActive; }
 	UEFCharacterCustomizationComponent* GetCustomizationComponent() const { return ActiveCustomizationComponent.Get(); }
+	FEFCharacterCreationActiveChanged& OnCharacterCreationActiveChanged() { return CharacterCreationActiveChanged; }
 
 private:
 	struct FCharacterCreationSessionSnapshot
@@ -86,6 +89,7 @@ private:
 	FDelegateHandle WorldCleanupHandle;
 	FCharacterCreationSessionSnapshot SessionSnapshot;
 	bool bIsCharacterCreationActive = false;
+	FEFCharacterCreationActiveChanged CharacterCreationActiveChanged;
 	bool bHasRuntimeCustomizationState = false;
 	FCharacterCustomizationState RuntimeCustomizationState;
 

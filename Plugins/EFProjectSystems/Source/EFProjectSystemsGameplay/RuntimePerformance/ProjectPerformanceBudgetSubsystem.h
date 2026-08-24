@@ -6,7 +6,6 @@
 
 class APawn;
 class UProjectPerformanceBudgetSettings;
-struct FStreamableHandle;
 
 USTRUCT(BlueprintType)
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectPerformanceBudgetSnapshot
@@ -52,9 +51,8 @@ public:
 	FProjectPerformanceBudgetSnapshot GetLastSnapshot() const;
 
 private:
-	void ResolveRuntimeEnemyClasses();
+	void ResolveRuntimeEnemyClasses(bool bAllowSynchronousLoad);
 	void ApplyBudgets();
-	void RequestRuntimePreload(const UProjectPerformanceBudgetSettings& Settings);
 	void CollectRuntimeEnemies(TArray<APawn*>& OutEnemies) const;
 	bool IsRuntimeEnemyPawn(const APawn* Pawn) const;
 	void ApplyEnemyBudget(const TArray<APawn*>& Enemies, const UProjectPerformanceBudgetSettings& Settings);
@@ -62,8 +60,6 @@ private:
 
 private:
 	TArray<TSubclassOf<APawn>> RuntimeEnemyClasses;
-	TSharedPtr<FStreamableHandle> RuntimePreloadHandle;
 	FProjectPerformanceBudgetSnapshot LastSnapshot;
 	float UpdateAccumulatorSeconds = 0.0f;
-	bool bRuntimePreloadRequested = false;
 };

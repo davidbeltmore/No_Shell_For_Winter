@@ -15,6 +15,21 @@ enum class EProjectSurvivalStatusRefreshPolicy : uint8
 	IgnoreIfActive UMETA(DisplayName = "Ignore If Active")
 };
 
+UENUM(BlueprintType)
+enum class EProjectSurvivalStatusSourceType : uint8
+{
+	None UMETA(DisplayName = "None"),
+	Need UMETA(DisplayName = "Need"),
+	Sensation UMETA(DisplayName = "Sensation")
+};
+
+UENUM(BlueprintType)
+enum class EProjectSurvivalStatusThresholdMode : uint8
+{
+	AtOrBelow UMETA(DisplayName = "At Or Below"),
+	AtOrAbove UMETA(DisplayName = "At Or Above")
+};
+
 USTRUCT(BlueprintType)
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusAttributeModifier
 {
@@ -97,6 +112,11 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusDefinition
 		, DisplayName(TEXT(""))
 		, Description(TEXT(""))
 		, SourceNeedName(NAME_None)
+		, SourceEntryName(NAME_None)
+		, SourceType(EProjectSurvivalStatusSourceType::None)
+		, ThresholdMode(EProjectSurvivalStatusThresholdMode::AtOrBelow)
+		, ActivationThresholdNormalized(0.f)
+		, DeactivationThresholdNormalized(0.f)
 		, IconTextureAsset(nullptr)
 		, MinimalIconName(NAME_None)
 		, DamagePerSecond(0.f)
@@ -140,6 +160,21 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	FName SourceNeedName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	FName SourceEntryName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	EProjectSurvivalStatusSourceType SourceType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	EProjectSurvivalStatusThresholdMode ThresholdMode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ActivationThresholdNormalized;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DeactivationThresholdNormalized;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	TSoftObjectPtr<UTexture2D> IconTextureAsset;
@@ -248,6 +283,11 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusTableRow : public FTab
 		, DisplayName(TEXT(""))
 		, Description(TEXT(""))
 		, SourceNeedName(NAME_None)
+		, SourceEntryName(NAME_None)
+		, SourceType(EProjectSurvivalStatusSourceType::None)
+		, ThresholdMode(EProjectSurvivalStatusThresholdMode::AtOrBelow)
+		, ActivationThresholdNormalized(0.f)
+		, DeactivationThresholdNormalized(0.f)
 		, IconTextureAsset(nullptr)
 		, MinimalIconName(NAME_None)
 		, DamagePerSecond(0.f)
@@ -287,6 +327,11 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusTableRow : public FTab
 		Definition.DisplayName = DisplayName;
 		Definition.Description = Description;
 		Definition.SourceNeedName = SourceNeedName;
+		Definition.SourceEntryName = SourceEntryName;
+		Definition.SourceType = SourceType;
+		Definition.ThresholdMode = ThresholdMode;
+		Definition.ActivationThresholdNormalized = ActivationThresholdNormalized;
+		Definition.DeactivationThresholdNormalized = DeactivationThresholdNormalized;
 		Definition.IconTextureAsset = IconTextureAsset;
 		Definition.MinimalIconName = MinimalIconName;
 		Definition.DamagePerSecond = DamagePerSecond;
@@ -333,6 +378,21 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusTableRow : public FTab
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	FName SourceNeedName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	FName SourceEntryName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	EProjectSurvivalStatusSourceType SourceType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold")
+	EProjectSurvivalStatusThresholdMode ThresholdMode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ActivationThresholdNormalized;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival|Threshold", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DeactivationThresholdNormalized;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	TSoftObjectPtr<UTexture2D> IconTextureAsset;
@@ -441,6 +501,8 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusSnapshot
 		, DisplayName(TEXT(""))
 		, Description(TEXT(""))
 		, SourceNeedName(NAME_None)
+		, SourceEntryName(NAME_None)
+		, SourceType(EProjectSurvivalStatusSourceType::None)
 		, MinimalIconName(NAME_None)
 		, DamagePerSecond(0.f)
 		, RemainingDurationSeconds(0.f)
@@ -484,6 +546,12 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalStatusSnapshot
 
 	UPROPERTY(BlueprintReadOnly, Category = "Survival")
 	FName SourceNeedName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Survival")
+	FName SourceEntryName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Survival")
+	EProjectSurvivalStatusSourceType SourceType;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Survival")
 	FName MinimalIconName;

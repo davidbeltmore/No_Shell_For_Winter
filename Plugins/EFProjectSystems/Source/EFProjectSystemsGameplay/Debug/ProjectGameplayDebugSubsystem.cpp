@@ -42,6 +42,7 @@ namespace ProjectGameplayDebugSubsystemPrivate
 	const FName RootDebugOptionId(TEXT("Root.Debug"));
 	const FName RootTestOptionId(TEXT("Root.Test"));
 	const FName RootAppearanceOptionId(TEXT("Root.Appearance"));
+	const FName RootDungeonHarnessOptionId(TEXT("Root.DungeonHarness"));
 	const FName RootCancelOptionId(TEXT("Root.Cancel"));
 	const FName BackOptionId(TEXT("Navigation.Back"));
 
@@ -60,6 +61,31 @@ namespace ProjectGameplayDebugSubsystemPrivate
 	const FName TestRuntimeFpsBenchmarkOptionId(TEXT("Test.RuntimeFpsBenchmark"));
 	const FName TestFullStackOverloadBenchmarkOptionId(TEXT("Test.FullStackOverloadBenchmark"));
 	const FName AppearanceHudThemeOptionId(TEXT("Appearance.HUDTheme"));
+	const FName DungeonHarnessStatusOptionId(TEXT("DungeonHarness.Status"));
+	const FName DungeonHarnessNextFloorOptionId(TEXT("DungeonHarness.NextFloor"));
+	const FName DungeonHarnessReplayOptionId(TEXT("DungeonHarness.Replay"));
+	const FName DungeonHarnessRerollOptionId(TEXT("DungeonHarness.Reroll"));
+	const FName DungeonHarnessNewRunOptionId(TEXT("DungeonHarness.NewRandomRun"));
+	const FName DungeonHarnessSeed42OptionId(TEXT("DungeonHarness.NewSeed42"));
+	const FName DungeonHarnessJumpFloorOptionId(TEXT("DungeonHarness.JumpFloor"));
+	const FName DungeonHarnessStyleOptionId(TEXT("DungeonHarness.Style"));
+	const FName DungeonHarnessThemeOptionId(TEXT("DungeonHarness.Theme"));
+	const FName DungeonHarnessScaleBiasOptionId(TEXT("DungeonHarness.ScaleBias"));
+	const FName DungeonHarnessBranchingBiasOptionId(TEXT("DungeonHarness.BranchingBias"));
+	const FName DungeonHarnessDangerBiasOptionId(TEXT("DungeonHarness.DangerBias"));
+	const FName DungeonHarnessSafeBiasOptionId(TEXT("DungeonHarness.SafeBias"));
+	const FName DungeonHarnessAbundanceBiasOptionId(TEXT("DungeonHarness.AbundanceBias"));
+	const FName DungeonHarnessMysteryBiasOptionId(TEXT("DungeonHarness.MysteryBias"));
+	const FName DungeonHarnessClothingBiasOptionId(TEXT("DungeonHarness.ClothingBias"));
+	const FName DungeonHarnessVolatilityOptionId(TEXT("DungeonHarness.Volatility"));
+	const FName DungeonHarnessClearIntentOptionId(TEXT("DungeonHarness.ClearIntent"));
+	const FName ScaleBiasName(TEXT("Scale"));
+	const FName BranchingBiasName(TEXT("Branching"));
+	const FName DangerBiasName(TEXT("Danger"));
+	const FName SafeBiasName(TEXT("Safe"));
+	const FName AbundanceBiasName(TEXT("Abundance"));
+	const FName MysteryBiasName(TEXT("Mystery"));
+	const FName ClothingBiasName(TEXT("Clothing"));
 
 	const FString DebugSetTo100Prefix(TEXT("Debug.SetTo100."));
 	const FString DebugSetTo50Prefix(TEXT("Debug.SetTo50."));
@@ -70,6 +96,17 @@ namespace ProjectGameplayDebugSubsystemPrivate
 	const FString TestLevel5Prefix(TEXT("Test.Level5."));
 	const FString TestLevel10Prefix(TEXT("Test.Level10."));
 	const FString AppearanceHudThemePrefix(TEXT("Appearance.HUDTheme."));
+	const FString DungeonHarnessJumpFloorPrefix(TEXT("DungeonHarness.JumpFloor."));
+	const FString DungeonHarnessStylePrefix(TEXT("DungeonHarness.Style."));
+	const FString DungeonHarnessThemePrefix(TEXT("DungeonHarness.Theme."));
+	const FString DungeonHarnessScaleBiasPrefix(TEXT("DungeonHarness.ScaleBias."));
+	const FString DungeonHarnessBranchingBiasPrefix(TEXT("DungeonHarness.BranchingBias."));
+	const FString DungeonHarnessDangerBiasPrefix(TEXT("DungeonHarness.DangerBias."));
+	const FString DungeonHarnessSafeBiasPrefix(TEXT("DungeonHarness.SafeBias."));
+	const FString DungeonHarnessAbundanceBiasPrefix(TEXT("DungeonHarness.AbundanceBias."));
+	const FString DungeonHarnessMysteryBiasPrefix(TEXT("DungeonHarness.MysteryBias."));
+	const FString DungeonHarnessClothingBiasPrefix(TEXT("DungeonHarness.ClothingBias."));
+	const FString DungeonHarnessVolatilityPrefix(TEXT("DungeonHarness.Volatility."));
 
 	const FName HungerName(TEXT("Hunger"));
 	const FName ThirstName(TEXT("Thirst"));
@@ -645,9 +682,57 @@ FText UProjectGameplayDebugSubsystem::ResolveCurrentMenuTitle() const
 	{
 		return LOCTEXT("AppearanceTitle", "Appearance");
 	}
+	if (CurrentNodeId == RootDungeonHarnessOptionId)
+	{
+		return LOCTEXT("DungeonHarnessTitle", "Dungeon Harness");
+	}
 	if (CurrentNodeId == AppearanceHudThemeOptionId)
 	{
 		return LOCTEXT("HudThemeTitle", "HUD Theme");
+	}
+	if (CurrentNodeId == DungeonHarnessJumpFloorOptionId)
+	{
+		return LOCTEXT("DungeonHarnessJumpFloorTitle", "Jump Floor");
+	}
+	if (CurrentNodeId == DungeonHarnessStyleOptionId)
+	{
+		return LOCTEXT("DungeonHarnessStyleTitle", "Preferred Style");
+	}
+	if (CurrentNodeId == DungeonHarnessThemeOptionId)
+	{
+		return LOCTEXT("DungeonHarnessThemeTitle", "Preferred Theme");
+	}
+	if (CurrentNodeId == DungeonHarnessScaleBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessScaleBiasTitle", "Scale Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessBranchingBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessBranchingBiasTitle", "Branching Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessDangerBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessDangerBiasTitle", "Danger Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessSafeBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessSafeBiasTitle", "Safe Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessAbundanceBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessAbundanceBiasTitle", "Abundance Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessMysteryBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessMysteryBiasTitle", "Mystery Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessClothingBiasOptionId)
+	{
+		return LOCTEXT("DungeonHarnessClothingBiasTitle", "Clothing Bias");
+	}
+	if (CurrentNodeId == DungeonHarnessVolatilityOptionId)
+	{
+		return LOCTEXT("DungeonHarnessVolatilityTitle", "Volatility");
 	}
 	if (CurrentNodeId == DebugSetTo100OptionId)
 	{
@@ -712,7 +797,16 @@ void UProjectGameplayDebugSubsystem::BuildMenuNodeOptions(TArray<FProjectEmoteMe
 		AddVisibleOption(OutOptions, RootDebugOptionId, NAME_None, LOCTEXT("DebugLabel", "Debug"), LOCTEXT("DebugDescription", "Gameplay state, survival, combat, and status commands."), EProjectEmoteMenuNodeType::Folder, 0, TEXT("Combat"));
 		AddVisibleOption(OutOptions, RootTestOptionId, NAME_None, LOCTEXT("TestLabel", "Test"), LOCTEXT("TestDescription", "Progression shortcuts for targeted validation."), EProjectEmoteMenuNodeType::Folder, 10, TEXT("Special"));
 		AddVisibleOption(OutOptions, RootAppearanceOptionId, NAME_None, LOCTEXT("AppearanceLabel", "Appearance"), LOCTEXT("AppearanceDescription", "Preview and validate the native project HUD color profiles."), EProjectEmoteMenuNodeType::Folder, 20, TEXT("Social"));
-		AddVisibleOption(OutOptions, RootCancelOptionId, NAME_None, LOCTEXT("CancelLabel", "Cancel"), LOCTEXT("CancelDescription", "Close the gameplay debug menu."), EProjectEmoteMenuNodeType::Cancel, 30, TEXT("Cancel"));
+		AddVisibleOption(
+			OutOptions,
+			RootDungeonHarnessOptionId,
+			NAME_None,
+			LOCTEXT("DungeonHarnessLabel", "Dungeon Harness"),
+			FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusDescription(TrackedPlayerPawn.Get()),
+			EProjectEmoteMenuNodeType::Folder,
+			30,
+			TEXT("Special"));
+		AddVisibleOption(OutOptions, RootCancelOptionId, NAME_None, LOCTEXT("CancelLabel", "Cancel"), LOCTEXT("CancelDescription", "Close the gameplay debug menu."), EProjectEmoteMenuNodeType::Cancel, 40, TEXT("Cancel"));
 		return;
 	}
 
@@ -827,6 +921,185 @@ void UProjectGameplayDebugSubsystem::BuildMenuNodeOptions(TArray<FProjectEmoteMe
 		AddVisibleOption(OutOptions, TestLevel10OptionId, CurrentNodeId, LOCTEXT("RaiseLevel10Label", "Raise to Level 10"), LOCTEXT("RaiseLevel10Description", "Raise one Inner Doctrine attribute to level 10."), EProjectEmoteMenuNodeType::Folder, 10, TEXT("Special"));
 		AddVisibleOption(OutOptions, TestRuntimeFpsBenchmarkOptionId, CurrentNodeId, LOCTEXT("RuntimeFpsBenchmarkLabel", "Runtime FPS Benchmark"), LOCTEXT("RuntimeFpsBenchmarkDescription", "Run the dungeon combat performance benchmark and write FPS artifacts."), EProjectEmoteMenuNodeType::Action, 20, TEXT("Combat"));
 		AddVisibleOption(OutOptions, TestFullStackOverloadBenchmarkOptionId, CurrentNodeId, LOCTEXT("FullStackOverloadBenchmarkLabel", "Full Stack Overload Benchmark"), LOCTEXT("FullStackOverloadBenchmarkDescription", "Run the full-stack dungeon gameplay overload benchmark and write segmented FPS artifacts."), EProjectEmoteMenuNodeType::Action, 30, TEXT("Combat"));
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == RootDungeonHarnessOptionId)
+	{
+		AddVisibleOption(
+			OutOptions,
+			DungeonHarnessStatusOptionId,
+			CurrentNodeId,
+			FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusLabel(TrackedPlayerPawn.Get()),
+			FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusDescription(TrackedPlayerPawn.Get()),
+			EProjectEmoteMenuNodeType::Action,
+			0,
+			TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessNextFloorOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessNextFloorLabel", "Next Floor"), LOCTEXT("DungeonHarnessNextFloorDescription", "Advance the Floor counter and generate a completely new seeded dungeon."), EProjectEmoteMenuNodeType::Action, 10, TEXT("Combat"));
+		AddVisibleOption(OutOptions, DungeonHarnessReplayOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessReplayLabel", "Replay Same Floor"), LOCTEXT("DungeonHarnessReplayDescription", "Restore the exact frozen intent, manifest, seed, layout, enemies, and resources for this Floor."), EProjectEmoteMenuNodeType::Action, 20, TEXT("Combat"));
+		AddVisibleOption(OutOptions, DungeonHarnessRerollOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessRerollLabel", "Reroll Current Floor"), LOCTEXT("DungeonHarnessRerollDescription", "Keep the Floor counter but advance GenerationSerial and generate a new dungeon."), EProjectEmoteMenuNodeType::Action, 30, TEXT("Combat"));
+		AddVisibleOption(OutOptions, DungeonHarnessNewRunOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessNewRunLabel", "New Random Run"), LOCTEXT("DungeonHarnessNewRunDescription", "Start Floor 1 with a new positive GUID-derived RunSeed."), EProjectEmoteMenuNodeType::Action, 40, TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessSeed42OptionId, CurrentNodeId, LOCTEXT("DungeonHarnessSeed42Label", "New Test Run Seed 42"), LOCTEXT("DungeonHarnessSeed42Description", "Start a reproducible Floor 1 run using RunSeed 42."), EProjectEmoteMenuNodeType::Action, 50, TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessJumpFloorOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessJumpFloorLabel", "Jump Floor"), LOCTEXT("DungeonHarnessJumpFloorDescription", "Development-only jump to Floors 1, 10, 25, 50, 100, 101, 125, 500, or 1000 with neutral synthetic history."), EProjectEmoteMenuNodeType::Folder, 60, TEXT("Objects"));
+		AddVisibleOption(OutOptions, DungeonHarnessStyleOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessStyleLabel", "Preferred Style"), LOCTEXT("DungeonHarnessStyleDescription", "Queue Auto, Standard, Compact, or Branching as a probability bias for the next floor boundary."), EProjectEmoteMenuNodeType::Folder, 70, TEXT("Objects"));
+		AddVisibleOption(OutOptions, DungeonHarnessThemeOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessThemeLabel", "Preferred Theme"), LOCTEXT("DungeonHarnessThemeDescription", "Queue Auto, Default, Forge, or Shrine as a probability boost. It never forces the resolved Theme."), EProjectEmoteMenuNodeType::Folder, 80, TEXT("Objects"));
+		AddVisibleOption(OutOptions, DungeonHarnessScaleBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessScaleBiasLabel", "Scale Bias"), LOCTEXT("DungeonHarnessScaleBiasDescription", "Bias the Director toward smaller or larger validated layouts without selecting an exact size."), EProjectEmoteMenuNodeType::Folder, 90, TEXT("Objects"));
+		AddVisibleOption(OutOptions, DungeonHarnessBranchingBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessBranchingBiasLabel", "Branching Bias"), LOCTEXT("DungeonHarnessBranchingBiasDescription", "Bias side-path personality while preserving the V4 Style/Theme intersection and hard ranges."), EProjectEmoteMenuNodeType::Folder, 100, TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessDangerBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessDangerBiasLabel", "Danger Bias"), LOCTEXT("DungeonHarnessDangerBiasDescription", "Bias enemy presence and difficulty once through the V4 enemy bundle; the 25-enemy cap remains authoritative."), EProjectEmoteMenuNodeType::Folder, 110, TEXT("Combat"));
+		AddVisibleOption(OutOptions, DungeonHarnessSafeBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessSafeBiasLabel", "Safe Bias"), LOCTEXT("DungeonHarnessSafeBiasDescription", "Bias NPC opportunity without requesting an exact count or bypassing the party and floor caps."), EProjectEmoteMenuNodeType::Folder, 120, TEXT("Basic"));
+		AddVisibleOption(OutOptions, DungeonHarnessAbundanceBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessAbundanceBiasLabel", "Abundance Bias"), LOCTEXT("DungeonHarnessAbundanceBiasDescription", "Bias food opportunity through log-odds while preserving pity, Nothing, and the 30-food cap."), EProjectEmoteMenuNodeType::Folder, 130, TEXT("Basic"));
+		AddVisibleOption(OutOptions, DungeonHarnessMysteryBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessMysteryBiasLabel", "Mystery Bias"), LOCTEXT("DungeonHarnessMysteryBiasDescription", "Bias chest opportunity and tier tilt while preserving the permanent Nothing mass and 10-chest cap."), EProjectEmoteMenuNodeType::Folder, 140, TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessClothingBiasOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessClothingBiasLabel", "Clothing Bias"), LOCTEXT("DungeonHarnessClothingBiasDescription", "Bias clothing opportunity and tiers without selecting exact items or counts."), EProjectEmoteMenuNodeType::Folder, 150, TEXT("Objects"));
+		AddVisibleOption(OutOptions, DungeonHarnessVolatilityOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessVolatilityLabel", "Volatility"), LOCTEXT("DungeonHarnessVolatilityDescription", "Control Style/Theme blend dispersion without bypassing profile intersections or hard limits."), EProjectEmoteMenuNodeType::Folder, 160, TEXT("Special"));
+		AddVisibleOption(OutOptions, DungeonHarnessClearIntentOptionId, CurrentNodeId, LOCTEXT("DungeonHarnessClearIntentLabel", "Clear Next-Floor Intent"), LOCTEXT("DungeonHarnessClearIntentDescription", "Return the next generation to the autonomous Dungeon Director V4."), EProjectEmoteMenuNodeType::Action, 170, TEXT("Cancel"));
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == DungeonHarnessJumpFloorOptionId)
+	{
+		static constexpr int64 FloorNumbers[] = { 1, 10, 25, 50, 100, 101, 125, 500, 1000 };
+		for (int32 OptionIndex = 0; OptionIndex < UE_ARRAY_COUNT(FloorNumbers); ++OptionIndex)
+		{
+			const int64 FloorNumber = FloorNumbers[OptionIndex];
+			const FName FloorId(*FString::Printf(TEXT("%lld"), static_cast<long long>(FloorNumber)));
+			AddVisibleOption(
+				OutOptions,
+				MakeChildOptionId(DungeonHarnessJumpFloorPrefix, FloorId),
+				CurrentNodeId,
+				FProjectGameplayDebugCommandExecutor::GetDungeonHarnessFloorChoiceLabel(TrackedPlayerPawn.Get(), FloorNumber),
+				LOCTEXT("DungeonHarnessFloorChoiceDescription", "Debug-jump through the normal loading and controlled Calysto generation path."),
+				EProjectEmoteMenuNodeType::Action,
+				OptionIndex * 10,
+				TEXT("Objects"));
+		}
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == DungeonHarnessStyleOptionId)
+	{
+		struct FStyleChoice
+		{
+			const TCHAR* Id;
+			bool bAuto;
+			EEFCalystoStyleV4 Style;
+		};
+		static constexpr FStyleChoice Choices[] = {
+			{ TEXT("Auto"), true, EEFCalystoStyleV4::Standard },
+			{ TEXT("Standard"), false, EEFCalystoStyleV4::Standard },
+			{ TEXT("Compact"), false, EEFCalystoStyleV4::Compact },
+			{ TEXT("Branching"), false, EEFCalystoStyleV4::Branching }
+		};
+		for (int32 OptionIndex = 0; OptionIndex < UE_ARRAY_COUNT(Choices); ++OptionIndex)
+		{
+			const FStyleChoice& Choice = Choices[OptionIndex];
+			AddVisibleOption(
+				OutOptions,
+				MakeChildOptionId(DungeonHarnessStylePrefix, FName(Choice.Id)),
+				CurrentNodeId,
+				FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStyleChoiceLabel(
+					TrackedPlayerPawn.Get(), Choice.bAuto, Choice.Style),
+				LOCTEXT("DungeonHarnessStyleChoiceDescription", "Queue this style as a probability bias; the Director still resolves a procedural floor."),
+				EProjectEmoteMenuNodeType::Action,
+				OptionIndex * 10,
+				TEXT("Objects"));
+		}
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == DungeonHarnessThemeOptionId)
+	{
+		struct FThemeChoice
+		{
+			const TCHAR* Id;
+			bool bAuto;
+			EEFCalystoThemeV4 Theme;
+		};
+		static constexpr FThemeChoice Choices[] = {
+			{ TEXT("Auto"), true, EEFCalystoThemeV4::Default },
+			{ TEXT("Default"), false, EEFCalystoThemeV4::Default },
+			{ TEXT("Forge"), false, EEFCalystoThemeV4::Forge },
+			{ TEXT("Shrine"), false, EEFCalystoThemeV4::Shrine }
+		};
+		for (int32 OptionIndex = 0; OptionIndex < UE_ARRAY_COUNT(Choices); ++OptionIndex)
+		{
+			const FThemeChoice& Choice = Choices[OptionIndex];
+			AddVisibleOption(
+				OutOptions,
+				MakeChildOptionId(DungeonHarnessThemePrefix, FName(Choice.Id)),
+				CurrentNodeId,
+				FProjectGameplayDebugCommandExecutor::GetDungeonHarnessThemeChoiceLabel(
+					TrackedPlayerPawn.Get(), Choice.bAuto, Choice.Theme),
+				LOCTEXT("DungeonHarnessThemeChoiceDescription", "Queue this Theme as a probability boost; anti-streak and the deterministic draw remain authoritative."),
+				EProjectEmoteMenuNodeType::Action,
+				OptionIndex * 10,
+				TEXT("Objects"));
+		}
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == DungeonHarnessScaleBiasOptionId
+		|| CurrentNodeId == DungeonHarnessBranchingBiasOptionId
+		|| CurrentNodeId == DungeonHarnessDangerBiasOptionId
+		|| CurrentNodeId == DungeonHarnessSafeBiasOptionId
+		|| CurrentNodeId == DungeonHarnessAbundanceBiasOptionId
+		|| CurrentNodeId == DungeonHarnessMysteryBiasOptionId
+		|| CurrentNodeId == DungeonHarnessClothingBiasOptionId)
+	{
+		const FName BiasName = CurrentNodeId == DungeonHarnessScaleBiasOptionId ? ScaleBiasName
+			: CurrentNodeId == DungeonHarnessBranchingBiasOptionId ? BranchingBiasName
+			: CurrentNodeId == DungeonHarnessDangerBiasOptionId ? DangerBiasName
+			: CurrentNodeId == DungeonHarnessSafeBiasOptionId ? SafeBiasName
+			: CurrentNodeId == DungeonHarnessAbundanceBiasOptionId ? AbundanceBiasName
+			: CurrentNodeId == DungeonHarnessMysteryBiasOptionId ? MysteryBiasName
+			: ClothingBiasName;
+		const FString& Prefix = CurrentNodeId == DungeonHarnessScaleBiasOptionId ? DungeonHarnessScaleBiasPrefix
+			: CurrentNodeId == DungeonHarnessBranchingBiasOptionId ? DungeonHarnessBranchingBiasPrefix
+			: CurrentNodeId == DungeonHarnessDangerBiasOptionId ? DungeonHarnessDangerBiasPrefix
+			: CurrentNodeId == DungeonHarnessSafeBiasOptionId ? DungeonHarnessSafeBiasPrefix
+			: CurrentNodeId == DungeonHarnessAbundanceBiasOptionId ? DungeonHarnessAbundanceBiasPrefix
+			: CurrentNodeId == DungeonHarnessMysteryBiasOptionId ? DungeonHarnessMysteryBiasPrefix
+			: DungeonHarnessClothingBiasPrefix;
+		static constexpr float Biases[] = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
+		for (int32 OptionIndex = 0; OptionIndex < UE_ARRAY_COUNT(Biases); ++OptionIndex)
+		{
+			const float Bias = Biases[OptionIndex];
+			const FName BiasId(*FString::Printf(TEXT("%.2f"), Bias));
+			AddVisibleOption(
+				OutOptions,
+				MakeChildOptionId(Prefix, BiasId),
+				CurrentNodeId,
+				FProjectGameplayDebugCommandExecutor::GetDungeonHarnessBiasChoiceLabel(TrackedPlayerPawn.Get(), BiasName, Bias),
+				LOCTEXT("DungeonHarnessBiasChoiceDescription", "Queue this normalized bias for the next floor boundary; it never requests an exact value."),
+				EProjectEmoteMenuNodeType::Action,
+				OptionIndex * 10,
+				TEXT("Special"));
+		}
+		AddBackOption(OutOptions);
+		return;
+	}
+
+	if (CurrentNodeId == DungeonHarnessVolatilityOptionId)
+	{
+		static constexpr float Values[] = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
+		for (int32 OptionIndex = 0; OptionIndex < UE_ARRAY_COUNT(Values); ++OptionIndex)
+		{
+			const float Volatility = Values[OptionIndex];
+			const FName VolatilityId(*FString::Printf(TEXT("%.2f"), Volatility));
+			AddVisibleOption(
+				OutOptions,
+				MakeChildOptionId(DungeonHarnessVolatilityPrefix, VolatilityId),
+				CurrentNodeId,
+				FProjectGameplayDebugCommandExecutor::GetDungeonHarnessVolatilityChoiceLabel(TrackedPlayerPawn.Get(), Volatility),
+				LOCTEXT("DungeonHarnessVolatilityChoiceDescription", "Queue a normalized volatility bias: negative is more focused, positive is more dispersed, and zero keeps the Style + Theme value."),
+				EProjectEmoteMenuNodeType::Action,
+				OptionIndex * 10,
+				TEXT("Special"));
+		}
 		AddBackOption(OutOptions);
 		return;
 	}
@@ -1019,8 +1292,115 @@ bool UProjectGameplayDebugSubsystem::ExecuteCommand(const FName OptionId)
 	{
 		return FProjectGameplayDebugCommandExecutor::StartFullStackOverloadBenchmark(CommandOwner);
 	}
+	if (OptionId == DungeonHarnessStatusOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RefreshDungeonHarnessStatus(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessNextFloorOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RequestAdvanceDungeonFloor(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessReplayOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RequestReplayDungeonFloor(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessRerollOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RequestRerollDungeonFloor(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessNewRunOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RequestStartNewDungeonRun(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessSeed42OptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::RequestStartDungeonTestRun(CommandOwner);
+	}
+	if (OptionId == DungeonHarnessClearIntentOptionId)
+	{
+		return FProjectGameplayDebugCommandExecutor::ClearDungeonHarnessDirectorIntent(CommandOwner);
+	}
 
 	const FString OptionString = OptionId.ToString();
+	if (OptionString.StartsWith(DungeonHarnessJumpFloorPrefix))
+	{
+		const int64 FloorNumber = FCString::Atoi64(*OptionString.RightChop(DungeonHarnessJumpFloorPrefix.Len()));
+		return FProjectGameplayDebugCommandExecutor::RequestTravelToDungeonFloor(CommandOwner, FloorNumber);
+	}
+	if (OptionString.StartsWith(DungeonHarnessStylePrefix))
+	{
+		const FString StyleName = OptionString.RightChop(DungeonHarnessStylePrefix.Len());
+		if (StyleName.Equals(TEXT("Auto"), ESearchCase::IgnoreCase))
+		{
+			return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredStyle(
+				CommandOwner, true, EEFCalystoStyleV4::Standard);
+		}
+		const int64 StyleValue = StaticEnum<EEFCalystoStyleV4>()->GetValueByNameString(StyleName);
+		return StyleValue != INDEX_NONE
+			&& FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredStyle(
+				CommandOwner, false, static_cast<EEFCalystoStyleV4>(StyleValue));
+	}
+	if (OptionString.StartsWith(DungeonHarnessThemePrefix))
+	{
+		const FString ThemeName = OptionString.RightChop(DungeonHarnessThemePrefix.Len());
+		if (ThemeName.Equals(TEXT("Auto"), ESearchCase::IgnoreCase))
+		{
+			return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredTheme(
+				CommandOwner, true, EEFCalystoThemeV4::Default);
+		}
+		const int64 ThemeValue = StaticEnum<EEFCalystoThemeV4>()->GetValueByNameString(ThemeName);
+		return ThemeValue != INDEX_NONE
+			&& FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredTheme(
+				CommandOwner, false, static_cast<EEFCalystoThemeV4>(ThemeValue));
+	}
+	if (OptionString.StartsWith(DungeonHarnessScaleBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, ScaleBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessScaleBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessBranchingBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, BranchingBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessBranchingBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessDangerBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, DangerBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessDangerBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessSafeBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, SafeBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessSafeBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessAbundanceBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, AbundanceBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessAbundanceBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessMysteryBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, MysteryBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessMysteryBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessClothingBiasPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
+			CommandOwner, ClothingBiasName,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessClothingBiasPrefix.Len())));
+	}
+	if (OptionString.StartsWith(DungeonHarnessVolatilityPrefix))
+	{
+		return FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentVolatility(
+			CommandOwner,
+			FCString::Atof(*OptionString.RightChop(DungeonHarnessVolatilityPrefix.Len())));
+	}
 	if (OptionString.StartsWith(AppearanceHudThemePrefix))
 	{
 		EEFProjectHUDThemePreset Preset = EEFProjectHUDThemePreset::Auto;
@@ -1215,7 +1595,8 @@ void UProjectGameplayDebugSubsystem::HandleMenuOptionConfirmed(const FName Optio
 	case EProjectEmoteMenuNodeType::Action:
 		ExecuteCommand(OptionId);
 		if (IsAutomaticTattooTunerCommand(OptionId)
-			|| IsHudThemeCommand(OptionId))
+			|| IsHudThemeCommand(OptionId)
+			|| FProjectGameplayDebugCommandExecutor::IsDungeonHarnessPersistentCommand(OptionId))
 		{
 			RefreshCurrentMenuModel(OptionId);
 			return;
