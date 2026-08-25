@@ -1869,7 +1869,14 @@ void UEFCharacterCustomizationComponent::GatherTargetMeshComponents(const FMorph
 		{
 			if (USkeletalMeshComponent* MeshComponent = CachedTargetMeshComponent.Get())
 			{
-				OutMeshComponents.AddUnique(MeshComponent);
+				if (!HasExternalMorphWriter(MeshComponent))
+				{
+					OutMeshComponents.AddUnique(MeshComponent);
+				}
+				else
+				{
+					bAllTargetsStillValid = false;
+				}
 			}
 			else
 			{
@@ -1887,7 +1894,7 @@ void UEFCharacterCustomizationComponent::GatherTargetMeshComponents(const FMorph
 
 	auto TryAddMeshComponent = [this, &Entry, &OutMeshComponents](USkeletalMeshComponent* MeshComponent)
 	{
-		if (!IsValid(MeshComponent))
+		if (!IsValid(MeshComponent) || HasExternalMorphWriter(MeshComponent))
 		{
 			return;
 		}
@@ -1946,6 +1953,74 @@ void UEFCharacterCustomizationComponent::GatherTargetMeshComponents(const FMorph
 	{
 		CachedTargetMeshComponents.Add(MeshComponent);
 	}
+}
+
+bool UEFCharacterCustomizationComponent::RegisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer)
+{
+	if (!IsValid(MeshComponent) || !IsValid(Writer))
+	{
+		return false;
+	}
+
+	for (auto It = ExternalMorphWriters.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid() || !It.Value().IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	const TWeakObjectPtr<USkeletalMeshComponent> MeshKey(MeshComponent);
+	if (const TWeakObjectPtr<UObject>* ExistingWriter = ExternalMorphWriters.Find(MeshKey))
+	{
+		return ExistingWriter->Get() == Writer;
+	}
+
+	ExternalMorphWriters.Add(MeshKey, Writer);
+	MorphTargetMeshComponentCache.Reset();
+	return true;
+}
+
+void UEFCharacterCustomizationComponent::UnregisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer)
+{
+	if (!IsValid(MeshComponent) || !IsValid(Writer))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<USkeletalMeshComponent> MeshKey(MeshComponent);
+	if (const TWeakObjectPtr<UObject>* ExistingWriter = ExternalMorphWriters.Find(MeshKey))
+	{
+		if (ExistingWriter->Get() == Writer)
+		{
+			ExternalMorphWriters.Remove(MeshKey);
+			MorphTargetMeshComponentCache.Reset();
+		}
+	}
+}
+
+bool UEFCharacterCustomizationComponent::HasExternalMorphWriter(const USkeletalMeshComponent* MeshComponent) const
+{
+	if (!IsValid(MeshComponent))
+	{
+		return false;
+	}
+
+	for (auto It = ExternalMorphWriters.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid() || !It.Value().IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	const TWeakObjectPtr<USkeletalMeshComponent> MeshKey(const_cast<USkeletalMeshComponent*>(MeshComponent));
+	if (const TWeakObjectPtr<UObject>* Writer = ExternalMorphWriters.Find(MeshKey))
+	{
+		return Writer->IsValid();
+	}
+
+	return false;
 }
 
 void UEFCharacterCustomizationComponent::ApplyMorphToMeshComponent(USkeletalMeshComponent* MeshComponent, FName MorphName, float Value) const

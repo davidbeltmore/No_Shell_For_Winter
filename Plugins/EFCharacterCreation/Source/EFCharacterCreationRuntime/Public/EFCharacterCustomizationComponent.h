@@ -39,6 +39,15 @@ public:
 	const TArray<FCharacterSkeletalMeshOption>& GetAvailableHairMeshOptions() const { return AvailableHairMeshOptions; }
 	FEFCharacterCustomizationMorphStateApplied& OnMorphStateApplied() { return MorphStateAppliedEvent; }
 
+	/**
+	 * Grants one external system exclusive morph-write ownership for a mesh component.
+	 * Character Creation continues to own body morph state, but stops writing directly to
+	 * this component until the same writer unregisters it.
+	 */
+	bool RegisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer);
+	void UnregisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer);
+	bool HasExternalMorphWriter(const USkeletalMeshComponent* MeshComponent) const;
+
 	bool ApplyMorph(const FMorphSliderEntry& Entry, float NewValue);
 	bool ResetMorph(const FMorphSliderEntry& Entry);
 	void ResetAllToDefaults();
@@ -193,6 +202,7 @@ private:
 	TMap<FString, float> CurrentMorphValues;
 	mutable TMap<FString, TArray<FName>> MeshMorphNameCache;
 	mutable TMap<FString, TArray<TWeakObjectPtr<USkeletalMeshComponent>>> MorphTargetMeshComponentCache;
+	mutable TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<UObject>> ExternalMorphWriters;
 	TMap<TObjectPtr<USkeletalMeshComponent>, TArray<TObjectPtr<UMaterialInstanceDynamic>>> DynamicMaterialInstances;
 	mutable TMap<TObjectPtr<USkeletalMeshComponent>, TArray<int32>> SkinMaterialSlotCache;
 	mutable TMap<TObjectPtr<USkeletalMeshComponent>, TArray<int32>> IrisMaterialSlotCache;

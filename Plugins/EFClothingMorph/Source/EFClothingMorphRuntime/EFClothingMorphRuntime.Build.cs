@@ -12,6 +12,7 @@ public class EFClothingMorphRuntime : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"GameplayTags",
+			"DeveloperSettings",
 			"EFCharacterCreationRuntime"
 		});
 	}
