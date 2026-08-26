@@ -55,6 +55,16 @@ public:
 	int32 GetBodyLODIndex() const { return BodyLODIndex; }
 	uint64 GetEnqueuedFrameCount() const { return EnqueuedFrameCount; }
 	uint32 GetDispatchFailureCount() const;
+	/**
+	 * Number of submissions which reached ComputeFramework's render-frame
+	 * validation/submit phase without invoking its fallback delegate.
+	 * This is deliberately not a synchronous GPU readback or completion fence.
+	 */
+	uint64 GetRenderValidatedSubmissionCount() const;
+	bool HasRenderValidatedSubmission() const
+	{
+		return GetRenderValidatedSubmissionCount() > 0;
+	}
 
 	// IMeshDeformerProducer
 	FMeshDeformerBeginDestroyEvent& OnBeginDestroy() override { return BeginDestroyEvent; }

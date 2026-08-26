@@ -752,6 +752,7 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 	int32 SurfaceFailedCount = 0;
 	uint64 SurfaceEnqueueCount = 0;
 	uint64 SurfaceDispatchFailureCount = 0;
+	uint64 SurfaceRenderValidatedSubmissionCount = 0;
 	for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState>& Pair : AppliedGarments)
 	{
 		if (!Pair.Value.bUsesSurfaceWrapGPU)
@@ -760,6 +761,11 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 		}
 		SurfaceEnqueueCount += Pair.Value.SurfaceEnqueueCount;
 		SurfaceDispatchFailureCount += Pair.Value.SurfaceDispatchFailureCount;
+		if (const UEFClothingSurfaceDeformerProducer* Producer = Pair.Value.SurfaceProducer.Get())
+		{
+			SurfaceRenderValidatedSubmissionCount +=
+				Producer->GetRenderValidatedSubmissionCount();
+		}
 		switch (Pair.Value.SurfaceRuntimeState)
 		{
 		case EEFClothingSurfaceRuntimeState::Loading: ++SurfaceLoadingCount; break;
@@ -779,7 +785,7 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 		}
 	}
 	return FString::Printf(
-		TEXT("Owner=%s | Startup=%s | Registry=%s | Ready=%d | Pending=%d | Surface[L=%d W=%d R=%d F=%d Enqueue=%llu DispatchFail=%llu] | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | ClearanceMultiplier=%.3f | GlobalOffsetCm=%.3f | Status=%s"),
+		TEXT("Owner=%s | Startup=%s | Registry=%s | Ready=%d | Pending=%d | Surface[L=%d W=%d R=%d F=%d Enqueue=%llu RenderValidated=%llu DispatchFail=%llu] | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | ClearanceMultiplier=%.3f | GlobalOffsetCm=%.3f | Status=%s"),
 		GetOwner() ? *GetOwner()->GetName() : TEXT("None"),
 		bStartupAssetsReady ? TEXT("Ready") : (bStartupAssetLoadFailed ? TEXT("Failed") : TEXT("Loading")),
 		LoadedRegistry ? *LoadedRegistry->GetPathName() : TEXT("None"),
@@ -790,6 +796,7 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 		SurfaceReadyCount,
 		SurfaceFailedCount,
 		SurfaceEnqueueCount,
+		SurfaceRenderValidatedSubmissionCount,
 		SurfaceDispatchFailureCount,
 		VisibilityGuards.Num(),
 		ReconcilePassCount,
@@ -3511,7 +3518,12 @@ void UEFClothingFitRuntimeComponent::TickSurfaceConstraints(const float DeltaTim
 			State.SurfaceWarmupFramesRemaining = FMath::Max(
 				State.SurfaceWarmupFramesRemaining - 1,
 				0);
-			if (State.SurfaceWarmupFramesRemaining == 0)
+			// Never expose a raw garment merely because N game frames elapsed.
+			// The producer's acknowledgement is written on the render thread only
+			// after ComputeFramework had an opportunity to validate/submit the
+			// BeginInitViews graph without invoking its fallback delegate.
+			if (State.SurfaceWarmupFramesRemaining == 0
+				&& Producer->HasRenderValidatedSubmission())
 			{
 				State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::Ready;
 			}

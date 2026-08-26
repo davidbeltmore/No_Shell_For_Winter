@@ -4,10 +4,12 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "EFClothingSurfaceBinding.h"
 #include "Engine/SkeletalMesh.h"
+#include "Misc/CoreDelegates.h"
 #include "OptimusComponentSource.h"
 #include "OptimusDeformer.h"
 #include "OptimusDeformerDynamicInstanceManager.h"
 #include "OptimusDeformerInstance.h"
+#include "RenderingThread.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Templates/Atomic.h"
@@ -32,10 +34,28 @@ namespace EFClothingSurfaceGraphContract
 struct UEFClothingSurfaceDeformerProducer::FDispatchTelemetry
 {
 	TAtomic<uint32> DispatchFailureCount { 0u };
+	TAtomic<uint64> RenderValidatedSubmissionCount { 0u };
+	TAtomic<bool> bRenderConfirmationArmed { false };
+	TAtomic<bool> bCancelled { false };
 };
 
 namespace
 {
+	/**
+	 * One-shot render-thread arm. We intentionally wait through two EndFrameRT
+	 * callbacks: if the enqueue command arrived after BeginInitViews in the first
+	 * render frame, ComputeFramework will consume it during the second one before
+	 * this confirmation runs. The callback only proves successful render-graph
+	 * validation/submission (including provider and shader validation), not GPU
+	 * completion; obtaining the latter would require an asynchronous GPU fence or
+	 * readback and is not needed to keep the first raw garment frame hidden.
+	 */
+	struct FRenderSubmissionConfirmationArm
+	{
+		FDelegateHandle EndFrameDelegateHandle;
+		int32 RemainingEndFrameCallbacks = 2;
+	};
+
 	UOptimusDeformerDynamicInstanceManager* ResolveDynamicManager(
 		USkeletalMeshComponent* Component,
 		const int32 LODIndex)
@@ -295,12 +315,67 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	UMeshDeformerInstance* MeshDeformerInstance = Instance;
 	MeshDeformerInstance->EnqueueWork(Desc);
 	++EnqueuedFrameCount;
+
+	// ComputeFramework exposes failure but no success callback. Arm a one-shot
+	// render-thread acknowledgement only for the first candidate submission. Its
+	// fallback delegate runs during SubmitWork before EndFrameRT, so an unchanged
+	// failure count at the second EndFrameRT is the strongest non-blocking public
+	// confirmation that the surface kernel was validated and submitted.
+	if (!DispatchTelemetry->bRenderConfirmationArmed.Load()
+		&& DispatchTelemetry->RenderValidatedSubmissionCount.Load() == 0)
+	{
+		DispatchTelemetry->bRenderConfirmationArmed.Store(true);
+		const uint32 FailureCountBeforeSubmission = FailureCount;
+		const TSharedPtr<FDispatchTelemetry, ESPMode::ThreadSafe> ConfirmationTelemetry =
+			DispatchTelemetry;
+		const TSharedRef<FRenderSubmissionConfirmationArm, ESPMode::ThreadSafe> ConfirmationArm =
+			MakeShared<FRenderSubmissionConfirmationArm, ESPMode::ThreadSafe>();
+		ENQUEUE_RENDER_COMMAND(EFClothingArmSurfaceSubmissionConfirmation)(
+			[ConfirmationTelemetry, ConfirmationArm, FailureCountBeforeSubmission](
+				FRHICommandListImmediate& RHICmdList)
+			{
+				if (!ConfirmationTelemetry.IsValid()
+					|| ConfirmationTelemetry->bCancelled.Load())
+				{
+					if (ConfirmationTelemetry.IsValid())
+					{
+						ConfirmationTelemetry->bRenderConfirmationArmed.Store(false);
+					}
+					return;
+				}
+
+				ConfirmationArm->EndFrameDelegateHandle = FCoreDelegates::OnEndFrameRT.AddLambda(
+					[ConfirmationTelemetry, ConfirmationArm, FailureCountBeforeSubmission]()
+					{
+						check(IsInRenderingThread());
+						--ConfirmationArm->RemainingEndFrameCallbacks;
+						if (ConfirmationArm->RemainingEndFrameCallbacks > 0)
+						{
+							return;
+						}
+
+						FCoreDelegates::OnEndFrameRT.Remove(
+							ConfirmationArm->EndFrameDelegateHandle);
+						if (!ConfirmationTelemetry->bCancelled.Load()
+							&& ConfirmationTelemetry->DispatchFailureCount.Load()
+								== FailureCountBeforeSubmission)
+						{
+							++ConfirmationTelemetry->RenderValidatedSubmissionCount;
+						}
+						ConfirmationTelemetry->bRenderConfirmationArmed.Store(false);
+					});
+			});
+	}
 	return true;
 }
 
 void UEFClothingSurfaceDeformerProducer::Detach()
 {
 	check(IsInGameThread());
+	if (DispatchTelemetry.IsValid())
+	{
+		DispatchTelemetry->bCancelled.Store(true);
+	}
 	if (UOptimusDeformerInstance* Instance = SurfaceInstance.Get())
 	{
 		Instance->SetCanBeActive(false);
@@ -349,8 +424,19 @@ uint32 UEFClothingSurfaceDeformerProducer::GetDispatchFailureCount() const
 		: LastObservedDispatchFailureCount;
 }
 
+uint64 UEFClothingSurfaceDeformerProducer::GetRenderValidatedSubmissionCount() const
+{
+	return DispatchTelemetry.IsValid()
+		? DispatchTelemetry->RenderValidatedSubmissionCount.Load()
+		: 0u;
+}
+
 void UEFClothingSurfaceDeformerProducer::BeginDestroy()
 {
+	if (DispatchTelemetry.IsValid())
+	{
+		DispatchTelemetry->bCancelled.Store(true);
+	}
 	if (UOptimusDeformerInstance* Instance = SurfaceInstance.Get())
 	{
 		Instance->SetCanBeActive(false);
