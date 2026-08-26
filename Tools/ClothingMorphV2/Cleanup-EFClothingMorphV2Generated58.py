@@ -55,7 +55,10 @@ def _object_path(value):
 
 
 def _package_name(value):
-    return _object_path(value).split(".", 1)[0]
+    object_path = _object_path(value)
+    if object_path.strip().lower() in {"", "none", "null"}:
+        return ""
+    return object_path.split(".", 1)[0]
 
 
 def _list_generated_packages():
@@ -130,12 +133,21 @@ def _active_packages_from_registry():
             raise RuntimeError("Generated fit registry contains a null profile.")
         profile_package = _package_name(profile)
         fitted_garment = _get_property(profile, "fitted_garment")
+        surface_binding = _get_property(profile, "surface_binding")
         try:
             fitted_garment = fitted_garment.load_synchronous()
         except Exception:
             pass
+        try:
+            surface_binding = surface_binding.load_synchronous()
+        except Exception:
+            pass
         fitted_package = _package_name(fitted_garment)
-        for package in (profile_package, fitted_package):
+        surface_binding_package = _package_name(surface_binding)
+        for package in (profile_package, fitted_package, surface_binding_package):
+            if not package:
+                # GeometryFitFallback profiles deliberately have no V26 GPU binding.
+                continue
             if not package.startswith(OUTPUT_ROOT + "/"):
                 raise RuntimeError(
                     "Registry active output escaped generated root: " + package

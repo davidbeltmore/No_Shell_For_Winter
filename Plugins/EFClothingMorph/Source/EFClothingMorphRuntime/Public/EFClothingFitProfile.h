@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "EFClothingSurfaceBinding.h"
 #include "EFClothingFitProfile.generated.h"
 
 class USkeletalMesh;
@@ -227,10 +228,14 @@ public:
 	FGuid BuildGuid;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
-	int32 CompilerVersion = 2;
+	int32 CompilerVersion = EFClothingMorphV26::CompilerVersion;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	EEFClothingFitMode FitMode = EEFClothingFitMode::Tight;
+
+	/** V26 final-deformed-surface contract. V25 fallback profiles intentionally leave this null. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Surface")
+	TSoftObjectPtr<UEFClothingSurfaceBinding> SurfaceBinding;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skinning")
 	FName SkinWeightProfileName = TEXT("EF_AutoFit");

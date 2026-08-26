@@ -7,13 +7,26 @@
 class UEFCharacterCustomizationComponent;
 class UEFClothingFitProfile;
 class UEFClothingFitRegistry;
+class UEFClothingSurfaceBinding;
+class UEFClothingSurfaceDeformerProducer;
 class UDataTable;
 class UGameViewportClient;
+class UOptimusDeformer;
 class USkeletalMesh;
 class USkeletalMeshComponent;
 class USkinnedMeshComponent;
 struct FStreamableHandle;
 struct FEFClothingGarmentRow;
+
+UENUM(BlueprintType)
+enum class EEFClothingSurfaceRuntimeState : uint8
+{
+	Disabled,
+	Loading,
+	WarmingUp,
+	Ready,
+	Failed
+};
 
 UCLASS(ClassGroup = (EF), meta = (BlueprintSpawnableComponent))
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingFitRuntimeComponent : public UActorComponent
@@ -49,6 +62,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2")
 	void ClearGarmentClearanceMultiplier(USkeletalMeshComponent* GarmentComponent);
 
+	/** Continuous global SurfaceWrapGPU offset in centimeters. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Wrap")
+	void SetGlobalClearanceOffsetCm(float NewOffsetCm);
+
+	/** Continuous per-component SurfaceWrapGPU offset in centimeters. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Wrap")
+	void SetGarmentClearanceOffsetCm(USkeletalMeshComponent* GarmentComponent, float NewOffsetCm);
+
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Wrap")
+	void ClearGarmentClearanceOffsetCm(USkeletalMeshComponent* GarmentComponent);
+
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Surface Wrap")
+	EEFClothingSurfaceRuntimeState GetGarmentSurfaceRuntimeState(
+		const USkeletalMeshComponent* GarmentComponent) const;
+
 private:
 	struct FAppliedGarmentState
 	{
@@ -67,6 +95,8 @@ private:
 		bool bCapturedPreviousSkinWeightProfiles = false;
 		bool bUseBoundsFromLeaderPoseBeforeV2 = false;
 		bool bComponentUseFixedSkelBoundsBeforeV2 = false;
+		float ComponentBoundsScaleBeforeV2 = 1.0f;
+		float BoundsScaleAssignedByV2 = 1.0f;
 		bool bOwnsBoundsContract = false;
 		bool bRenderInMainPassBeforeV2 = true;
 		bool bRenderSuppressedByV2 = false;
@@ -87,6 +117,19 @@ private:
 		/** Exact material indices owned on BodyMesh; aliases share one ref-count token. */
 		TArray<int32> CoveredBodyMaterialIndices;
 		float CatalogMinimumClearanceMultiplier = 1.0f;
+		bool bUsesSurfaceWrapGPU = false;
+		TWeakObjectPtr<const UEFClothingSurfaceBinding> SurfaceBinding;
+		TWeakObjectPtr<UEFClothingSurfaceDeformerProducer> SurfaceProducer;
+		EEFClothingSurfaceRuntimeState SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::Disabled;
+		int32 SurfaceGarmentLODIndex = INDEX_NONE;
+		int32 SurfaceBodyLODIndex = INDEX_NONE;
+		int32 SurfaceWarmupFramesRemaining = 0;
+		bool bSurfaceAwaitingManagerInitialization = false;
+		float CatalogRuntimeOffsetCm = 0.0f;
+		float CatalogMaximumCorrectionCm = -1.0f;
+		uint64 SurfaceEnqueueCount = 0;
+		uint32 SurfaceDispatchFailureCount = 0;
+		FString SurfaceFailureReason;
 	};
 
 	struct FBodyMaterialCoverageState
@@ -141,8 +184,26 @@ private:
 		bool& bOutRenderSuppressedByV2);
 	void RestoreVisibilityGuards();
 	void SynchronizeMorphs();
+	void TickSurfaceConstraints(float DeltaTimeSeconds);
+	bool TryInstallSurfaceConstraint(
+		USkeletalMeshComponent* GarmentComponent,
+		FAppliedGarmentState& State,
+		FString& OutFailureReason);
+	void ReleaseSurfaceConstraint(FAppliedGarmentState& State);
+	void TryExposeReadyGarment(
+		USkeletalMeshComponent* GarmentComponent,
+		FAppliedGarmentState& State);
+	void FailSurfaceConstraint(
+		USkeletalMeshComponent* GarmentComponent,
+		FAppliedGarmentState& State,
+		const FString& FailureReason);
+	float ResolveSurfaceGarmentOffsetCm(
+		USkeletalMeshComponent* GarmentComponent,
+		const FAppliedGarmentState& State) const;
 	void ResolveCustomizationComponent();
 	void HandleMorphStateApplied();
+	void StartStartupAssetLoad();
+	void HandleStartupAssetsReady();
 	void StartProfilePrefetch(const UEFClothingFitProfile* Profile);
 	void LaunchNextProfilePrefetchBatch();
 	void HandleRegistryAssetsReady();
@@ -209,6 +270,15 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UObject>> RetainedProfileAssets;
 
+	/** Keeps transient producers alive while their dynamic Optimus instances are registered. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UObject>> RetainedSurfaceRuntimeObjects;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UOptimusDeformer> LoadedSurfaceConstraintDeformer;
+
+	/** Pins Registry + Catalog + Surface Graph until the initial async callback validates all three. */
+	TSharedPtr<FStreamableHandle> StartupAssetLoadHandle;
 	TSharedPtr<FStreamableHandle> RegistryPrefetchHandle;
 	TSet<FSoftObjectPath> PendingProfilePrefetchPaths;
 	TSet<FSoftObjectPath> InFlightProfilePrefetchPaths;
@@ -220,6 +290,7 @@ private:
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<USkeletalMesh>> ObservedMeshAssignments;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVisibilityGuardState> VisibilityGuards;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> GarmentClearanceMultipliers;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> GarmentClearanceOffsetsCm;
 	TMap<FString, FName> CatalogRowIndex;
 	TSet<FString> DuplicateCatalogKeys;
 	TSet<FSoftObjectPath> CatalogedSourcePaths;
@@ -232,7 +303,10 @@ private:
 	uint64 ReconcilePassCount = 0;
 	uint64 MeshAssignmentEdgeCount = 0;
 	float RuntimeClearanceMultiplier = 1.0f;
+	float GlobalClearanceOffsetCm = 0.0f;
 	bool bLastRuntimeEnabled = false;
+	bool bStartupAssetsReady = false;
+	bool bStartupAssetLoadFailed = false;
 	bool bIsRestoring = false;
 	FString LastStatus = TEXT("Not initialized");
 };

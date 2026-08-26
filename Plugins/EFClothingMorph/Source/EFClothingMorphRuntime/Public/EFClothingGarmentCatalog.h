@@ -20,6 +20,17 @@ enum class EEFClothingSurfaceBackend : uint8
 	Disabled UMETA(Hidden)
 };
 
+/** Authored override for the compiler's automatic tight/loose classification. */
+UENUM(BlueprintType)
+enum class EEFClothingFitPolicy : uint8
+{
+	Auto,
+	Tight,
+	Hybrid,
+	Loose,
+	Rigid
+};
+
 /**
  * Authored source of truth for meshes that EF Clothing Morph is allowed to manage.
  * A garment can have separate Female/Male rows without changing runtime code.
@@ -40,7 +51,11 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	TSoftObjectPtr<USkeletalMesh> BodySurface;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Adapter")
-	EEFClothingSurfaceBackend Backend = EEFClothingSurfaceBackend::GeometryFitFallback;
+	EEFClothingSurfaceBackend Backend = EEFClothingSurfaceBackend::SurfaceWrapGPU;
+
+	/** Auto classifies connected garment regions; explicit modes remain available for authoring exceptions. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Adapter")
+	EEFClothingFitPolicy FitPolicy = EEFClothingFitPolicy::Auto;
 
 	/** Semantic coverage used by gameplay/UI and future body-region proxy masks. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Coverage")
@@ -77,4 +92,20 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	/** Optional authored floor; it is always rounded upward to a compiler-certified tier. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clearance", meta = (ClampMin = "1.0", ClampMax = "2.0"))
 	float MinimumClearanceMultiplier = 1.0f;
+
+	/** Negative means compiler-selected from geometry/fabric data; otherwise an absolute cm floor. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Surface Wrap", meta = (ClampMin = "-1.0", UIMin = "-1.0", UIMax = "2.0", Units = "cm"))
+	float FabricClearanceCm = -1.0f;
+
+	/** Runtime/user-authored addition to compiled clearance, expressed in real centimeters. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Surface Wrap", meta = (ClampMin = "0.0", ClampMax = "5.0", Units = "cm"))
+	float RuntimeOffsetCm = 0.0f;
+
+	/** Negative means compiler-selected; otherwise the hard one-frame outward correction bound. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Surface Wrap", meta = (ClampMin = "-1.0", UIMin = "-1.0", UIMax = "10.0", Units = "cm"))
+	float MaximumCorrectionCm = -1.0f;
+
+	/** Missing or stale body/garment LOD bindings must never expose the uncorrected garment. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Safety")
+	bool bFailClosedOnMissingLOD = true;
 };

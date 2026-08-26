@@ -16,6 +16,7 @@
 #include "EFClothingFitProfile.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EFClothingSkeletonFingerprint.h"
+#include "EFClothingSurfaceBinding.h"
 #include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
 #include "GeometryScript/GeometryScriptTypes.h"
@@ -27,6 +28,10 @@
 #include "Misc/PackageName.h"
 #include "Misc/SecureHash.h"
 #include "Rendering/SkinWeightProfile.h"
+#include "Rendering/SkeletalMeshLODModel.h"
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 #include "SkeletalMeshAttributes.h"
 #include "SkinnedAssetCompiler.h"
 #include "Spatial/MeshAABBTree3.h"
@@ -41,7 +46,7 @@ namespace EFClothingFitCompilerPrivate
 {
 	using namespace UE::Geometry;
 
-	static constexpr int32 CompilerVersion = 25;
+	static constexpr int32 CompilerVersion = EFClothingMorphV26::CompilerVersion;
 	static constexpr double CompilerClearanceReserveCm = 0.10;
 	static constexpr int32 CertifiedClearanceTierCount = 9;
 	static constexpr double CertifiedClearanceTierMin = 1.0;
@@ -106,6 +111,7 @@ namespace EFClothingFitCompilerPrivate
 		const USkeletalMesh* BodySurface,
 		const USkeletalMesh* CompatibilityReference,
 		const FEFClothingFitCompileOptions& Options,
+		const FEFClothingGarmentRow& CatalogRow,
 		const TArray<FName>& ExcludedBodySurfaceMaterialSlots,
 		const TArray<FName>& ExcludedBodyBoneBranches,
 		const TArray<FString>& ExcludedBodyMorphPrefixes)
@@ -143,11 +149,17 @@ namespace EFClothingFitCompilerPrivate
 		ExcludedMorphPrefixes.Sort();
 		const FString ExcludedMorphSignature = FString::Join(ExcludedMorphPrefixes, TEXT(","));
 		const FString Canonical = FString::Printf(
-			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
+			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|Backend=%d|FitPolicy=%d|Fabric=%.6f|RuntimeOffset=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
 			CompilerVersion,
 			*SourceGarment->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(SourceGarment),
 			*BodySurface->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(BodySurface),
 			*CompatibilityReference->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference),
+			static_cast<int32>(CatalogRow.Backend),
+			static_cast<int32>(CatalogRow.FitPolicy),
+			CatalogRow.FabricClearanceCm,
+			CatalogRow.RuntimeOffsetCm,
+			CatalogRow.MaximumCorrectionCm,
+			CatalogRow.bFailClosedOnMissingLOD ? 1 : 0,
 			*ExcludedSurfaceSignature,
 			*ExcludedBoneSignature,
 			*ExcludedMorphSignature,
@@ -196,17 +208,20 @@ namespace EFClothingFitCompilerPrivate
 		TArray<FName>& OutExcludedBodySurfaceMaterialSlots,
 		TArray<FName>& OutExcludedBodyBoneBranches,
 		TArray<FString>& OutExcludedBodyMorphPrefixes,
+		FEFClothingGarmentRow& OutCatalogRow,
 		FName& OutCatalogRowName,
 		FString& OutError)
 	{
 		OutExcludedBodySurfaceMaterialSlots.Reset();
 		OutExcludedBodyBoneBranches.Reset();
 		OutExcludedBodyMorphPrefixes.Reset();
+		OutCatalogRow = FEFClothingGarmentRow();
 		OutCatalogRowName = NAME_None;
 		const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
 		if (!Settings || Settings->GarmentCatalog.IsNull())
 		{
-			return true;
+			OutError = TEXT("EF Clothing Morph V26 requires a configured garment catalog; implicit garment compilation is disabled.");
+			return false;
 		}
 
 		UDataTable* Catalog = Settings->GarmentCatalog.LoadSynchronous();
@@ -258,7 +273,7 @@ namespace EFClothingFitCompilerPrivate
 			return false;
 		}
 		if (!MatchedRow->bEnabled
-			|| MatchedRow->Backend != EEFClothingSurfaceBackend::GeometryFitFallback)
+			|| MatchedRow->Backend == EEFClothingSurfaceBackend::Disabled)
 		{
 			OutError = FString::Printf(
 				TEXT("Garment catalog row %s is disabled or requests an unavailable backend (%d)."),
@@ -278,10 +293,33 @@ namespace EFClothingFitCompilerPrivate
 				CertifiedClearanceTierMax);
 			return false;
 		}
+		if (!FMath::IsFinite(MatchedRow->FabricClearanceCm)
+			|| (!EFClothingMorphV26::IsAutomaticCentimeterValue(MatchedRow->FabricClearanceCm)
+				&& MatchedRow->FabricClearanceCm < 0.0f)
+			|| !FMath::IsFinite(MatchedRow->RuntimeOffsetCm)
+			|| MatchedRow->RuntimeOffsetCm < 0.0f
+			|| !FMath::IsFinite(MatchedRow->MaximumCorrectionCm)
+			|| (!EFClothingMorphV26::IsAutomaticCentimeterValue(MatchedRow->MaximumCorrectionCm)
+				&& MatchedRow->MaximumCorrectionCm <= 0.0f))
+		{
+			OutError = FString::Printf(
+				TEXT("Garment catalog row %s has an invalid centimeter clearance policy."),
+				*OutCatalogRowName.ToString());
+			return false;
+		}
+		if (MatchedRow->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU
+			&& !MatchedRow->bFailClosedOnMissingLOD)
+		{
+			OutError = FString::Printf(
+				TEXT("Garment catalog row %s requests SurfaceWrapGPU without fail-closed LOD policy."),
+				*OutCatalogRowName.ToString());
+			return false;
+		}
 
 		OutExcludedBodySurfaceMaterialSlots = MatchedRow->ExcludedBodySurfaceMaterialSlots;
 		OutExcludedBodyBoneBranches = MatchedRow->ExcludedBodyBoneBranches;
 		OutExcludedBodyMorphPrefixes = MatchedRow->ExcludedBodyMorphPrefixes;
+		OutCatalogRow = *MatchedRow;
 		CanonicalizeMaterialSlotNames(OutExcludedBodySurfaceMaterialSlots);
 		CanonicalizeBoneBranchNames(OutExcludedBodyBoneBranches);
 		CanonicalizeMorphPrefixes(OutExcludedBodyMorphPrefixes);
@@ -1152,6 +1190,15 @@ namespace EFClothingFitCompilerPrivate
 				return false;
 			}
 
+			// V26 runtime bindings must be anchored to the exact final auto-sculpted
+			// rest position, not the pre-clearance nearest triangle captured above.
+			FSurfaceCorrespondence& FinalCorrespondence = OutCorrespondence[VertexID];
+			FinalCorrespondence.BodyTriangle = FinalTriangleID;
+			FinalCorrespondence.Barycentric = FinalBarycentric;
+			FinalCorrespondence.SurfaceNormal = FinalNormal;
+			FinalCorrespondence.ClosestPoint = FinalClosestPoint;
+			FinalCorrespondence.SignedGap = SignedGap;
+
 			OutMinimumAfter = FMath::Min(OutMinimumAfter, SignedGap);
 			if (SignedGap < 0.0)
 			{
@@ -1161,6 +1208,83 @@ namespace EFClothingFitCompilerPrivate
 
 		return OutPenetratingAfter == 0
 			&& OutMinimumAfter >= DesiredClearance - ClearanceToleranceCm;
+	}
+
+	/** Re-anchor every import vertex after the last serialized auto-sculpt repair. */
+	static bool RebuildFinalSurfaceCorrespondence(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMesh3& GarmentMesh,
+		const TArray<FVector3d>& FinalClearanceDeltas,
+		double RequiredClearanceCm,
+		TArray<FSurfaceCorrespondence>& OutCorrespondence,
+		FString& OutError)
+	{
+		OutCorrespondence.SetNum(GarmentMesh.MaxVertexID());
+		if (FinalClearanceDeltas.Num() < GarmentMesh.MaxVertexID())
+		{
+			OutError = TEXT("Final surface correspondence has an incomplete clearance field.");
+			return false;
+		}
+		FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
+		FMeshNormals BodyNormals(&BodyMesh);
+		BodyNormals.ComputeVertexNormals();
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d FinalPosition = GarmentMesh.GetVertex(VertexID)
+				+ FinalClearanceDeltas[VertexID];
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 BodyTriangleID = BodySpatial.FindNearestTriangle(
+				FinalPosition,
+				DistanceSquared);
+			if (BodyTriangleID == IndexConstants::InvalidID
+				|| !BodyMesh.IsTriangle(BodyTriangleID)
+				|| !FMath::IsFinite(DistanceSquared))
+			{
+				OutError = FString::Printf(
+					TEXT("Final surface correspondence found no body triangle for garment vertex %d."),
+					VertexID);
+				return false;
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh,
+				BodyTriangleID,
+				FinalPosition);
+			FVector3d Normal = InterpolateNormal(
+				BodyMesh,
+				BodyNormals,
+				BodyTriangleID,
+				Query.TriangleBaryCoords);
+			const double BarycentricSum = Query.TriangleBaryCoords.X
+				+ Query.TriangleBaryCoords.Y + Query.TriangleBaryCoords.Z;
+			if (Query.ClosestTrianglePoint.ContainsNaN()
+				|| Query.TriangleBaryCoords.ContainsNaN()
+				|| !Normal.Normalize()
+				|| !FMath::IsNearlyEqual(BarycentricSum, 1.0, 1.e-4))
+			{
+				OutError = FString::Printf(
+					TEXT("Final surface correspondence produced invalid geometry at garment vertex %d."),
+					VertexID);
+				return false;
+			}
+			const double SignedGap = (FinalPosition - Query.ClosestTrianglePoint).Dot(Normal);
+			if (!FMath::IsFinite(SignedGap)
+				|| SignedGap < RequiredClearanceCm - 0.02)
+			{
+				OutError = FString::Printf(
+					TEXT("Final surface correspondence vertex %d violates clearance (%.4f/%.4fcm)."),
+					VertexID,
+					SignedGap,
+					RequiredClearanceCm);
+				return false;
+			}
+			FSurfaceCorrespondence& Correspondence = OutCorrespondence[VertexID];
+			Correspondence.BodyTriangle = BodyTriangleID;
+			Correspondence.Barycentric = Query.TriangleBaryCoords;
+			Correspondence.SurfaceNormal = Normal;
+			Correspondence.ClosestPoint = Query.ClosestTrianglePoint;
+			Correspondence.SignedGap = SignedGap;
+		}
+		return true;
 	}
 
 	static bool TransferWeights(
@@ -3402,13 +3526,19 @@ namespace EFClothingFitCompilerPrivate
 					}
 					if (MaximumRetainedDeltaCm > RetainedSurfaceLeakToleranceCm)
 					{
-						OutError = FString::Printf(
-							TEXT("Excluded body morph %s still deforms retained body-surface vertex %d by %.6fcm (tolerance %.6fcm); the catalog exclusion is not geometrically isolated."),
+						// A DAZ graft corrective can legitimately move both the excluded
+						// accessory and retained base skin. Exclusion means that this morph
+						// must not be transferred to or monitored on the garment; it does
+						// not imply a zero delta on the visible body. SurfaceWrapGPU reads
+						// the final animated body geometry, so that retained-skin motion is
+						// still followed at runtime without duplicating the graft morph.
+						UE_LOG(
+							LogEFClothingFitCompiler,
+							Verbose,
+							TEXT("Excluded body morph %s also deforms retained body-surface vertex %d by %.6fcm; retained skin remains authoritative for SurfaceWrapGPU."),
 							*MorphName.ToString(),
 							MaximumRetainedOriginalVertexID,
-							MaximumRetainedDeltaCm,
-							RetainedSurfaceLeakToleranceCm);
-						return TransferredNames;
+							MaximumRetainedDeltaCm);
 					}
 				}
 				continue;
@@ -6410,6 +6540,1264 @@ namespace EFClothingFitCompilerPrivate
 		OutSphereExpansion = static_cast<float>(MaximumRadiusExpansion);
 		return true;
 	}
+
+	struct FSurfaceRenderTriangle
+	{
+		int32 LogicalTriangleIndex = INDEX_NONE;
+		FIntVector RenderVertexIndices = FIntVector(INDEX_NONE, INDEX_NONE, INDEX_NONE);
+	};
+
+	struct FSurfaceRenderLOD
+	{
+		int32 LODIndex = INDEX_NONE;
+		TArray<FVector3d> Positions;
+		TArray<uint32> Indices;
+		TArray<int32> MeshToImportVertexMap;
+		TArray<TMap<int32, float>> SkinWeights;
+		TBitArray<> ChaosDrivenVertices;
+		FDynamicMesh3 Mesh;
+		TArray<FSurfaceRenderTriangle> DynamicTriangles;
+		FEFClothingSurfaceTopologyFingerprint Topology;
+		int32 DegenerateTriangleCount = 0;
+		int32 ExcludedTriangleCount = 0;
+	};
+
+	static FString BuildRenderTopologyFingerprint(
+		const FSkeletalMeshLODRenderData& RenderLOD,
+		const FSkeletalMeshLODModel& ImportedLOD,
+		const TArray<uint32>& Indices,
+		int32 LODIndex)
+	{
+		FMD5 Hash;
+		auto Update = [&Hash](const void* Data, uint64 Size)
+		{
+			Hash.Update(static_cast<const uint8*>(Data), Size);
+		};
+		const int32 VertexCount = static_cast<int32>(RenderLOD.GetNumVertices());
+		const int32 IndexCount = Indices.Num();
+		const int32 SectionCount = RenderLOD.RenderSections.Num();
+		Update(&LODIndex, sizeof(LODIndex));
+		Update(&VertexCount, sizeof(VertexCount));
+		Update(&IndexCount, sizeof(IndexCount));
+		Update(&SectionCount, sizeof(SectionCount));
+		if (!Indices.IsEmpty())
+		{
+			Update(Indices.GetData(), static_cast<uint64>(Indices.Num()) * sizeof(uint32));
+		}
+		if (!ImportedLOD.MeshToImportVertexMap.IsEmpty())
+		{
+			Update(
+				ImportedLOD.MeshToImportVertexMap.GetData(),
+				static_cast<uint64>(ImportedLOD.MeshToImportVertexMap.Num()) * sizeof(int32));
+		}
+		for (const FSkelMeshRenderSection& Section : RenderLOD.RenderSections)
+		{
+			Update(&Section.MaterialIndex, sizeof(Section.MaterialIndex));
+			Update(&Section.BaseIndex, sizeof(Section.BaseIndex));
+			Update(&Section.NumTriangles, sizeof(Section.NumTriangles));
+			Update(&Section.BaseVertexIndex, sizeof(Section.BaseVertexIndex));
+			Update(&Section.NumVertices, sizeof(Section.NumVertices));
+			Update(&Section.bDisabled, sizeof(Section.bDisabled));
+		}
+		uint8 Digest[16] = {};
+		Hash.Final(Digest);
+		return BytesToHex(Digest, UE_ARRAY_COUNT(Digest));
+	}
+
+	static bool IsExcludedRenderSection(
+		const USkeletalMesh* Mesh,
+		const FSkelMeshRenderSection& Section,
+		const TSet<FName>& ExcludedMaterialSlots)
+	{
+		if (Section.bDisabled || !Mesh->GetMaterials().IsValidIndex(Section.MaterialIndex))
+		{
+			return Section.bDisabled;
+		}
+		const FSkeletalMaterial& Material = Mesh->GetMaterials()[Section.MaterialIndex];
+		return ExcludedMaterialSlots.Contains(Material.MaterialSlotName)
+			|| ExcludedMaterialSlots.Contains(Material.ImportedMaterialSlotName);
+	}
+
+	static bool BuildSurfaceRenderLOD(
+		USkeletalMesh* Mesh,
+		int32 LODIndex,
+		const TArray<FName>& ExcludedMaterialSlots,
+		FName SkinWeightProfileName,
+		FSurfaceRenderLOD& OutLOD,
+		FString& OutError)
+	{
+		OutError.Reset();
+		if (!IsValid(Mesh))
+		{
+			OutError = TEXT("Surface binding render LOD requires a valid SkeletalMesh.");
+			return false;
+		}
+		FSkinnedAssetCompilingManager::Get().FinishCompilation({Mesh});
+		FSkeletalMeshRenderData* RenderData = Mesh->GetResourceForRendering();
+		FSkeletalMeshModel* ImportedModel = Mesh->GetImportedModel();
+		if (!RenderData
+			|| !ImportedModel
+			|| !RenderData->LODRenderData.IsValidIndex(LODIndex)
+			|| !ImportedModel->LODModels.IsValidIndex(LODIndex))
+		{
+			OutError = FString::Printf(
+				TEXT("%s has no matching render/import data for LOD %d."),
+				*Mesh->GetPathName(),
+				LODIndex);
+			return false;
+		}
+
+		const FSkeletalMeshLODRenderData& RenderLOD = RenderData->LODRenderData[LODIndex];
+		const FSkeletalMeshLODModel& ImportedLOD = ImportedModel->LODModels[LODIndex];
+		const int32 RenderVertexCount = static_cast<int32>(RenderLOD.GetNumVertices());
+		if (RenderVertexCount <= 0
+			|| ImportedLOD.MeshToImportVertexMap.Num() != RenderVertexCount)
+		{
+			OutError = FString::Printf(
+				TEXT("%s LOD %d render/import map mismatch (%d vertices, %d map entries)."),
+				*Mesh->GetPathName(),
+				LODIndex,
+				RenderVertexCount,
+				ImportedLOD.MeshToImportVertexMap.Num());
+			return false;
+		}
+
+		OutLOD.LODIndex = LODIndex;
+		OutLOD.Positions.SetNum(RenderVertexCount);
+		OutLOD.MeshToImportVertexMap = ImportedLOD.MeshToImportVertexMap;
+		OutLOD.SkinWeights.SetNum(RenderVertexCount);
+		OutLOD.ChaosDrivenVertices.Init(false, RenderVertexCount);
+		OutLOD.Mesh.Clear();
+		OutLOD.DynamicTriangles.Reset();
+		OutLOD.DegenerateTriangleCount = 0;
+		OutLOD.ExcludedTriangleCount = 0;
+		for (int32 RenderVertexIndex = 0; RenderVertexIndex < RenderVertexCount; ++RenderVertexIndex)
+		{
+			const FVector3f Position = RenderLOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(RenderVertexIndex);
+			if (Position.ContainsNaN())
+			{
+				OutError = FString::Printf(
+					TEXT("%s LOD %d contains a non-finite render vertex %d."),
+					*Mesh->GetPathName(),
+					LODIndex,
+					RenderVertexIndex);
+				return false;
+			}
+			OutLOD.Positions[RenderVertexIndex] = FVector3d(Position);
+			const int32 DynamicVertexID = OutLOD.Mesh.AppendVertex(OutLOD.Positions[RenderVertexIndex]);
+			if (DynamicVertexID != RenderVertexIndex)
+			{
+				OutError = TEXT("Dynamic render topology did not preserve exact render vertex indices.");
+				return false;
+			}
+		}
+		const FMeshDescription* MeshDescription = Mesh->GetMeshDescription(LODIndex);
+		if (!MeshDescription)
+		{
+			OutError = FString::Printf(TEXT("%s LOD %d has no MeshDescription for skin-similarity classification."), *Mesh->GetPathName(), LODIndex);
+			return false;
+		}
+		const FSkeletalMeshAttributesShared MeshAttributes(*MeshDescription);
+		const FSkinWeightsVertexAttributesConstRef SkinWeights =
+			MeshAttributes.GetVertexSkinWeights(SkinWeightProfileName);
+		if (!SkinWeights.IsValid())
+		{
+			OutError = FString::Printf(
+				TEXT("%s LOD %d has no %s skin weights for surface classification."),
+				*Mesh->GetPathName(),
+				LODIndex,
+				SkinWeightProfileName.IsNone() ? TEXT("default") : *SkinWeightProfileName.ToString());
+			return false;
+		}
+		for (int32 RenderVertexIndex = 0; RenderVertexIndex < RenderVertexCount; ++RenderVertexIndex)
+		{
+			const int32 ImportVertexIndex = OutLOD.MeshToImportVertexMap[RenderVertexIndex];
+			if (!MeshDescription->Vertices().IsValid(FVertexID(ImportVertexIndex)))
+			{
+				OutError = FString::Printf(
+					TEXT("%s LOD %d render vertex %d maps to invalid MeshDescription vertex %d."),
+					*Mesh->GetPathName(),
+					LODIndex,
+					RenderVertexIndex,
+					ImportVertexIndex);
+				return false;
+			}
+			const FVertexBoneWeightsConst VertexWeights = SkinWeights.Get(FVertexID(ImportVertexIndex));
+			for (int32 InfluenceIndex = 0; InfluenceIndex < VertexWeights.Num(); ++InfluenceIndex)
+			{
+				const UE::AnimationCore::FBoneWeight Influence = VertexWeights[InfluenceIndex];
+				if (Influence.GetWeight() > 0.0f)
+				{
+					OutLOD.SkinWeights[RenderVertexIndex].Add(
+						static_cast<int32>(Influence.GetBoneIndex()),
+						Influence.GetWeight());
+				}
+			}
+			if (OutLOD.SkinWeights[RenderVertexIndex].IsEmpty())
+			{
+				OutError = FString::Printf(TEXT("%s LOD %d render vertex %d has no skin influences."), *Mesh->GetPathName(), LODIndex, RenderVertexIndex);
+				return false;
+			}
+		}
+
+		RenderLOD.MultiSizeIndexContainer.GetIndexBuffer(OutLOD.Indices);
+		if (OutLOD.Indices.IsEmpty() || OutLOD.Indices.Num() % 3 != 0)
+		{
+			OutError = FString::Printf(TEXT("%s LOD %d has an invalid render index buffer."), *Mesh->GetPathName(), LODIndex);
+			return false;
+		}
+		const int32 TriangleCount = OutLOD.Indices.Num() / 3;
+		TBitArray<> IncludedTriangles(false, TriangleCount);
+		TSet<FName> ExcludedSlotSet;
+		for (const FName SlotName : ExcludedMaterialSlots)
+		{
+			ExcludedSlotSet.Add(SlotName);
+		}
+		for (const FSkelMeshRenderSection& Section : RenderLOD.RenderSections)
+		{
+			if (Section.BaseIndex % 3 != 0
+				|| Section.BaseIndex + Section.NumTriangles * 3 > static_cast<uint32>(OutLOD.Indices.Num()))
+			{
+				OutError = FString::Printf(TEXT("%s LOD %d has an invalid render section range."), *Mesh->GetPathName(), LODIndex);
+				return false;
+			}
+			const bool bExcluded = IsExcludedRenderSection(Mesh, Section, ExcludedSlotSet);
+			if (Section.HasClothingData())
+			{
+				const int32 SectionVertexEnd = FMath::Min(
+					RenderVertexCount,
+					static_cast<int32>(Section.BaseVertexIndex + Section.NumVertices));
+				for (int32 RenderVertexIndex = static_cast<int32>(Section.BaseVertexIndex);
+					RenderVertexIndex < SectionVertexEnd;
+					++RenderVertexIndex)
+				{
+					OutLOD.ChaosDrivenVertices[RenderVertexIndex] = true;
+				}
+			}
+			for (uint32 LocalTriangleIndex = 0; LocalTriangleIndex < Section.NumTriangles; ++LocalTriangleIndex)
+			{
+				const int32 LogicalTriangleIndex = static_cast<int32>(Section.BaseIndex / 3 + LocalTriangleIndex);
+				if (bExcluded)
+				{
+					++OutLOD.ExcludedTriangleCount;
+				}
+				else
+				{
+					IncludedTriangles[LogicalTriangleIndex] = true;
+				}
+			}
+		}
+
+		OutLOD.DynamicTriangles.SetNum(TriangleCount);
+		for (int32 LogicalTriangleIndex = 0; LogicalTriangleIndex < TriangleCount; ++LogicalTriangleIndex)
+		{
+			if (!IncludedTriangles[LogicalTriangleIndex])
+			{
+				continue;
+			}
+			const int32 BaseIndex = LogicalTriangleIndex * 3;
+			const FIntVector RenderVertices(
+				static_cast<int32>(OutLOD.Indices[BaseIndex]),
+				static_cast<int32>(OutLOD.Indices[BaseIndex + 1]),
+				static_cast<int32>(OutLOD.Indices[BaseIndex + 2]));
+			if (!OutLOD.Positions.IsValidIndex(RenderVertices.X)
+				|| !OutLOD.Positions.IsValidIndex(RenderVertices.Y)
+				|| !OutLOD.Positions.IsValidIndex(RenderVertices.Z))
+			{
+				OutError = FString::Printf(TEXT("%s LOD %d triangle %d references an invalid render vertex."), *Mesh->GetPathName(), LODIndex, LogicalTriangleIndex);
+				return false;
+			}
+			const FVector3d& A = OutLOD.Positions[RenderVertices.X];
+			const FVector3d& B = OutLOD.Positions[RenderVertices.Y];
+			const FVector3d& C = OutLOD.Positions[RenderVertices.Z];
+			FVector3d StableTangent = B - A;
+			FVector3d StableNormal = StableTangent.Cross(C - A);
+			FVector3d StableBitangent;
+			bool bStableFrame = StableTangent.Normalize() && StableNormal.Normalize();
+			if (bStableFrame)
+			{
+				StableBitangent = StableNormal.Cross(StableTangent);
+				bStableFrame = StableBitangent.Normalize();
+			}
+			if (RenderVertices.X == RenderVertices.Y
+				|| RenderVertices.Y == RenderVertices.Z
+				|| RenderVertices.Z == RenderVertices.X
+				|| !bStableFrame)
+			{
+				++OutLOD.DegenerateTriangleCount;
+				continue;
+			}
+			const int32 DynamicTriangleID = OutLOD.Mesh.AppendTriangle(
+				FIndex3i(RenderVertices.X, RenderVertices.Y, RenderVertices.Z));
+			if (DynamicTriangleID < 0)
+			{
+				OutError = FString::Printf(TEXT("%s LOD %d could not append render triangle %d."), *Mesh->GetPathName(), LODIndex, LogicalTriangleIndex);
+				return false;
+			}
+			if (!OutLOD.DynamicTriangles.IsValidIndex(DynamicTriangleID))
+			{
+				OutLOD.DynamicTriangles.SetNum(DynamicTriangleID + 1);
+			}
+			OutLOD.DynamicTriangles[DynamicTriangleID].LogicalTriangleIndex = LogicalTriangleIndex;
+			OutLOD.DynamicTriangles[DynamicTriangleID].RenderVertexIndices = RenderVertices;
+		}
+
+		if (OutLOD.Mesh.TriangleCount() <= 0)
+		{
+			OutError = FString::Printf(TEXT("%s LOD %d exposes no usable surface triangles."), *Mesh->GetPathName(), LODIndex);
+			return false;
+		}
+		OutLOD.Topology.LODIndex = LODIndex;
+		OutLOD.Topology.RenderVertexCount = RenderVertexCount;
+		OutLOD.Topology.RenderIndexCount = OutLOD.Indices.Num();
+		OutLOD.Topology.TriangleCount = TriangleCount;
+		OutLOD.Topology.SectionCount = RenderLOD.RenderSections.Num();
+		OutLOD.Topology.TopologyFingerprint = BuildRenderTopologyFingerprint(RenderLOD, ImportedLOD, OutLOD.Indices, LODIndex);
+		OutLOD.Topology.ContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(Mesh);
+		return !OutLOD.Topology.TopologyFingerprint.IsEmpty()
+			&& !OutLOD.Topology.ContentFingerprint.IsEmpty();
+	}
+
+	static bool BuildImportVertexClearanceDeltas(
+		const FDynamicMesh3& GarmentMesh,
+		const TArray<FVector3d>& ClearanceDeltas,
+		int32 ImportVertexCount,
+		TArray<FVector3d>& OutImportDeltas,
+		FString& OutError)
+	{
+		OutImportDeltas.Init(FVector3d::Zero(), ImportVertexCount);
+		TBitArray<> HasDelta(false, ImportVertexCount);
+		const FNonManifoldMappingSupport Mapping(GarmentMesh);
+		for (int32 DynamicVertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const int32 ImportVertexID = Mapping.GetOriginalNonManifoldVertexID(DynamicVertexID);
+			if (!OutImportDeltas.IsValidIndex(ImportVertexID) || !ClearanceDeltas.IsValidIndex(DynamicVertexID))
+			{
+				OutError = TEXT("Clearance render mapping references an invalid import/dynamic vertex.");
+				return false;
+			}
+			const FVector3d& Delta = ClearanceDeltas[DynamicVertexID];
+			if (HasDelta[ImportVertexID]
+				&& (OutImportDeltas[ImportVertexID] - Delta).SquaredLength() > FMath::Square(1.e-5))
+			{
+				OutError = FString::Printf(TEXT("Clearance render mapping found unreconciled split import vertex %d."), ImportVertexID);
+				return false;
+			}
+			OutImportDeltas[ImportVertexID] = Delta;
+			HasDelta[ImportVertexID] = true;
+		}
+		for (int32 ImportVertexIndex = 0; ImportVertexIndex < HasDelta.Num(); ++ImportVertexIndex)
+		{
+			if (!HasDelta[ImportVertexIndex])
+			{
+				OutError = FString::Printf(
+					TEXT("Clearance render mapping did not cover import vertex %d."),
+					ImportVertexIndex);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool FindSurfaceAnchor(
+		const FSurfaceRenderLOD& BodyLOD,
+		const FDynamicMeshAABBTree3& BodySpatial,
+		const FVector3d& QueryPosition,
+		int32& OutDynamicTriangleID,
+		FVector3d& OutClosestPoint,
+		FVector3d& OutBarycentrics,
+		FVector3d& OutNormal,
+		double& OutDistanceSquared,
+		const TSet<int32>* RejectedTriangles = nullptr)
+	{
+		IMeshSpatial::FQueryOptions QueryOptions;
+		if (RejectedTriangles)
+		{
+			QueryOptions.TriangleFilterF = [RejectedTriangles](int32 TriangleID)
+			{
+				return !RejectedTriangles->Contains(TriangleID);
+			};
+		}
+		OutDistanceSquared = TNumericLimits<double>::Max();
+		OutDynamicTriangleID = BodySpatial.FindNearestTriangle(QueryPosition, OutDistanceSquared, QueryOptions);
+		if (OutDynamicTriangleID == IndexConstants::InvalidID
+			|| !BodyLOD.DynamicTriangles.IsValidIndex(OutDynamicTriangleID)
+			|| BodyLOD.DynamicTriangles[OutDynamicTriangleID].LogicalTriangleIndex == INDEX_NONE
+			|| !FMath::IsFinite(OutDistanceSquared))
+		{
+			return false;
+		}
+		const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+			BodyLOD.Mesh,
+			OutDynamicTriangleID,
+			QueryPosition);
+		OutClosestPoint = Query.ClosestTrianglePoint;
+		OutBarycentrics = Query.TriangleBaryCoords;
+		const FIndex3i BodyTriangle = BodyLOD.Mesh.GetTriangle(OutDynamicTriangleID);
+		OutNormal = (BodyLOD.Mesh.GetVertex(BodyTriangle.B) - BodyLOD.Mesh.GetVertex(BodyTriangle.A)).Cross(
+			BodyLOD.Mesh.GetVertex(BodyTriangle.C) - BodyLOD.Mesh.GetVertex(BodyTriangle.A));
+		const double Sum = OutBarycentrics.X + OutBarycentrics.Y + OutBarycentrics.Z;
+		return !OutClosestPoint.ContainsNaN()
+			&& !OutBarycentrics.ContainsNaN()
+			&& !OutNormal.ContainsNaN()
+			&& OutNormal.Normalize()
+			&& FMath::IsNearlyEqual(Sum, 1.0, 1.e-4);
+	}
+
+	static EEFClothingSurfaceVertexMode ClassifySurfaceVertex(
+		EEFClothingFitPolicy Policy,
+		double SignedGap,
+		double TargetClearance,
+		double NormalAlignment,
+		double BoneWeightSimilarity,
+		bool bChaosDriven)
+	{
+		switch (Policy)
+		{
+		case EEFClothingFitPolicy::Tight:
+			return EEFClothingSurfaceVertexMode::SurfaceFollow;
+		case EEFClothingFitPolicy::Hybrid:
+			return EEFClothingSurfaceVertexMode::Hybrid;
+		case EEFClothingFitPolicy::Loose:
+		case EEFClothingFitPolicy::Rigid:
+			return EEFClothingSurfaceVertexMode::CollisionOnly;
+	default:
+			break;
+		}
+		if (!bChaosDriven
+			&& SignedGap <= TargetClearance + 0.40
+			&& NormalAlignment >= 0.35
+			&& BoneWeightSimilarity >= 0.65)
+		{
+			return EEFClothingSurfaceVertexMode::SurfaceFollow;
+		}
+		if (SignedGap <= TargetClearance + 1.50
+			&& NormalAlignment >= 0.05
+			&& BoneWeightSimilarity >= 0.25)
+		{
+			return EEFClothingSurfaceVertexMode::Hybrid;
+		}
+		return EEFClothingSurfaceVertexMode::CollisionOnly;
+	}
+
+	static double ComputeBoneWeightSimilarity(
+		const TMap<int32, float>& GarmentWeights,
+		const FSurfaceRenderLOD& BodyLOD,
+		const FIntVector& BodyRenderVertexIndices,
+		const FVector3d& BodyBarycentrics)
+	{
+		TMap<int32, double> InterpolatedBodyWeights;
+		const int32 BodyVertices[3] = {
+			BodyRenderVertexIndices.X,
+			BodyRenderVertexIndices.Y,
+			BodyRenderVertexIndices.Z};
+		const double Barycentrics[3] = {
+			BodyBarycentrics.X,
+			BodyBarycentrics.Y,
+			BodyBarycentrics.Z};
+		for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+		{
+			if (!BodyLOD.SkinWeights.IsValidIndex(BodyVertices[CornerIndex]))
+			{
+				return 0.0;
+			}
+			for (const TPair<int32, float>& Influence : BodyLOD.SkinWeights[BodyVertices[CornerIndex]])
+			{
+				InterpolatedBodyWeights.FindOrAdd(Influence.Key)
+					+= Barycentrics[CornerIndex] * static_cast<double>(Influence.Value);
+			}
+		}
+		double Similarity = 0.0;
+		for (const TPair<int32, float>& Influence : GarmentWeights)
+		{
+			Similarity += FMath::Min(
+				static_cast<double>(Influence.Value),
+				InterpolatedBodyWeights.FindRef(Influence.Key));
+		}
+		return FMath::Clamp(Similarity, 0.0, 1.0);
+	}
+
+	static float SurfaceFollowWeight(
+		EEFClothingSurfaceVertexMode Mode,
+		double SignedGap,
+		double TargetClearance)
+	{
+		if (Mode == EEFClothingSurfaceVertexMode::SurfaceFollow)
+		{
+			return static_cast<float>(FMath::Clamp(1.0 - FMath::Max(0.0, SignedGap - TargetClearance) / 1.5, 0.70, 1.0));
+		}
+		if (Mode == EEFClothingSurfaceVertexMode::Hybrid)
+		{
+			return static_cast<float>(FMath::Clamp(0.65 - FMath::Max(0.0, SignedGap - TargetClearance) / 4.0, 0.15, 0.65));
+		}
+		return 0.0f;
+	}
+
+	static bool BuildSurfaceLODPairBinding(
+		const FSurfaceRenderLOD& GarmentLOD,
+		const FSurfaceRenderLOD& BodyLOD,
+		const FEFClothingGarmentRow& CatalogRow,
+		float BaseClearanceCm,
+		float CompiledReserveCm,
+		float DefaultMaximumCorrectionCm,
+		FEFClothingSurfaceLODPairBinding& OutPair,
+		FString& OutError)
+	{
+		OutError.Reset();
+		OutPair = FEFClothingSurfaceLODPairBinding();
+		OutPair.GarmentTopology = GarmentLOD.Topology;
+		OutPair.BodyTopology = BodyLOD.Topology;
+		OutPair.BaseClearanceCm = BaseClearanceCm;
+		OutPair.CompiledReserveCm = CompiledReserveCm;
+		const float TargetClearanceCm = FMath::Max(
+			BaseClearanceCm,
+			EFClothingMorphV26::IsAutomaticCentimeterValue(CatalogRow.FabricClearanceCm)
+				? BaseClearanceCm
+				: CatalogRow.FabricClearanceCm) + CompiledReserveCm;
+		const float MaximumCorrectionCm = EFClothingMorphV26::IsAutomaticCentimeterValue(CatalogRow.MaximumCorrectionCm)
+			? DefaultMaximumCorrectionCm
+			: CatalogRow.MaximumCorrectionCm;
+		if (!FMath::IsFinite(TargetClearanceCm)
+			|| !FMath::IsFinite(MaximumCorrectionCm)
+			|| MaximumCorrectionCm < TargetClearanceCm)
+		{
+			OutError = TEXT("Surface binding clearance/correction policy is invalid.");
+			return false;
+		}
+
+		FDynamicMeshAABBTree3 BodySpatial(&BodyLOD.Mesh, true);
+		FMeshNormals GarmentNormals(&GarmentLOD.Mesh);
+		GarmentNormals.ComputeVertexNormals();
+		const int32 GarmentVertexCount = GarmentLOD.Positions.Num();
+		TArray<TSet<int32>> NeighborSets;
+		NeighborSets.SetNum(GarmentVertexCount);
+		for (int32 TriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = GarmentLOD.Mesh.GetTriangle(TriangleID);
+			NeighborSets[Triangle.A].Add(Triangle.B);
+			NeighborSets[Triangle.A].Add(Triangle.C);
+			NeighborSets[Triangle.B].Add(Triangle.A);
+			NeighborSets[Triangle.B].Add(Triangle.C);
+			NeighborSets[Triangle.C].Add(Triangle.A);
+			NeighborSets[Triangle.C].Add(Triangle.B);
+		}
+
+		OutPair.VertexBindings.SetNum(GarmentVertexCount);
+		double TotalAnchorError = 0.0;
+		double MinimumRestGap = TNumericLimits<double>::Max();
+		for (int32 GarmentVertexIndex = 0; GarmentVertexIndex < GarmentVertexCount; ++GarmentVertexIndex)
+		{
+			const FVector3d& GarmentPosition = GarmentLOD.Positions[GarmentVertexIndex];
+			int32 BodyDynamicTriangleID = INDEX_NONE;
+			FVector3d ClosestPoint;
+			FVector3d Barycentrics;
+			FVector3d BodyNormal;
+			double DistanceSquared = TNumericLimits<double>::Max();
+			if (!FindSurfaceAnchor(
+				BodyLOD,
+				BodySpatial,
+				GarmentPosition,
+				BodyDynamicTriangleID,
+				ClosestPoint,
+				Barycentrics,
+				BodyNormal,
+				DistanceSquared))
+			{
+				++OutPair.Metrics.InvalidAnchorCount;
+				OutError = FString::Printf(TEXT("Surface binding could not anchor garment render vertex %d."), GarmentVertexIndex);
+				return false;
+			}
+			const FSurfaceRenderTriangle& BodyTriangle = BodyLOD.DynamicTriangles[BodyDynamicTriangleID];
+			FIntVector OrientedBodyRenderVertexIndices = BodyTriangle.RenderVertexIndices;
+			FVector3d OrientedBarycentrics = Barycentrics;
+			const FVector3d RestOffset = GarmentPosition - ClosestPoint;
+			// Render sections and DAZ seam splits can expose opposite winding even
+			// though they describe the same visible skin. Persist an exterior-facing
+			// winding per garment anchor by swapping two body corners; runtime then
+			// reconstructs the exact same geometric frame without smoothed normals.
+			if (RestOffset.Dot(BodyNormal) < 0.0)
+			{
+				Swap(OrientedBodyRenderVertexIndices.Y, OrientedBodyRenderVertexIndices.Z);
+				Swap(OrientedBarycentrics.Y, OrientedBarycentrics.Z);
+				BodyNormal = -BodyNormal;
+			}
+			const FVector3d& A = BodyLOD.Positions[OrientedBodyRenderVertexIndices.X];
+			const FVector3d& B = BodyLOD.Positions[OrientedBodyRenderVertexIndices.Y];
+			FVector3d Tangent = B - A;
+			if (!Tangent.Normalize())
+			{
+				++OutPair.Metrics.InvalidAnchorCount;
+				OutError = FString::Printf(TEXT("Surface binding primary triangle has a degenerate tangent at garment vertex %d."), GarmentVertexIndex);
+				return false;
+			}
+			FVector3d Bitangent = BodyNormal.Cross(Tangent);
+			if (!Bitangent.Normalize())
+			{
+				++OutPair.Metrics.InvalidAnchorCount;
+				OutError = FString::Printf(TEXT("Surface binding primary triangle has a degenerate frame at garment vertex %d."), GarmentVertexIndex);
+				return false;
+			}
+			Tangent = Bitangent.Cross(BodyNormal);
+			if (!Tangent.Normalize())
+			{
+				++OutPair.Metrics.InvalidAnchorCount;
+				OutError = FString::Printf(TEXT("Surface binding primary triangle has an invalid orthonormal frame at garment vertex %d."), GarmentVertexIndex);
+				return false;
+			}
+			const double SignedGap = RestOffset.Dot(BodyNormal);
+			const FVector3d GarmentNormal = GarmentNormals[GarmentVertexIndex];
+			const double NormalAlignment = FMath::Abs(GarmentNormal.Dot(BodyNormal));
+			const double BoneWeightSimilarity = ComputeBoneWeightSimilarity(
+				GarmentLOD.SkinWeights[GarmentVertexIndex],
+				BodyLOD,
+				OrientedBodyRenderVertexIndices,
+				OrientedBarycentrics);
+			const bool bChaosDriven = GarmentVertexIndex >= 0
+				&& GarmentVertexIndex < GarmentLOD.ChaosDrivenVertices.Num()
+				&& GarmentLOD.ChaosDrivenVertices[GarmentVertexIndex];
+			FEFClothingSurfaceVertexBinding& VertexBinding = OutPair.VertexBindings[GarmentVertexIndex];
+			VertexBinding.GarmentRenderVertexIndex = GarmentVertexIndex;
+			VertexBinding.BodyRenderVertexIndices = OrientedBodyRenderVertexIndices;
+			VertexBinding.BodyBarycentrics = FVector3f(OrientedBarycentrics);
+			VertexBinding.RestTangentFrameOffsetCm = FVector3f(
+				static_cast<float>(RestOffset.Dot(Tangent)),
+				static_cast<float>(RestOffset.Dot(Bitangent)),
+				static_cast<float>(SignedGap));
+			VertexBinding.RestSignedGapCm = static_cast<float>(SignedGap);
+			VertexBinding.TargetClearanceCm = TargetClearanceCm;
+			VertexBinding.MaximumCorrectionCm = MaximumCorrectionCm;
+			VertexBinding.Mode = ClassifySurfaceVertex(
+				CatalogRow.FitPolicy,
+				SignedGap,
+				TargetClearanceCm,
+				NormalAlignment,
+				BoneWeightSimilarity,
+				bChaosDriven);
+			VertexBinding.FollowWeight = SurfaceFollowWeight(VertexBinding.Mode, SignedGap, TargetClearanceCm);
+
+			TArray<int32> Neighbors = NeighborSets[GarmentVertexIndex].Array();
+			Neighbors.Sort();
+			VertexBinding.NeighborRange.Offset = OutPair.NeighborRenderVertexIndices.Num();
+			VertexBinding.NeighborRange.Count = Neighbors.Num();
+			OutPair.NeighborRenderVertexIndices.Append(Neighbors);
+
+			VertexBinding.CandidateRange.Offset = OutPair.CandidateTriangles.Num();
+			TSet<int32> RejectedCandidateTriangles;
+			constexpr int32 CandidateCountPerVertex = 4;
+			for (int32 CandidateIndex = 0; CandidateIndex < CandidateCountPerVertex; ++CandidateIndex)
+			{
+				int32 CandidateDynamicTriangleID = INDEX_NONE;
+				FVector3d CandidateClosestPoint;
+				FVector3d CandidateBarycentrics;
+				FVector3d CandidateNormal;
+				double CandidateDistanceSquared = TNumericLimits<double>::Max();
+				if (!FindSurfaceAnchor(
+					BodyLOD,
+					BodySpatial,
+					GarmentPosition,
+					CandidateDynamicTriangleID,
+					CandidateClosestPoint,
+					CandidateBarycentrics,
+					CandidateNormal,
+					CandidateDistanceSquared,
+					&RejectedCandidateTriangles))
+				{
+					break;
+				}
+				RejectedCandidateTriangles.Add(CandidateDynamicTriangleID);
+				const FSurfaceRenderTriangle& CandidateTriangle = BodyLOD.DynamicTriangles[CandidateDynamicTriangleID];
+				FEFClothingSurfaceCandidateTriangle& Candidate = OutPair.CandidateTriangles.AddDefaulted_GetRef();
+				Candidate.BodyTriangleIndex = CandidateTriangle.LogicalTriangleIndex;
+				Candidate.BodyRenderVertexIndices = CandidateTriangle.RenderVertexIndices;
+				if ((GarmentPosition - CandidateClosestPoint).Dot(CandidateNormal) < 0.0)
+				{
+					Swap(Candidate.BodyRenderVertexIndices.Y, Candidate.BodyRenderVertexIndices.Z);
+				}
+				Candidate.RestDistanceCm = static_cast<float>(FMath::Sqrt(FMath::Max(0.0, CandidateDistanceSquared)));
+			}
+			VertexBinding.CandidateRange.Count = OutPair.CandidateTriangles.Num() - VertexBinding.CandidateRange.Offset;
+			if (VertexBinding.CandidateRange.Count <= 0)
+			{
+				++OutPair.Metrics.InvalidAnchorCount;
+				OutError = FString::Printf(TEXT("Surface binding produced no candidate triangle for render vertex %d."), GarmentVertexIndex);
+				return false;
+			}
+
+			const FVector3d Reconstructed = ClosestPoint
+				+ Tangent * VertexBinding.RestTangentFrameOffsetCm.X
+				+ Bitangent * VertexBinding.RestTangentFrameOffsetCm.Y
+				+ BodyNormal * VertexBinding.RestTangentFrameOffsetCm.Z;
+			const double AnchorError = (Reconstructed - GarmentPosition).Length();
+			TotalAnchorError += AnchorError;
+			OutPair.Metrics.MaximumAnchorErrorCm = FMath::Max(
+				OutPair.Metrics.MaximumAnchorErrorCm,
+				static_cast<float>(AnchorError));
+			MinimumRestGap = FMath::Min(MinimumRestGap, SignedGap);
+		}
+
+		// Auto mode is regularized over render adjacency so isolated distance/noise
+		// cannot flip one vertex into a visibly different follow regime.
+		if (CatalogRow.FitPolicy == EEFClothingFitPolicy::Auto)
+		{
+			for (int32 Iteration = 0; Iteration < 2; ++Iteration)
+			{
+				TArray<EEFClothingSurfaceVertexMode> SmoothedModes;
+				SmoothedModes.SetNum(GarmentVertexCount);
+				for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+				{
+					int32 Counts[3] = {};
+					for (int32 NeighborIndex : NeighborSets[VertexIndex])
+					{
+						++Counts[static_cast<int32>(OutPair.VertexBindings[NeighborIndex].Mode)];
+					}
+					const int32 CurrentMode = static_cast<int32>(OutPair.VertexBindings[VertexIndex].Mode);
+					int32 WinningMode = CurrentMode;
+					for (int32 ModeIndex = 0; ModeIndex < 3; ++ModeIndex)
+					{
+						if (Counts[ModeIndex] > Counts[WinningMode])
+						{
+							WinningMode = ModeIndex;
+						}
+					}
+					SmoothedModes[VertexIndex] = Counts[WinningMode] * 3 >= NeighborSets[VertexIndex].Num() * 2
+						? static_cast<EEFClothingSurfaceVertexMode>(WinningMode)
+						: OutPair.VertexBindings[VertexIndex].Mode;
+				}
+				for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+				{
+					OutPair.VertexBindings[VertexIndex].Mode = SmoothedModes[VertexIndex];
+					OutPair.VertexBindings[VertexIndex].FollowWeight = SurfaceFollowWeight(
+						SmoothedModes[VertexIndex],
+						OutPair.VertexBindings[VertexIndex].RestSignedGapCm,
+						TargetClearanceCm);
+				}
+			}
+		}
+
+		// Adaptive edge/interior witnesses close the vertex-only loophole. A
+		// triangle whose spacing would exceed 0.5cm receives a barycentric grid.
+		constexpr double MaximumWitnessSpacingCm = 0.5;
+		constexpr int32 MaximumWitnessSubdivisions = 32;
+		for (int32 GarmentDynamicTriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
+		{
+			if (!GarmentLOD.DynamicTriangles.IsValidIndex(GarmentDynamicTriangleID))
+			{
+				continue;
+			}
+			const FSurfaceRenderTriangle& GarmentTriangle = GarmentLOD.DynamicTriangles[GarmentDynamicTriangleID];
+			if (GarmentTriangle.LogicalTriangleIndex == INDEX_NONE)
+			{
+				continue;
+			}
+			const FVector3d& A = GarmentLOD.Positions[GarmentTriangle.RenderVertexIndices.X];
+			const FVector3d& B = GarmentLOD.Positions[GarmentTriangle.RenderVertexIndices.Y];
+			const FVector3d& C = GarmentLOD.Positions[GarmentTriangle.RenderVertexIndices.Z];
+			const double MaximumEdgeLength = FMath::Max3((B - A).Length(), (C - B).Length(), (A - C).Length());
+			const int32 Subdivisions = FMath::Max(1, FMath::CeilToInt(MaximumEdgeLength / MaximumWitnessSpacingCm));
+			if (Subdivisions > MaximumWitnessSubdivisions)
+			{
+				OutError = FString::Printf(
+					TEXT("Garment LOD %d triangle %d needs %d witness subdivisions; source topology must be subdivided."),
+					GarmentLOD.LODIndex,
+					GarmentTriangle.LogicalTriangleIndex,
+					Subdivisions);
+				return false;
+			}
+			TArray<FVector3d> WitnessBarycentrics;
+			if (Subdivisions == 1)
+			{
+				WitnessBarycentrics.Add(FVector3d(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0));
+			}
+			else
+			{
+				for (int32 I = 0; I <= Subdivisions; ++I)
+				{
+					for (int32 J = 0; J <= Subdivisions - I; ++J)
+					{
+						const int32 K = Subdivisions - I - J;
+						if ((I == Subdivisions && J == 0 && K == 0)
+							|| (J == Subdivisions && I == 0 && K == 0)
+							|| (K == Subdivisions && I == 0 && J == 0))
+						{
+							continue;
+						}
+						WitnessBarycentrics.Add(FVector3d(
+							static_cast<double>(I) / Subdivisions,
+							static_cast<double>(J) / Subdivisions,
+							static_cast<double>(K) / Subdivisions));
+					}
+				}
+			}
+			for (const FVector3d& GarmentBarycentrics : WitnessBarycentrics)
+			{
+				const FVector3d WitnessPosition = A * GarmentBarycentrics.X
+					+ B * GarmentBarycentrics.Y
+					+ C * GarmentBarycentrics.Z;
+				int32 BodyDynamicTriangleID = INDEX_NONE;
+				FVector3d ClosestPoint;
+				FVector3d BodyBarycentrics;
+				FVector3d BodyNormal;
+				double DistanceSquared = TNumericLimits<double>::Max();
+				if (!FindSurfaceAnchor(
+					BodyLOD,
+					BodySpatial,
+					WitnessPosition,
+					BodyDynamicTriangleID,
+					ClosestPoint,
+					BodyBarycentrics,
+					BodyNormal,
+					DistanceSquared))
+				{
+					OutError = FString::Printf(TEXT("Surface binding witness could not resolve body geometry for garment triangle %d."), GarmentTriangle.LogicalTriangleIndex);
+					return false;
+				}
+				const FSurfaceRenderTriangle& BodyTriangle = BodyLOD.DynamicTriangles[BodyDynamicTriangleID];
+				FEFClothingSurfaceWitness& Witness = OutPair.Witnesses.AddDefaulted_GetRef();
+				Witness.GarmentTriangleIndex = GarmentTriangle.LogicalTriangleIndex;
+				Witness.GarmentRenderVertexIndices = GarmentTriangle.RenderVertexIndices;
+				Witness.GarmentBarycentrics = FVector3f(GarmentBarycentrics);
+				Witness.BodyRenderVertexIndices = BodyTriangle.RenderVertexIndices;
+				if ((WitnessPosition - ClosestPoint).Dot(BodyNormal) < 0.0)
+				{
+					Swap(Witness.BodyRenderVertexIndices.Y, Witness.BodyRenderVertexIndices.Z);
+					Swap(BodyBarycentrics.Y, BodyBarycentrics.Z);
+				}
+				Witness.BodyBarycentrics = FVector3f(BodyBarycentrics);
+				Witness.TargetClearanceCm = TargetClearanceCm;
+				Witness.MaximumCorrectionCm = MaximumCorrectionCm;
+			}
+		}
+
+		OutPair.Metrics.BoundRenderVertexCount = GarmentVertexCount;
+		OutPair.Metrics.NeighborReferenceCount = OutPair.NeighborRenderVertexIndices.Num();
+		OutPair.Metrics.CandidateTriangleCount = OutPair.CandidateTriangles.Num();
+		OutPair.Metrics.WitnessCount = OutPair.Witnesses.Num();
+		OutPair.Metrics.DegenerateBodyTriangleCount = BodyLOD.DegenerateTriangleCount;
+		OutPair.Metrics.ExcludedBodyTriangleCount = BodyLOD.ExcludedTriangleCount;
+		OutPair.Metrics.MinimumRestSignedGapCm = static_cast<float>(MinimumRestGap);
+		OutPair.Metrics.MeanAnchorErrorCm = GarmentVertexCount > 0
+			? static_cast<float>(TotalAnchorError / GarmentVertexCount)
+			: 0.0f;
+		for (const FEFClothingSurfaceVertexBinding& VertexBinding : OutPair.VertexBindings)
+		{
+			switch (VertexBinding.Mode)
+			{
+			case EEFClothingSurfaceVertexMode::SurfaceFollow:
+				++OutPair.Metrics.SurfaceFollowVertexCount;
+				break;
+			case EEFClothingSurfaceVertexMode::Hybrid:
+				++OutPair.Metrics.HybridVertexCount;
+				break;
+			case EEFClothingSurfaceVertexMode::CollisionOnly:
+				++OutPair.Metrics.CollisionOnlyVertexCount;
+				break;
+			}
+		}
+		OutPair.bCertified = OutPair.Metrics.InvalidAnchorCount == 0
+			&& OutPair.Metrics.BoundRenderVertexCount == GarmentLOD.Topology.RenderVertexCount
+			&& OutPair.Metrics.MinimumRestSignedGapCm >= TargetClearanceCm - 0.02f
+			&& OutPair.Metrics.MaximumAnchorErrorCm <= 0.001f
+			&& OutPair.VertexBindings.Num() == GarmentLOD.Topology.RenderVertexCount
+			&& !OutPair.CandidateTriangles.IsEmpty()
+			&& !OutPair.Witnesses.IsEmpty();
+		if (!OutPair.bCertified)
+		{
+			OutError = FString::Printf(
+				TEXT("Surface binding LOD pair %d/%d failed certification: bound=%d/%d invalid=%d minGap=%.4f/%.4fcm anchorError=%.6fcm candidates=%d witnesses=%d."),
+				GarmentLOD.LODIndex,
+				BodyLOD.LODIndex,
+				OutPair.Metrics.BoundRenderVertexCount,
+				GarmentLOD.Topology.RenderVertexCount,
+				OutPair.Metrics.InvalidAnchorCount,
+				OutPair.Metrics.MinimumRestSignedGapCm,
+				TargetClearanceCm,
+				OutPair.Metrics.MaximumAnchorErrorCm,
+				OutPair.CandidateTriangles.Num(),
+				OutPair.Witnesses.Num());
+		}
+		return OutPair.bCertified;
+	}
+
+	static bool BuildSurfaceBindingAsset(
+		USkeletalMesh* SourceGarment,
+		USkeletalMesh* FittedGarment,
+		USkeletalMesh* BodySurface,
+		const FDynamicMesh3& GarmentDynamicMesh,
+		const TArray<FVector3d>& ClearanceDeltas,
+		const FEFClothingGarmentRow& CatalogRow,
+		const TArray<FName>& ExcludedBodySurfaceMaterialSlots,
+		const FGuid& BuildGuid,
+		const FString& OutputRoot,
+		const FString& PublicationKey,
+		float MinimumClearanceCm,
+		float MaximumPushCm,
+		UEFClothingSurfaceBinding*& OutBinding,
+		EEFClothingFitMode& OutResolvedFitMode,
+		FString& OutError)
+	{
+		OutBinding = nullptr;
+		FSkinnedAssetCompilingManager::Get().FinishCompilation({FittedGarment, BodySurface});
+		FSkeletalMeshRenderData* GarmentRenderData = FittedGarment->GetResourceForRendering();
+		FSkeletalMeshRenderData* BodyRenderData = BodySurface->GetResourceForRendering();
+		FSkeletalMeshModel* GarmentImportedModel = FittedGarment->GetImportedModel();
+		if (!GarmentRenderData || !BodyRenderData || !GarmentImportedModel || GarmentImportedModel->LODModels.IsEmpty())
+		{
+			OutError = TEXT("Surface binding could not load fitted/body render data.");
+			return false;
+		}
+		if (GarmentRenderData->LODRenderData.Num() != 1)
+		{
+			OutError = TEXT("V26 currently requires one fitted-garment render LOD; body LODs are all compiled.");
+			return false;
+		}
+		const FMeshDescription* GarmentDescription = FittedGarment->GetMeshDescription(0);
+		if (!GarmentDescription)
+		{
+			OutError = TEXT("Surface binding fitted garment lost its LOD0 MeshDescription.");
+			return false;
+		}
+		TArray<FVector3d> ImportClearanceDeltas;
+		if (!BuildImportVertexClearanceDeltas(
+			GarmentDynamicMesh,
+			ClearanceDeltas,
+			GarmentDescription->Vertices().Num(),
+			ImportClearanceDeltas,
+			OutError))
+		{
+			return false;
+		}
+
+		FSurfaceRenderLOD GarmentLOD;
+		if (!BuildSurfaceRenderLOD(FittedGarment, 0, {}, FitWeightProfileName, GarmentLOD, OutError))
+		{
+			return false;
+		}
+		for (int32 RenderVertexIndex = 0; RenderVertexIndex < GarmentLOD.Positions.Num(); ++RenderVertexIndex)
+		{
+			const int32 ImportVertexIndex = GarmentLOD.MeshToImportVertexMap[RenderVertexIndex];
+			if (!ImportClearanceDeltas.IsValidIndex(ImportVertexIndex))
+			{
+				OutError = FString::Printf(TEXT("Fitted render vertex %d maps to invalid import vertex %d."), RenderVertexIndex, ImportVertexIndex);
+				return false;
+			}
+			GarmentLOD.Positions[RenderVertexIndex] += ImportClearanceDeltas[ImportVertexIndex];
+			GarmentLOD.Mesh.SetVertex(RenderVertexIndex, GarmentLOD.Positions[RenderVertexIndex]);
+		}
+
+		const FString BindingName = FString::Printf(
+			TEXT("DA_%s_%s_%s_%s_EFV26Surface_%s"),
+			*SanitizeAssetName(SourceGarment->GetName()),
+			*BuildSourceKey(SourceGarment),
+			*SanitizeAssetName(BodySurface->GetName()),
+			*BuildSourceKey(BodySurface),
+			*PublicationKey);
+		const FString BindingObjectPath = FString::Printf(TEXT("%s/%s.%s"), *OutputRoot, *BindingName, *BindingName);
+		if (LoadObject<UEFClothingSurfaceBinding>(nullptr, *BindingObjectPath))
+		{
+			OutError = FString::Printf(TEXT("Fresh publication key collided with surface binding %s."), *BindingObjectPath);
+			return false;
+		}
+		UEFClothingSurfaceBinding* Binding = FindOrCreateDataAsset<UEFClothingSurfaceBinding>(OutputRoot, BindingName);
+		if (!Binding)
+		{
+			OutError = TEXT("Could not create the generated V26 surface binding asset.");
+			return false;
+		}
+		Binding->SourceGarment = SourceGarment;
+		Binding->FittedGarment = FittedGarment;
+		Binding->BodySurface = BodySurface;
+		Binding->BuildGuid = BuildGuid;
+		Binding->CompilerVersion = CompilerVersion;
+		Binding->SchemaVersion = EFClothingMorphV26::SurfaceBindingSchemaVersion;
+		Binding->SourceContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(SourceGarment);
+		Binding->FittedContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(FittedGarment);
+		Binding->BodyContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(BodySurface);
+		Binding->SourceSkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(SourceGarment);
+		Binding->FittedSkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(FittedGarment);
+		Binding->BodySkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(BodySurface);
+		Binding->SharedSkeletonFingerprint = EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton());
+		Binding->ExcludedBodySurfaceMaterialSlots = ExcludedBodySurfaceMaterialSlots;
+		Binding->LODPairBindings.Reset();
+
+		int64 TotalSurfaceFollow = 0;
+		int64 TotalHybrid = 0;
+		int64 TotalCollisionOnly = 0;
+		for (int32 BodyLODIndex = 0; BodyLODIndex < BodyRenderData->LODRenderData.Num(); ++BodyLODIndex)
+		{
+			FSurfaceRenderLOD BodyLOD;
+			if (!BuildSurfaceRenderLOD(BodySurface, BodyLODIndex, ExcludedBodySurfaceMaterialSlots, NAME_None, BodyLOD, OutError))
+			{
+				return false;
+			}
+			FEFClothingSurfaceLODPairBinding& Pair = Binding->LODPairBindings.AddDefaulted_GetRef();
+			if (!BuildSurfaceLODPairBinding(
+				GarmentLOD,
+				BodyLOD,
+				CatalogRow,
+				MinimumClearanceCm,
+				static_cast<float>(CompilerClearanceReserveCm),
+				MaximumPushCm,
+				Pair,
+				OutError))
+			{
+				return false;
+			}
+			TotalSurfaceFollow += Pair.Metrics.SurfaceFollowVertexCount;
+			TotalHybrid += Pair.Metrics.HybridVertexCount;
+			TotalCollisionOnly += Pair.Metrics.CollisionOnlyVertexCount;
+		}
+		if (Binding->LODPairBindings.IsEmpty())
+		{
+			OutError = TEXT("Surface binding generated no body/garment LOD pairs.");
+			return false;
+		}
+
+		switch (CatalogRow.FitPolicy)
+		{
+		case EEFClothingFitPolicy::Tight:
+			OutResolvedFitMode = EEFClothingFitMode::Tight;
+			break;
+		case EEFClothingFitPolicy::Hybrid:
+			OutResolvedFitMode = EEFClothingFitMode::Hybrid;
+			break;
+		case EEFClothingFitPolicy::Loose:
+			OutResolvedFitMode = EEFClothingFitMode::Loose;
+			break;
+		case EEFClothingFitPolicy::Rigid:
+			OutResolvedFitMode = EEFClothingFitMode::Rigid;
+			break;
+		default:
+			if (TotalSurfaceFollow * 5 >= (TotalSurfaceFollow + TotalHybrid + TotalCollisionOnly) * 4)
+			{
+				OutResolvedFitMode = EEFClothingFitMode::Tight;
+			}
+			else if (TotalCollisionOnly * 5 >= (TotalSurfaceFollow + TotalHybrid + TotalCollisionOnly) * 3)
+			{
+				OutResolvedFitMode = EEFClothingFitMode::Loose;
+			}
+			else
+			{
+				OutResolvedFitMode = EEFClothingFitMode::Hybrid;
+			}
+			break;
+		}
+		Binding->MarkPackageDirty();
+		if (!SaveAsset(Binding, OutError))
+		{
+			return false;
+		}
+		OutBinding = Binding;
+		return true;
+	}
+
+	static bool ValidateSurfaceBinding(
+		const UEFClothingSurfaceBinding* Binding,
+		const UEFClothingFitProfile* Profile,
+		FString& OutError)
+	{
+		if (!IsValid(Binding)
+			|| !IsValid(Profile)
+			|| Binding->SourceGarment.ToSoftObjectPath() != Profile->SourceGarment.ToSoftObjectPath()
+			|| Binding->FittedGarment.ToSoftObjectPath() != Profile->FittedGarment.ToSoftObjectPath()
+			|| Binding->BodySurface.ToSoftObjectPath() != Profile->BodySurface.ToSoftObjectPath()
+			|| Binding->BuildGuid != Profile->BuildGuid
+			|| Binding->CompilerVersion != CompilerVersion
+			|| Binding->SchemaVersion != EFClothingMorphV26::SurfaceBindingSchemaVersion
+			|| Binding->LODPairBindings.IsEmpty())
+		{
+			OutError = TEXT("V26 surface binding identity/schema does not match its fit profile.");
+			return false;
+		}
+		USkeletalMesh* FittedGarment = Binding->FittedGarment.LoadSynchronous();
+		USkeletalMesh* BodySurface = Binding->BodySurface.LoadSynchronous();
+		USkeletalMesh* SourceGarment = Binding->SourceGarment.LoadSynchronous();
+		if (!IsValid(FittedGarment)
+			|| !IsValid(BodySurface)
+			|| !IsValid(SourceGarment)
+			|| Binding->SourceContentFingerprint != EFClothingSkeleton::BuildContentFingerprint(SourceGarment)
+			|| Binding->FittedContentFingerprint != EFClothingSkeleton::BuildContentFingerprint(FittedGarment)
+			|| Binding->BodyContentFingerprint != EFClothingSkeleton::BuildContentFingerprint(BodySurface)
+			|| Binding->SourceSkeletonFingerprint != EFClothingSkeleton::BuildFingerprint(SourceGarment)
+			|| Binding->FittedSkeletonFingerprint != EFClothingSkeleton::BuildFingerprint(FittedGarment)
+			|| Binding->BodySkeletonFingerprint != EFClothingSkeleton::BuildFingerprint(BodySurface)
+			|| SourceGarment->GetSkeleton() != FittedGarment->GetSkeleton()
+			|| SourceGarment->GetSkeleton() != BodySurface->GetSkeleton()
+			|| Binding->SharedSkeletonFingerprint
+				!= EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton()))
+		{
+			OutError = TEXT("V26 surface binding protected-mesh fingerprint or shared-skeleton identity is stale.");
+			return false;
+		}
+
+		auto TopologyMatches = [](const FEFClothingSurfaceTopologyFingerprint& Stored, const FSurfaceRenderLOD& Actual)
+		{
+			return Stored.LODIndex == Actual.Topology.LODIndex
+				&& Stored.RenderVertexCount == Actual.Topology.RenderVertexCount
+				&& Stored.RenderIndexCount == Actual.Topology.RenderIndexCount
+				&& Stored.TriangleCount == Actual.Topology.TriangleCount
+				&& Stored.SectionCount == Actual.Topology.SectionCount
+				&& Stored.TopologyFingerprint == Actual.Topology.TopologyFingerprint
+				&& Stored.ContentFingerprint == Actual.Topology.ContentFingerprint;
+		};
+		TMap<int32, FSurfaceRenderLOD> GarmentLODs;
+		TMap<int32, FSurfaceRenderLOD> BodyLODs;
+		for (const FEFClothingSurfaceLODPairBinding& Pair : Binding->LODPairBindings)
+		{
+			if (!GarmentLODs.Contains(Pair.GarmentTopology.LODIndex))
+			{
+				FSurfaceRenderLOD ActualGarmentLOD;
+				if (!BuildSurfaceRenderLOD(FittedGarment, Pair.GarmentTopology.LODIndex, {}, FitWeightProfileName, ActualGarmentLOD, OutError))
+				{
+					return false;
+				}
+				GarmentLODs.Add(Pair.GarmentTopology.LODIndex, MoveTemp(ActualGarmentLOD));
+			}
+			if (!BodyLODs.Contains(Pair.BodyTopology.LODIndex))
+			{
+				FSurfaceRenderLOD ActualBodyLOD;
+				if (!BuildSurfaceRenderLOD(
+					BodySurface,
+					Pair.BodyTopology.LODIndex,
+					Binding->ExcludedBodySurfaceMaterialSlots,
+					NAME_None,
+					ActualBodyLOD,
+					OutError))
+				{
+					return false;
+				}
+				BodyLODs.Add(Pair.BodyTopology.LODIndex, MoveTemp(ActualBodyLOD));
+			}
+			if (!TopologyMatches(Pair.GarmentTopology, GarmentLODs.FindChecked(Pair.GarmentTopology.LODIndex))
+				|| !TopologyMatches(Pair.BodyTopology, BodyLODs.FindChecked(Pair.BodyTopology.LODIndex)))
+			{
+				OutError = FString::Printf(
+					TEXT("V26 surface binding render topology fingerprint is stale for LOD pair %d/%d."),
+					Pair.GarmentTopology.LODIndex,
+					Pair.BodyTopology.LODIndex);
+				return false;
+			}
+		}
+		TSet<uint64> UniqueLODPairs;
+		for (const FEFClothingSurfaceLODPairBinding& Pair : Binding->LODPairBindings)
+		{
+			const uint64 PairKey = static_cast<uint64>(static_cast<uint32>(Pair.GarmentTopology.LODIndex)) << 32
+				| static_cast<uint32>(Pair.BodyTopology.LODIndex);
+			if (!Pair.bCertified
+				|| UniqueLODPairs.Contains(PairKey)
+				|| Pair.GarmentTopology.RenderVertexCount <= 0
+				|| Pair.BodyTopology.RenderVertexCount <= 0
+				|| Pair.VertexBindings.Num() != Pair.GarmentTopology.RenderVertexCount
+				|| Pair.Metrics.BoundRenderVertexCount != Pair.VertexBindings.Num()
+				|| Pair.Metrics.InvalidAnchorCount != 0
+				|| Pair.Witnesses.IsEmpty())
+			{
+				OutError = FString::Printf(TEXT("V26 surface binding has an invalid/duplicate LOD pair %d/%d."), Pair.GarmentTopology.LODIndex, Pair.BodyTopology.LODIndex);
+				return false;
+			}
+			UniqueLODPairs.Add(PairKey);
+			for (int32 VertexIndex = 0; VertexIndex < Pair.VertexBindings.Num(); ++VertexIndex)
+			{
+				const FEFClothingSurfaceVertexBinding& Vertex = Pair.VertexBindings[VertexIndex];
+				const float BarycentricSum = Vertex.BodyBarycentrics.X + Vertex.BodyBarycentrics.Y + Vertex.BodyBarycentrics.Z;
+				if (Vertex.GarmentRenderVertexIndex != VertexIndex
+					|| Vertex.BodyRenderVertexIndices.X < 0
+					|| Vertex.BodyRenderVertexIndices.Y < 0
+					|| Vertex.BodyRenderVertexIndices.Z < 0
+					|| Vertex.BodyRenderVertexIndices.X >= Pair.BodyTopology.RenderVertexCount
+					|| Vertex.BodyRenderVertexIndices.Y >= Pair.BodyTopology.RenderVertexCount
+					|| Vertex.BodyRenderVertexIndices.Z >= Pair.BodyTopology.RenderVertexCount
+					|| !FMath::IsNearlyEqual(BarycentricSum, 1.0f, 1.e-3f)
+					|| Vertex.NeighborRange.Offset < 0
+					|| Vertex.NeighborRange.Count < 0
+					|| Vertex.NeighborRange.Offset + Vertex.NeighborRange.Count > Pair.NeighborRenderVertexIndices.Num()
+					|| Vertex.CandidateRange.Offset < 0
+					|| Vertex.CandidateRange.Count <= 0
+					|| Vertex.CandidateRange.Offset + Vertex.CandidateRange.Count > Pair.CandidateTriangles.Num()
+					|| Vertex.BodyBarycentrics.ContainsNaN()
+					|| Vertex.RestTangentFrameOffsetCm.ContainsNaN()
+					|| !FMath::IsFinite(Vertex.RestSignedGapCm)
+					|| !FMath::IsFinite(Vertex.TargetClearanceCm)
+					|| Vertex.TargetClearanceCm <= 0.0f
+					|| !FMath::IsFinite(Vertex.FollowWeight)
+					|| Vertex.FollowWeight < 0.0f
+					|| Vertex.FollowWeight > 1.0f
+					|| !FMath::IsFinite(Vertex.MaximumCorrectionCm)
+					|| Vertex.MaximumCorrectionCm < Vertex.TargetClearanceCm)
+				{
+					OutError = FString::Printf(TEXT("V26 surface binding vertex %d has an invalid render/range contract."), VertexIndex);
+					return false;
+				}
+				for (int32 NeighborOffset = 0; NeighborOffset < Vertex.NeighborRange.Count; ++NeighborOffset)
+				{
+					const int32 NeighborIndex = Pair.NeighborRenderVertexIndices[
+						Vertex.NeighborRange.Offset + NeighborOffset];
+					if (NeighborIndex < 0
+						|| NeighborIndex >= Pair.GarmentTopology.RenderVertexCount
+						|| NeighborIndex == VertexIndex)
+					{
+						OutError = FString::Printf(TEXT("V26 surface binding vertex %d has an invalid neighbor."), VertexIndex);
+						return false;
+					}
+				}
+				for (int32 CandidateOffset = 0; CandidateOffset < Vertex.CandidateRange.Count; ++CandidateOffset)
+				{
+					const FEFClothingSurfaceCandidateTriangle& Candidate = Pair.CandidateTriangles[
+						Vertex.CandidateRange.Offset + CandidateOffset];
+					if (Candidate.BodyTriangleIndex < 0
+						|| Candidate.BodyTriangleIndex >= Pair.BodyTopology.TriangleCount
+						|| Candidate.BodyRenderVertexIndices.X < 0
+						|| Candidate.BodyRenderVertexIndices.Y < 0
+						|| Candidate.BodyRenderVertexIndices.Z < 0
+						|| Candidate.BodyRenderVertexIndices.X >= Pair.BodyTopology.RenderVertexCount
+						|| Candidate.BodyRenderVertexIndices.Y >= Pair.BodyTopology.RenderVertexCount
+						|| Candidate.BodyRenderVertexIndices.Z >= Pair.BodyTopology.RenderVertexCount
+						|| !FMath::IsFinite(Candidate.RestDistanceCm)
+						|| Candidate.RestDistanceCm < 0.0f)
+					{
+						OutError = FString::Printf(TEXT("V26 surface binding vertex %d has an invalid candidate triangle."), VertexIndex);
+						return false;
+					}
+				}
+			}
+			for (const FEFClothingSurfaceWitness& Witness : Pair.Witnesses)
+			{
+				const float GarmentBarycentricSum = Witness.GarmentBarycentrics.X
+					+ Witness.GarmentBarycentrics.Y + Witness.GarmentBarycentrics.Z;
+				const float BodyBarycentricSum = Witness.BodyBarycentrics.X
+					+ Witness.BodyBarycentrics.Y + Witness.BodyBarycentrics.Z;
+				if (Witness.GarmentTriangleIndex < 0
+					|| Witness.GarmentTriangleIndex >= Pair.GarmentTopology.TriangleCount
+					|| Witness.GarmentRenderVertexIndices.X < 0
+					|| Witness.GarmentRenderVertexIndices.Y < 0
+					|| Witness.GarmentRenderVertexIndices.Z < 0
+					|| Witness.GarmentRenderVertexIndices.X >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.GarmentRenderVertexIndices.Y >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.GarmentRenderVertexIndices.Z >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.X < 0
+					|| Witness.BodyRenderVertexIndices.Y < 0
+					|| Witness.BodyRenderVertexIndices.Z < 0
+					|| Witness.BodyRenderVertexIndices.X >= Pair.BodyTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.Y >= Pair.BodyTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.Z >= Pair.BodyTopology.RenderVertexCount
+					|| Witness.GarmentBarycentrics.ContainsNaN()
+					|| Witness.BodyBarycentrics.ContainsNaN()
+					|| !FMath::IsNearlyEqual(GarmentBarycentricSum, 1.0f, 1.e-3f)
+					|| !FMath::IsNearlyEqual(BodyBarycentricSum, 1.0f, 1.e-3f)
+					|| !FMath::IsFinite(Witness.TargetClearanceCm)
+					|| Witness.TargetClearanceCm <= 0.0f
+					|| !FMath::IsFinite(Witness.MaximumCorrectionCm)
+					|| Witness.MaximumCorrectionCm < Witness.TargetClearanceCm)
+				{
+					OutError = FString::Printf(
+						TEXT("V26 surface binding has an invalid witness for LOD pair %d/%d."),
+						Pair.GarmentTopology.LODIndex,
+						Pair.BodyTopology.LODIndex);
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }
 
 FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
@@ -6512,7 +7900,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	}
 	if (!Options.bCopyBodyDeformerToDerived)
 	{
-		return Fail(TEXT("V24 Tight profiles require exact Female mesh-deformer parity."));
+		return Fail(TEXT("V26 profiles require exact body mesh-deformer parity before the late surface pass."));
 	}
 	if (SourceGarment == BodySurface || SourceGarment == CompatibilityReference)
 	{
@@ -6525,10 +7913,6 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	if (BodySurface->GetNumSourceModels() < 1)
 	{
 		return Fail(TEXT("Body surface has no source LOD0."));
-	}
-	if (SourceGarment->GetMeshClothingAssets().Num() > 0)
-	{
-		return Fail(TEXT("Chaos Cloth assets require a Hybrid/Loose fit compiler and are not modified by the Tight V2 compiler."));
 	}
 	if (SourceGarment->GetSkeleton() != BodySurface->GetSkeleton()
 		|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton())
@@ -6579,6 +7963,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	TArray<FName> ExcludedBodySurfaceMaterialSlots;
 	TArray<FName> ExcludedBodyBoneBranches;
 	TArray<FString> ExcludedBodyMorphPrefixes;
+	FEFClothingGarmentRow CatalogRow;
 	FName CatalogRowName = NAME_None;
 	if (!ResolveCatalogSurfacePolicy(
 		SourceGarment,
@@ -6586,16 +7971,48 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		ExcludedBodySurfaceMaterialSlots,
 		ExcludedBodyBoneBranches,
 		ExcludedBodyMorphPrefixes,
+		CatalogRow,
 		CatalogRowName,
 		Error))
 	{
 		return Fail(Error);
+	}
+	if (SourceGarment->GetMeshClothingAssets().Num() > 0
+		&& CatalogRow.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+	{
+		return Fail(TEXT("Chaos Cloth garments require SurfaceWrapGPU so the unilateral constraint can execute after Chaos."));
+	}
+	if (CatalogRow.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU)
+	{
+		Options.MinimumClearanceCm = FMath::Max(
+			Options.MinimumClearanceCm,
+			EFClothingMorphV26::DefaultBaseClearanceCm);
+		if (!EFClothingMorphV26::IsAutomaticCentimeterValue(CatalogRow.FabricClearanceCm))
+		{
+			Options.MinimumClearanceCm = FMath::Max(
+				Options.MinimumClearanceCm,
+				CatalogRow.FabricClearanceCm);
+		}
+		if (!EFClothingMorphV26::IsAutomaticCentimeterValue(CatalogRow.MaximumCorrectionCm))
+		{
+			Options.MaximumPushCm = CatalogRow.MaximumCorrectionCm;
+		}
+		if (Options.MaximumPushCm
+			< Options.MinimumClearanceCm + static_cast<float>(CompilerClearanceReserveCm))
+		{
+			return Fail(FString::Printf(
+				TEXT("Catalog row %s allows %.4fcm correction but requires at least %.4fcm clearance plus reserve."),
+				*CatalogRowName.ToString(),
+				Options.MaximumPushCm,
+				Options.MinimumClearanceCm + static_cast<float>(CompilerClearanceReserveCm)));
+		}
 	}
 	const FString ArtifactKey = BuildArtifactKey(
 		SourceGarment,
 		BodySurface,
 		CompatibilityReference,
 		Options,
+		CatalogRow,
 		ExcludedBodySurfaceMaterialSlots,
 		ExcludedBodyBoneBranches,
 		ExcludedBodyMorphPrefixes);
@@ -6682,34 +8099,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 			MinimumAfter,
 			Error.IsEmpty() ? TEXT("clearance gate failed") : *Error));
 	}
-	if (!TransferWeights(
-		SourceGarment,
-		BodySurface,
-		CompatibilityReference,
-		BodyDynamicMesh->GetMeshRef(),
-		Correspondence,
-		ExcludedBodyBoneBranches,
-		GarmentDynamicMesh,
-		FMath::Clamp(Options.MaximumInfluences, 1, 12),
-		WeightMethod,
-		RequiredWeightedBones,
-		RemappedWeightedBoneCount,
-		ReconciledSplitVertexCount,
-		Error))
-	{
-		return Fail(Error);
-	}
-
 	int32 CertifiedSkinWeightVertexCount = 0;
-	if (!WriteSkinProfile(
-		GarmentDynamicMesh,
-		Derived,
-		FMath::Clamp(Options.MaximumInfluences, 1, 12),
-		CertifiedSkinWeightVertexCount,
-		Error))
-	{
-		return Fail(Error);
-	}
 
 	const FDynamicMesh3& BodyRestMesh = BodyDynamicMesh->GetMeshRef();
 	const FDynamicMeshAABBTree3 BodyRestSpatial(&BodyRestMesh, true);
@@ -7088,6 +8478,44 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(TEXT("Clearance morph certification ended without a certified stored result."));
 	}
+	if (!RebuildFinalSurfaceCorrespondence(
+		BodyDynamicMesh->GetMeshRef(),
+		GarmentDynamicMesh->GetMeshRef(),
+		ClearanceDeltas,
+		static_cast<double>(Options.MinimumClearanceCm) + CompilerClearanceReserveCm,
+		Correspondence,
+		Error))
+	{
+		return Fail(FString::Printf(
+			TEXT("Final post-sculpt surface correspondence failed: %s"),
+			*Error));
+	}
+	if (!TransferWeights(
+		SourceGarment,
+		BodySurface,
+		CompatibilityReference,
+		BodyDynamicMesh->GetMeshRef(),
+		Correspondence,
+		ExcludedBodyBoneBranches,
+		GarmentDynamicMesh,
+		FMath::Clamp(Options.MaximumInfluences, 1, 12),
+		WeightMethod,
+		RequiredWeightedBones,
+		RemappedWeightedBoneCount,
+		ReconciledSplitVertexCount,
+		Error))
+	{
+		return Fail(Error);
+	}
+	if (!WriteSkinProfile(
+		GarmentDynamicMesh,
+		Derived,
+		FMath::Clamp(Options.MaximumInfluences, 1, 12),
+		CertifiedSkinWeightVertexCount,
+		Error))
+	{
+		return Fail(Error);
+	}
 
 	int32 AdjustedVertexCount = 0;
 	for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
@@ -7293,6 +8721,49 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		}
 	}
 
+	UEFClothingSurfaceBinding* SurfaceBinding = nullptr;
+	EEFClothingFitMode ResolvedFitMode = EEFClothingFitMode::Tight;
+	if (CatalogRow.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU)
+	{
+		if (!BuildSurfaceBindingAsset(
+			SourceGarment,
+			Derived,
+			BodySurface,
+			GarmentDynamicMesh->GetMeshRef(),
+			ClearanceDeltas,
+			CatalogRow,
+			ExcludedBodySurfaceMaterialSlots,
+			PublicationGuid,
+			Options.OutputRoot,
+			PublicationKey,
+			Options.MinimumClearanceCm,
+			Options.MaximumPushCm,
+			SurfaceBinding,
+			ResolvedFitMode,
+			Error))
+		{
+			return Fail(FString::Printf(TEXT("V26 render-surface binding failed: %s"), *Error));
+		}
+	}
+	else
+	{
+		switch (CatalogRow.FitPolicy)
+		{
+		case EEFClothingFitPolicy::Hybrid:
+			ResolvedFitMode = EEFClothingFitMode::Hybrid;
+			break;
+		case EEFClothingFitPolicy::Loose:
+			ResolvedFitMode = EEFClothingFitMode::Loose;
+			break;
+		case EEFClothingFitPolicy::Rigid:
+			ResolvedFitMode = EEFClothingFitMode::Rigid;
+			break;
+		default:
+			ResolvedFitMode = EEFClothingFitMode::Tight;
+			break;
+		}
+	}
+
 	const FString ProfileName = FString::Printf(
 		TEXT("DA_%s_%s_%s_%s_EFV2Fit_%s"),
 		*SanitizeAssetName(SourceGarment->GetName()),
@@ -7326,7 +8797,8 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	Profile->CompatibilityReference = CompatibilityReference;
 	Profile->BuildGuid = PublicationGuid;
 	Profile->CompilerVersion = CompilerVersion;
-	Profile->FitMode = EEFClothingFitMode::Tight;
+	Profile->FitMode = ResolvedFitMode;
+	Profile->SurfaceBinding = SurfaceBinding;
 	Profile->SkinWeightProfileName = FitWeightProfileName;
 	Profile->RequiredWeightedBones = MoveTemp(RequiredWeightedBones);
 	Profile->ExcludedBodySurfaceMaterialSlots = ExcludedBodySurfaceMaterialSlots;
@@ -7422,23 +8894,50 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	if (!UEFClothingFitCompilerLibrary::ValidateCompiledProfile(Profile, PrePublishValidationReport))
 	{
 		return Fail(FString::Printf(
-			TEXT("V24 staging profile failed pre-publication validation: %s"),
+			TEXT("V26 staging profile failed pre-publication validation: %s"),
 			*PrePublishValidationReport));
 	}
-
-	auto BuildRegistryProfileKey = [](const UEFClothingFitProfile* RegistryProfile, FString& OutKey) -> bool
+	if (!SaveAsset(Profile, Error))
 	{
-		if (!IsValid(RegistryProfile)
-			|| RegistryProfile->SourceGarment.IsNull()
-			|| RegistryProfile->BodySurface.IsNull())
+		return Fail(Error);
+	}
+	FString SavedProfileValidationReport;
+	if (!UEFClothingFitCompilerLibrary::ValidateCompiledProfile(Profile, SavedProfileValidationReport))
+	{
+		return Fail(FString::Printf(
+			TEXT("V26 saved staging profile failed validation before registry publication: %s"),
+			*SavedProfileValidationReport));
+	}
+	if (!ProtectedInputsUnchanged()
+		|| SourceGarment->GetSkeleton() != SharedSkeletonBefore
+		|| BodySurface->GetSkeleton() != SharedSkeletonBefore
+		|| CompatibilityReference->GetSkeleton() != SharedSkeletonBefore
+		|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeletonBefore) != SharedSkeletonFingerprintBefore
+		|| EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(SharedSkeletonBefore) != SharedSkeletonEditorFingerprintBefore
+		|| EFClothingSkeleton::BuildFingerprint(SourceGarment) != SourceFingerprintBefore
+		|| EFClothingSkeleton::BuildFingerprint(BodySurface) != BodyFingerprintBefore
+		|| EFClothingSkeleton::BuildFingerprint(CompatibilityReference) != CompatibilityFingerprintBefore
+		|| EFClothingSkeleton::BuildContentFingerprint(SourceGarment) != Profile->SourceContentFingerprint
+		|| EFClothingSkeleton::BuildContentFingerprint(BodySurface) != Profile->BodyContentFingerprint
+		|| EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference) != Profile->CompatibilityContentFingerprint)
+	{
+		return Fail(TEXT("Protected skeleton integrity changed before registry publication; generated output was not published."));
+	}
+
+	if (!Options.bDeferRegistryPublication)
+	{
+		auto BuildRegistryProfileKey = [](const UEFClothingFitProfile* RegistryProfile, FString& OutKey) -> bool
 		{
-			return false;
-		}
-		OutKey = RegistryProfile->SourceGarment.ToSoftObjectPath().ToString()
-			+ TEXT("|") + RegistryProfile->BodySurface.ToSoftObjectPath().ToString()
-			+ FString::Printf(TEXT("|%d"), static_cast<int32>(RegistryProfile->FitMode));
-		return true;
-	};
+			if (!IsValid(RegistryProfile)
+				|| RegistryProfile->SourceGarment.IsNull()
+				|| RegistryProfile->BodySurface.IsNull())
+			{
+				return false;
+			}
+			OutKey = RegistryProfile->SourceGarment.ToSoftObjectPath().ToString()
+				+ TEXT("|") + RegistryProfile->BodySurface.ToSoftObjectPath().ToString();
+			return true;
+		};
 
 	// Publishing one fit must never double as registry cleanup. Reject malformed
 	// or ambiguous pre-existing state instead of silently deleting unrelated rows.
@@ -7476,16 +8975,14 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 			&& ExistingKey == TargetRegistryKey;
 	});
 	CandidateRegistryProfiles.Add(Profile);
-	CandidateRegistryProfiles.Sort([](const UEFClothingFitProfile& A, const UEFClothingFitProfile& B)
-	{
-		const FString AKey = A.SourceGarment.ToSoftObjectPath().ToString()
-			+ TEXT("|") + A.BodySurface.ToSoftObjectPath().ToString()
-			+ FString::Printf(TEXT("|%d"), static_cast<int32>(A.FitMode));
-		const FString BKey = B.SourceGarment.ToSoftObjectPath().ToString()
-			+ TEXT("|") + B.BodySurface.ToSoftObjectPath().ToString()
-			+ FString::Printf(TEXT("|%d"), static_cast<int32>(B.FitMode));
-		return AKey < BKey;
-	});
+		CandidateRegistryProfiles.Sort([](const UEFClothingFitProfile& A, const UEFClothingFitProfile& B)
+		{
+			const FString AKey = A.SourceGarment.ToSoftObjectPath().ToString()
+				+ TEXT("|") + A.BodySurface.ToSoftObjectPath().ToString();
+			const FString BKey = B.SourceGarment.ToSoftObjectPath().ToString()
+				+ TEXT("|") + B.BodySurface.ToSoftObjectPath().ToString();
+			return AKey < BKey;
+		});
 	TSet<FString> CandidateRegistryKeys;
 	int32 TargetRegistryEntryCount = 0;
 	for (int32 ProfileIndex = 0; ProfileIndex < CandidateRegistryProfiles.Num(); ++ProfileIndex)
@@ -7513,55 +9010,28 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(TEXT("Candidate fit registry must contain exactly one staged target entry."));
 	}
-	if (!SaveAsset(Profile, Error))
-	{
-		return Fail(Error);
-	}
-	FString SavedProfileValidationReport;
-	if (!UEFClothingFitCompilerLibrary::ValidateCompiledProfile(Profile, SavedProfileValidationReport))
-	{
-		return Fail(FString::Printf(
-			TEXT("V24 saved staging profile failed validation before registry swap: %s"),
-			*SavedProfileValidationReport));
-	}
-	if (!ProtectedInputsUnchanged())
-	{
-		return Fail(TEXT("Protected input guard failed between profile and registry publication."));
-	}
-	if (SourceGarment->GetSkeleton() != SharedSkeletonBefore
-		|| BodySurface->GetSkeleton() != SharedSkeletonBefore
-		|| CompatibilityReference->GetSkeleton() != SharedSkeletonBefore
-		|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeletonBefore) != SharedSkeletonFingerprintBefore
-		|| EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(SharedSkeletonBefore) != SharedSkeletonEditorFingerprintBefore
-		|| EFClothingSkeleton::BuildFingerprint(SourceGarment) != SourceFingerprintBefore
-		|| EFClothingSkeleton::BuildFingerprint(BodySurface) != BodyFingerprintBefore
-		|| EFClothingSkeleton::BuildFingerprint(CompatibilityReference) != CompatibilityFingerprintBefore
-		|| EFClothingSkeleton::BuildContentFingerprint(SourceGarment) != Profile->SourceContentFingerprint
-		|| EFClothingSkeleton::BuildContentFingerprint(BodySurface) != Profile->BodyContentFingerprint
-		|| EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference) != Profile->CompatibilityContentFingerprint)
-	{
-		return Fail(TEXT("Protected skeleton integrity changed before registry commit; generated output was not published."));
-	}
-	const TArray<TObjectPtr<UEFClothingFitProfile>> PreviousRegistryProfiles = Registry->Profiles;
-	UPackage* RegistryPackage = Registry->GetOutermost();
-	const bool bRegistryPackageDirtyBefore = RegistryPackage && RegistryPackage->IsDirty();
-	Registry->Profiles = MoveTemp(CandidateRegistryProfiles);
-	Registry->MarkPackageDirty();
-	if (!SaveAsset(Registry, Error))
-	{
-		Registry->Profiles = PreviousRegistryProfiles;
-		if (RegistryPackage)
+		const TArray<TObjectPtr<UEFClothingFitProfile>> PreviousRegistryProfiles = Registry->Profiles;
+		UPackage* RegistryPackage = Registry->GetOutermost();
+		const bool bRegistryPackageDirtyBefore = RegistryPackage && RegistryPackage->IsDirty();
+		Registry->Profiles = MoveTemp(CandidateRegistryProfiles);
+		Registry->MarkPackageDirty();
+		if (!SaveAsset(Registry, Error))
 		{
-			RegistryPackage->SetDirtyFlag(bRegistryPackageDirtyBefore);
+			Registry->Profiles = PreviousRegistryProfiles;
+			if (RegistryPackage)
+			{
+				RegistryPackage->SetDirtyFlag(bRegistryPackageDirtyBefore);
+			}
+			return Fail(Error);
 		}
-		return Fail(Error);
 	}
 
 	Result.bSuccess = true;
 	Result.DerivedGarment = Derived;
 	Result.Profile = Profile;
+	Result.SurfaceBinding = SurfaceBinding;
 	Result.Report = FString::Printf(
-		TEXT("PASS | Source=%s | Derived=%s | Vertices=%d | Adjusted=%d | PenetratingBefore=%d | PenetratingAfter=%d | MinGapBefore=%.4fcm | MinGapAfter=%.4fcm | SurfacePolicy=%s excludedSlots=%d excludedTriangles=%d excludedBoneBranches=%d excludedMorphPrefixes=%d | Weights=%s max%d required=%d remapped=%d | CommonMorphs=%d | TransferredMorphs=%d | MorphClearance=%d/%d repaired=%d samples=%d min=%.4fcm | Build=%s"),
+		TEXT("PASS | Source=%s | Derived=%s | Vertices=%d | Adjusted=%d | PenetratingBefore=%d | PenetratingAfter=%d | MinGapBefore=%.4fcm | MinGapAfter=%.4fcm | SurfacePolicy=%s backend=%d fitMode=%d binding=%s lodPairs=%d excludedSlots=%d excludedTriangles=%d excludedBoneBranches=%d excludedMorphPrefixes=%d | Weights=%s max%d required=%d remapped=%d | CommonMorphs=%d | TransferredMorphs=%d | MorphClearance=%d/%d repaired=%d samples=%d min=%.4fcm | Build=%s"),
 		*SourceGarment->GetPathName(),
 		*Derived->GetPathName(),
 		Profile->SourceVertexCount,
@@ -7571,6 +9041,10 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		MinimumBefore,
 		MinimumAfter,
 		CatalogRowName.IsNone() ? TEXT("NoCatalogRow") : *CatalogRowName.ToString(),
+		static_cast<int32>(CatalogRow.Backend),
+		static_cast<int32>(Profile->FitMode),
+		SurfaceBinding ? *SurfaceBinding->GetPathName() : TEXT("none"),
+		SurfaceBinding ? SurfaceBinding->LODPairBindings.Num() : 0,
 		Profile->ExcludedBodySurfaceMaterialSlots.Num(),
 		Profile->ExcludedBodySurfaceTriangleCount,
 		Profile->ExcludedBodyBoneBranches.Num(),
@@ -7591,6 +9065,214 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	return Result;
 }
 
+FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCatalog(
+	UDataTable* GarmentCatalog,
+	USkeletalMesh* CompatibilityReference,
+	FEFClothingFitCompileOptions Options)
+{
+	using namespace EFClothingFitCompilerPrivate;
+
+	FEFClothingCatalogCompileResult Result;
+	auto Fail = [&Result](const FString& Message)
+	{
+		Result.bSuccess = false;
+		Result.Report = FString::Printf(TEXT("FAIL: %s"), *Message);
+		UE_LOG(LogEFClothingFitCompiler, Error, TEXT("%s"), *Result.Report);
+		return Result;
+	};
+	if (!IsValid(GarmentCatalog)
+		|| GarmentCatalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
+	{
+		return Fail(TEXT("CompileGarmentCatalog requires a valid FEFClothingGarmentRow DataTable."));
+	}
+	if (!IsValid(CompatibilityReference))
+	{
+		return Fail(TEXT("CompileGarmentCatalog requires a compatibility reference mesh."));
+	}
+	if (!IsAllowedOutputRoot(Options.OutputRoot))
+	{
+		return Fail(TEXT("OutputRoot must remain under /Game/_Generated/EFClothingMorphV2."));
+	}
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	UDataTable* ConfiguredCatalog = Settings && !Settings->GarmentCatalog.IsNull()
+		? Settings->GarmentCatalog.LoadSynchronous()
+		: nullptr;
+	if (ConfiguredCatalog != GarmentCatalog)
+	{
+		return Fail(TEXT("Batch publication is restricted to the exact catalog configured in EFClothingMorphV2 settings."));
+	}
+
+	TArray<FName> EnabledRowNames;
+	for (const TPair<FName, uint8*>& Pair : GarmentCatalog->GetRowMap())
+	{
+		const FEFClothingGarmentRow* Row = reinterpret_cast<const FEFClothingGarmentRow*>(Pair.Value);
+		if (!Row || !Row->bEnabled)
+		{
+			continue;
+		}
+		if (Row->Backend == EEFClothingSurfaceBackend::Disabled)
+		{
+			return Fail(FString::Printf(
+				TEXT("Enabled catalog row %s selects the Disabled backend."),
+				*Pair.Key.ToString()));
+		}
+		EnabledRowNames.Add(Pair.Key);
+	}
+	EnabledRowNames.Sort(FNameLexicalLess());
+	Result.EnabledRowCount = EnabledRowNames.Num();
+	if (EnabledRowNames.IsEmpty())
+	{
+		return Fail(TEXT("Garment catalog has no enabled rows; refusing to publish an empty registry."));
+	}
+
+	TSet<FString> UniqueSourceBodyKeys;
+	TArray<TObjectPtr<UEFClothingFitProfile>> StagedProfiles;
+	StagedProfiles.Reserve(EnabledRowNames.Num());
+	Result.Rows.Reserve(EnabledRowNames.Num());
+	for (const FName RowName : EnabledRowNames)
+	{
+		FEFClothingCatalogCompileRowResult& RowResult = Result.Rows.AddDefaulted_GetRef();
+		RowResult.RowName = RowName;
+		const FEFClothingGarmentRow* Row = GarmentCatalog->FindRow<FEFClothingGarmentRow>(
+			RowName,
+			TEXT("EF Clothing Morph V26 catalog compile"),
+			false);
+		if (!Row || Row->SourceGarment.IsNull() || Row->BodySurface.IsNull())
+		{
+			RowResult.Report = TEXT("FAIL: enabled row has a null source garment or body surface.");
+			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
+		}
+		RowResult.bRequiresSurfaceBinding =
+			Row->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
+		Result.SurfaceWrapRowCount += RowResult.bRequiresSurfaceBinding ? 1 : 0;
+		const FString SourceBodyKey = Row->SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + Row->BodySurface.ToSoftObjectPath().ToString();
+		if (UniqueSourceBodyKeys.Contains(SourceBodyKey))
+		{
+			RowResult.Report = TEXT("FAIL: duplicate source/body pair in enabled catalog rows.");
+			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
+		}
+		UniqueSourceBodyKeys.Add(SourceBodyKey);
+
+		USkeletalMesh* SourceGarment = Row->SourceGarment.LoadSynchronous();
+		USkeletalMesh* BodySurface = Row->BodySurface.LoadSynchronous();
+		if (!IsValid(SourceGarment) || !IsValid(BodySurface))
+		{
+			RowResult.Report = TEXT("FAIL: source garment or body surface could not be loaded.");
+			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
+		}
+
+		FEFClothingFitCompileOptions RowOptions = Options;
+		RowOptions.bDeferRegistryPublication = true;
+		if (Row->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			// The late surface constraint reads the body's final morph/JCM deformation,
+			// so onboarding does not need the expensive V25 per-morph sample lattice.
+			RowOptions.bCompileBodyMorphBindings = false;
+			RowOptions.bTransferMissingBodyMorphs = false;
+			RowOptions.MorphPairRequests.Reset();
+		}
+
+		const FEFClothingFitCompileResult CompileResult = CompileFitProfile(
+			SourceGarment,
+			BodySurface,
+			CompatibilityReference,
+			RowOptions);
+		RowResult.bSuccess = CompileResult.bSuccess;
+		RowResult.DerivedGarment = CompileResult.DerivedGarment;
+		RowResult.Profile = CompileResult.Profile;
+		RowResult.SurfaceBinding = CompileResult.SurfaceBinding;
+		RowResult.Report = CompileResult.Report;
+		if (!CompileResult.bSuccess || !IsValid(CompileResult.Profile))
+		{
+			return Fail(FString::Printf(
+				TEXT("Row %s staging compile failed: %s"),
+				*RowName.ToString(),
+				*CompileResult.Report));
+		}
+		if (RowResult.bRequiresSurfaceBinding != IsValid(CompileResult.SurfaceBinding))
+		{
+			RowResult.bSuccess = false;
+			RowResult.Report = TEXT("FAIL: backend/surface-binding publication contract mismatch.");
+			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
+		}
+		FString ValidationReport;
+		if (!ValidateCompiledProfile(CompileResult.Profile, ValidationReport))
+		{
+			RowResult.bSuccess = false;
+			RowResult.Report = FString::Printf(TEXT("FAIL: staged validation: %s"), *ValidationReport);
+			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
+		}
+		StagedProfiles.Add(CompileResult.Profile);
+		++Result.CompiledRowCount;
+	}
+
+	if (Result.CompiledRowCount != Result.EnabledRowCount
+		|| StagedProfiles.Num() != Result.EnabledRowCount
+		|| Result.Rows.Num() != Result.EnabledRowCount)
+	{
+		return Fail(FString::Printf(
+			TEXT("Catalog equality gate failed: enabled=%d compiled=%d profiles=%d tested=%d."),
+			Result.EnabledRowCount,
+			Result.CompiledRowCount,
+			StagedProfiles.Num(),
+			Result.Rows.Num()));
+	}
+	StagedProfiles.Sort([](const UEFClothingFitProfile& A, const UEFClothingFitProfile& B)
+	{
+		const FString AKey = A.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + A.BodySurface.ToSoftObjectPath().ToString();
+		const FString BKey = B.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + B.BodySurface.ToSoftObjectPath().ToString();
+		return AKey < BKey;
+	});
+
+	UEFClothingFitRegistry* Registry = FindOrCreateDataAsset<UEFClothingFitRegistry>(
+		Options.OutputRoot,
+		TEXT("DA_EFClothingFitRegistry"));
+	if (!IsValid(Registry))
+	{
+		return Fail(TEXT("Could not resolve the generated fit registry for catalog publication."));
+	}
+	const TArray<TObjectPtr<UEFClothingFitProfile>> PreviousProfiles = Registry->Profiles;
+	UPackage* RegistryPackage = Registry->GetOutermost();
+	const bool bRegistryDirtyBefore = RegistryPackage && RegistryPackage->IsDirty();
+	Registry->Profiles = StagedProfiles;
+	Registry->MarkPackageDirty();
+	FString SaveError;
+	if (!SaveAsset(Registry, SaveError))
+	{
+		Registry->Profiles = PreviousProfiles;
+		if (RegistryPackage)
+		{
+			RegistryPackage->SetDirtyFlag(bRegistryDirtyBefore);
+		}
+		return Fail(FString::Printf(TEXT("Atomic catalog registry save failed: %s"), *SaveError));
+	}
+
+	Result.bSuccess = true;
+	Result.Registry = Registry;
+	int32 ValidBindingCount = 0;
+	int32 PassedRowCount = 0;
+	for (const FEFClothingCatalogCompileRowResult& Row : Result.Rows)
+	{
+		ValidBindingCount += IsValid(Row.SurfaceBinding) ? 1 : 0;
+		PassedRowCount += Row.bSuccess ? 1 : 0;
+	}
+	Result.Report = FString::Printf(
+		TEXT("PASS | Catalog=%s | enabled=%d surface_wrap=%d valid_profiles=%d valid_bindings=%d tested=%d passed=%d | Registry=%s"),
+		*GarmentCatalog->GetPathName(),
+		Result.EnabledRowCount,
+		Result.SurfaceWrapRowCount,
+		StagedProfiles.Num(),
+		ValidBindingCount,
+		Result.Rows.Num(),
+		PassedRowCount,
+		*Registry->GetPathName());
+	UE_LOG(LogEFClothingFitCompiler, Display, TEXT("%s"), *Result.Report);
+	return Result;
+}
+
 bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfile* Profile, FString& OutReport)
 {
 	if (!IsValid(Profile))
@@ -7607,6 +9289,52 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 	{
 		OutReport = TEXT("FAIL: One or more profile assets cannot be loaded.");
 		return false;
+	}
+	TArray<FName> CatalogExcludedSurfaceSlots;
+	TArray<FName> CatalogExcludedBoneBranches;
+	TArray<FString> CatalogExcludedMorphPrefixes;
+	FEFClothingGarmentRow CatalogRow;
+	FName CatalogRowName = NAME_None;
+	FString CatalogFailureReason;
+	const bool bCatalogPass = EFClothingFitCompilerPrivate::ResolveCatalogSurfacePolicy(
+		Source,
+		Body,
+		CatalogExcludedSurfaceSlots,
+		CatalogExcludedBoneBranches,
+		CatalogExcludedMorphPrefixes,
+		CatalogRow,
+		CatalogRowName,
+		CatalogFailureReason);
+	if (!bCatalogPass)
+	{
+		OutReport = FString::Printf(TEXT("FAIL: %s"), *CatalogFailureReason);
+		return false;
+	}
+	const bool bSurfaceWrapProfile = CatalogRow.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
+	const EEFClothingFitMode ExpectedExplicitFitMode =
+		CatalogRow.FitPolicy == EEFClothingFitPolicy::Hybrid ? EEFClothingFitMode::Hybrid
+		: CatalogRow.FitPolicy == EEFClothingFitPolicy::Loose ? EEFClothingFitMode::Loose
+		: CatalogRow.FitPolicy == EEFClothingFitPolicy::Rigid ? EEFClothingFitMode::Rigid
+		: EEFClothingFitMode::Tight;
+	const bool bFitModePass = CatalogRow.FitPolicy == EEFClothingFitPolicy::Auto
+		? (Profile->FitMode == EEFClothingFitMode::Tight
+			|| Profile->FitMode == EEFClothingFitMode::Hybrid
+			|| Profile->FitMode == EEFClothingFitMode::Loose)
+		: Profile->FitMode == ExpectedExplicitFitMode;
+	UEFClothingSurfaceBinding* SurfaceBinding = Profile->SurfaceBinding.LoadSynchronous();
+	FString SurfaceBindingFailureReason;
+	const bool bSurfaceBindingPass = bSurfaceWrapProfile
+		? (!Profile->SurfaceBinding.IsNull()
+			&& EFClothingFitCompilerPrivate::ValidateSurfaceBinding(
+				SurfaceBinding,
+				Profile,
+				SurfaceBindingFailureReason))
+		: Profile->SurfaceBinding.IsNull();
+	if (!bSurfaceBindingPass && SurfaceBindingFailureReason.IsEmpty())
+	{
+		SurfaceBindingFailureReason = bSurfaceWrapProfile
+			? TEXT("SurfaceWrapGPU profile has no loadable V26 surface binding.")
+			: TEXT("GeometryFitFallback profile must not reference a V26 surface binding.");
 	}
 
 	FString FailureReason;
@@ -7654,7 +9382,10 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 	const bool bClearanceMorphExists = IsValid(ClearanceMorph)
 		&& ClearanceMorph->HasDataForLOD(0)
 		&& ClearanceMorph->GetNumDeltasForLOD(0) > 0;
-	bool bSurfacePolicyPass = Profile->ExcludedBodySurfaceTriangleCount >= 0;
+	bool bSurfacePolicyPass = Profile->ExcludedBodySurfaceTriangleCount >= 0
+		&& Profile->ExcludedBodySurfaceMaterialSlots == CatalogExcludedSurfaceSlots
+		&& Profile->ExcludedBodyBoneBranches == CatalogExcludedBoneBranches
+		&& Profile->ExcludedBodyMorphPrefixes == CatalogExcludedMorphPrefixes;
 	FName PreviousExcludedSlot = NAME_None;
 	bool bHasPreviousExcludedSlot = false;
 	TSet<FName> UniqueExcludedSlots;
@@ -8091,7 +9822,10 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		&& Profile->CertifiedSkinWeightVertexCount == Profile->SourceVertexCount
 		&& Profile->CompiledLODCount == 1
 		&& Profile->CompilerVersion == EFClothingFitCompilerPrivate::CompilerVersion
-		&& Profile->FitMode == EEFClothingFitMode::Tight
+		&& bFitModePass
+		&& (!bSurfaceWrapProfile
+			|| Profile->CompiledMinimumClearanceCm
+				>= EFClothingMorphV26::DefaultBaseClearanceCm - ClearanceToleranceCm)
 		&& FMath::IsFinite(Profile->DefaultClearanceValue)
 		&& FMath::IsNearlyEqual(Profile->DefaultClearanceValue, 1.0f, KINDA_SMALL_NUMBER)
 		&& FMath::IsFinite(Profile->CertifiedClearanceMultiplierMin)
@@ -8132,11 +9866,15 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 			: Profile->MaximumMorphSamplesPerBinding >= 1)
 		&& Profile->MaximumMorphSamplesPerBinding <= 64
 		&& FMath::IsFinite(Profile->MinimumSampledMorphGapCm)
-		&& Profile->MinimumSampledMorphGapCm >= Profile->CompiledMinimumClearanceCm - ClearanceToleranceCm;
+		&& Profile->MinimumSampledMorphGapCm
+			>= Profile->CompiledMinimumClearanceCm - ClearanceToleranceCm;
 
 	const bool bPass = bSkeletonFingerprintPass
 		&& bContentFingerprintPass
 		&& bPackageIdentityPass
+		&& bCatalogPass
+		&& bFitModePass
+		&& bSurfaceBindingPass
 		&& bProfileExists
 		&& bClearanceMorphExists
 		&& bSurfacePolicyPass
@@ -8146,11 +9884,17 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		&& bBoundsPass
 		&& bMetricsPass;
 	OutReport = FString::Printf(
-		TEXT("%s | Skeletons=%s | Content=%s | Packages=%s | SkinProfile=%s | SurfacePolicy=%s:slots=%d triangles=%d branches=%d morphPrefixes=%d | WeightedBones=%s:%d remapped=%d reason=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4f/%.4fcm | MorphSamples=%.4fcm:%d repaired=%d | Bindings=%s:%d | Pairs=%s:%d cells=%d probes=%d tiers=%d | LODs=%d | Compiler=%d"),
+		TEXT("%s | Skeletons=%s | Content=%s | Packages=%s | Catalog=%s:%s backend=%d mode=%d | SurfaceBinding=%s:%s | SkinProfile=%s | SurfacePolicy=%s:slots=%d triangles=%d branches=%d morphPrefixes=%d | WeightedBones=%s:%d remapped=%d reason=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4f/%.4fcm | MorphSamples=%.4fcm:%d repaired=%d | Bindings=%s:%d | Pairs=%s:%d cells=%d probes=%d tiers=%d | LODs=%d | Compiler=%d"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"),
 		bSkeletonFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
 		bContentFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
 		bPackageIdentityPass ? TEXT("PASS") : TEXT("FAIL"),
+		bCatalogPass && bFitModePass ? TEXT("PASS") : TEXT("FAIL"),
+		*CatalogRowName.ToString(),
+		static_cast<int32>(CatalogRow.Backend),
+		static_cast<int32>(Profile->FitMode),
+		bSurfaceBindingPass ? TEXT("PASS") : TEXT("FAIL"),
+		bSurfaceBindingPass ? TEXT("none") : *SurfaceBindingFailureReason,
 		bProfileExists ? TEXT("PASS") : TEXT("FAIL"),
 		bSurfacePolicyPass ? TEXT("PASS") : TEXT("FAIL"),
 		Profile->ExcludedBodySurfaceMaterialSlots.Num(),

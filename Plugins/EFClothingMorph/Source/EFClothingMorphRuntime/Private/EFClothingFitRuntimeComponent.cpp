@@ -8,6 +8,8 @@
 #include "EFClothingFitProfile.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EFClothingSkeletonFingerprint.h"
+#include "EFClothingSurfaceBinding.h"
+#include "EFClothingSurfaceDeformerProducer.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/AssetManager.h"
 #include "Engine/DataTable.h"
@@ -15,6 +17,7 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "HAL/IConsoleManager.h"
+#include "OptimusDeformer.h"
 #include "Rendering/SkinWeightProfile.h"
 #include "UObject/Package.h"
 
@@ -83,7 +86,8 @@ namespace
 
 	bool IsImplementedBackend(const EEFClothingSurfaceBackend Backend)
 	{
-		return Backend == EEFClothingSurfaceBackend::GeometryFitFallback;
+		return Backend == EEFClothingSurfaceBackend::GeometryFitFallback
+			|| Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
 	}
 
 	bool HasCompleteHiddenSurfaceCoverage(
@@ -114,6 +118,30 @@ namespace
 		return FMath::IsFinite(Row.MinimumClearanceMultiplier)
 			&& Row.MinimumClearanceMultiplier >= EFClothingMorphV25::ClearanceTierMin
 			&& Row.MinimumClearanceMultiplier <= EFClothingMorphV25::ClearanceTierMax;
+	}
+
+	bool HasValidSurfaceCatalogContract(const FEFClothingGarmentRow& Row)
+	{
+		if (Row.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			return true;
+		}
+		const bool bFabricClearanceValid = EFClothingMorphV26::IsAutomaticCentimeterValue(
+			Row.FabricClearanceCm)
+			|| (FMath::IsFinite(Row.FabricClearanceCm)
+				&& Row.FabricClearanceCm >= 0.0f
+				&& Row.FabricClearanceCm <= 5.0f);
+		const bool bMaximumCorrectionValid = EFClothingMorphV26::IsAutomaticCentimeterValue(
+			Row.MaximumCorrectionCm)
+			|| (FMath::IsFinite(Row.MaximumCorrectionCm)
+				&& Row.MaximumCorrectionCm > 0.0f
+				&& Row.MaximumCorrectionCm <= 10.0f);
+		return bFabricClearanceValid
+			&& FMath::IsFinite(Row.RuntimeOffsetCm)
+			&& Row.RuntimeOffsetCm >= 0.0f
+			&& Row.RuntimeOffsetCm <= 5.0f
+			&& bMaximumCorrectionValid
+			&& Row.bFailClosedOnMissingLOD;
 	}
 
 	/**
@@ -271,28 +299,22 @@ void UEFClothingFitRuntimeComponent::BeginPlay()
 	RuntimeClearanceMultiplier = FMath::IsFinite(ConfiguredClearanceMultiplier)
 		? FMath::Clamp(ConfiguredClearanceMultiplier, 1.0f, 2.0f)
 		: 1.0f;
-	if (Settings && !Settings->Registry.IsNull())
-	{
-		LoadedRegistry = Settings->Registry.LoadSynchronous();
-	}
-	if (Settings && !Settings->GarmentCatalog.IsNull())
-	{
-		LoadedGarmentCatalog = Settings->GarmentCatalog.LoadSynchronous();
-	}
-	BuildCatalogIndex();
-	RefreshViewportVisibilityBinding();
-	if (LoadedRegistry && Settings && Settings->bPrefetchCompiledFitsOnBeginPlay)
-	{
-		StartProfilePrefetch(nullptr);
-	}
-
+	const float ConfiguredGlobalOffsetCm = Settings ? Settings->GlobalClearanceOffsetCm : 0.0f;
+	GlobalClearanceOffsetCm = FMath::IsFinite(ConfiguredGlobalOffsetCm)
+		? FMath::Clamp(ConfiguredGlobalOffsetCm, 0.0f, 5.0f)
+		: 0.0f;
 	ResolveCustomizationComponent();
 	bLastRuntimeEnabled = Settings && Settings->bEnabled && CVarEFClothingMorphV2Enabled.GetValueOnGameThread() != 0;
+	bStartupAssetsReady = false;
+	bStartupAssetLoadFailed = false;
 	NextReconcileAtSeconds = 0.0;
 	NextMorphSyncAtSeconds = 0.0;
-	LastStatus = LoadedRegistry && LoadedGarmentCatalog
-		? TEXT("Registry and garment catalog loaded; waiting for garments")
-		: TEXT("Registry or garment catalog missing/not cooked");
+	LoadedRegistry = nullptr;
+	LoadedGarmentCatalog = nullptr;
+	LoadedSurfaceConstraintDeformer = nullptr;
+	BuildCatalogIndex();
+	RefreshViewportVisibilityBinding();
+	StartStartupAssetLoad();
 }
 
 void UEFClothingFitRuntimeComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -317,12 +339,26 @@ void UEFClothingFitRuntimeComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 		MorphStateAppliedHandle.Reset();
 	}
 	CustomizationComponent = nullptr;
+	if (StartupAssetLoadHandle.IsValid())
+	{
+		StartupAssetLoadHandle->CancelHandle();
+		StartupAssetLoadHandle.Reset();
+	}
+	if (RegistryPrefetchHandle.IsValid())
+	{
+		RegistryPrefetchHandle->CancelHandle();
+	}
 	RegistryPrefetchHandle.Reset();
 	PendingProfilePrefetchPaths.Reset();
 	InFlightProfilePrefetchPaths.Reset();
 	RetainedProfileAssets.Reset();
+	RetainedSurfaceRuntimeObjects.Reset();
+	LoadedSurfaceConstraintDeformer = nullptr;
+	bStartupAssetsReady = false;
+	bStartupAssetLoadFailed = false;
 	PrefetchingGarments.Reset();
 	GarmentClearanceMultipliers.Reset();
+	GarmentClearanceOffsetsCm.Reset();
 	RejectedGarments.Reset();
 	ObservedMeshAssignments.Reset();
 	VisibilityGuards.Reset();
@@ -331,6 +367,7 @@ void UEFClothingFitRuntimeComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	CatalogedSourcePaths.Reset();
 	BodyMaterialCoverage.Reset();
 	LoadedGarmentCatalog = nullptr;
+	LoadedRegistry = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -372,6 +409,10 @@ void UEFClothingFitRuntimeComponent::TickComponent(
 		ResolveCustomizationComponent();
 	}
 	RefreshViewportVisibilityBinding();
+	if (!bStartupAssetsReady)
+	{
+		return;
+	}
 
 	const double Now = GetWorld()->GetTimeSeconds();
 	// Do not wait for the low-frequency maintenance pass when ACF (or any other
@@ -392,6 +433,10 @@ void UEFClothingFitRuntimeComponent::TickComponent(
 		SynchronizeMorphs();
 		NextMorphSyncAtSeconds = MorphSyncInterval > 0.0f ? Now + MorphSyncInterval : Now;
 	}
+
+	// This call only enqueues the producer. The graph itself executes after the
+	// normal DAZ/Chaos outputs in BeginInitViews on the render thread.
+	TickSurfaceConstraints(DeltaTime);
 }
 
 bool UEFClothingFitRuntimeComponent::RefreshObservedMeshAssignments()
@@ -630,9 +675,17 @@ void UEFClothingFitRuntimeComponent::ForceReconcile()
 		LastStatus = TEXT("ForceReconcile ignored while V2 is disabled; source garments remain restored");
 		return;
 	}
+	if (!bStartupAssetsReady)
+	{
+		LastStatus = bStartupAssetLoadFailed
+			? TEXT("ForceReconcile rejected: V26 startup assets failed closed")
+			: TEXT("ForceReconcile deferred: V26 startup assets are still loading");
+		return;
+	}
 	RejectedGarments.Reset();
 	ReconcileGarments();
 	SynchronizeMorphs();
+	TickSurfaceConstraints(GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f);
 }
 
 int32 UEFClothingFitRuntimeComponent::GetAppliedGarmentCount() const
@@ -651,6 +704,8 @@ int32 UEFClothingFitRuntimeComponent::GetAppliedGarmentCount() const
 			&& HasMatchingActiveLOD0Deformer(Component, Pair.Value.BodyMesh.Get())
 			&& !Pair.Value.bWaitingForSkinProfile
 			&& !Pair.Value.bMorphStateUnsafe
+			&& (!Pair.Value.bUsesSurfaceWrapGPU
+				|| Pair.Value.SurfaceRuntimeState == EEFClothingSurfaceRuntimeState::Ready)
 			&& Pair.Value.bOwnsBoundsContract
 			&& !Component->bUseBoundsFromLeaderPoseComponent
 			&& Component->bComponentUseFixedSkelBounds
@@ -673,6 +728,8 @@ int32 UEFClothingFitRuntimeComponent::GetPendingGarmentCount() const
 			&& Component->GetSkeletalMeshAsset() == Pair.Value.FittedMesh.Get()
 			&& (Pair.Value.bWaitingForSkinProfile
 				|| Pair.Value.bMorphStateUnsafe
+				|| (Pair.Value.bUsesSurfaceWrapGPU
+					&& Pair.Value.SurfaceRuntimeState != EEFClothingSurfaceRuntimeState::Ready)
 				|| !IsValid(ExpectedPoseDriver)
 				|| Component->LeaderPoseComponent.Get() != ExpectedPoseDriver
 				|| Pair.Value.ValidatedLeaderComponent.Get() != ExpectedPoseDriver
@@ -689,6 +746,29 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 {
 	int32 CoveredSectionCount = 0;
 	int32 CoverageReferenceCount = 0;
+	int32 SurfaceLoadingCount = 0;
+	int32 SurfaceWarmupCount = 0;
+	int32 SurfaceReadyCount = 0;
+	int32 SurfaceFailedCount = 0;
+	uint64 SurfaceEnqueueCount = 0;
+	uint64 SurfaceDispatchFailureCount = 0;
+	for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState>& Pair : AppliedGarments)
+	{
+		if (!Pair.Value.bUsesSurfaceWrapGPU)
+		{
+			continue;
+		}
+		SurfaceEnqueueCount += Pair.Value.SurfaceEnqueueCount;
+		SurfaceDispatchFailureCount += Pair.Value.SurfaceDispatchFailureCount;
+		switch (Pair.Value.SurfaceRuntimeState)
+		{
+		case EEFClothingSurfaceRuntimeState::Loading: ++SurfaceLoadingCount; break;
+		case EEFClothingSurfaceRuntimeState::WarmingUp: ++SurfaceWarmupCount; break;
+		case EEFClothingSurfaceRuntimeState::Ready: ++SurfaceReadyCount; break;
+		case EEFClothingSurfaceRuntimeState::Failed: ++SurfaceFailedCount; break;
+		default: break;
+		}
+	}
 	for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>>& BodyPair
 		: BodyMaterialCoverage)
 	{
@@ -699,17 +779,25 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 		}
 	}
 	return FString::Printf(
-		TEXT("Owner=%s | Registry=%s | Ready=%d | Pending=%d | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | Clearance=%.3f | Status=%s"),
+		TEXT("Owner=%s | Startup=%s | Registry=%s | Ready=%d | Pending=%d | Surface[L=%d W=%d R=%d F=%d Enqueue=%llu DispatchFail=%llu] | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | ClearanceMultiplier=%.3f | GlobalOffsetCm=%.3f | Status=%s"),
 		GetOwner() ? *GetOwner()->GetName() : TEXT("None"),
+		bStartupAssetsReady ? TEXT("Ready") : (bStartupAssetLoadFailed ? TEXT("Failed") : TEXT("Loading")),
 		LoadedRegistry ? *LoadedRegistry->GetPathName() : TEXT("None"),
 		GetAppliedGarmentCount(),
 		GetPendingGarmentCount(),
+		SurfaceLoadingCount,
+		SurfaceWarmupCount,
+		SurfaceReadyCount,
+		SurfaceFailedCount,
+		SurfaceEnqueueCount,
+		SurfaceDispatchFailureCount,
 		VisibilityGuards.Num(),
 		ReconcilePassCount,
 		MeshAssignmentEdgeCount,
 		CoveredSectionCount,
 		CoverageReferenceCount,
 		RuntimeClearanceMultiplier,
+		GlobalClearanceOffsetCm,
 		*LastStatus);
 }
 
@@ -753,6 +841,68 @@ void UEFClothingFitRuntimeComponent::ClearGarmentClearanceMultiplier(USkeletalMe
 	}
 }
 
+void UEFClothingFitRuntimeComponent::SetGlobalClearanceOffsetCm(const float NewOffsetCm)
+{
+	if (!FMath::IsFinite(NewOffsetCm))
+	{
+		LastStatus = TEXT("Ignored non-finite global clearance offset");
+		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
+		return;
+	}
+	GlobalClearanceOffsetCm = FMath::Clamp(NewOffsetCm, 0.0f, 5.0f);
+}
+
+void UEFClothingFitRuntimeComponent::SetGarmentClearanceOffsetCm(
+	USkeletalMeshComponent* GarmentComponent,
+	const float NewOffsetCm)
+{
+	if (!IsValid(GarmentComponent)
+		|| GarmentComponent->GetOwner() != GetOwner()
+		|| !FMath::IsFinite(NewOffsetCm))
+	{
+		if (!FMath::IsFinite(NewOffsetCm))
+		{
+			LastStatus = TEXT("Ignored non-finite per-garment clearance offset");
+			UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
+		}
+		return;
+	}
+	GarmentClearanceOffsetsCm.Add(GarmentComponent, FMath::Clamp(NewOffsetCm, 0.0f, 5.0f));
+}
+
+void UEFClothingFitRuntimeComponent::ClearGarmentClearanceOffsetCm(
+	USkeletalMeshComponent* GarmentComponent)
+{
+	if (IsValid(GarmentComponent))
+	{
+		GarmentClearanceOffsetsCm.Remove(GarmentComponent);
+	}
+}
+
+EEFClothingSurfaceRuntimeState UEFClothingFitRuntimeComponent::GetGarmentSurfaceRuntimeState(
+	const USkeletalMeshComponent* GarmentComponent) const
+{
+	if (!IsValid(GarmentComponent))
+	{
+		return EEFClothingSurfaceRuntimeState::Disabled;
+	}
+	const TWeakObjectPtr<USkeletalMeshComponent> ComponentKey(
+		const_cast<USkeletalMeshComponent*>(GarmentComponent));
+	if (const FAppliedGarmentState* State = AppliedGarments.Find(ComponentKey))
+	{
+		return State->SurfaceRuntimeState;
+	}
+	if (PrefetchingGarments.Contains(ComponentKey))
+	{
+		return EEFClothingSurfaceRuntimeState::Loading;
+	}
+	if (RejectedGarments.Contains(ComponentKey))
+	{
+		return EEFClothingSurfaceRuntimeState::Failed;
+	}
+	return EEFClothingSurfaceRuntimeState::Disabled;
+}
+
 void UEFClothingFitRuntimeComponent::ResolveCustomizationComponent()
 {
 	if (!GetOwner() || CustomizationComponent)
@@ -773,6 +923,10 @@ void UEFClothingFitRuntimeComponent::ResolveCustomizationComponent()
 		TArray<TWeakObjectPtr<USkeletalMeshComponent>> OwnershipFailures;
 		for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState>& Pair : AppliedGarments)
 		{
+			if (Pair.Value.bUsesSurfaceWrapGPU)
+			{
+				continue;
+			}
 			USkeletalMeshComponent* GarmentComponent = Pair.Key.Get();
 			const UEFClothingFitProfile* Profile = Pair.Value.Profile.Get();
 			TSet<FName> ManagedMorphNames;
@@ -817,7 +971,7 @@ void UEFClothingFitRuntimeComponent::ResolveCustomizationComponent()
 
 void UEFClothingFitRuntimeComponent::HandleMorphStateApplied()
 {
-	if (bIsRestoring)
+	if (bIsRestoring || !bStartupAssetsReady)
 	{
 		return;
 	}
@@ -828,6 +982,83 @@ void UEFClothingFitRuntimeComponent::HandleMorphStateApplied()
 	}
 	ReconcileGarments();
 	SynchronizeMorphs();
+}
+
+void UEFClothingFitRuntimeComponent::StartStartupAssetLoad()
+{
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	if (!Settings
+		|| Settings->Registry.IsNull()
+		|| Settings->GarmentCatalog.IsNull()
+		|| Settings->SurfaceConstraintDeformer.IsNull())
+	{
+		bStartupAssetLoadFailed = true;
+		LastStatus = TEXT("V26 startup failed closed: Registry, GarmentCatalog and SurfaceConstraintDeformer must all be configured");
+		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+		return;
+	}
+
+	TArray<FSoftObjectPath> StartupPaths;
+	StartupPaths.Reserve(3);
+	StartupPaths.AddUnique(Settings->Registry.ToSoftObjectPath());
+	StartupPaths.AddUnique(Settings->GarmentCatalog.ToSoftObjectPath());
+	StartupPaths.AddUnique(Settings->SurfaceConstraintDeformer.ToSoftObjectPath());
+	LastStatus = TEXT("Loading V26 Registry, GarmentCatalog and SurfaceConstraintDeformer asynchronously");
+	StartupAssetLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		StartupPaths,
+		FStreamableDelegate::CreateUObject(this, &UEFClothingFitRuntimeComponent::HandleStartupAssetsReady),
+		FStreamableManager::AsyncLoadHighPriority,
+		false,
+		false,
+		TEXT("EFClothingMorphV2Startup"));
+	if (!StartupAssetLoadHandle.IsValid())
+	{
+		bStartupAssetLoadFailed = true;
+		LastStatus = TEXT("V26 startup failed closed: async asset request could not be created");
+		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+	}
+}
+
+void UEFClothingFitRuntimeComponent::HandleStartupAssetsReady()
+{
+	if (bStartupAssetsReady || bStartupAssetLoadFailed)
+	{
+		StartupAssetLoadHandle.Reset();
+		return;
+	}
+
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	LoadedRegistry = Settings ? Settings->Registry.Get() : nullptr;
+	LoadedGarmentCatalog = Settings ? Settings->GarmentCatalog.Get() : nullptr;
+	LoadedSurfaceConstraintDeformer = Settings ? Settings->SurfaceConstraintDeformer.Get() : nullptr;
+	if (!IsValid(LoadedRegistry)
+		|| !IsValid(LoadedGarmentCatalog)
+		|| !IsValid(LoadedSurfaceConstraintDeformer))
+	{
+		LoadedRegistry = nullptr;
+		LoadedGarmentCatalog = nullptr;
+		LoadedSurfaceConstraintDeformer = nullptr;
+		BuildCatalogIndex();
+		bStartupAssetLoadFailed = true;
+		LastStatus = TEXT("V26 startup failed closed: one or more required assets are missing, invalid or uncooked");
+		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+		StartupAssetLoadHandle.Reset();
+		return;
+	}
+
+	BuildCatalogIndex();
+	bStartupAssetsReady = true;
+	bStartupAssetLoadFailed = false;
+	// The catalog is now authoritative. Suppress any registered source garment
+	// before the next viewport draw; reconciliation may safely occur next tick.
+	GuardCatalogedSourceGarmentsBeforeRender();
+	if (Settings->bPrefetchCompiledFitsOnBeginPlay)
+	{
+		StartProfilePrefetch(nullptr);
+	}
+	NextReconcileAtSeconds = 0.0;
+	LastStatus = TEXT("V26 startup assets ready; waiting for garments");
+	StartupAssetLoadHandle.Reset();
 }
 
 void UEFClothingFitRuntimeComponent::StartProfilePrefetch(const UEFClothingFitProfile* Profile)
@@ -864,6 +1095,17 @@ void UEFClothingFitRuntimeComponent::StartProfilePrefetch(const UEFClothingFitPr
 
 		QueueAsset(Candidate->FittedGarment.ToSoftObjectPath(), Candidate->FittedGarment.Get());
 		QueueAsset(Candidate->CompatibilityReference.ToSoftObjectPath(), Candidate->CompatibilityReference.Get());
+		if (!Candidate->SurfaceBinding.IsNull())
+		{
+			QueueAsset(Candidate->SurfaceBinding.ToSoftObjectPath(), Candidate->SurfaceBinding.Get());
+			const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+			if (Settings)
+			{
+				QueueAsset(
+					Settings->SurfaceConstraintDeformer.ToSoftObjectPath(),
+					Settings->SurfaceConstraintDeformer.Get());
+			}
+		}
 	};
 
 	if (IsValid(Profile))
@@ -896,6 +1138,10 @@ void UEFClothingFitRuntimeComponent::LaunchNextProfilePrefetchBatch()
 		if (UObject* LoadedAsset = AssetPath.ResolveObject())
 		{
 			RetainedProfileAssets.AddUnique(LoadedAsset);
+			if (UOptimusDeformer* SurfaceDeformer = Cast<UOptimusDeformer>(LoadedAsset))
+			{
+				LoadedSurfaceConstraintDeformer = SurfaceDeformer;
+			}
 			continue;
 		}
 		AssetsToLoad.Add(AssetPath);
@@ -933,6 +1179,10 @@ void UEFClothingFitRuntimeComponent::HandleRegistryAssetsReady()
 		if (UObject* LoadedAsset = AssetPath.ResolveObject())
 		{
 			RetainedProfileAssets.AddUnique(LoadedAsset);
+			if (UOptimusDeformer* SurfaceDeformer = Cast<UOptimusDeformer>(LoadedAsset))
+			{
+				LoadedSurfaceConstraintDeformer = SurfaceDeformer;
+			}
 		}
 	}
 	InFlightProfilePrefetchPaths.Reset();
@@ -953,6 +1203,19 @@ void UEFClothingFitRuntimeComponent::HandleRegistryAssetsReady()
 			{
 				RetainedProfileAssets.AddUnique(Compatibility);
 			}
+			if (UObject* SurfaceBinding = Profile->SurfaceBinding.Get())
+			{
+				RetainedProfileAssets.AddUnique(SurfaceBinding);
+			}
+		}
+	}
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	if (Settings)
+	{
+		LoadedSurfaceConstraintDeformer = Settings->SurfaceConstraintDeformer.Get();
+		if (LoadedSurfaceConstraintDeformer)
+		{
+			RetainedProfileAssets.AddUnique(LoadedSurfaceConstraintDeformer);
 		}
 	}
 	RegistryPrefetchHandle.Reset();
@@ -994,16 +1257,18 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 		FName MissingHiddenSurfaceSlot = NAME_None;
 		if (!Row || !Row->bEnabled || !IsImplementedBackend(Row->Backend)
 			|| !HasCertifiedCatalogClearance(*Row)
+			|| !HasValidSurfaceCatalogContract(*Row)
 			|| !HasCompleteHiddenSurfaceCoverage(*Row, &MissingHiddenSurfaceSlot)
 			|| Row->SourceGarment.IsNull() || Row->BodySurface.IsNull())
 		{
-			if (Row && Row->bEnabled && Row->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU)
+			if (Row && Row->bEnabled && !IsImplementedBackend(Row->Backend))
 			{
 				UE_LOG(
 					LogEFClothingMorphV2,
 					Error,
-					TEXT("EFClothingMorphV2 catalog row %s requests SurfaceWrapGPU, but that backend is not implemented; row rejected fail-closed."),
-					*Pair.Key.ToString());
+					TEXT("EFClothingMorphV2 catalog row %s requests unsupported backend %d; row rejected fail-closed."),
+					*Pair.Key.ToString(),
+					static_cast<int32>(Row->Backend));
 			}
 			else if (Row && Row->bEnabled && !HasCertifiedCatalogClearance(*Row))
 			{
@@ -1024,6 +1289,14 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 					TEXT("EFClothingMorphV2 catalog row %s excludes body surface slot %s without hiding it; row rejected fail-closed."),
 					*Pair.Key.ToString(),
 					*MissingHiddenSurfaceSlot.ToString());
+			}
+			else if (Row && Row->bEnabled && !HasValidSurfaceCatalogContract(*Row))
+			{
+				UE_LOG(
+					LogEFClothingMorphV2,
+					Error,
+					TEXT("EFClothingMorphV2 catalog row %s has an invalid SurfaceWrap cm/fail-closed contract; row rejected."),
+					*Pair.Key.ToString());
 			}
 			continue;
 		}
@@ -1080,6 +1353,7 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 		false);
 	if (!Row || !Row->bEnabled || !IsImplementedBackend(Row->Backend)
 		|| !HasCertifiedCatalogClearance(*Row)
+		|| !HasValidSurfaceCatalogContract(*Row)
 		|| !HasCompleteHiddenSurfaceCoverage(*Row))
 	{
 		return nullptr;
@@ -1307,7 +1581,11 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 {
 	++ReconcilePassCount;
 	RemoveStaleStates();
-	if (!LoadedRegistry || !LoadedGarmentCatalog || !GetOwner())
+	if (!bStartupAssetsReady
+		|| !LoadedRegistry
+		|| !LoadedGarmentCatalog
+		|| !LoadedSurfaceConstraintDeformer
+		|| !GetOwner())
 	{
 		return;
 	}
@@ -1328,9 +1606,17 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 		{
 			const UEFClothingFitProfile* PrefetchProfile = PrefetchState->Profile.Get();
 			const bool bSourceStillAssigned = MeshComponent->GetSkeletalMeshAsset() == PrefetchState->SourceMesh.Get();
+			const UEFClothingMorphV2Settings* RuntimeSettings = GetDefault<UEFClothingMorphV2Settings>();
+			const bool bNeedsSurfaceAssets = IsValid(PrefetchProfile)
+				&& PrefetchProfile->CompilerVersion == EFClothingMorphV26::CompilerVersion
+				&& !PrefetchProfile->SurfaceBinding.IsNull();
 			const bool bAssetsReady = IsValid(PrefetchProfile)
 				&& PrefetchProfile->FittedGarment.IsValid()
-				&& PrefetchProfile->CompatibilityReference.IsValid();
+				&& PrefetchProfile->CompatibilityReference.IsValid()
+				&& (!bNeedsSurfaceAssets
+					|| (PrefetchProfile->SurfaceBinding.IsValid()
+						&& RuntimeSettings
+						&& RuntimeSettings->SurfaceConstraintDeformer.IsValid()));
 			const bool bExistingProfileReady = !PrefetchState->bWaitingForExistingSkinProfile
 				|| !MeshComponent->IsSkinWeightProfilePending();
 			const bool bTimedOut = GetWorld()
@@ -1370,7 +1656,11 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 				const UEFClothingFitProfile* ExistingProfile = ExistingState->Profile.Get();
 				if (ExistingState->bOwnsBoundsContract
 					&& (MeshComponent->bUseBoundsFromLeaderPoseComponent
-						|| !MeshComponent->bComponentUseFixedSkelBounds))
+						|| !MeshComponent->bComponentUseFixedSkelBounds
+						|| !FMath::IsNearlyEqual(
+							MeshComponent->BoundsScale,
+							ExistingState->BoundsScaleAssignedByV2,
+							KINDA_SMALL_NUMBER)))
 				{
 					USkeletalMesh* RejectedSource = ExistingState->SourceMesh.Get();
 					const FString BoundsFailure = TEXT("Generated fitted-bounds ownership was changed externally.");
@@ -1406,7 +1696,7 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 				USkeletalMeshComponent* CurrentLeader = Cast<USkeletalMeshComponent>(MeshComponent->LeaderPoseComponent.Get());
 				USkeletalMesh* CurrentLeaderMesh = IsValid(CurrentLeader) ? CurrentLeader->GetSkeletalMeshAsset() : nullptr;
 				const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
-				const bool bNeedsFullValidation = CurrentBody != ExistingState->BodyMesh.Get()
+				bool bNeedsFullValidation = CurrentBody != ExistingState->BodyMesh.Get()
 					|| !IsValid(ExpectedPoseDriver)
 					|| CurrentLeader != ExpectedPoseDriver
 					|| CurrentLeader != ExistingState->ValidatedLeaderComponent.Get()
@@ -1416,6 +1706,10 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 				const FEFClothingGarmentRow* CurrentCatalogRow = FindCatalogRow(
 					ExistingState->SourceMesh.Get(),
 					IsValid(CurrentBody) ? CurrentBody->GetSkeletalMeshAsset() : nullptr);
+				const bool bCatalogBackendChanged = CurrentCatalogRow
+					&& (CurrentCatalogRow->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU)
+						!= ExistingState->bUsesSurfaceWrapGPU;
+				bNeedsFullValidation = bNeedsFullValidation || bCatalogBackendChanged;
 				bool bRevalidationPass = true;
 				if (bNeedsFullValidation)
 				{
@@ -1423,6 +1717,11 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 					{
 						bRevalidationPass = false;
 						RevalidationFailure = TEXT("Current body/source pair is absent from the enabled garment catalog.");
+					}
+					else if (bCatalogBackendChanged)
+					{
+						bRevalidationPass = false;
+						RevalidationFailure = TEXT("Catalog backend changed after equip; an atomic unequip/re-equip is required.");
 					}
 					else if (CanonicalMaterialSlots(ExistingProfile->ExcludedBodySurfaceMaterialSlots)
 							!= CanonicalMaterialSlots(CurrentCatalogRow->ExcludedBodySurfaceMaterialSlots)
@@ -1481,6 +1780,13 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 						ExistingState->ValidatedLeaderComponent = CurrentLeader;
 						ExistingState->ValidatedLeaderMesh = CurrentLeaderMesh;
 						ExistingState->LastFullValidationAtSeconds = Now;
+					}
+					if (CurrentCatalogRow)
+					{
+						ExistingState->CatalogMinimumClearanceMultiplier =
+							CurrentCatalogRow->MinimumClearanceMultiplier;
+						ExistingState->CatalogRuntimeOffsetCm = CurrentCatalogRow->RuntimeOffsetCm;
+						ExistingState->CatalogMaximumCorrectionCm = CurrentCatalogRow->MaximumCorrectionCm;
 					}
 				}
 
@@ -1548,21 +1854,7 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 					ExistingState->bWaitingForSkinProfile = false;
 					SynchronizeMorphs();
 					MeshComponent->UpdateFollowerComponent();
-					if (!ExistingState->bMorphStateUnsafe)
-					{
-						MeshComponent->ComponentTags.Remove(PendingTag);
-						if (ExistingState->bRenderSuppressedByV2)
-						{
-							MeshComponent->SetRenderInMainPass(ExistingState->bRenderInMainPassBeforeV2);
-							ExistingState->bRenderSuppressedByV2 = false;
-						}
-						LastStatus = FString::Printf(TEXT("Applied and ready: %s"), *MeshComponent->GetName());
-						UE_LOG(LogEFClothingMorphV2, Display, TEXT("EFClothingMorphV2 READY owner=%s component=%s fitted=%s leader=%s"),
-							*GetOwner()->GetName(),
-							*MeshComponent->GetName(),
-							*GetNameSafe(ExistingState->FittedMesh.Get()),
-							*GetNameSafe(CurrentLeaderMesh));
-					}
+					TryExposeReadyGarment(MeshComponent, *ExistingState);
 				}
 				else if (AppliedGarments.Contains(MeshComponent)
 					&& ExistingState->bWaitingForSkinProfile && GetWorld()
@@ -1588,6 +1880,7 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 			}
 			else
 			{
+				ReleaseSurfaceConstraint(*ExistingState);
 				if (CustomizationComponent)
 				{
 					CustomizationComponent->UnregisterExternalMorphWriter(MeshComponent, this);
@@ -1702,6 +1995,20 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
 		return false;
 	}
+	const bool bSurfaceWrapGPU = CatalogRow->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
+	const UEFClothingMorphV2Settings* RuntimeSettings = GetDefault<UEFClothingMorphV2Settings>();
+	if (bSurfaceWrapGPU
+		&& (Profile->SurfaceBinding.IsNull()
+			|| !RuntimeSettings
+			|| RuntimeSettings->SurfaceConstraintDeformer.IsNull()))
+	{
+		LastStatus = FString::Printf(
+			TEXT("Rejected %s: SurfaceWrapGPU requires an exact V26 binding and configured Deformer Graph"),
+			*GetNameSafe(SourceMesh));
+		RememberProfileRejection(GarmentComponent, SourceMesh, Profile, LastStatus);
+		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+		return false;
+	}
 	if (CanonicalMaterialSlots(Profile->ExcludedBodySurfaceMaterialSlots)
 			!= CanonicalMaterialSlots(CatalogRow->ExcludedBodySurfaceMaterialSlots)
 		|| CanonicalMaterialSlots(Profile->ExcludedBodyBoneBranches)
@@ -1783,7 +2090,17 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 			*GarmentComponent->GetName());
 		return false;
 	}
-	if (!IsValid(FittedMesh) || !Profile->CompatibilityReference.IsValid())
+	UEFClothingSurfaceBinding* SurfaceBinding = bSurfaceWrapGPU
+		? Profile->SurfaceBinding.Get()
+		: nullptr;
+	if (bSurfaceWrapGPU && RuntimeSettings)
+	{
+		LoadedSurfaceConstraintDeformer = RuntimeSettings->SurfaceConstraintDeformer.Get();
+	}
+	if (!IsValid(FittedMesh)
+		|| !Profile->CompatibilityReference.IsValid()
+		|| (bSurfaceWrapGPU
+			&& (!IsValid(SurfaceBinding) || !IsValid(LoadedSurfaceConstraintDeformer))))
 	{
 		FPrefetchGarmentState& PrefetchState = PrefetchingGarments.FindOrAdd(GarmentComponent);
 		if (!PrefetchState.SourceMesh.IsValid())
@@ -1856,6 +2173,10 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	State.bCapturedPreviousSkinWeightProfiles = !GarmentComponent->IsSkinWeightProfilePending();
 	State.bUseBoundsFromLeaderPoseBeforeV2 = GarmentComponent->bUseBoundsFromLeaderPoseComponent;
 	State.bComponentUseFixedSkelBoundsBeforeV2 = GarmentComponent->bComponentUseFixedSkelBounds;
+	State.ComponentBoundsScaleBeforeV2 = FMath::IsFinite(GarmentComponent->BoundsScale)
+		? GarmentComponent->BoundsScale
+		: 1.0f;
+	State.BoundsScaleAssignedByV2 = State.ComponentBoundsScaleBeforeV2;
 	CaptureVisibilityContract(
 		GarmentComponent,
 		State.bRenderInMainPassBeforeV2,
@@ -1865,6 +2186,17 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	State.LastFullValidationAtSeconds = State.ApplyStartedAtSeconds;
 	State.CatalogRowName = CatalogRowName;
 	State.CatalogMinimumClearanceMultiplier = CatalogRow->MinimumClearanceMultiplier;
+	State.bUsesSurfaceWrapGPU = bSurfaceWrapGPU;
+	State.SurfaceBinding = SurfaceBinding;
+	State.SurfaceRuntimeState = bSurfaceWrapGPU
+		? EEFClothingSurfaceRuntimeState::Loading
+		: EEFClothingSurfaceRuntimeState::Disabled;
+	State.CatalogRuntimeOffsetCm = FMath::IsFinite(CatalogRow->RuntimeOffsetCm)
+		? FMath::Clamp(CatalogRow->RuntimeOffsetCm, 0.0f, 5.0f)
+		: 0.0f;
+	State.CatalogMaximumCorrectionCm = FMath::IsFinite(CatalogRow->MaximumCorrectionCm)
+		? CatalogRow->MaximumCorrectionCm
+		: -1.0f;
 
 	GarmentComponent->ComponentTags.AddUnique(PendingTag);
 	GarmentComponent->SetSkeletalMesh(FittedMesh, true);
@@ -1901,6 +2233,36 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	}
 	GarmentComponent->bUseBoundsFromLeaderPoseComponent = false;
 	GarmentComponent->bComponentUseFixedSkelBounds = true;
+	if (bSurfaceWrapGPU && IsValid(SurfaceBinding))
+	{
+		float MaximumSurfaceCorrectionCm = 0.0f;
+		for (const FEFClothingSurfaceLODPairBinding& LODPair : SurfaceBinding->LODPairBindings)
+		{
+			for (const FEFClothingSurfaceVertexBinding& VertexBinding : LODPair.VertexBindings)
+			{
+				if (FMath::IsFinite(VertexBinding.MaximumCorrectionCm))
+				{
+					MaximumSurfaceCorrectionCm = FMath::Max(
+						MaximumSurfaceCorrectionCm,
+						VertexBinding.MaximumCorrectionCm);
+				}
+			}
+		}
+		if (CatalogRow->MaximumCorrectionCm >= 0.0f)
+		{
+			MaximumSurfaceCorrectionCm = FMath::Min(
+				MaximumSurfaceCorrectionCm,
+				CatalogRow->MaximumCorrectionCm);
+		}
+		const float FittedSphereRadiusCm = FittedMesh->GetImportedBounds().SphereRadius;
+		if (FMath::IsFinite(FittedSphereRadiusCm) && FittedSphereRadiusCm > UE_SMALL_NUMBER)
+		{
+			State.BoundsScaleAssignedByV2 = FMath::Max(
+				State.ComponentBoundsScaleBeforeV2,
+				(FittedSphereRadiusCm + MaximumSurfaceCorrectionCm) / FittedSphereRadiusCm);
+			GarmentComponent->SetBoundsScale(State.BoundsScaleAssignedByV2);
+		}
+	}
 	GarmentComponent->UpdateBounds();
 	GarmentComponent->MarkRenderTransformDirty();
 	State.bOwnsBoundsContract = true;
@@ -1914,21 +2276,40 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 		return false;
 	}
 
-	// The exact active body state is resolved on the reconciliation tick below.
-	// Start at the highest certified tier so the first visible frame cannot use
-	// an under-cleared shape, then settle to the certified per-state floor.
-	const float ClearanceValue = ResolveClearanceValue(
-		GarmentComponent,
-		Profile,
-		Profile->CertifiedClearanceMultiplierMax);
-	GarmentComponent->SetMorphTarget(Profile->ClearanceMorphName, ClearanceValue, false);
-	State.LastWrittenMorphValues.Add(Profile->ClearanceMorphName, ClearanceValue);
+	if (!bSurfaceWrapGPU)
+	{
+		// V25 fallback starts at its highest certified baked tier. SurfaceWrapGPU
+		// expresses the source of truth continuously in centimeters on the graph.
+		const float ClearanceValue = ResolveClearanceValue(
+			GarmentComponent,
+			Profile,
+			Profile->CertifiedClearanceMultiplierMax);
+		GarmentComponent->SetMorphTarget(Profile->ClearanceMorphName, ClearanceValue, false);
+		State.LastWrittenMorphValues.Add(Profile->ClearanceMorphName, ClearanceValue);
+	}
 	State.bWaitingForSkinProfile = !IsCertifiedSkinProfileActive(GarmentComponent, Profile);
 	GarmentComponent->ComponentTags.AddUnique(ManagedTag);
 
+	if (bSurfaceWrapGPU
+		&& !TryInstallSurfaceConstraint(GarmentComponent, State, FailureReason))
+	{
+		RestoreGarment(GarmentComponent, State, true);
+		RememberProfileRejection(GarmentComponent, SourceMesh, Profile, FailureReason);
+		LastStatus = FString::Printf(
+			TEXT("Rejected SurfaceWrapGPU %s: %s"),
+			*GarmentComponent->GetName(),
+			*FailureReason);
+		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+		return false;
+	}
+
 	TSet<FName> ManagedMorphNames;
-	GatherManagedMorphNames(Profile, ManagedMorphNames);
-	if (CustomizationComponent
+	if (!bSurfaceWrapGPU)
+	{
+		GatherManagedMorphNames(Profile, ManagedMorphNames);
+	}
+	if (!bSurfaceWrapGPU
+		&& CustomizationComponent
 		&& !CustomizationComponent->RegisterExternalMorphWriter(GarmentComponent, this, ManagedMorphNames))
 	{
 		UE_LOG(LogEFClothingMorphV2, Error, TEXT("EFClothingMorphV2 could not acquire morph ownership for %s."), *GarmentComponent->GetName());
@@ -1944,6 +2325,14 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	if (UObject* CompatibilityAsset = Profile->CompatibilityReference.Get())
 	{
 		RetainedProfileAssets.AddUnique(CompatibilityAsset);
+	}
+	if (IsValid(SurfaceBinding))
+	{
+		RetainedProfileAssets.AddUnique(SurfaceBinding);
+	}
+	if (IsValid(LoadedSurfaceConstraintDeformer))
+	{
+		RetainedProfileAssets.AddUnique(LoadedSurfaceConstraintDeformer);
 	}
 	RefreshRetainedSourceMeshes();
 	if (CustomizationComponent)
@@ -1962,15 +2351,7 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	{
 		FAppliedGarmentState& AddedState = AppliedGarments.FindChecked(GarmentComponent);
 		AddedState.bWaitingForSkinProfile = false;
-		if (!AddedState.bMorphStateUnsafe)
-		{
-			GarmentComponent->ComponentTags.Remove(PendingTag);
-			if (AddedState.bRenderSuppressedByV2)
-			{
-				GarmentComponent->SetRenderInMainPass(AddedState.bRenderInMainPassBeforeV2);
-				AddedState.bRenderSuppressedByV2 = false;
-			}
-		}
+		TryExposeReadyGarment(GarmentComponent, AddedState);
 	}
 
 	LastStatus = FString::Printf(TEXT("Applied %s -> %s"), *GetNameSafe(GarmentComponent->GetSkeletalMeshAsset()), *GetNameSafe(FittedMesh));
@@ -1985,7 +2366,10 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 		static_cast<int32>(CatalogRow->Backend),
 		*Profile->BuildGuid.ToString(EGuidFormats::DigitsWithHyphens),
 		(AppliedGarments.FindChecked(GarmentComponent).bWaitingForSkinProfile
-			|| AppliedGarments.FindChecked(GarmentComponent).bMorphStateUnsafe)
+			|| AppliedGarments.FindChecked(GarmentComponent).bMorphStateUnsafe
+			|| (AppliedGarments.FindChecked(GarmentComponent).bUsesSurfaceWrapGPU
+				&& AppliedGarments.FindChecked(GarmentComponent).SurfaceRuntimeState
+					!= EEFClothingSurfaceRuntimeState::Ready))
 			? TEXT("true") : TEXT("false"));
 
 	return true;
@@ -2012,15 +2396,31 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 		OutFailureReason = TEXT("Source garment or body mesh is invalid.");
 		return false;
 	}
+	const FEFClothingGarmentRow* RuntimeCatalogRow = FindCatalogRow(SourceMesh, BodyMesh);
+	const bool bSurfaceWrapGPU = RuntimeCatalogRow
+		&& RuntimeCatalogRow->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
 	constexpr float CertifiedTransformTolerance = 0.001f;
-	if (!GarmentComponent->GetComponentTransform().Equals(
-		BodyComponent->GetComponentTransform(),
-		CertifiedTransformTolerance))
+	const FTransform BodyToGarment = BodyComponent->GetComponentTransform().GetRelativeTransform(
+		GarmentComponent->GetComponentTransform());
+	const FVector BodyToGarmentScale = BodyToGarment.GetScale3D();
+	if (bSurfaceWrapGPU
+		&& (BodyToGarment.ContainsNaN()
+			|| FMath::Abs(BodyToGarmentScale.X) <= UE_SMALL_NUMBER
+			|| FMath::Abs(BodyToGarmentScale.Y) <= UE_SMALL_NUMBER
+			|| FMath::Abs(BodyToGarmentScale.Z) <= UE_SMALL_NUMBER))
+	{
+		OutFailureReason = TEXT("Body-to-garment transform is non-finite or has degenerate scale.");
+		return false;
+	}
+	if (!bSurfaceWrapGPU
+		&& !GarmentComponent->GetComponentTransform().Equals(
+			BodyComponent->GetComponentTransform(),
+			CertifiedTransformTolerance))
 	{
 		OutFailureReason = TEXT("Garment and exact Female component transforms differ from the certified local-space contract.");
 		return false;
 	}
-	if (BodyComponent->GetPredictedLODLevel() > 0)
+	if (!bSurfaceWrapGPU && BodyComponent->GetPredictedLODLevel() > 0)
 	{
 		OutFailureReason = TEXT("Exact Female is rendering an uncertified body LOD; V24 Tight profiles currently require LOD0.");
 		return false;
@@ -2090,11 +2490,53 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 	}
 
 	const FVector BoundsExpansion = Profile->CompiledConcurrentBoundsExpansionCm;
+	const bool bBackendProfileContractValid = bSurfaceWrapGPU
+		? Profile->CompilerVersion == EFClothingMorphV26::CompilerVersion
+			&& Profile->CompiledLODCount > 0
+			&& Profile->CompiledLODCount == FittedMesh->GetLODNum()
+			&& Profile->SurfaceBinding.IsValid()
+		: (Profile->CompilerVersion == 25
+			|| Profile->CompilerVersion == EFClothingMorphV26::CompilerVersion)
+			&& Profile->CompiledLODCount == 1
+			&& Profile->FitMode == EEFClothingFitMode::Tight
+			&& (Profile->CompilerVersion != 25 || Profile->SurfaceBinding.IsNull());
+	const bool bV25MorphBakeContractValid =
+		FMath::IsFinite(Profile->DefaultClearanceValue)
+		&& FMath::IsNearlyEqual(Profile->DefaultClearanceValue, 1.0f, KINDA_SMALL_NUMBER)
+		&& FMath::IsFinite(Profile->CertifiedClearanceMultiplierMin)
+		&& FMath::IsFinite(Profile->CertifiedClearanceMultiplierMax)
+		&& FMath::IsNearlyEqual(Profile->CertifiedClearanceMultiplierMin, 1.0f, KINDA_SMALL_NUMBER)
+		&& FMath::IsNearlyEqual(Profile->CertifiedClearanceMultiplierMax, 2.0f, KINDA_SMALL_NUMBER)
+		&& Profile->CertifiedClearanceTierCount == 9
+		&& FMath::IsFinite(Profile->MinimumCertifiedOffsetGapCm)
+		&& Profile->MinimumCertifiedOffsetGapCm >= Profile->CompiledMinimumClearanceCm - 0.001f
+		&& FMath::IsFinite(Profile->CompiledMaximumMorphRepairCm)
+		&& Profile->CompiledMaximumMorphRepairCm > 0.0f
+		&& FMath::IsFinite(Profile->CompiledMaximumMorphDisplacementCm)
+		&& Profile->CompiledMaximumMorphDisplacementCm >= 0.0f
+		&& FMath::IsFinite(Profile->CompiledMorphThresholdPositionCm)
+		&& Profile->CompiledMorphThresholdPositionCm >= 0.0f
+		&& Profile->PostThresholdAlteredDeltaCount >= 0
+		&& Profile->ClearanceValidatedMorphCount == Profile->MorphBindings.Num()
+		&& Profile->MorphClearanceSampleCount >= 2
+		&& Profile->MorphClearanceSampleCount <= 8
+		&& Profile->GeneratedMorphSampleCount >= Profile->MorphBindings.Num()
+		&& (Profile->MorphBindings.IsEmpty()
+			? Profile->MaximumMorphSamplesPerBinding == 0
+			: Profile->MaximumMorphSamplesPerBinding >= 1)
+		&& Profile->MaximumMorphSamplesPerBinding <= 64
+		&& Profile->SteppedMorphIntervalCount >= 0
+		&& Profile->SteppedMorphIntervalCount <= Profile->GeneratedMorphSampleCount
+		&& Profile->IdentityMorphSampleCount >= 0
+		&& Profile->IdentityMorphSampleCount <= Profile->GeneratedMorphSampleCount
+		&& FMath::IsFinite(Profile->MinimumSampledMorphGapCm)
+		&& Profile->MinimumSampledMorphGapCm >= Profile->CompiledMinimumClearanceCm - 0.001f
+		&& FMath::IsFinite(Profile->CompiledMorphActivationEpsilon)
+		&& Profile->CompiledMorphActivationEpsilon == 0.0f;
 	if (!bSurfacePolicyContractValid
-		|| Profile->CompilerVersion != 25
+		|| !bBackendProfileContractValid
+		|| (!bSurfaceWrapGPU && !bV25MorphBakeContractValid)
 		|| Profile->SkinWeightProfileName != CertifiedAutoFitProfileName
-		|| Profile->CompiledLODCount != 1
-		|| Profile->FitMode != EEFClothingFitMode::Tight
 		|| !Profile->BuildGuid.IsValid()
 		|| Profile->PenetratingVertexCountAfter != 0
 		|| !FMath::IsFinite(Profile->MinimumSignedGapAfterCm)
@@ -2107,23 +2549,8 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 		|| Profile->RequiredWeightedBones.IsEmpty()
 		|| Profile->ReconciledSplitVertexCount < 0
 		|| Profile->CertifiedSkinWeightVertexCount <= 0
-		|| Profile->CertifiedSkinWeightVertexCount != Profile->SourceVertexCount
-		|| !FMath::IsFinite(Profile->DefaultClearanceValue)
-		|| !FMath::IsNearlyEqual(Profile->DefaultClearanceValue, 1.0f, KINDA_SMALL_NUMBER)
-		|| !FMath::IsFinite(Profile->CertifiedClearanceMultiplierMin)
-		|| !FMath::IsFinite(Profile->CertifiedClearanceMultiplierMax)
-		|| !FMath::IsNearlyEqual(Profile->CertifiedClearanceMultiplierMin, 1.0f, KINDA_SMALL_NUMBER)
-		|| !FMath::IsNearlyEqual(Profile->CertifiedClearanceMultiplierMax, 2.0f, KINDA_SMALL_NUMBER)
-		|| Profile->CertifiedClearanceTierCount != 9
-		|| !FMath::IsFinite(Profile->MinimumCertifiedOffsetGapCm)
-		|| Profile->MinimumCertifiedOffsetGapCm < Profile->CompiledMinimumClearanceCm - 0.001f
-		|| !FMath::IsFinite(Profile->CompiledMaximumMorphRepairCm)
-		|| Profile->CompiledMaximumMorphRepairCm <= 0.0f
-		|| !FMath::IsFinite(Profile->CompiledMaximumMorphDisplacementCm)
-		|| Profile->CompiledMaximumMorphDisplacementCm < 0.0f
-		|| !FMath::IsFinite(Profile->CompiledMorphThresholdPositionCm)
-		|| Profile->CompiledMorphThresholdPositionCm < 0.0f
-		|| Profile->PostThresholdAlteredDeltaCount < 0
+		|| (!bSurfaceWrapGPU
+			&& Profile->CertifiedSkinWeightVertexCount != Profile->SourceVertexCount)
 		|| !FMath::IsFinite(BoundsExpansion.X)
 		|| !FMath::IsFinite(BoundsExpansion.Y)
 		|| !FMath::IsFinite(BoundsExpansion.Z)
@@ -2131,24 +2558,7 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 		|| BoundsExpansion.Y < 0.0f
 		|| BoundsExpansion.Z < 0.0f
 		|| !FMath::IsFinite(Profile->CompiledConcurrentSphereExpansionCm)
-		|| Profile->CompiledConcurrentSphereExpansionCm < 0.0f
-		|| Profile->ClearanceValidatedMorphCount != Profile->MorphBindings.Num()
-		|| Profile->MorphClearanceSampleCount < 2
-		|| Profile->MorphClearanceSampleCount > 8
-		|| Profile->GeneratedMorphSampleCount < Profile->MorphBindings.Num()
-		|| (!Profile->MorphBindings.IsEmpty()
-			&& Profile->MaximumMorphSamplesPerBinding < 1)
-		|| (Profile->MorphBindings.IsEmpty()
-			&& Profile->MaximumMorphSamplesPerBinding != 0)
-		|| Profile->MaximumMorphSamplesPerBinding > 64
-		|| Profile->SteppedMorphIntervalCount < 0
-		|| Profile->SteppedMorphIntervalCount > Profile->GeneratedMorphSampleCount
-		|| Profile->IdentityMorphSampleCount < 0
-		|| Profile->IdentityMorphSampleCount > Profile->GeneratedMorphSampleCount
-		|| !FMath::IsFinite(Profile->MinimumSampledMorphGapCm)
-		|| Profile->MinimumSampledMorphGapCm < Profile->CompiledMinimumClearanceCm - 0.001f
-		|| !FMath::IsFinite(Profile->CompiledMorphActivationEpsilon)
-		|| Profile->CompiledMorphActivationEpsilon != 0.0f)
+		|| Profile->CompiledConcurrentSphereExpansionCm < 0.0f)
 	{
 		OutFailureReason = TEXT("Profile compiler version, LOD or measured-clearance contract is invalid.");
 		return false;
@@ -2157,10 +2567,10 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 	const FSkeletalMeshLODInfo* BodyLODInfo = BodyMesh->GetLODInfo(0);
 	if (!FittedLODInfo
 		|| !BodyLODInfo
-		|| !FMath::IsNearlyEqual(
+		|| (!bSurfaceWrapGPU && !FMath::IsNearlyEqual(
 			FittedLODInfo->BuildSettings.MorphThresholdPosition,
 			Profile->CompiledMorphThresholdPositionCm,
-			KINDA_SMALL_NUMBER))
+			KINDA_SMALL_NUMBER)))
 	{
 		OutFailureReason = TEXT("Generated garment morph cook threshold differs from its V24 certificate.");
 		return false;
@@ -2173,6 +2583,31 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 	{
 		OutFailureReason = TEXT("Profile asset paths do not match the runtime mesh set.");
 		return false;
+	}
+	if (bSurfaceWrapGPU)
+	{
+		const UEFClothingSurfaceBinding* SurfaceBinding = Profile->SurfaceBinding.Get();
+		if (!IsValid(SurfaceBinding)
+			|| SurfaceBinding->CompilerVersion != EFClothingMorphV26::CompilerVersion
+			|| SurfaceBinding->SchemaVersion != EFClothingMorphV26::SurfaceBindingSchemaVersion
+			|| SurfaceBinding->BuildGuid != Profile->BuildGuid
+			|| SurfaceBinding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceMesh)
+			|| SurfaceBinding->FittedGarment.ToSoftObjectPath() != FSoftObjectPath(FittedMesh)
+			|| SurfaceBinding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodyMesh)
+			|| SurfaceBinding->SourceContentFingerprint != Profile->SourceContentFingerprint
+			|| SurfaceBinding->FittedContentFingerprint != Profile->FittedContentFingerprint
+			|| SurfaceBinding->BodyContentFingerprint != Profile->BodyContentFingerprint
+			|| SurfaceBinding->SourceSkeletonFingerprint != Profile->SourceSkeletonFingerprint
+			|| SurfaceBinding->FittedSkeletonFingerprint != Profile->FittedSkeletonFingerprint
+			|| SurfaceBinding->BodySkeletonFingerprint != Profile->BodySkeletonFingerprint
+			|| SurfaceBinding->SharedSkeletonFingerprint != Profile->SharedSkeletonFingerprint
+			|| CanonicalMaterialSlots(SurfaceBinding->ExcludedBodySurfaceMaterialSlots)
+				!= CanonicalMaterialSlots(Profile->ExcludedBodySurfaceMaterialSlots)
+			|| SurfaceBinding->LODPairBindings.IsEmpty())
+		{
+			OutFailureReason = TEXT("V26 SurfaceBinding identity, fingerprints, exclusions or build certificate do not match the profile.");
+			return false;
+		}
 	}
 	if (FittedMesh->GetDefaultMeshDeformer() != BodyMesh->GetDefaultMeshDeformer()
 		|| FittedMesh->GetTargetMeshDeformers() != BodyMesh->GetTargetMeshDeformers()
@@ -2313,10 +2748,22 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 	{
 		return Info.Name == Profile->SkinWeightProfileName;
 	});
-	UMorphTarget* ClearanceMorph = FittedMesh->FindMorphTarget(Profile->ClearanceMorphName);
-	if (!bSkinProfileExists || !IsValid(ClearanceMorph) || ClearanceMorph->GetNumDeltasForLOD(0) == 0)
+	if (!bSkinProfileExists)
 	{
-		OutFailureReason = TEXT("Generated skin-weight profile or clearance morph is missing.");
+		OutFailureReason = TEXT("Generated EF_AutoFit skin-weight profile is missing.");
+		return false;
+	}
+
+	// GeometryFitFallback retains the complete V25 morph-bake certificate. The
+	// V26 surface backend follows the final animated body geometry directly and
+	// deliberately does not depend on body-morph names, pair grids or baked
+	// clearance tiers. EF_AutoFit and the rest sculpt remain mandatory above.
+	if (!bSurfaceWrapGPU)
+	{
+	UMorphTarget* ClearanceMorph = FittedMesh->FindMorphTarget(Profile->ClearanceMorphName);
+	if (!IsValid(ClearanceMorph) || ClearanceMorph->GetNumDeltasForLOD(0) == 0)
+	{
+		OutFailureReason = TEXT("Generated V25 clearance morph is missing.");
 		return false;
 	}
 	TSet<FName> UniqueBodyMorphNames;
@@ -2603,6 +3050,7 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 		OutFailureReason = TEXT("V24 pair certificate metrics do not match their stored cells.");
 		return false;
 	}
+	}
 
 	auto ValidateWeightedBoneContract = [Profile, FittedMesh](
 		const USkeletalMesh* PoseMesh,
@@ -2758,6 +3206,320 @@ float UEFClothingFitRuntimeComponent::ResolveBodyMorphValue(
 	return 0.0f;
 }
 
+bool UEFClothingFitRuntimeComponent::TryInstallSurfaceConstraint(
+	USkeletalMeshComponent* GarmentComponent,
+	FAppliedGarmentState& State,
+	FString& OutFailureReason)
+{
+	OutFailureReason.Reset();
+	if (!State.bUsesSurfaceWrapGPU)
+	{
+		return true;
+	}
+
+	USkeletalMeshComponent* BodyComponent = State.BodyMesh.Get();
+	const UEFClothingFitProfile* Profile = State.Profile.Get();
+	const UEFClothingSurfaceBinding* Binding = State.SurfaceBinding.Get();
+	USkeletalMesh* GarmentMesh = IsValid(GarmentComponent)
+		? GarmentComponent->GetSkeletalMeshAsset()
+		: nullptr;
+	USkeletalMesh* BodyMesh = IsValid(BodyComponent)
+		? BodyComponent->GetSkeletalMeshAsset()
+		: nullptr;
+	if (!IsValid(GarmentComponent)
+		|| !IsValid(BodyComponent)
+		|| !IsValid(Profile)
+		|| !IsValid(Binding)
+		|| !IsValid(GarmentMesh)
+		|| !IsValid(BodyMesh)
+		|| !IsValid(LoadedSurfaceConstraintDeformer))
+	{
+		OutFailureReason = TEXT("Surface runtime assets, exact Female component or fitted garment are unavailable.");
+		return false;
+	}
+	if (Binding->CompilerVersion != EFClothingMorphV26::CompilerVersion
+		|| Binding->SchemaVersion != EFClothingMorphV26::SurfaceBindingSchemaVersion
+		|| !Binding->BuildGuid.IsValid()
+		|| Binding->BuildGuid != Profile->BuildGuid
+		|| Binding->SourceGarment.ToSoftObjectPath() != Profile->SourceGarment.ToSoftObjectPath()
+		|| Binding->FittedGarment.ToSoftObjectPath() != FSoftObjectPath(GarmentMesh)
+		|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodyMesh)
+		|| Binding->SharedSkeletonFingerprint != Profile->SharedSkeletonFingerprint
+		|| CanonicalMaterialSlots(Binding->ExcludedBodySurfaceMaterialSlots)
+			!= CanonicalMaterialSlots(Profile->ExcludedBodySurfaceMaterialSlots))
+	{
+		OutFailureReason = TEXT("Surface binding identity, version, skeleton, exclusions or build GUID do not match the active V26 profile.");
+		return false;
+	}
+
+	const int32 GarmentLODIndex = FMath::Max(GarmentComponent->GetPredictedLODLevel(), 0);
+	const int32 BodyLODIndex = FMath::Max(BodyComponent->GetPredictedLODLevel(), 0);
+	const FEFClothingSurfaceLODPairBinding* LODPair = Binding->FindLODPair(
+		GarmentLODIndex,
+		BodyLODIndex);
+	if (!LODPair || !LODPair->bCertified)
+	{
+		OutFailureReason = FString::Printf(
+			TEXT("No certified SurfaceWrapGPU binding exists for garment LOD %d / body LOD %d."),
+			GarmentLODIndex,
+			BodyLODIndex);
+		return false;
+	}
+
+	if (UEFClothingSurfaceDeformerProducer* ExistingProducer = State.SurfaceProducer.Get())
+	{
+		if (ExistingProducer->IsInstalledFor(
+			GarmentComponent,
+			BodyComponent,
+			GarmentLODIndex,
+			BodyLODIndex))
+		{
+			return true;
+		}
+	}
+	ReleaseSurfaceConstraint(State);
+
+	UEFClothingSurfaceDeformerProducer* Producer = NewObject<UEFClothingSurfaceDeformerProducer>(
+		this,
+		NAME_None,
+		RF_Transient);
+	if (!IsValid(Producer)
+		|| !Producer->Install(
+			GarmentComponent,
+			BodyComponent,
+			LoadedSurfaceConstraintDeformer,
+			Binding,
+			*LODPair,
+			OutFailureReason))
+	{
+		if (IsValid(Producer))
+		{
+			Producer->Detach();
+		}
+		return false;
+	}
+
+	RetainedSurfaceRuntimeObjects.AddUnique(Producer);
+	State.SurfaceProducer = Producer;
+	State.SurfaceGarmentLODIndex = GarmentLODIndex;
+	State.SurfaceBodyLODIndex = BodyLODIndex;
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	State.SurfaceWarmupFramesRemaining = FMath::Clamp(
+		Settings ? Settings->SurfaceWarmupFrames : 2,
+		1,
+		8);
+	State.bSurfaceAwaitingManagerInitialization = true;
+	State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::WarmingUp;
+	State.SurfaceFailureReason.Reset();
+	return true;
+}
+
+void UEFClothingFitRuntimeComponent::ReleaseSurfaceConstraint(FAppliedGarmentState& State)
+{
+	if (UEFClothingSurfaceDeformerProducer* Producer = State.SurfaceProducer.Get())
+	{
+		State.SurfaceDispatchFailureCount += Producer->GetDispatchFailureCount();
+		Producer->Detach();
+		RetainedSurfaceRuntimeObjects.RemoveSingleSwap(Producer);
+	}
+	State.SurfaceProducer.Reset();
+	State.SurfaceGarmentLODIndex = INDEX_NONE;
+	State.SurfaceBodyLODIndex = INDEX_NONE;
+	State.SurfaceWarmupFramesRemaining = 0;
+	State.bSurfaceAwaitingManagerInitialization = false;
+}
+
+float UEFClothingFitRuntimeComponent::ResolveSurfaceGarmentOffsetCm(
+	USkeletalMeshComponent* GarmentComponent,
+	const FAppliedGarmentState& State) const
+{
+	const UEFClothingFitProfile* Profile = State.Profile.Get();
+	const UEFClothingSurfaceBinding* Binding = State.SurfaceBinding.Get();
+	const FEFClothingSurfaceLODPairBinding* LODPair = IsValid(Binding)
+		? Binding->FindLODPair(State.SurfaceGarmentLODIndex, State.SurfaceBodyLODIndex)
+		: nullptr;
+	const float BaseClearanceCm = FMath::Max(
+		IsValid(Profile) && FMath::IsFinite(Profile->CompiledMinimumClearanceCm)
+			? Profile->CompiledMinimumClearanceCm
+			: 0.0f,
+		LODPair && FMath::IsFinite(LODPair->BaseClearanceCm)
+			? LODPair->BaseClearanceCm
+			: EFClothingMorphV26::DefaultBaseClearanceCm);
+	const float* LegacyGarmentMultiplier = GarmentClearanceMultipliers.Find(GarmentComponent);
+	const float SafeGarmentMultiplier = LegacyGarmentMultiplier && FMath::IsFinite(*LegacyGarmentMultiplier)
+		? FMath::Clamp(*LegacyGarmentMultiplier, 1.0f, 2.0f)
+		: 1.0f;
+	const float LegacyRequestedMultiplier = FMath::Clamp(
+		FMath::Max(
+			RuntimeClearanceMultiplier * SafeGarmentMultiplier,
+			State.CatalogMinimumClearanceMultiplier),
+		1.0f,
+		2.0f);
+	const float LegacyOffsetCm = (LegacyRequestedMultiplier - 1.0f) * BaseClearanceCm;
+	const float* ExplicitGarmentOffsetCm = GarmentClearanceOffsetsCm.Find(GarmentComponent);
+	const float ExplicitOffsetCm = ExplicitGarmentOffsetCm && FMath::IsFinite(*ExplicitGarmentOffsetCm)
+		? FMath::Clamp(*ExplicitGarmentOffsetCm, 0.0f, 5.0f)
+		: 0.0f;
+	return FMath::Clamp(
+		State.CatalogRuntimeOffsetCm + ExplicitOffsetCm + LegacyOffsetCm,
+		0.0f,
+		10.0f);
+}
+
+void UEFClothingFitRuntimeComponent::TryExposeReadyGarment(
+	USkeletalMeshComponent* GarmentComponent,
+	FAppliedGarmentState& State)
+{
+	if (!bStartupAssetsReady)
+	{
+		return;
+	}
+	const UEFClothingFitProfile* Profile = State.Profile.Get();
+	USkeletalMeshComponent* ExpectedPoseDriver = ResolveEffectivePoseDriver(State.BodyMesh.Get());
+	if (!IsValid(GarmentComponent)
+		|| !IsValid(Profile)
+		|| !IsValid(ExpectedPoseDriver)
+		|| State.bWaitingForSkinProfile
+		|| State.bMorphStateUnsafe
+		|| !IsCertifiedSkinProfileActive(GarmentComponent, Profile)
+		|| GarmentComponent->LeaderPoseComponent.Get() != ExpectedPoseDriver
+		|| (State.bUsesSurfaceWrapGPU
+			&& State.SurfaceRuntimeState != EEFClothingSurfaceRuntimeState::Ready))
+	{
+		return;
+	}
+	const bool bWasPending = GarmentComponent->ComponentTags.Contains(PendingTag)
+		|| State.bRenderSuppressedByV2;
+	if (!bWasPending)
+	{
+		return;
+	}
+
+	GarmentComponent->ComponentTags.Remove(PendingTag);
+	if (State.bRenderSuppressedByV2)
+	{
+		GarmentComponent->SetRenderInMainPass(State.bRenderInMainPassBeforeV2);
+		State.bRenderSuppressedByV2 = false;
+	}
+	LastStatus = FString::Printf(TEXT("Applied and ready: %s"), *GarmentComponent->GetName());
+	UE_LOG(
+		LogEFClothingMorphV2,
+		Display,
+		TEXT("EFClothingMorphV2 READY owner=%s component=%s fitted=%s surfaceState=%d garmentLOD=%d bodyLOD=%d"),
+		GetOwner() ? *GetOwner()->GetName() : TEXT("None"),
+		*GarmentComponent->GetName(),
+		*GetNameSafe(State.FittedMesh.Get()),
+		static_cast<int32>(State.SurfaceRuntimeState),
+		State.SurfaceGarmentLODIndex,
+		State.SurfaceBodyLODIndex);
+}
+
+void UEFClothingFitRuntimeComponent::FailSurfaceConstraint(
+	USkeletalMeshComponent* GarmentComponent,
+	FAppliedGarmentState& State,
+	const FString& FailureReason)
+{
+	if (IsValid(GarmentComponent))
+	{
+		GarmentComponent->ComponentTags.AddUnique(PendingTag);
+		if (GarmentComponent->bRenderInMainPass)
+		{
+			GarmentComponent->SetRenderInMainPass(false);
+			State.bRenderSuppressedByV2 = true;
+		}
+	}
+	State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::Failed;
+	State.SurfaceFailureReason = FailureReason;
+	ReleaseSurfaceConstraint(State);
+	LastStatus = FString::Printf(
+		TEXT("SurfaceWrapGPU failed closed for %s: %s"),
+		*GetNameSafe(GarmentComponent),
+		*FailureReason);
+	UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+}
+
+void UEFClothingFitRuntimeComponent::TickSurfaceConstraints(const float DeltaTimeSeconds)
+{
+	for (TPair<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState>& Pair : AppliedGarments)
+	{
+		USkeletalMeshComponent* GarmentComponent = Pair.Key.Get();
+		FAppliedGarmentState& State = Pair.Value;
+		if (!State.bUsesSurfaceWrapGPU || State.SurfaceRuntimeState == EEFClothingSurfaceRuntimeState::Failed)
+		{
+			continue;
+		}
+		USkeletalMeshComponent* BodyComponent = State.BodyMesh.Get();
+		if (!IsValid(GarmentComponent)
+			|| !IsValid(BodyComponent)
+			|| GarmentComponent->GetSkeletalMeshAsset() != State.FittedMesh.Get())
+		{
+			FailSurfaceConstraint(GarmentComponent, State, TEXT("Garment/body component or fitted mesh changed during surface execution."));
+			continue;
+		}
+
+		const int32 GarmentLODIndex = FMath::Max(GarmentComponent->GetPredictedLODLevel(), 0);
+		const int32 BodyLODIndex = FMath::Max(BodyComponent->GetPredictedLODLevel(), 0);
+		UEFClothingSurfaceDeformerProducer* Producer = State.SurfaceProducer.Get();
+		if (!IsValid(Producer)
+			|| !Producer->IsInstalledFor(GarmentComponent, BodyComponent, GarmentLODIndex, BodyLODIndex))
+		{
+			GarmentComponent->ComponentTags.AddUnique(PendingTag);
+			if (GarmentComponent->bRenderInMainPass)
+			{
+				GarmentComponent->SetRenderInMainPass(false);
+				State.bRenderSuppressedByV2 = true;
+			}
+			FString InstallFailure;
+			if (!TryInstallSurfaceConstraint(GarmentComponent, State, InstallFailure))
+			{
+				FailSurfaceConstraint(GarmentComponent, State, InstallFailure);
+				continue;
+			}
+			Producer = State.SurfaceProducer.Get();
+		}
+		if (State.bSurfaceAwaitingManagerInitialization)
+		{
+			// AddProducerDeformer marks resources pending; the owning manager allocates
+			// them during this frame's normal EndOfFrame update. Dispatch starts next
+			// frame and the garment remains hidden throughout.
+			State.bSurfaceAwaitingManagerInitialization = false;
+			continue;
+		}
+
+		FString DispatchFailure;
+		const float MaximumCorrectionOverrideCm = State.CatalogMaximumCorrectionCm >= 0.0f
+			? FMath::Clamp(State.CatalogMaximumCorrectionCm, 0.0f, 10.0f)
+			: -1.0f;
+		if (!IsValid(Producer)
+			|| !Producer->EnqueueSurfacePass(
+				DeltaTimeSeconds,
+				GlobalClearanceOffsetCm,
+				ResolveSurfaceGarmentOffsetCm(GarmentComponent, State),
+				MaximumCorrectionOverrideCm,
+				DispatchFailure))
+		{
+			FailSurfaceConstraint(
+				GarmentComponent,
+				State,
+				DispatchFailure.IsEmpty() ? TEXT("Surface producer dispatch failed.") : DispatchFailure);
+			continue;
+		}
+
+		++State.SurfaceEnqueueCount;
+		if (State.SurfaceRuntimeState == EEFClothingSurfaceRuntimeState::WarmingUp)
+		{
+			State.SurfaceWarmupFramesRemaining = FMath::Max(
+				State.SurfaceWarmupFramesRemaining - 1,
+				0);
+			if (State.SurfaceWarmupFramesRemaining == 0)
+			{
+				State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::Ready;
+			}
+		}
+		TryExposeReadyGarment(GarmentComponent, State);
+	}
+}
+
 void UEFClothingFitRuntimeComponent::SynchronizeMorphs()
 {
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
@@ -2780,15 +3542,27 @@ void UEFClothingFitRuntimeComponent::SynchronizeMorphs()
 		USkeletalMesh* ExpectedBodyMesh = Profile->BodySurface.Get();
 		USkeletalMeshComponent* ExpectedPoseDriver = ResolveEffectivePoseDriver(BodyComponent);
 		constexpr float CertifiedTransformTolerance = 0.001f;
+		const FTransform BodyToGarment = BodyComponent->GetComponentTransform().GetRelativeTransform(
+			GarmentComponent->GetComponentTransform());
+		const FVector RelativeScale = BodyToGarment.GetScale3D();
+		const bool bSurfaceTransformValid = !BodyToGarment.ContainsNaN()
+			&& FMath::Abs(RelativeScale.X) > UE_SMALL_NUMBER
+			&& FMath::Abs(RelativeScale.Y) > UE_SMALL_NUMBER
+			&& FMath::Abs(RelativeScale.Z) > UE_SMALL_NUMBER;
+		const bool bLODContractValid = State.bUsesSurfaceWrapGPU
+			|| BodyComponent->GetPredictedLODLevel() <= 0;
+		const bool bTransformContractValid = State.bUsesSurfaceWrapGPU
+			? bSurfaceTransformValid
+			: GarmentComponent->GetComponentTransform().Equals(
+				BodyComponent->GetComponentTransform(),
+				CertifiedTransformTolerance);
 		if (!IsValid(ExpectedBodyMesh)
 			|| !IsValid(ExpectedPoseDriver)
 			|| BodyComponent->GetSkeletalMeshAsset() != ExpectedBodyMesh
 			|| ResolveBodyMesh(Profile) != BodyComponent
-			|| BodyComponent->GetPredictedLODLevel() > 0
+			|| !bLODContractValid
 			|| !HasMatchingActiveLOD0Deformer(GarmentComponent, BodyComponent)
-			|| !GarmentComponent->GetComponentTransform().Equals(
-				BodyComponent->GetComponentTransform(),
-				CertifiedTransformTolerance))
+			|| !bTransformContractValid)
 		{
 			const bool bWasAlreadyUnsafe = State.bMorphStateUnsafe;
 			State.bMorphStateUnsafe = true;
@@ -2800,7 +3574,7 @@ void UEFClothingFitRuntimeComponent::SynchronizeMorphs()
 			}
 			NextReconcileAtSeconds = 0.0;
 			LastStatus = FString::Printf(
-				TEXT("Fail-suppressed %s: exact Female identity, effective pose driver, LOD0 or local-space transform contract changed"),
+				TEXT("Fail-suppressed %s: exact body identity, effective pose driver, certified LOD/deformer or transform contract changed"),
 				*GarmentComponent->GetName());
 			if (!bWasAlreadyUnsafe)
 			{
@@ -2867,6 +3641,17 @@ void UEFClothingFitRuntimeComponent::SynchronizeMorphs()
 
 		const bool bWasWaitingForSkinProfile = State.bWaitingForSkinProfile;
 		State.bWaitingForSkinProfile = false;
+		if (State.bUsesSurfaceWrapGPU)
+		{
+			const bool bRecoveredFromUnsafeState = State.bMorphStateUnsafe;
+			State.bMorphStateUnsafe = false;
+			if (bWasWaitingForSkinProfile || bRecoveredFromUnsafeState)
+			{
+				GarmentComponent->UpdateFollowerComponent();
+			}
+			TryExposeReadyGarment(GarmentComponent, State);
+			continue;
+		}
 
 		TArray<USkeletalMeshComponent*> PoseSources;
 		GatherMorphPoseSources(BodyComponent, GarmentComponent, PoseSources);
@@ -3201,15 +3986,7 @@ void UEFClothingFitRuntimeComponent::SynchronizeMorphs()
 		}
 		if (bRecoveredFromUnsafeMorph || bWasWaitingForSkinProfile)
 		{
-			// Restore visibility only after the complete mutually-exclusive V24
-			// weight map and exact Female leader reached the follower this frame.
-			GarmentComponent->ComponentTags.Remove(PendingTag);
-			if (State.bRenderSuppressedByV2)
-			{
-				GarmentComponent->SetRenderInMainPass(State.bRenderInMainPassBeforeV2);
-				State.bRenderSuppressedByV2 = false;
-			}
-			LastStatus = FString::Printf(TEXT("Applied and ready: %s"), *GarmentComponent->GetName());
+			TryExposeReadyGarment(GarmentComponent, State);
 		}
 	}
 }
@@ -3222,6 +3999,14 @@ void UEFClothingFitRuntimeComponent::RemoveStaleStates()
 		if (!IsValid(GarmentComponent) || GarmentComponent->GetOwner() != GetOwner())
 		{
 			MultiplierIt.RemoveCurrent();
+		}
+	}
+	for (auto OffsetIt = GarmentClearanceOffsetsCm.CreateIterator(); OffsetIt; ++OffsetIt)
+	{
+		USkeletalMeshComponent* GarmentComponent = OffsetIt.Key().Get();
+		if (!IsValid(GarmentComponent) || GarmentComponent->GetOwner() != GetOwner())
+		{
+			OffsetIt.RemoveCurrent();
 		}
 	}
 
@@ -3253,6 +4038,7 @@ void UEFClothingFitRuntimeComponent::RemoveStaleStates()
 		FAppliedGarmentState& State = It.Value();
 		if (!IsValid(GarmentComponent))
 		{
+			ReleaseSurfaceConstraint(State);
 			ReleaseBodyCoverage(State);
 			It.RemoveCurrent();
 			bRemovedState = true;
@@ -3263,6 +4049,7 @@ void UEFClothingFitRuntimeComponent::RemoveStaleStates()
 		{
 			const bool bCurrentMeshIsCapturedSource =
 				GarmentComponent->GetSkeletalMeshAsset() == State.SourceMesh.Get();
+			ReleaseSurfaceConstraint(State);
 			ReleaseBodyCoverage(State);
 			if (CustomizationComponent)
 			{
@@ -3323,7 +4110,11 @@ void UEFClothingFitRuntimeComponent::ReleaseOwnedBoundsContract(
 	// either flag, V2 relinquishes both without overwriting the external choice.
 	const bool bStillOwnsExactContract = IsValid(GarmentComponent)
 		&& !GarmentComponent->bUseBoundsFromLeaderPoseComponent
-		&& GarmentComponent->bComponentUseFixedSkelBounds;
+		&& GarmentComponent->bComponentUseFixedSkelBounds
+		&& FMath::IsNearlyEqual(
+			GarmentComponent->BoundsScale,
+			State.BoundsScaleAssignedByV2,
+			KINDA_SMALL_NUMBER);
 	State.bOwnsBoundsContract = false;
 	if (!bStillOwnsExactContract)
 	{
@@ -3332,8 +4123,7 @@ void UEFClothingFitRuntimeComponent::ReleaseOwnedBoundsContract(
 
 	GarmentComponent->bUseBoundsFromLeaderPoseComponent = State.bUseBoundsFromLeaderPoseBeforeV2;
 	GarmentComponent->bComponentUseFixedSkelBounds = State.bComponentUseFixedSkelBoundsBeforeV2;
-	GarmentComponent->UpdateBounds();
-	GarmentComponent->MarkRenderTransformDirty();
+	GarmentComponent->SetBoundsScale(State.ComponentBoundsScaleBeforeV2);
 }
 
 void UEFClothingFitRuntimeComponent::RestorePrefetchGarment(
@@ -3360,6 +4150,9 @@ void UEFClothingFitRuntimeComponent::RestoreGarment(
 	FAppliedGarmentState& State,
 	bool bRestoreSourceMesh)
 {
+	// Detach the late producer before any mesh/deformer swap. This leaves the
+	// existing DAZ dynamic manager and its settings untouched.
+	ReleaseSurfaceConstraint(State);
 	if (!IsValid(GarmentComponent))
 	{
 		ReleaseBodyCoverage(State);

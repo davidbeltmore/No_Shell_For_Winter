@@ -28,6 +28,8 @@ public class EFClothingMorphEditor : ModuleRules
 			"AnimationCore",
 			"MeshDescription",
 			"MeshConversion",
+			"ComputeFramework",
+			"OptimusCore",
 			"RenderCore"
 		});
 	}

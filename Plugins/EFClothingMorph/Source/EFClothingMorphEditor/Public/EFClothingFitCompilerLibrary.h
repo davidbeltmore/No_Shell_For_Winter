@@ -5,6 +5,9 @@
 #include "EFClothingFitCompilerLibrary.generated.h"
 
 class UEFClothingFitProfile;
+class UEFClothingFitRegistry;
+class UEFClothingSurfaceBinding;
+class UDataTable;
 class USkeletalMesh;
 
 /** Generic request for one unordered, simultaneously active body-morph pair. */
@@ -82,6 +85,12 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileOptions
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Deformer")
 	bool bCopyBodyDeformerToDerived = true;
+
+	/**
+	 * Native batch compiler transaction flag. Deliberately not reflected: callers
+	 * outside CompileGarmentCatalog must never publish an unregistered profile.
+	 */
+	bool bDeferRegistryPublication = false;
 };
 
 USTRUCT(BlueprintType)
@@ -97,6 +106,66 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	TObjectPtr<UEFClothingFitProfile> Profile = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TObjectPtr<UEFClothingSurfaceBinding> SurfaceBinding = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	FString Report;
+};
+
+/** Per-row evidence emitted by the atomic catalog compiler. */
+USTRUCT(BlueprintType)
+struct EFCLOTHINGMORPHEDITOR_API FEFClothingCatalogCompileRowResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	FName RowName = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	bool bSuccess = false;
+
+	/** True only for rows whose certified runtime contract requires a V26 GPU binding. */
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	bool bRequiresSurfaceBinding = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TObjectPtr<USkeletalMesh> DerivedGarment = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TObjectPtr<UEFClothingFitProfile> Profile = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TObjectPtr<UEFClothingSurfaceBinding> SurfaceBinding = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	FString Report;
+};
+
+/** Whole-catalog transaction result. The registry changes only on total success. */
+USTRUCT(BlueprintType)
+struct EFCLOTHINGMORPHEDITOR_API FEFClothingCatalogCompileResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	bool bSuccess = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 EnabledRowCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 CompiledRowCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 SurfaceWrapRowCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TArray<FEFClothingCatalogCompileRowResult> Rows;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	TObjectPtr<UEFClothingFitRegistry> Registry = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	FString Report;
@@ -125,6 +194,16 @@ public:
 	static FEFClothingFitCompileResult CompileFitProfile(
 		USkeletalMesh* SourceGarment,
 		USkeletalMesh* BodySurface,
+		USkeletalMesh* CompatibilityReference,
+		FEFClothingFitCompileOptions Options);
+
+	/**
+	 * Compiles every enabled catalog row into staging assets, validates the full
+	 * set, then replaces the generated registry with one atomic save.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
+	static FEFClothingCatalogCompileResult CompileGarmentCatalog(
+		UDataTable* GarmentCatalog,
 		USkeletalMesh* CompatibilityReference,
 		FEFClothingFitCompileOptions Options);
 

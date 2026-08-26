@@ -5,7 +5,7 @@
 	"FriendlyName": "EF Clothing Morph",
 	"Description": "Non-destructive clothing fit compiler and automatic runtime binding for body clearance, skin weights and morph synchronization.",
 	"Category": "Character",
-	"CanContainContent": false,
+	"CanContainContent": true,
 	"Installed": false,
 	"Modules": [
 		{
@@ -26,6 +26,14 @@
 		},
 		{
 			"Name": "GeometryScripting",
+			"Enabled": true
+		},
+		{
+			"Name": "ComputeFramework",
+			"Enabled": true
+		},
+		{
+			"Name": "DeformerGraph",
 			"Enabled": true
 		}
 	]
