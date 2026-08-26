@@ -7,6 +7,19 @@
 class UEFClothingFitProfile;
 class USkeletalMesh;
 
+/** Generic request for one unordered, simultaneously active body-morph pair. */
+USTRUCT(BlueprintType)
+struct EFCLOTHINGMORPHEDITOR_API FEFClothingMorphPairCompileRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs")
+	FName FirstBodyMorph = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs")
+	FName SecondBodyMorph = NAME_None;
+};
+
 USTRUCT(BlueprintType)
 struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileOptions
 {
@@ -30,11 +43,42 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileOptions
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs")
 	bool bTransferMissingBodyMorphs = true;
 
+	/**
+	 * Generate and certify body-morph bindings. Disable only for a rest/animation
+	 * QA profile; relevant body morphs remain monitored and fail closed at runtime.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs")
+	bool bCompileBodyMorphBindings = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs", meta = (ClampMin = "0", ClampMax = "256"))
 	int32 MaximumTransferredMorphs = 96;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs", meta = (ClampMin = "0.001", ClampMax = "1.0"))
 	float MinimumTransferredMorphDeltaCm = 0.02f;
+
+	/** Non-zero samples over 0..1 used to certify every bound morph/JCM against the body. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs", meta = (ClampMin = "2", ClampMax = "8"))
+	int32 MorphClearanceSampleCount = 4;
+
+	/** Residual limit used only at morph extremes; independent from the rest-pose sculpt limit. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphs", meta = (ClampMin = "0.1", ClampMax = "20.0"))
+	float MaximumMorphRepairCm = 5.0f;
+
+	/** Pair certificates to compile; requests are canonicalized lexically. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs")
+	TArray<FEFClothingMorphPairCompileRequest> MorphPairRequests;
+
+	/** Uniform cell count on both axes; V24 initially certifies a 4x4 grid. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs", meta = (ClampMin = "2", ClampMax = "16"))
+	int32 MorphPairGridResolution = 4;
+
+	/** Low/mid/high samples per axis produce nine body probes per cell. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs", meta = (ClampMin = "3", ClampMax = "9"))
+	int32 MorphPairProbeCountPerAxis = 3;
+
+	/** Any strictly non-zero monitored value participates in the active set. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Pairs", meta = (ClampMin = "0.0", ClampMax = "0.0"))
+	float MorphActivationEpsilon = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Deformer")
 	bool bCopyBodyDeformerToDerived = true;
@@ -58,6 +102,18 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileResult
 	FString Report;
 };
 
+USTRUCT(BlueprintType)
+struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitValidationResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	bool bSuccess = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	FString Report;
+};
+
 /** Editor-only, non-destructive compiler. Source assets and all USkeleton objects are read-only inputs. */
 UCLASS()
 class EFCLOTHINGMORPHEDITOR_API UEFClothingFitCompilerLibrary : public UBlueprintFunctionLibrary
@@ -74,4 +130,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
 	static bool ValidateCompiledProfile(UEFClothingFitProfile* Profile, FString& OutReport);
+
+	/** Reflection-stable result for Python/automation, including failure reports. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
+	static FEFClothingFitValidationResult ValidateCompiledProfileDetailed(UEFClothingFitProfile* Profile);
 };

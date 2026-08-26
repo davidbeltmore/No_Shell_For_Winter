@@ -2,25 +2,35 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "Animation/MorphTarget.h"
+#include "Algo/Unique.h"
+#include "Async/ParallelFor.h"
+#include "BoneWeights.h"
+#include "DynamicMesh/DynamicBoneAttribute.h"
 #include "DynamicMesh/DynamicMesh3.h"
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "DynamicMesh/DynamicVertexSkinWeightsAttribute.h"
 #include "DynamicMesh/MeshNormals.h"
 #include "DynamicMesh/NonManifoldMappingSupport.h"
+#include "EFClothingGarmentCatalog.h"
 #include "EFClothingFitProfile.h"
+#include "EFClothingMorphV2Settings.h"
 #include "EFClothingSkeletonFingerprint.h"
+#include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
 #include "GeometryScript/GeometryScriptTypes.h"
 #include "GeometryScript/MeshAssetFunctions.h"
 #include "IAssetTools.h"
 #include "MeshDescription.h"
 #include "MeshQueries.h"
+#include "Misc/Crc.h"
 #include "Misc/PackageName.h"
-#include "Operations/TransferBoneWeights.h"
+#include "Misc/SecureHash.h"
 #include "Rendering/SkinWeightProfile.h"
 #include "SkeletalMeshAttributes.h"
 #include "SkinnedAssetCompiler.h"
 #include "Spatial/MeshAABBTree3.h"
+#include "Templates/Greater.h"
 #include "UDynamicMesh.h"
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
@@ -31,7 +41,11 @@ namespace EFClothingFitCompilerPrivate
 {
 	using namespace UE::Geometry;
 
-	static constexpr int32 CompilerVersion = 2;
+	static constexpr int32 CompilerVersion = 25;
+	static constexpr double CompilerClearanceReserveCm = 0.10;
+	static constexpr int32 CertifiedClearanceTierCount = 9;
+	static constexpr double CertifiedClearanceTierMin = 1.0;
+	static constexpr double CertifiedClearanceTierMax = 2.0;
 	static const FName FitWeightProfileName(TEXT("EF_AutoFit"));
 	static const FName ClearanceMorphName(TEXT("EF_AutoFit_Clearance"));
 
@@ -48,6 +62,18 @@ namespace EFClothingFitCompilerPrivate
 	{
 		FName Name = NAME_None;
 		double MaxDelta = 0.0;
+		bool bTransferred = false;
+	};
+
+	struct FCompiledMorphKey
+	{
+		double BodyValue = 0.0;
+		FName GarmentMorph = NAME_None;
+		bool bIdentity = false;
+		bool bStepFromPrevious = false;
+		double StepSwitchBodyValue = 0.0;
+		double MinimumClearanceMultiplier = CertifiedClearanceTierMin;
+			TArray<FVector3d> MorphDeltas;
 	};
 
 	static FString SanitizeAssetName(const FString& Name)
@@ -65,8 +91,314 @@ namespace EFClothingFitCompilerPrivate
 
 	static bool IsAllowedOutputRoot(const FString& Root)
 	{
-		return Root.StartsWith(TEXT("/Game/_Generated/EFClothingMorphV2"), ESearchCase::CaseSensitive)
+		static const FString AllowedRoot(TEXT("/Game/_Generated/EFClothingMorphV2"));
+		return (Root == AllowedRoot || Root.StartsWith(AllowedRoot + TEXT("/"), ESearchCase::CaseSensitive))
 			&& !Root.Contains(TEXT(".."));
+	}
+
+	static FString BuildSourceKey(const USkeletalMesh* SourceGarment)
+	{
+		return FString::Printf(TEXT("%08X"), FCrc::StrCrc32(*SourceGarment->GetPathName()));
+	}
+
+	static FString BuildArtifactKey(
+		const USkeletalMesh* SourceGarment,
+		const USkeletalMesh* BodySurface,
+		const USkeletalMesh* CompatibilityReference,
+		const FEFClothingFitCompileOptions& Options,
+		const TArray<FName>& ExcludedBodySurfaceMaterialSlots,
+		const TArray<FName>& ExcludedBodyBoneBranches,
+		const TArray<FString>& ExcludedBodyMorphPrefixes)
+	{
+		TArray<FString> PairKeys;
+		for (const FEFClothingMorphPairCompileRequest& Request : Options.MorphPairRequests)
+		{
+			FName First = Request.FirstBodyMorph;
+			FName Second = Request.SecondBodyMorph;
+			if (Second.LexicalLess(First))
+			{
+				Swap(First, Second);
+			}
+			PairKeys.Add(First.ToString() + TEXT("+") + Second.ToString());
+		}
+		PairKeys.Sort();
+		const FString PairSignature = FString::Join(PairKeys, TEXT(","));
+		TArray<FString> ExcludedSurfaceSlots;
+		ExcludedSurfaceSlots.Reserve(ExcludedBodySurfaceMaterialSlots.Num());
+		for (const FName SlotName : ExcludedBodySurfaceMaterialSlots)
+		{
+			ExcludedSurfaceSlots.Add(SlotName.ToString());
+		}
+		ExcludedSurfaceSlots.Sort();
+		const FString ExcludedSurfaceSignature = FString::Join(ExcludedSurfaceSlots, TEXT(","));
+		TArray<FString> ExcludedBoneRoots;
+		ExcludedBoneRoots.Reserve(ExcludedBodyBoneBranches.Num());
+		for (const FName BoneName : ExcludedBodyBoneBranches)
+		{
+			ExcludedBoneRoots.Add(BoneName.ToString());
+		}
+		ExcludedBoneRoots.Sort();
+		const FString ExcludedBoneSignature = FString::Join(ExcludedBoneRoots, TEXT(","));
+		TArray<FString> ExcludedMorphPrefixes = ExcludedBodyMorphPrefixes;
+		ExcludedMorphPrefixes.Sort();
+		const FString ExcludedMorphSignature = FString::Join(ExcludedMorphPrefixes, TEXT(","));
+		const FString Canonical = FString::Printf(
+			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
+			CompilerVersion,
+			*SourceGarment->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(SourceGarment),
+			*BodySurface->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(BodySurface),
+			*CompatibilityReference->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference),
+			*ExcludedSurfaceSignature,
+			*ExcludedBoneSignature,
+			*ExcludedMorphSignature,
+			Options.MinimumClearanceCm,
+			Options.MaximumPushCm,
+			Options.SmoothingIterations,
+			Options.MaximumInfluences,
+			Options.bCompileBodyMorphBindings ? 1 : 0,
+			Options.bTransferMissingBodyMorphs ? 1 : 0,
+			Options.MaximumTransferredMorphs,
+			Options.MinimumTransferredMorphDeltaCm,
+			Options.MorphClearanceSampleCount,
+			Options.MaximumMorphRepairCm,
+			*PairSignature,
+			Options.MorphPairGridResolution,
+			Options.MorphPairProbeCountPerAxis,
+			Options.MorphActivationEpsilon,
+			Options.bCopyBodyDeformerToDerived ? 1 : 0);
+		return FMD5::HashAnsiString(*Canonical).Left(12);
+	}
+
+	static void CanonicalizeMaterialSlotNames(TArray<FName>& SlotNames)
+	{
+		SlotNames.Remove(NAME_None);
+		SlotNames.Sort(FNameLexicalLess());
+		SlotNames.SetNum(Algo::Unique(SlotNames));
+	}
+
+	static void CanonicalizeBoneBranchNames(TArray<FName>& BoneNames)
+	{
+		BoneNames.Remove(NAME_None);
+		BoneNames.Sort(FNameLexicalLess());
+		BoneNames.SetNum(Algo::Unique(BoneNames));
+	}
+
+	static void CanonicalizeMorphPrefixes(TArray<FString>& Prefixes)
+	{
+		Prefixes.RemoveAll([](const FString& Prefix) { return Prefix.IsEmpty(); });
+		Prefixes.Sort();
+		Prefixes.SetNum(Algo::Unique(Prefixes));
+	}
+
+	static bool ResolveCatalogSurfacePolicy(
+		const USkeletalMesh* SourceGarment,
+		const USkeletalMesh* BodySurface,
+		TArray<FName>& OutExcludedBodySurfaceMaterialSlots,
+		TArray<FName>& OutExcludedBodyBoneBranches,
+		TArray<FString>& OutExcludedBodyMorphPrefixes,
+		FName& OutCatalogRowName,
+		FString& OutError)
+	{
+		OutExcludedBodySurfaceMaterialSlots.Reset();
+		OutExcludedBodyBoneBranches.Reset();
+		OutExcludedBodyMorphPrefixes.Reset();
+		OutCatalogRowName = NAME_None;
+		const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+		if (!Settings || Settings->GarmentCatalog.IsNull())
+		{
+			return true;
+		}
+
+		UDataTable* Catalog = Settings->GarmentCatalog.LoadSynchronous();
+		if (!IsValid(Catalog))
+		{
+			OutError = FString::Printf(
+				TEXT("Configured garment catalog could not be loaded: %s"),
+				*Settings->GarmentCatalog.ToSoftObjectPath().ToString());
+			return false;
+		}
+		if (Catalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
+		{
+			OutError = FString::Printf(
+				TEXT("Configured garment catalog %s has the wrong RowStruct."),
+				*Catalog->GetPathName());
+			return false;
+		}
+
+		const FSoftObjectPath SourcePath(SourceGarment);
+		const FSoftObjectPath BodyPath(BodySurface);
+		const FEFClothingGarmentRow* MatchedRow = nullptr;
+		for (const TPair<FName, uint8*>& Pair : Catalog->GetRowMap())
+		{
+			const FEFClothingGarmentRow* Row = reinterpret_cast<const FEFClothingGarmentRow*>(Pair.Value);
+			if (!Row
+				|| Row->SourceGarment.ToSoftObjectPath() != SourcePath
+				|| Row->BodySurface.ToSoftObjectPath() != BodyPath)
+			{
+				continue;
+			}
+			if (MatchedRow)
+			{
+				OutError = FString::Printf(
+					TEXT("Garment catalog contains duplicate source/body rows %s and %s."),
+					*OutCatalogRowName.ToString(),
+					*Pair.Key.ToString());
+				return false;
+			}
+			MatchedRow = Row;
+			OutCatalogRowName = Pair.Key;
+		}
+
+		if (!MatchedRow)
+		{
+			OutError = FString::Printf(
+				TEXT("Configured garment catalog has no row for source %s and body %s."),
+				*SourcePath.ToString(),
+				*BodyPath.ToString());
+			return false;
+		}
+		if (!MatchedRow->bEnabled
+			|| MatchedRow->Backend != EEFClothingSurfaceBackend::GeometryFitFallback)
+		{
+			OutError = FString::Printf(
+				TEXT("Garment catalog row %s is disabled or requests an unavailable backend (%d)."),
+				*OutCatalogRowName.ToString(),
+				static_cast<int32>(MatchedRow->Backend));
+			return false;
+		}
+		if (!FMath::IsFinite(MatchedRow->MinimumClearanceMultiplier)
+			|| MatchedRow->MinimumClearanceMultiplier < static_cast<float>(CertifiedClearanceTierMin)
+			|| MatchedRow->MinimumClearanceMultiplier > static_cast<float>(CertifiedClearanceTierMax))
+		{
+			OutError = FString::Printf(
+				TEXT("Garment catalog row %s has MinimumClearanceMultiplier %.9g outside the certified [%.3f, %.3f] range."),
+				*OutCatalogRowName.ToString(),
+				MatchedRow->MinimumClearanceMultiplier,
+				CertifiedClearanceTierMin,
+				CertifiedClearanceTierMax);
+			return false;
+		}
+
+		OutExcludedBodySurfaceMaterialSlots = MatchedRow->ExcludedBodySurfaceMaterialSlots;
+		OutExcludedBodyBoneBranches = MatchedRow->ExcludedBodyBoneBranches;
+		OutExcludedBodyMorphPrefixes = MatchedRow->ExcludedBodyMorphPrefixes;
+		CanonicalizeMaterialSlotNames(OutExcludedBodySurfaceMaterialSlots);
+		CanonicalizeBoneBranchNames(OutExcludedBodyBoneBranches);
+		CanonicalizeMorphPrefixes(OutExcludedBodyMorphPrefixes);
+		TArray<FName> CanonicalHiddenBodyMaterialSlots = MatchedRow->HiddenBodyMaterialSlots;
+		CanonicalizeMaterialSlotNames(CanonicalHiddenBodyMaterialSlots);
+		for (const FName ExcludedSurfaceSlot : OutExcludedBodySurfaceMaterialSlots)
+		{
+			if (!CanonicalHiddenBodyMaterialSlots.Contains(ExcludedSurfaceSlot))
+			{
+				OutError = FString::Printf(
+					TEXT("Garment catalog row %s excludes body surface slot %s from geometry fitting but does not hide that slot at runtime."),
+					*OutCatalogRowName.ToString(),
+					*ExcludedSurfaceSlot.ToString());
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool ExcludeBodySurfaceMaterialSlots(
+		const USkeletalMesh* BodySurface,
+		UDynamicMesh* BodyDynamicMesh,
+		const TArray<FName>& ExcludedBodySurfaceMaterialSlots,
+		int32& OutExcludedTriangleCount,
+		FString& OutError)
+	{
+		OutExcludedTriangleCount = 0;
+		if (ExcludedBodySurfaceMaterialSlots.IsEmpty())
+		{
+			return true;
+		}
+		if (!IsValid(BodySurface) || !IsValid(BodyDynamicMesh))
+		{
+			OutError = TEXT("Cannot filter an invalid body surface or dynamic mesh.");
+			return false;
+		}
+
+		TSet<int32> ExcludedMaterialIndices;
+		const TArray<FSkeletalMaterial>& Materials = BodySurface->GetMaterials();
+		for (const FName RequestedSlot : ExcludedBodySurfaceMaterialSlots)
+		{
+			int32 MatchIndex = INDEX_NONE;
+			for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
+			{
+				const FSkeletalMaterial& Material = Materials[MaterialIndex];
+				if (Material.MaterialSlotName != RequestedSlot
+					&& Material.ImportedMaterialSlotName != RequestedSlot)
+				{
+					continue;
+				}
+				if (MatchIndex != INDEX_NONE)
+				{
+					OutError = FString::Printf(
+						TEXT("Body surface material slot %s is ambiguous."),
+						*RequestedSlot.ToString());
+					return false;
+				}
+				MatchIndex = MaterialIndex;
+			}
+			if (MatchIndex == INDEX_NONE)
+			{
+				OutError = FString::Printf(
+					TEXT("Body surface %s has no material slot %s requested by the garment catalog."),
+					*BodySurface->GetPathName(),
+					*RequestedSlot.ToString());
+				return false;
+			}
+			ExcludedMaterialIndices.Add(MatchIndex);
+		}
+
+		FDynamicMesh3& BodyMesh = BodyDynamicMesh->GetMeshRef();
+		if (!BodyMesh.HasAttributes()
+			|| !BodyMesh.Attributes()->HasMaterialID()
+			|| !BodyMesh.Attributes()->GetMaterialID())
+		{
+			OutError = TEXT("Body LOD0 dynamic mesh has no per-triangle material IDs.");
+			return false;
+		}
+		const FDynamicMeshMaterialAttribute* MaterialIDs = BodyMesh.Attributes()->GetMaterialID();
+		TArray<int32> TrianglesToRemove;
+		TMap<int32, int32> RemovedPerMaterial;
+		for (const int32 TriangleID : BodyMesh.TriangleIndicesItr())
+		{
+			const int32 MaterialIndex = MaterialIDs->GetValue(TriangleID);
+			if (ExcludedMaterialIndices.Contains(MaterialIndex))
+			{
+				TrianglesToRemove.Add(TriangleID);
+				++RemovedPerMaterial.FindOrAdd(MaterialIndex);
+			}
+		}
+		for (const int32 MaterialIndex : ExcludedMaterialIndices)
+		{
+			if (RemovedPerMaterial.FindRef(MaterialIndex) <= 0)
+			{
+				OutError = FString::Printf(
+					TEXT("Excluded body material index %d has no source triangles in LOD0."),
+					MaterialIndex);
+				return false;
+			}
+		}
+		if (TrianglesToRemove.Num() >= BodyMesh.TriangleCount())
+		{
+			OutError = TEXT("Surface exclusion would remove every body LOD0 triangle.");
+			return false;
+		}
+		for (const int32 TriangleID : TrianglesToRemove)
+		{
+			if (BodyMesh.RemoveTriangle(TriangleID, true, false) != EMeshResult::Ok)
+			{
+				OutError = FString::Printf(
+					TEXT("Failed to remove excluded body LOD0 triangle %d."),
+					TriangleID);
+				return false;
+			}
+		}
+		OutExcludedTriangleCount = TrianglesToRemove.Num();
+		return true;
 	}
 
 	static bool CopySourceLOD(USkeletalMesh* Asset, UDynamicMesh* OutMesh, FString& OutError)
@@ -104,21 +436,257 @@ namespace EFClothingFitCompilerPrivate
 		return true;
 	}
 
+	static bool RebindGeneratedMeshToBody(
+		USkeletalMesh* Derived,
+		const USkeletalMesh* BodySurface,
+		FString& OutError)
+	{
+		if (!IsValid(Derived) || !IsValid(BodySurface))
+		{
+			OutError = TEXT("Generated/body mesh is invalid during bind-pose synchronization.");
+			return false;
+		}
+		FString HierarchyError;
+		if (!EFClothingSkeleton::AreBoneHierarchiesCompatible(
+			Derived, BodySurface, &HierarchyError))
+		{
+			OutError = FString::Printf(
+				TEXT("Generated/body hierarchy differs before rebind: %s"),
+				*HierarchyError);
+			return false;
+		}
+
+		if (Derived->GetNumSourceModels() < 1)
+		{
+			OutError = TEXT("Generated garment has no source LOD0 for body rebind.");
+			return false;
+		}
+		// UObject::Modify returns whether it captured a transaction snapshot, not
+		// whether the MeshDescription is writable. Commandlets intentionally have
+		// no undo transaction, so validate the editable description itself below.
+		Derived->ModifyMeshDescription(0, true);
+		FMeshDescription* MeshDescription = Derived->GetMeshDescription(0);
+		if (!MeshDescription)
+		{
+			OutError = TEXT("Generated garment has no editable LOD0 MeshDescription for body rebind.");
+			return false;
+		}
+		FSkeletalMeshAttributes MeshAttributes(*MeshDescription);
+		MeshAttributes.Register(true);
+		const FReferenceSkeleton& BodyReference = BodySurface->GetRefSkeleton();
+		if (!MeshAttributes.HasBones()
+			|| MeshAttributes.GetNumBones() != BodyReference.GetRawBoneNum())
+		{
+			OutError = FString::Printf(
+				TEXT("Generated LOD0 bone table count differs from body (%d vs %d)."),
+				MeshAttributes.GetNumBones(),
+				BodyReference.GetRawBoneNum());
+			return false;
+		}
+
+		FSkeletalMeshAttributes::FBoneNameAttributesRef BoneNames = MeshAttributes.GetBoneNames();
+		FSkeletalMeshAttributes::FBoneParentIndexAttributesRef BoneParents =
+			MeshAttributes.GetBoneParentIndices();
+		FSkeletalMeshAttributes::FBonePoseAttributesRef BonePoses = MeshAttributes.GetBonePoses();
+		for (int32 BoneIndex = 0; BoneIndex < BodyReference.GetRawBoneNum(); ++BoneIndex)
+		{
+			const FBoneID BoneID(BoneIndex);
+			if (!MeshAttributes.Bones().IsValid(BoneID)
+				|| BoneNames.Get(BoneID) != BodyReference.GetBoneName(BoneIndex)
+				|| BoneParents.Get(BoneID) != BodyReference.GetParentIndex(BoneIndex))
+			{
+				OutError = FString::Printf(
+					TEXT("Generated LOD0 hierarchy differs from body at raw bone index %d."),
+					BoneIndex);
+				return false;
+			}
+			BonePoses.Set(BoneID, BodyReference.GetRefBonePose()[BoneIndex]);
+		}
+
+		USkeletalMesh::FCommitMeshDescriptionParams CommitParams;
+		CommitParams.bUpdateMorphTargets = false;
+		CommitParams.bUpdateSkinWeightProfiles = false;
+		CommitParams.bUpdateVertexAttributes = false;
+		CommitParams.bUpdateVertexColors = false;
+		CommitParams.bMarkPackageDirty = true;
+		CommitParams.bForceUpdate = true;
+		if (!Derived->CommitMeshDescription(0, CommitParams))
+		{
+			OutError = TEXT("Failed to commit the generated LOD0 body bind pose.");
+			return false;
+		}
+		FMeshDescription* CommittedDescription = Derived->GetMeshDescription(0);
+		if (!CommittedDescription)
+		{
+			OutError = TEXT("Generated LOD0 MeshDescription disappeared after body rebind commit.");
+			return false;
+		}
+		FSkeletalMeshAttributes CommittedAttributes(*CommittedDescription);
+		const FSkeletalMeshAttributes::FBoneNameAttributesConstRef CommittedNames =
+			CommittedAttributes.GetBoneNames();
+		const FSkeletalMeshAttributes::FBoneParentIndexAttributesConstRef CommittedParents =
+			CommittedAttributes.GetBoneParentIndices();
+		const FSkeletalMeshAttributes::FBonePoseAttributesConstRef CommittedPoses =
+			CommittedAttributes.GetBonePoses();
+		for (int32 BoneIndex = 0; BoneIndex < BodyReference.GetRawBoneNum(); ++BoneIndex)
+		{
+			const FBoneID BoneID(BoneIndex);
+			if (!CommittedAttributes.Bones().IsValid(BoneID)
+				|| CommittedNames.Get(BoneID) != BodyReference.GetBoneName(BoneIndex)
+				|| CommittedParents.Get(BoneID) != BodyReference.GetParentIndex(BoneIndex)
+				|| !CommittedPoses.Get(BoneID).Equals(
+					BodyReference.GetRefBonePose()[BoneIndex], 1.e-4f))
+			{
+				OutError = FString::Printf(
+					TEXT("Generated LOD0 body bind readback failed at raw bone index %d."),
+					BoneIndex);
+				return false;
+			}
+		}
+
+		Derived->SetRefSkeleton(BodyReference);
+		Derived->GetRefBasesInvMatrix().Reset();
+		Derived->CalculateInvRefMatrices();
+		Derived->MarkPackageDirty();
+		FSkinnedAssetCompilingManager::Get().FinishCompilation({Derived});
+		if (!EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(
+			Derived, BodySurface, &HierarchyError))
+		{
+			OutError = FString::Printf(
+				TEXT("Generated garment does not exactly match the body bind pose after commit: %s"),
+				*HierarchyError);
+			return false;
+		}
+		return true;
+	}
+
+	static bool ValidateGeneratedBodyBindArtifacts(
+		const USkeletalMesh* Derived,
+		const USkeletalMesh* BodySurface,
+		FString& OutError)
+	{
+		if (!IsValid(Derived) || !IsValid(BodySurface))
+		{
+			OutError = TEXT("Generated/body mesh is invalid during final bind validation.");
+			return false;
+		}
+
+		FString BindError;
+		if (!EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(
+			Derived, BodySurface, &BindError))
+		{
+			OutError = FString::Printf(
+				TEXT("Generated garment reference pose differs from Female: %s"),
+				*BindError);
+			return false;
+		}
+
+		const FReferenceSkeleton& BodyReference = BodySurface->GetRefSkeleton();
+		const FMeshDescription* Description = Derived->GetMeshDescription(0);
+		if (!Description)
+		{
+			OutError = TEXT("Generated garment has no LOD0 MeshDescription for final bind validation.");
+			return false;
+		}
+		const FSkeletalMeshConstAttributes Attributes(*Description);
+		if (!Attributes.HasBones() || Attributes.GetNumBones() != BodyReference.GetRawBoneNum())
+		{
+			OutError = TEXT("Generated LOD0 bone table does not match Female during final bind validation.");
+			return false;
+		}
+		const auto BoneNames = Attributes.GetBoneNames();
+		const auto BoneParents = Attributes.GetBoneParentIndices();
+		const auto BonePoses = Attributes.GetBonePoses();
+		for (int32 BoneIndex = 0; BoneIndex < BodyReference.GetRawBoneNum(); ++BoneIndex)
+		{
+			const FBoneID BoneID(BoneIndex);
+			if (!Attributes.Bones().IsValid(BoneID)
+				|| BoneNames.Get(BoneID) != BodyReference.GetBoneName(BoneIndex)
+				|| BoneParents.Get(BoneID) != BodyReference.GetParentIndex(BoneIndex)
+				|| !BonePoses.Get(BoneID).Equals(BodyReference.GetRefBonePose()[BoneIndex], 1.e-4f))
+			{
+				OutError = FString::Printf(
+					TEXT("Generated LOD0 bind table differs from Female at raw bone index %d (%s)."),
+					BoneIndex,
+					*BodyReference.GetBoneName(BoneIndex).ToString());
+				return false;
+			}
+		}
+
+		const TArray<FMatrix44f>& DerivedInverseBind = Derived->GetRefBasesInvMatrix();
+		const TArray<FMatrix44f>& BodyInverseBind = BodySurface->GetRefBasesInvMatrix();
+		if (DerivedInverseBind.Num() != BodyInverseBind.Num()
+			|| DerivedInverseBind.Num() != BodyReference.GetRawBoneNum())
+		{
+			OutError = FString::Printf(
+				TEXT("Generated/Female inverse-bind counts differ (%d/%d, expected %d)."),
+				DerivedInverseBind.Num(),
+				BodyInverseBind.Num(),
+				BodyReference.GetRawBoneNum());
+			return false;
+		}
+		for (int32 BoneIndex = 0; BoneIndex < DerivedInverseBind.Num(); ++BoneIndex)
+		{
+			if (!DerivedInverseBind[BoneIndex].Equals(BodyInverseBind[BoneIndex], 1.e-4f))
+			{
+				OutError = FString::Printf(
+					TEXT("Generated inverse bind differs from Female at raw bone index %d (%s)."),
+					BoneIndex,
+					*BodyReference.GetBoneName(BoneIndex).ToString());
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool ValidateGeneratedBodyDeformerParity(
+		const USkeletalMesh* Derived,
+		const USkeletalMesh* BodySurface,
+		FString& OutError)
+	{
+		if (!IsValid(Derived) || !IsValid(BodySurface))
+		{
+			OutError = TEXT("Generated/body mesh is invalid during deformer validation.");
+			return false;
+		}
+		if (Derived->GetDefaultMeshDeformer() != BodySurface->GetDefaultMeshDeformer()
+			|| Derived->GetTargetMeshDeformers() != BodySurface->GetTargetMeshDeformers())
+		{
+			OutError = TEXT("Generated garment does not preserve Female's default/target mesh-deformer contract.");
+			return false;
+		}
+		const FSkeletalMeshLODInfo* DerivedLODInfo = Derived->GetLODInfo(0);
+		const FSkeletalMeshLODInfo* BodyLODInfo = BodySurface->GetLODInfo(0);
+		if (!DerivedLODInfo
+			|| !BodyLODInfo
+			|| DerivedLODInfo->bAllowMeshDeformer != BodyLODInfo->bAllowMeshDeformer
+			|| DerivedLODInfo->bBuildHalfEdgeBuffers != BodyLODInfo->bBuildHalfEdgeBuffers
+			|| Derived->HasHalfEdgeBuffer(0) != BodySurface->HasHalfEdgeBuffer(0))
+		{
+			OutError = TEXT("Generated garment does not preserve Female's LOD0 deformer/half-edge build contract.");
+			return false;
+		}
+		return true;
+	}
+
 	static USkeletalMesh* FindOrDuplicateDerived(
 		USkeletalMesh* SourceGarment,
 		const FString& OutputRoot,
+		const FString& ArtifactKey,
 		FString& OutError)
 	{
-		const FString AssetName = FString::Printf(TEXT("SK_%s_EFV2"), *SanitizeAssetName(SourceGarment->GetName()));
+		const FString AssetName = FString::Printf(
+			TEXT("SK_%s_%s_EFV2_%s"),
+			*SanitizeAssetName(SourceGarment->GetName()),
+			*BuildSourceKey(SourceGarment),
+			*ArtifactKey);
 		const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), *OutputRoot, *AssetName, *AssetName);
 		if (USkeletalMesh* Existing = LoadObject<USkeletalMesh>(nullptr, *ObjectPath))
 		{
-			if (Existing == SourceGarment || Existing->GetOutermost() == SourceGarment->GetOutermost())
-			{
-				OutError = TEXT("Generated asset resolves to the protected source package.");
-				return nullptr;
-			}
-			return Existing;
+			OutError = FString::Printf(
+				TEXT("Fresh publication key collided with existing generated mesh %s."),
+				*Existing->GetPathName());
+			return nullptr;
 		}
 
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools")).Get();
@@ -200,11 +768,186 @@ namespace EFClothingFitCompilerPrivate
 		int32& OutPenetratingBefore,
 		int32& OutPenetratingAfter,
 		double& OutMinimumBefore,
-		double& OutMinimumAfter)
+		double& OutMinimumAfter,
+		FString& OutError)
 	{
+		OutError.Reset();
 		FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
 		FMeshNormals BodyNormals(&BodyMesh);
 		BodyNormals.ComputeVertexNormals();
+		FMeshNormals GarmentNormals(&GarmentMesh);
+		GarmentNormals.ComputeVertexNormals();
+		const FVector3d BodyCenter = BodyMesh.GetBounds().Center();
+		const double MaximumCorrespondenceDistance = FMath::Clamp(
+			MaximumPush + DesiredClearance + 1.0,
+			2.0,
+			8.0);
+		constexpr double MinimumNormalAlignment = 0.35;
+		constexpr double MinimumRadialAlignment = 0.0;
+		constexpr double NearContactFallbackRadialAlignment = 0.5;
+		constexpr double NearContactFallbackDistanceCm = 0.75;
+		constexpr double BarycentricTolerance = 1.e-4;
+
+		auto IsFiniteVector = [](const FVector3d& Vector) -> bool
+		{
+			return FMath::IsFinite(Vector.X)
+				&& FMath::IsFinite(Vector.Y)
+				&& FMath::IsFinite(Vector.Z);
+		};
+		auto BuildGarmentFrame = [&](
+			int32 VertexID,
+			const FVector3d& Position,
+			FVector3d& OutOutwardNormal,
+			FVector3d& OutRadial,
+			bool& bOutHasRadial) -> bool
+		{
+			OutOutwardNormal = GarmentNormals[VertexID];
+			if (!IsFiniteVector(OutOutwardNormal) || !OutOutwardNormal.Normalize())
+			{
+				return false;
+			}
+			OutRadial = Position - BodyCenter;
+			bOutHasRadial = IsFiniteVector(OutRadial) && OutRadial.Normalize();
+			if (bOutHasRadial && OutOutwardNormal.Dot(OutRadial) < 0.0)
+			{
+				OutOutwardNormal = -OutOutwardNormal;
+			}
+			return true;
+		};
+		auto FindValidatedSurface = [&](
+			const FVector3d& QueryPoint,
+			const FVector3d& GarmentOutwardNormal,
+			const FVector3d& GarmentRadial,
+			bool bHasGarmentRadial,
+			bool bAllowNearContactNormalFallback,
+			int32& OutTriangleID,
+			FVector3d& OutClosestPoint,
+			FVector3d& OutBarycentric,
+			FVector3d& OutSurfaceNormal) -> bool
+		{
+			if (!IsFiniteVector(QueryPoint))
+			{
+				return false;
+			}
+			IMeshSpatial::FQueryOptions QueryOptions(MaximumCorrespondenceDistance);
+			QueryOptions.TriangleFilterF = [&](int32 CandidateTriangleID)
+			{
+				if (!BodyMesh.IsTriangle(CandidateTriangleID))
+				{
+					return false;
+				}
+				const FDistPoint3Triangle3d CandidateQuery =
+					TMeshQueries<FDynamicMesh3>::TriangleDistance(
+						BodyMesh, CandidateTriangleID, QueryPoint);
+				FVector3d CandidateNormal = InterpolateNormal(
+					BodyMesh,
+					BodyNormals,
+					CandidateTriangleID,
+					CandidateQuery.TriangleBaryCoords);
+				if (!IsFiniteVector(CandidateNormal)
+					|| !CandidateNormal.Normalize()
+					|| CandidateNormal.Dot(GarmentOutwardNormal) < MinimumNormalAlignment)
+				{
+					return false;
+				}
+				if (bHasGarmentRadial)
+				{
+					FVector3d CandidateRadial = CandidateQuery.ClosestTrianglePoint - BodyCenter;
+					if (IsFiniteVector(CandidateRadial)
+						&& CandidateRadial.Normalize()
+						&& CandidateRadial.Dot(GarmentRadial) < MinimumRadialAlignment)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+
+			double DistanceSquared = TNumericLimits<double>::Max();
+			OutTriangleID = BodySpatial.FindNearestTriangle(QueryPoint, DistanceSquared, QueryOptions);
+			bool bUsedNearContactNormalFallback = false;
+			if (OutTriangleID == IndexConstants::InvalidID && bAllowNearContactNormalFallback)
+			{
+				double FallbackDistanceSquared = TNumericLimits<double>::Max();
+				const int32 FallbackTriangleID = BodySpatial.FindNearestTriangle(
+					QueryPoint, FallbackDistanceSquared);
+				if (FallbackTriangleID != IndexConstants::InvalidID
+					&& FMath::IsFinite(FallbackDistanceSquared)
+					&& FallbackDistanceSquared <= FMath::Square(NearContactFallbackDistanceCm) + 1.e-6)
+				{
+					const FDistPoint3Triangle3d FallbackQuery =
+						TMeshQueries<FDynamicMesh3>::TriangleDistance(
+							BodyMesh, FallbackTriangleID, QueryPoint);
+					FVector3d FallbackRadial = FallbackQuery.ClosestTrianglePoint - BodyCenter;
+					const bool bFallbackRadialValid = IsFiniteVector(FallbackRadial)
+						&& FallbackRadial.Normalize();
+					if (!bHasGarmentRadial
+						|| (bFallbackRadialValid
+							&& FallbackRadial.Dot(GarmentRadial) >= NearContactFallbackRadialAlignment))
+					{
+						OutTriangleID = FallbackTriangleID;
+						DistanceSquared = FallbackDistanceSquared;
+						bUsedNearContactNormalFallback = true;
+					}
+				}
+			}
+			if (OutTriangleID == IndexConstants::InvalidID
+				|| !FMath::IsFinite(DistanceSquared)
+				|| DistanceSquared > FMath::Square(MaximumCorrespondenceDistance) + 1.e-6)
+			{
+				return false;
+			}
+
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh, OutTriangleID, QueryPoint);
+			OutClosestPoint = Query.ClosestTrianglePoint;
+			OutBarycentric = Query.TriangleBaryCoords;
+			const double BarycentricSum = OutBarycentric.X + OutBarycentric.Y + OutBarycentric.Z;
+			if (!IsFiniteVector(OutClosestPoint)
+				|| !IsFiniteVector(OutBarycentric)
+				|| OutBarycentric.X < -BarycentricTolerance
+				|| OutBarycentric.Y < -BarycentricTolerance
+				|| OutBarycentric.Z < -BarycentricTolerance
+				|| OutBarycentric.X > 1.0 + BarycentricTolerance
+				|| OutBarycentric.Y > 1.0 + BarycentricTolerance
+				|| OutBarycentric.Z > 1.0 + BarycentricTolerance
+				|| !FMath::IsNearlyEqual(BarycentricSum, 1.0, BarycentricTolerance))
+			{
+				return false;
+			}
+			OutSurfaceNormal = InterpolateNormal(BodyMesh, BodyNormals, OutTriangleID, OutBarycentric);
+			return IsFiniteVector(OutSurfaceNormal)
+				&& OutSurfaceNormal.Normalize()
+				&& (bUsedNearContactNormalFallback
+					|| OutSurfaceNormal.Dot(GarmentOutwardNormal) >= MinimumNormalAlignment);
+		};
+		auto DescribeUnrestrictedNearest = [&](
+			const FVector3d& QueryPoint,
+			const FVector3d& AnchorNormal,
+			const FVector3d& AnchorRadial,
+			bool bHasAnchorRadial) -> FString
+		{
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 TriangleID = BodySpatial.FindNearestTriangle(QueryPoint, DistanceSquared);
+			if (TriangleID == IndexConstants::InvalidID || !FMath::IsFinite(DistanceSquared))
+			{
+				return TEXT("unrestricted nearest triangle is invalid");
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh, TriangleID, QueryPoint);
+			FVector3d SurfaceNormal = InterpolateNormal(
+				BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
+			const bool bHasSurfaceNormal = IsFiniteVector(SurfaceNormal) && SurfaceNormal.Normalize();
+			FVector3d SurfaceRadial = Query.ClosestTrianglePoint - BodyCenter;
+			const bool bHasSurfaceRadial = IsFiniteVector(SurfaceRadial) && SurfaceRadial.Normalize();
+			return FString::Printf(
+				TEXT("nearestTriangle=%d distance=%.6fcm normalDot=%.6f radialDot=%.6f maxDistance=%.6fcm"),
+				TriangleID,
+				FMath::Sqrt(FMath::Max(0.0, DistanceSquared)),
+				bHasSurfaceNormal ? SurfaceNormal.Dot(AnchorNormal) : -2.0,
+				bHasAnchorRadial && bHasSurfaceRadial ? SurfaceRadial.Dot(AnchorRadial) : 2.0,
+				MaximumCorrespondenceDistance);
+		};
 
 		OutCorrespondence.SetNum(GarmentMesh.MaxVertexID());
 		OutDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
@@ -214,22 +957,49 @@ namespace EFClothingFitCompilerPrivate
 		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
 		{
 			const FVector3d Position = GarmentMesh.GetVertex(VertexID);
-			double DistanceSquared = TNumericLimits<double>::Max();
-			const int32 TriangleID = BodySpatial.FindNearestTriangle(Position, DistanceSquared);
-			if (TriangleID == IndexConstants::InvalidID)
+			FVector3d GarmentOutwardNormal;
+			FVector3d GarmentRadial;
+			bool bHasGarmentRadial = false;
+			if (!BuildGarmentFrame(
+				VertexID, Position, GarmentOutwardNormal, GarmentRadial, bHasGarmentRadial))
 			{
+				OutError = FString::Printf(TEXT("Garment vertex %d has a non-finite or degenerate normal."), VertexID);
+				return false;
+			}
+			int32 TriangleID = INDEX_NONE;
+			FVector3d ClosestPoint;
+			FVector3d Barycentric;
+			FVector3d Normal;
+			if (!FindValidatedSurface(
+				Position,
+				GarmentOutwardNormal,
+				GarmentRadial,
+				bHasGarmentRadial,
+				true,
+				TriangleID,
+				ClosestPoint,
+				Barycentric,
+				Normal))
+			{
+				OutError = FString::Printf(
+					TEXT("Initial surface correspondence rejected garment vertex %d: %s."),
+					VertexID,
+					*DescribeUnrestrictedNearest(
+						Position, GarmentOutwardNormal, GarmentRadial, bHasGarmentRadial));
+				return false;
+			}
+			const double SignedGap = (Position - ClosestPoint).Dot(Normal);
+			if (!FMath::IsFinite(SignedGap))
+			{
+				OutError = FString::Printf(TEXT("Initial signed gap is non-finite at garment vertex %d."), VertexID);
 				return false;
 			}
 
-			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(BodyMesh, TriangleID, Position);
-			const FVector3d Normal = InterpolateNormal(BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
-			const double SignedGap = (Position - Query.ClosestTrianglePoint).Dot(Normal);
-
 			FSurfaceCorrespondence& Correspondence = OutCorrespondence[VertexID];
 			Correspondence.BodyTriangle = TriangleID;
-			Correspondence.Barycentric = Query.TriangleBaryCoords;
+			Correspondence.Barycentric = Barycentric;
 			Correspondence.SurfaceNormal = Normal;
-			Correspondence.ClosestPoint = Query.ClosestTrianglePoint;
+			Correspondence.ClosestPoint = ClosestPoint;
 			Correspondence.SignedGap = SignedGap;
 
 			OutMinimumBefore = FMath::Min(OutMinimumBefore, SignedGap);
@@ -268,28 +1038,118 @@ namespace EFClothingFitCompilerPrivate
 			OutDeltas = MoveTemp(Smoothed);
 		}
 
-		// Re-project after smoothing so smoothing cannot reintroduce rest-pose penetration.
+		// Re-project iteratively after smoothing. A single correction is insufficient
+		// around the groin/axilla where moving a vertex changes its nearest triangle.
+		// The final gate enforces the requested clearance, not merely non-penetration.
 		OutPenetratingAfter = 0;
 		OutMinimumAfter = TNumericLimits<double>::Max();
+		constexpr int32 MaximumProjectionIterations = 16;
+		constexpr double ClearanceToleranceCm = 0.001;
+		constexpr double ProjectionSafetyMarginCm = 0.005;
 		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
 		{
 			const FVector3d BasePosition = GarmentMesh.GetVertex(VertexID);
-			FVector3d FittedPosition = BasePosition + OutDeltas[VertexID];
-			double DistanceSquared = TNumericLimits<double>::Max();
-			int32 TriangleID = BodySpatial.FindNearestTriangle(FittedPosition, DistanceSquared);
-			FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(BodyMesh, TriangleID, FittedPosition);
-			FVector3d Normal = InterpolateNormal(BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
-			double SignedGap = (FittedPosition - Query.ClosestTrianglePoint).Dot(Normal);
-			if (SignedGap < DesiredClearance)
+			FVector3d GarmentOutwardNormal;
+			FVector3d GarmentRadial;
+			bool bHasGarmentRadial = false;
+			if (!BuildGarmentFrame(
+				VertexID, BasePosition, GarmentOutwardNormal, GarmentRadial, bHasGarmentRadial))
 			{
+				OutError = FString::Printf(TEXT("Projection frame is invalid at garment vertex %d."), VertexID);
+				return false;
+			}
+			if (!OutCorrespondence.IsValidIndex(VertexID)
+				|| !IsFiniteVector(OutCorrespondence[VertexID].SurfaceNormal))
+			{
+				OutError = FString::Printf(TEXT("Stored surface correspondence is invalid at garment vertex %d."), VertexID);
+				return false;
+			}
+			const FVector3d ProjectionAnchorNormal = OutCorrespondence[VertexID].SurfaceNormal;
+			FVector3d FittedPosition = BasePosition + OutDeltas[VertexID];
+			double SignedGap = -TNumericLimits<double>::Max();
+			for (int32 ProjectionIteration = 0; ProjectionIteration < MaximumProjectionIterations; ++ProjectionIteration)
+			{
+				int32 TriangleID = INDEX_NONE;
+				FVector3d ClosestPoint;
+				FVector3d Barycentric;
+				FVector3d Normal;
+				if (!FindValidatedSurface(
+					FittedPosition,
+					ProjectionAnchorNormal,
+					GarmentRadial,
+					bHasGarmentRadial,
+					false,
+					TriangleID,
+					ClosestPoint,
+					Barycentric,
+					Normal))
+				{
+					OutError = FString::Printf(
+						TEXT("Projection surface correspondence rejected garment vertex %d at iteration %d: %s."),
+						VertexID,
+						ProjectionIteration,
+						*DescribeUnrestrictedNearest(
+							FittedPosition, ProjectionAnchorNormal, GarmentRadial, bHasGarmentRadial));
+					return false;
+				}
+				SignedGap = (FittedPosition - ClosestPoint).Dot(Normal);
+				if (!FMath::IsFinite(SignedGap))
+				{
+					OutError = FString::Printf(
+						TEXT("Projection signed gap is non-finite at garment vertex %d iteration %d."),
+						VertexID,
+						ProjectionIteration);
+					return false;
+				}
+				if (SignedGap >= DesiredClearance + ProjectionSafetyMarginCm)
+				{
+					break;
+				}
+
 				const double RemainingCapacity = FMath::Max(0.0, MaximumPush - OutDeltas[VertexID].Length());
-				const double Correction = FMath::Min(DesiredClearance - SignedGap, RemainingCapacity);
+				if (RemainingCapacity <= 1.e-9)
+				{
+					break;
+				}
+
+				// Slight over-relaxation avoids asymptotic under-clearance after the
+				// nearest surface changes, while MaximumPush remains a hard bound.
+				const double Correction = FMath::Min(
+					(DesiredClearance + ProjectionSafetyMarginCm - SignedGap + ClearanceToleranceCm) * 1.05,
+					RemainingCapacity);
 				OutDeltas[VertexID] += Normal * Correction;
 				FittedPosition = BasePosition + OutDeltas[VertexID];
-				TriangleID = BodySpatial.FindNearestTriangle(FittedPosition, DistanceSquared);
-				Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(BodyMesh, TriangleID, FittedPosition);
-				Normal = InterpolateNormal(BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
-				SignedGap = (FittedPosition - Query.ClosestTrianglePoint).Dot(Normal);
+			}
+
+			// Measure once more at the final position so the report and gate use
+			// the exact geometry written into the clearance morph.
+			int32 FinalTriangleID = INDEX_NONE;
+			FVector3d FinalClosestPoint;
+			FVector3d FinalBarycentric;
+			FVector3d FinalNormal;
+			if (!FindValidatedSurface(
+				FittedPosition,
+				ProjectionAnchorNormal,
+				GarmentRadial,
+				bHasGarmentRadial,
+				false,
+				FinalTriangleID,
+				FinalClosestPoint,
+				FinalBarycentric,
+				FinalNormal))
+			{
+				OutError = FString::Printf(
+					TEXT("Final surface correspondence rejected garment vertex %d: %s."),
+					VertexID,
+					*DescribeUnrestrictedNearest(
+						FittedPosition, ProjectionAnchorNormal, GarmentRadial, bHasGarmentRadial));
+				return false;
+			}
+			SignedGap = (FittedPosition - FinalClosestPoint).Dot(FinalNormal);
+			if (!FMath::IsFinite(SignedGap))
+			{
+				OutError = FString::Printf(TEXT("Final signed gap is non-finite at garment vertex %d."), VertexID);
+				return false;
 			}
 
 			OutMinimumAfter = FMath::Min(OutMinimumAfter, SignedGap);
@@ -299,90 +1159,600 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 
-		return true;
+		return OutPenetratingAfter == 0
+			&& OutMinimumAfter >= DesiredClearance - ClearanceToleranceCm;
 	}
 
 	static bool TransferWeights(
+		const USkeletalMesh* SourceGarment,
+		const USkeletalMesh* BodySurface,
+		const USkeletalMesh* CompatibilityReference,
 		const FDynamicMesh3& BodyMesh,
+		const TArray<FSurfaceCorrespondence>& Correspondence,
+		const TArray<FName>& ExcludedBodyBoneBranches,
 		UDynamicMesh* GarmentDynamicMesh,
 		int32 MaximumInfluences,
 		FString& OutMethod,
+		TArray<FName>& OutRequiredWeightedBones,
+		int32& OutRemappedWeightedBoneCount,
+		int32& OutReconciledSplitVertexCount,
 		FString& OutError)
 	{
-		auto RunTransfer = [&](FTransferBoneWeights::ETransferBoneWeightsMethod Method) -> bool
+		if (!IsValid(SourceGarment) || !IsValid(BodySurface) || !IsValid(CompatibilityReference))
 		{
-			FTransferBoneWeights Transfer(&BodyMesh, FSkeletalMeshAttributesShared::DefaultSkinWeightProfileName);
-			Transfer.TransferMethod = Method;
-			Transfer.MaxNumInfluences = FMath::Clamp(MaximumInfluences, 1, 12);
-			Transfer.bUseParallel = true;
-			Transfer.LayeredMeshSupport = false;
-			if (Method == FTransferBoneWeights::ETransferBoneWeightsMethod::InpaintWeights)
-			{
-				Transfer.SearchRadius = 0.05 * GarmentDynamicMesh->GetMeshRef().GetBounds().DiagonalLength();
-				Transfer.NormalThreshold = FMath::DegreesToRadians(35.0);
-				Transfer.NumSmoothingIterations = 10;
-				Transfer.SmoothingStrength = 0.1f;
-			}
-			if (Transfer.Validate() != EOperationValidationResult::Ok)
-			{
-				return false;
-			}
-
-			bool bTransferred = false;
-			GarmentDynamicMesh->EditMesh([&](FDynamicMesh3& EditMesh)
-			{
-				bTransferred = Transfer.TransferWeightsToMesh(EditMesh, FitWeightProfileName);
-			}, EDynamicMeshChangeType::AttributeEdit, EDynamicMeshAttributeChangeFlags::Unknown, false);
-			return bTransferred;
-		};
-
-		if (RunTransfer(FTransferBoneWeights::ETransferBoneWeightsMethod::InpaintWeights))
-		{
-			OutMethod = TEXT("InpaintWeights");
-		}
-		else if (RunTransfer(FTransferBoneWeights::ETransferBoneWeightsMethod::ClosestPointOnSurface))
-		{
-			OutMethod = TEXT("ClosestPointOnSurface fallback");
-		}
-		else
-		{
-			OutError = TEXT("Both InpaintWeights and ClosestPointOnSurface weight transfer failed.");
+			OutError = TEXT("Weight transfer requires valid source/body/compatibility skeletal meshes.");
 			return false;
 		}
-
-		bool bWeightsValid = true;
-		GarmentDynamicMesh->ProcessMesh([&](const FDynamicMesh3& Mesh)
+		const FReferenceSkeleton& BodyReference = BodySurface->GetRefSkeleton();
+		const FReferenceSkeleton& CompatibilityPoseReference = CompatibilityReference->GetRefSkeleton();
+		TSet<int32> ExcludedBodyBoneIndices;
+		for (const FName ExcludedRootName : ExcludedBodyBoneBranches)
 		{
-			const FDynamicMeshVertexSkinWeightsAttribute* Weights = Mesh.Attributes()
+			const int32 ExcludedRootIndex = BodyReference.FindBoneIndex(ExcludedRootName);
+			if (ExcludedRootIndex <= 0)
+			{
+				OutError = FString::Printf(
+					TEXT("Excluded body bone branch root %s is missing or resolves to the skeleton root."),
+					*ExcludedRootName.ToString());
+				return false;
+			}
+			for (int32 BodyBoneIndex = 0; BodyBoneIndex < BodyReference.GetRawBoneNum(); ++BodyBoneIndex)
+			{
+				for (int32 AncestorIndex = BodyBoneIndex;
+					AncestorIndex != INDEX_NONE;
+					AncestorIndex = BodyReference.GetParentIndex(AncestorIndex))
+				{
+					if (AncestorIndex == ExcludedRootIndex)
+					{
+						ExcludedBodyBoneIndices.Add(BodyBoneIndex);
+						break;
+					}
+				}
+			}
+		}
+		TArray<int32> CompatibleBodyBoneIndex;
+		CompatibleBodyBoneIndex.Init(INDEX_NONE, BodyReference.GetRawBoneNum());
+		for (int32 BodyBoneIndex = 0; BodyBoneIndex < BodyReference.GetRawBoneNum(); ++BodyBoneIndex)
+		{
+			int32 CandidateBodyIndex = BodyBoneIndex;
+			while (CandidateBodyIndex != INDEX_NONE)
+			{
+				if (ExcludedBodyBoneIndices.Contains(CandidateBodyIndex))
+				{
+					CandidateBodyIndex = BodyReference.GetParentIndex(CandidateBodyIndex);
+					continue;
+				}
+				const FName CandidateName = BodyReference.GetBoneName(CandidateBodyIndex);
+				const int32 CompatibilityIndex = CompatibilityPoseReference.FindBoneIndex(CandidateName);
+				if (CompatibilityIndex != INDEX_NONE)
+				{
+					const int32 BodyParentIndex = BodyReference.GetParentIndex(CandidateBodyIndex);
+					const int32 CompatibilityParentIndex = CompatibilityPoseReference.GetParentIndex(CompatibilityIndex);
+					const FName BodyParentName = BodyParentIndex == INDEX_NONE
+						? NAME_None
+						: BodyReference.GetBoneName(BodyParentIndex);
+					const FName CompatibilityParentName = CompatibilityParentIndex == INDEX_NONE
+						? NAME_None
+						: CompatibilityPoseReference.GetBoneName(CompatibilityParentIndex);
+					if (BodyParentName == CompatibilityParentName)
+					{
+						CompatibleBodyBoneIndex[BodyBoneIndex] = CandidateBodyIndex;
+						break;
+					}
+				}
+				CandidateBodyIndex = BodyReference.GetParentIndex(CandidateBodyIndex);
+			}
+			if (CompatibleBodyBoneIndex[BodyBoneIndex] == INDEX_NONE)
+			{
+				OutError = FString::Printf(
+					TEXT("Female bone %s has no hierarchy-safe ancestor in the effective Multiple pose driver."),
+					*BodyReference.GetBoneName(BodyBoneIndex).ToString());
+				return false;
+			}
+		}
+		const FDynamicMeshVertexSkinWeightsAttribute* BodyWeights = BodyMesh.Attributes()
+			? BodyMesh.Attributes()->GetSkinWeightsAttribute(
+				FSkeletalMeshAttributesShared::DefaultSkinWeightProfileName)
+			: nullptr;
+		const FDynamicMeshBoneNameAttribute* BodyBoneNamesAttribute = BodyMesh.Attributes()
+			? BodyMesh.Attributes()->GetBoneNames()
+			: nullptr;
+		if (!IsValid(GarmentDynamicMesh)
+			|| Correspondence.Num() < GarmentDynamicMesh->GetMeshRef().MaxVertexID()
+			|| !BodyWeights
+			|| !BodyBoneNamesAttribute)
+		{
+			OutError = TEXT("Barycentric weight transfer lacks body weights, bone names or surface correspondence.");
+			return false;
+		}
+		const TArray<FName>& BodyDynamicBoneNames = BodyBoneNamesAttribute->GetAttribValues();
+		OutMethod = ExcludedBodyBoneIndices.IsEmpty()
+			? TEXT("BarycentricSurfaceExactFemaleBind")
+			: FString::Printf(
+				TEXT("BarycentricSurfaceExactFemaleBindCatalogBranchRemap(excludedBones=%d)"),
+				ExcludedBodyBoneIndices.Num());
+		OutReconciledSplitVertexCount = 0;
+		int32 ReboundGarmentBoneCount = 0;
+		TSet<FName> RequiredBoneNames;
+		TSet<FName> RemappedBodyBoneNames;
+		bool bWeightsValid = true;
+		FString WeightFailureReason;
+		const int32 MaximumInfluenceCount = FMath::Clamp(MaximumInfluences, 1, 12);
+		GarmentDynamicMesh->EditMesh([&](FDynamicMesh3& Mesh)
+		{
+			auto RejectWeights = [&](const FString& Reason)
+			{
+				if (WeightFailureReason.IsEmpty())
+				{
+					WeightFailureReason = Reason;
+				}
+				bWeightsValid = false;
+			};
+			if (Mesh.Attributes()
+				&& !Mesh.Attributes()->GetSkinWeightsAttribute(FitWeightProfileName))
+			{
+				Mesh.Attributes()->AttachSkinWeightsAttribute(
+					FitWeightProfileName,
+					new FDynamicMeshVertexSkinWeightsAttribute(&Mesh));
+			}
+			FDynamicMeshVertexSkinWeightsAttribute* Weights = Mesh.Attributes()
 				? Mesh.Attributes()->GetSkinWeightsAttribute(FitWeightProfileName)
 				: nullptr;
-			if (!Weights)
+			FDynamicMeshBoneNameAttribute* BoneNamesAttribute = Mesh.Attributes()
+				? Mesh.Attributes()->GetBoneNames()
+				: nullptr;
+			FDynamicMeshBoneParentIndexAttribute* BoneParentsAttribute = Mesh.Attributes()
+				? Mesh.Attributes()->GetBoneParentIndices()
+				: nullptr;
+			FDynamicMeshBonePoseAttribute* BonePosesAttribute = Mesh.Attributes()
+				? Mesh.Attributes()->GetBonePoses()
+				: nullptr;
+			FDynamicMeshBoneColorAttribute* BoneColorsAttribute = Mesh.Attributes()
+				? Mesh.Attributes()->GetBoneColors()
+				: nullptr;
+			if (!Weights
+				|| !BoneNamesAttribute
+				|| !BoneParentsAttribute
+				|| !BonePosesAttribute
+				|| !BoneColorsAttribute)
 			{
-				bWeightsValid = false;
+				RejectWeights(TEXT("Garment dynamic mesh lacks EF_AutoFit weights or complete bone attributes."));
 				return;
 			}
 
-			for (int32 VertexID : Mesh.VertexIndicesItr())
+			const int32 InitialGarmentBoneCount = BoneNamesAttribute->Num();
+			if (BoneParentsAttribute->Num() != InitialGarmentBoneCount
+				|| BonePosesAttribute->Num() != InitialGarmentBoneCount
+				|| BoneColorsAttribute->Num() != InitialGarmentBoneCount)
 			{
-				UE::AnimationCore::FBoneWeights VertexWeights;
-				Weights->GetValue(VertexID, VertexWeights);
-				if (VertexWeights.Num() == 0 || VertexWeights.Num() > MaximumInfluences)
+				RejectWeights(TEXT("Garment dynamic bone attributes do not have matching lengths."));
+				return;
+			}
+			const FDynamicMeshBoneParentIndexAttribute* BodyBoneParentsAttribute =
+				BodyMesh.Attributes() ? BodyMesh.Attributes()->GetBoneParentIndices() : nullptr;
+			const FDynamicMeshBonePoseAttribute* BodyBonePosesAttribute =
+				BodyMesh.Attributes() ? BodyMesh.Attributes()->GetBonePoses() : nullptr;
+			const FDynamicMeshBoneColorAttribute* BodyBoneColorsAttribute =
+				BodyMesh.Attributes() ? BodyMesh.Attributes()->GetBoneColors() : nullptr;
+			const int32 BodyBoneCount = BodyDynamicBoneNames.Num();
+			ReboundGarmentBoneCount = BodyBoneCount;
+			if (!BodyBoneParentsAttribute
+				|| !BodyBonePosesAttribute
+				|| BodyBoneCount != BodyReference.GetRawBoneNum()
+				|| BodyBoneParentsAttribute->Num() != BodyBoneCount
+				|| BodyBonePosesAttribute->Num() != BodyBoneCount
+				|| (BodyBoneColorsAttribute
+					&& !BodyBoneColorsAttribute->IsEmpty()
+					&& BodyBoneColorsAttribute->Num() != BodyBoneCount))
+			{
+				RejectWeights(TEXT("Body dynamic bone table is incomplete or does not match Female's reference skeleton."));
+				return;
+			}
+			if (InitialGarmentBoneCount != BodyBoneCount)
+			{
+				RejectWeights(FString::Printf(
+					TEXT("Garment/body dynamic bone counts differ before exact transfer (%d/%d); expansion is forbidden."),
+					InitialGarmentBoneCount,
+					BodyBoneCount));
+				return;
+			}
+			for (int32 BoneIndex = 0; BoneIndex < BodyBoneCount; ++BoneIndex)
+			{
+				if (BodyDynamicBoneNames[BoneIndex] != BodyReference.GetBoneName(BoneIndex)
+					|| BodyBoneParentsAttribute->GetValue(BoneIndex) != BodyReference.GetParentIndex(BoneIndex)
+					|| !BodyBonePosesAttribute->GetValue(BoneIndex).Equals(
+						BodyReference.GetRefBonePose()[BoneIndex], 1.e-4f))
 				{
-					bWeightsValid = false;
-					break;
+					RejectWeights(FString::Printf(
+						TEXT("Body dynamic bind table differs from Female at bone index %d (%s)."),
+						BoneIndex,
+						*BodyReference.GetBoneName(BoneIndex).ToString()));
+					return;
+				}
+				if (BoneNamesAttribute->GetValue(BoneIndex) != BodyReference.GetBoneName(BoneIndex)
+					|| BoneParentsAttribute->GetValue(BoneIndex) != BodyReference.GetParentIndex(BoneIndex))
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment dynamic hierarchy is not index-identical to Female at bone %d (%s)."),
+						BoneIndex,
+						*BodyReference.GetBoneName(BoneIndex).ToString()));
+					return;
 				}
 			}
-		});
+
+			// Copy Female's table index-for-index. GeometryScript skin profiles store
+			// numeric bone indices; name remapping after interpolation is not exact.
+			Mesh.Attributes()->EnableBones(BodyBoneCount);
+			BoneNamesAttribute = Mesh.Attributes()->GetBoneNames();
+			BoneParentsAttribute = Mesh.Attributes()->GetBoneParentIndices();
+			BonePosesAttribute = Mesh.Attributes()->GetBonePoses();
+			BoneColorsAttribute = Mesh.Attributes()->GetBoneColors();
+			for (int32 BoneIndex = 0; BoneIndex < BodyBoneCount; ++BoneIndex)
+			{
+				BoneNamesAttribute->SetValue(BoneIndex, BodyDynamicBoneNames[BoneIndex]);
+				BoneParentsAttribute->SetValue(BoneIndex, BodyBoneParentsAttribute->GetValue(BoneIndex));
+				BonePosesAttribute->SetValue(BoneIndex, BodyBonePosesAttribute->GetValue(BoneIndex));
+				BoneColorsAttribute->SetValue(
+					BoneIndex,
+					BodyBoneColorsAttribute && !BodyBoneColorsAttribute->IsEmpty()
+						? BodyBoneColorsAttribute->GetValue(BoneIndex)
+						: FVector4f::One());
+			}
+			if (!Mesh.Attributes()->CheckBoneValidity(EValidityCheckFailMode::ReturnOnly))
+			{
+				RejectWeights(TEXT("Female bind table failed garment dynamic-mesh validity checks."));
+				return;
+			}
+			const TArray<FName>& DynamicBoneNames = BoneNamesAttribute->GetAttribValues();
+
+			UE::AnimationCore::FBoneWeightsSettings WeightSettings;
+			WeightSettings
+				.SetMaxWeightCount(MaximumInfluenceCount)
+				.SetNormalizeType(UE::AnimationCore::EBoneWeightNormalizeType::Always);
+
+			// Interpolate Female's exact body-surface influences, but collapse a
+			// DAZ-only influence to the nearest hierarchy-safe ancestor that the
+			// effective Multiple pose driver can actually animate. The derived mesh
+			// still keeps Female's complete bind table index-for-index; only its
+			// generated EF_AutoFit profile is remapped, so no protected skeleton or
+			// source asset is ever changed.
+			for (int32 VertexID : Mesh.VertexIndicesItr())
+			{
+				if (!Correspondence.IsValidIndex(VertexID))
+				{
+					RejectWeights(FString::Printf(TEXT("Garment vertex %d has no surface correspondence."), VertexID));
+					break;
+				}
+				const FSurfaceCorrespondence& Surface = Correspondence[VertexID];
+				if (!BodyMesh.IsTriangle(Surface.BodyTriangle))
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment vertex %d references invalid body triangle %d."),
+						VertexID,
+						Surface.BodyTriangle));
+					break;
+				}
+				const FIndex3i BodyTriangle = BodyMesh.GetTriangle(Surface.BodyTriangle);
+				const int32 BodyVertexIDs[3] = {BodyTriangle.A, BodyTriangle.B, BodyTriangle.C};
+				const double RawBarycentricWeights[3] = {
+					Surface.Barycentric.X,
+					Surface.Barycentric.Y,
+					Surface.Barycentric.Z};
+				double BarycentricWeights[3] = {};
+				for (int32 BarycentricIndex = 0; BarycentricIndex < 3; ++BarycentricIndex)
+				{
+					const double RawWeight = RawBarycentricWeights[BarycentricIndex];
+					if (!FMath::IsFinite(RawWeight) || RawWeight < -1.e-5 || RawWeight > 1.0 + 1.e-5)
+					{
+						RejectWeights(FString::Printf(
+							TEXT("Garment vertex %d has invalid barycentric[%d]=%.9f."),
+							VertexID,
+							BarycentricIndex,
+							RawWeight));
+						break;
+					}
+					BarycentricWeights[BarycentricIndex] = FMath::Clamp(RawWeight, 0.0, 1.0);
+				}
+				if (!bWeightsValid)
+				{
+					break;
+				}
+				const double BarycentricSum = BarycentricWeights[0]
+					+ BarycentricWeights[1] + BarycentricWeights[2];
+				if (!FMath::IsFinite(BarycentricSum)
+					|| BarycentricSum <= UE_DOUBLE_SMALL_NUMBER
+					|| !FMath::IsNearlyEqual(BarycentricSum, 1.0, 1.e-3))
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment vertex %d barycentric sum %.9f is invalid."),
+						VertexID,
+						BarycentricSum));
+					break;
+				}
+
+				TMap<int32, double> AccumulatedWeights;
+				double VertexTotalMass = 0.0;
+				for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+				{
+					const double CornerWeight = BarycentricWeights[CornerIndex] / BarycentricSum;
+					UE::AnimationCore::FBoneWeights BodyVertexWeights;
+					BodyWeights->GetValue(BodyVertexIDs[CornerIndex], BodyVertexWeights);
+					if (BodyVertexWeights.Num() == 0)
+					{
+						RejectWeights(FString::Printf(
+							TEXT("Body vertex %d (garment %d corner %d) is unweighted."),
+							BodyVertexIDs[CornerIndex],
+							VertexID,
+							CornerIndex));
+						break;
+					}
+					for (const UE::AnimationCore::FBoneWeight& BodyInfluence : BodyVertexWeights)
+					{
+						const int32 BodyDynamicBoneIndex = static_cast<int32>(BodyInfluence.GetBoneIndex());
+						if (!BodyDynamicBoneNames.IsValidIndex(BodyDynamicBoneIndex))
+						{
+							RejectWeights(FString::Printf(
+								TEXT("Body influence index %d is invalid at garment vertex %d."),
+								BodyDynamicBoneIndex,
+								VertexID));
+							break;
+						}
+						const FName OriginalBodyBoneName = BodyDynamicBoneNames[BodyDynamicBoneIndex];
+						const int32 SafeGarmentBoneIndex = CompatibleBodyBoneIndex[BodyDynamicBoneIndex];
+						if (!DynamicBoneNames.IsValidIndex(SafeGarmentBoneIndex)
+							|| DynamicBoneNames[SafeGarmentBoneIndex]
+								!= BodyReference.GetBoneName(SafeGarmentBoneIndex))
+						{
+							RejectWeights(FString::Printf(
+								TEXT("Body bone %s has invalid compatibility-map index %d at garment vertex %d."),
+								*OriginalBodyBoneName.ToString(),
+								SafeGarmentBoneIndex,
+								VertexID));
+							break;
+						}
+						if (SafeGarmentBoneIndex != BodyDynamicBoneIndex)
+						{
+							RemappedBodyBoneNames.Add(OriginalBodyBoneName);
+						}
+						const double Contribution = CornerWeight * static_cast<double>(BodyInfluence.GetWeight());
+						if (!FMath::IsFinite(Contribution) || Contribution < 0.0)
+						{
+							RejectWeights(FString::Printf(
+								TEXT("Non-finite/negative weight contribution at garment vertex %d bone %s."),
+								VertexID,
+								*OriginalBodyBoneName.ToString()));
+							break;
+						}
+						VertexTotalMass += Contribution;
+						AccumulatedWeights.FindOrAdd(SafeGarmentBoneIndex) += Contribution;
+					}
+					if (!bWeightsValid)
+					{
+						break;
+					}
+				}
+				if (!bWeightsValid
+					|| AccumulatedWeights.IsEmpty()
+					|| !FMath::IsFinite(VertexTotalMass)
+					|| VertexTotalMass <= UE_DOUBLE_SMALL_NUMBER)
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment vertex %d failed exact Female weight mass gate (total=%.9f)."),
+						VertexID,
+						VertexTotalMass));
+					break;
+				}
+
+				TArray<double> SortedMasses;
+				AccumulatedWeights.GenerateValueArray(SortedMasses);
+				SortedMasses.Sort(TGreater<double>());
+				double TotalMass = 0.0;
+				double RetainedMass = 0.0;
+				for (int32 WeightIndex = 0; WeightIndex < SortedMasses.Num(); ++WeightIndex)
+				{
+					TotalMass += SortedMasses[WeightIndex];
+					if (WeightIndex < MaximumInfluenceCount)
+					{
+						RetainedMass += SortedMasses[WeightIndex];
+					}
+				}
+				if (!FMath::IsFinite(TotalMass) || TotalMass <= UE_DOUBLE_SMALL_NUMBER
+					|| RetainedMass + 1.e-6 < TotalMass * 0.95)
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment vertex %d would retain only %.6f/%.6f influence mass at max %d influences."),
+						VertexID,
+						RetainedMass,
+						TotalMass,
+						MaximumInfluenceCount));
+					break;
+				}
+
+				TArray<int32> SortedBoneIndices;
+				AccumulatedWeights.GetKeys(SortedBoneIndices);
+				SortedBoneIndices.Sort();
+				TArray<UE::AnimationCore::FBoneWeight> InterpolatedInfluences;
+				InterpolatedInfluences.Reserve(SortedBoneIndices.Num());
+				for (int32 BoneIndex : SortedBoneIndices)
+				{
+					InterpolatedInfluences.Emplace(
+						static_cast<FBoneIndexType>(BoneIndex),
+						static_cast<float>(AccumulatedWeights.FindChecked(BoneIndex)));
+				}
+				const UE::AnimationCore::FBoneWeights InterpolatedWeights =
+					UE::AnimationCore::FBoneWeights::Create(InterpolatedInfluences, WeightSettings);
+				if (InterpolatedWeights.Num() == 0 || InterpolatedWeights.Num() > MaximumInfluenceCount)
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Garment vertex %d produced %d normalized influences (limit %d)."),
+						VertexID,
+						InterpolatedWeights.Num(),
+						MaximumInfluenceCount));
+					break;
+				}
+				Weights->SetValue(VertexID, InterpolatedWeights);
+			}
+			if (!bWeightsValid)
+			{
+				return;
+			}
+
+			// GeometryScript serializes dynamic split vertices back through their
+			// original MeshDescription vertex ID. Reconcile every split group first,
+			// otherwise traversal order makes the last seam vertex silently win.
+			const FNonManifoldMappingSupport GarmentMapping(Mesh);
+			TMap<int32, TArray<int32>> SplitGroups;
+			for (int32 VertexID : Mesh.VertexIndicesItr())
+			{
+				SplitGroups.FindOrAdd(GarmentMapping.GetOriginalNonManifoldVertexID(VertexID)).Add(VertexID);
+			}
+			for (const TPair<int32, TArray<int32>>& GroupPair : SplitGroups)
+			{
+				const TArray<int32>& SplitVertices = GroupPair.Value;
+				if (SplitVertices.Num() <= 1)
+				{
+					continue;
+				}
+				TMap<int32, double> AccumulatedWeights;
+				for (int32 SplitVertexID : SplitVertices)
+				{
+					UE::AnimationCore::FBoneWeights SplitWeights;
+					Weights->GetValue(SplitVertexID, SplitWeights);
+					for (const UE::AnimationCore::FBoneWeight& Influence : SplitWeights)
+					{
+						AccumulatedWeights.FindOrAdd(static_cast<int32>(Influence.GetBoneIndex()))
+							+= static_cast<double>(Influence.GetWeight());
+					}
+				}
+				TArray<int32> SortedBoneIndices;
+				AccumulatedWeights.GetKeys(SortedBoneIndices);
+				SortedBoneIndices.Sort();
+				TArray<UE::AnimationCore::FBoneWeight> AverageInfluences;
+				AverageInfluences.Reserve(SortedBoneIndices.Num());
+				for (int32 BoneIndex : SortedBoneIndices)
+				{
+					AverageInfluences.Emplace(
+						static_cast<FBoneIndexType>(BoneIndex),
+						static_cast<float>(AccumulatedWeights.FindChecked(BoneIndex) / SplitVertices.Num()));
+				}
+				TArray<double> SortedAverageMasses;
+				for (const UE::AnimationCore::FBoneWeight& Influence : AverageInfluences)
+				{
+					SortedAverageMasses.Add(static_cast<double>(Influence.GetWeight()));
+				}
+				SortedAverageMasses.Sort(TGreater<double>());
+				double AverageTotalMass = 0.0;
+				double AverageRetainedMass = 0.0;
+				for (int32 WeightIndex = 0; WeightIndex < SortedAverageMasses.Num(); ++WeightIndex)
+				{
+					AverageTotalMass += SortedAverageMasses[WeightIndex];
+					if (WeightIndex < MaximumInfluenceCount)
+					{
+						AverageRetainedMass += SortedAverageMasses[WeightIndex];
+					}
+				}
+				if (!FMath::IsFinite(AverageTotalMass)
+					|| AverageTotalMass <= UE_DOUBLE_SMALL_NUMBER
+					|| AverageRetainedMass + 1.e-6 < AverageTotalMass * 0.95)
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Split group %d would retain only %.6f/%.6f influence mass."),
+						GroupPair.Key,
+						AverageRetainedMass,
+						AverageTotalMass));
+					break;
+				}
+				const UE::AnimationCore::FBoneWeights ReconciledWeights =
+					UE::AnimationCore::FBoneWeights::Create(AverageInfluences, WeightSettings);
+				if (ReconciledWeights.Num() == 0 || ReconciledWeights.Num() > MaximumInfluenceCount)
+				{
+					RejectWeights(FString::Printf(
+						TEXT("Split group %d produced %d normalized influences (limit %d)."),
+						GroupPair.Key,
+						ReconciledWeights.Num(),
+						MaximumInfluenceCount));
+					break;
+				}
+				for (int32 SplitVertexID : SplitVertices)
+				{
+					Weights->SetValue(SplitVertexID, ReconciledWeights);
+				}
+				OutReconciledSplitVertexCount += SplitVertices.Num();
+			}
+
+			RequiredBoneNames.Reset();
+			if (bWeightsValid)
+			{
+				for (int32 VertexID : Mesh.VertexIndicesItr())
+				{
+					UE::AnimationCore::FBoneWeights FinalWeights;
+					Weights->GetValue(VertexID, FinalWeights);
+					if (FinalWeights.Num() == 0 || FinalWeights.Num() > MaximumInfluenceCount)
+					{
+						RejectWeights(FString::Printf(
+							TEXT("Final garment vertex %d has %d influences (limit %d)."),
+							VertexID,
+							FinalWeights.Num(),
+							MaximumInfluenceCount));
+						break;
+					}
+					for (const UE::AnimationCore::FBoneWeight& Influence : FinalWeights)
+					{
+						const int32 BoneIndex = static_cast<int32>(Influence.GetBoneIndex());
+						if (!DynamicBoneNames.IsValidIndex(BoneIndex))
+						{
+							RejectWeights(FString::Printf(
+								TEXT("Final garment vertex %d references invalid bone index %d."),
+								VertexID,
+								BoneIndex));
+							break;
+						}
+						RequiredBoneNames.Add(DynamicBoneNames[BoneIndex]);
+					}
+					if (!bWeightsValid)
+					{
+						break;
+					}
+				}
+			}
+		}, EDynamicMeshChangeType::AttributeEdit, EDynamicMeshAttributeChangeFlags::Unknown, false);
 
 		if (!bWeightsValid)
 		{
-			OutError = TEXT("Transferred weights contain an unweighted vertex or exceed the influence limit.");
+			OutError = WeightFailureReason.IsEmpty()
+				? TEXT("Transferred weights failed an unspecified fail-closed validation gate.")
+				: WeightFailureReason;
+		}
+		OutRequiredWeightedBones = RequiredBoneNames.Array();
+		OutRequiredWeightedBones.Sort(FNameLexicalLess());
+		OutRemappedWeightedBoneCount = RemappedBodyBoneNames.Num();
+		OutMethod = ExcludedBodyBoneIndices.IsEmpty()
+			? FString::Printf(
+				TEXT("BarycentricSurfaceFemaleToMultipleAncestorRemap(bones=%d,remapped=%d)"),
+				ReboundGarmentBoneCount,
+				OutRemappedWeightedBoneCount)
+			: FString::Printf(
+				TEXT("BarycentricSurfaceFemaleToMultipleAncestorRemap(bones=%d,remapped=%d,excludedBranches=%d,excludedBones=%d)"),
+				ReboundGarmentBoneCount,
+				OutRemappedWeightedBoneCount,
+				ExcludedBodyBoneBranches.Num(),
+				ExcludedBodyBoneIndices.Num());
+		if (bWeightsValid && OutRequiredWeightedBones.IsEmpty())
+		{
+			OutError = TEXT("Transferred weights produced no required weighted bones.");
+			return false;
 		}
 		return bWeightsValid;
 	}
 
-	static bool WriteSkinProfile(UDynamicMesh* GarmentDynamicMesh, USkeletalMesh* Derived, FString& OutError)
+	static bool WriteSkinProfile(
+		UDynamicMesh* GarmentDynamicMesh,
+		USkeletalMesh* Derived,
+		int32 MaximumInfluences,
+		int32& OutCertifiedVertexCount,
+		FString& OutError)
 	{
+		OutCertifiedVertexCount = 0;
 		FGeometryScriptMeshWriteLOD WriteLOD;
 		WriteLOD.LODIndex = 0;
 		FGeometryScriptCopySkinWeightProfileToAssetOptions Options;
@@ -409,9 +1779,81 @@ namespace EFClothingFitCompilerPrivate
 		{
 			if (ProfileInfo.Name == FitWeightProfileName)
 			{
-				ProfileInfo.DefaultProfile = true;
+				// Runtime activates this profile explicitly. Marking it default can
+				// compete with an inherited profile under LoadByDefaultMode CVars.
+				ProfileInfo.DefaultProfile = false;
 				ProfileInfo.DefaultProfileFromLODIndex = 0;
 			}
+		}
+
+		const FDynamicMesh3& DynamicMesh = GarmentDynamicMesh->GetMeshRef();
+		const FDynamicMeshVertexSkinWeightsAttribute* RequestedWeights = DynamicMesh.Attributes()
+			? DynamicMesh.Attributes()->GetSkinWeightsAttribute(FitWeightProfileName)
+			: nullptr;
+		const FMeshDescription* StoredDescription = Derived->GetMeshDescription(0);
+		if (!RequestedWeights || !StoredDescription)
+		{
+			OutError = TEXT("Generated skin profile cannot be read back from LOD0.");
+			return false;
+		}
+		const FSkeletalMeshAttributesShared StoredAttributes(*StoredDescription);
+		const FSkinWeightsVertexAttributesConstRef StoredWeights =
+			StoredAttributes.GetVertexSkinWeights(FitWeightProfileName);
+		if (!StoredWeights.IsValid())
+		{
+			OutError = TEXT("EF_AutoFit is absent from the committed MeshDescription.");
+			return false;
+		}
+
+		const FNonManifoldMappingSupport Mapping(DynamicMesh);
+		TSet<int32> CertifiedOriginalVertices;
+		for (int32 VertexID : DynamicMesh.VertexIndicesItr())
+		{
+			const int32 OriginalVertexID = Mapping.GetOriginalNonManifoldVertexID(VertexID);
+			if (!StoredDescription->Vertices().IsValid(FVertexID(OriginalVertexID)))
+			{
+				OutError = FString::Printf(
+					TEXT("EF_AutoFit maps dynamic vertex %d to invalid stored vertex %d."),
+					VertexID,
+					OriginalVertexID);
+				return false;
+			}
+			UE::AnimationCore::FBoneWeights RequestedVertexWeights;
+			RequestedWeights->GetValue(VertexID, RequestedVertexWeights);
+			const FVertexBoneWeightsConst StoredVertexWeights = StoredWeights.Get(FVertexID(OriginalVertexID));
+			if (RequestedVertexWeights.Num() == 0
+				|| RequestedVertexWeights.Num() > MaximumInfluences
+				|| StoredVertexWeights.Num() != RequestedVertexWeights.Num())
+			{
+				OutError = FString::Printf(
+					TEXT("EF_AutoFit readback count mismatch at dynamic/stored vertex %d/%d."),
+					VertexID,
+					OriginalVertexID);
+				return false;
+			}
+			for (int32 InfluenceIndex = 0; InfluenceIndex < RequestedVertexWeights.Num(); ++InfluenceIndex)
+			{
+				const UE::AnimationCore::FBoneWeight RequestedInfluence = RequestedVertexWeights[InfluenceIndex];
+				const UE::AnimationCore::FBoneWeight StoredInfluence = StoredVertexWeights[InfluenceIndex];
+				if (RequestedInfluence != StoredInfluence)
+				{
+					OutError = FString::Printf(
+						TEXT("EF_AutoFit readback differs at vertex %d influence %d."),
+						OriginalVertexID,
+						InfluenceIndex);
+					return false;
+				}
+			}
+			CertifiedOriginalVertices.Add(OriginalVertexID);
+		}
+		OutCertifiedVertexCount = CertifiedOriginalVertices.Num();
+		if (OutCertifiedVertexCount != StoredDescription->Vertices().Num())
+		{
+			OutError = FString::Printf(
+				TEXT("EF_AutoFit certified %d of %d stored vertices."),
+				OutCertifiedVertexCount,
+				StoredDescription->Vertices().Num());
+			return false;
 		}
 		return true;
 	}
@@ -442,6 +1884,177 @@ namespace EFClothingFitCompilerPrivate
 		return true;
 	}
 
+	static bool ReadStoredMorphDeltas(
+		const USkeletalMesh* Mesh,
+		FName MorphName,
+		const FDynamicMesh3& DynamicTopology,
+		const TArray<FVector3d>* RequestedDeltas,
+		TArray<FVector3d>& OutDeltas,
+		int32& OutAlteredDeltaCount,
+		FString& OutError)
+	{
+		const FMeshDescription* Description = IsValid(Mesh) ? Mesh->GetMeshDescription(0) : nullptr;
+		if (!Description)
+		{
+			OutError = FString::Printf(TEXT("Stored morph %s has no LOD0 MeshDescription."), *MorphName.ToString());
+			return false;
+		}
+
+		const FSkeletalMeshAttributesShared Attributes(*Description);
+		const TVertexAttributesConstRef<FVector3f> StoredDeltas =
+			Attributes.GetVertexMorphPositionDelta(MorphName);
+		if (!StoredDeltas.IsValid())
+		{
+			OutError = FString::Printf(TEXT("Stored morph %s has no position-delta attribute."), *MorphName.ToString());
+			return false;
+		}
+
+		const FNonManifoldMappingSupport Mapping(DynamicTopology);
+		const FSkeletalMeshLODInfo* LODInfo = Mesh->GetLODInfo(0);
+		const double ComparisonToleranceCm = FMath::Max(
+			1.e-6,
+			LODInfo ? static_cast<double>(LODInfo->BuildSettings.MorphThresholdPosition) * 0.01 : 1.e-6);
+		OutDeltas.Init(FVector3d::Zero(), DynamicTopology.MaxVertexID());
+		for (int32 VertexID : DynamicTopology.VertexIndicesItr())
+		{
+			const int32 OriginalVertexID = Mapping.GetOriginalNonManifoldVertexID(VertexID);
+			if (!Description->Vertices().IsValid(FVertexID(OriginalVertexID)))
+			{
+				OutError = FString::Printf(
+					TEXT("Stored morph %s maps dynamic vertex %d to invalid source vertex %d."),
+					*MorphName.ToString(), VertexID, OriginalVertexID);
+				return false;
+			}
+			const FVector3f Stored = StoredDeltas.Get(FVertexID(OriginalVertexID));
+			if (!FMath::IsFinite(Stored.X) || !FMath::IsFinite(Stored.Y) || !FMath::IsFinite(Stored.Z))
+			{
+				OutError = FString::Printf(
+					TEXT("Stored morph %s contains a non-finite delta at vertex %d."),
+					*MorphName.ToString(), VertexID);
+				return false;
+			}
+			OutDeltas[VertexID] = FVector3d(Stored);
+			if (RequestedDeltas
+				&& RequestedDeltas->IsValidIndex(VertexID)
+				&& (OutDeltas[VertexID] - (*RequestedDeltas)[VertexID]).SquaredLength()
+					> FMath::Square(ComparisonToleranceCm))
+			{
+				++OutAlteredDeltaCount;
+			}
+		}
+		return true;
+	}
+
+	static void RemoveGeneratedMorph(USkeletalMesh* Derived, FName MorphName)
+	{
+		if (!IsValid(Derived) || MorphName.IsNone())
+		{
+			return;
+		}
+		if (FMeshDescription* Description = Derived->GetMeshDescription(0))
+		{
+			FSkeletalMeshAttributes Attributes(*Description);
+			constexpr bool bKeepExistingAttributes = true;
+			Attributes.Register(bKeepExistingAttributes);
+			Attributes.UnregisterMorphTargetAttribute(MorphName);
+		}
+		if (UMorphTarget* ExistingTarget = Derived->FindMorphTarget(MorphName))
+		{
+			Derived->UnregisterMorphTarget(ExistingTarget, false);
+			// UnregisterMorphTarget(..., false) intentionally skips the render-data
+			// rebuild, but it also leaves MorphTargetIndexMap pointing at the old
+			// array indices.  The envelope fallback can discard several provisional
+			// targets in one pass, so repair the lookup map before the next removal.
+			// Preserve unrelated pre-existing empty targets while rebuilding the map.
+			Derived->InitMorphTargets(true);
+		}
+	}
+
+	static bool RemoveDirectMorphsCommitted(
+		USkeletalMesh* Derived,
+		TConstArrayView<FName> MorphNames,
+		FString& OutError)
+	{
+		if (!IsValid(Derived) || MorphNames.IsEmpty())
+		{
+			return IsValid(Derived);
+		}
+		FMeshDescription* Description = Derived->GetMeshDescription(0);
+		if (!Description)
+		{
+			OutError = TEXT("Derived garment has no LOD0 MeshDescription for direct-morph isolation.");
+			return false;
+		}
+
+		FSkeletalMeshAttributes Attributes(*Description);
+		constexpr bool bKeepExistingAttributes = true;
+		Attributes.Register(bKeepExistingAttributes);
+		const TArray<FName> ExistingAttributeNames = Attributes.GetMorphTargetNames();
+		TArray<TObjectPtr<UMorphTarget>> RemovedObjects;
+		bool bNeedsCommit = false;
+		for (FName MorphName : MorphNames)
+		{
+			if (UMorphTarget* Target = Derived->FindMorphTarget(MorphName))
+			{
+				RemovedObjects.Add(Target);
+			}
+			bNeedsCommit |= ExistingAttributeNames.Contains(MorphName);
+		}
+
+		if (bNeedsCommit)
+		{
+			Derived->ModifyMeshDescription(0);
+			for (FName MorphName : MorphNames)
+			{
+				if (ExistingAttributeNames.Contains(MorphName))
+				{
+					Attributes.UnregisterMorphTargetAttribute(MorphName);
+				}
+			}
+			USkeletalMesh::FCommitMeshDescriptionParams CommitParams;
+			CommitParams.bUpdateMorphTargets = true;
+			CommitParams.bUpdateSkinWeightProfiles = false;
+			CommitParams.bUpdateVertexAttributes = false;
+			CommitParams.bUpdateVertexColors = false;
+			if (!Derived->CommitMeshDescription(0, CommitParams))
+			{
+				OutError = TEXT("Could not commit direct body-morph removal to the derived garment.");
+				return false;
+			}
+		}
+
+		for (UMorphTarget* RemovedObject : RemovedObjects)
+		{
+			if (!IsValid(RemovedObject))
+			{
+				continue;
+			}
+			if (Derived->FindMorphTarget(RemovedObject->GetFName()) == RemovedObject)
+			{
+				Derived->UnregisterMorphTarget(RemovedObject, false);
+			}
+			RemovedObject->RemoveFromRoot();
+			RemovedObject->ClearFlags(RF_Standalone);
+			RemovedObject->Rename(
+				nullptr,
+				GetTransientPackage(),
+				REN_DoNotDirty | REN_DontCreateRedirectors);
+			RemovedObject->MarkAsGarbage();
+		}
+		for (int32 LODIndex = 0; LODIndex < Derived->GetLODNum(); ++LODIndex)
+		{
+			if (FSkeletalMeshLODInfo* LODInfo = Derived->GetLODInfo(LODIndex))
+			{
+				for (FName MorphName : MorphNames)
+				{
+					LODInfo->ImportedMorphTargetSourceFilename.Remove(MorphName.ToString());
+				}
+			}
+		}
+		Derived->InitMorphTargets(true);
+		return true;
+	}
+
 	static FVector3d GetTransferredBodyMorphDelta(
 		const FDynamicMesh3& BodyMesh,
 		const FNonManifoldMappingSupport& BodyMapping,
@@ -465,6 +2078,1195 @@ namespace EFClothingFitCompilerPrivate
 			+ DeltaAt(Triangle.C) * Correspondence.Barycentric.Z;
 	}
 
+	static bool MeasureVertexClearancePrepared(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMeshAABBTree3& BodySpatial,
+		const FMeshNormals& BodyNormals,
+		const FDynamicMesh3& GarmentMesh,
+		double& OutMinimumGap,
+		int32& OutPenetratingVertices)
+	{
+		OutMinimumGap = TNumericLimits<double>::Max();
+		OutPenetratingVertices = 0;
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d Position = GarmentMesh.GetVertex(VertexID);
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 TriangleID = BodySpatial.FindNearestTriangle(Position, DistanceSquared);
+			if (TriangleID == IndexConstants::InvalidID)
+			{
+				return false;
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh, TriangleID, Position);
+			const FVector3d Normal = InterpolateNormal(
+				BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
+			const double SignedGap = (Position - Query.ClosestTrianglePoint).Dot(Normal);
+			OutMinimumGap = FMath::Min(OutMinimumGap, SignedGap);
+			if (SignedGap < 0.0)
+			{
+				++OutPenetratingVertices;
+			}
+		}
+		return true;
+	}
+
+	static bool MeasureVertexClearance(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMesh3& GarmentMesh,
+		double& OutMinimumGap,
+		int32& OutPenetratingVertices)
+	{
+		const FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
+		FMeshNormals BodyNormals(&BodyMesh);
+		BodyNormals.ComputeVertexNormals();
+		return MeasureVertexClearancePrepared(
+			BodyMesh,
+			BodySpatial,
+			BodyNormals,
+			GarmentMesh,
+			OutMinimumGap,
+			OutPenetratingVertices);
+	}
+
+	static bool MeshesIntersectPrepared(const FDynamicMeshAABBTree3& ATree, const FDynamicMesh3& B)
+	{
+		// The raw-mesh overload walks every ID up to MaxTriangleID and assumes a
+		// compact triangle set.  Generated skeletal meshes can contain sparse IDs,
+		// so always use a second validated tree.
+		const FDynamicMeshAABBTree3 BTree(&B, true);
+		return ATree.TestIntersection(BTree);
+	}
+
+	static void CollectIntersectingGarmentVerticesPrepared(
+		const FDynamicMeshAABBTree3& BodyTree,
+		const FDynamicMesh3& GarmentMesh,
+		TSet<int32>& OutVertexIDs)
+	{
+		OutVertexIDs.Reset();
+		const FDynamicMeshAABBTree3 GarmentTree(&GarmentMesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			BodyTree.FindAllIntersections(GarmentTree);
+		auto AddGarmentTriangle = [&GarmentMesh, &OutVertexIDs](int32 TriangleID)
+		{
+			if (!GarmentMesh.IsTriangle(TriangleID))
+			{
+				return;
+			}
+			const FIndex3i Triangle = GarmentMesh.GetTriangle(TriangleID);
+			OutVertexIDs.Add(Triangle.A);
+			OutVertexIDs.Add(Triangle.B);
+			OutVertexIDs.Add(Triangle.C);
+		};
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			AddGarmentTriangle(Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			AddGarmentTriangle(Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			AddGarmentTriangle(Intersection.TriangleID[1]);
+		}
+
+		// Include one ring so the correction remains smooth enough for skinning
+		// instead of creating a sharp spike at the intersecting triangle.
+		const TArray<int32> SeedVertices = OutVertexIDs.Array();
+		for (int32 SeedVertexID : SeedVertices)
+		{
+			for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(SeedVertexID))
+			{
+				OutVertexIDs.Add(NeighborVertexID);
+			}
+		}
+	}
+
+	struct FRawIntersectionContacts
+	{
+		TSet<int32> GarmentTriangleIDs;
+		TMap<int32, FVector3d> GarmentTriangleNormalSums;
+		int32 PrimitiveCount = 0;
+		double NormalizedMeasure = 0.0;
+	};
+
+	struct FRawIntersectionComponent
+	{
+		TArray<int32> CoreTriangleIDs;
+		TArray<int32> CoreVertexIDs;
+		TMap<int32, int32> SupportDepthByVertex;
+		FVector3d Direction = FVector3d::Zero();
+		double NormalCoherence = 0.0;
+		int32 MinimumTriangleID = IndexConstants::InvalidID;
+	};
+
+	struct FIntersectionTopologyScore
+	{
+		int32 IntersectingTierCount = 0;
+		int32 ContactTriangleTierPairCount = 0;
+		int32 ContactTriangleCount = 0;
+		int32 PrimitiveCount = 0;
+		double NormalizedMeasure = 0.0;
+		double MinimumGap = TNumericLimits<double>::Max();
+		double MaximumTopologyDisplacement = 0.0;
+		double TopologySquaredEnergy = 0.0;
+		double MaximumRepairMagnitude = 0.0;
+		double RepairSquaredSum = 0.0;
+		double MinimumTriangleNormalDot = 1.0;
+		double MaximumAreaScaleDeviation = 0.0;
+		double MaximumEdgeScaleDeviation = 0.0;
+	};
+
+	static bool CollectRawIntersectingGarmentContactsPrepared(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMeshAABBTree3& BodyTree,
+		const FDynamicMesh3& GarmentMesh,
+		FRawIntersectionContacts& OutContacts)
+	{
+		OutContacts = FRawIntersectionContacts();
+		const FDynamicMeshAABBTree3 GarmentTree(&GarmentMesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			BodyTree.FindAllIntersections(GarmentTree);
+		auto AddContact = [
+			&BodyMesh,
+			&GarmentMesh,
+			&OutContacts](int32 BodyTriangleID, int32 GarmentTriangleID, double NormalizedMeasure)
+		{
+			if (!BodyMesh.IsTriangle(BodyTriangleID)
+				|| !GarmentMesh.IsTriangle(GarmentTriangleID))
+			{
+				return;
+			}
+			FVector3d ContactNormal = BodyMesh.GetTriNormal(BodyTriangleID);
+			if (!ContactNormal.Normalize())
+			{
+				return;
+			}
+			const double Weight = FMath::Max(NormalizedMeasure, 1.e-6);
+			OutContacts.GarmentTriangleIDs.Add(GarmentTriangleID);
+			OutContacts.GarmentTriangleNormalSums.FindOrAdd(GarmentTriangleID)
+				+= ContactNormal * Weight;
+			++OutContacts.PrimitiveCount;
+			OutContacts.NormalizedMeasure += Weight;
+		};
+		auto LocalLength = [&GarmentMesh](int32 GarmentTriangleID) -> double
+		{
+			return FMath::Sqrt(FMath::Max(GarmentMesh.GetTriArea(GarmentTriangleID), 1.e-8));
+		};
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			AddContact(Intersection.TriangleID[0], Intersection.TriangleID[1], 1.0);
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			const int32 GarmentTriangleID = Intersection.TriangleID[1];
+			const double Scale = GarmentMesh.IsTriangle(GarmentTriangleID)
+				? LocalLength(GarmentTriangleID)
+				: 1.0;
+			AddContact(
+				Intersection.TriangleID[0],
+				GarmentTriangleID,
+				(Intersection.Point[1] - Intersection.Point[0]).Length() / Scale);
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			double PolygonArea = 0.0;
+			for (int32 PointIndex = 1; PointIndex + 1 < Intersection.Quantity; ++PointIndex)
+			{
+				PolygonArea += 0.5 * (Intersection.Point[PointIndex] - Intersection.Point[0])
+					.Cross(Intersection.Point[PointIndex + 1] - Intersection.Point[0]).Length();
+			}
+			const int32 GarmentTriangleID = Intersection.TriangleID[1];
+			const double TriangleArea = GarmentMesh.IsTriangle(GarmentTriangleID)
+				? FMath::Max(GarmentMesh.GetTriArea(GarmentTriangleID), 1.e-8)
+				: 1.0;
+			AddContact(
+				Intersection.TriangleID[0],
+				GarmentTriangleID,
+				PolygonArea / TriangleArea);
+		}
+		return OutContacts.PrimitiveCount > 0
+			&& !OutContacts.GarmentTriangleIDs.IsEmpty();
+	}
+
+	static bool BuildRawIntersectionComponents(
+		const FDynamicMesh3& GarmentMesh,
+		const FRawIntersectionContacts& Contacts,
+		TArray<FRawIntersectionComponent>& OutComponents)
+	{
+		OutComponents.Reset();
+		if (Contacts.GarmentTriangleIDs.IsEmpty())
+		{
+			return false;
+		}
+
+		TMap<int32, FVector3d> TriangleDirections;
+		TArray<int32> SortedContactTriangles = Contacts.GarmentTriangleIDs.Array();
+		SortedContactTriangles.Sort();
+		for (int32 TriangleID : SortedContactTriangles)
+		{
+			FVector3d Direction = Contacts.GarmentTriangleNormalSums.FindRef(TriangleID);
+			if (!GarmentMesh.IsTriangle(TriangleID) || !Direction.Normalize())
+			{
+				return false;
+			}
+			TriangleDirections.Add(TriangleID, Direction);
+		}
+
+		// Segment raw contact triangles before any support-ring expansion. The
+		// normal compatibility gate prevents a continuous crotch/axilla strip from
+		// cancelling two anatomically opposed escape directions into one vector.
+		constexpr double MinimumAdjacentNormalDot = 0.50;
+		constexpr double MinimumComponentCoherence = 0.20;
+		constexpr int32 SupportRingCount = 12;
+		TSet<int32> UnvisitedTriangles = Contacts.GarmentTriangleIDs;
+		for (int32 SeedTriangleID : SortedContactTriangles)
+		{
+			if (!UnvisitedTriangles.Contains(SeedTriangleID))
+			{
+				continue;
+			}
+
+			FRawIntersectionComponent Component;
+			Component.MinimumTriangleID = SeedTriangleID;
+			TArray<int32> PendingTriangles;
+			PendingTriangles.Add(SeedTriangleID);
+			UnvisitedTriangles.Remove(SeedTriangleID);
+			for (int32 PendingIndex = 0; PendingIndex < PendingTriangles.Num(); ++PendingIndex)
+			{
+				const int32 TriangleID = PendingTriangles[PendingIndex];
+				Component.CoreTriangleIDs.Add(TriangleID);
+				const FVector3d CurrentDirection = TriangleDirections.FindChecked(TriangleID);
+				const FIndex3i TriangleNeighbors = GarmentMesh.GetTriNeighbourTris(TriangleID);
+				TArray<int32, TInlineAllocator<3>> SortedNeighbors;
+				for (int32 NeighborIndex = 0; NeighborIndex < 3; ++NeighborIndex)
+				{
+					const int32 NeighborTriangleID = TriangleNeighbors[NeighborIndex];
+					if (NeighborTriangleID != IndexConstants::InvalidID
+						&& UnvisitedTriangles.Contains(NeighborTriangleID))
+					{
+						SortedNeighbors.Add(NeighborTriangleID);
+					}
+				}
+				SortedNeighbors.Sort();
+				for (int32 NeighborTriangleID : SortedNeighbors)
+				{
+					if (CurrentDirection.Dot(TriangleDirections.FindChecked(NeighborTriangleID))
+						< MinimumAdjacentNormalDot)
+					{
+						continue;
+					}
+					if (UnvisitedTriangles.Remove(NeighborTriangleID) > 0)
+					{
+						PendingTriangles.Add(NeighborTriangleID);
+					}
+				}
+			}
+
+			Component.CoreTriangleIDs.Sort();
+			TSet<int32> CoreVertices;
+			FVector3d WeightedDirection = FVector3d::Zero();
+			double TotalDirectionWeight = 0.0;
+			for (int32 TriangleID : Component.CoreTriangleIDs)
+			{
+				const FIndex3i Triangle = GarmentMesh.GetTriangle(TriangleID);
+				CoreVertices.Add(Triangle.A);
+				CoreVertices.Add(Triangle.B);
+				CoreVertices.Add(Triangle.C);
+				const double DirectionWeight = FMath::Max(GarmentMesh.GetTriArea(TriangleID), 1.e-8);
+				WeightedDirection += TriangleDirections.FindChecked(TriangleID) * DirectionWeight;
+				TotalDirectionWeight += DirectionWeight;
+			}
+			const double DirectionLength = WeightedDirection.Length();
+			Component.NormalCoherence = TotalDirectionWeight > 0.0
+				? DirectionLength / TotalDirectionWeight
+				: 0.0;
+			if (Component.NormalCoherence < MinimumComponentCoherence
+				|| !WeightedDirection.Normalize())
+			{
+				return false;
+			}
+			Component.Direction = WeightedDirection;
+			Component.CoreVertexIDs = CoreVertices.Array();
+			Component.CoreVertexIDs.Sort();
+
+			TArray<int32> Frontier = Component.CoreVertexIDs;
+			for (int32 VertexID : Component.CoreVertexIDs)
+			{
+				Component.SupportDepthByVertex.Add(VertexID, 0);
+			}
+			for (int32 SupportDepth = 1; SupportDepth <= SupportRingCount; ++SupportDepth)
+			{
+				TSet<int32> NextFrontierSet;
+				for (int32 VertexID : Frontier)
+				{
+					TArray<int32> SortedVertexNeighbors;
+					for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(VertexID))
+					{
+						SortedVertexNeighbors.Add(NeighborVertexID);
+					}
+					SortedVertexNeighbors.Sort();
+					for (int32 NeighborVertexID : SortedVertexNeighbors)
+					{
+						if (!Component.SupportDepthByVertex.Contains(NeighborVertexID))
+						{
+							NextFrontierSet.Add(NeighborVertexID);
+						}
+					}
+				}
+				Frontier = NextFrontierSet.Array();
+				Frontier.Sort();
+				for (int32 VertexID : Frontier)
+				{
+					Component.SupportDepthByVertex.Add(VertexID, SupportDepth);
+				}
+			}
+			OutComponents.Add(MoveTemp(Component));
+		}
+
+		OutComponents.Sort([](const FRawIntersectionComponent& A, const FRawIntersectionComponent& B)
+		{
+			return A.MinimumTriangleID < B.MinimumTriangleID;
+		});
+		return !OutComponents.IsEmpty();
+	}
+
+	static void CollectIntersectingGarmentContactNormalsPrepared(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMeshAABBTree3& BodyTree,
+		const FDynamicMesh3& GarmentMesh,
+		TMap<int32, FVector3d>& OutVertexNormals)
+	{
+		OutVertexNormals.Reset();
+		const FDynamicMeshAABBTree3 GarmentTree(&GarmentMesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			BodyTree.FindAllIntersections(GarmentTree);
+		auto AddContact = [
+			&BodyMesh,
+			&GarmentMesh,
+			&OutVertexNormals](int32 BodyTriangleID, int32 GarmentTriangleID)
+		{
+			if (!BodyMesh.IsTriangle(BodyTriangleID)
+				|| !GarmentMesh.IsTriangle(GarmentTriangleID))
+			{
+				return;
+			}
+			FVector3d ContactNormal = BodyMesh.GetTriNormal(BodyTriangleID);
+			if (!ContactNormal.Normalize())
+			{
+				return;
+			}
+			const FIndex3i GarmentTriangle = GarmentMesh.GetTriangle(GarmentTriangleID);
+			OutVertexNormals.FindOrAdd(GarmentTriangle.A) += ContactNormal;
+			OutVertexNormals.FindOrAdd(GarmentTriangle.B) += ContactNormal;
+			OutVertexNormals.FindOrAdd(GarmentTriangle.C) += ContactNormal;
+		};
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			AddContact(Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			AddContact(Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			AddContact(Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+
+		const TMap<int32, FVector3d> SeedNormals = OutVertexNormals;
+		for (const TPair<int32, FVector3d>& Seed : SeedNormals)
+		{
+			for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(Seed.Key))
+			{
+				OutVertexNormals.FindOrAdd(NeighborVertexID) += Seed.Value * 0.5;
+			}
+		}
+	}
+
+	static void ReconcileNonManifoldVectorField(
+		const FDynamicMesh3& Mesh,
+		TArray<FVector3d>& InOutValues)
+	{
+		if (InOutValues.Num() < Mesh.MaxVertexID())
+		{
+			return;
+		}
+		const FNonManifoldMappingSupport Mapping(Mesh);
+		TMap<int32, TArray<int32>> SplitGroups;
+		for (int32 VertexID : Mesh.VertexIndicesItr())
+		{
+			SplitGroups.FindOrAdd(Mapping.GetOriginalNonManifoldVertexID(VertexID)).Add(VertexID);
+		}
+		for (const TPair<int32, TArray<int32>>& SplitGroup : SplitGroups)
+		{
+			if (SplitGroup.Value.Num() <= 1)
+			{
+				continue;
+			}
+			FVector3d Average = FVector3d::Zero();
+			for (int32 SplitVertexID : SplitGroup.Value)
+			{
+				Average += InOutValues[SplitVertexID];
+			}
+			Average /= static_cast<double>(SplitGroup.Value.Num());
+			for (int32 SplitVertexID : SplitGroup.Value)
+			{
+				InOutValues[SplitVertexID] = Average;
+			}
+		}
+	}
+
+	static bool BuildDirectionalClearanceCorrections(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMesh3& GarmentMesh,
+		double DesiredClearance,
+		double MaximumRepair,
+		TArray<FVector3d>& OutCorrections,
+		double& OutMinimumGap)
+	{
+		FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
+		FMeshNormals BodyNormals(&BodyMesh);
+		BodyNormals.ComputeVertexNormals();
+		const FVector3d BodyCenter = BodyMesh.GetBounds().Center();
+		OutCorrections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		OutMinimumGap = TNumericLimits<double>::Max();
+
+		auto MeasurePoint = [&](const FVector3d& Position, FVector3d* OutNormal, FVector3d* OutClosestPoint) -> double
+		{
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 TriangleID = BodySpatial.FindNearestTriangle(Position, DistanceSquared);
+			if (TriangleID == IndexConstants::InvalidID)
+			{
+				return -TNumericLimits<double>::Max();
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh, TriangleID, Position);
+			const FVector3d Normal = InterpolateNormal(
+				BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
+			if (OutNormal)
+			{
+				*OutNormal = Normal;
+			}
+			if (OutClosestPoint)
+			{
+				*OutClosestPoint = Query.ClosestTrianglePoint;
+			}
+			return (Position - Query.ClosestTrianglePoint).Dot(Normal);
+		};
+
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d BasePosition = GarmentMesh.GetVertex(VertexID);
+			FVector3d Position = BasePosition;
+			FVector3d Correction = FVector3d::Zero();
+			double Gap = MeasurePoint(Position, nullptr, nullptr);
+			for (int32 Iteration = 0; Gap < DesiredClearance - 0.001 && Iteration < 96; ++Iteration)
+			{
+				const double Remaining = MaximumRepair - Correction.Length();
+				if (Remaining <= 1.e-6)
+				{
+					break;
+				}
+				FVector3d NearestNormal;
+				FVector3d ClosestPoint;
+				Gap = MeasurePoint(Position, &NearestNormal, &ClosestPoint);
+				FVector3d FromSurface = Position - ClosestPoint;
+				FromSurface.Normalize();
+				FVector3d Radial = Position - BodyCenter;
+				Radial.Normalize();
+				TArray<FVector3d, TInlineAllocator<32>> Directions;
+				Directions.Add(NearestNormal);
+				Directions.Add(FromSurface);
+				Directions.Add(Radial);
+				Directions.Add(-NearestNormal);
+				for (int32 X = -1; X <= 1; ++X)
+				{
+					for (int32 Y = -1; Y <= 1; ++Y)
+					{
+						for (int32 Z = -1; Z <= 1; ++Z)
+						{
+							if (X != 0 || Y != 0 || Z != 0)
+							{
+								Directions.Add(FVector3d(X, Y, Z));
+							}
+						}
+					}
+				}
+
+				const double MinimumStep = FMath::Min(
+					Remaining,
+					FMath::Clamp(DesiredClearance - Gap + 0.02, 0.05, 0.50));
+				double BestGap = Gap;
+				FVector3d BestPosition = Position;
+				const double StepCandidates[] = {
+					MinimumStep,
+					FMath::Min(Remaining, FMath::Max(MinimumStep * 2.0, 0.25)),
+					FMath::Min(Remaining, 0.50),
+					FMath::Min(Remaining, 1.00)};
+				for (double Step : StepCandidates)
+				{
+					if (Step <= 1.e-6)
+					{
+						continue;
+					}
+					for (FVector3d Direction : Directions)
+					{
+						if (!Direction.Normalize())
+						{
+							continue;
+						}
+						const FVector3d CandidatePosition = Position + Direction * Step;
+						if ((CandidatePosition - BasePosition).Length() > MaximumRepair + 1.e-6)
+						{
+							continue;
+						}
+						const double CandidateGap = MeasurePoint(CandidatePosition, nullptr, nullptr);
+						if (CandidateGap > BestGap + 1.e-6)
+						{
+							BestGap = CandidateGap;
+							BestPosition = CandidatePosition;
+						}
+					}
+				}
+				if (BestPosition.Equals(Position, 1.e-9))
+				{
+					break;
+				}
+				Position = BestPosition;
+				Correction = Position - BasePosition;
+				Gap = BestGap;
+			}
+			Gap = MeasurePoint(Position, nullptr, nullptr);
+			if (Gap < DesiredClearance - 0.001)
+			{
+				OutMinimumGap = FMath::Min(OutMinimumGap, Gap);
+				return false;
+			}
+			OutCorrections[VertexID] = Correction;
+			OutMinimumGap = FMath::Min(OutMinimumGap, Gap);
+		}
+		return true;
+	}
+
+	static bool BuildMultiTierShapeClearanceCorrections(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMesh3& GarmentMesh,
+		const TArray<FVector3d>& ClearanceDeltas,
+		const TArray<FVector3d>& ShapeMorphDeltas,
+		const TArray<FVector3d>& ShapeClearanceDirections,
+		double DesiredClearance,
+		double MaximumRepair,
+		bool bScaleCorrectionWithClearanceTier,
+		bool bAllowBodyFrameConeDirections,
+		bool& bOutUsedBodyFrameConeDirections,
+		TArray<FVector3d>& OutCorrections,
+		double& OutMinimumGap)
+	{
+		bOutUsedBodyFrameConeDirections = false;
+		if (ClearanceDeltas.Num() < GarmentMesh.MaxVertexID()
+			|| ShapeMorphDeltas.Num() < GarmentMesh.MaxVertexID()
+			|| ShapeClearanceDirections.Num() < GarmentMesh.MaxVertexID())
+		{
+			return false;
+		}
+
+		const FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
+		FMeshNormals BodyNormals(&BodyMesh);
+		BodyNormals.ComputeVertexNormals();
+		const FVector3d BodyCenter = BodyMesh.GetBounds().Center();
+		OutCorrections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		OutMinimumGap = TNumericLimits<double>::Max();
+		constexpr double MarchStepCm = 0.10;
+		constexpr int32 RefinementIterations = 12;
+		constexpr int32 SupportSmoothingIterations = 4;
+		constexpr double SupportFalloff = 0.80;
+
+		auto MeasurePoint = [&BodyMesh, &BodySpatial, &BodyNormals](
+			const FVector3d& Position,
+			FVector3d* OutNormal,
+			FVector3d* OutClosestPoint) -> double
+		{
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 TriangleID = BodySpatial.FindNearestTriangle(Position, DistanceSquared);
+			if (TriangleID == IndexConstants::InvalidID)
+			{
+				return -TNumericLimits<double>::Max();
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh,
+				TriangleID,
+				Position);
+			const FVector3d Normal = InterpolateNormal(
+				BodyMesh,
+				BodyNormals,
+				TriangleID,
+				Query.TriangleBaryCoords);
+			if (OutNormal)
+			{
+				*OutNormal = Normal;
+			}
+			if (OutClosestPoint)
+			{
+				*OutClosestPoint = Query.ClosestTrianglePoint;
+			}
+			return (Position - Query.ClosestTrianglePoint).Dot(Normal);
+		};
+
+		TArray<FVector3d> CoherentDirections;
+		TArray<double> RequiredDistances;
+		TArray<double> StableDistances;
+		CoherentDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		RequiredDistances.Init(0.0, GarmentMesh.MaxVertexID());
+		StableDistances.Init(0.0, GarmentMesh.MaxVertexID());
+
+		auto ComputeCorrectionRayLimit = [
+			&ClearanceDeltas,
+			MaximumRepair,
+			bScaleCorrectionWithClearanceTier](
+				int32 VertexID,
+				const FVector3d& UnitDirection) -> double
+		{
+			if (!bScaleCorrectionWithClearanceTier)
+			{
+				return MaximumRepair;
+			}
+
+			// MaximumRepair bounds the final base clearance delta. Rotating an
+			// existing delta inside that sphere can require a correction up to 2M.
+			const FVector3d& CurrentDelta = ClearanceDeltas[VertexID];
+			if (CurrentDelta.SquaredLength()
+				> MaximumRepair * MaximumRepair + 1.e-6)
+			{
+				return 0.0;
+			}
+			const double Projection = CurrentDelta.Dot(UnitDirection);
+			const double Radicand = Projection * Projection
+				+ MaximumRepair * MaximumRepair
+				- CurrentDelta.SquaredLength();
+			if (Radicand < -1.e-6)
+			{
+				return 0.0;
+			}
+			return FMath::Max(
+				0.0,
+				-Projection + FMath::Sqrt(FMath::Max(0.0, Radicand)));
+		};
+
+		auto MeasureAcrossTiers = [
+			&GarmentMesh,
+			&ClearanceDeltas,
+			&ShapeMorphDeltas,
+			&MeasurePoint,
+			bScaleCorrectionWithClearanceTier](
+			int32 VertexID,
+			const FVector3d& Correction) -> double
+		{
+			double MinimumGap = TNumericLimits<double>::Max();
+			for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+			{
+				const double Tier = FMath::Lerp(
+					CertifiedClearanceTierMin,
+					CertifiedClearanceTierMax,
+					static_cast<double>(TierIndex)
+						/ static_cast<double>(CertifiedClearanceTierCount - 1));
+				const FVector3d TierPosition = GarmentMesh.GetVertex(VertexID)
+					+ ClearanceDeltas[VertexID] * Tier
+					+ ShapeMorphDeltas[VertexID]
+					+ Correction * (bScaleCorrectionWithClearanceTier ? Tier : 1.0);
+				MinimumGap = FMath::Min(MinimumGap, MeasurePoint(TierPosition, nullptr, nullptr));
+			}
+			return MinimumGap;
+		};
+
+		// Solve only a scalar displacement along the body-correspondence direction.
+		// The old per-vertex free-direction search could choose unrelated axes on
+		// adjacent vertices and fold otherwise valid garment triangles.
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			FVector3d SurfaceDirection = ShapeClearanceDirections[VertexID];
+			if (!SurfaceDirection.Normalize())
+			{
+				SurfaceDirection = ClearanceDeltas[VertexID];
+			}
+			if (!SurfaceDirection.Normalize())
+			{
+				double WorstGap = TNumericLimits<double>::Max();
+				for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+				{
+					const double Tier = FMath::Lerp(
+						CertifiedClearanceTierMin,
+						CertifiedClearanceTierMax,
+						static_cast<double>(TierIndex)
+							/ static_cast<double>(CertifiedClearanceTierCount - 1));
+					const FVector3d TierPosition = GarmentMesh.GetVertex(VertexID)
+						+ ClearanceDeltas[VertexID] * Tier
+						+ ShapeMorphDeltas[VertexID];
+					FVector3d CandidateNormal;
+					const double Gap = MeasurePoint(TierPosition, &CandidateNormal, nullptr);
+					if (Gap < WorstGap)
+					{
+						WorstGap = Gap;
+						SurfaceDirection = CandidateNormal;
+					}
+				}
+			}
+			if (!SurfaceDirection.Normalize())
+			{
+				return false;
+			}
+
+			FVector3d RadialDirection = GarmentMesh.GetVertex(VertexID)
+				+ ShapeMorphDeltas[VertexID]
+				+ ClearanceDeltas[VertexID] * CertifiedClearanceTierMin
+				- BodyCenter;
+			if (!RadialDirection.Normalize())
+			{
+				RadialDirection = SurfaceDirection;
+			}
+			// A pure correspondence normal can point from one inner limb directly
+			// toward the opposing limb. Blend continuously toward the global radial
+			// field only where those two coherent fields disagree; this preserves
+			// surface-normal motion elsewhere without making per-vertex axis choices.
+			const double DirectionAgreement = SurfaceDirection.Dot(RadialDirection);
+			const double RadialWeight = FMath::Clamp((0.35 - DirectionAgreement) * 0.75, 0.0, 1.0);
+			FVector3d Direction = SurfaceDirection * (1.0 - RadialWeight)
+				+ RadialDirection * RadialWeight;
+			if (!Direction.Normalize())
+			{
+				Direction = RadialDirection;
+			}
+			CoherentDirections[VertexID] = Direction;
+
+			double VertexMinimumGap = MeasureAcrossTiers(VertexID, FVector3d::Zero());
+			if (VertexMinimumGap >= DesiredClearance - 0.001)
+			{
+				continue;
+			}
+
+			FVector3d CurrentWorstNormal = SurfaceDirection;
+			FVector3d CurrentWorstFromSurface = SurfaceDirection;
+			double CurrentWorstGap = TNumericLimits<double>::Max();
+			for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+			{
+				const double Tier = FMath::Lerp(
+					CertifiedClearanceTierMin,
+					CertifiedClearanceTierMax,
+					static_cast<double>(TierIndex)
+						/ static_cast<double>(CertifiedClearanceTierCount - 1));
+				const FVector3d TierPosition = GarmentMesh.GetVertex(VertexID)
+					+ ClearanceDeltas[VertexID] * Tier
+					+ ShapeMorphDeltas[VertexID];
+				FVector3d CurrentNormal;
+				FVector3d CurrentClosestPoint;
+				const double CurrentGap = MeasurePoint(
+					TierPosition,
+					&CurrentNormal,
+					&CurrentClosestPoint);
+				if (CurrentGap < CurrentWorstGap)
+				{
+					CurrentWorstGap = CurrentGap;
+					CurrentWorstNormal = CurrentNormal;
+					CurrentWorstFromSurface = TierPosition - CurrentClosestPoint;
+				}
+			}
+
+			double BestGap = VertexMinimumGap;
+			double BestRequiredDistance = TNumericLimits<double>::Max();
+			FVector3d BestCorrectionDirection = Direction;
+			bool bBestDirectionUsesBodyFrameCone = false;
+			auto TryCoherentDirection = [
+				&MeasureAcrossTiers,
+				&BestGap,
+				&BestRequiredDistance,
+				&BestCorrectionDirection,
+				&bBestDirectionUsesBodyFrameCone,
+				&ClearanceDeltas,
+				&ComputeCorrectionRayLimit,
+				VertexID,
+				DesiredClearance,
+				MaximumRepair,
+				bScaleCorrectionWithClearanceTier](FVector3d CandidateDirection, bool bBodyFrameCone) -> bool
+			{
+				if (!CandidateDirection.Normalize())
+				{
+					return false;
+				}
+				// Keep the normal anatomical fields inside the established stable
+				// repair budget. Only the explicit body-frame escape cone may consume
+				// the extended emergency budget; otherwise a distant first-choice
+				// normal can pre-empt a better alternate direction and fold topology.
+				const double RayLimit = ComputeCorrectionRayLimit(VertexID, CandidateDirection);
+				const double DirectionMaximumRepair = bBodyFrameCone
+					? RayLimit
+					: FMath::Min(RayLimit, 10.0);
+				if (DirectionMaximumRepair <= 1.e-9)
+				{
+					return false;
+				}
+				const int32 DirectionMarchSteps = FMath::Max(
+					1,
+					FMath::CeilToInt(DirectionMaximumRepair / MarchStepCm));
+				double PreviousDistance = 0.0;
+				for (int32 StepIndex = 1; StepIndex <= DirectionMarchSteps; ++StepIndex)
+				{
+					const double Distance = FMath::Min(
+						DirectionMaximumRepair,
+						StepIndex * MarchStepCm);
+					if (bScaleCorrectionWithClearanceTier
+						&& (ClearanceDeltas[VertexID] + CandidateDirection * Distance).Length()
+							> MaximumRepair + 1.e-6)
+					{
+						continue;
+					}
+					const double CandidateGap = MeasureAcrossTiers(
+						VertexID,
+						CandidateDirection * Distance);
+					BestGap = FMath::Max(BestGap, CandidateGap);
+					if (CandidateGap >= DesiredClearance - 0.001)
+					{
+						double LowDistance = PreviousDistance;
+						double HighDistance = Distance;
+						for (int32 Refinement = 0; Refinement < RefinementIterations; ++Refinement)
+						{
+							const double MidDistance = (LowDistance + HighDistance) * 0.5;
+							if (MeasureAcrossTiers(
+								VertexID,
+								CandidateDirection * MidDistance)
+								>= DesiredClearance - 0.001)
+							{
+								HighDistance = MidDistance;
+							}
+							else
+							{
+								LowDistance = MidDistance;
+							}
+						}
+						if (HighDistance < BestRequiredDistance)
+						{
+							BestRequiredDistance = HighDistance;
+							BestCorrectionDirection = CandidateDirection;
+							bBestDirectionUsesBodyFrameCone = bBodyFrameCone;
+						}
+						return true;
+					}
+					PreviousDistance = Distance;
+				}
+				return false;
+			};
+
+			bool bFoundCorrection = false;
+			// Evaluate every anatomical field. Boolean short-circuiting here used to
+			// preserve the first valid direction and miss a smaller coherent repair.
+			bFoundCorrection |= TryCoherentDirection(Direction, false);
+			bFoundCorrection |= TryCoherentDirection(RadialDirection, false);
+			bFoundCorrection |= TryCoherentDirection(CurrentWorstNormal, false);
+			bFoundCorrection |= TryCoherentDirection(CurrentWorstFromSurface, false);
+			bFoundCorrection |= TryCoherentDirection(SurfaceDirection, false);
+			bFoundCorrection |= TryCoherentDirection(ClearanceDeltas[VertexID], false);
+			if (!bFoundCorrection && bAllowBodyFrameConeDirections)
+			{
+				FVector3d NormalDirection = CurrentWorstNormal;
+				NormalDirection.Normalize();
+				const FVector3d WorldUp(0.0, 0.0, 1.0);
+				const FVector3d WorldForward(1.0, 0.0, 0.0);
+				FVector3d AxialTangent = WorldUp
+					- NormalDirection * NormalDirection.Dot(WorldUp);
+				if (!AxialTangent.Normalize())
+				{
+					AxialTangent = WorldForward
+						- NormalDirection * NormalDirection.Dot(WorldForward);
+					AxialTangent.Normalize();
+				}
+				FVector3d CircumferentialTangent = NormalDirection.Cross(AxialTangent);
+				CircumferentialTangent.Normalize();
+				// These are continuous body-frame cone fields, not unrelated world-axis
+				// guesses. They allow one shared correction to escape a concavity where
+				// different offset tiers see different nearest body triangles.
+				for (double TangentScale : {0.5, 1.0, 2.0})
+				{
+					for (FVector3d ConeDirection : {
+						NormalDirection + AxialTangent * TangentScale,
+						NormalDirection - AxialTangent * TangentScale,
+						NormalDirection + CircumferentialTangent * TangentScale,
+						NormalDirection - CircumferentialTangent * TangentScale})
+					{
+						bFoundCorrection |= TryCoherentDirection(ConeDirection, true);
+					}
+				}
+			}
+
+			if (!bFoundCorrection)
+			{
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Warning,
+					TEXT("Coherent multi-tier solve failed at vertex %d: initial=%.4fcm best=%.4fcm agreement=%.4f."),
+					VertexID,
+					VertexMinimumGap,
+					BestGap,
+					DirectionAgreement);
+				OutMinimumGap = FMath::Min(OutMinimumGap, BestGap);
+				return false;
+			}
+			CoherentDirections[VertexID] = BestCorrectionDirection;
+			RequiredDistances[VertexID] = BestRequiredDistance;
+			StableDistances[VertexID] = BestRequiredDistance;
+			bOutUsedBodyFrameConeDirections |= bBestDirectionUsesBodyFrameCone;
+			if (bBestDirectionUsesBodyFrameCone)
+			{
+				const FVector3d TierOnePosition = GarmentMesh.GetVertex(VertexID)
+					+ ClearanceDeltas[VertexID] * CertifiedClearanceTierMin
+					+ ShapeMorphDeltas[VertexID];
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Display,
+					TEXT("V24 cone solve vertex=%d initialGap=%.4fcm distance=%.4fcm direction=(%.4f,%.4f,%.4f) tier1=(%.4f,%.4f,%.4f)."),
+					VertexID,
+					VertexMinimumGap,
+					BestRequiredDistance,
+					BestCorrectionDirection.X,
+					BestCorrectionDirection.Y,
+					BestCorrectionDirection.Z,
+					TierOnePosition.X,
+					TierOnePosition.Y,
+					TierOnePosition.Z);
+			}
+		}
+
+		// Broaden every required displacement over neighboring rings with a
+		// deterministic falloff. This leaves the exact minimum untouched while
+		// preventing a one-vertex spike from inverting a skinned triangle.
+		for (int32 Iteration = 0; Iteration < SupportSmoothingIterations; ++Iteration)
+		{
+			TArray<double> SmoothedDistances = StableDistances;
+			for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+			{
+				double NeighborMaximum = 0.0;
+				for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(VertexID))
+				{
+					NeighborMaximum = FMath::Max(NeighborMaximum, StableDistances[NeighborVertexID]);
+				}
+				const double DirectionRayLimit = ComputeCorrectionRayLimit(
+					VertexID,
+					CoherentDirections[VertexID]);
+				const double ProposedDistance = FMath::Min(
+					DirectionRayLimit,
+					FMath::Max(
+						RequiredDistances[VertexID],
+						FMath::Max(StableDistances[VertexID], NeighborMaximum * SupportFalloff)));
+				// Around close opposing surfaces (notably the inner thighs), moving
+				// farther along an otherwise outward correspondence normal is not
+				// guaranteed to be monotonic. Broaden support only when the proposed
+				// value itself preserves every certified tier.
+				const FVector3d ProposedCorrection =
+					CoherentDirections[VertexID] * ProposedDistance;
+				const bool bWithinRepairBudget = !bScaleCorrectionWithClearanceTier
+					|| (ClearanceDeltas[VertexID] + ProposedCorrection).Length()
+						<= MaximumRepair + 1.e-6;
+				if (bWithinRepairBudget
+					&& (ProposedDistance <= StableDistances[VertexID] + 1.e-9
+						|| MeasureAcrossTiers(VertexID, ProposedCorrection)
+							>= DesiredClearance - 0.001))
+				{
+					SmoothedDistances[VertexID] = ProposedDistance;
+				}
+			}
+			StableDistances = MoveTemp(SmoothedDistances);
+		}
+
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			OutCorrections[VertexID] = CoherentDirections[VertexID] * StableDistances[VertexID];
+		}
+
+		if (bOutUsedBodyFrameConeDirections)
+		{
+			// A cone is an emergency escape from a concavity, so its direction can
+			// differ sharply from neighbors that were already point-safe. Broaden
+			// the correction VECTOR (not the anatomical morph) with clearance-aware
+			// backtracking before triangles are constructed by the caller.
+			constexpr int32 ConeVectorSmoothingIterations = 8;
+			constexpr int32 ConeVectorBacktrackIterations = 12;
+			constexpr double MaximumConeNeighborBlend = 0.65;
+			for (int32 Iteration = 0; Iteration < ConeVectorSmoothingIterations; ++Iteration)
+			{
+				const TArray<FVector3d> BeforeSmoothing = OutCorrections;
+				for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+				{
+					FVector3d NeighborAverage = FVector3d::Zero();
+					int32 NeighborCount = 0;
+					for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(VertexID))
+					{
+						NeighborAverage += BeforeSmoothing[NeighborVertexID];
+						++NeighborCount;
+					}
+					if (NeighborCount == 0)
+					{
+						continue;
+					}
+					NeighborAverage /= static_cast<double>(NeighborCount);
+					const FVector3d CurrentCorrection = BeforeSmoothing[VertexID];
+					FVector3d AcceptedCorrection = CurrentCorrection;
+					double LowBlend = 0.0;
+					double HighBlend = MaximumConeNeighborBlend;
+					for (int32 Refinement = 0; Refinement < ConeVectorBacktrackIterations; ++Refinement)
+					{
+						const double Blend = (LowBlend + HighBlend) * 0.5;
+						const FVector3d CandidateCorrection = CurrentCorrection * (1.0 - Blend)
+							+ NeighborAverage * Blend;
+						const bool bCandidateWithinBudget = bScaleCorrectionWithClearanceTier
+							? (ClearanceDeltas[VertexID] + CandidateCorrection).Length()
+								<= MaximumRepair + 1.e-6
+							: CandidateCorrection.Length() <= MaximumRepair + 1.e-6;
+						const bool bCandidateSafe = bCandidateWithinBudget
+							&& MeasureAcrossTiers(VertexID, CandidateCorrection)
+								>= DesiredClearance - 0.001;
+						if (bCandidateSafe)
+						{
+							LowBlend = Blend;
+							AcceptedCorrection = CandidateCorrection;
+						}
+						else
+						{
+							HighBlend = Blend;
+						}
+					}
+					OutCorrections[VertexID] = AcceptedCorrection;
+				}
+			}
+		}
+
+		// Re-measure the coherent field before returning it. The caller reconciles
+		// the complete requested morph field across non-manifold splits, writes it,
+		// reads it back, and invokes this solve again if that committed seam average
+		// consumed any clearance reserve.
+		OutMinimumGap = TNumericLimits<double>::Max();
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			if (bScaleCorrectionWithClearanceTier
+				&& (ClearanceDeltas[VertexID] + OutCorrections[VertexID]).Length()
+					> MaximumRepair + 1.e-6)
+			{
+				return false;
+			}
+			const double FinalGap = MeasureAcrossTiers(VertexID, OutCorrections[VertexID]);
+			OutMinimumGap = FMath::Min(OutMinimumGap, FinalGap);
+			if (FinalGap < DesiredClearance - 0.001)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool BuildAnchoredClearanceCorrections(
+		const FDynamicMesh3& BodyMesh,
+		const FDynamicMesh3& GarmentMesh,
+		const TArray<FVector3d>& RadialDirections,
+		const TArray<FVector3d>& ClearanceDirections,
+		const TArray<FSurfaceCorrespondence>& RestCorrespondence,
+		double DesiredClearance,
+		double MaximumRepair,
+		TArray<FVector3d>& OutCorrections,
+		double& OutMinimumGap)
+	{
+		if (RadialDirections.Num() < GarmentMesh.MaxVertexID()
+			|| ClearanceDirections.Num() < GarmentMesh.MaxVertexID()
+			|| RestCorrespondence.Num() < GarmentMesh.MaxVertexID())
+		{
+			return false;
+		}
+
+		FDynamicMeshAABBTree3 BodySpatial(&BodyMesh, true);
+		FMeshNormals BodyNormals(&BodyMesh);
+		BodyNormals.ComputeVertexNormals();
+		OutCorrections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		OutMinimumGap = TNumericLimits<double>::Max();
+
+		auto MeasurePoint = [&](const FVector3d& Position) -> double
+		{
+			double DistanceSquared = TNumericLimits<double>::Max();
+			const int32 TriangleID = BodySpatial.FindNearestTriangle(Position, DistanceSquared);
+			if (TriangleID == IndexConstants::InvalidID)
+			{
+				return -TNumericLimits<double>::Max();
+			}
+			const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+				BodyMesh, TriangleID, Position);
+			const FVector3d Normal = InterpolateNormal(
+				BodyMesh, BodyNormals, TriangleID, Query.TriangleBaryCoords);
+			return (Position - Query.ClosestTrianglePoint).Dot(Normal);
+		};
+
+		constexpr double MarchStepCm = 0.10;
+		constexpr int32 RefinementIterations = 10;
+		const int32 MarchSteps = FMath::Max(1, FMath::CeilToInt(MaximumRepair / MarchStepCm));
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d BasePosition = GarmentMesh.GetVertex(VertexID);
+			double Gap = MeasurePoint(BasePosition);
+			if (Gap >= DesiredClearance - 0.001)
+			{
+				OutMinimumGap = FMath::Min(OutMinimumGap, Gap);
+				continue;
+			}
+
+			TArray<FVector3d, TInlineAllocator<3>> Directions;
+			Directions.Add(RadialDirections[VertexID]);
+			Directions.Add(ClearanceDirections[VertexID]);
+			Directions.Add(RestCorrespondence[VertexID].SurfaceNormal);
+			bool bFoundCorrection = false;
+			for (FVector3d Direction : Directions)
+			{
+				if (!Direction.Normalize())
+				{
+					continue;
+				}
+				double PreviousDistance = 0.0;
+				for (int32 StepIndex = 1; StepIndex <= MarchSteps; ++StepIndex)
+				{
+					const double Distance = FMath::Min(MaximumRepair, StepIndex * MarchStepCm);
+					const double CandidateGap = MeasurePoint(BasePosition + Direction * Distance);
+					if (CandidateGap >= DesiredClearance - 0.001)
+					{
+						double LowDistance = PreviousDistance;
+						double HighDistance = Distance;
+						for (int32 Refinement = 0; Refinement < RefinementIterations; ++Refinement)
+						{
+							const double MidDistance = (LowDistance + HighDistance) * 0.5;
+							if (MeasurePoint(BasePosition + Direction * MidDistance) >= DesiredClearance - 0.001)
+							{
+								HighDistance = MidDistance;
+							}
+							else
+							{
+								LowDistance = MidDistance;
+							}
+						}
+						OutCorrections[VertexID] = Direction * HighDistance;
+						Gap = MeasurePoint(BasePosition + OutCorrections[VertexID]);
+						bFoundCorrection = true;
+						break;
+					}
+					PreviousDistance = Distance;
+				}
+				if (bFoundCorrection)
+				{
+					break;
+				}
+			}
+			if (!bFoundCorrection || Gap < DesiredClearance - 0.001)
+			{
+				OutMinimumGap = FMath::Min(OutMinimumGap, Gap);
+				return false;
+			}
+			OutMinimumGap = FMath::Min(OutMinimumGap, Gap);
+		}
+		return true;
+	}
+
 	static TArray<FName> BakeMorphs(
 		USkeletalMesh* BodySurface,
 		USkeletalMesh* SourceGarment,
@@ -472,11 +3274,35 @@ namespace EFClothingFitCompilerPrivate
 		const UDynamicMesh* BodyDynamicMesh,
 		const UDynamicMesh* GarmentDynamicMesh,
 		const TArray<FSurfaceCorrespondence>& Correspondence,
+		const TArray<FVector3d>& ClearanceDeltas,
+		const TArray<FString>& ExcludedBodyMorphPrefixes,
 		const FEFClothingFitCompileOptions& Options,
 		TArray<FEFClothingMorphBinding>& OutBindings,
+		TArray<FEFClothingMorphPairCertificate>& OutPairCertificates,
+		TArray<FName>& OutMonitoredBodyMorphNames,
+		int32& OutValidatedMorphCount,
+		int32& OutRepairedMorphCount,
+		int32& OutPairBodyProbeCount,
+		int32& OutPairOffsetEvaluationCount,
+		double& OutMinimumSampledMorphGap,
+		double& OutMinimumSampledPairGap,
+		double& OutMinimumCertifiedOffsetGap,
+		double& OutMaximumMorphDisplacement,
+		int32& OutPostThresholdAlteredDeltaCount,
 		FString& OutError)
 	{
 		TArray<FName> TransferredNames;
+		OutPairCertificates.Reset();
+		OutMonitoredBodyMorphNames.Reset();
+		OutValidatedMorphCount = 0;
+		OutRepairedMorphCount = 0;
+		OutPairBodyProbeCount = 0;
+		OutPairOffsetEvaluationCount = 0;
+		OutMinimumSampledMorphGap = TNumericLimits<double>::Max();
+		OutMinimumSampledPairGap = TNumericLimits<double>::Max();
+		OutMinimumCertifiedOffsetGap = TNumericLimits<double>::Max();
+		OutMaximumMorphDisplacement = 0.0;
+		OutPostThresholdAlteredDeltaCount = 0;
 		const FMeshDescription* BodyDescription = BodySurface->GetMeshDescription(0);
 		const FMeshDescription* GarmentDescription = SourceGarment->GetMeshDescription(0);
 		if (!BodyDescription || !GarmentDescription)
@@ -486,39 +3312,109 @@ namespace EFClothingFitCompilerPrivate
 		}
 
 		const FSkeletalMeshAttributesShared BodyAttributes(*BodyDescription);
-		const FSkeletalMeshAttributesShared GarmentAttributes(*GarmentDescription);
-		const TArray<FName> BodyMorphNames = BodyAttributes.GetMorphTargetNames();
-		const TSet<FName> ExistingGarmentMorphNames(GarmentAttributes.GetMorphTargetNames());
-
-		for (FName BodyMorphName : BodyMorphNames)
-		{
-			if (ExistingGarmentMorphNames.Contains(BodyMorphName))
-			{
-				FEFClothingMorphBinding& Binding = OutBindings.AddDefaulted_GetRef();
-				Binding.BodyMorph = BodyMorphName;
-				Binding.GarmentMorph = BodyMorphName;
-			}
-		}
-
-		if (!Options.bTransferMissingBodyMorphs || Options.MaximumTransferredMorphs <= 0)
-		{
-			return TransferredNames;
-		}
-
 		const FDynamicMesh3& BodyMesh = BodyDynamicMesh->GetMeshRef();
 		const FDynamicMesh3& GarmentMesh = GarmentDynamicMesh->GetMeshRef();
 		const FNonManifoldMappingSupport BodyMapping(BodyMesh);
-		TArray<FMorphCandidate> Candidates;
+		if (ClearanceDeltas.Num() < GarmentMesh.MaxVertexID())
+		{
+			OutError = TEXT("Clearance delta topology does not match the garment morph topology.");
+			return TransferredNames;
+		}
 
+		TArray<FName> BodyMorphNames;
+		TSet<FName> ExistingGarmentMorphNames;
+		for (const TObjectPtr<UMorphTarget>& MorphTarget : BodySurface->GetMorphTargets())
+		{
+			if (IsValid(MorphTarget) && MorphTarget->HasDataForLOD(0) && MorphTarget->GetNumDeltasForLOD(0) > 0)
+			{
+				BodyMorphNames.AddUnique(MorphTarget->GetFName());
+			}
+		}
+		for (const TObjectPtr<UMorphTarget>& MorphTarget : SourceGarment->GetMorphTargets())
+		{
+			if (IsValid(MorphTarget) && MorphTarget->HasDataForLOD(0) && MorphTarget->GetNumDeltasForLOD(0) > 0)
+			{
+				ExistingGarmentMorphNames.Add(MorphTarget->GetFName());
+			}
+		}
+		BodyMorphNames.Sort(FNameLexicalLess());
+
+		TArray<FMorphCandidate> Candidates;
+		TArray<FMorphCandidate> TransferCandidates;
+		TSet<FName> MonitoredBodyMorphNameSet;
 		for (FName MorphName : BodyMorphNames)
 		{
-			if (ExistingGarmentMorphNames.Contains(MorphName) || MorphName == ClearanceMorphName)
+			if (MorphName == ClearanceMorphName)
 			{
 				continue;
 			}
+			const FString MorphNameString = MorphName.ToString();
+			const bool bExcludedMorphNamespace = ExcludedBodyMorphPrefixes.ContainsByPredicate(
+				[&MorphNameString](const FString& Prefix)
+				{
+					return MorphNameString.StartsWith(Prefix, ESearchCase::CaseSensitive);
+				});
+			if (bExcludedMorphNamespace)
+			{
+				const TVertexAttributesConstRef<FVector3f> ExcludedMorphDeltas =
+					BodyAttributes.GetVertexMorphPositionDelta(MorphName);
+				if (ExcludedMorphDeltas.IsValid())
+				{
+					constexpr double RetainedSurfaceLeakToleranceCm = 1.0e-4;
+					double MaximumRetainedDeltaCm = 0.0;
+					int32 MaximumRetainedOriginalVertexID = INDEX_NONE;
+			for (const int32 BodyVertexID : BodyMesh.VertexIndicesItr())
+			{
+				// Surface-policy filtering can leave isolated vertices behind in the
+				// dynamic mesh. They no longer participate in the retained collision
+				// surface, so excluded morph deltas on them are not a runtime leak.
+				if (BodyMesh.GetVtxTriangleCount(BodyVertexID) <= 0)
+				{
+					continue;
+				}
 
-			const TVertexAttributesConstRef<FVector3f> MorphDeltas = BodyAttributes.GetVertexMorphPositionDelta(MorphName);
-			if (!MorphDeltas.IsValid())
+				const int32 OriginalVertexID =
+					BodyMapping.GetOriginalNonManifoldVertexID(BodyVertexID);
+						if (!BodyDescription->Vertices().IsValid(FVertexID(OriginalVertexID)))
+						{
+							OutError = FString::Printf(
+								TEXT("Excluded morph %s maps retained body vertex %d to invalid source vertex %d."),
+								*MorphName.ToString(),
+								BodyVertexID,
+								OriginalVertexID);
+							return TransferredNames;
+						}
+						const double DeltaLengthCm = FVector3d(
+							ExcludedMorphDeltas.Get(FVertexID(OriginalVertexID))).Length();
+						if (!FMath::IsFinite(DeltaLengthCm))
+						{
+							OutError = FString::Printf(
+								TEXT("Excluded morph %s has a non-finite retained-surface delta at source vertex %d."),
+								*MorphName.ToString(),
+								OriginalVertexID);
+							return TransferredNames;
+						}
+						if (DeltaLengthCm > MaximumRetainedDeltaCm)
+						{
+							MaximumRetainedDeltaCm = DeltaLengthCm;
+							MaximumRetainedOriginalVertexID = OriginalVertexID;
+						}
+					}
+					if (MaximumRetainedDeltaCm > RetainedSurfaceLeakToleranceCm)
+					{
+						OutError = FString::Printf(
+							TEXT("Excluded body morph %s still deforms retained body-surface vertex %d by %.6fcm (tolerance %.6fcm); the catalog exclusion is not geometrically isolated."),
+							*MorphName.ToString(),
+							MaximumRetainedOriginalVertexID,
+							MaximumRetainedDeltaCm,
+							RetainedSurfaceLeakToleranceCm);
+						return TransferredNames;
+					}
+				}
+				continue;
+			}
+			const TVertexAttributesConstRef<FVector3f> BodyMorphDeltas = BodyAttributes.GetVertexMorphPositionDelta(MorphName);
+			if (!BodyMorphDeltas.IsValid())
 			{
 				continue;
 			}
@@ -527,15 +3423,60 @@ namespace EFClothingFitCompilerPrivate
 			for (int32 VertexID : GarmentMesh.VertexIndicesItr())
 			{
 				MaxDelta = FMath::Max(MaxDelta, GetTransferredBodyMorphDelta(
-					BodyMesh, BodyMapping, MorphDeltas, Correspondence[VertexID]).Length());
+					BodyMesh, BodyMapping, BodyMorphDeltas, Correspondence[VertexID]).Length());
+			}
+			if (MaxDelta > 1.e-6)
+			{
+				MonitoredBodyMorphNameSet.Add(MorphName);
+			}
+			if (!Options.bCompileBodyMorphBindings)
+			{
+				continue;
 			}
 
+			if (ExistingGarmentMorphNames.Contains(MorphName))
+			{
+				// Existing garment morphs are deliberately rebuilt from the body
+				// correspondence too. Their mere presence does not prove that their
+				// skinning and authored deltas preserve clearance on this body.
+				Candidates.Add({MorphName, MaxDelta, false});
+				continue;
+			}
+
+			if (!Options.bTransferMissingBodyMorphs || Options.MaximumTransferredMorphs <= 0)
+			{
+				continue;
+			}
 			if (MaxDelta >= Options.MinimumTransferredMorphDeltaCm)
 			{
-				Candidates.Add({MorphName, MaxDelta});
+				TransferCandidates.Add({MorphName, MaxDelta, true});
 			}
 		}
 
+		TransferCandidates.Sort([](const FMorphCandidate& A, const FMorphCandidate& B)
+		{
+			if (!FMath::IsNearlyEqual(A.MaxDelta, B.MaxDelta))
+			{
+				return A.MaxDelta > B.MaxDelta;
+			}
+			return A.Name.LexicalLess(B.Name);
+		});
+		if (TransferCandidates.Num() > Options.MaximumTransferredMorphs)
+		{
+			OutError = FString::Printf(
+				TEXT("Morph coverage is incomplete: %d relevant body targets exceed MaximumTransferredMorphs=%d."),
+				TransferCandidates.Num(), Options.MaximumTransferredMorphs);
+			return TransferredNames;
+		}
+		Candidates.Append(TransferCandidates);
+		for (const FMorphCandidate& Candidate : Candidates)
+		{
+			MonitoredBodyMorphNameSet.Add(Candidate.Name);
+		}
+		OutMonitoredBodyMorphNames = MonitoredBodyMorphNameSet.Array();
+		OutMonitoredBodyMorphNames.Sort(FNameLexicalLess());
+		// Certify the largest geometric changes first so a difficult shape fails
+		// fast without weakening full-catalog coverage or determinism.
 		Candidates.Sort([](const FMorphCandidate& A, const FMorphCandidate& B)
 		{
 			if (!FMath::IsNearlyEqual(A.MaxDelta, B.MaxDelta))
@@ -544,42 +3485,2930 @@ namespace EFClothingFitCompilerPrivate
 			}
 			return A.Name.LexicalLess(B.Name);
 		});
-		Candidates.SetNum(FMath::Min(Candidates.Num(), Options.MaximumTransferredMorphs));
 
+		const int32 SampleCount = FMath::Clamp(Options.MorphClearanceSampleCount, 2, 8);
+		const double DesiredClearance = FMath::Max(static_cast<double>(Options.MinimumClearanceCm), 0.02);
+		// Linear morph interpolation and changing nearest triangles can slightly
+		// erode a just-equal solve at other samples. Certify against the requested
+		// value but repair toward a small deterministic reserve.
+		const double MorphSolveClearance = DesiredClearance + CompilerClearanceReserveCm;
+		const double MorphFallbackClearance = DesiredClearance + CompilerClearanceReserveCm * 0.5;
+		const double MaximumRepair = FMath::Max(static_cast<double>(Options.MaximumMorphRepairCm), DesiredClearance);
+		const double StandardShapeRepair = FMath::Min(MaximumRepair, 10.0);
+		constexpr double ClearanceToleranceCm = 0.001;
+		TSet<FName> GeneratedSampleMorphNames = ExistingGarmentMorphNames;
+		GeneratedSampleMorphNames.Add(ClearanceMorphName);
+		for (FName BodyMorphName : BodyMorphNames)
+		{
+			GeneratedSampleMorphNames.Add(BodyMorphName);
+		}
+		const FVector3d RestBodyCenter = BodyMesh.GetBounds().Center();
+		TArray<FVector3d> AnchoredRadialDirections;
+		TArray<FVector3d> AnchoredClearanceDirections;
+		AnchoredRadialDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		AnchoredClearanceDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d BaseFittedPosition = GarmentMesh.GetVertex(VertexID) + ClearanceDeltas[VertexID];
+			AnchoredRadialDirections[VertexID] = BaseFittedPosition - RestBodyCenter;
+			AnchoredClearanceDirections[VertexID] = ClearanceDeltas[VertexID].IsNearlyZero(1.e-8)
+				? Correspondence[VertexID].SurfaceNormal
+				: ClearanceDeltas[VertexID];
+		}
+
+		auto MeasureRuntimeShapeAcrossOffsetTiers = [
+			&GarmentMesh,
+			&ClearanceDeltas,
+			DesiredClearance,
+			ClearanceToleranceCm](
+			const FDynamicMesh3& ShapeBody,
+			const TArray<FVector3d>& ShapeMorphDeltas,
+			double& OutMinimumGap,
+			bool& bOutIntersects,
+			double& OutMinimumClearanceMultiplier) -> bool
+		{
+			if (ShapeMorphDeltas.Num() < GarmentMesh.MaxVertexID())
+			{
+				return false;
+			}
+			const FDynamicMeshAABBTree3 BodySpatial(&ShapeBody, true);
+			FMeshNormals BodyNormals(&ShapeBody);
+			BodyNormals.ComputeVertexNormals();
+			TArray<double> TierGaps;
+			TArray<uint8> TierMeasured;
+			TArray<uint8> TierIntersections;
+			TierGaps.Init(0.0, CertifiedClearanceTierCount);
+			TierMeasured.Init(0, CertifiedClearanceTierCount);
+			TierIntersections.Init(0, CertifiedClearanceTierCount);
+			ParallelFor(CertifiedClearanceTierCount, [&](int32 TierIndex)
+			{
+				const double Tier = FMath::Lerp(
+					CertifiedClearanceTierMin,
+					CertifiedClearanceTierMax,
+					static_cast<double>(TierIndex) / static_cast<double>(CertifiedClearanceTierCount - 1));
+				FDynamicMesh3 TierGarment(GarmentMesh);
+				for (int32 VertexID : TierGarment.VertexIndicesItr())
+				{
+					TierGarment.SetVertex(
+						VertexID,
+						TierGarment.GetVertex(VertexID)
+							+ ClearanceDeltas[VertexID] * Tier
+							+ ShapeMorphDeltas[VertexID]);
+				}
+				double TierGap = 0.0;
+				int32 TierPenetratingVertices = 0;
+				TierMeasured[TierIndex] = MeasureVertexClearancePrepared(
+					ShapeBody,
+					BodySpatial,
+					BodyNormals,
+					TierGarment,
+					TierGap,
+					TierPenetratingVertices) ? 1 : 0;
+				TierGaps[TierIndex] = TierGap;
+				TierIntersections[TierIndex] = MeshesIntersectPrepared(BodySpatial, TierGarment) ? 1 : 0;
+			});
+			OutMinimumGap = TNumericLimits<double>::Max();
+			bOutIntersects = false;
+			OutMinimumClearanceMultiplier = CertifiedClearanceTierMax;
+			for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+			{
+				if (TierMeasured[TierIndex] == 0)
+				{
+					return false;
+				}
+			}
+
+			// A public offset request is rounded upward at runtime. Certify the
+			// lowest contiguous suffix whose every tier is clear; lower unsafe tiers
+			// become an automatic per-shape floor rather than forcing destructive
+			// sculpting of an otherwise valid garment.
+			int32 MinimumPassingTierIndex = INDEX_NONE;
+			bool bPassingSuffix = true;
+			for (int32 TierIndex = CertifiedClearanceTierCount - 1; TierIndex >= 0; --TierIndex)
+			{
+				const bool bTierPass = TierGaps[TierIndex]
+						>= DesiredClearance - ClearanceToleranceCm
+					&& TierIntersections[TierIndex] == 0;
+				bPassingSuffix &= bTierPass;
+				if (bPassingSuffix)
+				{
+					MinimumPassingTierIndex = TierIndex;
+				}
+			}
+			if (MinimumPassingTierIndex == INDEX_NONE)
+			{
+				for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+				{
+					OutMinimumGap = FMath::Min(OutMinimumGap, TierGaps[TierIndex]);
+					bOutIntersects |= TierIntersections[TierIndex] != 0;
+				}
+				return true;
+			}
+
+			OutMinimumClearanceMultiplier = FMath::Lerp(
+				CertifiedClearanceTierMin,
+				CertifiedClearanceTierMax,
+				static_cast<double>(MinimumPassingTierIndex)
+					/ static_cast<double>(CertifiedClearanceTierCount - 1));
+			for (int32 TierIndex = MinimumPassingTierIndex;
+				TierIndex < CertifiedClearanceTierCount;
+				++TierIndex)
+			{
+				OutMinimumGap = FMath::Min(OutMinimumGap, TierGaps[TierIndex]);
+			}
+			return true;
+		};
+
+		auto WriteAndCertifyStoredShapeMorph = [
+			Derived,
+			&GarmentMesh,
+			&ClearanceDeltas,
+			&MeasureRuntimeShapeAcrossOffsetTiers,
+			&OutPostThresholdAlteredDeltaCount,
+			&OutError,
+			MaximumRepair,
+			MorphSolveClearance,
+			DesiredClearance,
+			ClearanceToleranceCm](
+			const FDynamicMesh3& ShapeBody,
+			const TArray<FVector3d>& ShapeClearanceDirections,
+			FName StoredMorphName,
+			const FString& Context,
+			TArray<FVector3d>& InOutShapeMorphDeltas,
+			bool& bOutRepaired,
+			double& OutMinimumClearanceMultiplier) -> bool
+		{
+			constexpr int32 MaximumStoredMorphCookPasses = 8;
+			// Triangle crossings can persist even with >0.5cm vertex gaps on coarse
+			// topology. Use a material patch nudge, still bounded by the per-vertex
+			// MaximumMorphRepairCm contract, rather than many sub-threshold taps.
+			constexpr double IntersectionNudgeCm = 0.25;
+			if (StoredMorphName.IsNone()
+				|| ShapeClearanceDirections.Num() < GarmentMesh.MaxVertexID()
+				|| InOutShapeMorphDeltas.Num() < GarmentMesh.MaxVertexID())
+			{
+				OutError = FString::Printf(TEXT("Stored morph certification received invalid input for %s."), *Context);
+				return false;
+			}
+
+			TArray<FVector3d> RequestedDeltas = InOutShapeMorphDeltas;
+			ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+			const TArray<FVector3d> InitialRequestedDeltas = RequestedDeltas;
+			const FDynamicMeshAABBTree3 ShapeBodySpatial(&ShapeBody, true);
+			FMeshNormals ShapeBodyNormals(&ShapeBody);
+			ShapeBodyNormals.ComputeVertexNormals();
+			TSet<uint32> FailedStoredMorphHashes;
+			OutMinimumClearanceMultiplier = CertifiedClearanceTierMax;
+			int32 PreviousIntersectingTierCount = TNumericLimits<int32>::Max();
+			int32 PreviousFailedTierCount = TNumericLimits<int32>::Max();
+			double PreviousMinimumGap = -TNumericLimits<double>::Max();
+
+			for (int32 CookPass = 0; CookPass < MaximumStoredMorphCookPasses; ++CookPass)
+			{
+				UDynamicMesh* MorphMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+				MorphMesh->SetMesh(GarmentMesh);
+				MorphMesh->EditMesh([&](FDynamicMesh3& EditMesh)
+				{
+					for (int32 VertexID : EditMesh.VertexIndicesItr())
+					{
+						EditMesh.SetVertex(
+							VertexID,
+							EditMesh.GetVertex(VertexID) + RequestedDeltas[VertexID]);
+					}
+				}, EDynamicMeshChangeType::DeformationEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
+
+				FString MorphError;
+				if (!WriteMorph(MorphMesh, Derived, StoredMorphName, MorphError))
+				{
+					OutError = MorphError;
+					return false;
+				}
+
+				TArray<FVector3d> StoredDeltas;
+				int32 CookPassAlteredDeltaCount = 0;
+				if (!ReadStoredMorphDeltas(
+					Derived,
+					StoredMorphName,
+					GarmentMesh,
+					&RequestedDeltas,
+					StoredDeltas,
+					CookPassAlteredDeltaCount,
+					OutError))
+				{
+					return false;
+				}
+
+				double CookPassMinimumGap = TNumericLimits<double>::Max();
+				int32 FailedTierCount = 0;
+				int32 IntersectingTierCount = 0;
+				int32 FailingTierIndex = INDEX_NONE;
+				double FailingTierGap = TNumericLimits<double>::Max();
+				bool bFailingTierIntersects = false;
+				TArray<double, TInlineAllocator<CertifiedClearanceTierCount>> TierGaps;
+				TArray<uint8, TInlineAllocator<CertifiedClearanceTierCount>> TierPasses;
+				TierGaps.Init(0.0, CertifiedClearanceTierCount);
+				TierPasses.Init(0, CertifiedClearanceTierCount);
+				for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+				{
+					const double Tier = FMath::Lerp(
+						CertifiedClearanceTierMin,
+						CertifiedClearanceTierMax,
+						static_cast<double>(TierIndex) / static_cast<double>(CertifiedClearanceTierCount - 1));
+					FDynamicMesh3 TierGarment(GarmentMesh);
+					for (int32 VertexID : TierGarment.VertexIndicesItr())
+					{
+						TierGarment.SetVertex(
+							VertexID,
+							TierGarment.GetVertex(VertexID)
+								+ ClearanceDeltas[VertexID] * Tier
+								+ StoredDeltas[VertexID]);
+					}
+					double TierGap = 0.0;
+					int32 TierPenetratingVertices = 0;
+					const bool bMeasured = MeasureVertexClearancePrepared(
+						ShapeBody,
+						ShapeBodySpatial,
+						ShapeBodyNormals,
+						TierGarment,
+						TierGap,
+						TierPenetratingVertices);
+					const bool bIntersects = MeshesIntersectPrepared(ShapeBodySpatial, TierGarment);
+					const bool bTierFailed = !bMeasured
+						|| TierGap < DesiredClearance - ClearanceToleranceCm
+						|| bIntersects;
+					TierGaps[TierIndex] = TierGap;
+					TierPasses[TierIndex] = bTierFailed ? 0 : 1;
+					FailedTierCount += bTierFailed ? 1 : 0;
+					IntersectingTierCount += bIntersects ? 1 : 0;
+					if (bTierFailed
+						&& (FailingTierIndex == INDEX_NONE
+							|| (bIntersects && !bFailingTierIntersects)
+							|| (bIntersects == bFailingTierIntersects && TierGap < FailingTierGap)))
+					{
+						FailingTierIndex = TierIndex;
+						FailingTierGap = TierGap;
+						bFailingTierIntersects = bIntersects;
+					}
+				}
+
+				int32 MinimumPassingTierIndex = INDEX_NONE;
+				bool bPassingSuffix = true;
+				for (int32 TierIndex = CertifiedClearanceTierCount - 1; TierIndex >= 0; --TierIndex)
+				{
+					bPassingSuffix &= TierPasses[TierIndex] != 0;
+					if (bPassingSuffix)
+					{
+						MinimumPassingTierIndex = TierIndex;
+					}
+				}
+				if (MinimumPassingTierIndex != INDEX_NONE)
+				{
+					CookPassMinimumGap = TNumericLimits<double>::Max();
+					for (int32 TierIndex = MinimumPassingTierIndex;
+						TierIndex < CertifiedClearanceTierCount;
+						++TierIndex)
+					{
+						CookPassMinimumGap = FMath::Min(CookPassMinimumGap, TierGaps[TierIndex]);
+					}
+					OutMinimumClearanceMultiplier = FMath::Lerp(
+						CertifiedClearanceTierMin,
+						CertifiedClearanceTierMax,
+						static_cast<double>(MinimumPassingTierIndex)
+							/ static_cast<double>(CertifiedClearanceTierCount - 1));
+					InOutShapeMorphDeltas = MoveTemp(StoredDeltas);
+					OutPostThresholdAlteredDeltaCount += CookPassAlteredDeltaCount;
+					UE_LOG(
+						LogEFClothingFitCompiler,
+						Display,
+						TEXT("V24 stored morph %s certified after %d cook pass(es): minimum tier %.3f, gap %.4fcm."),
+						*Context,
+						CookPass + 1,
+						OutMinimumClearanceMultiplier,
+						CookPassMinimumGap);
+					return true;
+				}
+				CookPassMinimumGap = TNumericLimits<double>::Max();
+				for (double TierGap : TierGaps)
+				{
+					CookPassMinimumGap = FMath::Min(CookPassMinimumGap, TierGap);
+				}
+
+				uint32 StoredMorphHash = 0;
+				for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+				{
+					StoredMorphHash = HashCombineFast(StoredMorphHash, GetTypeHash(StoredDeltas[VertexID]));
+				}
+				if (FailedStoredMorphHashes.Contains(StoredMorphHash))
+				{
+					OutError = FString::Printf(TEXT("Stored morph auto-sculpt for %s detected a cycle."), *Context);
+					return false;
+				}
+				FailedStoredMorphHashes.Add(StoredMorphHash);
+				if (CookPass > 0)
+				{
+					const bool bImproved = IntersectingTierCount < PreviousIntersectingTierCount
+						|| (IntersectingTierCount == PreviousIntersectingTierCount
+							&& FailedTierCount < PreviousFailedTierCount)
+						|| (IntersectingTierCount == PreviousIntersectingTierCount
+							&& FailedTierCount == PreviousFailedTierCount
+							&& CookPassMinimumGap > PreviousMinimumGap + 1.e-6);
+					if (!bImproved)
+					{
+						OutError = FString::Printf(
+							TEXT("Stored morph auto-sculpt for %s did not improve on cook pass %d (intersections %d, failed tiers %d, gap %.4fcm)."),
+							*Context,
+							CookPass + 1,
+							IntersectingTierCount,
+							FailedTierCount,
+							CookPassMinimumGap);
+						return false;
+					}
+				}
+				PreviousIntersectingTierCount = IntersectingTierCount;
+				PreviousFailedTierCount = FailedTierCount;
+				PreviousMinimumGap = CookPassMinimumGap;
+
+				const double FailingTier = FMath::Lerp(
+					CertifiedClearanceTierMin,
+					CertifiedClearanceTierMax,
+					static_cast<double>(FailingTierIndex) / static_cast<double>(CertifiedClearanceTierCount - 1));
+				if (CookPass + 1 >= MaximumStoredMorphCookPasses)
+				{
+					OutError = FString::Printf(
+						TEXT("Stored morph %s failed certified tier %.3f after %d cook passes: gap %.4fcm, triangles=%s."),
+						*Context,
+						FailingTier,
+						MaximumStoredMorphCookPasses,
+						FailingTierGap,
+						bFailingTierIntersects ? TEXT("INTERSECT") : TEXT("CLEAR"));
+					return false;
+				}
+
+				TArray<FVector3d> Corrections;
+				double RepairGap = TNumericLimits<double>::Max();
+				double CoherentRepairTargetClearance = MorphSolveClearance;
+				const double ReserveMaximumRepair = FMath::Min(MaximumRepair, 10.0);
+				bool bUsedBodyFrameConeDirections = false;
+				bool bBuiltCoherentRepair = BuildMultiTierShapeClearanceCorrections(
+					ShapeBody,
+					GarmentMesh,
+					ClearanceDeltas,
+					StoredDeltas,
+					ShapeClearanceDirections,
+					MorphSolveClearance,
+					ReserveMaximumRepair,
+					false,
+					false,
+					bUsedBodyFrameConeDirections,
+					Corrections,
+					RepairGap);
+				if (!bBuiltCoherentRepair)
+				{
+					// The reserve is intentionally stronger than the public certificate.
+					// In narrow anatomical corridors it can be impossible to increase a
+					// point farther without approaching an opposing body surface. Retry at
+					// the exact certified clearance; triangle crossings remain forbidden.
+					CoherentRepairTargetClearance = DesiredClearance;
+					bBuiltCoherentRepair = BuildMultiTierShapeClearanceCorrections(
+						ShapeBody,
+						GarmentMesh,
+						ClearanceDeltas,
+						StoredDeltas,
+						ShapeClearanceDirections,
+						DesiredClearance,
+						MaximumRepair,
+						false,
+						true,
+						bUsedBodyFrameConeDirections,
+						Corrections,
+						RepairGap);
+				}
+				if (!bBuiltCoherentRepair)
+				{
+					OutError = FString::Printf(
+						TEXT("Stored morph auto-sculpt could not repair %s at tier %.3f within %.4fcm (gap %.4fcm)."),
+						*Context,
+						FailingTier,
+						MaximumRepair,
+						RepairGap);
+					return false;
+				}
+
+				RequestedDeltas = MoveTemp(StoredDeltas);
+				bool bAppliedCorrection = false;
+				for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+				{
+					const FVector3d CandidateDelta = RequestedDeltas[VertexID] + Corrections[VertexID];
+					if ((CandidateDelta - InitialRequestedDeltas[VertexID]).Length() > MaximumRepair + 1.e-6)
+					{
+						OutError = FString::Printf(
+							TEXT("Stored morph auto-sculpt for %s exhausted MaximumMorphRepairCm %.4f at vertex %d."),
+							*Context,
+							MaximumRepair,
+							VertexID);
+						return false;
+					}
+					bAppliedCorrection |= !Corrections[VertexID].IsNearlyZero(1.e-8);
+					RequestedDeltas[VertexID] = CandidateDelta;
+				}
+				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+
+				// The coherent surface correction may already have established a
+				// certified upper suffix of runtime clearance tiers. Persist that
+				// correction on the next cook pass before attempting triangle-level
+				// topology repair. Lower unsafe tiers will be excluded by the
+				// per-shape automatic clearance floor stored in the certificate.
+				double RepairedSuffixMinimumGap = TNumericLimits<double>::Max();
+				double RepairedSuffixMinimumMultiplier = CertifiedClearanceTierMax;
+				bool bRepairedSuffixIntersects = false;
+				if (MeasureRuntimeShapeAcrossOffsetTiers(
+					ShapeBody,
+					RequestedDeltas,
+					RepairedSuffixMinimumGap,
+					bRepairedSuffixIntersects,
+					RepairedSuffixMinimumMultiplier)
+					&& RepairedSuffixMinimumGap >= DesiredClearance - ClearanceToleranceCm
+					&& !bRepairedSuffixIntersects)
+				{
+					bOutRepaired |= bAppliedCorrection;
+					UE_LOG(
+						LogEFClothingFitCompiler,
+						Display,
+						TEXT("V25 stored morph %s coherent repair established certified suffix %.3f (gap %.4fcm); deferring to cook/readback."),
+						*Context,
+						RepairedSuffixMinimumMultiplier,
+						RepairedSuffixMinimumGap);
+					continue;
+				}
+
+				// Diagnostic reserve probes determine whether a coarse body/garment
+				// triangle crossing can be solved by a larger geometric clearance
+				// tier without weakening topology-quality gates. These values are not
+				// accepted by the current public certificate unless its range is
+				// explicitly expanded in a later compiler schema.
+				for (int32 ExtraTierIndex = 1; ExtraTierIndex <= 8; ++ExtraTierIndex)
+				{
+					const double ExtraTier = CertifiedClearanceTierMax
+						+ static_cast<double>(ExtraTierIndex) * 0.125;
+					FDynamicMesh3 ExtraTierGarment(GarmentMesh);
+					for (int32 VertexID : ExtraTierGarment.VertexIndicesItr())
+					{
+						ExtraTierGarment.SetVertex(
+							VertexID,
+							ExtraTierGarment.GetVertex(VertexID)
+								+ ClearanceDeltas[VertexID] * ExtraTier
+								+ RequestedDeltas[VertexID]);
+					}
+					double ExtraTierGap = 0.0;
+					int32 ExtraTierPenetratingVertices = 0;
+					const bool bExtraTierMeasured = MeasureVertexClearancePrepared(
+						ShapeBody,
+						ShapeBodySpatial,
+						ShapeBodyNormals,
+						ExtraTierGarment,
+						ExtraTierGap,
+						ExtraTierPenetratingVertices);
+					const bool bExtraTierIntersects = MeshesIntersectPrepared(
+						ShapeBodySpatial,
+						ExtraTierGarment);
+					UE_LOG(
+						LogEFClothingFitCompiler,
+						Display,
+						TEXT("V25 extended clearance probe %s tier %.3f: measured=%s gap=%.4fcm intersects=%s."),
+						*Context,
+						ExtraTier,
+						bExtraTierMeasured ? TEXT("true") : TEXT("false"),
+						ExtraTierGap,
+						bExtraTierIntersects ? TEXT("true") : TEXT("false"));
+				}
+
+				const TArray<FVector3d> TopologyBaselineDeltas = RequestedDeltas;
+				const double MaximumTopologyExtraRepair = FMath::Min(MaximumRepair, 4.0);
+				constexpr double MaximumTopologyRmsRepair = 1.50;
+				// When no certified suffix exists, repair the maximum runtime tier
+				// first. Clearing that tier is sufficient to create a safe one-tier
+				// suffix; the runtime will then enforce it as this shape's automatic
+				// floor. Requiring topology progress at lower tiers simultaneously can
+				// reject a valid high-tier repair because those tiers will never render.
+				constexpr int32 MinimumTopologyTierIndex = CertifiedClearanceTierCount - 1;
+				constexpr double TopologyReferenceTier = CertifiedClearanceTierMax;
+
+				// Vertex distance alone cannot detect a triangle/edge crossing. Evaluate
+				// each repair as a transaction across the suffix being established and
+				// commit it only when the raw intersection topology strictly improves.
+				auto EvaluateIntersectionCandidate = [
+					&GarmentMesh,
+					&ClearanceDeltas,
+					&InitialRequestedDeltas,
+					&TopologyBaselineDeltas,
+					&ShapeBody,
+					&ShapeBodySpatial,
+					&ShapeBodyNormals,
+					MinimumTopologyTierIndex](
+						const TArray<FVector3d>& CandidateDeltas,
+						FIntersectionTopologyScore& OutScore,
+						FRawIntersectionContacts& OutContacts,
+						FString& OutEvaluationError) -> bool
+				{
+					OutScore = FIntersectionTopologyScore();
+					OutContacts = FRawIntersectionContacts();
+					for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+					{
+						const double TopologyDisplacement = (
+							CandidateDeltas[VertexID]
+							- TopologyBaselineDeltas[VertexID]).Length();
+						OutScore.MaximumTopologyDisplacement = FMath::Max(
+							OutScore.MaximumTopologyDisplacement,
+							TopologyDisplacement);
+						OutScore.TopologySquaredEnergy +=
+							TopologyDisplacement * TopologyDisplacement;
+						const double RepairMagnitude = (
+							CandidateDeltas[VertexID]
+							- InitialRequestedDeltas[VertexID]).Length();
+						OutScore.MaximumRepairMagnitude = FMath::Max(
+							OutScore.MaximumRepairMagnitude,
+							RepairMagnitude);
+						OutScore.RepairSquaredSum += RepairMagnitude * RepairMagnitude;
+					}
+					for (int32 TierIndex = MinimumTopologyTierIndex;
+						TierIndex < CertifiedClearanceTierCount;
+						++TierIndex)
+					{
+						const double Tier = FMath::Lerp(
+							CertifiedClearanceTierMin,
+							CertifiedClearanceTierMax,
+							static_cast<double>(TierIndex)
+								/ static_cast<double>(CertifiedClearanceTierCount - 1));
+						FDynamicMesh3 CandidateTierGarment(GarmentMesh);
+						for (int32 VertexID : CandidateTierGarment.VertexIndicesItr())
+						{
+							CandidateTierGarment.SetVertex(
+								VertexID,
+								CandidateTierGarment.GetVertex(VertexID)
+									+ ClearanceDeltas[VertexID] * Tier
+									+ CandidateDeltas[VertexID]);
+						}
+
+						// Reject topology fixes that clear the body by folding, collapsing or
+						// excessively stretching the garment relative to the post-clearance
+						// baseline at the same offset tier.
+							constexpr double MinimumAreaRatio = 0.50;
+							constexpr double MaximumAreaRatio = 2.0;
+							constexpr double MinimumEdgeRatio = 0.50;
+							constexpr double MaximumEdgeRatio = 2.0;
+							constexpr double MinimumNormalDotReserve = 0.50;
+						for (int32 TriangleID : GarmentMesh.TriangleIndicesItr())
+						{
+							const FIndex3i Triangle = GarmentMesh.GetTriangle(TriangleID);
+							const FVector3d BaselineA = GarmentMesh.GetVertex(Triangle.A)
+								+ ClearanceDeltas[Triangle.A] * Tier
+								+ TopologyBaselineDeltas[Triangle.A];
+							const FVector3d BaselineB = GarmentMesh.GetVertex(Triangle.B)
+								+ ClearanceDeltas[Triangle.B] * Tier
+								+ TopologyBaselineDeltas[Triangle.B];
+							const FVector3d BaselineC = GarmentMesh.GetVertex(Triangle.C)
+								+ ClearanceDeltas[Triangle.C] * Tier
+								+ TopologyBaselineDeltas[Triangle.C];
+							const FVector3d CandidateA = CandidateTierGarment.GetVertex(Triangle.A);
+							const FVector3d CandidateB = CandidateTierGarment.GetVertex(Triangle.B);
+							const FVector3d CandidateC = CandidateTierGarment.GetVertex(Triangle.C);
+							FVector3d BaselineNormal = (BaselineB - BaselineA).Cross(BaselineC - BaselineA);
+							FVector3d CandidateNormal = (CandidateB - CandidateA).Cross(CandidateC - CandidateA);
+							const double BaselineAreaTwice = BaselineNormal.Length();
+							const double CandidateAreaTwice = CandidateNormal.Length();
+							if (!FMath::IsFinite(BaselineAreaTwice)
+								|| !FMath::IsFinite(CandidateAreaTwice)
+								|| BaselineAreaTwice <= 1.e-8
+								|| CandidateAreaTwice <= 1.e-8)
+							{
+								OutEvaluationError = TEXT("Topology candidate contains a degenerate triangle.");
+								return false;
+							}
+							const double AreaRatio = CandidateAreaTwice / BaselineAreaTwice;
+							BaselineNormal /= BaselineAreaTwice;
+							CandidateNormal /= CandidateAreaTwice;
+							const double NormalDot = BaselineNormal.Dot(CandidateNormal);
+							OutScore.MinimumTriangleNormalDot = FMath::Min(
+								OutScore.MinimumTriangleNormalDot,
+								NormalDot);
+							OutScore.MaximumAreaScaleDeviation = FMath::Max(
+								OutScore.MaximumAreaScaleDeviation,
+								FMath::Abs(FMath::Loge(AreaRatio)));
+							if (AreaRatio < MinimumAreaRatio
+								|| AreaRatio > MaximumAreaRatio
+								|| !FMath::IsFinite(NormalDot)
+								|| NormalDot < MinimumNormalDotReserve)
+							{
+								OutEvaluationError = TEXT("Topology candidate inverted or excessively changed a triangle area.");
+								return false;
+							}
+							const double BaselineEdges[] = {
+								(BaselineB - BaselineA).Length(),
+								(BaselineC - BaselineB).Length(),
+								(BaselineA - BaselineC).Length()};
+							const double CandidateEdges[] = {
+								(CandidateB - CandidateA).Length(),
+								(CandidateC - CandidateB).Length(),
+								(CandidateA - CandidateC).Length()};
+							for (int32 EdgeIndex = 0; EdgeIndex < 3; ++EdgeIndex)
+							{
+								if (BaselineEdges[EdgeIndex] <= 1.e-8)
+								{
+									OutEvaluationError = TEXT("Topology baseline contains a degenerate edge.");
+									return false;
+								}
+								const double EdgeRatio = CandidateEdges[EdgeIndex] / BaselineEdges[EdgeIndex];
+								OutScore.MaximumEdgeScaleDeviation = FMath::Max(
+									OutScore.MaximumEdgeScaleDeviation,
+									FMath::Abs(FMath::Loge(EdgeRatio)));
+								if (!FMath::IsFinite(EdgeRatio)
+									|| EdgeRatio < MinimumEdgeRatio
+									|| EdgeRatio > MaximumEdgeRatio)
+								{
+									OutEvaluationError = TEXT("Topology candidate exceeded the local edge-stretch gate.");
+									return false;
+								}
+							}
+						}
+
+						double TierMinimumGap = TNumericLimits<double>::Max();
+						int32 TierPenetratingVertices = 0;
+						if (!MeasureVertexClearancePrepared(
+							ShapeBody,
+							ShapeBodySpatial,
+							ShapeBodyNormals,
+							CandidateTierGarment,
+							TierMinimumGap,
+							TierPenetratingVertices))
+						{
+							OutEvaluationError = TEXT("Could not measure a topology repair candidate.");
+							return false;
+						}
+						OutScore.MinimumGap = FMath::Min(OutScore.MinimumGap, TierMinimumGap);
+						if (!MeshesIntersectPrepared(ShapeBodySpatial, CandidateTierGarment))
+						{
+							continue;
+						}
+
+						++OutScore.IntersectingTierCount;
+						FRawIntersectionContacts TierContacts;
+						if (!CollectRawIntersectingGarmentContactsPrepared(
+							ShapeBody,
+							ShapeBodySpatial,
+							CandidateTierGarment,
+							TierContacts))
+						{
+							OutEvaluationError = FString::Printf(
+								TEXT("Tier %.3f reported an ambiguous coplanar intersection without raw contact primitives."),
+								Tier);
+							return false;
+						}
+						OutScore.ContactTriangleTierPairCount
+							+= TierContacts.GarmentTriangleIDs.Num();
+						for (int32 TriangleID : TierContacts.GarmentTriangleIDs)
+						{
+							OutContacts.GarmentTriangleIDs.Add(TriangleID);
+							OutContacts.GarmentTriangleNormalSums.FindOrAdd(TriangleID)
+								+= TierContacts.GarmentTriangleNormalSums.FindRef(TriangleID);
+						}
+						OutContacts.PrimitiveCount += TierContacts.PrimitiveCount;
+						OutContacts.NormalizedMeasure += TierContacts.NormalizedMeasure;
+					}
+					OutScore.ContactTriangleCount = OutContacts.GarmentTriangleIDs.Num();
+					OutScore.PrimitiveCount = OutContacts.PrimitiveCount;
+					OutScore.NormalizedMeasure = OutContacts.NormalizedMeasure;
+					return true;
+				};
+
+				auto MeasureCandidateDeltaAcrossTiers = [
+					&GarmentMesh,
+					&ClearanceDeltas,
+					&ShapeBody,
+					&ShapeBodySpatial,
+					&ShapeBodyNormals,
+					MinimumTopologyTierIndex](int32 VertexID, const FVector3d& CandidateDelta) -> double
+				{
+					double MinimumGap = TNumericLimits<double>::Max();
+					for (int32 TierIndex = MinimumTopologyTierIndex;
+						TierIndex < CertifiedClearanceTierCount;
+						++TierIndex)
+					{
+						const double Tier = FMath::Lerp(
+							CertifiedClearanceTierMin,
+							CertifiedClearanceTierMax,
+							static_cast<double>(TierIndex)
+								/ static_cast<double>(CertifiedClearanceTierCount - 1));
+						const FVector3d Position = GarmentMesh.GetVertex(VertexID)
+							+ ClearanceDeltas[VertexID] * Tier
+							+ CandidateDelta;
+						double DistanceSquared = TNumericLimits<double>::Max();
+						const int32 BodyTriangleID = ShapeBodySpatial.FindNearestTriangle(Position, DistanceSquared);
+						if (BodyTriangleID == IndexConstants::InvalidID)
+						{
+							return -TNumericLimits<double>::Max();
+						}
+						const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+							ShapeBody,
+							BodyTriangleID,
+							Position);
+						const FVector3d Normal = InterpolateNormal(
+							ShapeBody,
+							ShapeBodyNormals,
+							BodyTriangleID,
+							Query.TriangleBaryCoords);
+						MinimumGap = FMath::Min(
+							MinimumGap,
+							(Position - Query.ClosestTrianglePoint).Dot(Normal));
+					}
+					return MinimumGap;
+				};
+
+				auto CompareCardinalTopology = [](
+					const FIntersectionTopologyScore& CandidateScore,
+					const FIntersectionTopologyScore& ReferenceScore) -> int32
+				{
+					if (CandidateScore.IntersectingTierCount != ReferenceScore.IntersectingTierCount)
+					{
+						return CandidateScore.IntersectingTierCount < ReferenceScore.IntersectingTierCount ? -1 : 1;
+					}
+					if (CandidateScore.ContactTriangleTierPairCount
+						!= ReferenceScore.ContactTriangleTierPairCount)
+					{
+						return CandidateScore.ContactTriangleTierPairCount
+							< ReferenceScore.ContactTriangleTierPairCount ? -1 : 1;
+					}
+					if (CandidateScore.ContactTriangleCount != ReferenceScore.ContactTriangleCount)
+					{
+						return CandidateScore.ContactTriangleCount < ReferenceScore.ContactTriangleCount ? -1 : 1;
+					}
+					return 0;
+				};
+
+				auto IsEligibleTopologyProgress = [&CompareCardinalTopology](
+					const FIntersectionTopologyScore& CandidateScore,
+					const FIntersectionTopologyScore& CurrentScore) -> bool
+				{
+					const int32 CardinalComparison = CompareCardinalTopology(CandidateScore, CurrentScore);
+					if (CardinalComparison != 0)
+					{
+						return CardinalComparison < 0;
+					}
+					// Permit a bounded descent step only when the raw contact measure drops
+					// materially. The 4cm topology budget prevents the old unbounded drift.
+					return CandidateScore.NormalizedMeasure
+						<= CurrentScore.NormalizedMeasure * 0.9999 - 1.e-6;
+				};
+
+				auto IsBetterEligibleCandidate = [&CompareCardinalTopology](
+					const FIntersectionTopologyScore& CandidateScore,
+					const FIntersectionTopologyScore& BestScore) -> bool
+				{
+					const int32 CardinalComparison = CompareCardinalTopology(CandidateScore, BestScore);
+					if (CardinalComparison != 0)
+					{
+						return CardinalComparison < 0;
+					}
+					// Treat sub-millimetre differences as the same displacement class so
+					// the selector can prefer a smoother, higher-quality field instead of
+					// taking dozens of minimum-size steps that accumulate local strain.
+					constexpr double TopologyDisplacementQualityBandCm = 0.05;
+					if (FMath::Abs(
+						CandidateScore.MaximumTopologyDisplacement
+							- BestScore.MaximumTopologyDisplacement)
+						> TopologyDisplacementQualityBandCm)
+					{
+						return CandidateScore.MaximumTopologyDisplacement
+							< BestScore.MaximumTopologyDisplacement;
+					}
+					if (!FMath::IsNearlyEqual(CandidateScore.NormalizedMeasure, BestScore.NormalizedMeasure, 1.e-6))
+					{
+						return CandidateScore.NormalizedMeasure < BestScore.NormalizedMeasure;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.MinimumTriangleNormalDot,
+						BestScore.MinimumTriangleNormalDot,
+						1.e-6))
+					{
+						return CandidateScore.MinimumTriangleNormalDot
+							> BestScore.MinimumTriangleNormalDot;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.MaximumAreaScaleDeviation,
+						BestScore.MaximumAreaScaleDeviation,
+						1.e-6))
+					{
+						return CandidateScore.MaximumAreaScaleDeviation
+							< BestScore.MaximumAreaScaleDeviation;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.MaximumEdgeScaleDeviation,
+						BestScore.MaximumEdgeScaleDeviation,
+						1.e-6))
+					{
+						return CandidateScore.MaximumEdgeScaleDeviation
+							< BestScore.MaximumEdgeScaleDeviation;
+					}
+					if (CandidateScore.PrimitiveCount != BestScore.PrimitiveCount)
+					{
+						return CandidateScore.PrimitiveCount < BestScore.PrimitiveCount;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.MaximumTopologyDisplacement,
+						BestScore.MaximumTopologyDisplacement,
+						1.e-6))
+					{
+						return CandidateScore.MaximumTopologyDisplacement
+							< BestScore.MaximumTopologyDisplacement;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.TopologySquaredEnergy,
+						BestScore.TopologySquaredEnergy,
+						1.e-6))
+					{
+						return CandidateScore.TopologySquaredEnergy
+							< BestScore.TopologySquaredEnergy;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.MaximumRepairMagnitude,
+						BestScore.MaximumRepairMagnitude,
+						1.e-6))
+					{
+						return CandidateScore.MaximumRepairMagnitude
+							< BestScore.MaximumRepairMagnitude;
+					}
+					if (!FMath::IsNearlyEqual(
+						CandidateScore.RepairSquaredSum,
+						BestScore.RepairSquaredSum,
+						1.e-6))
+					{
+						return CandidateScore.RepairSquaredSum
+							< BestScore.RepairSquaredSum;
+					}
+					return CandidateScore.MinimumGap > BestScore.MinimumGap + 1.e-6;
+				};
+
+				constexpr int32 MaximumIntersectionRepairPasses = 24;
+				bool bCandidateIntersectionsCleared = false;
+				for (int32 IntersectionPass = 0;
+					IntersectionPass < MaximumIntersectionRepairPasses;
+					++IntersectionPass)
+				{
+					FIntersectionTopologyScore CurrentScore;
+					FRawIntersectionContacts CurrentContacts;
+					FString EvaluationError;
+					if (!EvaluateIntersectionCandidate(
+						RequestedDeltas,
+						CurrentScore,
+						CurrentContacts,
+						EvaluationError))
+					{
+						OutError = FString::Printf(TEXT("Topology certification for %s failed closed: %s"), *Context, *EvaluationError);
+						return false;
+					}
+					if (CurrentScore.IntersectingTierCount == 0)
+					{
+						bCandidateIntersectionsCleared = true;
+						break;
+					}
+
+					TArray<FRawIntersectionComponent> Components;
+					if (!BuildRawIntersectionComponents(GarmentMesh, CurrentContacts, Components))
+					{
+						OutError = FString::Printf(
+							TEXT("Topology repair for %s could not build coherent raw contact components."),
+							*Context);
+						return false;
+					}
+
+					TArray<FVector3d> BestCandidateDeltas;
+					FIntersectionTopologyScore BestCandidateScore = CurrentScore;
+					bool bFoundImprovement = false;
+					int32 BestSelection = INDEX_NONE;
+					int32 BestDirectionVariant = 0;
+					double BestStep = 0.0;
+					double BestSmoothingBlend = 0.0;
+					int32 BestSaturatedVertexCount = 0;
+					int32 GeometryRejectedCandidateCount = 0;
+					int32 BudgetRejectedCandidateCount = 0;
+					int32 ClearanceRejectedCandidateCount = 0;
+					int32 RmsRejectedCandidateCount = 0;
+					int32 ProgressRejectedCandidateCount = 0;
+					FString LastGeometryRejection;
+					bool bHasBestNonEligibleCandidate = false;
+					FIntersectionTopologyScore BestNonEligibleCandidate;
+					TArray<double, TInlineAllocator<16>> CandidateSteps = {
+						0.0,
+						0.00390625,
+						0.0078125,
+						0.015625,
+						0.03125,
+						0.0625,
+						0.125,
+						0.25,
+						0.50,
+						1.0,
+						2.0,
+						3.0};
+					// Persistent triangle crossings sometimes need one coherent move that
+					// is larger than the old 3cm incremental ceiling. Every proposal is
+					// still clamped to MaximumMorphRepairCm and clearance-certified.
+					if (MaximumTopologyExtraRepair > 3.0 + 1.e-9)
+					{
+						CandidateSteps.AddUnique(MaximumTopologyExtraRepair);
+					}
+					CandidateSteps.Sort();
+					constexpr double CandidateSmoothingBlends[] = {0.65, 0.35, 0.0};
+					FVector3d CurrentGarmentCenter = FVector3d::Zero();
+					int32 CurrentGarmentVertexCount = 0;
+					for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+					{
+						CurrentGarmentCenter += GarmentMesh.GetVertex(VertexID)
+							+ ClearanceDeltas[VertexID] * TopologyReferenceTier
+							+ RequestedDeltas[VertexID];
+						++CurrentGarmentVertexCount;
+					}
+					if (CurrentGarmentVertexCount > 0)
+					{
+						CurrentGarmentCenter /= static_cast<double>(CurrentGarmentVertexCount);
+					}
+					for (int32 SelectionIndex = INDEX_NONE;
+						SelectionIndex <= Components.Num() + 1;
+						++SelectionIndex)
+					{
+						const bool bIndividualComponent = SelectionIndex >= 0
+							&& SelectionIndex < Components.Num();
+						const bool bAllComponents = SelectionIndex == INDEX_NONE;
+						const bool bLocalizedAllComponents = SelectionIndex == Components.Num();
+						const bool bRadialWholeGarment = SelectionIndex == Components.Num() + 1;
+						const double ScopeMaximumTopologyRepair = bRadialWholeGarment
+							? FMath::Min(MaximumTopologyExtraRepair, 1.0)
+							: (bAllComponents
+								? FMath::Min(MaximumTopologyExtraRepair, 2.0)
+								: MaximumTopologyExtraRepair);
+						if (bLocalizedAllComponents && CurrentScore.ContactTriangleCount > 8)
+						{
+							continue;
+						}
+						const int32 DirectionVariantCount = bIndividualComponent ? 9 : 1;
+						for (int32 DirectionVariant = 0;
+							DirectionVariant < DirectionVariantCount;
+							++DirectionVariant)
+						{
+							for (double CandidateStep : CandidateSteps)
+							{
+								if (CandidateStep > ScopeMaximumTopologyRepair + 1.e-9)
+								{
+									continue;
+								}
+								if (DirectionVariant > 0 && CandidateStep <= 1.e-9)
+								{
+									continue;
+								}
+								TMap<int32, FVector3d> ProposedDirections;
+								TMap<int32, double> ProposedWeights;
+							if (bRadialWholeGarment)
+							{
+								for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+								{
+									FVector3d RadialDirection = GarmentMesh.GetVertex(VertexID)
+										+ ClearanceDeltas[VertexID] * TopologyReferenceTier
+										+ RequestedDeltas[VertexID]
+										- CurrentGarmentCenter;
+									if (RadialDirection.Normalize())
+									{
+										ProposedDirections.Add(VertexID, RadialDirection);
+										ProposedWeights.Add(VertexID, 1.0);
+									}
+								}
+							}
+							else for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex)
+							{
+								if (bIndividualComponent && ComponentIndex != SelectionIndex)
+								{
+									continue;
+								}
+								const FRawIntersectionComponent& Component = Components[ComponentIndex];
+								FVector3d ComponentDirection = Component.Direction;
+								if (bIndividualComponent && DirectionVariant > 0)
+								{
+									FVector3d AxialTangent = FVector3d(0.0, 0.0, 1.0)
+										- Component.Direction * Component.Direction.Z;
+									if (!AxialTangent.Normalize())
+									{
+										AxialTangent = FVector3d(1.0, 0.0, 0.0)
+											- Component.Direction * Component.Direction.X;
+										AxialTangent.Normalize();
+									}
+									FVector3d CircumferentialTangent =
+										Component.Direction.Cross(AxialTangent);
+									CircumferentialTangent.Normalize();
+									const int32 ConeIndex = DirectionVariant - 1;
+									const double TangentScale = ConeIndex < 4 ? 0.35 : 0.75;
+									const int32 TangentIndex = ConeIndex % 4;
+									const FVector3d TangentDirection = TangentIndex < 2
+										? AxialTangent
+										: CircumferentialTangent;
+									const double TangentSign = (TangentIndex % 2) == 0 ? 1.0 : -1.0;
+									ComponentDirection = Component.Direction
+										+ TangentDirection * TangentScale * TangentSign;
+									ComponentDirection.Normalize();
+								}
+								for (const TPair<int32, int32>& SupportVertex : Component.SupportDepthByVertex)
+								{
+									if ((bLocalizedAllComponents && SupportVertex.Value > 3)
+										|| (bIndividualComponent && SupportVertex.Value > 6)
+										|| (bAllComponents && SupportVertex.Value > 8))
+									{
+										continue;
+									}
+									double Falloff = FMath::Max(
+										FMath::Exp(-static_cast<double>(SupportVertex.Value) * 0.25),
+										0.04);
+									if (bLocalizedAllComponents)
+									{
+										Falloff = FMath::Max(
+											1.0 - static_cast<double>(SupportVertex.Value) * 0.25,
+											0.25);
+									}
+									else if (bIndividualComponent)
+									{
+										const double SupportAlpha = FMath::Clamp(
+											1.0 - static_cast<double>(SupportVertex.Value) / 7.0,
+											0.0,
+											1.0);
+										Falloff = SupportAlpha * SupportAlpha * (3.0 - 2.0 * SupportAlpha);
+									}
+									ProposedDirections.FindOrAdd(SupportVertex.Key) += ComponentDirection * Falloff;
+									double& ProposedWeight = ProposedWeights.FindOrAdd(SupportVertex.Key);
+									ProposedWeight = FMath::Max(ProposedWeight, Falloff);
+								}
+							}
+
+							for (double CandidateSmoothingBlend : CandidateSmoothingBlends)
+							{
+								if (bRadialWholeGarment && CandidateSmoothingBlend > 0.0)
+								{
+									continue;
+								}
+								TArray<FVector3d> CandidateDeltas = RequestedDeltas;
+								int32 SaturatedVertexCount = 0;
+								bool bCandidateFieldValid = true;
+								if (CandidateSmoothingBlend > 0.0)
+								{
+									const TArray<FVector3d> BeforeSmoothing = CandidateDeltas;
+									for (const TPair<int32, FVector3d>& ProposedDirection : ProposedDirections)
+									{
+										const int32 VertexID = ProposedDirection.Key;
+										FVector3d NeighborRepairAverage = FVector3d::Zero();
+										int32 NeighborCount = 0;
+										for (int32 NeighborVertexID : GarmentMesh.VtxVerticesItr(VertexID))
+										{
+											NeighborRepairAverage += BeforeSmoothing[NeighborVertexID]
+												- InitialRequestedDeltas[NeighborVertexID];
+											++NeighborCount;
+										}
+										if (NeighborCount == 0)
+										{
+											continue;
+										}
+										NeighborRepairAverage /= static_cast<double>(NeighborCount);
+										const FVector3d CurrentRepair = BeforeSmoothing[VertexID]
+											- InitialRequestedDeltas[VertexID];
+										FVector3d SmoothedRepair = CurrentRepair;
+										double LowBlend = 0.0;
+										double HighBlend = CandidateSmoothingBlend;
+										for (int32 Refinement = 0; Refinement < 12; ++Refinement)
+										{
+											const double Blend = (LowBlend + HighBlend) * 0.5;
+											const FVector3d ProposedRepair = CurrentRepair * (1.0 - Blend)
+												+ NeighborRepairAverage * Blend;
+											const FVector3d ProposedDelta = InitialRequestedDeltas[VertexID] + ProposedRepair;
+											if (ProposedRepair.Length() <= MaximumRepair + 1.e-6
+												&& (ProposedDelta - TopologyBaselineDeltas[VertexID]).Length()
+													<= ScopeMaximumTopologyRepair + 1.e-6
+												&& MeasureCandidateDeltaAcrossTiers(VertexID, ProposedDelta)
+													>= CoherentRepairTargetClearance - ClearanceToleranceCm)
+											{
+												LowBlend = Blend;
+												SmoothedRepair = ProposedRepair;
+											}
+											else
+											{
+												HighBlend = Blend;
+											}
+										}
+										CandidateDeltas[VertexID] = InitialRequestedDeltas[VertexID] + SmoothedRepair;
+									}
+								}
+
+								for (const TPair<int32, FVector3d>& ProposedDirection : ProposedDirections)
+								{
+									FVector3d Direction = ProposedDirection.Value;
+									if (!Direction.Normalize())
+									{
+										continue;
+									}
+									const int32 VertexID = ProposedDirection.Key;
+									const FVector3d CurrentRepair = CandidateDeltas[VertexID]
+										- InitialRequestedDeltas[VertexID];
+									const double DesiredDistance =
+										CandidateStep * ProposedWeights.FindRef(VertexID);
+									auto IsSafeDistance = [
+										&InitialRequestedDeltas,
+										&TopologyBaselineDeltas,
+										&MeasureCandidateDeltaAcrossTiers,
+										CurrentRepair,
+										Direction,
+										VertexID,
+										MaximumRepair,
+										ScopeMaximumTopologyRepair,
+										CoherentRepairTargetClearance,
+										ClearanceToleranceCm](double Distance, FVector3d& OutDelta) -> bool
+									{
+										const FVector3d Repair = CurrentRepair + Direction * Distance;
+										OutDelta = InitialRequestedDeltas[VertexID] + Repair;
+										return Repair.Length() <= MaximumRepair + 1.e-6
+											&& (OutDelta - TopologyBaselineDeltas[VertexID]).Length()
+												<= ScopeMaximumTopologyRepair + 1.e-6
+											&& MeasureCandidateDeltaAcrossTiers(VertexID, OutDelta)
+												>= CoherentRepairTargetClearance - ClearanceToleranceCm;
+									};
+									FVector3d AcceptedDelta = CandidateDeltas[VertexID];
+									FVector3d DesiredDelta = AcceptedDelta;
+									if (DesiredDistance > 1.e-9
+										&& !IsSafeDistance(DesiredDistance, DesiredDelta))
+									{
+										double LowDistance = 0.0;
+										double HighDistance = DesiredDistance;
+										for (int32 Refinement = 0; Refinement < 12; ++Refinement)
+										{
+											const double MidDistance = (LowDistance + HighDistance) * 0.5;
+											FVector3d MidDelta;
+											if (IsSafeDistance(MidDistance, MidDelta))
+											{
+												LowDistance = MidDistance;
+												AcceptedDelta = MidDelta;
+											}
+											else
+											{
+												HighDistance = MidDistance;
+											}
+										}
+										++SaturatedVertexCount;
+									}
+									else if (DesiredDistance > 1.e-9)
+									{
+										AcceptedDelta = DesiredDelta;
+									}
+									CandidateDeltas[VertexID] = AcceptedDelta;
+								}
+								ReconcileNonManifoldVectorField(GarmentMesh, CandidateDeltas);
+								for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+								{
+									const FVector3d TotalRepair = CandidateDeltas[VertexID]
+										- InitialRequestedDeltas[VertexID];
+									const FVector3d TopologyRepair = CandidateDeltas[VertexID]
+										- TopologyBaselineDeltas[VertexID];
+									if (!FMath::IsFinite(CandidateDeltas[VertexID].X)
+										|| !FMath::IsFinite(CandidateDeltas[VertexID].Y)
+										|| !FMath::IsFinite(CandidateDeltas[VertexID].Z)
+										|| TotalRepair.Length() > MaximumRepair + 1.e-6
+										|| TopologyRepair.Length() > ScopeMaximumTopologyRepair + 1.e-6)
+									{
+										bCandidateFieldValid = false;
+										break;
+									}
+								}
+								if (!bCandidateFieldValid)
+								{
+									++BudgetRejectedCandidateCount;
+									continue;
+								}
+
+								FIntersectionTopologyScore CandidateScore;
+								FRawIntersectionContacts CandidateContacts;
+								FString CandidateEvaluationError;
+								if (!EvaluateIntersectionCandidate(
+									CandidateDeltas,
+									CandidateScore,
+									CandidateContacts,
+									CandidateEvaluationError))
+								{
+									++GeometryRejectedCandidateCount;
+									LastGeometryRejection = CandidateEvaluationError;
+									continue;
+								}
+								if (CandidateScore.MinimumGap
+									< CoherentRepairTargetClearance - ClearanceToleranceCm)
+								{
+									++ClearanceRejectedCandidateCount;
+									continue;
+								}
+								if (FMath::Sqrt(
+										CandidateScore.TopologySquaredEnergy
+											/ FMath::Max(1, GarmentMesh.VertexCount()))
+									> MaximumTopologyRmsRepair + 1.e-6)
+								{
+									++RmsRejectedCandidateCount;
+									continue;
+								}
+								if (!IsEligibleTopologyProgress(CandidateScore, CurrentScore))
+								{
+									++ProgressRejectedCandidateCount;
+									if (!bHasBestNonEligibleCandidate
+										|| CompareCardinalTopology(
+											CandidateScore,
+											BestNonEligibleCandidate) < 0
+										|| (CompareCardinalTopology(
+											CandidateScore,
+											BestNonEligibleCandidate) == 0
+											&& CandidateScore.NormalizedMeasure
+												< BestNonEligibleCandidate.NormalizedMeasure))
+									{
+										BestNonEligibleCandidate = CandidateScore;
+										bHasBestNonEligibleCandidate = true;
+									}
+									continue;
+								}
+								if (bFoundImprovement
+									&& !IsBetterEligibleCandidate(CandidateScore, BestCandidateScore))
+								{
+									++ProgressRejectedCandidateCount;
+									continue;
+								}
+
+								BestCandidateDeltas = MoveTemp(CandidateDeltas);
+								BestCandidateScore = CandidateScore;
+								BestSelection = SelectionIndex;
+								BestDirectionVariant = DirectionVariant;
+								BestStep = CandidateStep;
+								BestSmoothingBlend = CandidateSmoothingBlend;
+								BestSaturatedVertexCount = SaturatedVertexCount;
+								bFoundImprovement = true;
+							}
+						}
+					}
+					}
+
+					if (!bFoundImprovement)
+					{
+						OutError = FString::Printf(
+							TEXT("Topology repair for %s made no strict progress at pass %d (tiers=%d tier-triangles=%d triangles=%d primitives=%d measure=%.6f maxTopology=%.4fcm maxRepair=%.4fcm gap=%.4fcm components=%d rejected budget/geometry/clearance/rms/progress=%d/%d/%d/%d/%d bestRejected=%d/%d/%d/%d/%.6f lastGeometry='%s')."),
+							*Context,
+							IntersectionPass + 1,
+							CurrentScore.IntersectingTierCount,
+							CurrentScore.ContactTriangleTierPairCount,
+							CurrentScore.ContactTriangleCount,
+							CurrentScore.PrimitiveCount,
+							CurrentScore.NormalizedMeasure,
+							CurrentScore.MaximumTopologyDisplacement,
+							CurrentScore.MaximumRepairMagnitude,
+							CurrentScore.MinimumGap,
+							Components.Num(),
+							BudgetRejectedCandidateCount,
+							GeometryRejectedCandidateCount,
+							ClearanceRejectedCandidateCount,
+							RmsRejectedCandidateCount,
+							ProgressRejectedCandidateCount,
+							bHasBestNonEligibleCandidate ? BestNonEligibleCandidate.IntersectingTierCount : -1,
+							bHasBestNonEligibleCandidate ? BestNonEligibleCandidate.ContactTriangleTierPairCount : -1,
+							bHasBestNonEligibleCandidate ? BestNonEligibleCandidate.ContactTriangleCount : -1,
+							bHasBestNonEligibleCandidate ? BestNonEligibleCandidate.PrimitiveCount : -1,
+							bHasBestNonEligibleCandidate ? BestNonEligibleCandidate.NormalizedMeasure : -1.0,
+							*LastGeometryRejection);
+						return false;
+					}
+
+					RequestedDeltas = MoveTemp(BestCandidateDeltas);
+					bAppliedCorrection = true;
+					const FString SelectionLabel = BestSelection == INDEX_NONE
+						? TEXT("all")
+						: (BestSelection < Components.Num()
+							? FString::Printf(TEXT("component-%d"), BestSelection)
+							: (BestSelection == Components.Num()
+								? TEXT("localized-all")
+								: TEXT("radial")));
+					UE_LOG(
+						LogEFClothingFitCompiler,
+						Display,
+						TEXT("V24 topology transaction %d for %s committed selection=%s variant=%d step=%.4fcm smoothing=%.2f saturated=%d score %d/%d/%d/%d/%.6f/%.4f -> %d/%d/%d/%d/%.6f/%.4f quality normal=%.4f areaLog=%.4f edgeLog=%.4f."),
+						IntersectionPass + 1,
+						*Context,
+						*SelectionLabel,
+						BestDirectionVariant,
+						BestStep,
+						BestSmoothingBlend,
+						BestSaturatedVertexCount,
+						CurrentScore.IntersectingTierCount,
+						CurrentScore.ContactTriangleTierPairCount,
+						CurrentScore.ContactTriangleCount,
+						CurrentScore.PrimitiveCount,
+						CurrentScore.NormalizedMeasure,
+						CurrentScore.MaximumTopologyDisplacement,
+						BestCandidateScore.IntersectingTierCount,
+						BestCandidateScore.ContactTriangleTierPairCount,
+						BestCandidateScore.ContactTriangleCount,
+						BestCandidateScore.PrimitiveCount,
+						BestCandidateScore.NormalizedMeasure,
+						BestCandidateScore.MaximumTopologyDisplacement,
+						BestCandidateScore.MinimumTriangleNormalDot,
+						BestCandidateScore.MaximumAreaScaleDeviation,
+						BestCandidateScore.MaximumEdgeScaleDeviation);
+					if (BestCandidateScore.IntersectingTierCount == 0)
+					{
+						bCandidateIntersectionsCleared = true;
+						break;
+					}
+				}
+				if (!bCandidateIntersectionsCleared)
+				{
+					OutError = FString::Printf(TEXT("Intersection repair ended without a certified result for %s."), *Context);
+					return false;
+				}
+				if (!bAppliedCorrection)
+				{
+					OutError = FString::Printf(TEXT("Stored morph auto-sculpt produced no correction for %s."), *Context);
+					return false;
+				}
+				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+				bOutRepaired = true;
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Display,
+					TEXT("V24 stored morph cook pass %d repaired %s at tier %.3f (gap %.4fcm, intersects=%s)."),
+					CookPass + 1,
+					*Context,
+					FailingTier,
+					FailingTierGap,
+					bFailingTierIntersects ? TEXT("true") : TEXT("false"));
+			}
+
+			OutError = FString::Printf(TEXT("Stored morph certification ended without a result for %s."), *Context);
+			return false;
+		};
+
+		int32 CandidateOrdinal = 0;
 		for (const FMorphCandidate& Candidate : Candidates)
 		{
-			const TVertexAttributesConstRef<FVector3f> MorphDeltas = BodyAttributes.GetVertexMorphPositionDelta(Candidate.Name);
-			UDynamicMesh* MorphMesh = NewObject<UDynamicMesh>(GetTransientPackage());
-			MorphMesh->SetMesh(GarmentMesh);
-			MorphMesh->EditMesh([&](FDynamicMesh3& EditMesh)
-			{
-				for (int32 VertexID : EditMesh.VertexIndicesItr())
-				{
-					const FVector3d Delta = GetTransferredBodyMorphDelta(
-						BodyMesh, BodyMapping, MorphDeltas, Correspondence[VertexID]);
-					EditMesh.SetVertex(VertexID, EditMesh.GetVertex(VertexID) + Delta);
-				}
-			}, EDynamicMeshChangeType::DeformationEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
+			++CandidateOrdinal;
+			UE_LOG(
+				LogEFClothingFitCompiler,
+				Display,
+				TEXT("V24 morph certification %d/%d: %s"),
+				CandidateOrdinal,
+				Candidates.Num(),
+				*Candidate.Name.ToString());
+			const TVertexAttributesConstRef<FVector3f> BodyMorphDeltas = BodyAttributes.GetVertexMorphPositionDelta(Candidate.Name);
+			FEFClothingMorphBinding Binding;
+			Binding.BodyMorph = Candidate.Name;
+			Binding.MinimumCertifiedValue = 0.0f;
+			Binding.MaximumCertifiedValue = 1.0f;
 
-			FString MorphError;
-			if (WriteMorph(MorphMesh, Derived, Candidate.Name, MorphError))
+			// Each key is stored as an absolute garment shape relative to the fitted
+			// rest garment. Solve it incrementally from the nearest lower certified
+			// key so anatomical folds and topology repairs are preserved as the body
+			// changes, rather than being reconstructed independently from rest.
+			TArray<FCompiledMorphKey> Keys;
+			FCompiledMorphKey& RestKey = Keys.AddDefaulted_GetRef();
+			RestKey.BodyValue = 0.0;
+			RestKey.MorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+			bool bRepaired = false;
+			double MorphMinimumGap = TNumericLimits<double>::Max();
+			const FString MorphKey = FMD5::HashAnsiString(*Candidate.Name.ToString()).Left(12);
+			const int32 CandidateBaseSampleCount = Candidate.MaxDelta > 4.0
+				? 16
+				: SampleCount;
+			UE_LOG(
+				LogEFClothingFitCompiler,
+				Display,
+				TEXT("V24 morph %s uses %d base sample(s) for maximum transferred displacement %.4fcm."),
+				*Candidate.Name.ToString(),
+				CandidateBaseSampleCount,
+				Candidate.MaxDelta);
+
+			// Existing garment morph names are deliberately not trusted, but many
+			// body morphs do not make the already-fitted garment unsafe in this
+			// particular surface region. Certify that case geometrically instead of
+			// relying on a name list or displacement threshold. A fixed zero shape is
+			// sampled eight times more densely than the published identity keys and
+			// against every runtime offset tier. Any failed gap or triangle test falls
+			// through to the full auto-sculpt below.
+			const int32 NoOpProbeCount = CandidateBaseSampleCount * 8;
+			TArray<FVector3d> ZeroMorphDeltas;
+			ZeroMorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+			double NoOpMinimumGap = TNumericLimits<double>::Max();
+			double NoOpMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+			bool bNoOpCertified = true;
+			for (int32 ProbeIndex = 1; ProbeIndex <= NoOpProbeCount; ++ProbeIndex)
+			{
+				const double BodyValue = static_cast<double>(ProbeIndex)
+					/ static_cast<double>(NoOpProbeCount);
+				FDynamicMesh3 ProbeBody(BodyMesh);
+				for (int32 VertexID : ProbeBody.VertexIndicesItr())
+				{
+					const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+					ProbeBody.SetVertex(
+						VertexID,
+						ProbeBody.GetVertex(VertexID)
+							+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+				}
+				double ProbeMinimumGap = TNumericLimits<double>::Max();
+				double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+				bool bProbeIntersects = false;
+				if (!MeasureRuntimeShapeAcrossOffsetTiers(
+					ProbeBody,
+					ZeroMorphDeltas,
+					ProbeMinimumGap,
+					bProbeIntersects,
+					ProbeMinimumClearanceMultiplier)
+					|| ProbeMinimumGap < DesiredClearance - ClearanceToleranceCm
+					|| bProbeIntersects)
+				{
+					bNoOpCertified = false;
+					break;
+				}
+				NoOpMinimumGap = FMath::Min(NoOpMinimumGap, ProbeMinimumGap);
+				NoOpMinimumClearanceMultiplier = FMath::Max(
+					NoOpMinimumClearanceMultiplier,
+					ProbeMinimumClearanceMultiplier);
+			}
+			if (bNoOpCertified)
+			{
+				for (int32 SampleIndex = 1; SampleIndex <= CandidateBaseSampleCount; ++SampleIndex)
+				{
+					FEFClothingMorphSample& IdentitySample = Binding.Samples.AddDefaulted_GetRef();
+					IdentitySample.BodyValue = static_cast<float>(SampleIndex)
+						/ static_cast<float>(CandidateBaseSampleCount);
+					IdentitySample.bIdentity = true;
+					IdentitySample.MinimumClearanceMultiplier = static_cast<float>(
+						NoOpMinimumClearanceMultiplier);
+				}
+				if (Candidate.bTransferred)
+				{
+					TransferredNames.Add(Candidate.Name);
+				}
+				++OutValidatedMorphCount;
+				OutMinimumSampledMorphGap = FMath::Min(OutMinimumSampledMorphGap, NoOpMinimumGap);
+				OutMinimumCertifiedOffsetGap = FMath::Min(OutMinimumCertifiedOffsetGap, NoOpMinimumGap);
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Display,
+					TEXT("V24 morph certified no-op %d/%d: %s | probes=%d | minGap=%.4fcm"),
+					CandidateOrdinal,
+					Candidates.Num(),
+					*Candidate.Name.ToString(),
+					NoOpProbeCount,
+					NoOpMinimumGap);
+				OutBindings.Add(MoveTemp(Binding));
+				continue;
+			}
+
+			auto SolveKey = [&](double Alpha, FCompiledMorphKey& OutKey) -> bool
+			{
+				const FCompiledMorphKey* AnchorKey = &Keys[0];
+				for (const FCompiledMorphKey& ExistingKey : Keys)
+				{
+					if (ExistingKey.BodyValue < Alpha - 1.e-9
+						&& ExistingKey.BodyValue > AnchorKey->BodyValue)
+					{
+						AnchorKey = &ExistingKey;
+					}
+				}
+
+				FDynamicMesh3 AnchorBody(BodyMesh);
+				for (int32 VertexID : AnchorBody.VertexIndicesItr())
+				{
+					const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+					AnchorBody.SetVertex(
+						VertexID,
+						AnchorBody.GetVertex(VertexID)
+							+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * AnchorKey->BodyValue);
+				}
+				FMeshNormals AnchorBodyNormals(&AnchorBody);
+				AnchorBodyNormals.ComputeVertexNormals();
+
+				FDynamicMesh3 SampleBody(BodyMesh);
+				for (int32 VertexID : SampleBody.VertexIndicesItr())
+				{
+					const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+					SampleBody.SetVertex(
+						VertexID,
+						SampleBody.GetVertex(VertexID) + FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * Alpha);
+				}
+				FMeshNormals SampleBodyNormals(&SampleBody);
+				SampleBodyNormals.ComputeVertexNormals();
+
+				FDynamicMesh3 SampleGarment(GarmentMesh);
+				TArray<FVector3d> SampleClearanceDirections;
+				SampleClearanceDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+				for (int32 VertexID : SampleGarment.VertexIndicesItr())
+				{
+					const FSurfaceCorrespondence& Surface = Correspondence[VertexID];
+					if (Surface.BodyTriangle == INDEX_NONE
+						|| !SampleBody.IsTriangle(Surface.BodyTriangle)
+						|| !AnchorBody.IsTriangle(Surface.BodyTriangle))
+					{
+						OutError = FString::Printf(TEXT("Morph %s has an invalid surface correspondence."), *Candidate.Name.ToString());
+						return false;
+					}
+					const FIndex3i Triangle = SampleBody.GetTriangle(Surface.BodyTriangle);
+					const FVector3d SurfacePoint =
+						SampleBody.GetVertex(Triangle.A) * Surface.Barycentric.X
+						+ SampleBody.GetVertex(Triangle.B) * Surface.Barycentric.Y
+						+ SampleBody.GetVertex(Triangle.C) * Surface.Barycentric.Z;
+					const FVector3d SurfaceNormal = InterpolateNormal(
+						SampleBody,
+						SampleBodyNormals,
+						Surface.BodyTriangle,
+						Surface.Barycentric);
+					SampleClearanceDirections[VertexID] = SurfaceNormal;
+					const FVector3d BaseFittedPosition = GarmentMesh.GetVertex(VertexID) + ClearanceDeltas[VertexID];
+					const FIndex3i AnchorTriangle = AnchorBody.GetTriangle(Surface.BodyTriangle);
+					const FVector3d AnchorSurfacePoint =
+						AnchorBody.GetVertex(AnchorTriangle.A) * Surface.Barycentric.X
+						+ AnchorBody.GetVertex(AnchorTriangle.B) * Surface.Barycentric.Y
+						+ AnchorBody.GetVertex(AnchorTriangle.C) * Surface.Barycentric.Z;
+					FVector3d AnchorSurfaceNormal = InterpolateNormal(
+						AnchorBody,
+						AnchorBodyNormals,
+						Surface.BodyTriangle,
+						Surface.Barycentric);
+					FVector3d DeformedSurfaceNormal = SurfaceNormal;
+					if (!AnchorSurfaceNormal.Normalize())
+					{
+						AnchorSurfaceNormal = DeformedSurfaceNormal;
+					}
+					if (!DeformedSurfaceNormal.Normalize())
+					{
+						DeformedSurfaceNormal = AnchorSurfaceNormal;
+					}
+					const FVector3d AnchorGarmentPosition = BaseFittedPosition + AnchorKey->MorphDeltas[VertexID];
+					const FVector3d AnchorSurfaceOffset = AnchorGarmentPosition - AnchorSurfacePoint;
+					const FVector3d TransportedSurfaceOffset = FQuat4d::FindBetweenNormals(
+						AnchorSurfaceNormal,
+						DeformedSurfaceNormal).RotateVector(AnchorSurfaceOffset);
+					SampleGarment.SetVertex(
+						VertexID,
+						SurfacePoint + TransportedSurfaceOffset);
+				}
+
+				double MinimumGap = 0.0;
+				int32 PenetratingVertices = 0;
+				if (!MeasureVertexClearance(SampleBody, SampleGarment, MinimumGap, PenetratingVertices))
+				{
+					OutError = FString::Printf(TEXT("Could not measure morph %s at %.3f."), *Candidate.Name.ToString(), Alpha);
+					return false;
+				}
+
+				if (MinimumGap < MorphSolveClearance - ClearanceToleranceCm)
+				{
+					TArray<FVector3d> SampleCorrections;
+					double AnchoredMinimumGap = 0.0;
+					bool bReachedAnchoredClearance = BuildAnchoredClearanceCorrections(
+						SampleBody,
+						SampleGarment,
+						AnchoredRadialDirections,
+						AnchoredClearanceDirections,
+						Correspondence,
+						MorphSolveClearance,
+						StandardShapeRepair,
+						SampleCorrections,
+						AnchoredMinimumGap);
+					if (!bReachedAnchoredClearance)
+					{
+						bReachedAnchoredClearance = BuildAnchoredClearanceCorrections(
+							SampleBody,
+							SampleGarment,
+							AnchoredRadialDirections,
+							AnchoredClearanceDirections,
+							Correspondence,
+							MorphFallbackClearance,
+							StandardShapeRepair,
+							SampleCorrections,
+							AnchoredMinimumGap);
+					}
+					if (!bReachedAnchoredClearance)
+					{
+						double DirectionalMinimumGap = 0.0;
+						bool bReachedDirectionalClearance = BuildDirectionalClearanceCorrections(
+							SampleBody,
+							SampleGarment,
+							MorphFallbackClearance,
+							StandardShapeRepair,
+							SampleCorrections,
+							DirectionalMinimumGap);
+						if (!bReachedDirectionalClearance)
+						{
+							bReachedDirectionalClearance = BuildDirectionalClearanceCorrections(
+								SampleBody,
+								SampleGarment,
+								DesiredClearance,
+								StandardShapeRepair,
+								SampleCorrections,
+								DirectionalMinimumGap);
+						}
+						if (!bReachedDirectionalClearance)
+						{
+							OutError = FString::Printf(
+								TEXT("Morph %s cannot maintain %.4fcm clearance at %.3f (anchored=%.4fcm directional=%.4fcm)."),
+								*Candidate.Name.ToString(), DesiredClearance, Alpha, AnchoredMinimumGap, DirectionalMinimumGap);
+							return false;
+						}
+					}
+					if (SampleCorrections.Num() < GarmentMesh.MaxVertexID())
+					{
+						OutError = FString::Printf(TEXT("Morph %s produced an incomplete repair field at %.3f."), *Candidate.Name.ToString(), Alpha);
+						return false;
+					}
+					for (int32 VertexID : SampleGarment.VertexIndicesItr())
+					{
+						if (!SampleCorrections[VertexID].IsNearlyZero(1.e-6))
+						{
+							bRepaired = true;
+						}
+						SampleGarment.SetVertex(VertexID, SampleGarment.GetVertex(VertexID) + SampleCorrections[VertexID]);
+					}
+				}
+
+				if (!MeasureVertexClearance(SampleBody, SampleGarment, MinimumGap, PenetratingVertices)
+					|| MinimumGap < DesiredClearance - ClearanceToleranceCm)
+				{
+					OutError = FString::Printf(
+						TEXT("Morph %s failed final sample clearance at %.3f: %.4fcm < %.4fcm."),
+						*Candidate.Name.ToString(), Alpha, MinimumGap, DesiredClearance);
+					return false;
+				}
+
+				TArray<FVector3d> AbsoluteMorphDelta;
+				AbsoluteMorphDelta.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+				for (int32 VertexID : SampleGarment.VertexIndicesItr())
+				{
+					const FVector3d BaseFittedPosition = GarmentMesh.GetVertex(VertexID) + ClearanceDeltas[VertexID];
+					AbsoluteMorphDelta[VertexID] = SampleGarment.GetVertex(VertexID) - BaseFittedPosition;
+				}
+				OutKey.BodyValue = Alpha;
+				OutKey.MorphDeltas = MoveTemp(AbsoluteMorphDelta);
+				const FSkeletalMeshLODInfo* DerivedLODInfo = Derived->GetLODInfo(0);
+				const double MorphThresholdPositionCm = FMath::Max(
+					0.0,
+					DerivedLODInfo
+						? static_cast<double>(DerivedLODInfo->BuildSettings.MorphThresholdPosition)
+						: 0.0);
+				bool bContainsRenderableDelta = false;
+				for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+				{
+					bContainsRenderableDelta |= OutKey.MorphDeltas[VertexID].SquaredLength()
+						> FMath::Square(MorphThresholdPositionCm);
+				}
+				if (!bContainsRenderableDelta)
+				{
+					OutKey.bIdentity = true;
+					for (FVector3d& Delta : OutKey.MorphDeltas)
+					{
+						Delta = FVector3d::Zero();
+					}
+				}
+				else
+				{
+					const int64 QuantizedBodyValue = FMath::RoundToInt64(Alpha * 1000000000.0);
+					const FString MorphNameString = FString::Printf(
+						TEXT("EFV2_%s_V%010lld"),
+						*MorphKey,
+						QuantizedBodyValue);
+					const FName SampleMorphName(*MorphNameString);
+					if (GeneratedSampleMorphNames.Contains(SampleMorphName))
+					{
+						OutError = FString::Printf(
+							TEXT("Generated morph name collision for %s at value %.6f (%s)."),
+							*Candidate.Name.ToString(),
+							Alpha,
+							*MorphNameString);
+						return false;
+					}
+					GeneratedSampleMorphNames.Add(SampleMorphName);
+					const FString StoredMorphContext = FString::Printf(
+						TEXT("%s at %.6f"),
+						*Candidate.Name.ToString(),
+						Alpha);
+					if (!WriteAndCertifyStoredShapeMorph(
+						SampleBody,
+						SampleClearanceDirections,
+						SampleMorphName,
+						StoredMorphContext,
+						OutKey.MorphDeltas,
+						bRepaired,
+						OutKey.MinimumClearanceMultiplier))
+					{
+						return false;
+					}
+					OutKey.GarmentMorph = SampleMorphName;
+				}
+
+				double StoredMinimumGap = 0.0;
+				double StoredMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+				bool bStoredShapeIntersects = false;
+				if (!MeasureRuntimeShapeAcrossOffsetTiers(
+					SampleBody,
+					OutKey.MorphDeltas,
+					StoredMinimumGap,
+					bStoredShapeIntersects,
+					StoredMinimumClearanceMultiplier))
+				{
+					OutError = FString::Printf(
+						TEXT("Could not certify stored morph %s at %.3f across the runtime offset tiers."),
+						*Candidate.Name.ToString(), Alpha);
+					return false;
+				}
+				if (StoredMinimumGap < DesiredClearance - ClearanceToleranceCm || bStoredShapeIntersects)
+				{
+					OutError = FString::Printf(
+						TEXT("Stored morph %s failed post-threshold offset certification at %.3f: gap %.4fcm, triangles=%s."),
+						*Candidate.Name.ToString(),
+						Alpha,
+						StoredMinimumGap,
+						bStoredShapeIntersects ? TEXT("INTERSECT") : TEXT("CLEAR"));
+					return false;
+				}
+				OutKey.MinimumClearanceMultiplier = FMath::Max(
+					OutKey.MinimumClearanceMultiplier,
+					StoredMinimumClearanceMultiplier);
+				MorphMinimumGap = FMath::Min(MorphMinimumGap, StoredMinimumGap);
+				OutMinimumCertifiedOffsetGap = FMath::Min(OutMinimumCertifiedOffsetGap, StoredMinimumGap);
+				return true;
+			};
+
+			for (int32 SampleIndex = 1; SampleIndex <= CandidateBaseSampleCount; ++SampleIndex)
+			{
+				FCompiledMorphKey Key;
+				const double Alpha = static_cast<double>(SampleIndex) / static_cast<double>(CandidateBaseSampleCount);
+				if (!SolveKey(Alpha, Key))
+				{
+					if (Keys.Num() <= 1)
+					{
+						return TransferredNames;
+					}
+					const FString PartialFailureReason = OutError;
+					if (!Key.GarmentMorph.IsNone())
+					{
+						RemoveGeneratedMorph(Derived, Key.GarmentMorph);
+						GeneratedSampleMorphNames.Remove(Key.GarmentMorph);
+					}
+					Binding.MaximumCertifiedValue = static_cast<float>(Keys.Last().BodyValue);
+					OutError.Reset();
+					UE_LOG(
+						LogEFClothingFitCompiler,
+						Warning,
+						TEXT("V25 morph %s published with partial fail-closed range [0, %.6f]; value %.6f and above remain suppressed. Cause: %s"),
+						*Candidate.Name.ToString(),
+						Binding.MaximumCertifiedValue,
+						Alpha,
+						*PartialFailureReason);
+					break;
+				}
+				Keys.Add(MoveTemp(Key));
+			}
+			const int32 CertifiedBaseSampleCount = Keys.Num() - 1;
+
+			auto SortKeys = [&Keys]()
+			{
+				Keys.Sort([](const FCompiledMorphKey& A, const FCompiledMorphKey& B)
+				{
+					return A.BodyValue < B.BodyValue;
+				});
+			};
+			SortKeys();
+
+			// The base keys have already been cooked and certified. If neither linear
+			// nor stepped playback can certify an interval, go directly to the
+			// segment envelope: additional point samples are discarded by the
+			// envelope builder and only repeat the same expensive topology work.
+			const int32 MaximumAdaptiveSamplesPerMorph = CertifiedBaseSampleCount;
+			auto MeasureKeyPair = [&](const FCompiledMorphKey& LowKey,
+				const FCompiledMorphKey& HighKey,
+				double NormalizedValue,
+				bool bStep,
+				double& OutGap,
+				bool& bOutIntersects,
+				double& OutMinimumClearanceMultiplier) -> bool
+			{
+				const double BodyValue = FMath::Lerp(LowKey.BodyValue, HighKey.BodyValue, NormalizedValue);
+				FDynamicMesh3 ProbeBody(BodyMesh);
+				for (int32 VertexID : ProbeBody.VertexIndicesItr())
+				{
+					const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+					ProbeBody.SetVertex(
+						VertexID,
+						ProbeBody.GetVertex(VertexID) + FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+				}
+				TArray<FVector3d> ProbeMorphDeltas;
+				ProbeMorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+				for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+				{
+					ProbeMorphDeltas[VertexID] = bStep
+						? (NormalizedValue <= 0.5 ? LowKey.MorphDeltas[VertexID] : HighKey.MorphDeltas[VertexID])
+						: FMath::Lerp(LowKey.MorphDeltas[VertexID], HighKey.MorphDeltas[VertexID], NormalizedValue);
+				}
+				return MeasureRuntimeShapeAcrossOffsetTiers(
+					ProbeBody,
+					ProbeMorphDeltas,
+					OutGap,
+					bOutIntersects,
+					OutMinimumClearanceMultiplier);
+			};
+
+			auto BuildSegmentEnvelopeFallback = [&]() -> bool
+			{
+				TArray<FCompiledMorphKey> EnvelopeKeys;
+				FCompiledMorphKey& EnvelopeRestKey = EnvelopeKeys.AddDefaulted_GetRef();
+				EnvelopeRestKey.BodyValue = 0.0;
+				EnvelopeRestKey.bIdentity = true;
+				EnvelopeRestKey.MorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+				for (const FCompiledMorphKey& SupersededKey : Keys)
+				{
+					if (!SupersededKey.GarmentMorph.IsNone())
+					{
+						RemoveGeneratedMorph(Derived, SupersededKey.GarmentMorph);
+						GeneratedSampleMorphNames.Remove(SupersededKey.GarmentMorph);
+					}
+				}
+				constexpr int32 EnvelopeProbeSubdivisions = 8;
+				constexpr int32 MaximumEnvelopePasses = 8;
+
+				for (int32 SegmentIndex = 0; SegmentIndex < CertifiedBaseSampleCount; ++SegmentIndex)
+				{
+					const double LowBodyValue = Binding.MaximumCertifiedValue
+						* static_cast<double>(SegmentIndex)
+						/ static_cast<double>(CertifiedBaseSampleCount);
+					const double HighBodyValue = Binding.MaximumCertifiedValue
+						* static_cast<double>(SegmentIndex + 1)
+						/ static_cast<double>(CertifiedBaseSampleCount);
+					const double CenterBodyValue = (LowBodyValue + HighBodyValue) * 0.5;
+					const FCompiledMorphKey* SeedKey = &Keys[0];
+					for (const FCompiledMorphKey& CandidateKey : Keys)
+					{
+						if (FMath::Abs(CandidateKey.BodyValue - CenterBodyValue)
+							< FMath::Abs(SeedKey->BodyValue - CenterBodyValue))
+						{
+							SeedKey = &CandidateKey;
+						}
+					}
+
+					FDynamicMesh3 EnvelopeGarment(GarmentMesh);
+					TArray<FVector3d> EnvelopeRepairAccumulated;
+					EnvelopeRepairAccumulated.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+					for (int32 VertexID : EnvelopeGarment.VertexIndicesItr())
+					{
+						EnvelopeGarment.SetVertex(
+							VertexID,
+							EnvelopeGarment.GetVertex(VertexID)
+								+ ClearanceDeltas[VertexID]
+								+ SeedKey->MorphDeltas[VertexID]);
+					}
+
+					for (int32 EnvelopePass = 0; EnvelopePass < MaximumEnvelopePasses; ++EnvelopePass)
+					{
+						bool bPassAppliedCorrection = false;
+						for (int32 ProbeIndex = 0; ProbeIndex <= EnvelopeProbeSubdivisions; ++ProbeIndex)
+						{
+							const double ProbeFraction = static_cast<double>(ProbeIndex)
+								/ static_cast<double>(EnvelopeProbeSubdivisions);
+							const double BodyValue = FMath::Lerp(LowBodyValue, HighBodyValue, ProbeFraction);
+							FDynamicMesh3 ProbeBody(BodyMesh);
+							for (int32 VertexID : ProbeBody.VertexIndicesItr())
+							{
+								const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+								ProbeBody.SetVertex(
+									VertexID,
+									ProbeBody.GetVertex(VertexID)
+										+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+							}
+							double Gap = 0.0;
+							int32 PenetratingVertices = 0;
+							if (!MeasureVertexClearance(ProbeBody, EnvelopeGarment, Gap, PenetratingVertices))
+							{
+								OutError = FString::Printf(TEXT("Could not measure envelope fallback for morph %s."), *Candidate.Name.ToString());
+								return false;
+							}
+							if (Gap >= MorphFallbackClearance - ClearanceToleranceCm)
+							{
+								continue;
+							}
+
+							TArray<FVector3d> Corrections;
+							double RepairGap = 0.0;
+							bool bRepairedEnvelope = BuildAnchoredClearanceCorrections(
+								ProbeBody,
+								EnvelopeGarment,
+								AnchoredRadialDirections,
+								AnchoredClearanceDirections,
+								Correspondence,
+								MorphFallbackClearance,
+								StandardShapeRepair,
+								Corrections,
+								RepairGap);
+							if (!bRepairedEnvelope)
+							{
+								bRepairedEnvelope = BuildAnchoredClearanceCorrections(
+									ProbeBody,
+									EnvelopeGarment,
+									AnchoredRadialDirections,
+									AnchoredClearanceDirections,
+									Correspondence,
+									DesiredClearance,
+									StandardShapeRepair,
+									Corrections,
+									RepairGap);
+							}
+							if (!bRepairedEnvelope)
+							{
+								bRepairedEnvelope = BuildDirectionalClearanceCorrections(
+									ProbeBody,
+									EnvelopeGarment,
+									DesiredClearance,
+									StandardShapeRepair,
+									Corrections,
+									RepairGap);
+							}
+							if (!bRepairedEnvelope || Corrections.Num() < GarmentMesh.MaxVertexID())
+							{
+								OutError = FString::Printf(
+									TEXT("Morph %s cannot build a certified envelope for segment %d at %.6f (gap %.4fcm)."),
+									*Candidate.Name.ToString(), SegmentIndex, BodyValue, RepairGap);
+								return false;
+							}
+							for (int32 VertexID : EnvelopeGarment.VertexIndicesItr())
+							{
+								const FVector3d AccumulatedRepair = EnvelopeRepairAccumulated[VertexID] + Corrections[VertexID];
+								if (AccumulatedRepair.Length() > MaximumRepair + ClearanceToleranceCm)
+								{
+									OutError = FString::Printf(
+										TEXT("Morph %s envelope segment %d exceeds %.4fcm cumulative repair at vertex %d."),
+										*Candidate.Name.ToString(), SegmentIndex, MaximumRepair, VertexID);
+									return false;
+								}
+								EnvelopeRepairAccumulated[VertexID] = AccumulatedRepair;
+								EnvelopeGarment.SetVertex(
+									VertexID,
+									EnvelopeGarment.GetVertex(VertexID) + Corrections[VertexID]);
+							}
+							bPassAppliedCorrection = true;
+							bRepaired = true;
+						}
+						if (!bPassAppliedCorrection)
+						{
+							break;
+						}
+					}
+
+					double SegmentMinimumGap = TNumericLimits<double>::Max();
+					for (int32 ProbeIndex = 0; ProbeIndex <= EnvelopeProbeSubdivisions; ++ProbeIndex)
+					{
+						const double ProbeFraction = static_cast<double>(ProbeIndex)
+							/ static_cast<double>(EnvelopeProbeSubdivisions);
+						const double BodyValue = FMath::Lerp(LowBodyValue, HighBodyValue, ProbeFraction);
+						FDynamicMesh3 ProbeBody(BodyMesh);
+						for (int32 VertexID : ProbeBody.VertexIndicesItr())
+						{
+							const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+							ProbeBody.SetVertex(
+								VertexID,
+								ProbeBody.GetVertex(VertexID)
+									+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+						}
+						double Gap = 0.0;
+						int32 PenetratingVertices = 0;
+						if (!MeasureVertexClearance(ProbeBody, EnvelopeGarment, Gap, PenetratingVertices)
+							|| Gap < DesiredClearance - ClearanceToleranceCm)
+						{
+							OutError = FString::Printf(
+								TEXT("Morph %s envelope segment %d failed final probe %.6f: %.4fcm < %.4fcm."),
+								*Candidate.Name.ToString(), SegmentIndex, BodyValue, Gap, DesiredClearance);
+							return false;
+						}
+						SegmentMinimumGap = FMath::Min(SegmentMinimumGap, Gap);
+					}
+					MorphMinimumGap = FMath::Min(MorphMinimumGap, SegmentMinimumGap);
+
+					FCompiledMorphKey EnvelopeKey;
+					EnvelopeKey.BodyValue = HighBodyValue;
+					EnvelopeKey.bStepFromPrevious = true;
+					EnvelopeKey.StepSwitchBodyValue = LowBodyValue;
+					EnvelopeKey.MorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+					for (int32 VertexID : EnvelopeGarment.VertexIndicesItr())
+					{
+						const FVector3d BaseFittedPosition = GarmentMesh.GetVertex(VertexID) + ClearanceDeltas[VertexID];
+						EnvelopeKey.MorphDeltas[VertexID] = EnvelopeGarment.GetVertex(VertexID) - BaseFittedPosition;
+					}
+
+					const FString EnvelopeNameString = FString::Printf(
+						TEXT("EFV2_%s_ENV%02d"), *MorphKey, SegmentIndex + 1);
+					const FName EnvelopeMorphName(*EnvelopeNameString);
+					if (GeneratedSampleMorphNames.Contains(EnvelopeMorphName))
+					{
+						OutError = FString::Printf(TEXT("Generated envelope morph collision: %s."), *EnvelopeNameString);
+						return false;
+					}
+					GeneratedSampleMorphNames.Add(EnvelopeMorphName);
+					EnvelopeKey.GarmentMorph = EnvelopeMorphName;
+
+					const TArray<FVector3d> InitialEnvelopeDeltas = EnvelopeKey.MorphDeltas;
+					constexpr int32 MaximumStoredEnvelopeCookPasses = 4;
+					double StoredEnvelopeMinimumGap = TNumericLimits<double>::Max();
+					bool bStoredEnvelopeCertified = false;
+					for (int32 StoredEnvelopePass = 0;
+						StoredEnvelopePass < MaximumStoredEnvelopeCookPasses;
+						++StoredEnvelopePass)
+					{
+						// A single envelope morph is shared by the whole body-value segment.
+						// Cook it successively against every body probe; later probes may
+						// alter the stored sparse deltas, so the complete set is rechecked
+						// and cycled until one committed field satisfies all 9x9 contracts.
+						for (int32 ProbeIndex = 0; ProbeIndex <= EnvelopeProbeSubdivisions; ++ProbeIndex)
+						{
+							const double ProbeFraction = static_cast<double>(ProbeIndex)
+								/ static_cast<double>(EnvelopeProbeSubdivisions);
+							const double BodyValue = FMath::Lerp(LowBodyValue, HighBodyValue, ProbeFraction);
+							FDynamicMesh3 ProbeBody(BodyMesh);
+							for (int32 VertexID : ProbeBody.VertexIndicesItr())
+							{
+								const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+								ProbeBody.SetVertex(
+									VertexID,
+									ProbeBody.GetVertex(VertexID)
+										+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+							}
+							FMeshNormals ProbeBodyNormals(&ProbeBody);
+							ProbeBodyNormals.ComputeVertexNormals();
+							TArray<FVector3d> ProbeClearanceDirections;
+							ProbeClearanceDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+							for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+							{
+								const FSurfaceCorrespondence& Surface = Correspondence[VertexID];
+								if (Surface.BodyTriangle == INDEX_NONE || !ProbeBody.IsTriangle(Surface.BodyTriangle))
+								{
+									OutError = FString::Printf(
+										TEXT("Envelope %s has invalid correspondence at probe %.6f."),
+										*EnvelopeNameString,
+										BodyValue);
+									return false;
+								}
+								ProbeClearanceDirections[VertexID] = InterpolateNormal(
+									ProbeBody,
+									ProbeBodyNormals,
+									Surface.BodyTriangle,
+									Surface.Barycentric);
+							}
+							bool bProbeRepaired = false;
+							double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+							const FString ProbeContext = FString::Printf(
+								TEXT("%s probe %.6f"),
+								*EnvelopeNameString,
+								BodyValue);
+							if (!WriteAndCertifyStoredShapeMorph(
+								ProbeBody,
+								ProbeClearanceDirections,
+								EnvelopeMorphName,
+								ProbeContext,
+								EnvelopeKey.MorphDeltas,
+								bProbeRepaired,
+								ProbeMinimumClearanceMultiplier))
+							{
+								return false;
+							}
+							EnvelopeKey.MinimumClearanceMultiplier = FMath::Max(
+								EnvelopeKey.MinimumClearanceMultiplier,
+								ProbeMinimumClearanceMultiplier);
+							bRepaired |= bProbeRepaired;
+							for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+							{
+								if ((EnvelopeKey.MorphDeltas[VertexID] - InitialEnvelopeDeltas[VertexID]).Length()
+									> MaximumRepair + ClearanceToleranceCm)
+								{
+									OutError = FString::Printf(
+										TEXT("Stored envelope %s exceeded %.4fcm cumulative repair at vertex %d."),
+										*EnvelopeNameString,
+										MaximumRepair,
+										VertexID);
+									return false;
+								}
+							}
+						}
+
+						StoredEnvelopeMinimumGap = TNumericLimits<double>::Max();
+						bool bAllStoredProbesPassed = true;
+						double FailedStoredProbeValue = LowBodyValue;
+						double FailedStoredProbeGap = TNumericLimits<double>::Max();
+						bool bFailedStoredProbeIntersects = false;
+						for (int32 ProbeIndex = 0; ProbeIndex <= EnvelopeProbeSubdivisions; ++ProbeIndex)
+						{
+							const double ProbeFraction = static_cast<double>(ProbeIndex)
+								/ static_cast<double>(EnvelopeProbeSubdivisions);
+							const double BodyValue = FMath::Lerp(LowBodyValue, HighBodyValue, ProbeFraction);
+							FDynamicMesh3 ProbeBody(BodyMesh);
+							for (int32 VertexID : ProbeBody.VertexIndicesItr())
+							{
+								const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+								ProbeBody.SetVertex(
+									VertexID,
+									ProbeBody.GetVertex(VertexID)
+										+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * BodyValue);
+							}
+							double StoredProbeGap = 0.0;
+							double StoredProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+							bool bStoredProbeIntersects = false;
+							const bool bStoredProbePassed = MeasureRuntimeShapeAcrossOffsetTiers(
+								ProbeBody,
+								EnvelopeKey.MorphDeltas,
+								StoredProbeGap,
+								bStoredProbeIntersects,
+								StoredProbeMinimumClearanceMultiplier)
+								&& StoredProbeGap >= DesiredClearance - ClearanceToleranceCm
+								&& !bStoredProbeIntersects;
+							StoredEnvelopeMinimumGap = FMath::Min(StoredEnvelopeMinimumGap, StoredProbeGap);
+							EnvelopeKey.MinimumClearanceMultiplier = FMath::Max(
+								EnvelopeKey.MinimumClearanceMultiplier,
+								StoredProbeMinimumClearanceMultiplier);
+							if (!bStoredProbePassed && bAllStoredProbesPassed)
+							{
+								bAllStoredProbesPassed = false;
+								FailedStoredProbeValue = BodyValue;
+								FailedStoredProbeGap = StoredProbeGap;
+								bFailedStoredProbeIntersects = bStoredProbeIntersects;
+							}
+						}
+						if (bAllStoredProbesPassed)
+						{
+							bStoredEnvelopeCertified = true;
+							UE_LOG(
+								LogEFClothingFitCompiler,
+								Display,
+								TEXT("V24 stored envelope %s certified after %d multi-body cook pass(es): minimum gap %.4fcm."),
+								*EnvelopeNameString,
+								StoredEnvelopePass + 1,
+								StoredEnvelopeMinimumGap);
+							break;
+						}
+						if (StoredEnvelopePass + 1 >= MaximumStoredEnvelopeCookPasses)
+						{
+							OutError = FString::Printf(
+								TEXT("Stored envelope %s failed probe %.6f after %d multi-body cook passes: gap %.4fcm, triangles=%s."),
+								*EnvelopeNameString,
+								FailedStoredProbeValue,
+								MaximumStoredEnvelopeCookPasses,
+								FailedStoredProbeGap,
+								bFailedStoredProbeIntersects ? TEXT("INTERSECT") : TEXT("CLEAR"));
+							return false;
+						}
+					}
+					if (!bStoredEnvelopeCertified)
+					{
+						OutError = FString::Printf(TEXT("Stored envelope %s ended without certification."), *EnvelopeNameString);
+						return false;
+					}
+					MorphMinimumGap = FMath::Min(MorphMinimumGap, StoredEnvelopeMinimumGap);
+					OutMinimumCertifiedOffsetGap = FMath::Min(
+						OutMinimumCertifiedOffsetGap,
+						StoredEnvelopeMinimumGap);
+					EnvelopeKeys.Add(MoveTemp(EnvelopeKey));
+				}
+				Keys = MoveTemp(EnvelopeKeys);
+				return true;
+			};
+
+			for (;;)
+			{
+				for (int32 KeyIndex = 1; KeyIndex < Keys.Num(); ++KeyIndex)
+				{
+					Keys[KeyIndex].bStepFromPrevious = false;
+					Keys[KeyIndex].StepSwitchBodyValue = 0.0;
+				}
+				bool bInsertedAdaptiveKey = false;
+				bool bBuiltEnvelopeFallback = false;
+				for (int32 IntervalIndex = 0; IntervalIndex + 1 < Keys.Num(); ++IntervalIndex)
+				{
+					FCompiledMorphKey& LowKey = Keys[IntervalIndex];
+					FCompiledMorphKey& HighKey = Keys[IntervalIndex + 1];
+					bool bLinearIntervalPassed = true;
+					double LinearMinimumClearanceMultiplier = FMath::Max(
+						LowKey.MinimumClearanceMultiplier,
+						HighKey.MinimumClearanceMultiplier);
+					TArray<double, TInlineAllocator<3>> LinearGaps;
+					for (double NormalizedValue : {0.25, 0.50, 0.75})
+					{
+						double Gap = 0.0;
+						double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+						bool bIntersects = false;
+						if (!MeasureKeyPair(
+							LowKey,
+							HighKey,
+							NormalizedValue,
+							false,
+							Gap,
+							bIntersects,
+							ProbeMinimumClearanceMultiplier))
+						{
+							OutError = FString::Printf(TEXT("Could not measure a linear piecewise probe for morph %s."), *Candidate.Name.ToString());
+							return TransferredNames;
+						}
+						LinearGaps.Add(Gap);
+						LinearMinimumClearanceMultiplier = FMath::Max(
+							LinearMinimumClearanceMultiplier,
+							ProbeMinimumClearanceMultiplier);
+						bLinearIntervalPassed &= Gap >= DesiredClearance - ClearanceToleranceCm && !bIntersects;
+					}
+					if (bLinearIntervalPassed)
+					{
+						LowKey.MinimumClearanceMultiplier = FMath::Max(
+							LowKey.MinimumClearanceMultiplier,
+							LinearMinimumClearanceMultiplier);
+						HighKey.MinimumClearanceMultiplier = FMath::Max(
+							HighKey.MinimumClearanceMultiplier,
+							LinearMinimumClearanceMultiplier);
+						for (double Gap : LinearGaps)
+						{
+							MorphMinimumGap = FMath::Min(MorphMinimumGap, Gap);
+							OutMinimumCertifiedOffsetGap = FMath::Min(OutMinimumCertifiedOffsetGap, Gap);
+						}
+						continue;
+					}
+
+					bool bStepIntervalPassed = true;
+					double StepMinimumClearanceMultiplier = FMath::Max(
+						LowKey.MinimumClearanceMultiplier,
+						HighKey.MinimumClearanceMultiplier);
+					double WorstStepGap = TNumericLimits<double>::Max();
+					double WorstStepBodyValue = (LowKey.BodyValue + HighKey.BodyValue) * 0.5;
+					bool bWorstStepIntersects = false;
+					for (int32 ProbeIndex = 1; ProbeIndex < 8; ++ProbeIndex)
+					{
+						const double NormalizedValue = static_cast<double>(ProbeIndex) / 8.0;
+						double Gap = 0.0;
+						double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+						bool bIntersects = false;
+						if (!MeasureKeyPair(
+							LowKey,
+							HighKey,
+							NormalizedValue,
+							true,
+							Gap,
+							bIntersects,
+							ProbeMinimumClearanceMultiplier))
+						{
+							OutError = FString::Printf(TEXT("Could not measure a stepped piecewise probe for morph %s."), *Candidate.Name.ToString());
+							return TransferredNames;
+						}
+						StepMinimumClearanceMultiplier = FMath::Max(
+							StepMinimumClearanceMultiplier,
+							ProbeMinimumClearanceMultiplier);
+						if ((bIntersects && !bWorstStepIntersects)
+							|| (bIntersects == bWorstStepIntersects && Gap < WorstStepGap))
+						{
+							WorstStepGap = Gap;
+							WorstStepBodyValue = FMath::Lerp(LowKey.BodyValue, HighKey.BodyValue, NormalizedValue);
+							bWorstStepIntersects = bIntersects;
+						}
+						bStepIntervalPassed &= Gap >= DesiredClearance - ClearanceToleranceCm && !bIntersects;
+					}
+					if (bStepIntervalPassed)
+					{
+						const double SwitchBodyValue = (LowKey.BodyValue + HighKey.BodyValue) * 0.5;
+						FDynamicMesh3 SwitchBody(BodyMesh);
+						for (int32 VertexID : SwitchBody.VertexIndicesItr())
+						{
+							const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+							SwitchBody.SetVertex(
+								VertexID,
+								SwitchBody.GetVertex(VertexID)
+									+ FVector3d(BodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * SwitchBodyValue);
+						}
+						for (const TArray<FVector3d>* SwitchSideDeltas : {&LowKey.MorphDeltas, &HighKey.MorphDeltas})
+						{
+							double SwitchSideGap = 0.0;
+							double SwitchMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+							bool bSwitchSideIntersects = false;
+							if (!MeasureRuntimeShapeAcrossOffsetTiers(
+								SwitchBody,
+								*SwitchSideDeltas,
+								SwitchSideGap,
+								bSwitchSideIntersects,
+								SwitchMinimumClearanceMultiplier))
+							{
+								OutError = FString::Printf(
+									TEXT("Could not measure a step-switch side for morph %s."),
+									*Candidate.Name.ToString());
+								return TransferredNames;
+							}
+							if (SwitchSideGap < DesiredClearance - ClearanceToleranceCm || bSwitchSideIntersects)
+							{
+								bStepIntervalPassed = false;
+								WorstStepGap = SwitchSideGap;
+								WorstStepBodyValue = SwitchBodyValue;
+								bWorstStepIntersects = bSwitchSideIntersects;
+								break;
+							}
+							StepMinimumClearanceMultiplier = FMath::Max(
+								StepMinimumClearanceMultiplier,
+								SwitchMinimumClearanceMultiplier);
+							WorstStepGap = FMath::Min(WorstStepGap, SwitchSideGap);
+						}
+					}
+					if (bStepIntervalPassed)
+					{
+						HighKey.bStepFromPrevious = true;
+						HighKey.StepSwitchBodyValue = (LowKey.BodyValue + HighKey.BodyValue) * 0.5;
+						LowKey.MinimumClearanceMultiplier = FMath::Max(
+							LowKey.MinimumClearanceMultiplier,
+							StepMinimumClearanceMultiplier);
+						HighKey.MinimumClearanceMultiplier = FMath::Max(
+							HighKey.MinimumClearanceMultiplier,
+							StepMinimumClearanceMultiplier);
+						MorphMinimumGap = FMath::Min(MorphMinimumGap, WorstStepGap);
+						OutMinimumCertifiedOffsetGap = FMath::Min(OutMinimumCertifiedOffsetGap, WorstStepGap);
+						continue;
+					}
+					if (Keys.Num() - 1 >= MaximumAdaptiveSamplesPerMorph)
+					{
+						if (!BuildSegmentEnvelopeFallback())
+						{
+							return TransferredNames;
+						}
+						bBuiltEnvelopeFallback = true;
+						break;
+					}
+					FCompiledMorphKey AdaptiveKey;
+					if (!SolveKey(WorstStepBodyValue, AdaptiveKey))
+					{
+						return TransferredNames;
+					}
+					Keys.Add(MoveTemp(AdaptiveKey));
+					SortKeys();
+					bInsertedAdaptiveKey = true;
+					break;
+				}
+				if (bBuiltEnvelopeFallback || !bInsertedAdaptiveKey)
+				{
+					break;
+				}
+			}
+
+			for (int32 KeyIndex = 1; KeyIndex < Keys.Num(); ++KeyIndex)
+			{
+				FEFClothingMorphSample& Sample = Binding.Samples.AddDefaulted_GetRef();
+				Sample.BodyValue = static_cast<float>(Keys[KeyIndex].BodyValue);
+				Sample.GarmentMorph = Keys[KeyIndex].GarmentMorph;
+				Sample.bIdentity = Keys[KeyIndex].bIdentity;
+				Sample.bStepFromPrevious = Keys[KeyIndex].bStepFromPrevious;
+				Sample.StepSwitchBodyValue = static_cast<float>(Keys[KeyIndex].StepSwitchBodyValue);
+				Sample.MinimumClearanceMultiplier = static_cast<float>(
+					Keys[KeyIndex].MinimumClearanceMultiplier);
+				if (!Sample.bIdentity)
+				{
+					Binding.GarmentMorph = Sample.GarmentMorph;
+				}
+			}
+
+			if (Candidate.bTransferred)
 			{
 				TransferredNames.Add(Candidate.Name);
-				FEFClothingMorphBinding& Binding = OutBindings.AddDefaulted_GetRef();
-				Binding.BodyMorph = Candidate.Name;
-				Binding.GarmentMorph = Candidate.Name;
 			}
-			else
+			++OutValidatedMorphCount;
+			if (bRepaired)
 			{
-				UE_LOG(LogEFClothingFitCompiler, Warning, TEXT("Skipping morph %s: %s"), *Candidate.Name.ToString(), *MorphError);
+				++OutRepairedMorphCount;
 			}
+			OutMinimumSampledMorphGap = FMath::Min(OutMinimumSampledMorphGap, MorphMinimumGap);
+			UE_LOG(
+				LogEFClothingFitCompiler,
+				Display,
+				TEXT("V24 morph certified %d/%d: %s | keys=%d | minGap=%.4fcm"),
+				CandidateOrdinal,
+				Candidates.Num(),
+				*Candidate.Name.ToString(),
+				Binding.Samples.Num(),
+				MorphMinimumGap);
+			OutBindings.Add(MoveTemp(Binding));
 		}
 
 		OutBindings.Sort([](const FEFClothingMorphBinding& A, const FEFClothingMorphBinding& B)
 		{
 			return A.BodyMorph.LexicalLess(B.BodyMorph);
 		});
+
+		if (!FMath::IsFinite(Options.MorphActivationEpsilon)
+			|| !FMath::IsNearlyZero(Options.MorphActivationEpsilon, 0.0f)
+			|| Options.MorphPairGridResolution != 4
+			|| Options.MorphPairProbeCountPerAxis != 3)
+		{
+			OutError = TEXT("V24 morph-pair options must use epsilon 0, a 4x4 grid and 3 probes per axis.");
+			return TransferredNames;
+		}
+
+		TArray<FEFClothingMorphPairCompileRequest> CanonicalPairRequests = Options.MorphPairRequests;
+		for (FEFClothingMorphPairCompileRequest& PairRequest : CanonicalPairRequests)
+		{
+			if (PairRequest.SecondBodyMorph.LexicalLess(PairRequest.FirstBodyMorph))
+			{
+				Swap(PairRequest.FirstBodyMorph, PairRequest.SecondBodyMorph);
+			}
+		}
+		CanonicalPairRequests.Sort([](
+			const FEFClothingMorphPairCompileRequest& A,
+			const FEFClothingMorphPairCompileRequest& B)
+		{
+			if (A.FirstBodyMorph != B.FirstBodyMorph)
+			{
+				return A.FirstBodyMorph.LexicalLess(B.FirstBodyMorph);
+			}
+			return A.SecondBodyMorph.LexicalLess(B.SecondBodyMorph);
+		});
+
+		TSet<FString> CompiledPairKeys;
+		FMeshNormals RestBodyNormals(&BodyMesh);
+		RestBodyNormals.ComputeVertexNormals();
+		for (const FEFClothingMorphPairCompileRequest& PairRequest : CanonicalPairRequests)
+		{
+			if (PairRequest.FirstBodyMorph.IsNone()
+				|| PairRequest.SecondBodyMorph.IsNone()
+				|| PairRequest.FirstBodyMorph == PairRequest.SecondBodyMorph)
+			{
+				OutError = TEXT("V24 morph-pair request is empty or self-referential.");
+				return TransferredNames;
+			}
+			const FString PairKeyString = PairRequest.FirstBodyMorph.ToString()
+				+ TEXT("|") + PairRequest.SecondBodyMorph.ToString();
+			if (CompiledPairKeys.Contains(PairKeyString))
+			{
+				OutError = FString::Printf(TEXT("Duplicate V24 morph-pair request: %s."), *PairKeyString);
+				return TransferredNames;
+			}
+			CompiledPairKeys.Add(PairKeyString);
+
+			const FEFClothingMorphBinding* FirstBinding = OutBindings.FindByPredicate(
+				[&PairRequest](const FEFClothingMorphBinding& Binding)
+				{
+					return Binding.BodyMorph == PairRequest.FirstBodyMorph;
+				});
+			const FEFClothingMorphBinding* SecondBinding = OutBindings.FindByPredicate(
+				[&PairRequest](const FEFClothingMorphBinding& Binding)
+				{
+					return Binding.BodyMorph == PairRequest.SecondBodyMorph;
+				});
+			const TVertexAttributesConstRef<FVector3f> FirstBodyMorphDeltas =
+				BodyAttributes.GetVertexMorphPositionDelta(PairRequest.FirstBodyMorph);
+			const TVertexAttributesConstRef<FVector3f> SecondBodyMorphDeltas =
+				BodyAttributes.GetVertexMorphPositionDelta(PairRequest.SecondBodyMorph);
+			if (!FirstBinding || !SecondBinding
+				|| !FirstBodyMorphDeltas.IsValid() || !SecondBodyMorphDeltas.IsValid())
+			{
+				OutError = FString::Printf(
+					TEXT("V24 morph-pair %s requires two complete individual bindings and body delta fields."),
+					*PairKeyString);
+				return TransferredNames;
+			}
+
+			FEFClothingMorphPairCertificate PairCertificate;
+			PairCertificate.FirstBodyMorph = PairRequest.FirstBodyMorph;
+			PairCertificate.SecondBodyMorph = PairRequest.SecondBodyMorph;
+			PairCertificate.FirstMinimumCertifiedValue = FirstBinding->MinimumCertifiedValue;
+			PairCertificate.FirstMaximumCertifiedValue = FirstBinding->MaximumCertifiedValue;
+			PairCertificate.SecondMinimumCertifiedValue = SecondBinding->MinimumCertifiedValue;
+			PairCertificate.SecondMaximumCertifiedValue = SecondBinding->MaximumCertifiedValue;
+			PairCertificate.GridResolution = Options.MorphPairGridResolution;
+			PairCertificate.ProbeCountPerAxis = Options.MorphPairProbeCountPerAxis;
+			PairCertificate.CertifiedOffsetTierCount = CertifiedClearanceTierCount;
+			PairCertificate.MinimumCertifiedGapCm = TNumericLimits<float>::Max();
+			const FString PairMorphKey = FMD5::HashAnsiString(*PairKeyString).Left(12);
+
+			auto BuildCombinedBody = [
+				&BodyMesh,
+				&BodyMapping,
+				&FirstBodyMorphDeltas,
+				&SecondBodyMorphDeltas](double FirstValue, double SecondValue)
+			{
+				FDynamicMesh3 CombinedBody(BodyMesh);
+				for (int32 VertexID : CombinedBody.VertexIndicesItr())
+				{
+					const int32 OriginalVertexID = BodyMapping.GetOriginalNonManifoldVertexID(VertexID);
+					CombinedBody.SetVertex(
+						VertexID,
+						CombinedBody.GetVertex(VertexID)
+							+ FVector3d(FirstBodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * FirstValue
+							+ FVector3d(SecondBodyMorphDeltas.Get(FVertexID(OriginalVertexID))) * SecondValue);
+				}
+				return CombinedBody;
+			};
+
+			for (int32 FirstCellIndex = 0;
+				FirstCellIndex < PairCertificate.GridResolution;
+				++FirstCellIndex)
+			{
+				for (int32 SecondCellIndex = 0;
+					SecondCellIndex < PairCertificate.GridResolution;
+					++SecondCellIndex)
+				{
+					FEFClothingMorphPairCell PairCell;
+					PairCell.FirstCellIndex = FirstCellIndex;
+					PairCell.SecondCellIndex = SecondCellIndex;
+					PairCell.FirstMinimumValue = FMath::Lerp(
+						PairCertificate.FirstMinimumCertifiedValue,
+						PairCertificate.FirstMaximumCertifiedValue,
+						static_cast<float>(FirstCellIndex)
+							/ static_cast<float>(PairCertificate.GridResolution));
+					PairCell.FirstMaximumValue = FMath::Lerp(
+						PairCertificate.FirstMinimumCertifiedValue,
+						PairCertificate.FirstMaximumCertifiedValue,
+						static_cast<float>(FirstCellIndex + 1)
+							/ static_cast<float>(PairCertificate.GridResolution));
+					PairCell.SecondMinimumValue = FMath::Lerp(
+						PairCertificate.SecondMinimumCertifiedValue,
+						PairCertificate.SecondMaximumCertifiedValue,
+						static_cast<float>(SecondCellIndex)
+							/ static_cast<float>(PairCertificate.GridResolution));
+					PairCell.SecondMaximumValue = FMath::Lerp(
+						PairCertificate.SecondMinimumCertifiedValue,
+						PairCertificate.SecondMaximumCertifiedValue,
+						static_cast<float>(SecondCellIndex + 1)
+							/ static_cast<float>(PairCertificate.GridResolution));
+					const double FirstCenter = (PairCell.FirstMinimumValue + PairCell.FirstMaximumValue) * 0.5;
+					const double SecondCenter = (PairCell.SecondMinimumValue + PairCell.SecondMaximumValue) * 0.5;
+					FDynamicMesh3 SeedBody = BuildCombinedBody(FirstCenter, SecondCenter);
+					FMeshNormals SeedBodyNormals(&SeedBody);
+					SeedBodyNormals.ComputeVertexNormals();
+
+					TArray<FVector3d> CellMorphDeltas;
+					CellMorphDeltas.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+					for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+					{
+						const FSurfaceCorrespondence& Surface = Correspondence[VertexID];
+						if (Surface.BodyTriangle == INDEX_NONE
+							|| !BodyMesh.IsTriangle(Surface.BodyTriangle)
+							|| !SeedBody.IsTriangle(Surface.BodyTriangle))
+						{
+							OutError = FString::Printf(
+								TEXT("V24 morph-pair %s cell %d,%d has an invalid surface correspondence."),
+								*PairKeyString,
+								FirstCellIndex,
+								SecondCellIndex);
+							return TransferredNames;
+						}
+						const FIndex3i RestTriangle = BodyMesh.GetTriangle(Surface.BodyTriangle);
+						const FIndex3i SeedTriangle = SeedBody.GetTriangle(Surface.BodyTriangle);
+						const FVector3d RestSurfacePoint =
+							BodyMesh.GetVertex(RestTriangle.A) * Surface.Barycentric.X
+							+ BodyMesh.GetVertex(RestTriangle.B) * Surface.Barycentric.Y
+							+ BodyMesh.GetVertex(RestTriangle.C) * Surface.Barycentric.Z;
+						const FVector3d SeedSurfacePoint =
+							SeedBody.GetVertex(SeedTriangle.A) * Surface.Barycentric.X
+							+ SeedBody.GetVertex(SeedTriangle.B) * Surface.Barycentric.Y
+							+ SeedBody.GetVertex(SeedTriangle.C) * Surface.Barycentric.Z;
+						FVector3d RestNormal = InterpolateNormal(
+							BodyMesh, RestBodyNormals, Surface.BodyTriangle, Surface.Barycentric);
+						FVector3d SeedNormal = InterpolateNormal(
+							SeedBody, SeedBodyNormals, Surface.BodyTriangle, Surface.Barycentric);
+						if (!RestNormal.Normalize())
+						{
+							RestNormal = SeedNormal;
+						}
+						if (!SeedNormal.Normalize())
+						{
+							SeedNormal = RestNormal;
+						}
+						const FVector3d BaseFittedPosition = GarmentMesh.GetVertex(VertexID)
+							+ ClearanceDeltas[VertexID];
+						const FVector3d RestSurfaceOffset = BaseFittedPosition - RestSurfacePoint;
+						const FVector3d SeedGarmentPosition = SeedSurfacePoint
+							+ FQuat4d::FindBetweenNormals(RestNormal, SeedNormal).RotateVector(RestSurfaceOffset);
+						CellMorphDeltas[VertexID] = SeedGarmentPosition - BaseFittedPosition;
+					}
+					ReconcileNonManifoldVectorField(GarmentMesh, CellMorphDeltas);
+					const TArray<FVector3d> InitialCellMorphDeltas = CellMorphDeltas;
+
+					const FString PairCellMorphNameString = FString::Printf(
+						TEXT("EFV2_P%s_%02d_%02d"),
+						*PairMorphKey,
+						FirstCellIndex,
+						SecondCellIndex);
+					const FName PairCellMorphName(*PairCellMorphNameString);
+					if (GeneratedSampleMorphNames.Contains(PairCellMorphName))
+					{
+						OutError = FString::Printf(TEXT("Generated V24 pair-cell morph collision: %s."), *PairCellMorphNameString);
+						return TransferredNames;
+					}
+					GeneratedSampleMorphNames.Add(PairCellMorphName);
+					PairCell.GarmentMorph = PairCellMorphName;
+
+					constexpr int32 MaximumPairCellCookPasses = 4;
+					bool bCellCertified = false;
+					double CellMinimumGap = TNumericLimits<double>::Max();
+					for (int32 CellCookPass = 0;
+						CellCookPass < MaximumPairCellCookPasses;
+						++CellCookPass)
+					{
+						for (int32 FirstProbeIndex = 0;
+							FirstProbeIndex < PairCertificate.ProbeCountPerAxis;
+							++FirstProbeIndex)
+						{
+							const double FirstProbeFraction = static_cast<double>(FirstProbeIndex)
+								/ static_cast<double>(PairCertificate.ProbeCountPerAxis - 1);
+							const double FirstValue = FMath::Lerp(
+								static_cast<double>(PairCell.FirstMinimumValue),
+								static_cast<double>(PairCell.FirstMaximumValue),
+								FirstProbeFraction);
+							for (int32 SecondProbeIndex = 0;
+								SecondProbeIndex < PairCertificate.ProbeCountPerAxis;
+								++SecondProbeIndex)
+							{
+								const double SecondProbeFraction = static_cast<double>(SecondProbeIndex)
+									/ static_cast<double>(PairCertificate.ProbeCountPerAxis - 1);
+								const double SecondValue = FMath::Lerp(
+									static_cast<double>(PairCell.SecondMinimumValue),
+									static_cast<double>(PairCell.SecondMaximumValue),
+									SecondProbeFraction);
+								FDynamicMesh3 ProbeBody = BuildCombinedBody(FirstValue, SecondValue);
+								FMeshNormals ProbeBodyNormals(&ProbeBody);
+								ProbeBodyNormals.ComputeVertexNormals();
+								TArray<FVector3d> ProbeClearanceDirections;
+								ProbeClearanceDirections.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+								for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+								{
+									const FSurfaceCorrespondence& Surface = Correspondence[VertexID];
+									ProbeClearanceDirections[VertexID] = InterpolateNormal(
+										ProbeBody,
+										ProbeBodyNormals,
+										Surface.BodyTriangle,
+										Surface.Barycentric);
+								}
+								bool bProbeRepaired = false;
+								double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+								const FString ProbeContext = FString::Printf(
+									TEXT("V24 pair %s cell %d,%d probe %.6f,%.6f"),
+									*PairKeyString,
+									FirstCellIndex,
+									SecondCellIndex,
+									FirstValue,
+									SecondValue);
+								if (!WriteAndCertifyStoredShapeMorph(
+									ProbeBody,
+									ProbeClearanceDirections,
+									PairCellMorphName,
+									ProbeContext,
+									CellMorphDeltas,
+									bProbeRepaired,
+									ProbeMinimumClearanceMultiplier))
+								{
+									return TransferredNames;
+								}
+								PairCell.MinimumClearanceMultiplier = FMath::Max(
+									PairCell.MinimumClearanceMultiplier,
+									static_cast<float>(ProbeMinimumClearanceMultiplier));
+								for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+								{
+									if ((CellMorphDeltas[VertexID] - InitialCellMorphDeltas[VertexID]).Length()
+										> MaximumRepair + ClearanceToleranceCm)
+									{
+										OutError = FString::Printf(
+											TEXT("V24 pair %s cell %d,%d exceeded %.4fcm cumulative repair at vertex %d."),
+											*PairKeyString,
+											FirstCellIndex,
+											SecondCellIndex,
+											MaximumRepair,
+											VertexID);
+										return TransferredNames;
+									}
+								}
+							}
+						}
+
+						CellMinimumGap = TNumericLimits<double>::Max();
+						bool bAllCellProbesPassed = true;
+						double FailedFirstValue = PairCell.FirstMinimumValue;
+						double FailedSecondValue = PairCell.SecondMinimumValue;
+						double FailedGap = TNumericLimits<double>::Max();
+						bool bFailedIntersects = false;
+						for (int32 FirstProbeIndex = 0;
+							FirstProbeIndex < PairCertificate.ProbeCountPerAxis;
+							++FirstProbeIndex)
+						{
+							const double FirstProbeFraction = static_cast<double>(FirstProbeIndex)
+								/ static_cast<double>(PairCertificate.ProbeCountPerAxis - 1);
+							const double FirstValue = FMath::Lerp(
+								static_cast<double>(PairCell.FirstMinimumValue),
+								static_cast<double>(PairCell.FirstMaximumValue),
+								FirstProbeFraction);
+							for (int32 SecondProbeIndex = 0;
+								SecondProbeIndex < PairCertificate.ProbeCountPerAxis;
+								++SecondProbeIndex)
+							{
+								const double SecondProbeFraction = static_cast<double>(SecondProbeIndex)
+									/ static_cast<double>(PairCertificate.ProbeCountPerAxis - 1);
+								const double SecondValue = FMath::Lerp(
+									static_cast<double>(PairCell.SecondMinimumValue),
+									static_cast<double>(PairCell.SecondMaximumValue),
+									SecondProbeFraction);
+								FDynamicMesh3 ProbeBody = BuildCombinedBody(FirstValue, SecondValue);
+								double ProbeMinimumGap = TNumericLimits<double>::Max();
+								double ProbeMinimumClearanceMultiplier = CertifiedClearanceTierMin;
+								bool bProbeIntersects = false;
+								const bool bProbePassed = MeasureRuntimeShapeAcrossOffsetTiers(
+									ProbeBody,
+									CellMorphDeltas,
+									ProbeMinimumGap,
+									bProbeIntersects,
+									ProbeMinimumClearanceMultiplier)
+									&& ProbeMinimumGap >= DesiredClearance - ClearanceToleranceCm
+									&& !bProbeIntersects;
+								CellMinimumGap = FMath::Min(CellMinimumGap, ProbeMinimumGap);
+								PairCell.MinimumClearanceMultiplier = FMath::Max(
+									PairCell.MinimumClearanceMultiplier,
+									static_cast<float>(ProbeMinimumClearanceMultiplier));
+								if (!bProbePassed && bAllCellProbesPassed)
+								{
+									bAllCellProbesPassed = false;
+									FailedFirstValue = FirstValue;
+									FailedSecondValue = SecondValue;
+									FailedGap = ProbeMinimumGap;
+									bFailedIntersects = bProbeIntersects;
+								}
+							}
+						}
+						if (bAllCellProbesPassed)
+						{
+							bCellCertified = true;
+							UE_LOG(
+								LogEFClothingFitCompiler,
+								Display,
+								TEXT("V24 pair %s cell %d,%d certified after %d multi-body cook pass(es): minimum gap %.4fcm."),
+								*PairKeyString,
+								FirstCellIndex,
+								SecondCellIndex,
+								CellCookPass + 1,
+								CellMinimumGap);
+							break;
+						}
+						if (CellCookPass + 1 >= MaximumPairCellCookPasses)
+						{
+							OutError = FString::Printf(
+								TEXT("V24 pair %s cell %d,%d failed probe %.6f,%.6f after %d passes: gap %.4fcm triangles=%s."),
+								*PairKeyString,
+								FirstCellIndex,
+								SecondCellIndex,
+								FailedFirstValue,
+								FailedSecondValue,
+								MaximumPairCellCookPasses,
+								FailedGap,
+								bFailedIntersects ? TEXT("INTERSECT") : TEXT("CLEAR"));
+							return TransferredNames;
+						}
+					}
+					if (!bCellCertified)
+					{
+						OutError = FString::Printf(
+							TEXT("V24 pair %s cell %d,%d ended without certification."),
+							*PairKeyString,
+							FirstCellIndex,
+							SecondCellIndex);
+						return TransferredNames;
+					}
+
+					PairCell.MinimumCertifiedGapCm = static_cast<float>(CellMinimumGap);
+					PairCell.CertifiedBodyProbeCount = PairCertificate.ProbeCountPerAxis
+						* PairCertificate.ProbeCountPerAxis;
+					PairCell.CertifiedOffsetEvaluationCount = PairCell.CertifiedBodyProbeCount
+						* CertifiedClearanceTierCount;
+					OutPairBodyProbeCount += PairCell.CertifiedBodyProbeCount;
+					OutPairOffsetEvaluationCount += PairCell.CertifiedOffsetEvaluationCount;
+					OutMinimumSampledPairGap = FMath::Min(OutMinimumSampledPairGap, CellMinimumGap);
+					OutMinimumCertifiedOffsetGap = FMath::Min(OutMinimumCertifiedOffsetGap, CellMinimumGap);
+					PairCertificate.MinimumCertifiedGapCm = FMath::Min(
+						PairCertificate.MinimumCertifiedGapCm,
+						PairCell.MinimumCertifiedGapCm);
+					PairCertificate.Cells.Add(MoveTemp(PairCell));
+				}
+			}
+			OutPairCertificates.Add(MoveTemp(PairCertificate));
+		}
+		if (OutPairCertificates.IsEmpty())
+		{
+			OutMinimumSampledPairGap = 0.0;
+		}
+		if (OutBindings.IsEmpty())
+		{
+			OutMinimumSampledMorphGap = DesiredClearance;
+		}
 		return TransferredNames;
+	}
+
+	static bool BuildConcurrentBoundsContract(
+		const USkeletalMesh* Derived,
+		const FDynamicMesh3& GarmentMesh,
+		const TArray<FVector3d>& ClearanceDeltas,
+		const TArray<FEFClothingMorphBinding>& Bindings,
+		const TArray<FEFClothingMorphPairCertificate>& PairCertificates,
+		FVector& OutBoxExpansion,
+		float& OutSphereExpansion,
+		double& OutMaximumMorphDisplacement,
+		FString& OutError)
+	{
+		if (!IsValid(Derived) || ClearanceDeltas.Num() < GarmentMesh.MaxVertexID())
+		{
+			OutError = TEXT("Cannot build concurrent bounds contract from invalid fitted topology.");
+			return false;
+		}
+
+		TArray<FVector3d> ExclusiveAxisMaximum;
+		TArray<double> ExclusiveRadiusMaximum;
+		ExclusiveAxisMaximum.Init(FVector3d::Zero(), GarmentMesh.MaxVertexID());
+		ExclusiveRadiusMaximum.Init(0.0, GarmentMesh.MaxVertexID());
+		OutMaximumMorphDisplacement = 0.0;
+
+		auto AccumulateExclusiveMorph = [
+			Derived,
+			&GarmentMesh,
+			&ExclusiveAxisMaximum,
+			&ExclusiveRadiusMaximum,
+			&OutMaximumMorphDisplacement,
+			&OutError](FName MorphName) -> bool
+		{
+			if (MorphName.IsNone())
+			{
+				return true;
+			}
+			TArray<FVector3d> StoredDeltas;
+			int32 IgnoredAlteredCount = 0;
+			if (!ReadStoredMorphDeltas(
+				Derived,
+				MorphName,
+				GarmentMesh,
+				nullptr,
+				StoredDeltas,
+				IgnoredAlteredCount,
+				OutError))
+			{
+				return false;
+			}
+			for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+			{
+				const FVector3d& Delta = StoredDeltas[VertexID];
+				ExclusiveAxisMaximum[VertexID].X = FMath::Max(
+					ExclusiveAxisMaximum[VertexID].X, FMath::Abs(Delta.X));
+				ExclusiveAxisMaximum[VertexID].Y = FMath::Max(
+					ExclusiveAxisMaximum[VertexID].Y, FMath::Abs(Delta.Y));
+				ExclusiveAxisMaximum[VertexID].Z = FMath::Max(
+					ExclusiveAxisMaximum[VertexID].Z, FMath::Abs(Delta.Z));
+				ExclusiveRadiusMaximum[VertexID] = FMath::Max(
+					ExclusiveRadiusMaximum[VertexID], Delta.Length());
+				OutMaximumMorphDisplacement = FMath::Max(
+					OutMaximumMorphDisplacement, Delta.Length());
+			}
+			return true;
+		};
+
+		for (const FEFClothingMorphBinding& Binding : Bindings)
+		{
+			for (const FEFClothingMorphSample& Sample : Binding.Samples)
+			{
+				if (!Sample.bIdentity && !AccumulateExclusiveMorph(Sample.GarmentMorph))
+				{
+					return false;
+				}
+			}
+		}
+		for (const FEFClothingMorphPairCertificate& PairCertificate : PairCertificates)
+		{
+			for (const FEFClothingMorphPairCell& PairCell : PairCertificate.Cells)
+			{
+				if (!AccumulateExclusiveMorph(PairCell.GarmentMorph))
+				{
+					return false;
+				}
+			}
+		}
+
+		FVector3d MaximumAxisExpansion = FVector3d::Zero();
+		double MaximumRadiusExpansion = 0.0;
+		for (int32 VertexID : GarmentMesh.VertexIndicesItr())
+		{
+			const FVector3d& Clearance = ClearanceDeltas[VertexID];
+			const FVector3d AxisExpansion(
+				ExclusiveAxisMaximum[VertexID].X + FMath::Abs(Clearance.X) * CertifiedClearanceTierMax,
+				ExclusiveAxisMaximum[VertexID].Y + FMath::Abs(Clearance.Y) * CertifiedClearanceTierMax,
+				ExclusiveAxisMaximum[VertexID].Z + FMath::Abs(Clearance.Z) * CertifiedClearanceTierMax);
+			MaximumAxisExpansion.X = FMath::Max(MaximumAxisExpansion.X, AxisExpansion.X);
+			MaximumAxisExpansion.Y = FMath::Max(MaximumAxisExpansion.Y, AxisExpansion.Y);
+			MaximumAxisExpansion.Z = FMath::Max(MaximumAxisExpansion.Z, AxisExpansion.Z);
+			MaximumRadiusExpansion = FMath::Max(
+				MaximumRadiusExpansion,
+				ExclusiveRadiusMaximum[VertexID] + Clearance.Length() * CertifiedClearanceTierMax);
+		}
+
+		if (MaximumAxisExpansion.ContainsNaN() || !FMath::IsFinite(MaximumRadiusExpansion))
+		{
+			OutError = TEXT("Concurrent morph bounds contract produced a non-finite expansion.");
+			return false;
+		}
+		OutBoxExpansion = FVector(MaximumAxisExpansion);
+		OutSphereExpansion = static_cast<float>(MaximumRadiusExpansion);
+		return true;
 	}
 }
 
@@ -593,9 +6422,59 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	using namespace UE::Geometry;
 
 	FEFClothingFitCompileResult Result;
-	auto Fail = [&Result](const FString& Message)
+	bool bProtectedInputGuardArmed = false;
+	USkeletalMesh* GuardedSource = nullptr;
+	USkeletalMesh* GuardedBody = nullptr;
+	USkeletalMesh* GuardedCompatibility = nullptr;
+	USkeleton* GuardedSharedSkeleton = nullptr;
+	FString GuardedSourceSkeletonFingerprint;
+	FString GuardedBodySkeletonFingerprint;
+	FString GuardedCompatibilitySkeletonFingerprint;
+	FString GuardedSharedSkeletonFingerprint;
+	FString GuardedSharedSkeletonEditorFingerprint;
+	FString GuardedSourceContentFingerprint;
+	FString GuardedBodyContentFingerprint;
+	FString GuardedCompatibilityContentFingerprint;
+	bool bGuardedSourcePackageDirty = false;
+	bool bGuardedBodyPackageDirty = false;
+	bool bGuardedCompatibilityPackageDirty = false;
+	bool bGuardedSkeletonPackageDirty = false;
+	auto ProtectedInputsUnchanged = [&]() -> bool
 	{
-		Result.Report = FString::Printf(TEXT("FAIL: %s"), *Message);
+		return !bProtectedInputGuardArmed
+			|| (IsValid(GuardedSource)
+				&& IsValid(GuardedBody)
+				&& IsValid(GuardedCompatibility)
+				&& IsValid(GuardedSharedSkeleton)
+				&& GuardedSource->GetSkeleton() == GuardedSharedSkeleton
+				&& GuardedBody->GetSkeleton() == GuardedSharedSkeleton
+				&& GuardedCompatibility->GetSkeleton() == GuardedSharedSkeleton
+				&& EFClothingSkeleton::BuildFingerprint(GuardedSource) == GuardedSourceSkeletonFingerprint
+				&& EFClothingSkeleton::BuildFingerprint(GuardedBody) == GuardedBodySkeletonFingerprint
+				&& EFClothingSkeleton::BuildFingerprint(GuardedCompatibility) == GuardedCompatibilitySkeletonFingerprint
+				&& EFClothingSkeleton::BuildSharedSkeletonFingerprint(GuardedSharedSkeleton) == GuardedSharedSkeletonFingerprint
+				&& EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(GuardedSharedSkeleton)
+					== GuardedSharedSkeletonEditorFingerprint
+				&& EFClothingSkeleton::BuildContentFingerprint(GuardedSource) == GuardedSourceContentFingerprint
+				&& EFClothingSkeleton::BuildContentFingerprint(GuardedBody) == GuardedBodyContentFingerprint
+				&& EFClothingSkeleton::BuildContentFingerprint(GuardedCompatibility)
+					== GuardedCompatibilityContentFingerprint
+				&& GuardedSource->GetOutermost()->IsDirty() == bGuardedSourcePackageDirty
+				&& GuardedBody->GetOutermost()->IsDirty() == bGuardedBodyPackageDirty
+				&& GuardedCompatibility->GetOutermost()->IsDirty() == bGuardedCompatibilityPackageDirty
+				&& GuardedSharedSkeleton->GetOutermost()->IsDirty() == bGuardedSkeletonPackageDirty);
+	};
+	auto Fail = [&Result, &ProtectedInputsUnchanged](const FString& Message)
+	{
+		const bool bProtectedInputsPass = ProtectedInputsUnchanged();
+		Result.Report = bProtectedInputsPass
+			? FString::Printf(TEXT("FAIL: %s"), *Message)
+			: FString::Printf(
+				TEXT("FAIL: %s | PROTECTED_INPUT_GUARD_FAIL: source/body/compatibility/shared-skeleton state changed."),
+				*Message);
+		ensureAlwaysMsgf(
+			bProtectedInputsPass,
+			TEXT("EF Clothing Morph compiler detected protected input contamination on a failure path."));
 		UE_LOG(LogEFClothingFitCompiler, Error, TEXT("%s"), *Result.Report);
 		return Result;
 	};
@@ -604,13 +6483,52 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(TEXT("Source garment, body surface and compatibility reference are required."));
 	}
+
+	// Never inspect or duplicate partially compiled skeletal assets.
+	FSkinnedAssetCompilingManager::Get().FinishCompilation({SourceGarment, BodySurface, CompatibilityReference});
+
 	if (!IsAllowedOutputRoot(Options.OutputRoot))
 	{
 		return Fail(TEXT("OutputRoot must remain under /Game/_Generated/EFClothingMorphV2."));
 	}
+	if (!FMath::IsFinite(Options.MinimumClearanceCm)
+		|| !FMath::IsFinite(Options.MaximumPushCm)
+		|| !FMath::IsFinite(Options.MinimumTransferredMorphDeltaCm)
+		|| !FMath::IsFinite(Options.MaximumMorphRepairCm)
+		|| Options.MinimumClearanceCm < 0.02f
+		|| Options.MaximumPushCm < Options.MinimumClearanceCm
+		|| Options.MinimumTransferredMorphDeltaCm <= 0.0f
+		|| Options.MaximumMorphRepairCm < Options.MinimumClearanceCm
+		|| Options.SmoothingIterations < 0
+		|| Options.SmoothingIterations > 20
+		|| Options.MaximumInfluences < 1
+		|| Options.MaximumInfluences > 12
+		|| Options.MaximumTransferredMorphs < 0
+		|| Options.MaximumTransferredMorphs > 256
+		|| Options.MorphClearanceSampleCount < 2
+		|| Options.MorphClearanceSampleCount > 8)
+	{
+		return Fail(TEXT("Compile options contain a non-finite or out-of-contract value."));
+	}
+	if (!Options.bCopyBodyDeformerToDerived)
+	{
+		return Fail(TEXT("V24 Tight profiles require exact Female mesh-deformer parity."));
+	}
 	if (SourceGarment == BodySurface || SourceGarment == CompatibilityReference)
 	{
 		return Fail(TEXT("Source garment cannot be one of the protected body/reference inputs."));
+	}
+	if (SourceGarment->GetNumSourceModels() != 1)
+	{
+		return Fail(TEXT("This compiler version certifies one-source-LOD garments only; multi-LOD input is rejected fail-closed."));
+	}
+	if (BodySurface->GetNumSourceModels() < 1)
+	{
+		return Fail(TEXT("Body surface has no source LOD0."));
+	}
+	if (SourceGarment->GetMeshClothingAssets().Num() > 0)
+	{
+		return Fail(TEXT("Chaos Cloth assets require a Hybrid/Loose fit compiler and are not modified by the Tight V2 compiler."));
 	}
 	if (SourceGarment->GetSkeleton() != BodySurface->GetSkeleton()
 		|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton())
@@ -619,18 +6537,77 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	}
 
 	FString SkeletonFailure;
-	if (!EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(SourceGarment, BodySurface, &SkeletonFailure))
+	if (!EFClothingSkeleton::AreBoneHierarchiesCompatible(SourceGarment, BodySurface, &SkeletonFailure))
 	{
 		return Fail(FString::Printf(TEXT("Source/body reference skeleton mismatch: %s"), *SkeletonFailure));
+	}
+	if (!EFClothingSkeleton::AreSharedBoneHierarchiesCompatible(SourceGarment, CompatibilityReference, &SkeletonFailure))
+	{
+		return Fail(FString::Printf(TEXT("Source/compatibility skeleton mismatch: %s"), *SkeletonFailure));
 	}
 
 	const FString SourceFingerprintBefore = EFClothingSkeleton::BuildFingerprint(SourceGarment);
 	const FString BodyFingerprintBefore = EFClothingSkeleton::BuildFingerprint(BodySurface);
 	const FString CompatibilityFingerprintBefore = EFClothingSkeleton::BuildFingerprint(CompatibilityReference);
 	USkeleton* const SharedSkeletonBefore = SourceGarment->GetSkeleton();
+	const FString SharedSkeletonFingerprintBefore = EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeletonBefore);
+	const FString SharedSkeletonEditorFingerprintBefore =
+		EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(SharedSkeletonBefore);
+	if (SharedSkeletonFingerprintBefore.IsEmpty() || SharedSkeletonEditorFingerprintBefore.IsEmpty())
+	{
+		return Fail(TEXT("Could not fingerprint the shared USkeleton before compilation."));
+	}
+	GuardedSource = SourceGarment;
+	GuardedBody = BodySurface;
+	GuardedCompatibility = CompatibilityReference;
+	GuardedSharedSkeleton = SharedSkeletonBefore;
+	GuardedSourceSkeletonFingerprint = SourceFingerprintBefore;
+	GuardedBodySkeletonFingerprint = BodyFingerprintBefore;
+	GuardedCompatibilitySkeletonFingerprint = CompatibilityFingerprintBefore;
+	GuardedSharedSkeletonFingerprint = SharedSkeletonFingerprintBefore;
+	GuardedSharedSkeletonEditorFingerprint = SharedSkeletonEditorFingerprintBefore;
+	GuardedSourceContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(SourceGarment);
+	GuardedBodyContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(BodySurface);
+	GuardedCompatibilityContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference);
+	bGuardedSourcePackageDirty = SourceGarment->GetOutermost()->IsDirty();
+	bGuardedBodyPackageDirty = BodySurface->GetOutermost()->IsDirty();
+	bGuardedCompatibilityPackageDirty = CompatibilityReference->GetOutermost()->IsDirty();
+	bGuardedSkeletonPackageDirty = SharedSkeletonBefore->GetOutermost()->IsDirty();
+	bProtectedInputGuardArmed = true;
 
 	FString Error;
-	USkeletalMesh* Derived = FindOrDuplicateDerived(SourceGarment, Options.OutputRoot, Error);
+	TArray<FName> ExcludedBodySurfaceMaterialSlots;
+	TArray<FName> ExcludedBodyBoneBranches;
+	TArray<FString> ExcludedBodyMorphPrefixes;
+	FName CatalogRowName = NAME_None;
+	if (!ResolveCatalogSurfacePolicy(
+		SourceGarment,
+		BodySurface,
+		ExcludedBodySurfaceMaterialSlots,
+		ExcludedBodyBoneBranches,
+		ExcludedBodyMorphPrefixes,
+		CatalogRowName,
+		Error))
+	{
+		return Fail(Error);
+	}
+	const FString ArtifactKey = BuildArtifactKey(
+		SourceGarment,
+		BodySurface,
+		CompatibilityReference,
+		Options,
+		ExcludedBodySurfaceMaterialSlots,
+		ExcludedBodyBoneBranches,
+		ExcludedBodyMorphPrefixes);
+	// Every invocation writes a fresh, unreferenced publication candidate. The
+	// existing registry/profile/mesh stay byte-stable until the final registry
+	// save commits the complete validated transaction.
+	const FGuid PublicationGuid = FGuid::NewGuid();
+	const FString PublicationKey = FString::Printf(
+		TEXT("%s_%s"),
+		*ArtifactKey,
+		*PublicationGuid.ToString(EGuidFormats::Digits));
+	USkeletalMesh* Derived = FindOrDuplicateDerived(SourceGarment, Options.OutputRoot, PublicationKey, Error);
 	if (!Derived)
 	{
 		return Fail(Error);
@@ -639,9 +6616,22 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(TEXT("Compiler resolved a protected asset as its output."));
 	}
+	FSkinnedAssetCompilingManager::Get().FinishCompilation({Derived});
 	if (Derived->GetSkeleton() != SharedSkeletonBefore)
 	{
 		return Fail(TEXT("Derived garment does not preserve the source USkeleton pointer."));
+	}
+	// Female and the generated garment consume the same effective ACF pose driver,
+	// but each mesh contributes its own inverse bind. Rebind only this fresh output
+	// to Female, including MeshDescription and inverse-bind matrices; never mutate
+	// the shared USkeleton, Multiple, Female or the source garment.
+	if (!RebindGeneratedMeshToBody(Derived, BodySurface, Error)
+		|| Derived->GetSkeleton() != SharedSkeletonBefore
+		|| !ValidateGeneratedBodyBindArtifacts(Derived, BodySurface, Error))
+	{
+		return Fail(FString::Printf(
+			TEXT("Generated garment could not adopt the exact body bind pose: %s"),
+			Error.IsEmpty() ? TEXT("unknown bind-pose mismatch") : *Error));
 	}
 
 	UDynamicMesh* BodyDynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
@@ -650,18 +6640,21 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(Error);
 	}
-
-	FString WeightMethod;
-	if (!TransferWeights(
-		BodyDynamicMesh->GetMeshRef(),
-		GarmentDynamicMesh,
-		FMath::Clamp(Options.MaximumInfluences, 1, 12),
-		WeightMethod,
+	int32 ExcludedBodySurfaceTriangleCount = 0;
+	if (!ExcludeBodySurfaceMaterialSlots(
+		BodySurface,
+		BodyDynamicMesh,
+		ExcludedBodySurfaceMaterialSlots,
+		ExcludedBodySurfaceTriangleCount,
 		Error))
 	{
 		return Fail(Error);
 	}
 
+	FString WeightMethod;
+	TArray<FName> RequiredWeightedBones;
+	int32 RemappedWeightedBoneCount = 0;
+	int32 ReconciledSplitVertexCount = 0;
 	TArray<FSurfaceCorrespondence> Correspondence;
 	TArray<FVector3d> ClearanceDeltas;
 	int32 PenetratingBefore = 0;
@@ -671,7 +6664,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	if (!BuildCorrespondenceAndClearance(
 		BodyDynamicMesh->GetMeshRef(),
 		GarmentDynamicMesh->GetMeshRef(),
-		FMath::Max(static_cast<double>(Options.MinimumClearanceCm), 0.02),
+		FMath::Max(static_cast<double>(Options.MinimumClearanceCm) + CompilerClearanceReserveCm, 0.02),
 		FMath::Max(static_cast<double>(Options.MaximumPushCm), static_cast<double>(Options.MinimumClearanceCm)),
 		FMath::Clamp(Options.SmoothingIterations, 0, 20),
 		Correspondence,
@@ -679,37 +6672,441 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		PenetratingBefore,
 		PenetratingAfter,
 		MinimumBefore,
-		MinimumAfter))
+		MinimumAfter,
+		Error))
 	{
-		return Fail(TEXT("Surface correspondence or clearance solve failed."));
+		return Fail(FString::Printf(
+			TEXT("Surface solve could not guarantee %.4fcm clearance within %.4fcm maximum push (measured %.4fcm): %s"),
+			Options.MinimumClearanceCm + static_cast<float>(CompilerClearanceReserveCm),
+			Options.MaximumPushCm,
+			MinimumAfter,
+			Error.IsEmpty() ? TEXT("clearance gate failed") : *Error));
 	}
-
-	if (!WriteSkinProfile(GarmentDynamicMesh, Derived, Error))
+	if (!TransferWeights(
+		SourceGarment,
+		BodySurface,
+		CompatibilityReference,
+		BodyDynamicMesh->GetMeshRef(),
+		Correspondence,
+		ExcludedBodyBoneBranches,
+		GarmentDynamicMesh,
+		FMath::Clamp(Options.MaximumInfluences, 1, 12),
+		WeightMethod,
+		RequiredWeightedBones,
+		RemappedWeightedBoneCount,
+		ReconciledSplitVertexCount,
+		Error))
 	{
 		return Fail(Error);
 	}
 
-	UDynamicMesh* ClearanceDynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
-	ClearanceDynamicMesh->SetMesh(GarmentDynamicMesh->GetMeshRef());
-	int32 AdjustedVertexCount = 0;
-	ClearanceDynamicMesh->EditMesh([&](FDynamicMesh3& EditMesh)
+	int32 CertifiedSkinWeightVertexCount = 0;
+	if (!WriteSkinProfile(
+		GarmentDynamicMesh,
+		Derived,
+		FMath::Clamp(Options.MaximumInfluences, 1, 12),
+		CertifiedSkinWeightVertexCount,
+		Error))
 	{
-		for (int32 VertexID : EditMesh.VertexIndicesItr())
+		return Fail(Error);
+	}
+
+	const FDynamicMesh3& BodyRestMesh = BodyDynamicMesh->GetMeshRef();
+	const FDynamicMeshAABBTree3 BodyRestSpatial(&BodyRestMesh, true);
+	FMeshNormals BodyRestNormals(&BodyRestMesh);
+	BodyRestNormals.ComputeVertexNormals();
+
+	// Morph deltas are thresholded and rebuilt when they are committed to a
+	// SkeletalMesh.  A direction that is safe at 1.0x is not necessarily
+	// monotonic at larger offsets because the closest body triangle can change.
+	// Certify the actual stored morph, then feed any failing tier back into an
+	// auto-sculpt pass.  Nothing is published unless every runtime tier passes.
+	constexpr int32 MaximumClearanceCookPasses = 16;
+	constexpr double IntersectionNudgeCm = 0.05;
+	TArray<FVector3d> RequestedClearanceDeltas = ClearanceDeltas;
+	// Morph storage merges dynamic-mesh seam splits. Start from that exact
+	// serializable field so the first cook and every repair share one truth.
+	ReconcileNonManifoldVectorField(
+		GarmentDynamicMesh->GetMeshRef(),
+		RequestedClearanceDeltas);
+	for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+	{
+		const FVector3d& Delta = RequestedClearanceDeltas[VertexID];
+		if (!FMath::IsFinite(Delta.X)
+			|| !FMath::IsFinite(Delta.Y)
+			|| !FMath::IsFinite(Delta.Z)
+			|| Delta.Length() > Options.MaximumPushCm + 1.e-6)
 		{
-			if (ClearanceDeltas[VertexID].SquaredLength() > FMath::Square(0.001))
-			{
-				++AdjustedVertexCount;
-			}
-			EditMesh.SetVertex(VertexID, EditMesh.GetVertex(VertexID) + ClearanceDeltas[VertexID]);
+			return Fail(FString::Printf(
+				TEXT("Initial seam-reconciled clearance delta is invalid at vertex %d."),
+				VertexID));
 		}
-	}, EDynamicMeshChangeType::DeformationEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
-
-	if (!WriteMorph(ClearanceDynamicMesh, Derived, ClearanceMorphName, Error))
+	}
+	UDynamicMesh* ClearanceDynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+	int32 PostThresholdAlteredDeltaCount = 0;
+	double MinimumRestOffsetGap = TNumericLimits<double>::Max();
+	bool bClearanceMorphCertified = false;
+	TSet<uint32> FailedStoredMorphHashes;
+	int32 PreviousIntersectingTierCount = TNumericLimits<int32>::Max();
+	int32 PreviousFailedTierCount = TNumericLimits<int32>::Max();
+	double PreviousMinimumGap = -TNumericLimits<double>::Max();
+	for (int32 CookPass = 0; CookPass < MaximumClearanceCookPasses; ++CookPass)
 	{
-		return Fail(Error);
+		ClearanceDynamicMesh->SetMesh(GarmentDynamicMesh->GetMeshRef());
+		ClearanceDynamicMesh->EditMesh([&](FDynamicMesh3& EditMesh)
+		{
+			for (int32 VertexID : EditMesh.VertexIndicesItr())
+			{
+				EditMesh.SetVertex(
+					VertexID,
+					EditMesh.GetVertex(VertexID) + RequestedClearanceDeltas[VertexID]);
+			}
+		}, EDynamicMeshChangeType::DeformationEdit, EDynamicMeshAttributeChangeFlags::VertexPositions, false);
+
+		if (!WriteMorph(ClearanceDynamicMesh, Derived, ClearanceMorphName, Error))
+		{
+			return Fail(Error);
+		}
+
+		TArray<FVector3d> StoredClearanceDeltas;
+		int32 CookPassAlteredDeltaCount = 0;
+		if (!ReadStoredMorphDeltas(
+			Derived,
+			ClearanceMorphName,
+			GarmentDynamicMesh->GetMeshRef(),
+			&RequestedClearanceDeltas,
+			StoredClearanceDeltas,
+			CookPassAlteredDeltaCount,
+			Error))
+		{
+			return Fail(Error);
+		}
+
+		double CookPassMinimumGap = TNumericLimits<double>::Max();
+		int32 FailingTierIndex = INDEX_NONE;
+		double FailingTierGap = TNumericLimits<double>::Max();
+		int32 FailingTierPenetratingVertices = 0;
+		bool bFailingTierIntersects = false;
+		int32 FailedTierCount = 0;
+		int32 IntersectingTierCount = 0;
+		for (int32 TierIndex = 0; TierIndex < CertifiedClearanceTierCount; ++TierIndex)
+		{
+			const double Tier = FMath::Lerp(
+				CertifiedClearanceTierMin,
+				CertifiedClearanceTierMax,
+				static_cast<double>(TierIndex) / static_cast<double>(CertifiedClearanceTierCount - 1));
+			FDynamicMesh3 TierGarment(GarmentDynamicMesh->GetMeshRef());
+			for (int32 VertexID : TierGarment.VertexIndicesItr())
+			{
+				TierGarment.SetVertex(
+					VertexID,
+					TierGarment.GetVertex(VertexID) + StoredClearanceDeltas[VertexID] * Tier);
+			}
+			double TierGap = 0.0;
+			int32 TierPenetratingVertices = 0;
+			const bool bMeasured = MeasureVertexClearancePrepared(
+				BodyRestMesh,
+				BodyRestSpatial,
+				BodyRestNormals,
+				TierGarment,
+				TierGap,
+				TierPenetratingVertices);
+			const bool bIntersects = MeshesIntersectPrepared(BodyRestSpatial, TierGarment);
+			const bool bTierFailed = !bMeasured
+				|| TierGap < Options.MinimumClearanceCm + CompilerClearanceReserveCm - 0.001
+				|| bIntersects;
+			FailedTierCount += bTierFailed ? 1 : 0;
+			IntersectingTierCount += bIntersects ? 1 : 0;
+			if (bMeasured)
+			{
+				CookPassMinimumGap = FMath::Min(CookPassMinimumGap, TierGap);
+			}
+			if (TierIndex == 0 && bMeasured)
+			{
+				MinimumAfter = TierGap;
+				PenetratingAfter = TierPenetratingVertices;
+			}
+			if (bTierFailed
+				&& (FailingTierIndex == INDEX_NONE
+					|| (bIntersects && !bFailingTierIntersects)
+					|| (bIntersects == bFailingTierIntersects && TierGap < FailingTierGap)))
+			{
+				FailingTierIndex = TierIndex;
+				FailingTierGap = TierGap;
+				FailingTierPenetratingVertices = TierPenetratingVertices;
+				bFailingTierIntersects = bIntersects;
+			}
+		}
+
+		if (FailingTierIndex == INDEX_NONE)
+		{
+			ClearanceDeltas = MoveTemp(StoredClearanceDeltas);
+			PostThresholdAlteredDeltaCount = CookPassAlteredDeltaCount;
+			MinimumRestOffsetGap = CookPassMinimumGap;
+			bClearanceMorphCertified = true;
+			UE_LOG(
+				LogEFClothingFitCompiler,
+				Display,
+				TEXT("V24 clearance morph certified after %d cook pass(es): minimum tier gap %.4fcm."),
+				CookPass + 1,
+				MinimumRestOffsetGap);
+			break;
+		}
+
+		uint32 StoredMorphHash = 0;
+		for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+		{
+			StoredMorphHash = HashCombineFast(
+				StoredMorphHash,
+				GetTypeHash(StoredClearanceDeltas[VertexID]));
+		}
+		if (FailedStoredMorphHashes.Contains(StoredMorphHash))
+		{
+			return Fail(TEXT("Clearance auto-sculpt detected a repeated stored morph and stopped before cycling."));
+		}
+		FailedStoredMorphHashes.Add(StoredMorphHash);
+		if (CookPass > 0)
+		{
+			const bool bImproved = IntersectingTierCount < PreviousIntersectingTierCount
+				|| (IntersectingTierCount == PreviousIntersectingTierCount
+					&& FailedTierCount < PreviousFailedTierCount)
+				|| (IntersectingTierCount == PreviousIntersectingTierCount
+					&& FailedTierCount == PreviousFailedTierCount
+					&& CookPassMinimumGap > PreviousMinimumGap + 1.e-6);
+			if (!bImproved)
+			{
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Warning,
+					TEXT("Clearance auto-sculpt temporarily regressed on cook pass %d (intersections %d, failed tiers %d, minimum gap %.4fcm); continuing under cycle/max-pass guards."),
+					CookPass + 1,
+					IntersectingTierCount,
+					FailedTierCount,
+					CookPassMinimumGap);
+			}
+		}
+		PreviousIntersectingTierCount = IntersectingTierCount;
+		PreviousFailedTierCount = FailedTierCount;
+		PreviousMinimumGap = CookPassMinimumGap;
+
+		const double FailingTier = FMath::Lerp(
+			CertifiedClearanceTierMin,
+			CertifiedClearanceTierMax,
+			static_cast<double>(FailingTierIndex) / static_cast<double>(CertifiedClearanceTierCount - 1));
+		if (CookPass + 1 >= MaximumClearanceCookPasses)
+		{
+			return Fail(FString::Printf(
+				TEXT("Stored clearance morph failed to converge at certified offset tier %.3f after %d cook passes: gap %.4fcm, penetrating=%d, intersects=%s."),
+				FailingTier,
+				MaximumClearanceCookPasses,
+				FailingTierGap,
+				FailingTierPenetratingVertices,
+				bFailingTierIntersects ? TEXT("true") : TEXT("false")));
+		}
+
+		TArray<FVector3d> TierCorrections;
+		TArray<FVector3d> ZeroShapeDeltas;
+		TArray<FVector3d> RestClearanceDirections;
+		ZeroShapeDeltas.Init(FVector3d::Zero(), GarmentDynamicMesh->GetMeshRef().MaxVertexID());
+		RestClearanceDirections.Init(FVector3d::Zero(), GarmentDynamicMesh->GetMeshRef().MaxVertexID());
+		for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+		{
+			RestClearanceDirections[VertexID] = StoredClearanceDeltas[VertexID].IsNearlyZero(1.e-8)
+				? Correspondence[VertexID].SurfaceNormal
+				: StoredClearanceDeltas[VertexID];
+		}
+		double RepairGap = TNumericLimits<double>::Max();
+		const double CertifiedRepairClearance =
+			static_cast<double>(Options.MinimumClearanceCm) + CompilerClearanceReserveCm;
+		bool bUsedBodyFrameConeDirections = false;
+		bool bBuiltMultiTierRepair = BuildMultiTierShapeClearanceCorrections(
+			BodyRestMesh,
+			GarmentDynamicMesh->GetMeshRef(),
+			StoredClearanceDeltas,
+			ZeroShapeDeltas,
+			RestClearanceDirections,
+			CertifiedRepairClearance + 0.05,
+			static_cast<double>(Options.MaximumPushCm),
+			true,
+			true,
+			bUsedBodyFrameConeDirections,
+			TierCorrections,
+			RepairGap);
+		if (!bBuiltMultiTierRepair)
+		{
+			bBuiltMultiTierRepair = BuildMultiTierShapeClearanceCorrections(
+				BodyRestMesh,
+				GarmentDynamicMesh->GetMeshRef(),
+				StoredClearanceDeltas,
+				ZeroShapeDeltas,
+				RestClearanceDirections,
+				CertifiedRepairClearance,
+				static_cast<double>(Options.MaximumPushCm),
+				true,
+				true,
+				bUsedBodyFrameConeDirections,
+				TierCorrections,
+				RepairGap);
+		}
+		if (!bBuiltMultiTierRepair)
+		{
+			return Fail(FString::Printf(
+				TEXT("Auto-sculpt could not build one coherent correction for all certified tiers after tier %.3f failed within %.4fcm maximum push (gap %.4fcm)."),
+				FailingTier,
+				Options.MaximumPushCm,
+				RepairGap));
+		}
+
+		RequestedClearanceDeltas = MoveTemp(StoredClearanceDeltas);
+		bool bAppliedCorrection = false;
+		for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+		{
+			const FVector3d BaseCorrection = TierCorrections[VertexID];
+			bAppliedCorrection |= !BaseCorrection.IsNearlyZero(1.e-8);
+			const FVector3d CandidateDelta = RequestedClearanceDeltas[VertexID] + BaseCorrection;
+			if (CandidateDelta.Length() > Options.MaximumPushCm + 1.e-6)
+			{
+				return Fail(FString::Printf(
+					TEXT("Auto-sculpt repair at tier %.3f would exceed MaximumPushCm %.4f at vertex %d (%.4fcm)."),
+					FailingTier,
+					Options.MaximumPushCm,
+					VertexID,
+					CandidateDelta.Length()));
+			}
+			RequestedClearanceDeltas[VertexID] = CandidateDelta;
+		}
+		ReconcileNonManifoldVectorField(
+			GarmentDynamicMesh->GetMeshRef(),
+			RequestedClearanceDeltas);
+		for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+		{
+			const FVector3d& Delta = RequestedClearanceDeltas[VertexID];
+			if (!FMath::IsFinite(Delta.X)
+				|| !FMath::IsFinite(Delta.Y)
+				|| !FMath::IsFinite(Delta.Z)
+				|| Delta.Length() > Options.MaximumPushCm + 1.e-6)
+			{
+				return Fail(FString::Printf(
+					TEXT("Seam-reconciled clearance repair is invalid at vertex %d."),
+					VertexID));
+			}
+		}
+
+		// Rebuild the failing tier from the candidate that will actually be
+		// serialized. The old implementation inspected pre-repair contacts and
+		// could nudge a patch that the coherent solve had already cleared.
+		FDynamicMesh3 CandidateFailingTierGarment(GarmentDynamicMesh->GetMeshRef());
+		for (int32 VertexID : CandidateFailingTierGarment.VertexIndicesItr())
+		{
+			CandidateFailingTierGarment.SetVertex(
+				VertexID,
+				CandidateFailingTierGarment.GetVertex(VertexID)
+					+ RequestedClearanceDeltas[VertexID] * FailingTier);
+		}
+		const bool bCandidateFailingTierIntersects = MeshesIntersectPrepared(
+			BodyRestSpatial,
+			CandidateFailingTierGarment);
+
+		// Vertex clearance can be valid while a coarse garment triangle still
+		// crosses the body. Find the crossing triangles, expand to their one-ring,
+		// and nudge only that patch. Coplanar intersections are not returned by
+		// FindAllIntersections, so TestIntersection remains authoritative and a
+		// global nudge is the conservative fallback when localization is empty.
+		if (bCandidateFailingTierIntersects)
+		{
+			TSet<int32> IntersectionVertexIDs;
+			CollectIntersectingGarmentVerticesPrepared(
+				BodyRestSpatial,
+				CandidateFailingTierGarment,
+				IntersectionVertexIDs);
+			if (IntersectionVertexIDs.IsEmpty())
+			{
+				for (int32 VertexID : CandidateFailingTierGarment.VertexIndicesItr())
+				{
+					IntersectionVertexIDs.Add(VertexID);
+				}
+			}
+			for (int32 VertexID : IntersectionVertexIDs)
+			{
+				double DistanceSquared = TNumericLimits<double>::Max();
+				const FVector3d TierPosition = CandidateFailingTierGarment.GetVertex(VertexID);
+				const int32 BodyTriangleID = BodyRestSpatial.FindNearestTriangle(TierPosition, DistanceSquared);
+				if (BodyTriangleID == IndexConstants::InvalidID)
+				{
+					return Fail(TEXT("Auto-sculpt intersection repair could not find a rest-body triangle."));
+				}
+				const FDistPoint3Triangle3d Query = TMeshQueries<FDynamicMesh3>::TriangleDistance(
+					BodyRestMesh,
+					BodyTriangleID,
+					TierPosition);
+				FVector3d Normal = InterpolateNormal(
+					BodyRestMesh,
+					BodyRestNormals,
+					BodyTriangleID,
+					Query.TriangleBaryCoords);
+				if (!Normal.Normalize())
+				{
+					return Fail(TEXT("Auto-sculpt intersection repair encountered an invalid body normal."));
+				}
+				const FVector3d CandidateDelta = RequestedClearanceDeltas[VertexID]
+					+ Normal * (IntersectionNudgeCm / FailingTier);
+				if (CandidateDelta.Length() > Options.MaximumPushCm + 1.e-6)
+				{
+					return Fail(FString::Printf(
+						TEXT("Intersection repair would exceed MaximumPushCm %.4f at vertex %d."),
+						Options.MaximumPushCm,
+						VertexID));
+				}
+				RequestedClearanceDeltas[VertexID] = CandidateDelta;
+				bAppliedCorrection = true;
+			}
+		}
+		if (!bAppliedCorrection)
+		{
+			return Fail(FString::Printf(
+				TEXT("Clearance auto-sculpt produced no correction for failing tier %.3f."),
+				FailingTier));
+		}
+
+		// Morph storage collapses non-manifold dynamic splits onto their original
+		// MeshDescription vertex. Reconcile before writing so serialization order
+		// cannot make the corrective solve oscillate at a seam.
+		ReconcileNonManifoldVectorField(
+			GarmentDynamicMesh->GetMeshRef(),
+			RequestedClearanceDeltas);
+
+		UE_LOG(
+			LogEFClothingFitCompiler,
+			Display,
+			TEXT("V24 clearance cook pass %d repaired offset tier %.3f (stored gap %.4fcm, intersects=%s)."),
+			CookPass + 1,
+			FailingTier,
+			FailingTierGap,
+			bFailingTierIntersects ? TEXT("true") : TEXT("false"));
+	}
+	if (!bClearanceMorphCertified)
+	{
+		return Fail(TEXT("Clearance morph certification ended without a certified stored result."));
+	}
+
+	int32 AdjustedVertexCount = 0;
+	for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+	{
+		AdjustedVertexCount += ClearanceDeltas[VertexID].SquaredLength() > FMath::Square(0.001) ? 1 : 0;
 	}
 
 	TArray<FEFClothingMorphBinding> MorphBindings;
+	TArray<FEFClothingMorphPairCertificate> MorphPairCertificates;
+	TArray<FName> MonitoredBodyMorphNames;
+	int32 ValidatedMorphCount = 0;
+	int32 RepairedMorphCount = 0;
+	int32 PairBodyProbeCount = 0;
+	int32 PairOffsetEvaluationCount = 0;
+	double MinimumSampledMorphGap = 0.0;
+	double MinimumSampledPairGap = 0.0;
+	double MinimumCertifiedOffsetGap = 0.0;
+	double MaximumMorphDisplacement = 0.0;
+	int32 MorphPostThresholdAlteredDeltaCount = 0;
 	TArray<FName> TransferredMorphNames = BakeMorphs(
 		BodySurface,
 		SourceGarment,
@@ -717,30 +7114,203 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		BodyDynamicMesh,
 		GarmentDynamicMesh,
 		Correspondence,
+		ClearanceDeltas,
+		ExcludedBodyMorphPrefixes,
 		Options,
 		MorphBindings,
+		MorphPairCertificates,
+		MonitoredBodyMorphNames,
+		ValidatedMorphCount,
+		RepairedMorphCount,
+		PairBodyProbeCount,
+		PairOffsetEvaluationCount,
+		MinimumSampledMorphGap,
+		MinimumSampledPairGap,
+		MinimumCertifiedOffsetGap,
+		MaximumMorphDisplacement,
+		MorphPostThresholdAlteredDeltaCount,
 		Error);
 	if (!Error.IsEmpty())
 	{
 		return Fail(Error);
 	}
-
-	if (Options.bCopyBodyDeformerToDerived)
+	PostThresholdAlteredDeltaCount += MorphPostThresholdAlteredDeltaCount;
+	MinimumCertifiedOffsetGap = FMath::Min(MinimumCertifiedOffsetGap, MinimumRestOffsetGap);
+	if (!FMath::IsFinite(MinimumCertifiedOffsetGap)
+		|| MinimumCertifiedOffsetGap < Options.MinimumClearanceCm - 0.001)
 	{
-		Derived->SetDefaultMeshDeformer(BodySurface->GetDefaultMeshDeformer());
-		Derived->SetTargetMeshDeformers(BodySurface->GetTargetMeshDeformers());
+		return Fail(FString::Printf(
+			TEXT("Certified runtime offset range has an invalid minimum gap: %.4fcm."),
+			MinimumCertifiedOffsetGap));
 	}
 
-	FBoxSphereBounds ExpandedBounds = Derived->GetImportedBounds();
-	ExpandedBounds.BoxExtent += FVector(Options.MaximumPushCm);
-	ExpandedBounds.SphereRadius += Options.MaximumPushCm;
+	// Leader-pose curves can address every morph target present on the follower,
+	// including source-garment shapes which have no EFV2 clearance certificate.
+	// Keep only the stored clearance target and generated samples referenced by
+	// the immutable profile. The source garment remains untouched.
+	TSet<FName> CertifiedDerivedMorphNames;
+	CertifiedDerivedMorphNames.Add(ClearanceMorphName);
+	for (const FEFClothingMorphBinding& Binding : MorphBindings)
+	{
+		for (const FEFClothingMorphSample& Sample : Binding.Samples)
+		{
+			if (!Sample.bIdentity && !Sample.GarmentMorph.IsNone())
+			{
+				CertifiedDerivedMorphNames.Add(Sample.GarmentMorph);
+			}
+		}
+	}
+	for (const FEFClothingMorphPairCertificate& PairCertificate : MorphPairCertificates)
+	{
+		for (const FEFClothingMorphPairCell& PairCell : PairCertificate.Cells)
+		{
+			if (!PairCell.GarmentMorph.IsNone())
+			{
+				CertifiedDerivedMorphNames.Add(PairCell.GarmentMorph);
+			}
+		}
+	}
+	TSet<FName> RemovedUncertifiedMorphNames;
+	for (const TObjectPtr<UMorphTarget>& MorphTarget : Derived->GetMorphTargets())
+	{
+		if (IsValid(MorphTarget) && !CertifiedDerivedMorphNames.Contains(MorphTarget->GetFName()))
+		{
+			RemovedUncertifiedMorphNames.Add(MorphTarget->GetFName());
+		}
+	}
+	if (FMeshDescription* DerivedDescription = Derived->GetMeshDescription(0))
+	{
+		FSkeletalMeshAttributes DerivedAttributes(*DerivedDescription);
+		constexpr bool bKeepExistingAttributes = true;
+		DerivedAttributes.Register(bKeepExistingAttributes);
+		for (FName MorphName : DerivedAttributes.GetMorphTargetNames())
+		{
+			if (!CertifiedDerivedMorphNames.Contains(MorphName))
+			{
+				RemovedUncertifiedMorphNames.Add(MorphName);
+			}
+		}
+	}
+	else
+	{
+		return Fail(TEXT("Derived garment lost LOD0 MeshDescription before certified-morph isolation."));
+	}
+	TArray<FName> UncertifiedMorphNames = RemovedUncertifiedMorphNames.Array();
+	UncertifiedMorphNames.Sort(FNameLexicalLess());
+	if (!RemoveDirectMorphsCommitted(Derived, UncertifiedMorphNames, Error))
+	{
+		return Fail(Error);
+	}
+	if (const FMeshDescription* DerivedDescription = Derived->GetMeshDescription(0))
+	{
+		const FSkeletalMeshAttributesShared DerivedAttributes(*DerivedDescription);
+		for (FName RemovedMorphName : RemovedUncertifiedMorphNames)
+		{
+			if (Derived->FindMorphTarget(RemovedMorphName)
+				|| DerivedAttributes.GetVertexMorphPositionDelta(RemovedMorphName).IsValid())
+			{
+				return Fail(FString::Printf(
+					TEXT("Derived garment still contains uncertified morph %s."),
+					*RemovedMorphName.ToString()));
+			}
+		}
+	}
+	else
+	{
+		return Fail(TEXT("Derived garment lost LOD0 MeshDescription after certified-morph isolation."));
+	}
+
+	FVector ConcurrentBoundsExpansion = FVector::ZeroVector;
+	float ConcurrentSphereExpansion = 0.0f;
+	if (!BuildConcurrentBoundsContract(
+		Derived,
+		GarmentDynamicMesh->GetMeshRef(),
+		ClearanceDeltas,
+		MorphBindings,
+		MorphPairCertificates,
+		ConcurrentBoundsExpansion,
+		ConcurrentSphereExpansion,
+		MaximumMorphDisplacement,
+		Error))
+	{
+		return Fail(Error);
+	}
+
+	Derived->SetDefaultMeshDeformer(BodySurface->GetDefaultMeshDeformer());
+	Derived->SetTargetMeshDeformers(BodySurface->GetTargetMeshDeformers());
+	FSkeletalMeshLODInfo* DerivedDeformerLODInfo = Derived->GetLODInfo(0);
+	const FSkeletalMeshLODInfo* BodyDeformerLODInfo = BodySurface->GetLODInfo(0);
+	if (!DerivedDeformerLODInfo || !BodyDeformerLODInfo)
+	{
+		return Fail(TEXT("Generated/Female LOD0 deformer settings are unavailable."));
+	}
+	DerivedDeformerLODInfo->bAllowMeshDeformer = BodyDeformerLODInfo->bAllowMeshDeformer;
+	DerivedDeformerLODInfo->bBuildHalfEdgeBuffers = BodyDeformerLODInfo->bBuildHalfEdgeBuffers;
+
+	FBoxSphereBounds ExpandedBounds = SourceGarment->GetImportedBounds();
+	ExpandedBounds.BoxExtent += ConcurrentBoundsExpansion;
+	ExpandedBounds.SphereRadius += ConcurrentSphereExpansion;
 	Derived->SetImportedBounds(ExpandedBounds);
 	Derived->InvalidateDeriveDataCacheGUID();
 	Derived->MarkPackageDirty();
 	Derived->PostEditChange();
 	FSkinnedAssetCompilingManager::Get().FinishCompilation({Derived});
+	if (!ValidateGeneratedBodyBindArtifacts(Derived, BodySurface, Error)
+		|| !ValidateGeneratedBodyDeformerParity(Derived, BodySurface, Error))
+	{
+		return Fail(Error);
+	}
+	if (!ProtectedInputsUnchanged())
+	{
+		return Fail(TEXT("Protected input guard failed before publishing the derived garment."));
+	}
+	if (!SaveAsset(Derived, Error))
+	{
+		return Fail(Error);
+	}
+	FSkinnedAssetCompilingManager::Get().FinishCompilation({Derived});
+	if (!ValidateGeneratedBodyBindArtifacts(Derived, BodySurface, Error)
+		|| !ValidateGeneratedBodyDeformerParity(Derived, BodySurface, Error))
+	{
+		return Fail(FString::Printf(
+			TEXT("Saved derived garment failed body deformation validation: %s"),
+			*Error));
+	}
+	const FMeshDescription* SavedDerivedDescription = Derived->GetMeshDescription(0);
+	if (!SavedDerivedDescription)
+	{
+		return Fail(TEXT("Saved derived garment has no LOD0 MeshDescription."));
+	}
+	const FSkeletalMeshAttributesShared SavedDerivedAttributes(*SavedDerivedDescription);
+	for (FName RemovedMorphName : UncertifiedMorphNames)
+	{
+		if (Derived->FindMorphTarget(RemovedMorphName)
+			|| SavedDerivedAttributes.GetVertexMorphPositionDelta(RemovedMorphName).IsValid())
+		{
+			return Fail(FString::Printf(
+				TEXT("Uncertified morph %s reappeared after derived save."),
+				*RemovedMorphName.ToString()));
+		}
+	}
 
-	const FString ProfileName = FString::Printf(TEXT("DA_%s_EFV2Fit"), *SanitizeAssetName(SourceGarment->GetName()));
+	const FString ProfileName = FString::Printf(
+		TEXT("DA_%s_%s_%s_%s_EFV2Fit_%s"),
+		*SanitizeAssetName(SourceGarment->GetName()),
+		*BuildSourceKey(SourceGarment),
+		*SanitizeAssetName(BodySurface->GetName()),
+		*BuildSourceKey(BodySurface),
+		*PublicationKey);
+	const FString ProfileObjectPath = FString::Printf(
+		TEXT("%s/%s.%s"),
+		*Options.OutputRoot,
+		*ProfileName,
+		*ProfileName);
+	if (LoadObject<UEFClothingFitProfile>(nullptr, *ProfileObjectPath))
+	{
+		return Fail(FString::Printf(
+			TEXT("Fresh publication key collided with existing generated profile %s."),
+			*ProfileObjectPath));
+	}
 	UEFClothingFitProfile* Profile = FindOrCreateDataAsset<UEFClothingFitProfile>(Options.OutputRoot, ProfileName);
 	UEFClothingFitRegistry* Registry = FindOrCreateDataAsset<UEFClothingFitRegistry>(
 		Options.OutputRoot,
@@ -754,58 +7324,244 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	Profile->FittedGarment = Derived;
 	Profile->BodySurface = BodySurface;
 	Profile->CompatibilityReference = CompatibilityReference;
-	Profile->BuildGuid = FGuid::NewGuid();
+	Profile->BuildGuid = PublicationGuid;
 	Profile->CompilerVersion = CompilerVersion;
 	Profile->FitMode = EEFClothingFitMode::Tight;
 	Profile->SkinWeightProfileName = FitWeightProfileName;
+	Profile->RequiredWeightedBones = MoveTemp(RequiredWeightedBones);
+	Profile->ExcludedBodySurfaceMaterialSlots = ExcludedBodySurfaceMaterialSlots;
+	Profile->ExcludedBodyBoneBranches = ExcludedBodyBoneBranches;
+	Profile->ExcludedBodyMorphPrefixes = ExcludedBodyMorphPrefixes;
+	Profile->ExcludedBodySurfaceTriangleCount = ExcludedBodySurfaceTriangleCount;
 	Profile->ClearanceMorphName = ClearanceMorphName;
 	Profile->DefaultClearanceValue = 1.0f;
+	Profile->CertifiedClearanceMultiplierMin = static_cast<float>(CertifiedClearanceTierMin);
+	Profile->CertifiedClearanceMultiplierMax = static_cast<float>(CertifiedClearanceTierMax);
+	Profile->CertifiedClearanceTierCount = CertifiedClearanceTierCount;
+	Profile->MinimumCertifiedOffsetGapCm = static_cast<float>(MinimumCertifiedOffsetGap);
 	Profile->CompiledMinimumClearanceCm = Options.MinimumClearanceCm;
+	Profile->CompiledClearanceReserveCm = static_cast<float>(CompilerClearanceReserveCm);
 	Profile->CompiledMaxPushCm = Options.MaximumPushCm;
+	Profile->CompiledMaximumMorphRepairCm = Options.MaximumMorphRepairCm;
+	Profile->CompiledMaximumMorphDisplacementCm = static_cast<float>(MaximumMorphDisplacement);
+	const FSkeletalMeshLODInfo* DerivedLODInfo = Derived->GetLODInfo(0);
+	Profile->CompiledMorphThresholdPositionCm = DerivedLODInfo
+		? DerivedLODInfo->BuildSettings.MorphThresholdPosition
+		: 0.0f;
+	Profile->PostThresholdAlteredDeltaCount = PostThresholdAlteredDeltaCount;
+	Profile->CompiledConcurrentBoundsExpansionCm = ConcurrentBoundsExpansion;
+	Profile->CompiledConcurrentSphereExpansionCm = ConcurrentSphereExpansion;
+	int32 GeneratedMorphSampleCount = 0;
+	int32 MaximumMorphSamplesPerBinding = 0;
+	int32 SteppedMorphIntervalCount = 0;
+	int32 IdentityMorphSampleCount = 0;
+	for (const FEFClothingMorphBinding& Binding : MorphBindings)
+	{
+		GeneratedMorphSampleCount += Binding.Samples.Num();
+		MaximumMorphSamplesPerBinding = FMath::Max(MaximumMorphSamplesPerBinding, Binding.Samples.Num());
+		for (const FEFClothingMorphSample& Sample : Binding.Samples)
+		{
+			SteppedMorphIntervalCount += Sample.bStepFromPrevious ? 1 : 0;
+			IdentityMorphSampleCount += Sample.bIdentity ? 1 : 0;
+		}
+	}
+	int32 GeneratedPairCellMorphCount = 0;
+	for (const FEFClothingMorphPairCertificate& PairCertificate : MorphPairCertificates)
+	{
+		GeneratedPairCellMorphCount += PairCertificate.Cells.Num();
+	}
 	Profile->MorphBindings = MoveTemp(MorphBindings);
+	Profile->MonitoredBodyMorphNames = MoveTemp(MonitoredBodyMorphNames);
+	Profile->MorphPairCertificates = MoveTemp(MorphPairCertificates);
+	Profile->CompiledMorphActivationEpsilon = Options.MorphActivationEpsilon;
 	Profile->SourceSkeletonFingerprint = SourceFingerprintBefore;
 	Profile->BodySkeletonFingerprint = BodyFingerprintBefore;
 	Profile->CompatibilitySkeletonFingerprint = CompatibilityFingerprintBefore;
-	Profile->SourceVertexCount = GarmentDynamicMesh->GetMeshRef().VertexCount();
+	Profile->FittedSkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(Derived);
+	Profile->SharedSkeletonFingerprint = SharedSkeletonFingerprintBefore;
+	Profile->SharedSkeletonEditorFingerprint = SharedSkeletonEditorFingerprintBefore;
+	Profile->SourcePackageGuid = SourceGarment->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	Profile->BodyPackageGuid = BodySurface->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	Profile->CompatibilityPackageGuid = CompatibilityReference->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	Profile->FittedPackageGuid = Derived->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens);
+	Profile->SourceContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(SourceGarment);
+	Profile->BodyContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(BodySurface);
+	Profile->CompatibilityContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference);
+	Profile->FittedContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(Derived);
+	Profile->CompiledLODCount = SourceGarment->GetNumSourceModels();
+	const FMeshDescription* SourceMeshDescription = SourceGarment->GetMeshDescription(0);
+	Profile->SourceVertexCount = SourceMeshDescription ? SourceMeshDescription->Vertices().Num() : 0;
 	Profile->AdjustedVertexCount = AdjustedVertexCount;
 	Profile->PenetratingVertexCountBefore = PenetratingBefore;
 	Profile->PenetratingVertexCountAfter = PenetratingAfter;
 	Profile->MinimumSignedGapBeforeCm = static_cast<float>(MinimumBefore);
 	Profile->MinimumSignedGapAfterCm = static_cast<float>(MinimumAfter);
 	Profile->TransferredMorphCount = TransferredMorphNames.Num();
+	Profile->RemappedWeightedBoneCount = RemappedWeightedBoneCount;
+	Profile->ReconciledSplitVertexCount = ReconciledSplitVertexCount;
+	Profile->CertifiedSkinWeightVertexCount = CertifiedSkinWeightVertexCount;
+	Profile->ClearanceValidatedMorphCount = ValidatedMorphCount;
+	Profile->ClearanceRepairedMorphCount = RepairedMorphCount;
+	Profile->MinimumSampledMorphGapCm = static_cast<float>(MinimumSampledMorphGap);
+	Profile->MorphClearanceSampleCount = FMath::Clamp(Options.MorphClearanceSampleCount, 2, 8);
+	Profile->GeneratedMorphSampleCount = GeneratedMorphSampleCount;
+	Profile->MaximumMorphSamplesPerBinding = MaximumMorphSamplesPerBinding;
+	Profile->SteppedMorphIntervalCount = SteppedMorphIntervalCount;
+	Profile->IdentityMorphSampleCount = IdentityMorphSampleCount;
+	Profile->CertifiedMorphPairCount = Profile->MorphPairCertificates.Num();
+	Profile->GeneratedPairCellMorphCount = GeneratedPairCellMorphCount;
+	Profile->PairBodyProbeCount = PairBodyProbeCount;
+	Profile->PairOffsetEvaluationCount = PairOffsetEvaluationCount;
+	Profile->MinimumSampledPairGapCm = static_cast<float>(MinimumSampledPairGap);
 	Profile->MarkPackageDirty();
-
-	Registry->Profiles.RemoveAll([SourceGarment](const UEFClothingFitProfile* ExistingProfile)
+	if (!ProtectedInputsUnchanged())
 	{
-		return !IsValid(ExistingProfile) || ExistingProfile->MatchesSource(SourceGarment);
-	});
-	Registry->Profiles.Add(Profile);
-	Registry->Profiles.Sort([](const UEFClothingFitProfile& A, const UEFClothingFitProfile& B)
+		return Fail(TEXT("Protected input guard failed before publishing the fit profile and registry."));
+	}
+	FString PrePublishValidationReport;
+	if (!UEFClothingFitCompilerLibrary::ValidateCompiledProfile(Profile, PrePublishValidationReport))
 	{
-		return A.SourceGarment.ToSoftObjectPath().ToString() < B.SourceGarment.ToSoftObjectPath().ToString();
-	});
-	Registry->MarkPackageDirty();
+		return Fail(FString::Printf(
+			TEXT("V24 staging profile failed pre-publication validation: %s"),
+			*PrePublishValidationReport));
+	}
 
-	if (!SaveAsset(Derived, Error) || !SaveAsset(Profile, Error) || !SaveAsset(Registry, Error))
+	auto BuildRegistryProfileKey = [](const UEFClothingFitProfile* RegistryProfile, FString& OutKey) -> bool
+	{
+		if (!IsValid(RegistryProfile)
+			|| RegistryProfile->SourceGarment.IsNull()
+			|| RegistryProfile->BodySurface.IsNull())
+		{
+			return false;
+		}
+		OutKey = RegistryProfile->SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + RegistryProfile->BodySurface.ToSoftObjectPath().ToString()
+			+ FString::Printf(TEXT("|%d"), static_cast<int32>(RegistryProfile->FitMode));
+		return true;
+	};
+
+	// Publishing one fit must never double as registry cleanup. Reject malformed
+	// or ambiguous pre-existing state instead of silently deleting unrelated rows.
+	TSet<FString> ExistingRegistryKeys;
+	for (int32 ProfileIndex = 0; ProfileIndex < Registry->Profiles.Num(); ++ProfileIndex)
+	{
+		const UEFClothingFitProfile* ExistingProfile = Registry->Profiles[ProfileIndex];
+		FString ExistingKey;
+		if (!BuildRegistryProfileKey(ExistingProfile, ExistingKey))
+		{
+			return Fail(FString::Printf(
+				TEXT("Fit registry contains an invalid entry at index %d; publication was not attempted."),
+				ProfileIndex));
+		}
+		if (ExistingRegistryKeys.Contains(ExistingKey))
+		{
+			return Fail(FString::Printf(
+				TEXT("Fit registry contains duplicate key %s; publication was not attempted."),
+				*ExistingKey));
+		}
+		ExistingRegistryKeys.Add(ExistingKey);
+	}
+
+	FString TargetRegistryKey;
+	if (!BuildRegistryProfileKey(Profile, TargetRegistryKey))
+	{
+		return Fail(TEXT("Generated fit profile does not provide a valid registry key."));
+	}
+	TArray<TObjectPtr<UEFClothingFitProfile>> CandidateRegistryProfiles = Registry->Profiles;
+	CandidateRegistryProfiles.RemoveAll([&BuildRegistryProfileKey, &TargetRegistryKey](
+		const UEFClothingFitProfile* ExistingProfile)
+	{
+		FString ExistingKey;
+		return BuildRegistryProfileKey(ExistingProfile, ExistingKey)
+			&& ExistingKey == TargetRegistryKey;
+	});
+	CandidateRegistryProfiles.Add(Profile);
+	CandidateRegistryProfiles.Sort([](const UEFClothingFitProfile& A, const UEFClothingFitProfile& B)
+	{
+		const FString AKey = A.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + A.BodySurface.ToSoftObjectPath().ToString()
+			+ FString::Printf(TEXT("|%d"), static_cast<int32>(A.FitMode));
+		const FString BKey = B.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + B.BodySurface.ToSoftObjectPath().ToString()
+			+ FString::Printf(TEXT("|%d"), static_cast<int32>(B.FitMode));
+		return AKey < BKey;
+	});
+	TSet<FString> CandidateRegistryKeys;
+	int32 TargetRegistryEntryCount = 0;
+	for (int32 ProfileIndex = 0; ProfileIndex < CandidateRegistryProfiles.Num(); ++ProfileIndex)
+	{
+		const UEFClothingFitProfile* CandidateProfile = CandidateRegistryProfiles[ProfileIndex];
+		FString CandidateKey;
+		if (!BuildRegistryProfileKey(CandidateProfile, CandidateKey)
+			|| CandidateRegistryKeys.Contains(CandidateKey))
+		{
+			return Fail(FString::Printf(
+				TEXT("Candidate fit registry contains an invalid or duplicate entry at index %d."),
+				ProfileIndex));
+		}
+		CandidateRegistryKeys.Add(CandidateKey);
+		if (CandidateKey == TargetRegistryKey)
+		{
+			++TargetRegistryEntryCount;
+			if (CandidateProfile != Profile || CandidateProfile->BuildGuid != PublicationGuid)
+			{
+				return Fail(TEXT("Candidate fit registry target does not reference the staged publication."));
+			}
+		}
+	}
+	if (TargetRegistryEntryCount != 1)
+	{
+		return Fail(TEXT("Candidate fit registry must contain exactly one staged target entry."));
+	}
+	if (!SaveAsset(Profile, Error))
 	{
 		return Fail(Error);
 	}
-
+	FString SavedProfileValidationReport;
+	if (!UEFClothingFitCompilerLibrary::ValidateCompiledProfile(Profile, SavedProfileValidationReport))
+	{
+		return Fail(FString::Printf(
+			TEXT("V24 saved staging profile failed validation before registry swap: %s"),
+			*SavedProfileValidationReport));
+	}
+	if (!ProtectedInputsUnchanged())
+	{
+		return Fail(TEXT("Protected input guard failed between profile and registry publication."));
+	}
 	if (SourceGarment->GetSkeleton() != SharedSkeletonBefore
 		|| BodySurface->GetSkeleton() != SharedSkeletonBefore
 		|| CompatibilityReference->GetSkeleton() != SharedSkeletonBefore
+		|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeletonBefore) != SharedSkeletonFingerprintBefore
+		|| EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(SharedSkeletonBefore) != SharedSkeletonEditorFingerprintBefore
 		|| EFClothingSkeleton::BuildFingerprint(SourceGarment) != SourceFingerprintBefore
 		|| EFClothingSkeleton::BuildFingerprint(BodySurface) != BodyFingerprintBefore
-		|| EFClothingSkeleton::BuildFingerprint(CompatibilityReference) != CompatibilityFingerprintBefore)
+		|| EFClothingSkeleton::BuildFingerprint(CompatibilityReference) != CompatibilityFingerprintBefore
+		|| EFClothingSkeleton::BuildContentFingerprint(SourceGarment) != Profile->SourceContentFingerprint
+		|| EFClothingSkeleton::BuildContentFingerprint(BodySurface) != Profile->BodyContentFingerprint
+		|| EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference) != Profile->CompatibilityContentFingerprint)
 	{
-		return Fail(TEXT("Protected skeleton integrity changed during compile; generated output is invalid."));
+		return Fail(TEXT("Protected skeleton integrity changed before registry commit; generated output was not published."));
+	}
+	const TArray<TObjectPtr<UEFClothingFitProfile>> PreviousRegistryProfiles = Registry->Profiles;
+	UPackage* RegistryPackage = Registry->GetOutermost();
+	const bool bRegistryPackageDirtyBefore = RegistryPackage && RegistryPackage->IsDirty();
+	Registry->Profiles = MoveTemp(CandidateRegistryProfiles);
+	Registry->MarkPackageDirty();
+	if (!SaveAsset(Registry, Error))
+	{
+		Registry->Profiles = PreviousRegistryProfiles;
+		if (RegistryPackage)
+		{
+			RegistryPackage->SetDirtyFlag(bRegistryPackageDirtyBefore);
+		}
+		return Fail(Error);
 	}
 
 	Result.bSuccess = true;
 	Result.DerivedGarment = Derived;
 	Result.Profile = Profile;
 	Result.Report = FString::Printf(
-		TEXT("PASS | Source=%s | Derived=%s | Vertices=%d | Adjusted=%d | PenetratingBefore=%d | PenetratingAfter=%d | MinGapBefore=%.4fcm | MinGapAfter=%.4fcm | Weights=%s max%d | CommonMorphs=%d | TransferredMorphs=%d | Build=%s"),
+		TEXT("PASS | Source=%s | Derived=%s | Vertices=%d | Adjusted=%d | PenetratingBefore=%d | PenetratingAfter=%d | MinGapBefore=%.4fcm | MinGapAfter=%.4fcm | SurfacePolicy=%s excludedSlots=%d excludedTriangles=%d excludedBoneBranches=%d excludedMorphPrefixes=%d | Weights=%s max%d required=%d remapped=%d | CommonMorphs=%d | TransferredMorphs=%d | MorphClearance=%d/%d repaired=%d samples=%d min=%.4fcm | Build=%s"),
 		*SourceGarment->GetPathName(),
 		*Derived->GetPathName(),
 		Profile->SourceVertexCount,
@@ -814,10 +7570,22 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		PenetratingAfter,
 		MinimumBefore,
 		MinimumAfter,
+		CatalogRowName.IsNone() ? TEXT("NoCatalogRow") : *CatalogRowName.ToString(),
+		Profile->ExcludedBodySurfaceMaterialSlots.Num(),
+		Profile->ExcludedBodySurfaceTriangleCount,
+		Profile->ExcludedBodyBoneBranches.Num(),
+		Profile->ExcludedBodyMorphPrefixes.Num(),
 		*WeightMethod,
 		Options.MaximumInfluences,
+		Profile->RequiredWeightedBones.Num(),
+		Profile->RemappedWeightedBoneCount,
 		Profile->MorphBindings.Num() - Profile->TransferredMorphCount,
 		Profile->TransferredMorphCount,
+		Profile->ClearanceValidatedMorphCount,
+		Profile->MorphBindings.Num(),
+		Profile->ClearanceRepairedMorphCount,
+		Profile->MorphClearanceSampleCount,
+		Profile->MinimumSampledMorphGapCm,
 		*Profile->BuildGuid.ToString(EGuidFormats::DigitsWithHyphens));
 	UE_LOG(LogEFClothingFitCompiler, Display, TEXT("%s"), *Result.Report);
 	return Result;
@@ -842,34 +7610,580 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 	}
 
 	FString FailureReason;
-	if (!EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(Source, Fitted, &FailureReason)
-		|| !EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(Fitted, Body, &FailureReason))
+	if (!EFClothingSkeleton::AreBoneHierarchiesCompatible(Source, Fitted, &FailureReason)
+		|| !EFClothingSkeleton::AreReferenceSkeletonsStrictlyCompatible(Fitted, Body, &FailureReason)
+		|| !EFClothingSkeleton::AreSharedBoneHierarchiesCompatible(Fitted, Compatibility, &FailureReason))
+	{
+		OutReport = FString::Printf(TEXT("FAIL: %s"), *FailureReason);
+		return false;
+	}
+	if (!EFClothingFitCompilerPrivate::ValidateGeneratedBodyBindArtifacts(Fitted, Body, FailureReason)
+		|| !EFClothingFitCompilerPrivate::ValidateGeneratedBodyDeformerParity(Fitted, Body, FailureReason))
 	{
 		OutReport = FString::Printf(TEXT("FAIL: %s"), *FailureReason);
 		return false;
 	}
 
-	const bool bFingerprintPass = EFClothingSkeleton::BuildFingerprint(Source) == Profile->SourceSkeletonFingerprint
+	USkeleton* const SharedSkeleton = Source->GetSkeleton();
+	const bool bSharedSkeletonPass = IsValid(SharedSkeleton)
+		&& Fitted->GetSkeleton() == SharedSkeleton
+		&& Body->GetSkeleton() == SharedSkeleton
+		&& Compatibility->GetSkeleton() == SharedSkeleton
+		&& EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeleton) == Profile->SharedSkeletonFingerprint
+		&& !Profile->SharedSkeletonEditorFingerprint.IsEmpty()
+		&& EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(SharedSkeleton)
+			== Profile->SharedSkeletonEditorFingerprint;
+	const bool bSkeletonFingerprintPass = bSharedSkeletonPass
+		&& EFClothingSkeleton::BuildFingerprint(Source) == Profile->SourceSkeletonFingerprint
 		&& EFClothingSkeleton::BuildFingerprint(Body) == Profile->BodySkeletonFingerprint
-		&& EFClothingSkeleton::BuildFingerprint(Compatibility) == Profile->CompatibilitySkeletonFingerprint;
+		&& EFClothingSkeleton::BuildFingerprint(Compatibility) == Profile->CompatibilitySkeletonFingerprint
+		&& EFClothingSkeleton::BuildFingerprint(Fitted) == Profile->FittedSkeletonFingerprint;
+	const bool bContentFingerprintPass = EFClothingSkeleton::BuildContentFingerprint(Source) == Profile->SourceContentFingerprint
+		&& EFClothingSkeleton::BuildContentFingerprint(Body) == Profile->BodyContentFingerprint
+		&& EFClothingSkeleton::BuildContentFingerprint(Compatibility) == Profile->CompatibilityContentFingerprint
+		&& EFClothingSkeleton::BuildContentFingerprint(Fitted) == Profile->FittedContentFingerprint;
+	const bool bPackageIdentityPass = Source->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) == Profile->SourcePackageGuid
+		&& Body->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) == Profile->BodyPackageGuid
+		&& Compatibility->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) == Profile->CompatibilityPackageGuid
+		&& Fitted->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) == Profile->FittedPackageGuid;
 	const bool bProfileExists = Fitted->GetSkinWeightProfiles().ContainsByPredicate([Profile](const FSkinWeightProfileInfo& Info)
 	{
 		return Info.Name == Profile->SkinWeightProfileName;
 	});
-	const bool bClearanceMorphExists = Fitted->FindMorphTarget(Profile->ClearanceMorphName) != nullptr;
+	UMorphTarget* ClearanceMorph = Fitted->FindMorphTarget(Profile->ClearanceMorphName);
+	const bool bClearanceMorphExists = IsValid(ClearanceMorph)
+		&& ClearanceMorph->HasDataForLOD(0)
+		&& ClearanceMorph->GetNumDeltasForLOD(0) > 0;
+	bool bSurfacePolicyPass = Profile->ExcludedBodySurfaceTriangleCount >= 0;
+	FName PreviousExcludedSlot = NAME_None;
+	bool bHasPreviousExcludedSlot = false;
+	TSet<FName> UniqueExcludedSlots;
+	for (const FName ExcludedSlot : Profile->ExcludedBodySurfaceMaterialSlots)
+	{
+		int32 MaterialMatchCount = 0;
+		for (const FSkeletalMaterial& Material : Body->GetMaterials())
+		{
+			MaterialMatchCount += (Material.MaterialSlotName == ExcludedSlot
+				|| Material.ImportedMaterialSlotName == ExcludedSlot) ? 1 : 0;
+		}
+		if (ExcludedSlot.IsNone()
+			|| UniqueExcludedSlots.Contains(ExcludedSlot)
+			|| (bHasPreviousExcludedSlot && !PreviousExcludedSlot.LexicalLess(ExcludedSlot))
+			|| MaterialMatchCount != 1)
+		{
+			bSurfacePolicyPass = false;
+			break;
+		}
+		UniqueExcludedSlots.Add(ExcludedSlot);
+		PreviousExcludedSlot = ExcludedSlot;
+		bHasPreviousExcludedSlot = true;
+	}
+	bSurfacePolicyPass &= Profile->ExcludedBodySurfaceMaterialSlots.IsEmpty()
+		? Profile->ExcludedBodySurfaceTriangleCount == 0
+		: Profile->ExcludedBodySurfaceTriangleCount > 0;
+	TSet<int32> ExcludedProfileBoneIndices;
+	FName PreviousExcludedBoneRoot = NAME_None;
+	bool bHasPreviousExcludedBoneRoot = false;
+	for (const FName ExcludedRootName : Profile->ExcludedBodyBoneBranches)
+	{
+		const int32 RootIndex = Body->GetRefSkeleton().FindBoneIndex(ExcludedRootName);
+		if (RootIndex <= 0
+			|| (bHasPreviousExcludedBoneRoot && !PreviousExcludedBoneRoot.LexicalLess(ExcludedRootName)))
+		{
+			bSurfacePolicyPass = false;
+			break;
+		}
+		for (int32 BoneIndex = 0; BoneIndex < Body->GetRefSkeleton().GetRawBoneNum(); ++BoneIndex)
+		{
+			for (int32 AncestorIndex = BoneIndex;
+				AncestorIndex != INDEX_NONE;
+				AncestorIndex = Body->GetRefSkeleton().GetParentIndex(AncestorIndex))
+			{
+				if (AncestorIndex == RootIndex)
+				{
+					ExcludedProfileBoneIndices.Add(BoneIndex);
+					break;
+				}
+			}
+		}
+		PreviousExcludedBoneRoot = ExcludedRootName;
+		bHasPreviousExcludedBoneRoot = true;
+	}
+	FString PreviousExcludedMorphPrefix;
+	bool bHasPreviousExcludedMorphPrefix = false;
+	for (const FString& Prefix : Profile->ExcludedBodyMorphPrefixes)
+	{
+		if (Prefix.IsEmpty()
+			|| (bHasPreviousExcludedMorphPrefix && PreviousExcludedMorphPrefix >= Prefix))
+		{
+			bSurfacePolicyPass = false;
+			break;
+		}
+		PreviousExcludedMorphPrefix = Prefix;
+		bHasPreviousExcludedMorphPrefix = true;
+	}
+	bool bWeightedBonesPass = !Profile->RequiredWeightedBones.IsEmpty();
+	FString WeightedBoneFailureReason = bWeightedBonesPass
+		? FString()
+		: TEXT("required weighted-bone list is empty");
+	const FReferenceSkeleton& FittedReference = Fitted->GetRefSkeleton();
+	for (int32 PoseMeshIndex = 0; PoseMeshIndex < 2; ++PoseMeshIndex)
+	{
+		const USkeletalMesh* PoseMesh = PoseMeshIndex == 0 ? Body : Compatibility;
+		const TCHAR* PoseMeshLabel = PoseMeshIndex == 0 ? TEXT("Female") : TEXT("Multiple");
+		const FReferenceSkeleton& PoseReference = PoseMesh->GetRefSkeleton();
+		const bool bRequireExactPose = PoseMesh == Body;
+		for (FName BoneName : Profile->RequiredWeightedBones)
+		{
+			const int32 FittedIndex = FittedReference.FindBoneIndex(BoneName);
+			const int32 PoseIndex = PoseReference.FindBoneIndex(BoneName);
+			const int32 BodyBoneIndex = Body->GetRefSkeleton().FindBoneIndex(BoneName);
+			if (FittedIndex == INDEX_NONE
+				|| PoseIndex == INDEX_NONE
+				|| BodyBoneIndex == INDEX_NONE
+				|| ExcludedProfileBoneIndices.Contains(BodyBoneIndex))
+			{
+				bWeightedBonesPass = false;
+				WeightedBoneFailureReason = FString::Printf(
+					TEXT("%s required bone %s is missing or belongs to an excluded branch (fitted=%d pose=%d)"),
+					PoseMeshLabel,
+					*BoneName.ToString(),
+					FittedIndex,
+					PoseIndex);
+				break;
+			}
+			const int32 FittedParent = FittedReference.GetParentIndex(FittedIndex);
+			const int32 PoseParent = PoseReference.GetParentIndex(PoseIndex);
+			const FName FittedParentName = FittedParent == INDEX_NONE ? NAME_None : FittedReference.GetBoneName(FittedParent);
+			const FName PoseParentName = PoseParent == INDEX_NONE ? NAME_None : PoseReference.GetBoneName(PoseParent);
+			if (FittedParentName != PoseParentName)
+			{
+				bWeightedBonesPass = false;
+				WeightedBoneFailureReason = FString::Printf(
+					TEXT("%s required bone %s has parent mismatch (fitted=%s pose=%s)"),
+					PoseMeshLabel,
+					*BoneName.ToString(),
+					*FittedParentName.ToString(),
+					*PoseParentName.ToString());
+				break;
+			}
+			if (bRequireExactPose
+				&& !FittedReference.GetRefBonePose()[FittedIndex].Equals(
+					PoseReference.GetRefBonePose()[PoseIndex], 0.001f))
+			{
+				bWeightedBonesPass = false;
+				WeightedBoneFailureReason = FString::Printf(
+					TEXT("%s required bone %s has a bind-pose mismatch"),
+					PoseMeshLabel,
+					*BoneName.ToString());
+				break;
+			}
+		}
+		if (!bWeightedBonesPass)
+		{
+			break;
+		}
+	}
+	bool bBindingsPass = true;
+	auto FittedContainsMorph = [Fitted](FName MorphName)
+	{
+		if (Fitted->FindMorphTarget(MorphName))
+		{
+			return true;
+		}
+		if (const FMeshDescription* Description = Fitted->GetMeshDescription(0))
+		{
+			const FSkeletalMeshAttributesShared Attributes(*Description);
+			return Attributes.GetVertexMorphPositionDelta(MorphName).IsValid();
+		}
+		return false;
+	};
+	TSet<FName> UniqueBodyMorphNames;
+	for (const FEFClothingMorphBinding& Binding : Profile->MorphBindings)
+	{
+		if (Binding.BodyMorph.IsNone()
+			|| Binding.BodyMorph == Profile->ClearanceMorphName
+			|| UniqueBodyMorphNames.Contains(Binding.BodyMorph))
+		{
+			bBindingsPass = false;
+			break;
+		}
+		UniqueBodyMorphNames.Add(Binding.BodyMorph);
+	}
+	TSet<FName> UniquePiecewiseMorphNames;
+	int32 ActualGeneratedMorphSampleCount = 0;
+	int32 ActualMaximumMorphSamplesPerBinding = 0;
+	int32 ActualSteppedMorphIntervalCount = 0;
+	int32 ActualIdentityMorphSampleCount = 0;
+	for (const FEFClothingMorphBinding& Binding : Profile->MorphBindings)
+	{
+		UMorphTarget* BodyMorph = Body->FindMorphTarget(Binding.BodyMorph);
+		if (Binding.BodyMorph.IsNone()
+			|| !FMath::IsFinite(Binding.MinimumCertifiedValue)
+			|| !FMath::IsFinite(Binding.MaximumCertifiedValue)
+			|| !FMath::IsFinite(Binding.Scale)
+			|| !FMath::IsFinite(Binding.Bias)
+			|| Binding.MinimumCertifiedValue > Binding.MaximumCertifiedValue
+			|| !FMath::IsNearlyEqual(Binding.MinimumCertifiedValue, 0.0f, KINDA_SMALL_NUMBER)
+			|| Binding.MaximumCertifiedValue <= Binding.MinimumCertifiedValue + KINDA_SMALL_NUMBER
+			|| Binding.MaximumCertifiedValue > 1.0f + KINDA_SMALL_NUMBER
+			|| !FMath::IsNearlyEqual(Binding.Scale, 1.0f, KINDA_SMALL_NUMBER)
+			|| !FMath::IsNearlyZero(Binding.Bias, KINDA_SMALL_NUMBER)
+			|| Binding.Samples.IsEmpty()
+			|| Binding.Samples.Num() > 64
+			|| FittedContainsMorph(Binding.BodyMorph)
+			|| !IsValid(BodyMorph) || !BodyMorph->HasDataForLOD(0) || BodyMorph->GetNumDeltasForLOD(0) == 0)
+		{
+			bBindingsPass = false;
+			break;
+		}
+		float PreviousBodyValue = Binding.MinimumCertifiedValue;
+		FName ExpectedLegacyGarmentMorph = NAME_None;
+		for (int32 SampleIndex = 0; SampleIndex < Binding.Samples.Num(); ++SampleIndex)
+		{
+			const FEFClothingMorphSample& Sample = Binding.Samples[SampleIndex];
+			UMorphTarget* FittedMorph = Sample.bIdentity ? nullptr : Fitted->FindMorphTarget(Sample.GarmentMorph);
+			const bool bIdentityContractPass = Sample.bIdentity && Sample.GarmentMorph.IsNone();
+			const bool bGeneratedMorphContractPass = !Sample.bIdentity
+				&& !Sample.GarmentMorph.IsNone()
+				&& Sample.GarmentMorph != Profile->ClearanceMorphName
+				&& !UniqueBodyMorphNames.Contains(Sample.GarmentMorph)
+				&& !UniquePiecewiseMorphNames.Contains(Sample.GarmentMorph)
+				&& IsValid(FittedMorph)
+				&& FittedMorph->HasDataForLOD(0)
+				&& FittedMorph->GetNumDeltasForLOD(0) > 0;
+			if ((!bIdentityContractPass && !bGeneratedMorphContractPass)
+				|| !FMath::IsFinite(Sample.BodyValue)
+				|| !EFClothingMorphV25::IsCertifiedClearanceMultiplier(
+					Sample.MinimumClearanceMultiplier)
+				|| Sample.BodyValue <= PreviousBodyValue + KINDA_SMALL_NUMBER
+				|| Sample.BodyValue > Binding.MaximumCertifiedValue + KINDA_SMALL_NUMBER
+				|| (Sample.bStepFromPrevious
+					&& (!FMath::IsFinite(Sample.StepSwitchBodyValue)
+						|| Sample.StepSwitchBodyValue < PreviousBodyValue - KINDA_SMALL_NUMBER
+						|| Sample.StepSwitchBodyValue > Sample.BodyValue + KINDA_SMALL_NUMBER)))
+			{
+				bBindingsPass = false;
+				break;
+			}
+			if (Sample.bIdentity)
+			{
+				++ActualIdentityMorphSampleCount;
+			}
+			else
+			{
+				UniquePiecewiseMorphNames.Add(Sample.GarmentMorph);
+				ExpectedLegacyGarmentMorph = Sample.GarmentMorph;
+			}
+			ActualSteppedMorphIntervalCount += Sample.bStepFromPrevious ? 1 : 0;
+			PreviousBodyValue = Sample.BodyValue;
+		}
+		if (!bBindingsPass
+			|| Binding.Samples.IsEmpty()
+			|| !FMath::IsNearlyEqual(PreviousBodyValue, Binding.MaximumCertifiedValue, KINDA_SMALL_NUMBER)
+			|| Binding.GarmentMorph != ExpectedLegacyGarmentMorph)
+		{
+			bBindingsPass = false;
+			break;
+		}
+		ActualGeneratedMorphSampleCount += Binding.Samples.Num();
+		ActualMaximumMorphSamplesPerBinding = FMath::Max(
+			ActualMaximumMorphSamplesPerBinding,
+			Binding.Samples.Num());
+	}
+	bool bPairCertificatesPass = bBindingsPass
+		&& Profile->CompiledMorphActivationEpsilon == 0.0f;
+	TSet<FName> MonitoredBodyMorphNameSet;
+	FName PreviousMonitoredBodyMorph = NAME_None;
+	bool bHasPreviousMonitoredBodyMorph = false;
+	for (FName MonitoredBodyMorph : Profile->MonitoredBodyMorphNames)
+	{
+		UMorphTarget* BodyMorph = Body->FindMorphTarget(MonitoredBodyMorph);
+		const FString MonitoredMorphString = MonitoredBodyMorph.ToString();
+		const bool bExcludedMorphNamespace = Profile->ExcludedBodyMorphPrefixes.ContainsByPredicate(
+			[&MonitoredMorphString](const FString& Prefix)
+			{
+				return MonitoredMorphString.StartsWith(Prefix, ESearchCase::CaseSensitive);
+			});
+		if (MonitoredBodyMorph.IsNone()
+			|| MonitoredBodyMorphNameSet.Contains(MonitoredBodyMorph)
+			|| bExcludedMorphNamespace
+			|| (bHasPreviousMonitoredBodyMorph
+				&& !PreviousMonitoredBodyMorph.LexicalLess(MonitoredBodyMorph))
+			|| !IsValid(BodyMorph)
+			|| !BodyMorph->HasDataForLOD(0)
+			|| BodyMorph->GetNumDeltasForLOD(0) <= 0)
+		{
+			bPairCertificatesPass = false;
+			break;
+		}
+		MonitoredBodyMorphNameSet.Add(MonitoredBodyMorph);
+		PreviousMonitoredBodyMorph = MonitoredBodyMorph;
+		bHasPreviousMonitoredBodyMorph = true;
+	}
+	for (FName BoundBodyMorph : UniqueBodyMorphNames)
+	{
+		bPairCertificatesPass &= MonitoredBodyMorphNameSet.Contains(BoundBodyMorph);
+	}
+	TSet<FString> UniquePairKeys;
+	TSet<FName> UniquePairCellMorphNames;
+	int32 ActualGeneratedPairCellMorphCount = 0;
+	int32 ActualPairBodyProbeCount = 0;
+	int32 ActualPairOffsetEvaluationCount = 0;
+	float ActualMinimumSampledPairGap = TNumericLimits<float>::Max();
+	for (const FEFClothingMorphPairCertificate& Certificate : Profile->MorphPairCertificates)
+	{
+		const FEFClothingMorphBinding* FirstCertifiedBinding = Profile->MorphBindings.FindByPredicate(
+			[&Certificate](const FEFClothingMorphBinding& Binding)
+			{
+				return Binding.BodyMorph == Certificate.FirstBodyMorph;
+			});
+		const FEFClothingMorphBinding* SecondCertifiedBinding = Profile->MorphBindings.FindByPredicate(
+			[&Certificate](const FEFClothingMorphBinding& Binding)
+			{
+				return Binding.BodyMorph == Certificate.SecondBodyMorph;
+			});
+		const FString PairKey = Certificate.FirstBodyMorph.ToString()
+			+ TEXT("\x1F") + Certificate.SecondBodyMorph.ToString();
+		const bool bCertificateHeaderPass = !Certificate.FirstBodyMorph.IsNone()
+			&& !Certificate.SecondBodyMorph.IsNone()
+			&& Certificate.FirstBodyMorph.LexicalLess(Certificate.SecondBodyMorph)
+			&& !UniquePairKeys.Contains(PairKey)
+			&& UniqueBodyMorphNames.Contains(Certificate.FirstBodyMorph)
+			&& UniqueBodyMorphNames.Contains(Certificate.SecondBodyMorph)
+			&& MonitoredBodyMorphNameSet.Contains(Certificate.FirstBodyMorph)
+			&& MonitoredBodyMorphNameSet.Contains(Certificate.SecondBodyMorph)
+			&& FirstCertifiedBinding
+			&& SecondCertifiedBinding
+			&& FMath::IsNearlyEqual(Certificate.FirstMinimumCertifiedValue, FirstCertifiedBinding->MinimumCertifiedValue, KINDA_SMALL_NUMBER)
+			&& FMath::IsNearlyEqual(Certificate.FirstMaximumCertifiedValue, FirstCertifiedBinding->MaximumCertifiedValue, KINDA_SMALL_NUMBER)
+			&& FMath::IsNearlyEqual(Certificate.SecondMinimumCertifiedValue, SecondCertifiedBinding->MinimumCertifiedValue, KINDA_SMALL_NUMBER)
+			&& FMath::IsNearlyEqual(Certificate.SecondMaximumCertifiedValue, SecondCertifiedBinding->MaximumCertifiedValue, KINDA_SMALL_NUMBER)
+			&& Certificate.GridResolution == 4
+			&& Certificate.ProbeCountPerAxis == 3
+			&& Certificate.CertifiedOffsetTierCount
+				== EFClothingFitCompilerPrivate::CertifiedClearanceTierCount
+			&& Certificate.Cells.Num() == 16
+			&& FMath::IsFinite(Certificate.MinimumCertifiedGapCm)
+			&& Certificate.MinimumCertifiedGapCm >= Profile->CompiledMinimumClearanceCm - 0.001f;
+		bPairCertificatesPass &= bCertificateHeaderPass;
+		if (!bCertificateHeaderPass)
+		{
+			break;
+		}
+		UniquePairKeys.Add(PairKey);
+		TSet<int32> UniqueCellCoordinates;
+		float CertificateMinimumGap = TNumericLimits<float>::Max();
+		const int32 ExpectedBodyProbeCount = Certificate.ProbeCountPerAxis * Certificate.ProbeCountPerAxis;
+		const int32 ExpectedOffsetEvaluationCount = ExpectedBodyProbeCount * Certificate.CertifiedOffsetTierCount;
+		for (const FEFClothingMorphPairCell& Cell : Certificate.Cells)
+		{
+			const int32 CoordinateKey = Cell.FirstCellIndex * Certificate.GridResolution + Cell.SecondCellIndex;
+			const float ExpectedFirstMinimum = FMath::Lerp(
+				Certificate.FirstMinimumCertifiedValue,
+				Certificate.FirstMaximumCertifiedValue,
+				static_cast<float>(Cell.FirstCellIndex) / static_cast<float>(Certificate.GridResolution));
+			const float ExpectedFirstMaximum = FMath::Lerp(
+				Certificate.FirstMinimumCertifiedValue,
+				Certificate.FirstMaximumCertifiedValue,
+				static_cast<float>(Cell.FirstCellIndex + 1) / static_cast<float>(Certificate.GridResolution));
+			const float ExpectedSecondMinimum = FMath::Lerp(
+				Certificate.SecondMinimumCertifiedValue,
+				Certificate.SecondMaximumCertifiedValue,
+				static_cast<float>(Cell.SecondCellIndex) / static_cast<float>(Certificate.GridResolution));
+			const float ExpectedSecondMaximum = FMath::Lerp(
+				Certificate.SecondMinimumCertifiedValue,
+				Certificate.SecondMaximumCertifiedValue,
+				static_cast<float>(Cell.SecondCellIndex + 1) / static_cast<float>(Certificate.GridResolution));
+			UMorphTarget* CellMorph = Fitted->FindMorphTarget(Cell.GarmentMorph);
+			const bool bCellPass = Cell.FirstCellIndex >= 0
+				&& Cell.FirstCellIndex < Certificate.GridResolution
+				&& Cell.SecondCellIndex >= 0
+				&& Cell.SecondCellIndex < Certificate.GridResolution
+				&& !UniqueCellCoordinates.Contains(CoordinateKey)
+				&& !Cell.GarmentMorph.IsNone()
+				&& Cell.GarmentMorph != Profile->ClearanceMorphName
+				&& !UniqueBodyMorphNames.Contains(Cell.GarmentMorph)
+				&& !UniquePiecewiseMorphNames.Contains(Cell.GarmentMorph)
+				&& !UniquePairCellMorphNames.Contains(Cell.GarmentMorph)
+				&& IsValid(CellMorph)
+				&& CellMorph->HasDataForLOD(0)
+				&& CellMorph->GetNumDeltasForLOD(0) > 0
+				&& FMath::IsNearlyEqual(Cell.FirstMinimumValue, ExpectedFirstMinimum, KINDA_SMALL_NUMBER)
+				&& FMath::IsNearlyEqual(Cell.FirstMaximumValue, ExpectedFirstMaximum, KINDA_SMALL_NUMBER)
+				&& FMath::IsNearlyEqual(Cell.SecondMinimumValue, ExpectedSecondMinimum, KINDA_SMALL_NUMBER)
+				&& FMath::IsNearlyEqual(Cell.SecondMaximumValue, ExpectedSecondMaximum, KINDA_SMALL_NUMBER)
+				&& FMath::IsFinite(Cell.MinimumCertifiedGapCm)
+				&& Cell.MinimumCertifiedGapCm >= Profile->CompiledMinimumClearanceCm - 0.001f
+				&& EFClothingMorphV25::IsCertifiedClearanceMultiplier(
+					Cell.MinimumClearanceMultiplier)
+				&& Cell.CertifiedBodyProbeCount == ExpectedBodyProbeCount
+				&& Cell.CertifiedOffsetEvaluationCount == ExpectedOffsetEvaluationCount;
+			bPairCertificatesPass &= bCellPass;
+			if (!bCellPass)
+			{
+				break;
+			}
+			UniqueCellCoordinates.Add(CoordinateKey);
+			UniquePairCellMorphNames.Add(Cell.GarmentMorph);
+			CertificateMinimumGap = FMath::Min(CertificateMinimumGap, Cell.MinimumCertifiedGapCm);
+			++ActualGeneratedPairCellMorphCount;
+			ActualPairBodyProbeCount += Cell.CertifiedBodyProbeCount;
+			ActualPairOffsetEvaluationCount += Cell.CertifiedOffsetEvaluationCount;
+		}
+		bPairCertificatesPass &= UniqueCellCoordinates.Num()
+				== Certificate.GridResolution * Certificate.GridResolution
+			&& FMath::IsNearlyEqual(
+				Certificate.MinimumCertifiedGapCm,
+				CertificateMinimumGap,
+				0.001f);
+		ActualMinimumSampledPairGap = FMath::Min(ActualMinimumSampledPairGap, CertificateMinimumGap);
+		if (!bPairCertificatesPass)
+		{
+			break;
+		}
+	}
+	if (Profile->MorphPairCertificates.IsEmpty())
+	{
+		ActualMinimumSampledPairGap = 0.0f;
+	}
+	bPairCertificatesPass &= Profile->CertifiedMorphPairCount == Profile->MorphPairCertificates.Num()
+		&& Profile->GeneratedPairCellMorphCount == ActualGeneratedPairCellMorphCount
+		&& Profile->PairBodyProbeCount == ActualPairBodyProbeCount
+		&& Profile->PairOffsetEvaluationCount == ActualPairOffsetEvaluationCount
+		&& FMath::IsFinite(Profile->MinimumSampledPairGapCm)
+		&& (Profile->MorphPairCertificates.IsEmpty()
+			? FMath::IsNearlyZero(Profile->MinimumSampledPairGapCm, KINDA_SMALL_NUMBER)
+			: Profile->MinimumSampledPairGapCm >= Profile->CompiledMinimumClearanceCm - 0.001f
+				&& FMath::IsNearlyEqual(
+					Profile->MinimumSampledPairGapCm,
+					ActualMinimumSampledPairGap,
+					0.001f));
+	constexpr float ClearanceToleranceCm = 0.001f;
+	const FSkeletalMeshLODInfo* FittedLODInfo = Fitted->GetLODInfo(0);
+	const FVector BoundsExpansion = Fitted->GetImportedBounds().BoxExtent - Source->GetImportedBounds().BoxExtent;
+	const float SphereExpansion = Fitted->GetImportedBounds().SphereRadius - Source->GetImportedBounds().SphereRadius;
+	const FVector& ContractBoundsExpansion = Profile->CompiledConcurrentBoundsExpansionCm;
+	const bool bBoundsPass = !ContractBoundsExpansion.ContainsNaN()
+		&& ContractBoundsExpansion.X >= 0.0f
+		&& ContractBoundsExpansion.Y >= 0.0f
+		&& ContractBoundsExpansion.Z >= 0.0f
+		&& FMath::IsFinite(Profile->CompiledConcurrentSphereExpansionCm)
+		&& Profile->CompiledConcurrentSphereExpansionCm >= 0.0f
+		&& BoundsExpansion.X >= ContractBoundsExpansion.X - ClearanceToleranceCm
+		&& BoundsExpansion.Y >= ContractBoundsExpansion.Y - ClearanceToleranceCm
+		&& BoundsExpansion.Z >= ContractBoundsExpansion.Z - ClearanceToleranceCm
+		&& SphereExpansion >= Profile->CompiledConcurrentSphereExpansionCm - ClearanceToleranceCm;
 	const bool bMetricsPass = Profile->PenetratingVertexCountAfter == 0
-		&& Profile->MinimumSignedGapAfterCm >= -0.001f
-		&& Profile->SourceVertexCount > 0;
+		&& Profile->BuildGuid.IsValid()
+		&& FMath::IsFinite(Profile->MinimumSignedGapAfterCm)
+		&& FMath::IsFinite(Profile->CompiledMinimumClearanceCm)
+		&& FMath::IsFinite(Profile->CompiledClearanceReserveCm)
+		&& Profile->CompiledClearanceReserveCm > 0.0f
+		&& FMath::IsNearlyEqual(
+			Profile->CompiledClearanceReserveCm,
+			static_cast<float>(EFClothingFitCompilerPrivate::CompilerClearanceReserveCm),
+			KINDA_SMALL_NUMBER)
+		&& Profile->MinimumSignedGapAfterCm
+			>= Profile->CompiledMinimumClearanceCm + Profile->CompiledClearanceReserveCm - ClearanceToleranceCm
+		&& Profile->SourceVertexCount > 0
+		&& Profile->ReconciledSplitVertexCount >= 0
+		&& Profile->CertifiedSkinWeightVertexCount == Profile->SourceVertexCount
+		&& Profile->CompiledLODCount == 1
+		&& Profile->CompilerVersion == EFClothingFitCompilerPrivate::CompilerVersion
+		&& Profile->FitMode == EEFClothingFitMode::Tight
+		&& FMath::IsFinite(Profile->DefaultClearanceValue)
+		&& FMath::IsNearlyEqual(Profile->DefaultClearanceValue, 1.0f, KINDA_SMALL_NUMBER)
+		&& FMath::IsFinite(Profile->CertifiedClearanceMultiplierMin)
+		&& FMath::IsFinite(Profile->CertifiedClearanceMultiplierMax)
+		&& FMath::IsNearlyEqual(
+			Profile->CertifiedClearanceMultiplierMin,
+			static_cast<float>(EFClothingFitCompilerPrivate::CertifiedClearanceTierMin),
+			KINDA_SMALL_NUMBER)
+		&& FMath::IsNearlyEqual(
+			Profile->CertifiedClearanceMultiplierMax,
+			static_cast<float>(EFClothingFitCompilerPrivate::CertifiedClearanceTierMax),
+			KINDA_SMALL_NUMBER)
+		&& Profile->CertifiedClearanceTierCount == EFClothingFitCompilerPrivate::CertifiedClearanceTierCount
+		&& FMath::IsFinite(Profile->MinimumCertifiedOffsetGapCm)
+		&& Profile->MinimumCertifiedOffsetGapCm >= Profile->CompiledMinimumClearanceCm - ClearanceToleranceCm
+		&& FMath::IsFinite(Profile->CompiledMaximumMorphRepairCm)
+		&& Profile->CompiledMaximumMorphRepairCm > 0.0f
+		&& FMath::IsFinite(Profile->CompiledMaximumMorphDisplacementCm)
+		&& Profile->CompiledMaximumMorphDisplacementCm >= 0.0f
+		&& FMath::IsFinite(Profile->CompiledMorphThresholdPositionCm)
+		&& Profile->CompiledMorphThresholdPositionCm >= 0.0f
+		&& FittedLODInfo
+		&& FMath::IsNearlyEqual(
+			Profile->CompiledMorphThresholdPositionCm,
+			FittedLODInfo->BuildSettings.MorphThresholdPosition,
+			KINDA_SMALL_NUMBER)
+		&& Profile->PostThresholdAlteredDeltaCount >= 0
+		&& bBoundsPass
+		&& Profile->ClearanceValidatedMorphCount == Profile->MorphBindings.Num()
+		&& Profile->MorphClearanceSampleCount >= 2
+		&& Profile->MorphClearanceSampleCount <= 8
+		&& Profile->GeneratedMorphSampleCount == ActualGeneratedMorphSampleCount
+		&& Profile->MaximumMorphSamplesPerBinding == ActualMaximumMorphSamplesPerBinding
+		&& Profile->SteppedMorphIntervalCount == ActualSteppedMorphIntervalCount
+		&& Profile->IdentityMorphSampleCount == ActualIdentityMorphSampleCount
+		&& (Profile->MorphBindings.IsEmpty()
+			? Profile->MaximumMorphSamplesPerBinding == 0
+			: Profile->MaximumMorphSamplesPerBinding >= 1)
+		&& Profile->MaximumMorphSamplesPerBinding <= 64
+		&& FMath::IsFinite(Profile->MinimumSampledMorphGapCm)
+		&& Profile->MinimumSampledMorphGapCm >= Profile->CompiledMinimumClearanceCm - ClearanceToleranceCm;
 
-	const bool bPass = bFingerprintPass && bProfileExists && bClearanceMorphExists && bMetricsPass;
+	const bool bPass = bSkeletonFingerprintPass
+		&& bContentFingerprintPass
+		&& bPackageIdentityPass
+		&& bProfileExists
+		&& bClearanceMorphExists
+		&& bSurfacePolicyPass
+		&& bWeightedBonesPass
+		&& bBindingsPass
+		&& bPairCertificatesPass
+		&& bBoundsPass
+		&& bMetricsPass;
 	OutReport = FString::Printf(
-		TEXT("%s | Fingerprints=%s | SkinProfile=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4fcm | Bindings=%d"),
+		TEXT("%s | Skeletons=%s | Content=%s | Packages=%s | SkinProfile=%s | SurfacePolicy=%s:slots=%d triangles=%d branches=%d morphPrefixes=%d | WeightedBones=%s:%d remapped=%d reason=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4f/%.4fcm | MorphSamples=%.4fcm:%d repaired=%d | Bindings=%s:%d | Pairs=%s:%d cells=%d probes=%d tiers=%d | LODs=%d | Compiler=%d"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"),
-		bFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
+		bSkeletonFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
+		bContentFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
+		bPackageIdentityPass ? TEXT("PASS") : TEXT("FAIL"),
 		bProfileExists ? TEXT("PASS") : TEXT("FAIL"),
+		bSurfacePolicyPass ? TEXT("PASS") : TEXT("FAIL"),
+		Profile->ExcludedBodySurfaceMaterialSlots.Num(),
+		Profile->ExcludedBodySurfaceTriangleCount,
+		Profile->ExcludedBodyBoneBranches.Num(),
+		Profile->ExcludedBodyMorphPrefixes.Num(),
+		bWeightedBonesPass ? TEXT("PASS") : TEXT("FAIL"),
+		Profile->RequiredWeightedBones.Num(),
+		Profile->RemappedWeightedBoneCount,
+		bWeightedBonesPass ? TEXT("none") : *WeightedBoneFailureReason,
 		bClearanceMorphExists ? TEXT("PASS") : TEXT("FAIL"),
 		Profile->PenetratingVertexCountAfter,
 		Profile->MinimumSignedGapAfterCm,
-		Profile->MorphBindings.Num());
+		Profile->CompiledMinimumClearanceCm,
+		Profile->MinimumSampledMorphGapCm,
+		Profile->MorphClearanceSampleCount,
+		Profile->ClearanceRepairedMorphCount,
+		bBindingsPass ? TEXT("PASS") : TEXT("FAIL"),
+		Profile->MorphBindings.Num(),
+		bPairCertificatesPass ? TEXT("PASS") : TEXT("FAIL"),
+		Profile->MorphPairCertificates.Num(),
+		Profile->GeneratedPairCellMorphCount,
+		Profile->PairBodyProbeCount,
+		Profile->PairOffsetEvaluationCount,
+		Profile->CompiledLODCount,
+		Profile->CompilerVersion);
 	return bPass;
+}
+
+FEFClothingFitValidationResult UEFClothingFitCompilerLibrary::ValidateCompiledProfileDetailed(
+	UEFClothingFitProfile* Profile)
+{
+	FEFClothingFitValidationResult Result;
+	Result.bSuccess = ValidateCompiledProfile(Profile, Result.Report);
+	return Result;
 }

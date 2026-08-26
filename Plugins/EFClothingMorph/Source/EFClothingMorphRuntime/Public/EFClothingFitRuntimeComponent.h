@@ -7,8 +7,13 @@
 class UEFCharacterCustomizationComponent;
 class UEFClothingFitProfile;
 class UEFClothingFitRegistry;
+class UDataTable;
+class UGameViewportClient;
 class USkeletalMesh;
 class USkeletalMeshComponent;
+class USkinnedMeshComponent;
+struct FStreamableHandle;
+struct FEFClothingGarmentRow;
 
 UCLASS(ClassGroup = (EF), meta = (BlueprintSpawnableComponent))
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingFitRuntimeComponent : public UActorComponent
@@ -29,10 +34,20 @@ public:
 	int32 GetAppliedGarmentCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2")
+	int32 GetPendingGarmentCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2")
 	FString GetDebugSummary() const;
 
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2")
 	void SetRuntimeClearanceMultiplier(float NewMultiplier);
+
+	/** Optional per-component offset multiplier; runtime rounds the product upward to a compiler-certified tier. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2")
+	void SetGarmentClearanceMultiplier(USkeletalMeshComponent* GarmentComponent, float NewMultiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2")
+	void ClearGarmentClearanceMultiplier(USkeletalMeshComponent* GarmentComponent);
 
 private:
 	struct FAppliedGarmentState
@@ -41,44 +56,183 @@ private:
 		TWeakObjectPtr<USkeletalMesh> SourceMesh;
 		TWeakObjectPtr<USkeletalMesh> FittedMesh;
 		TWeakObjectPtr<USkeletalMeshComponent> BodyMesh;
-		bool bWasVisible = true;
+		TWeakObjectPtr<USkeletalMeshComponent> ValidatedLeaderComponent;
+		TWeakObjectPtr<USkeletalMesh> ValidatedLeaderMesh;
+		/** Exact leader present before V2 assigned through the profile body component. */
+		TWeakObjectPtr<USkinnedMeshComponent> PreviousLeaderPoseComponent;
+		/** Effective top-most leader Unreal stored and V2 owns while the garment is managed. */
+		TWeakObjectPtr<USkeletalMeshComponent> LeaderPoseAssignedByV2;
+		/** Both profile layers active on the source garment before SetSkeletalMesh cleared them. */
+		TArray<FName> PreviousSkinWeightProfileLayers;
+		bool bCapturedPreviousSkinWeightProfiles = false;
+		bool bUseBoundsFromLeaderPoseBeforeV2 = false;
+		bool bComponentUseFixedSkelBoundsBeforeV2 = false;
+		bool bOwnsBoundsContract = false;
+		bool bRenderInMainPassBeforeV2 = true;
+		bool bRenderSuppressedByV2 = false;
 		bool bWaitingForSkinProfile = false;
-		float PreviousBoundsScale = 1.0f;
+		bool bMorphStateUnsafe = false;
+		bool bAssignedLeaderPoseByV2 = false;
+		/** Fail-closed rollback state: the source stays hidden until its complete profile stack is stable. */
+		bool bSourceMeshRestoreRequested = false;
+		bool bSourceMeshRestored = false;
+		bool bSourceMorphStateReplayed = false;
+		bool bRestoreFailureLogged = false;
 		double ApplyStartedAtSeconds = 0.0;
+		double SkinProfileWaitStartedAtSeconds = 0.0;
+		double LastFullValidationAtSeconds = 0.0;
+		double RestoreStartedAtSeconds = 0.0;
 		TMap<FName, float> LastWrittenMorphValues;
+		FName CatalogRowName = NAME_None;
+		/** Exact material indices owned on BodyMesh; aliases share one ref-count token. */
+		TArray<int32> CoveredBodyMaterialIndices;
+		float CatalogMinimumClearanceMultiplier = 1.0f;
+	};
+
+	struct FBodyMaterialCoverageState
+	{
+		TWeakObjectPtr<USkeletalMesh> BodyAsset;
+		int32 MaterialIndex = INDEX_NONE;
+		int32 RefCount = 0;
+		TArray<bool> PreviousShownByLOD;
+	};
+
+	struct FPrefetchGarmentState
+	{
+		TWeakObjectPtr<const UEFClothingFitProfile> Profile;
+		TWeakObjectPtr<USkeletalMesh> SourceMesh;
+		bool bRenderInMainPassBeforeV2 = true;
+		bool bRenderSuppressedByV2 = false;
+		bool bWaitingForExistingSkinProfile = false;
+		double StartedAtSeconds = 0.0;
+	};
+
+	struct FRejectedGarmentState
+	{
+		TWeakObjectPtr<USkeletalMesh> SourceMesh;
+		TWeakObjectPtr<USkeletalMeshComponent> BodyComponent;
+		TWeakObjectPtr<USkeletalMesh> BodyMesh;
+		FGuid ProfileBuildGuid;
+		FString Reason;
+	};
+
+	/** Visibility-only ingress ownership captured after any runtime mesh assignment and before viewport draw. */
+	struct FVisibilityGuardState
+	{
+		TWeakObjectPtr<USkeletalMesh> SourceMesh;
+		bool bRenderInMainPassBeforeV2 = true;
+		bool bRenderSuppressedByV2 = false;
 	};
 
 	void ReconcileGarments();
+	/**
+	 * Cheap O(component-count) edge detector used every frame. Dynamic equipment can
+	 * create or reuse a skeletal component between periodic reconciliation passes;
+	 * observing pointer/mesh assignment changes lets V2 suppress it before render.
+	 */
+	bool RefreshObservedMeshAssignments();
+	void RefreshViewportVisibilityBinding();
+	void UnbindViewportVisibilityGuard();
+	void HandleViewportBeginDraw();
+	void GuardCatalogedSourceGarmentsBeforeRender();
+	void CaptureVisibilityContract(
+		USkeletalMeshComponent* GarmentComponent,
+		bool& bOutRenderInMainPassBeforeV2,
+		bool& bOutRenderSuppressedByV2);
+	void RestoreVisibilityGuards();
 	void SynchronizeMorphs();
 	void ResolveCustomizationComponent();
 	void HandleMorphStateApplied();
+	void StartProfilePrefetch(const UEFClothingFitProfile* Profile);
+	void LaunchNextProfilePrefetchBatch();
+	void HandleRegistryAssetsReady();
+	void BuildCatalogIndex();
+	const FEFClothingGarmentRow* FindCatalogRow(
+		const USkeletalMesh* SourceMesh,
+		const USkeletalMesh* BodyMesh,
+		FName* OutRowName = nullptr) const;
+	void AcquireBodyCoverage(FAppliedGarmentState& State, const FEFClothingGarmentRow* CatalogRow);
+	void ReleaseBodyCoverage(FAppliedGarmentState& State);
 	USkeletalMeshComponent* ResolveBodyMesh(const UEFClothingFitProfile* Profile) const;
 	bool TryApplyProfile(USkeletalMeshComponent* GarmentComponent, const UEFClothingFitProfile* Profile);
 	void RemoveStaleStates();
+	void ReleaseOwnedBoundsContract(USkeletalMeshComponent* GarmentComponent, FAppliedGarmentState& State);
 	void RestoreGarment(USkeletalMeshComponent* GarmentComponent, FAppliedGarmentState& State, bool bRestoreSourceMesh);
+	void ProcessPendingRestores();
+	void FinalizePendingRestoresForEndPlay();
+	void RestorePrefetchGarment(USkeletalMeshComponent* GarmentComponent, FPrefetchGarmentState& State);
 	void RestoreAllGarments();
+	void RefreshRetainedSourceMeshes();
+	bool IsProfileRejected(
+		USkeletalMeshComponent* GarmentComponent,
+		USkeletalMesh* SourceMesh,
+		const UEFClothingFitProfile* Profile);
+	void RememberProfileRejection(
+		USkeletalMeshComponent* GarmentComponent,
+		USkeletalMesh* SourceMesh,
+		const UEFClothingFitProfile* Profile,
+		const FString& Reason);
 	bool ValidateProfileForComponents(
 		const UEFClothingFitProfile* Profile,
 		USkeletalMeshComponent* GarmentComponent,
+		USkeletalMesh* SourceMesh,
 		USkeletalMeshComponent* BodyComponent,
 		USkeletalMesh* FittedMesh,
 		FString& OutFailureReason) const;
 	float ResolveBodyMorphValue(
 		USkeletalMeshComponent* BodyComponent,
-		USkeletalMeshComponent* GarmentComponent,
+		const TArray<USkeletalMeshComponent*>& PoseSources,
 		FName MorphName) const;
+	void GatherMorphPoseSources(
+		USkeletalMeshComponent* BodyComponent,
+		USkeletalMeshComponent* GarmentComponent,
+		TArray<USkeletalMeshComponent*>& OutPoseSources) const;
+	float ResolveClearanceValue(
+		USkeletalMeshComponent* GarmentComponent,
+		const UEFClothingFitProfile* Profile,
+		float RequiredMinimumMultiplier) const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UEFClothingFitRegistry> LoadedRegistry;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UDataTable> LoadedGarmentCatalog;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UEFCharacterCustomizationComponent> CustomizationComponent;
 
+	/** Hard references needed for reliable CVar rollback after the component switches to a derived mesh. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<USkeletalMesh>> RetainedSourceMeshes;
+
+	/** Prefetched fitted/compatibility assets stay resident without game-thread loads at equip time. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UObject>> RetainedProfileAssets;
+
+	TSharedPtr<FStreamableHandle> RegistryPrefetchHandle;
+	TSet<FSoftObjectPath> PendingProfilePrefetchPaths;
+	TSet<FSoftObjectPath> InFlightProfilePrefetchPaths;
+
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState> AppliedGarments;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FAppliedGarmentState> RestoringGarments;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FPrefetchGarmentState> PrefetchingGarments;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FRejectedGarmentState> RejectedGarments;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<USkeletalMesh>> ObservedMeshAssignments;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVisibilityGuardState> VisibilityGuards;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> GarmentClearanceMultipliers;
+	TMap<FString, FName> CatalogRowIndex;
+	TSet<FString> DuplicateCatalogKeys;
+	TSet<FSoftObjectPath> CatalogedSourcePaths;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;
+	TWeakObjectPtr<UGameViewportClient> BoundGameViewportClient;
+	FDelegateHandle ViewportBeginDrawHandle;
 	FDelegateHandle MorphStateAppliedHandle;
 	double NextReconcileAtSeconds = 0.0;
 	double NextMorphSyncAtSeconds = 0.0;
+	uint64 ReconcilePassCount = 0;
+	uint64 MeshAssignmentEdgeCount = 0;
 	float RuntimeClearanceMultiplier = 1.0f;
 	bool bLastRuntimeEnabled = false;
+	bool bIsRestoring = false;
 	FString LastStatus = TEXT("Not initialized");
 };

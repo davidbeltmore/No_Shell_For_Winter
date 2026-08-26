@@ -5,6 +5,7 @@
 #include "EFClothingMorphWorldSubsystem.generated.h"
 
 class APawn;
+class AController;
 
 UCLASS()
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphWorldSubsystem : public UWorldSubsystem
@@ -18,7 +19,14 @@ public:
 
 private:
 	void HandleActorSpawned(AActor* Actor);
+	void ObservePawn(APawn* Pawn);
 	void AttachToPawn(APawn* Pawn);
+	void ScanForEligiblePawns();
+
+	UFUNCTION()
+	void HandlePawnControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
 
 	FDelegateHandle ActorSpawnedHandle;
+	FTimerHandle EligiblePawnScanTimer;
+	TSet<TWeakObjectPtr<APawn>> ControllerObservedPawns;
 };

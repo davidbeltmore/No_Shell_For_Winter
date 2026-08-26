@@ -1,7 +1,7 @@
 #include "EFClothingMorphWorldSubsystem.h"
 
 #include "EFClothingFitRuntimeComponent.h"
-#include "EFClothingMorphComponent.h"
+#include "EFClothingMorphV2Settings.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
@@ -31,19 +31,64 @@ void UEFClothingMorphWorldSubsystem::Initialize(FSubsystemCollectionBase& Collec
 
 		for (TActorIterator<APawn> It(World); It; ++It)
 		{
+			ObservePawn(*It);
 			AttachToPawn(*It);
 		}
+
+		// Possession may happen after OnActorSpawned. A low-frequency scan makes
+		// player-only attachment deterministic without adding V2 to every NPC.
+		World->GetTimerManager().SetTimer(
+			EligiblePawnScanTimer,
+			this,
+			&UEFClothingMorphWorldSubsystem::ScanForEligiblePawns,
+			0.5f,
+			true,
+			0.25f);
 	}
 }
 
 void UEFClothingMorphWorldSubsystem::Deinitialize()
 {
-	if (UWorld* World = GetWorld(); World && ActorSpawnedHandle.IsValid())
+	for (const TWeakObjectPtr<APawn>& WeakPawn : ControllerObservedPawns)
 	{
-		World->RemoveOnActorSpawnedHandler(ActorSpawnedHandle);
+		if (APawn* Pawn = WeakPawn.Get())
+		{
+			Pawn->ReceiveControllerChangedDelegate.RemoveDynamic(
+				this,
+				&UEFClothingMorphWorldSubsystem::HandlePawnControllerChanged);
+		}
+	}
+	ControllerObservedPawns.Reset();
+
+	if (UWorld* World = GetWorld())
+	{
+		if (ActorSpawnedHandle.IsValid())
+		{
+			World->RemoveOnActorSpawnedHandler(ActorSpawnedHandle);
+		}
+		World->GetTimerManager().ClearTimer(EligiblePawnScanTimer);
 	}
 	ActorSpawnedHandle.Reset();
 	Super::Deinitialize();
+}
+
+void UEFClothingMorphWorldSubsystem::ScanForEligiblePawns()
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<APawn> It(World); It; ++It)
+		{
+			ObservePawn(*It);
+			AttachToPawn(*It);
+		}
+		for (auto It = ControllerObservedPawns.CreateIterator(); It; ++It)
+		{
+			if (!(*It).IsValid())
+			{
+				It.RemoveCurrent();
+			}
+		}
+	}
 }
 
 void UEFClothingMorphWorldSubsystem::HandleActorSpawned(AActor* Actor)
@@ -53,6 +98,7 @@ void UEFClothingMorphWorldSubsystem::HandleActorSpawned(AActor* Actor)
 	{
 		return;
 	}
+	ObservePawn(Pawn);
 
 	const TWeakObjectPtr<APawn> WeakPawn(Pawn);
 	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, WeakPawn]()
@@ -61,18 +107,42 @@ void UEFClothingMorphWorldSubsystem::HandleActorSpawned(AActor* Actor)
 	}));
 }
 
+void UEFClothingMorphWorldSubsystem::ObservePawn(APawn* Pawn)
+{
+	if (!IsValid(Pawn) || ControllerObservedPawns.Contains(Pawn))
+	{
+		return;
+	}
+
+	Pawn->ReceiveControllerChangedDelegate.AddUniqueDynamic(
+		this,
+		&UEFClothingMorphWorldSubsystem::HandlePawnControllerChanged);
+	ControllerObservedPawns.Add(Pawn);
+}
+
+void UEFClothingMorphWorldSubsystem::HandlePawnControllerChanged(
+	APawn* Pawn,
+	AController* OldController,
+	AController* NewController)
+{
+	(void)OldController;
+	(void)NewController;
+	// Possession can occur between the spawn callback and the periodic safety
+	// scan. Attach in the controller-change event so the viewport pre-draw guard
+	// exists before newly equipped catalog garments can be presented.
+	AttachToPawn(Pawn);
+}
+
 void UEFClothingMorphWorldSubsystem::AttachToPawn(APawn* Pawn)
 {
 	if (!IsValid(Pawn) || Pawn->FindComponentByClass<UEFClothingFitRuntimeComponent>())
 	{
 		return;
 	}
-
-	// V1 remains available for explicitly authored legacy actors, but V2 owns this pawn at runtime.
-	if (UEFClothingMorphComponent* LegacyComponent = Pawn->FindComponentByClass<UEFClothingMorphComponent>())
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	if (!Settings || (!Settings->bEnableForNonPlayerPawns && !Pawn->IsPlayerControlled()))
 	{
-		LegacyComponent->Deactivate();
-		LegacyComponent->SetComponentTickEnabled(false);
+		return;
 	}
 
 	UEFClothingFitRuntimeComponent* Component = NewObject<UEFClothingFitRuntimeComponent>(

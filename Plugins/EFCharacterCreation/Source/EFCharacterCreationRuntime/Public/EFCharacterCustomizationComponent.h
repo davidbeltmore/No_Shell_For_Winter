@@ -11,6 +11,13 @@ class UMaterialInstanceDynamic;
 class USkeletalMesh;
 class USkeletalMeshComponent;
 
+struct FEFExternalMorphWriterRegistration
+{
+	TWeakObjectPtr<UObject> Writer;
+	TSet<FName> MorphNames;
+	bool bOwnsAllMorphs = false;
+};
+
 DECLARE_MULTICAST_DELEGATE(FEFCharacterCustomizationMorphStateApplied);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -45,13 +52,17 @@ public:
 	 * this component until the same writer unregisters it.
 	 */
 	bool RegisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer);
+	bool RegisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer, const TSet<FName>& MorphNames);
 	void UnregisterExternalMorphWriter(USkeletalMeshComponent* MeshComponent, UObject* Writer);
 	bool HasExternalMorphWriter(const USkeletalMeshComponent* MeshComponent) const;
+	bool HasExternalMorphWriter(const USkeletalMeshComponent* MeshComponent, FName MorphName) const;
 
 	bool ApplyMorph(const FMorphSliderEntry& Entry, float NewValue);
 	bool ResetMorph(const FMorphSliderEntry& Entry);
 	void ResetAllToDefaults();
 	void RandomizeAll(int32 Seed = INDEX_NONE);
+	/** Replays the stored state after an external mesh writer releases ownership. */
+	void ReapplyCurrentMorphState();
 
 	FCharacterCustomizationState CaptureCurrentState() const;
 	void ApplyState(const FCharacterCustomizationState& NewState);
@@ -202,7 +213,7 @@ private:
 	TMap<FString, float> CurrentMorphValues;
 	mutable TMap<FString, TArray<FName>> MeshMorphNameCache;
 	mutable TMap<FString, TArray<TWeakObjectPtr<USkeletalMeshComponent>>> MorphTargetMeshComponentCache;
-	mutable TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<UObject>> ExternalMorphWriters;
+	mutable TMap<TWeakObjectPtr<USkeletalMeshComponent>, FEFExternalMorphWriterRegistration> ExternalMorphWriters;
 	TMap<TObjectPtr<USkeletalMeshComponent>, TArray<TObjectPtr<UMaterialInstanceDynamic>>> DynamicMaterialInstances;
 	mutable TMap<TObjectPtr<USkeletalMeshComponent>, TArray<int32>> SkinMaterialSlotCache;
 	mutable TMap<TObjectPtr<USkeletalMeshComponent>, TArray<int32>> IrisMaterialSlotCache;

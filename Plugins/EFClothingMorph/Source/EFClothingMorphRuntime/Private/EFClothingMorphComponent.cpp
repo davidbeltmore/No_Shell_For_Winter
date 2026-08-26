@@ -16,6 +16,7 @@ namespace EFClothingMorphPrivate
 {
 	static constexpr TCHAR ACFUEquipmentComponentClassPath[] = TEXT("/Script/InventorySystem.ACFEquipmentComponent");
 	static constexpr TCHAR ACFUArmorSlotComponentClassPath[] = TEXT("/Script/InventorySystem.ACFArmorSlotComponent");
+	static const FName V2ManagedTag(TEXT("EFClothingMorphV2.Managed"));
 
 	static FString NormalizeToken(const FString& Value)
 	{
@@ -738,7 +739,7 @@ void UEFClothingMorphComponent::ApplyMorphsNow()
 
 	for (USkeletalMeshComponent* ClothingMesh : ClothingMeshComponents)
 	{
-		if (!IsValid(ClothingMesh))
+		if (!IsValid(ClothingMesh) || ClothingMesh->ComponentTags.Contains(EFClothingMorphPrivate::V2ManagedTag))
 		{
 			continue;
 		}
@@ -1839,7 +1840,10 @@ void UEFClothingMorphComponent::SyncACFUSlotLeaderPose()
 	for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, FGameplayTag>& Pair : ACFUSlotTagsByMesh)
 	{
 		USkeletalMeshComponent* ArmorMesh = Pair.Key.Get();
-		if (!IsValid(ArmorMesh) || ArmorMesh == ResolvedBodyMesh || !CanUseLeaderPose(ResolvedBodyMesh, ArmorMesh))
+		if (!IsValid(ArmorMesh)
+			|| ArmorMesh == ResolvedBodyMesh
+			|| ArmorMesh->ComponentTags.Contains(EFClothingMorphPrivate::V2ManagedTag)
+			|| !CanUseLeaderPose(ResolvedBodyMesh, ArmorMesh))
 		{
 			continue;
 		}
