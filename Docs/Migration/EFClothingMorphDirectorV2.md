@@ -4,18 +4,18 @@ La unica superficie publica de autoria es:
 
 `/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector`
 
-El array **Clothing Catalog** funciona como el Director de Calysto. Cada elemento
-es una prenda completa y **Garment Index / ID** es su indice estable. Mesh,
+El array **Catalogo de prendas** funciona como el Director de Calysto. Cada elemento
+es una prenda completa y **Indice / ID de la prenda** es su identidad estable. Mesh,
 cuerpo, ajuste, offset, cobertura y exclusiones viven en el mismo elemento. Ya
 no existen DataTables publicas paralelas.
 
 ## Uso cotidiano
 
 1. Abre `DA_EFClothingMorphDirector`.
-2. Expande **Clothing Catalog**.
+2. Expande **Catalogo de prendas**.
 3. Abre el indice deseado, por ejemplo `UnderWearPanty_Female`.
-4. Activa **Enable This Garment Offset**.
-5. Ajusta **Extra Surface Offset (cm)**. Empieza con `0.05 cm` y aumenta en
+4. Activa **Activar offset de esta prenda** dentro de ese mismo indice.
+5. Ajusta **Offset extra hacia afuera (cm)**. Empieza con `0.05 cm` y aumenta en
    pasos pequenos.
 6. Guarda el Director y reinicia PIE o reequipa la prenda.
 
@@ -23,43 +23,46 @@ El offset se lee en runtime, despues de animacion y morphs. No cambia la mesh,
 no invalida el binding y no requiere **Compile All Garments**. Un valor fuera del
 rango se limita de forma segura; no hace desaparecer la prenda.
 
-La separacion efectiva es:
+La separacion autorada por indice es:
 
-`clamp(Global Offset + Garment Offset + Component/API Offset, 0, 0.35 cm)`
+`clamp(Offset del indice seleccionado, 0, 0.35 cm)`
 
-Tanto **Enable Runtime Offsets** como **Enable This Garment Offset** deben estar
-activos para aplicar el valor de esa prenda.
+No existe un master offset ni un offset global en el Director. Cada prenda
+controla exclusivamente su propio valor. Una llamada runtime explicita a
+`SetGarmentClearanceOffsetCm` sustituye temporalmente el valor del indice para
+ese componente; no se suma una segunda vez.
 
 ## Opciones por indice
 
-- **Garment Index / ID**: identidad unica y estable.
-- **Enabled / Consider As Clothing**: incluye esa mesh en la V2.
-- **Clothing Mesh (Source)**: mesh original usada por inventario/ACF.
-- **Body Surface**: cuerpo DAZ exacto, Female ahora y Male mediante otra entrada.
-- **Backend**: usa `Surface Wrap GPU` para el ajuste seguro en movimiento.
-- **Fit Policy**: `Auto` es el valor recomendado; Tight/Hybrid/Loose/Rigid son
-  overrides avanzados.
-- **Extra Surface Offset (cm)**: ajuste outward continuo de runtime.
-- **Coverage Tags / Hidden Body Material Slots**: cobertura y ocultacion visual.
-- **Advanced Surface Exclusions**: elimina slots, ramas oseas o morphs de la
+- **Indice / ID de la prenda**: identidad unica y estable.
+- **Usar como prenda**: incluye esa mesh en la V2.
+- **Mesh original de la prenda**: mesh usada por inventario/ACF.
+- **Cuerpo de referencia**: cuerpo DAZ exacto, Female ahora y Male mediante otra entrada.
+- **Metodo de ajuste**: usa `Ajuste automatico GPU` para el movimiento.
+- **Tipo de ajuste**: `Automatico` es el valor recomendado; los otros modos son
+  excepciones avanzadas.
+- **Activar offset de esta prenda**: activa el ajuste exclusivamente para este indice.
+- **Offset extra hacia afuera (cm)**: separacion continua exclusiva de esta prenda.
+- **Zonas que cubre / Partes del cuerpo a ocultar**: cobertura y ocultacion visual.
+- **Opciones avanzadas**: excluye slots, ramas oseas o morphs de la
   proyeccion matematica.
 
 `Geometry Fit Fallback` conserva el comportamiento legado, pero no promete la
 misma garantia dinamica que `Surface Wrap GPU`.
 
 Para Golden Palace u otra anatomia auxiliar, **Hidden Body Material Slots** la
-oculta visualmente y **Excluded Body Surface Material Slots** la excluye de la
+oculta visualmente y **Superficies excluidas del ajuste** la excluye de la
 geometria usada para proyectar la prenda. Todo slot excluido de la superficie
 debe estar tambien oculto.
 
 ## Agregar una prenda
 
-1. Agrega un elemento a **Clothing Catalog**.
-2. Escribe un **Garment Index / ID** unico.
-3. Selecciona siempre la mesh original en **Clothing Mesh (Source)**; nunca una
+1. Agrega un elemento a **Catalogo de prendas**.
+2. Escribe un **Indice / ID de la prenda** unico.
+3. Selecciona siempre la mesh original en **Mesh original de la prenda**; nunca una
    `SK_...` generada por EF Clothing Morph.
-4. Asigna el **Body Surface** correcto.
-5. Deja `Backend = Surface Wrap GPU`, `Fit Policy = Auto` y offset `0.00 cm`.
+4. Asigna el **Cuerpo de referencia** correcto.
+5. Deja **Metodo de ajuste** y **Tipo de ajuste** en sus valores recomendados, con offset `0.00 cm`.
 6. Configura coverage/exclusiones si son necesarias.
 7. Guarda, cierra Unreal y ejecuta:
 
@@ -97,7 +100,7 @@ Director haria su carga inicial innecesariamente pesada.
 
 No uses **Skeletal Mesh Editor > Deform > Offset** sobre una fuente certificada.
 Eso altera su geometria/render fingerprint y vuelve obsoleto el binding. El
-control correcto es **Extra Surface Offset (cm)** en el Director.
+control correcto es **Offset extra hacia afuera (cm)** en el Director.
 
 ## Estado de la migracion
 

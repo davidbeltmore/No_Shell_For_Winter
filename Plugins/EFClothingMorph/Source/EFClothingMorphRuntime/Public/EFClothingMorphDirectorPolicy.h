@@ -18,30 +18,18 @@ class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphDirectorPolicy : public UPrimar
 public:
 	UEFClothingMorphDirectorPolicy();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "00 | Read Me", meta = (MultiLine = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "00 | Como usar", meta = (MultiLine = "true", DisplayName = "Guia rapida"))
 	FText AuthoringGuide;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identidad", meta = (DisplayName = "Version del formato", AdvancedDisplay))
 	int32 SchemaVersion = 2;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identidad", meta = (DisplayName = "ID del Director", AdvancedDisplay))
 	FName DirectorId = TEXT("EFClothingMorphV2");
 
 	/** Add garments here. GarmentId is stable; array order is presentation-only. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Garment Catalog", meta = (TitleProperty = "GarmentId", DisplayName = "Clothing Catalog", ToolTip = "One index per garment/body pair. Expand an entry to edit every compile, coverage and runtime-offset option in one place."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Catalogo de prendas", meta = (TitleProperty = "GarmentId", DisplayName = "Catalogo de prendas", ToolTip = "Un indice por cada combinacion de prenda y cuerpo. Expande una entrada para configurar todo en un solo lugar."))
 	TArray<FEFClothingGarmentRow> Garments;
-
-	/** Master switch for safe per-garment clearance offsets. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (DisplayName = "Enable Runtime Offsets"))
-	bool bEnableRuntimeTuning = true;
-
-	/** Optional outward clearance shared by all garments, expressed in centimeters. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm", DisplayName = "Global Extra Surface Offset (cm)", EditCondition = "bEnableRuntimeTuning", ToolTip = "Outward runtime offset shared by every garment. Values are clamped and never invalidate the catalog."))
-	float GlobalAdditionalClearanceCm = 0.0f;
-
-	/** Hard budget shared by global, per-component and per-garment Director offsets. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (Units = "cm", DisplayName = "Certified Runtime Offset Limit (cm)", AdvancedDisplay))
-	float MaximumAdditionalClearanceCm = 0.35f;
 
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
 	bool ValidatePolicy(FString& OutError) const;
@@ -54,6 +42,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
 	FString GetPolicyValidationError() const;
 
+	/** Clamps one garment index's authored offset to the internal certified budget. */
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
 	float ClampAdditionalClearanceCm(float RequestedClearanceCm) const;
 

@@ -62,8 +62,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2")
 	void ClearGarmentClearanceMultiplier(USkeletalMeshComponent* GarmentComponent);
 
-	/** Continuous global SurfaceWrapGPU offset in centimeters. */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Wrap")
+	/** Legacy runtime-only compatibility override. Director authoring is exclusively per garment index. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Wrap", meta = (DeprecatedFunction, DeprecationMessage = "Use the per-index Extra Surface Offset in DA_EFClothingMorphDirector or SetGarmentClearanceOffsetCm."))
 	void SetGlobalClearanceOffsetCm(float NewOffsetCm);
 
 	/** Continuous per-component SurfaceWrapGPU offset in centimeters. */

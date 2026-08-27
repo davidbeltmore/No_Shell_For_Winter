@@ -95,6 +95,14 @@ def get_property(value, name):
         return getattr(value, name)
 
 
+def editor_property_exists(value, name: str) -> bool:
+    try:
+        value.get_editor_property(name)
+        return True
+    except Exception:
+        return False
+
+
 def object_path(value) -> str:
     if value is None:
         return ""
@@ -285,22 +293,22 @@ def main() -> None:
                 )
             )
 
+        retired_global_properties = (
+            "enable_runtime_tuning",
+            "global_additional_clearance_cm",
+            "maximum_additional_clearance_cm",
+        )
+        reflected_retired_properties = [
+            name for name in retired_global_properties if editor_property_exists(director, name)
+        ]
+        if reflected_retired_properties:
+            fail(
+                "Director still reflects retired top-level runtime-offset controls: "
+                + ", ".join(reflected_retired_properties)
+            )
+
         garments = list(get_property(director, "garments"))
-        maximum_offset = float(
-            get_property(director, "maximum_additional_clearance_cm")
-        )
-        global_offset = float(get_property(director, "global_additional_clearance_cm"))
-        if (
-            not math.isfinite(maximum_offset)
-            or maximum_offset <= 0.0
-            or maximum_offset > MAXIMUM_SAFE_OFFSET_CM
-        ):
-            fail("Director certified runtime-clearance limit is invalid")
-        effective_global_offset = (
-            min(max(global_offset, 0.0), maximum_offset)
-            if math.isfinite(global_offset)
-            else 0.0
-        )
+        maximum_offset = MAXIMUM_SAFE_OFFSET_CM
 
         ids = []
         enabled_ids = []
@@ -312,13 +320,14 @@ def main() -> None:
                 fail("Duplicate Garment Id: " + index)
             ids.append(index)
             offset = float(get_property(garment, "additional_clearance_cm"))
+            offset_enabled = boolean(get_property(garment, "enable_runtime_tuning"))
             effective_offset = (
                 min(max(offset, 0.0), maximum_offset)
-                if math.isfinite(offset)
+                if offset_enabled and math.isfinite(offset)
                 else 0.0
             )
             offsets[index] = {
-                "enabled": boolean(get_property(garment, "enable_runtime_tuning")),
+                "enabled": offset_enabled,
                 "authored_additional_clearance_cm": offset,
                 "effective_additional_clearance_cm": effective_offset,
             }
@@ -379,12 +388,9 @@ def main() -> None:
         )
         result["garment_ids"] = sorted(ids)
         result["enabled_garment_ids"] = sorted(enabled_ids)
-        result["runtime_tuning_enabled"] = boolean(
-            get_property(director, "enable_runtime_tuning")
-        )
-        result["maximum_additional_clearance_cm"] = maximum_offset
-        result["global_additional_clearance_cm"] = global_offset
-        result["effective_global_additional_clearance_cm"] = effective_global_offset
+        result["per_garment_runtime_offsets_only"] = True
+        result["retired_global_director_controls_absent"] = True
+        result["runtime_offset_limit_cm"] = maximum_offset
         result["garment_offsets_cm"] = offsets
         result["registry_profile_count"] = len(profiles)
         result["native_profile_reports"] = native_profile_reports

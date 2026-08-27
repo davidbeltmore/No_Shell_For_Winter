@@ -2204,13 +2204,13 @@ def tick(delta_time):
                 "direct_equipment_shortcut_for_initial_acquisition": False,
             }
             validate_active_ready("initial_real_acf_equip")
-            call(STATE.runtime, "set_global_clearance_offset_cm", SURFACE_OFFSET_CM)
+            call(STATE.runtime, "set_global_clearance_offset_cm", 0.0)
             call(STATE.runtime, "set_garment_clearance_offset_cm", STATE.garment, SURFACE_OFFSET_CM)
             STATE.active_test["offset_api"] = {
-                "status": "PASS_CONTINUOUS_CM_API_INVOKED",
-                "global_offset_cm": SURFACE_OFFSET_CM,
+                "status": "PASS_PER_GARMENT_CONTINUOUS_CM_API_INVOKED",
+                "global_offset_cm": 0.0,
                 "garment_offset_cm": SURFACE_OFFSET_CM,
-                "source_of_truth": "continuous centimeters",
+                "source_of_truth": "per-garment continuous centimeters",
             }
             transition("idle_ready")
             return

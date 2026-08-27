@@ -37,6 +37,13 @@ LEGACY_TUNING_PATH = PUBLIC_DIRECTORY + "/DT_EFClothingGarmentTuning"
 DIRECTOR_CLASS_PATH = "/Script/EFClothingMorphRuntime.EFClothingMorphDirectorPolicy"
 DIRECTOR_SCHEMA = 2
 MAXIMUM_SAFE_OFFSET_CM = 0.35
+AUTHORING_GUIDE = (
+    "1) Crea un indice por prenda y cuerpo. 2) Selecciona siempre la mesh original, "
+    "nunca una SK_ generada. 3) Deja Metodo de ajuste y Tipo de ajuste en sus valores "
+    "recomendados. 4) Si aun ves clipping, activa el offset de esa prenda y prueba "
+    "primero 0.05 cm. El offset no requiere recompilar y no existe un offset global "
+    "en este Director."
+)
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 RECEIPT_PATH = os.path.join(
     SAVED_DIR,
@@ -432,6 +439,7 @@ def main() -> None:
         "legacy_assets_deleted": False,
         "created_assets": [],
         "migration_mode": "unresolved",
+        "per_garment_runtime_offsets_only": True,
         "errors": [],
     }
     try:
@@ -490,34 +498,11 @@ def main() -> None:
                         tuning_by_id.get(index),
                     )
                 )
-            # Preserve valid schema-1 global tuning when upgrading an existing
-            # Director.  Only a newly created asset receives defaults.
-            previous_maximum = numeric(
-                policy.get_editor_property("maximum_additional_clearance_cm"),
-                MAXIMUM_SAFE_OFFSET_CM,
-            )
-            previous_maximum = max(
-                0.0, min(previous_maximum, MAXIMUM_SAFE_OFFSET_CM)
-            )
-            previous_global = numeric(
-                policy.get_editor_property("global_additional_clearance_cm"), 0.0
-            )
-            previous_global = max(0.0, min(previous_global, previous_maximum))
-            previous_tuning_enabled = boolean(
-                policy.get_editor_property("enable_runtime_tuning"), True
-            )
             if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema2(
                 policy
             ):
                 fail("Native Director schema gate rejected the 1 -> 2 migration")
             set_property(policy, "garments", garments)
-            set_property(
-                policy,
-                "enable_runtime_tuning",
-                True if created_policy else previous_tuning_enabled,
-            )
-            set_property(policy, "global_additional_clearance_cm", previous_global)
-            set_property(policy, "maximum_additional_clearance_cm", previous_maximum)
             changed = True
             result["migration_mode"] = "create_from_legacy" if created_policy else "migrate_schema1_from_legacy"
             result["missing_legacy_tuning_rows_defaulted"] = sorted(
@@ -526,6 +511,15 @@ def main() -> None:
             result["orphan_legacy_tuning_rows_ignored"] = sorted(
                 set(tuning_by_id) - set(compile_ids)
             )
+
+        # The guide revision is also the one-time narrow resave marker for the
+        # per-garment-only layout. Saving this project-owned DataAsset strips the
+        # three retired top-level property tags without touching Garments.
+        if str(policy.get_editor_property("authoring_guide")) != AUTHORING_GUIDE:
+            set_property(policy, "authoring_guide", AUTHORING_GUIDE)
+            changed = True
+            if result["migration_mode"] == "validate_existing_schema2":
+                result["migration_mode"] = "normalize_existing_schema2_per_garment_offsets"
 
         policy_error = validate_policy(policy)
         if policy_error:

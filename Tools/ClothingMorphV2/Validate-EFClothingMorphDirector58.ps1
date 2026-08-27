@@ -88,7 +88,8 @@ if ($LASTEXITCODE -ne 0) {
     GarmentIds = @($payload.garment_ids) -join ', '
     EnabledGarmentIds = @($payload.enabled_garment_ids) -join ', '
     RuntimeOffsetsCm = ($payload.garment_offsets_cm | ConvertTo-Json -Compress)
-    MaximumAdditionalClearanceCm = $payload.maximum_additional_clearance_cm
+    RuntimeOffsetLimitCm = $payload.runtime_offset_limit_cm
+    PerGarmentOffsetsOnly = $payload.per_garment_runtime_offsets_only
     CompilerReceipt = $payload.compiler_receipt.path
     Receipt = $receipt.FullName
     Log = $log

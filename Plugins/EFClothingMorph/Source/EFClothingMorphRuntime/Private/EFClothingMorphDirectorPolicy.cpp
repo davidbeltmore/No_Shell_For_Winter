@@ -6,9 +6,9 @@
 UEFClothingMorphDirectorPolicy::UEFClothingMorphDirectorPolicy()
 {
 	AuthoringGuide = FText::FromString(TEXT(
-		"Agrega cada prenda a Clothing Catalog con un Garment Index / ID unico y estable. "
-		"Selecciona siempre la Clothing Mesh original, nunca una SK_ generada. Los cambios estructurales requieren Compile All Garments; "
-		"Extra Surface Offset (cm) se aplica en runtime, se limita de forma segura y no recompila la geometria."));
+		"1) Crea un indice por prenda y cuerpo. 2) Selecciona siempre la mesh original, nunca una SK_ generada. "
+		"3) Deja Metodo de ajuste y Tipo de ajuste en sus valores recomendados. 4) Si aun ves clipping, activa el offset "
+		"de esa prenda y prueba primero 0.05 cm. El offset no requiere recompilar y no existe un offset global en este Director."));
 }
 
 bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
@@ -145,14 +145,10 @@ FString UEFClothingMorphDirectorPolicy::GetPolicyValidationError() const
 
 float UEFClothingMorphDirectorPolicy::ClampAdditionalClearanceCm(const float RequestedClearanceCm) const
 {
-	const float SafeMaximum = FMath::Clamp(
-		FMath::IsFinite(MaximumAdditionalClearanceCm) ? MaximumAdditionalClearanceCm : 0.0f,
-		0.0f,
-		0.35f);
 	return FMath::Clamp(
 		FMath::IsFinite(RequestedClearanceCm) ? RequestedClearanceCm : 0.0f,
 		0.0f,
-		SafeMaximum);
+		EFClothingMorphV26::MaximumRuntimeAdditionalClearanceCm);
 }
 
 const FEFClothingGarmentRow* UEFClothingMorphDirectorPolicy::FindGarmentById(const FName GarmentId) const

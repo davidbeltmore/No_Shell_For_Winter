@@ -296,8 +296,8 @@ void UEFClothingFitRuntimeComponent::BeginPlay()
 	RuntimeClearanceMultiplier = FMath::IsFinite(ConfiguredClearanceMultiplier)
 		? FMath::Clamp(ConfiguredClearanceMultiplier, 1.0f, 2.0f)
 		: 1.0f;
-	// Authored global clearance belongs only to the Clothing Director. This
-	// transient value is reserved for the public runtime API.
+	// Director authoring is exclusively per garment index. This transient value
+	// remains zero unless a legacy caller explicitly uses the compatibility API.
 	GlobalClearanceOffsetCm = 0.0f;
 	ResolveCustomizationComponent();
 	bLastRuntimeEnabled = Settings && Settings->bEnabled && CVarEFClothingMorphV2Enabled.GetValueOnGameThread() != 0;
@@ -1467,26 +1467,16 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 
 float UEFClothingFitRuntimeComponent::GetMaximumRuntimeAdditionalClearanceCm() const
 {
-	if (IsValid(LoadedDirectorPolicy))
-	{
-		return LoadedDirectorPolicy->ClampAdditionalClearanceCm(
-			LoadedDirectorPolicy->MaximumAdditionalClearanceCm);
-	}
-	return 0.35f;
+	return EFClothingMorphV26::MaximumRuntimeAdditionalClearanceCm;
 }
 
 float UEFClothingFitRuntimeComponent::ResolveGlobalSurfaceOffsetCm() const
 {
-	const float LegacyGlobalOffsetCm = FMath::IsFinite(GlobalClearanceOffsetCm)
+	const float CompatibilityGlobalOffsetCm = FMath::IsFinite(GlobalClearanceOffsetCm)
 		? FMath::Max(GlobalClearanceOffsetCm, 0.0f)
 		: 0.0f;
-	const float DirectorGlobalOffsetCm = IsValid(LoadedDirectorPolicy)
-		&& LoadedDirectorPolicy->bEnableRuntimeTuning
-		&& FMath::IsFinite(LoadedDirectorPolicy->GlobalAdditionalClearanceCm)
-		? FMath::Max(LoadedDirectorPolicy->GlobalAdditionalClearanceCm, 0.0f)
-		: 0.0f;
 	return FMath::Clamp(
-		LegacyGlobalOffsetCm + DirectorGlobalOffsetCm,
+		CompatibilityGlobalOffsetCm,
 		0.0f,
 		GetMaximumRuntimeAdditionalClearanceCm());
 }
@@ -1494,7 +1484,7 @@ float UEFClothingFitRuntimeComponent::ResolveGlobalSurfaceOffsetCm() const
 float UEFClothingFitRuntimeComponent::ResolveDirectorGarmentOffsetCm(
 	const FAppliedGarmentState& State) const
 {
-	if (!IsValid(LoadedDirectorPolicy) || !LoadedDirectorPolicy->bEnableRuntimeTuning)
+	if (!IsValid(LoadedDirectorPolicy))
 	{
 		return 0.0f;
 	}
@@ -3523,16 +3513,24 @@ float UEFClothingFitRuntimeComponent::ResolveSurfaceGarmentOffsetCm(
 		2.0f);
 	const float LegacyOffsetCm = (LegacyRequestedMultiplier - 1.0f) * BaseClearanceCm;
 	const float* ExplicitGarmentOffsetCm = GarmentClearanceOffsetsCm.Find(GarmentComponent);
-	const float ExplicitOffsetCm = ExplicitGarmentOffsetCm && FMath::IsFinite(*ExplicitGarmentOffsetCm)
+	const bool bHasExplicitGarmentOffset = ExplicitGarmentOffsetCm
+		&& FMath::IsFinite(*ExplicitGarmentOffsetCm);
+	const float ExplicitOffsetCm = bHasExplicitGarmentOffset
 		? FMath::Max(*ExplicitGarmentOffsetCm, 0.0f)
 		: 0.0f;
-	const float MaximumAdditionalClearanceCm = GetMaximumRuntimeAdditionalClearanceCm();
+	const float MaximumRuntimeOffsetCm = GetMaximumRuntimeAdditionalClearanceCm();
 	const float RemainingGarmentBudgetCm = FMath::Max(
-		MaximumAdditionalClearanceCm - ResolveGlobalSurfaceOffsetCm(),
+		MaximumRuntimeOffsetCm - ResolveGlobalSurfaceOffsetCm(),
 		0.0f);
 	const float DirectorOffsetCm = ResolveDirectorGarmentOffsetCm(State);
+	// An explicit per-component API call overrides authored tuning. Otherwise the
+	// selected catalog index owns the offset; legacy multipliers may only raise
+	// that request, never stack another copy of the same clearance on top.
+	const float SelectedGarmentOffsetCm = bHasExplicitGarmentOffset
+		? ExplicitOffsetCm
+		: FMath::Max(DirectorOffsetCm, LegacyOffsetCm);
 	return FMath::Clamp(
-		ExplicitOffsetCm + LegacyOffsetCm + DirectorOffsetCm,
+		SelectedGarmentOffsetCm,
 		0.0f,
 		RemainingGarmentBudgetCm);
 }

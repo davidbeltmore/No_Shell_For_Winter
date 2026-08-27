@@ -14,6 +14,7 @@ namespace EFClothingMorphV26
 	inline constexpr float AutomaticCentimeterValue = -1.0f;
 	inline constexpr float DefaultBaseClearanceCm = 0.45f;
 	inline constexpr float DefaultCompiledReserveCm = 0.10f;
+	inline constexpr float MaximumRuntimeAdditionalClearanceCm = 0.35f;
 
 	FORCEINLINE bool IsAutomaticCentimeterValue(const float Value)
 	{
