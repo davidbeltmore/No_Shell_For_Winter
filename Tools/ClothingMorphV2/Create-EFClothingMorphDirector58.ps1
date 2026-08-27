@@ -71,7 +71,17 @@ if ($null -eq $receipt) {
 $payload = Get-Content -LiteralPath $receipt.FullName -Raw | ConvertFrom-Json
 $succeeded = Select-String -LiteralPath $log -SimpleMatch 'Python script executed successfully' -Quiet
 $failed = Select-String -LiteralPath $log -SimpleMatch 'Python script executed with errors' -Quiet
-if ($process.ExitCode -notin @(0, 1) -or -not $succeeded -or $failed -or -not [bool]$payload.success -or $payload.status -ne 'PASS' -or -not [bool]$payload.protected_inputs_unchanged) {
+if (
+    $process.ExitCode -notin @(0, 1) -or
+    -not $succeeded -or
+    $failed -or
+    -not [bool]$payload.success -or
+    $payload.status -ne 'PASS' -or
+    -not [bool]$payload.protected_inputs_unchanged -or
+    -not [bool]$payload.legacy_assets_retained_unchanged -or
+    [int]$payload.director_schema_version -ne 2 -or
+    [int]$payload.garment_count -lt 1
+) {
     throw "Clothing Director creation failed: exit=$($process.ExitCode) receipt=$($receipt.FullName) log=$log"
 }
 
@@ -83,10 +93,11 @@ if ($LASTEXITCODE -ne 0) {
 [pscustomobject]@{
     Status = $payload.status
     Director = $payload.director
-    CompileCatalog = $payload.compile_catalog
-    RuntimeTuningCatalog = $payload.runtime_tuning_catalog
-    CatalogIndices = @($payload.compile_row_indices).Count
-    TuningIndices = @($payload.tuning_row_indices).Count
+    SchemaVersion = $payload.director_schema_version
+    MigrationMode = $payload.migration_mode
+    GarmentIds = @($payload.garment_ids) -join ', '
+    GarmentCount = $payload.garment_count
+    LegacyAssetsRetainedUnchanged = $payload.legacy_assets_retained_unchanged
     CreatedAssets = @($payload.created_assets) -join ', '
     Receipt = $receipt.FullName
     Log = $log

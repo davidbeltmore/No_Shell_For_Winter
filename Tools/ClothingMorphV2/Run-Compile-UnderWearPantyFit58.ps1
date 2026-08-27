@@ -10,6 +10,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+throw 'This single-garment compiler is retired because it can invalidate the atomic Clothing Director registry. Use Tools\ClothingMorphV2\Compile-EFClothingGarmentCatalog58.ps1.'
+
 $root = (Resolve-Path -LiteralPath $ProjectRoot).Path
 $engine = (Resolve-Path -LiteralPath $EngineRoot).Path
 $project = Join-Path $root 'NoShellForWinter.uproject'

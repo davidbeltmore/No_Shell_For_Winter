@@ -2,17 +2,16 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "EFClothingGarmentCatalog.h"
 #include "EFClothingMorphDirectorPolicy.generated.h"
-
-class UDataTable;
 
 /**
  * Project-owned, Calysto-style control point for EF Clothing Morph V2.
- * It separates structural compilation data from harmless runtime clearance
- * tuning so a designer never has to sculpt a source Skeletal Mesh for fit.
+ * This is the only human-authored catalog: each garment index owns its compile,
+ * coverage and topology-free runtime-clearance options in one array element.
  */
 UCLASS(BlueprintType, meta = (DisplayName = "EF Clothing Morph Director"))
-class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphDirectorPolicy : public UDataAsset
+class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphDirectorPolicy : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -23,34 +22,26 @@ public:
 	FText AuthoringGuide;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity")
-	int32 SchemaVersion = 1;
+	int32 SchemaVersion = 2;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity")
 	FName DirectorId = TEXT("EFClothingMorphV2");
 
-	/** Add/remove garment registrations here. Row name is the stable catalog index. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Catalogs")
-	TSoftObjectPtr<UDataTable> CompileCatalog;
+	/** Add garments here. GarmentId is stable; array order is presentation-only. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Garment Catalog", meta = (TitleProperty = "GarmentId", DisplayName = "Clothing Catalog", ToolTip = "One index per garment/body pair. Expand an entry to edit every compile, coverage and runtime-offset option in one place."))
+	TArray<FEFClothingGarmentRow> Garments;
 
-	/** Adjust only Extra Surface Offset here; rows use the exact same stable index. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Catalogs")
-	TSoftObjectPtr<UDataTable> RuntimeTuningCatalog;
-
-	/** Master switch for safe DataTable clearance offsets. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning")
+	/** Master switch for safe per-garment clearance offsets. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (DisplayName = "Enable Runtime Offsets"))
 	bool bEnableRuntimeTuning = true;
 
 	/** Optional outward clearance shared by all garments, expressed in centimeters. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm", DisplayName = "Global Extra Surface Offset (cm)", EditCondition = "bEnableRuntimeTuning", ToolTip = "Outward runtime offset shared by every garment. Values are clamped and never invalidate the catalog."))
 	float GlobalAdditionalClearanceCm = 0.0f;
 
-	/** Hard budget shared by global, per-component and DataTable tuning offsets. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm"))
+	/** Hard budget shared by global, per-component and per-garment Director offsets. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "03 | Safe Runtime Tuning", meta = (Units = "cm", DisplayName = "Certified Runtime Offset Limit (cm)", AdvancedDisplay))
 	float MaximumAdditionalClearanceCm = 0.35f;
-
-	/** Orphan tuning rows are harmless but reported for authoring hygiene. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "04 | Validation")
-	bool bWarnOnOrphanTuningRows = true;
 
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
 	bool ValidatePolicy(FString& OutError) const;
@@ -65,4 +56,11 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
 	float ClampAdditionalClearanceCm(float RequestedClearanceCm) const;
+
+	/** Fast C++ lookup by the stable garment identity. */
+	const FEFClothingGarmentRow* FindGarmentById(FName GarmentId) const;
+
+	/** Blueprint/Python-friendly lookup without exposing a transient struct pointer. */
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")
+	bool GetGarmentById(FName GarmentId, FEFClothingGarmentRow& OutGarment) const;
 };

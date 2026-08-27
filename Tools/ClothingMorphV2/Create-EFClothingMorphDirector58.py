@@ -1,15 +1,16 @@
-"""Create and validate the project-owned EF Clothing Morph V2 director assets.
+"""Create or migrate the single-authority EF Clothing Morph V2 Director.
 
-The editor-facing Director mirrors the Calysto policy pattern while keeping the
-existing compile catalog authoritative. It creates only project-owned assets:
+Schema 2 deliberately exposes one human-authored asset:
 
-* DA_EFClothingMorphDirector: central policy and authoring guide;
-* DT_EFClothingGarmentTuning: topology-free per-catalog-index runtime offsets;
-* updates DT_EFClothingGarments with friendly display metadata and migrates any
-  legacy RuntimeOffsetCm value into the tuning table.
+    /Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector
 
-No SkeletalMesh, USkeleton, Player, DAZ, ACFU or generated fit asset is ever
-modified. Rows are linked by the DataTable RowName, which is the stable index.
+When the two schema-1 DataTables still exist, this commandlet reads them and
+merges rows by DataTable RowName into Director.Garments.  It never modifies or
+deletes either legacy table.  A populated, valid schema-2 Director is treated
+as authoritative and is only validated; authored garment values are not reset.
+
+No SkeletalMesh, USkeleton, Player, DAZ/ACFU asset or generated fit artifact is
+written by this migration.
 """
 
 from __future__ import annotations
@@ -17,26 +18,31 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import math
 import os
+import re
 import traceback
 
 import unreal
 
 
+PROJECT_FILE = os.path.realpath(unreal.Paths.get_project_file_path())
 PROJECT_DIR = os.path.realpath(unreal.Paths.project_dir())
 CONTENT_DIR = os.path.realpath(unreal.Paths.project_content_dir())
 SAVED_DIR = os.path.realpath(unreal.Paths.project_saved_dir())
-DIRECTORY = "/Game/_Game/Data/EFClothingMorph"
-COMPILE_CATALOG_PATH = DIRECTORY + "/DT_EFClothingGarments"
-TUNING_CATALOG_PATH = DIRECTORY + "/DT_EFClothingGarmentTuning"
-DIRECTOR_PATH = DIRECTORY + "/DA_EFClothingMorphDirector"
-TUNING_STRUCT_PATH = "/Script/EFClothingMorphRuntime.EFClothingGarmentTuningRow"
-COMPILE_STRUCT_PATH = "/Script/EFClothingMorphRuntime.EFClothingGarmentRow"
+PUBLIC_DIRECTORY = "/Game/_Game/Data/EFClothingMorph"
+DIRECTOR_PATH = PUBLIC_DIRECTORY + "/DA_EFClothingMorphDirector"
+LEGACY_COMPILE_PATH = PUBLIC_DIRECTORY + "/DT_EFClothingGarments"
+LEGACY_TUNING_PATH = PUBLIC_DIRECTORY + "/DT_EFClothingGarmentTuning"
 DIRECTOR_CLASS_PATH = "/Script/EFClothingMorphRuntime.EFClothingMorphDirectorPolicy"
+DIRECTOR_SCHEMA = 2
 MAXIMUM_SAFE_OFFSET_CM = 0.35
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 RECEIPT_PATH = os.path.join(
-    SAVED_DIR, "ClothingMorphV2QA", "Director", f"EFClothingMorphDirector_{STAMP}.json"
+    SAVED_DIR,
+    "ClothingMorphV2QA",
+    "Director",
+    f"EFClothingMorphDirector_{STAMP}.json",
 )
 
 PROTECTED_RELATIVE_PATHS = (
@@ -89,87 +95,19 @@ def snapshot(relative_paths: tuple[str, ...]) -> dict:
 
 def package_file(asset_path: str) -> str:
     if not asset_path.startswith("/Game/"):
-        fail("Asset escaped /Game: " + asset_path)
+        fail("Legacy asset escaped /Game: " + asset_path)
     relative = asset_path[len("/Game/") :].replace("/", os.sep) + ".uasset"
     absolute = os.path.realpath(os.path.join(CONTENT_DIR, relative))
     if os.path.commonpath((absolute, CONTENT_DIR)).lower() != CONTENT_DIR.lower():
-        fail("Asset file escaped Content: " + absolute)
+        fail("Legacy asset file escaped Content: " + absolute)
     return absolute
 
 
-def export_table(table) -> str:
-    exported = unreal.DataTableFunctionLibrary.export_data_table_to_json_string(table)
-    if isinstance(exported, tuple):
-        if len(exported) != 2 or not bool(exported[0]):
-            fail("DataTable export failed: " + repr(exported))
-        return str(exported[1])
-    if not isinstance(exported, str):
-        fail("Unexpected DataTable export result: " + repr(exported))
-    return exported
-
-
-def table_row_struct(table):
-    return unreal.DataTableFunctionLibrary.get_data_table_row_struct(table)
-
-
-def fill_table(table, rows: list[dict], row_struct) -> None:
-    payload = json.dumps(rows, ensure_ascii=False)
-    if not unreal.DataTableFunctionLibrary.fill_data_table_from_json_string(
-        table, payload, row_struct
-    ):
-        fail("DataTable JSON import failed for " + table.get_path_name())
-
-
-def field_key(row: dict, *candidates: str) -> str:
-    folded = {str(key).casefold(): key for key in row}
-    for candidate in candidates:
-        result = folded.get(candidate.casefold())
-        if result is not None:
-            return result
-    fail("Missing table field {} in {}".format(candidates, sorted(row)))
-
-
-def optional_field_key(row: dict, *candidates: str) -> str | None:
-    try:
-        return field_key(row, *candidates)
-    except RuntimeError:
+def optional_asset_hash(asset_path: str) -> dict | None:
+    path = package_file(asset_path)
+    if not os.path.isfile(path):
         return None
-
-
-def row_name(row: dict) -> str:
-    return str(row[field_key(row, "Name", "RowName")])
-
-
-def is_enabled(row: dict) -> bool:
-    key = optional_field_key(row, "bEnabled", "Enabled")
-    if key is None:
-        return True
-    value = row[key]
-    return value if isinstance(value, bool) else str(value).strip().casefold() not in {
-        "0",
-        "false",
-        "no",
-        "disabled",
-    }
-
-
-def numeric(value, default: float = 0.0) -> float:
-    try:
-        converted = float(value)
-    except (TypeError, ValueError):
-        return default
-    return converted if converted == converted and abs(converted) != float("inf") else default
-
-
-def friendly_name(index: str) -> str:
-    return index.replace("_", " ").replace("UnderWear", "Underwear")
-
-
-def object_path(value) -> str:
-    try:
-        return value.get_path_name()
-    except Exception:
-        return str(value)
+    return {"file": path, "size_bytes": os.path.getsize(path), "sha256": sha256(path)}
 
 
 def package_is_dirty(asset) -> bool:
@@ -180,35 +118,271 @@ def package_is_dirty(asset) -> bool:
     return any(package.get_path_name() == package_path for package in dirty_packages)
 
 
-def load_struct(path: str):
-    result = unreal.load_object(None, path)
-    if result is None:
-        fail("Could not load native row struct: " + path)
-    return result
+def export_table(table) -> list[dict]:
+    exported = unreal.DataTableFunctionLibrary.export_data_table_to_json_string(table)
+    if isinstance(exported, tuple):
+        if len(exported) != 2 or not bool(exported[0]):
+            fail("DataTable export failed: " + repr(exported))
+        exported = exported[1]
+    if not isinstance(exported, str):
+        fail("Unexpected DataTable export result: " + repr(exported))
+    rows = json.loads(exported)
+    if not isinstance(rows, list):
+        fail("DataTable JSON root is not an array: " + table.get_path_name())
+    return rows
 
 
-def ensure_table(path: str, row_struct, result: dict):
-    table = unreal.EditorAssetLibrary.load_asset(path)
-    if table is not None:
-        if not isinstance(table, unreal.DataTable):
-            fail(path + " exists but is not a DataTable")
-        if table_row_struct(table) != row_struct:
-            fail(path + " has the wrong row struct")
-        if package_is_dirty(table):
-            fail(path + " is dirty; refusing to overwrite an unsaved editor state")
-        return table
+def field_key(row: dict, *candidates: str) -> str:
+    folded = {str(key).casefold(): key for key in row}
+    for candidate in candidates:
+        result = folded.get(candidate.casefold())
+        if result is not None:
+            return result
+    fail("Missing field {} in {}".format(candidates, sorted(row)))
 
-    factory = unreal.DataTableFactory()
-    factory.set_editor_property("struct", row_struct)
-    name = path.rsplit("/", 1)[-1]
-    unreal.EditorAssetLibrary.make_directory(DIRECTORY)
-    table = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
-        name, DIRECTORY, unreal.DataTable, factory
+
+def optional_field(row: dict, *candidates: str, default=None):
+    try:
+        return row[field_key(row, *candidates)]
+    except RuntimeError:
+        return default
+
+
+def row_name(row: dict) -> str:
+    value = str(optional_field(row, "Name", "RowName", default="")).strip()
+    if not value or value.casefold() == "none":
+        fail("Legacy DataTable contains an empty RowName")
+    return value
+
+
+def boolean(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().casefold() not in {"0", "false", "no", "off", "disabled"}
+
+
+def numeric(value, default: float = 0.0) -> float:
+    try:
+        converted = float(value)
+    except (TypeError, ValueError):
+        return default
+    return converted if math.isfinite(converted) else default
+
+
+def friendly_name(index: str) -> str:
+    return index.replace("_", " ").replace("UnderWear", "Underwear")
+
+
+def canonical_object_reference(value) -> str:
+    text = str(value or "").strip()
+    match = re.search(r"/(?:Game|EFClothingMorph)/[A-Za-z0-9_./-]+", text)
+    if not match:
+        return ""
+    result = match.group(0).rstrip("'\"")
+    return result.split(".", 1)[0]
+
+
+def load_asset_reference(value, label: str):
+    path = canonical_object_reference(value)
+    if not path:
+        return None
+    asset = unreal.EditorAssetLibrary.load_asset(path)
+    if asset is None:
+        fail(f"Could not load {label}: {path}")
+    return asset
+
+
+def enum_value(enum_name: str, value, mapping: dict[str, str]):
+    enum_class = getattr(unreal, enum_name, None)
+    if enum_class is None:
+        fail("Missing reflected enum unreal." + enum_name)
+    raw = str(value or "").split("::")[-1]
+    compact = re.sub(r"[^A-Za-z0-9]", "", raw).casefold()
+    member_name = mapping.get(compact)
+    if not member_name or not hasattr(enum_class, member_name):
+        fail(f"Unsupported {enum_name} value: {value!r}")
+    return getattr(enum_class, member_name)
+
+
+def gameplay_tag_container(value):
+    if isinstance(value, dict):
+        source = json.dumps(value, ensure_ascii=False)
+    elif isinstance(value, list):
+        source = " ".join(str(item) for item in value)
+    else:
+        source = str(value or "")
+    tags = set(
+        re.findall(
+            r"(?:TagName\s*[=:]\s*[\"']?|\b)([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)",
+            source,
+        )
     )
-    if table is None:
-        fail("Could not create DataTable " + path)
-    result["created_assets"].append(path)
-    return table
+    if not tags:
+        return unreal.GameplayTagContainer()
+    compiler = getattr(unreal, "EFClothingFitCompilerLibrary", None)
+    if compiler is None:
+        fail("Missing EFClothingFitCompilerLibrary coverage-tag import bridge")
+    container = compiler.make_gameplay_tag_container_from_names(
+        [unreal.Name(tag) for tag in sorted(tags)]
+    )
+    imported_count = len(list(container.get_editor_property("gameplay_tags")))
+    if imported_count != len(tags):
+        fail(
+            "One or more legacy coverage tags are absent from the project tag dictionary: "
+            + ", ".join(sorted(tags))
+        )
+    return container
+
+
+def string_array(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    text = str(value).strip()
+    if not text or text in {"()", "[]"}:
+        return []
+    quoted = re.findall(r'[\"\']([^\"\']+)[\"\']', text)
+    if quoted:
+        return quoted
+    return [item.strip() for item in text.strip("()[]").split(",") if item.strip()]
+
+
+def set_property(target, name: str, value) -> None:
+    try:
+        target.set_editor_property(name, value)
+    except Exception as exc:
+        fail(f"Could not set {name} on {type(target).__name__}: {exc}")
+
+
+def make_director_garment(compile_row: dict, tuning_row: dict | None):
+    row_type = getattr(unreal, "EFClothingGarmentRow", None)
+    if row_type is None:
+        fail("Missing reflected struct unreal.EFClothingGarmentRow")
+    garment = row_type()
+    index = row_name(compile_row)
+
+    legacy_offset = numeric(optional_field(compile_row, "RuntimeOffsetCm", default=0.0))
+    tuning_offset = numeric(
+        optional_field(tuning_row or {}, "AdditionalClearanceCm", default=legacy_offset)
+    )
+    tuning_offset = max(0.0, min(tuning_offset, MAXIMUM_SAFE_OFFSET_CM))
+
+    backend = enum_value(
+        "EFClothingSurfaceBackend",
+        optional_field(compile_row, "Backend", default="SurfaceWrapGPU"),
+        {
+            "geometryfitfallback": "GEOMETRY_FIT_FALLBACK",
+            "surfacewrapgpu": "SURFACE_WRAP_GPU",
+            "disabled": "DISABLED",
+            "0": "GEOMETRY_FIT_FALLBACK",
+            "1": "SURFACE_WRAP_GPU",
+            "2": "DISABLED",
+        },
+    )
+    fit_policy = enum_value(
+        "EFClothingFitPolicy",
+        optional_field(compile_row, "FitPolicy", default="Auto"),
+        {
+            "auto": "AUTO",
+            "tight": "TIGHT",
+            "hybrid": "HYBRID",
+            "loose": "LOOSE",
+            "rigid": "RIGID",
+            "0": "AUTO",
+            "1": "TIGHT",
+            "2": "HYBRID",
+            "3": "LOOSE",
+            "4": "RIGID",
+        },
+    )
+
+    set_property(garment, "garment_id", index)
+    set_property(
+        garment,
+        "display_name",
+        str(optional_field(compile_row, "DisplayName", default="")).strip()
+        or friendly_name(index),
+    )
+    set_property(
+        garment,
+        "enabled",
+        boolean(optional_field(compile_row, "bEnabled", "Enabled", default=True), True),
+    )
+    set_property(
+        garment,
+        "source_garment",
+        load_asset_reference(optional_field(compile_row, "SourceGarment"), index + " SourceGarment"),
+    )
+    set_property(
+        garment,
+        "body_surface",
+        load_asset_reference(optional_field(compile_row, "BodySurface"), index + " BodySurface"),
+    )
+    set_property(garment, "backend", backend)
+    set_property(garment, "fit_policy", fit_policy)
+    set_property(
+        garment,
+        "coverage_tags",
+        gameplay_tag_container(optional_field(compile_row, "CoverageTags", default="")),
+    )
+    set_property(
+        garment,
+        "hidden_body_material_slots",
+        string_array(optional_field(compile_row, "HiddenBodyMaterialSlots", default=[])),
+    )
+    set_property(
+        garment,
+        "excluded_body_surface_material_slots",
+        string_array(optional_field(compile_row, "ExcludedBodySurfaceMaterialSlots", default=[])),
+    )
+    set_property(
+        garment,
+        "excluded_body_bone_branches",
+        string_array(optional_field(compile_row, "ExcludedBodyBoneBranches", default=[])),
+    )
+    set_property(
+        garment,
+        "excluded_body_morph_prefixes",
+        string_array(optional_field(compile_row, "ExcludedBodyMorphPrefixes", default=[])),
+    )
+    set_property(
+        garment,
+        "minimum_clearance_multiplier",
+        numeric(optional_field(compile_row, "MinimumClearanceMultiplier", default=1.0), 1.0),
+    )
+    set_property(
+        garment,
+        "fabric_clearance_cm",
+        numeric(optional_field(compile_row, "FabricClearanceCm", default=-1.0), -1.0),
+    )
+    set_property(
+        garment,
+        "enable_runtime_tuning",
+        boolean(
+            optional_field(tuning_row or {}, "bEnableTuning", "bEnableRuntimeTuning", default=True),
+            True,
+        ),
+    )
+    set_property(garment, "additional_clearance_cm", tuning_offset)
+    set_property(
+        garment,
+        "notes",
+        str(optional_field(tuning_row or {}, "Notes", default="")),
+    )
+    set_property(
+        garment,
+        "maximum_correction_cm",
+        numeric(optional_field(compile_row, "MaximumCorrectionCm", default=-1.0), -1.0),
+    )
+    set_property(
+        garment,
+        "fail_closed_on_missing_lod",
+        boolean(optional_field(compile_row, "bFailClosedOnMissingLOD", default=True), True),
+    )
+    return garment
 
 
 def ensure_director(policy_class, result: dict):
@@ -217,191 +391,183 @@ def ensure_director(policy_class, result: dict):
         if policy.get_class() != policy_class:
             fail(DIRECTOR_PATH + " exists with the wrong native class")
         if package_is_dirty(policy):
-            fail(DIRECTOR_PATH + " is dirty; refusing to overwrite an unsaved editor state")
+            fail(DIRECTOR_PATH + " is dirty; save or discard the editor state first")
         return policy, False
 
     factory = unreal.DataAssetFactory()
     factory.set_editor_property("data_asset_class", policy_class)
-    unreal.EditorAssetLibrary.make_directory(DIRECTORY)
+    unreal.EditorAssetLibrary.make_directory(PUBLIC_DIRECTORY)
     policy = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
-        DIRECTOR_PATH.rsplit("/", 1)[-1], DIRECTORY, policy_class, factory
+        DIRECTOR_PATH.rsplit("/", 1)[-1], PUBLIC_DIRECTORY, policy_class, factory
     )
     if policy is None:
-        fail("Could not create Clothing Director DataAsset")
+        fail("Could not create EF Clothing Morph Director")
     result["created_assets"].append(DIRECTOR_PATH)
     return policy, True
 
 
 def validate_policy(policy) -> str:
-    boolean_validator = getattr(policy, "is_policy_valid", None)
+    validator = getattr(policy, "is_policy_valid", None)
     error_getter = getattr(policy, "get_policy_validation_error", None)
-    if callable(boolean_validator) and callable(error_getter):
-        if bool(boolean_validator()):
+    if callable(validator) and callable(error_getter):
+        if bool(validator()):
             return ""
-        detail = str(error_getter())
-        return detail if detail else "IsPolicyValid returned false"
+        return str(error_getter()) or "IsPolicyValid returned false"
+    fail("Director does not expose the schema-2 validation API")
 
-    validation = policy.validate_policy()
-    if isinstance(validation, tuple):
-        if not validation or not bool(validation[0]):
-            return str(validation[1]) if len(validation) > 1 else repr(validation)
-        return ""
-    if validation is False:
-        return "ValidatePolicy returned false"
-    return ""
+
+def garment_id(garment) -> str:
+    return str(garment.get_editor_property("garment_id"))
 
 
 def main() -> None:
     result = {
-        "schema": "EFClothingMorph.Director.1",
+        "schema": "EFClothingMorph.Director.2",
         "status": "FAIL",
         "success": False,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "compile_catalog": COMPILE_CATALOG_PATH,
-        "runtime_tuning_catalog": TUNING_CATALOG_PATH,
         "director": DIRECTOR_PATH,
+        "legacy_compile_catalog": LEGACY_COMPILE_PATH,
+        "legacy_tuning_catalog": LEGACY_TUNING_PATH,
+        "legacy_assets_deleted": False,
         "created_assets": [],
-        "migrated_legacy_offsets": [],
-        "added_tuning_rows": [],
+        "migration_mode": "unresolved",
         "errors": [],
     }
-    compile_table = None
-    tuning_table = None
-    compile_before_json = ""
-    tuning_before_json = ""
     try:
+        if os.path.basename(PROJECT_FILE).casefold() != "noshellforwinter.uproject":
+            fail("Director migration is restricted to NoShellForWinter.uproject.")
+        if os.path.basename(PROJECT_DIR.rstrip("\\/")).casefold() != "noshellforwinter":
+            fail("Director migration is outside the writable NoShellForWinter target.")
+        engine_version = str(unreal.SystemLibrary.get_engine_version())
+        if not engine_version.startswith("5.8."):
+            fail("Director migration requires Unreal Engine 5.8; got " + engine_version)
+        result["engine_version"] = engine_version
         result["protected_before"] = snapshot(PROTECTED_RELATIVE_PATHS)
-        compile_struct = load_struct(COMPILE_STRUCT_PATH)
-        tuning_struct = load_struct(TUNING_STRUCT_PATH)
+        result["legacy_hashes_before"] = {
+            LEGACY_COMPILE_PATH: optional_asset_hash(LEGACY_COMPILE_PATH),
+            LEGACY_TUNING_PATH: optional_asset_hash(LEGACY_TUNING_PATH),
+        }
         policy_class = unreal.load_class(None, DIRECTOR_CLASS_PATH)
         if policy_class is None:
-            fail("Could not load native Clothing Director class")
-
-        compile_table = unreal.EditorAssetLibrary.load_asset(COMPILE_CATALOG_PATH)
-        if compile_table is None or not isinstance(compile_table, unreal.DataTable):
-            fail("Missing compile catalog " + COMPILE_CATALOG_PATH)
-        if table_row_struct(compile_table) != compile_struct:
-            fail("Compile catalog row struct is not FEFClothingGarmentRow")
-        if package_is_dirty(compile_table):
-            fail("Compile catalog is dirty; save/discard it before Director migration")
-        compile_before_json = export_table(compile_table)
-        compile_rows = json.loads(compile_before_json)
-        original_compile_rows = json.loads(compile_before_json)
-        if not isinstance(compile_rows, list) or not compile_rows:
-            fail("Compile catalog has no rows")
-
-        tuning_table = ensure_table(TUNING_CATALOG_PATH, tuning_struct, result)
-        tuning_before_json = export_table(tuning_table)
-        tuning_rows = json.loads(tuning_before_json)
-        original_tuning_rows = json.loads(tuning_before_json)
-        if not isinstance(tuning_rows, list):
-            fail("Runtime tuning catalog JSON is not a list")
-        tuning_by_name = {row_name(row): row for row in tuning_rows}
-        if len(tuning_by_name) != len(tuning_rows):
-            fail("Runtime tuning catalog has duplicate row indices")
-
-        display_order = 100
-        for catalog_row in compile_rows:
-            index = row_name(catalog_row)
-            display_name_key = optional_field_key(catalog_row, "DisplayName")
-            if display_name_key is not None and not str(catalog_row.get(display_name_key, "")).strip():
-                catalog_row[display_name_key] = friendly_name(index)
-            display_order_key = optional_field_key(catalog_row, "DisplayOrder")
-            if display_order_key is not None and int(numeric(catalog_row.get(display_order_key))) == 0:
-                catalog_row[display_order_key] = display_order
-            display_order += 100
-
-            legacy_key = optional_field_key(catalog_row, "RuntimeOffsetCm")
-            legacy_offset = numeric(catalog_row.get(legacy_key, 0.0)) if legacy_key else 0.0
-            tuning_row = tuning_by_name.get(index)
-            if tuning_row is None:
-                tuning_row = {
-                    "Name": index,
-                    "bEnableTuning": True,
-                    "AdditionalClearanceCm": max(0.0, min(legacy_offset, MAXIMUM_SAFE_OFFSET_CM)),
-                    "Notes": "Runtime-only V2 clearance tuning. Row name matches the compile catalog index.",
-                }
-                tuning_rows.append(tuning_row)
-                tuning_by_name[index] = tuning_row
-                result["added_tuning_rows"].append(index)
-            if legacy_key is not None and legacy_offset != 0.0:
-                catalog_row[legacy_key] = 0.0
-                result["migrated_legacy_offsets"].append(
-                    {
-                        "index": index,
-                        "legacy_offset_cm": legacy_offset,
-                        "applied_tuning_offset_cm": max(
-                            0.0, min(legacy_offset, MAXIMUM_SAFE_OFFSET_CM)
-                        ),
-                    }
-                )
-
-        compile_changed = compile_rows != original_compile_rows
-        tuning_changed = tuning_rows != original_tuning_rows
-        if compile_changed:
-            fill_table(compile_table, compile_rows, compile_struct)
-        if tuning_changed:
-            fill_table(tuning_table, tuning_rows, tuning_struct)
-
+            fail("Could not load native EF Clothing Morph Director class")
         policy, created_policy = ensure_director(policy_class, result)
-        if created_policy:
-            policy.set_editor_property("compile_catalog", compile_table)
-            policy.set_editor_property("runtime_tuning_catalog", tuning_table)
-            policy.set_editor_property("enable_runtime_tuning", True)
-            policy.set_editor_property("global_additional_clearance_cm", 0.0)
-            policy.set_editor_property("maximum_additional_clearance_cm", MAXIMUM_SAFE_OFFSET_CM)
-            policy.set_editor_property("warn_on_orphan_tuning_rows", True)
+
+        existing_schema = int(policy.get_editor_property("schema_version"))
+        existing_garments = list(policy.get_editor_property("garments"))
+        changed = False
+        if existing_schema == DIRECTOR_SCHEMA and existing_garments:
+            result["migration_mode"] = "validate_existing_schema2"
         else:
-            compile_reference = object_path(policy.get_editor_property("compile_catalog"))
-            tuning_reference = object_path(policy.get_editor_property("runtime_tuning_catalog"))
-            expected_compile_reference = object_path(compile_table)
-            expected_tuning_reference = object_path(tuning_table)
-            if (
-                compile_reference != expected_compile_reference
-                or tuning_reference != expected_tuning_reference
+            compile_table = unreal.EditorAssetLibrary.load_asset(LEGACY_COMPILE_PATH)
+            tuning_table = unreal.EditorAssetLibrary.load_asset(LEGACY_TUNING_PATH)
+            if not isinstance(compile_table, unreal.DataTable) or not isinstance(
+                tuning_table, unreal.DataTable
             ):
                 fail(
-                    "Existing Director references different catalogs; update it deliberately in the editor, "
-                    "then rerun validation. "
-                    f"compile={compile_reference!r} expected={expected_compile_reference!r}; "
-                    f"tuning={tuning_reference!r} expected={expected_tuning_reference!r}"
+                    "Schema-2 Director is empty and both legacy DataTables are required for one-time migration"
                 )
+            if package_is_dirty(compile_table) or package_is_dirty(tuning_table):
+                fail("A legacy DataTable is dirty; save or discard it before migration")
+
+            compile_rows = export_table(compile_table)
+            tuning_rows = export_table(tuning_table)
+            if not compile_rows:
+                fail("Legacy compile catalog has no rows")
+            tuning_by_id = {row_name(row): row for row in tuning_rows}
+            if len(tuning_by_id) != len(tuning_rows):
+                fail("Legacy runtime tuning table has duplicate RowName values")
+            compile_ids = [row_name(row) for row in compile_rows]
+            if len(set(compile_ids)) != len(compile_ids):
+                fail("Legacy compile table has duplicate RowName values")
+
+            garments = []
+            for compile_row in compile_rows:
+                index = row_name(compile_row)
+                garments.append(
+                    make_director_garment(
+                        compile_row,
+                        tuning_by_id.get(index),
+                    )
+                )
+            # Preserve valid schema-1 global tuning when upgrading an existing
+            # Director.  Only a newly created asset receives defaults.
+            previous_maximum = numeric(
+                policy.get_editor_property("maximum_additional_clearance_cm"),
+                MAXIMUM_SAFE_OFFSET_CM,
+            )
+            previous_maximum = max(
+                0.0, min(previous_maximum, MAXIMUM_SAFE_OFFSET_CM)
+            )
+            previous_global = numeric(
+                policy.get_editor_property("global_additional_clearance_cm"), 0.0
+            )
+            previous_global = max(0.0, min(previous_global, previous_maximum))
+            previous_tuning_enabled = boolean(
+                policy.get_editor_property("enable_runtime_tuning"), True
+            )
+            if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema2(
+                policy
+            ):
+                fail("Native Director schema gate rejected the 1 -> 2 migration")
+            set_property(policy, "garments", garments)
+            set_property(
+                policy,
+                "enable_runtime_tuning",
+                True if created_policy else previous_tuning_enabled,
+            )
+            set_property(policy, "global_additional_clearance_cm", previous_global)
+            set_property(policy, "maximum_additional_clearance_cm", previous_maximum)
+            changed = True
+            result["migration_mode"] = "create_from_legacy" if created_policy else "migrate_schema1_from_legacy"
+            result["missing_legacy_tuning_rows_defaulted"] = sorted(
+                set(compile_ids) - set(tuning_by_id)
+            )
+            result["orphan_legacy_tuning_rows_ignored"] = sorted(
+                set(tuning_by_id) - set(compile_ids)
+            )
 
         policy_error = validate_policy(policy)
         if policy_error:
-            fail("Director policy validation failed before save: " + policy_error)
-        for asset, changed in (
-            (compile_table, compile_changed),
-            (tuning_table, tuning_changed),
-            (policy, created_policy),
+            fail("Director policy validation failed: " + policy_error)
+        garments = list(policy.get_editor_property("garments"))
+        ids = [garment_id(garment) for garment in garments]
+        if not ids or len(ids) != len(set(ids)):
+            fail("Schema-2 Director Garment Id values are empty or duplicated")
+
+        if changed and not unreal.EditorAssetLibrary.save_loaded_asset(
+            policy, only_if_is_dirty=False
         ):
-            if changed and not unreal.EditorAssetLibrary.save_loaded_asset(asset, only_if_is_dirty=False):
-                fail("Could not save " + asset.get_path_name())
-
-        compile_table = unreal.EditorAssetLibrary.load_asset(COMPILE_CATALOG_PATH)
-        tuning_table = unreal.EditorAssetLibrary.load_asset(TUNING_CATALOG_PATH)
-        policy = unreal.EditorAssetLibrary.load_asset(DIRECTOR_PATH)
-        if compile_table is None or tuning_table is None or policy is None:
-            fail("One or more director assets could not reload after save")
-        policy_error = validate_policy(policy)
+            fail("Could not save " + DIRECTOR_PATH)
+        reloaded = unreal.EditorAssetLibrary.load_asset(DIRECTOR_PATH)
+        if reloaded is None or reloaded.get_class() != policy_class:
+            fail("Director could not reload after migration")
+        policy_error = validate_policy(reloaded)
         if policy_error:
-            fail("Director policy validation failed after save: " + policy_error)
+            fail("Reloaded Director validation failed: " + policy_error)
 
-        compile_names = {row_name(row) for row in json.loads(export_table(compile_table))}
-        tuning_names = {row_name(row) for row in json.loads(export_table(tuning_table))}
-        result["compile_row_indices"] = sorted(compile_names)
-        result["tuning_row_indices"] = sorted(tuning_names)
-        result["missing_tuning_indices"] = sorted(compile_names - tuning_names)
-        result["orphan_tuning_indices"] = sorted(tuning_names - compile_names)
-        if result["missing_tuning_indices"]:
-            fail("Director failed to create tuning rows for " + repr(result["missing_tuning_indices"]))
+        reloaded_garments = list(reloaded.get_editor_property("garments"))
+        result["director_schema_version"] = int(
+            reloaded.get_editor_property("schema_version")
+        )
+        result["garment_ids"] = sorted(garment_id(row) for row in reloaded_garments)
+        result["garment_count"] = len(reloaded_garments)
+        result["legacy_hashes_after"] = {
+            LEGACY_COMPILE_PATH: optional_asset_hash(LEGACY_COMPILE_PATH),
+            LEGACY_TUNING_PATH: optional_asset_hash(LEGACY_TUNING_PATH),
+        }
+        result["legacy_assets_retained_unchanged"] = (
+            result["legacy_hashes_before"] == result["legacy_hashes_after"]
+        )
+        if not result["legacy_assets_retained_unchanged"]:
+            fail("A legacy DataTable changed during migration")
 
         result["protected_after"] = snapshot(PROTECTED_RELATIVE_PATHS)
         result["protected_inputs_unchanged"] = (
             result["protected_before"] == result["protected_after"]
         )
         if not result["protected_inputs_unchanged"]:
-            fail("A protected mesh, skeleton or Player asset changed during Director creation")
+            fail("A protected mesh, skeleton or Player asset changed")
 
         result["status"] = "PASS"
         result["success"] = True
@@ -410,22 +576,11 @@ def main() -> None:
     except Exception as exc:
         result["errors"].append(str(exc))
         result["traceback"] = traceback.format_exc()
-        # Restore existing tables in-memory whenever a later validation fails.
-        for table, original_json in ((compile_table, compile_before_json), (tuning_table, tuning_before_json)):
-            if table is not None and original_json:
-                try:
-                    fill_table(
-                        table,
-                        json.loads(original_json),
-                        unreal.DataTableFunctionLibrary.get_data_table_row_struct(table),
-                    )
-                except Exception as rollback_error:
-                    result["errors"].append("In-memory rollback failed: " + repr(rollback_error))
         try:
             write_json(RECEIPT_PATH, result)
         except Exception as receipt_error:
             unreal.log_error("Could not write Director receipt: " + repr(receipt_error))
-        unreal.log_error("EF Clothing Morph Director creation failed: " + repr(exc))
+        unreal.log_error("EF Clothing Morph Director migration failed: " + repr(exc))
         raise
 
 

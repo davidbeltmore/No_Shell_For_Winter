@@ -7,6 +7,8 @@ param(
     [int]$TimeoutSeconds = 420
 )
 
+throw 'The public-root V25 HUB harness is retired. Use Run-EFClothingMorphV26SurfaceRuntimePIE58.ps1 with the single Clothing Director.'
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 

@@ -1,13 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "EFClothingFitCompilerLibrary.generated.h"
 
 class UEFClothingFitProfile;
 class UEFClothingFitRegistry;
+class UEFClothingMorphDirectorPolicy;
 class UEFClothingSurfaceBinding;
-class UDataTable;
 class USkeletalMesh;
 
 /** Generic request for one unordered, simultaneously active body-morph pair. */
@@ -29,7 +30,7 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileOptions
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Output")
-	FString OutputRoot = TEXT("/Game/_Generated/EFClothingMorphV2");
+	FString OutputRoot = TEXT("/EFClothingMorph/_Internal/Compiled/V26");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Clearance", meta = (ClampMin = "0.02", ClampMax = "2.0"))
 	float MinimumClearanceCm = 0.35f;
@@ -87,10 +88,13 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingFitCompileOptions
 	bool bCopyBodyDeformerToDerived = true;
 
 	/**
-	 * Native batch compiler transaction flag. Deliberately not reflected: callers
-	 * outside CompileGarmentCatalog must never publish an unregistered profile.
+	 * Native batch compiler transaction flag. Deliberately private and not
+	 * reflected: only CompileGarmentCatalog may publish the atomic registry.
 	 */
-	bool bDeferRegistryPublication = false;
+private:
+	bool bDeferRegistryPublication = true;
+
+	friend class UEFClothingFitCompilerLibrary;
 };
 
 USTRUCT(BlueprintType)
@@ -190,7 +194,15 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingFitCompilerLibrary : public UBlueprin
 	GENERATED_BODY()
 
 public:
+	/** Editor automation bridge for importing registered coverage tags from the legacy catalog. */
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Compiler")
+	static FGameplayTagContainer MakeGameplayTagContainerFromNames(const TArray<FName>& TagNames);
+
+	/** One-time schema gate; identity remains read-only in the Director details panel. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
+	static bool UpgradeDirectorIdentityToSchema2(UEFClothingMorphDirectorPolicy* Director);
+
+	/** Internal staging primitive. CompileGarmentCatalog is the only public publication API. */
 	static FEFClothingFitCompileResult CompileFitProfile(
 		USkeletalMesh* SourceGarment,
 		USkeletalMesh* BodySurface,
@@ -203,7 +215,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
 	static FEFClothingCatalogCompileResult CompileGarmentCatalog(
-		UDataTable* GarmentCatalog,
+		UEFClothingMorphDirectorPolicy* Director,
 		USkeletalMesh* CompatibilityReference,
 		FEFClothingFitCompileOptions Options);
 

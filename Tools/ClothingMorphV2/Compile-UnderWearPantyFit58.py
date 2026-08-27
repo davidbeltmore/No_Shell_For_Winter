@@ -343,6 +343,10 @@ def _run_compile(payload):
 def main():
     payload = _make_payload()
     try:
+        raise RuntimeError(
+            "This single-garment compiler is retired because it can invalidate the atomic "
+            "Clothing Director registry. Run Compile-EFClothingGarmentCatalog58.ps1."
+        )
         _run_compile(payload)
         payload["success"] = True
         payload["status"] = "UE58_EF_CLOTHING_MORPH_V2_COMPILE_PASS"

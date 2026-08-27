@@ -1,5 +1,7 @@
 #include "EFClothingFitCompilerLibrary.h"
 
+#include "GameplayTagsManager.h"
+
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "Animation/MorphTarget.h"
@@ -14,10 +16,10 @@
 #include "DynamicMesh/NonManifoldMappingSupport.h"
 #include "EFClothingGarmentCatalog.h"
 #include "EFClothingFitProfile.h"
+#include "EFClothingMorphDirectorPolicy.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EFClothingSkeletonFingerprint.h"
 #include "EFClothingSurfaceBinding.h"
-#include "Engine/DataTable.h"
 #include "Engine/SkeletalMesh.h"
 #include "GeometryScript/GeometryScriptTypes.h"
 #include "GeometryScript/MeshAssetFunctions.h"
@@ -104,7 +106,7 @@ namespace EFClothingFitCompilerPrivate
 
 	static bool IsAllowedOutputRoot(const FString& Root)
 	{
-		static const FString AllowedRoot(TEXT("/Game/_Generated/EFClothingMorphV2"));
+		static const FString AllowedRoot(TEXT("/EFClothingMorph/_Internal/Compiled/V26"));
 		return (Root == AllowedRoot || Root.StartsWith(AllowedRoot + TEXT("/"), ESearchCase::CaseSensitive))
 			&& !Root.Contains(TEXT(".."));
 	}
@@ -199,6 +201,9 @@ namespace EFClothingFitCompilerPrivate
 			Options.MorphPairProbeCountPerAxis,
 			Options.MorphActivationEpsilon,
 			Options.bCopyBodyDeformerToDerived ? 1 : 0);
+		// AdditionalClearanceCm is authoring/runtime tuning and is deliberately
+		// absent from this canonical key. Offset-only edits must not invalidate
+		// compiled geometry, weights or surface bindings.
 		return FMD5::HashAnsiString(*Canonical).Left(12);
 	}
 
@@ -239,56 +244,91 @@ namespace EFClothingFitCompilerPrivate
 		OutCatalogRow = FEFClothingGarmentRow();
 		OutCatalogRowName = NAME_None;
 		const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
-		if (!Settings || Settings->GarmentCatalog.IsNull())
+		if (!Settings || Settings->DirectorPolicy.IsNull())
 		{
-			OutError = TEXT("EF Clothing Morph V26 requires a configured garment catalog; implicit garment compilation is disabled.");
+			OutError = TEXT("EF Clothing Morph V26 requires a configured Clothing Director; implicit garment compilation is disabled.");
 			return false;
 		}
 
-		UDataTable* Catalog = Settings->GarmentCatalog.LoadSynchronous();
-		if (!IsValid(Catalog))
+		UEFClothingMorphDirectorPolicy* Director = Settings->DirectorPolicy.LoadSynchronous();
+		if (!IsValid(Director))
 		{
 			OutError = FString::Printf(
-				TEXT("Configured garment catalog could not be loaded: %s"),
-				*Settings->GarmentCatalog.ToSoftObjectPath().ToString());
+				TEXT("Configured Clothing Director could not be loaded: %s"),
+				*Settings->DirectorPolicy.ToSoftObjectPath().ToString());
 			return false;
 		}
-		if (Catalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
+		FString DirectorValidationError;
+		if (!Director->ValidatePolicy(DirectorValidationError))
 		{
 			OutError = FString::Printf(
-				TEXT("Configured garment catalog %s has the wrong RowStruct."),
-				*Catalog->GetPathName());
+				TEXT("Configured Clothing Director %s is invalid: %s"),
+				*Director->GetPathName(),
+				*DirectorValidationError);
 			return false;
 		}
 
 		const FSoftObjectPath SourcePath(SourceGarment);
 		const FSoftObjectPath BodyPath(BodySurface);
 		const FEFClothingGarmentRow* MatchedRow = nullptr;
-		for (const TPair<FName, uint8*>& Pair : Catalog->GetRowMap())
+		TSet<FName> UniqueGarmentIds;
+		TSet<FString> UniqueSourceBodyKeys;
+		for (const FEFClothingGarmentRow& Row : Director->Garments)
 		{
-			const FEFClothingGarmentRow* Row = reinterpret_cast<const FEFClothingGarmentRow*>(Pair.Value);
-			if (!Row
-				|| Row->SourceGarment.ToSoftObjectPath() != SourcePath
-				|| Row->BodySurface.ToSoftObjectPath() != BodyPath)
+			if (Row.GarmentId.IsNone())
+			{
+				OutError = TEXT("Configured Clothing Director contains a garment with an empty GarmentId.");
+				return false;
+			}
+			if (UniqueGarmentIds.Contains(Row.GarmentId))
+			{
+				OutError = FString::Printf(
+					TEXT("Configured Clothing Director contains duplicate GarmentId %s."),
+					*Row.GarmentId.ToString());
+				return false;
+			}
+			UniqueGarmentIds.Add(Row.GarmentId);
+			if (!Row.bEnabled)
+			{
+				continue;
+			}
+
+			const FSoftObjectPath RowSourcePath = Row.SourceGarment.ToSoftObjectPath();
+			const FSoftObjectPath RowBodyPath = Row.BodySurface.ToSoftObjectPath();
+			if (RowSourcePath.IsNull() || RowBodyPath.IsNull())
+			{
+				continue;
+			}
+			const FString SourceBodyKey = RowSourcePath.ToString() + TEXT("|") + RowBodyPath.ToString();
+			if (UniqueSourceBodyKeys.Contains(SourceBodyKey))
+			{
+				OutError = FString::Printf(
+					TEXT("Configured Clothing Director contains a duplicate source/body pair at GarmentId %s."),
+					*Row.GarmentId.ToString());
+				return false;
+			}
+			UniqueSourceBodyKeys.Add(SourceBodyKey);
+
+			if (RowSourcePath != SourcePath || RowBodyPath != BodyPath)
 			{
 				continue;
 			}
 			if (MatchedRow)
 			{
 				OutError = FString::Printf(
-					TEXT("Garment catalog contains duplicate source/body rows %s and %s."),
+					TEXT("Configured Clothing Director contains duplicate source/body garments %s and %s."),
 					*OutCatalogRowName.ToString(),
-					*Pair.Key.ToString());
+					*Row.GarmentId.ToString());
 				return false;
 			}
-			MatchedRow = Row;
-			OutCatalogRowName = Pair.Key;
+			MatchedRow = &Row;
+			OutCatalogRowName = Row.GarmentId;
 		}
 
 		if (!MatchedRow)
 		{
 			OutError = FString::Printf(
-				TEXT("Configured garment catalog has no row for source %s and body %s."),
+				TEXT("Configured Clothing Director has no garment for source %s and body %s."),
 				*SourcePath.ToString(),
 				*BodyPath.ToString());
 			return false;
@@ -297,7 +337,7 @@ namespace EFClothingFitCompilerPrivate
 			|| MatchedRow->Backend == EEFClothingSurfaceBackend::Disabled)
 		{
 			OutError = FString::Printf(
-				TEXT("Garment catalog row %s is disabled or requests an unavailable backend (%d)."),
+				TEXT("Clothing Director garment %s is disabled or requests an unavailable backend (%d)."),
 				*OutCatalogRowName.ToString(),
 				static_cast<int32>(MatchedRow->Backend));
 			return false;
@@ -307,7 +347,7 @@ namespace EFClothingFitCompilerPrivate
 			|| MatchedRow->MinimumClearanceMultiplier > static_cast<float>(CertifiedClearanceTierMax))
 		{
 			OutError = FString::Printf(
-				TEXT("Garment catalog row %s has MinimumClearanceMultiplier %.9g outside the certified [%.3f, %.3f] range."),
+				TEXT("Clothing Director garment %s has MinimumClearanceMultiplier %.9g outside the certified [%.3f, %.3f] range."),
 				*OutCatalogRowName.ToString(),
 				MatchedRow->MinimumClearanceMultiplier,
 				CertifiedClearanceTierMin,
@@ -317,14 +357,12 @@ namespace EFClothingFitCompilerPrivate
 		if (!FMath::IsFinite(MatchedRow->FabricClearanceCm)
 			|| (!EFClothingMorphV26::IsAutomaticCentimeterValue(MatchedRow->FabricClearanceCm)
 				&& MatchedRow->FabricClearanceCm < 0.0f)
-			|| !FMath::IsFinite(MatchedRow->RuntimeOffsetCm)
-			|| MatchedRow->RuntimeOffsetCm < 0.0f
 			|| !FMath::IsFinite(MatchedRow->MaximumCorrectionCm)
 			|| (!EFClothingMorphV26::IsAutomaticCentimeterValue(MatchedRow->MaximumCorrectionCm)
 				&& MatchedRow->MaximumCorrectionCm <= 0.0f))
 		{
 			OutError = FString::Printf(
-				TEXT("Garment catalog row %s has an invalid centimeter clearance policy."),
+				TEXT("Clothing Director garment %s has an invalid centimeter clearance policy."),
 				*OutCatalogRowName.ToString());
 			return false;
 		}
@@ -332,7 +370,7 @@ namespace EFClothingFitCompilerPrivate
 			&& !MatchedRow->bFailClosedOnMissingLOD)
 		{
 			OutError = FString::Printf(
-				TEXT("Garment catalog row %s requests SurfaceWrapGPU without fail-closed LOD policy."),
+				TEXT("Clothing Director garment %s requests SurfaceWrapGPU without fail-closed LOD policy."),
 				*OutCatalogRowName.ToString());
 			return false;
 		}
@@ -351,7 +389,7 @@ namespace EFClothingFitCompilerPrivate
 			if (!CanonicalHiddenBodyMaterialSlots.Contains(ExcludedSurfaceSlot))
 			{
 				OutError = FString::Printf(
-					TEXT("Garment catalog row %s excludes body surface slot %s from geometry fitting but does not hide that slot at runtime."),
+					TEXT("Clothing Director garment %s excludes body surface slot %s from geometry fitting but does not hide that slot at runtime."),
 					*OutCatalogRowName.ToString(),
 					*ExcludedSurfaceSlot.ToString());
 				return false;
@@ -8597,6 +8635,40 @@ namespace EFClothingFitCompilerPrivate
 	}
 }
 
+FGameplayTagContainer UEFClothingFitCompilerLibrary::MakeGameplayTagContainerFromNames(
+	const TArray<FName>& TagNames)
+{
+	FGameplayTagContainer Result;
+	for (const FName TagName : TagNames)
+	{
+		if (TagName.IsNone())
+		{
+			continue;
+		}
+		const FGameplayTag Tag = UGameplayTagsManager::Get().RequestGameplayTag(TagName, false);
+		if (Tag.IsValid())
+		{
+			Result.AddTag(Tag);
+		}
+	}
+	return Result;
+}
+
+bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema2(
+	UEFClothingMorphDirectorPolicy* Director)
+{
+	if (!IsValid(Director)
+		|| (Director->SchemaVersion != 1 && Director->SchemaVersion != 2)
+		|| (!Director->DirectorId.IsNone() && Director->DirectorId != TEXT("EFClothingMorphV2")))
+	{
+		return false;
+	}
+	Director->SchemaVersion = 2;
+	Director->DirectorId = TEXT("EFClothingMorphV2");
+	Director->MarkPackageDirty();
+	return true;
+}
+
 FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	USkeletalMesh* SourceGarment,
 	USkeletalMesh* BodySurface,
@@ -8674,7 +8746,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 
 	if (!IsAllowedOutputRoot(Options.OutputRoot))
 	{
-		return Fail(TEXT("OutputRoot must remain under /Game/_Generated/EFClothingMorphV2."));
+		return Fail(TEXT("OutputRoot must remain under /EFClothingMorph/_Internal/Compiled/V26."));
 	}
 	if (!FMath::IsFinite(Options.MinimumClearanceCm)
 		|| !FMath::IsFinite(Options.MaximumPushCm)
@@ -9646,6 +9718,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	Profile->CompatibilityReference = CompatibilityReference;
 	Profile->BuildGuid = PublicationGuid;
 	Profile->CompilerVersion = CompilerVersion;
+	Profile->GarmentCompileFingerprint = CatalogRow.BuildCompileFingerprint();
 	Profile->FitMode = ResolvedFitMode;
 	Profile->SurfaceBinding = SurfaceBinding;
 	Profile->SkinWeightProfileName = FitWeightProfileName;
@@ -9918,7 +9991,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 }
 
 FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCatalog(
-	UDataTable* GarmentCatalog,
+	UEFClothingMorphDirectorPolicy* Director,
 	USkeletalMesh* CompatibilityReference,
 	FEFClothingFitCompileOptions Options)
 {
@@ -9932,10 +10005,9 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 		UE_LOG(LogEFClothingFitCompiler, Error, TEXT("%s"), *Result.Report);
 		return Result;
 	};
-	if (!IsValid(GarmentCatalog)
-		|| GarmentCatalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
+	if (!IsValid(Director))
 	{
-		return Fail(TEXT("CompileGarmentCatalog requires a valid FEFClothingGarmentRow DataTable."));
+		return Fail(TEXT("CompileGarmentCatalog requires a valid EF Clothing Morph Director."));
 	}
 	if (!IsValid(CompatibilityReference))
 	{
@@ -9943,41 +10015,73 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 	}
 	if (!IsAllowedOutputRoot(Options.OutputRoot))
 	{
-		return Fail(TEXT("OutputRoot must remain under /Game/_Generated/EFClothingMorphV2."));
+		return Fail(TEXT("OutputRoot must remain under /EFClothingMorph/_Internal/Compiled/V26."));
 	}
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
-	UDataTable* ConfiguredCatalog = Settings && !Settings->GarmentCatalog.IsNull()
-		? Settings->GarmentCatalog.LoadSynchronous()
+	UEFClothingMorphDirectorPolicy* ConfiguredDirector = Settings && !Settings->DirectorPolicy.IsNull()
+		? Settings->DirectorPolicy.LoadSynchronous()
 		: nullptr;
-	if (ConfiguredCatalog != GarmentCatalog)
+	if (ConfiguredDirector != Director)
 	{
-		return Fail(TEXT("Batch publication is restricted to the exact catalog configured in EFClothingMorphV2 settings."));
+		return Fail(TEXT("Batch publication is restricted to the exact Clothing Director configured in EFClothingMorphV2 settings."));
+	}
+	FString DirectorValidationError;
+	if (!Director->ValidatePolicy(DirectorValidationError))
+	{
+		return Fail(FString::Printf(
+			TEXT("Configured Clothing Director is invalid: %s"),
+			*DirectorValidationError));
 	}
 
 	TArray<FName> EnabledRowNames;
-	for (const TPair<FName, uint8*>& Pair : GarmentCatalog->GetRowMap())
+	TMap<FName, const FEFClothingGarmentRow*> RowsById;
+	TSet<FString> UniqueSourceBodyKeys;
+	for (const FEFClothingGarmentRow& Row : Director->Garments)
 	{
-		const FEFClothingGarmentRow* Row = reinterpret_cast<const FEFClothingGarmentRow*>(Pair.Value);
-		if (!Row || !Row->bEnabled)
+		if (Row.GarmentId.IsNone())
+		{
+			return Fail(TEXT("Clothing Director contains a garment with an empty GarmentId."));
+		}
+		if (RowsById.Contains(Row.GarmentId))
+		{
+			return Fail(FString::Printf(
+				TEXT("Clothing Director contains duplicate GarmentId %s."),
+				*Row.GarmentId.ToString()));
+		}
+		RowsById.Add(Row.GarmentId, &Row);
+
+		if (!Row.bEnabled)
 		{
 			continue;
 		}
-		if (Row->Backend == EEFClothingSurfaceBackend::Disabled)
+		const FSoftObjectPath SourcePath = Row.SourceGarment.ToSoftObjectPath();
+		const FSoftObjectPath BodyPath = Row.BodySurface.ToSoftObjectPath();
+		if (!SourcePath.IsNull() && !BodyPath.IsNull())
+		{
+			const FString SourceBodyKey = SourcePath.ToString() + TEXT("|") + BodyPath.ToString();
+			if (UniqueSourceBodyKeys.Contains(SourceBodyKey))
+			{
+				return Fail(FString::Printf(
+					TEXT("Clothing Director contains a duplicate enabled source/body pair at GarmentId %s."),
+					*Row.GarmentId.ToString()));
+			}
+			UniqueSourceBodyKeys.Add(SourceBodyKey);
+		}
+		if (Row.Backend == EEFClothingSurfaceBackend::Disabled)
 		{
 			return Fail(FString::Printf(
-				TEXT("Enabled catalog row %s selects the Disabled backend."),
-				*Pair.Key.ToString()));
+				TEXT("Enabled Clothing Director garment %s selects the Disabled backend."),
+				*Row.GarmentId.ToString()));
 		}
-		EnabledRowNames.Add(Pair.Key);
+		EnabledRowNames.Add(Row.GarmentId);
 	}
 	EnabledRowNames.Sort(FNameLexicalLess());
 	Result.EnabledRowCount = EnabledRowNames.Num();
 	if (EnabledRowNames.IsEmpty())
 	{
-		return Fail(TEXT("Garment catalog has no enabled rows; refusing to publish an empty registry."));
+		return Fail(TEXT("Clothing Director has no enabled garments; refusing to publish an empty registry."));
 	}
 
-	TSet<FString> UniqueSourceBodyKeys;
 	TArray<TObjectPtr<UEFClothingFitProfile>> StagedProfiles;
 	StagedProfiles.Reserve(EnabledRowNames.Num());
 	Result.Rows.Reserve(EnabledRowNames.Num());
@@ -9985,10 +10089,8 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 	{
 		FEFClothingCatalogCompileRowResult& RowResult = Result.Rows.AddDefaulted_GetRef();
 		RowResult.RowName = RowName;
-		const FEFClothingGarmentRow* Row = GarmentCatalog->FindRow<FEFClothingGarmentRow>(
-			RowName,
-			TEXT("EF Clothing Morph V26 catalog compile"),
-			false);
+		const FEFClothingGarmentRow* const* FoundRow = RowsById.Find(RowName);
+		const FEFClothingGarmentRow* Row = FoundRow ? *FoundRow : nullptr;
 		if (!Row || Row->SourceGarment.IsNull() || Row->BodySurface.IsNull())
 		{
 			RowResult.Report = TEXT("FAIL: enabled row has a null source garment or body surface.");
@@ -9997,14 +10099,6 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 		RowResult.bRequiresSurfaceBinding =
 			Row->Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
 		Result.SurfaceWrapRowCount += RowResult.bRequiresSurfaceBinding ? 1 : 0;
-		const FString SourceBodyKey = Row->SourceGarment.ToSoftObjectPath().ToString()
-			+ TEXT("|") + Row->BodySurface.ToSoftObjectPath().ToString();
-		if (UniqueSourceBodyKeys.Contains(SourceBodyKey))
-		{
-			RowResult.Report = TEXT("FAIL: duplicate source/body pair in enabled catalog rows.");
-			return Fail(FString::Printf(TEXT("Row %s: %s"), *RowName.ToString(), *RowResult.Report));
-		}
-		UniqueSourceBodyKeys.Add(SourceBodyKey);
 
 		USkeletalMesh* SourceGarment = Row->SourceGarment.LoadSynchronous();
 		USkeletalMesh* BodySurface = Row->BodySurface.LoadSynchronous();
@@ -10112,8 +10206,8 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 		PassedRowCount += Row.bSuccess ? 1 : 0;
 	}
 	Result.Report = FString::Printf(
-		TEXT("PASS | Catalog=%s | enabled=%d surface_wrap=%d valid_profiles=%d valid_bindings=%d tested=%d passed=%d | Registry=%s"),
-		*GarmentCatalog->GetPathName(),
+		TEXT("PASS | Director=%s | enabled=%d surface_wrap=%d valid_profiles=%d valid_bindings=%d tested=%d passed=%d | Registry=%s"),
+		*Director->GetPathName(),
 		Result.EnabledRowCount,
 		Result.SurfaceWrapRowCount,
 		StagedProfiles.Num(),
@@ -10235,6 +10329,8 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		&& ClearanceMorph->HasDataForLOD(0)
 		&& ClearanceMorph->GetNumDeltasForLOD(0) > 0;
 	bool bSurfacePolicyPass = Profile->ExcludedBodySurfaceTriangleCount >= 0
+		&& !Profile->GarmentCompileFingerprint.IsEmpty()
+		&& Profile->GarmentCompileFingerprint == CatalogRow.BuildCompileFingerprint()
 		&& Profile->ExcludedBodySurfaceMaterialSlots == CatalogExcludedSurfaceSlots
 		&& Profile->ExcludedBodyBoneBranches == CatalogExcludedBoneBranches
 		&& Profile->ExcludedBodyMorphPrefixes == CatalogExcludedMorphPrefixes;

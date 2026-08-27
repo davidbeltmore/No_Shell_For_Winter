@@ -126,12 +126,10 @@ function Get-ProtectedAssetState {
         'Content\DazToUnreal\UnderWearPanty\UnderWearPanty.uasset',
         'Content\DazToUnreal\UnderWearPanty\UnderWearPanty_Skeleton.uasset',
         'Content\FullSample\GASP\UEFN_Mannequin\Meshes\SK_UEFN_Mannequin.uasset',
-        'Content\_Game\Data\EFClothingMorph\DT_EFClothingGarments.uasset',
-        'Content\_Game\Data\EFClothingMorph\DT_EFClothingGarmentTuning.uasset',
         'Content\_Game\Data\EFClothingMorph\DA_EFClothingMorphDirector.uasset'
     )
     foreach ($root in @(
-            (Join-Path $ProjectRoot 'Content\_Generated\EFClothingMorphV2'),
+            (Join-Path $ProjectRoot 'Plugins\EFClothingMorph\Content\_Internal\Compiled\V26'),
             (Join-Path $ProjectRoot 'Plugins\EFClothingMorph\Content\Deformers')
         )) {
         if (Test-Path -LiteralPath $root -PathType Container) {
@@ -220,6 +218,11 @@ function Get-LatestCompilerReceiptBinding {
     if (
         [string]$receipt.status -ne 'UE58_EF_CLOTHING_MORPH_V26_CATALOG_COMPILE_PASS' -or
         -not [bool]$receipt.success -or
+		[int]$receipt.schema_version -ne 7 -or
+		[int]$receipt.compiler_version -ne 26 -or
+		[string]$receipt.director -ne '/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector' -or
+		[string]$receipt.output_root -ne '/EFClothingMorph/_Internal/Compiled/V26' -or
+		[string]$receipt.registry -ne '/EFClothingMorph/_Internal/Compiled/V26/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry' -or
         -not [bool]$receipt.catalog_equality_gate -or
         -not [bool]$receipt.protected_inputs_unchanged -or
         [int]$receipt.enabled_row_count -lt 1 -or
@@ -429,7 +432,7 @@ try {
         if ([string]$runtimeRow.status -ne 'PASS') {
             throw "Runtime row did not pass: $($runtimeRow.row_name)"
         }
-        $compilerRow = @($compilerBinding.rows | Where-Object { [string]$_.row_name -eq [string]$runtimeRow.row_name })
+        $compilerRow = @($compilerBinding.rows | Where-Object { [string]$_.garment_id -eq [string]$runtimeRow.row_name })
         if ($compilerRow.Count -ne 1 -or -not [bool]$compilerRow[0].success -or -not [bool]$compilerRow[0].binding_valid) {
             throw "Runtime row is not bound to one successful compiler receipt row: $($runtimeRow.row_name)"
         }

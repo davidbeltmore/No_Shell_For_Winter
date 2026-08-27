@@ -1,53 +1,131 @@
 #include "EFClothingMorphDirectorPolicy.h"
 
-#include "EFClothingGarmentCatalog.h"
-#include "Engine/DataTable.h"
+#include "EFClothingFitProfile.h"
+#include "EFClothingSurfaceBinding.h"
 
 UEFClothingMorphDirectorPolicy::UEFClothingMorphDirectorPolicy()
-	: CompileCatalog(FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarments.DT_EFClothingGarments")))
-	, RuntimeTuningCatalog(FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarmentTuning.DT_EFClothingGarmentTuning")))
 {
 	AuthoringGuide = FText::FromString(TEXT(
-		"Use DT_EFClothingGarments to register a garment (its row name is the stable index) and run Compile All Garments after structural changes. "
-		"Use DT_EFClothingGarmentTuning to change Extra Surface Offset (cm) without touching any Skeletal Mesh or recompiling. "
-		"Never use Skeletal Mesh Editor > Deform > Offset on a certified source; duplicate/recompile instead."));
+		"Agrega cada prenda a Clothing Catalog con un Garment Index / ID unico y estable. "
+		"Selecciona siempre la Clothing Mesh original, nunca una SK_ generada. Los cambios estructurales requieren Compile All Garments; "
+		"Extra Surface Offset (cm) se aplica en runtime, se limita de forma segura y no recompila la geometria."));
 }
 
 bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 {
 	OutError.Reset();
-	if (SchemaVersion != 1 || DirectorId != TEXT("EFClothingMorphV2"))
+	if (SchemaVersion != 2 || DirectorId != TEXT("EFClothingMorphV2"))
 	{
 		OutError = TEXT("EF Clothing Morph Director identity/schema is invalid.");
 		return false;
 	}
-	if (!FMath::IsFinite(GlobalAdditionalClearanceCm)
-		|| !FMath::IsFinite(MaximumAdditionalClearanceCm)
-		|| GlobalAdditionalClearanceCm < 0.0f
-		|| MaximumAdditionalClearanceCm < 0.0f
-		|| GlobalAdditionalClearanceCm > MaximumAdditionalClearanceCm
-		|| MaximumAdditionalClearanceCm > 0.35f)
+	// Runtime offsets are deliberately not policy-invalidating authoring. Every
+	// consumer clamps finite values to the certified budget and treats NaN/Inf as
+	// zero, so a harmless tuning edit can never hide the complete garment catalog.
+	if (Garments.IsEmpty())
 	{
-		OutError = TEXT("EF Clothing Morph Director runtime clearance budget is invalid.");
+		OutError = TEXT("EF Clothing Morph Director has no garment entries.");
 		return false;
 	}
 
-	// The runtime preloads these paths asynchronously, but the policy also has
-	// to validate correctly in commandlets and editor tools. Resolve its own
-	// soft references so the result never depends on asset load order.
-	const UDataTable* CompileTable = CompileCatalog.LoadSynchronous();
-	const UDataTable* TuningTable = RuntimeTuningCatalog.LoadSynchronous();
-	if (!IsValid(CompileTable)
-		|| CompileTable->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
+	TSet<FName> GarmentIds;
+	TSet<FString> SourceBodyPairs;
+	for (const FEFClothingGarmentRow& Garment : Garments)
 	{
-		OutError = TEXT("EF Clothing Morph Director compile catalog is missing or has the wrong row struct.");
-		return false;
-	}
-	if (!IsValid(TuningTable)
-		|| TuningTable->GetRowStruct() != FEFClothingGarmentTuningRow::StaticStruct())
-	{
-		OutError = TEXT("EF Clothing Morph Director runtime tuning catalog is missing or has the wrong row struct.");
-		return false;
+		if (Garment.GarmentId.IsNone())
+		{
+			OutError = TEXT("EF Clothing Morph Director contains a garment with an empty Garment Id.");
+			return false;
+		}
+		if (GarmentIds.Contains(Garment.GarmentId))
+		{
+			OutError = FString::Printf(
+				TEXT("EF Clothing Morph Director contains duplicate Garment Id %s."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		GarmentIds.Add(Garment.GarmentId);
+
+		const bool bHasSource = !Garment.SourceGarment.IsNull();
+		const bool bHasBody = !Garment.BodySurface.IsNull();
+		if (Garment.bEnabled && bHasSource && bHasBody)
+		{
+			const FString PairKey = Garment.SourceGarment.ToSoftObjectPath().ToString()
+				+ TEXT("|") + Garment.BodySurface.ToSoftObjectPath().ToString();
+			if (SourceBodyPairs.Contains(PairKey))
+			{
+				OutError = FString::Printf(
+					TEXT("Garment %s duplicates an existing Source Garment / Body Surface pair."),
+					*Garment.GarmentId.ToString());
+				return false;
+			}
+			SourceBodyPairs.Add(PairKey);
+		}
+
+		if (!Garment.bEnabled)
+		{
+			continue;
+		}
+		if (!bHasSource || !bHasBody)
+		{
+			OutError = FString::Printf(
+				TEXT("Enabled garment %s requires both Source Garment and Body Surface."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		if (Garment.Backend != EEFClothingSurfaceBackend::GeometryFitFallback
+			&& Garment.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			OutError = FString::Printf(
+				TEXT("Enabled garment %s selects an unsupported backend."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		if (!FMath::IsFinite(Garment.MinimumClearanceMultiplier)
+			|| Garment.MinimumClearanceMultiplier < EFClothingMorphV25::ClearanceTierMin
+			|| Garment.MinimumClearanceMultiplier > EFClothingMorphV25::ClearanceTierMax)
+		{
+			OutError = FString::Printf(
+				TEXT("Garment %s has an invalid certified clearance multiplier."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		const bool bFabricClearanceValid = EFClothingMorphV26::IsAutomaticCentimeterValue(
+			Garment.FabricClearanceCm)
+			|| (FMath::IsFinite(Garment.FabricClearanceCm)
+				&& Garment.FabricClearanceCm >= 0.0f
+				&& Garment.FabricClearanceCm <= 5.0f);
+		const bool bMaximumCorrectionValid = EFClothingMorphV26::IsAutomaticCentimeterValue(
+			Garment.MaximumCorrectionCm)
+			|| (FMath::IsFinite(Garment.MaximumCorrectionCm)
+				&& Garment.MaximumCorrectionCm > 0.0f
+				&& Garment.MaximumCorrectionCm <= 10.0f);
+		if (!bFabricClearanceValid || !bMaximumCorrectionValid)
+		{
+			OutError = FString::Printf(
+				TEXT("Garment %s has an invalid fabric clearance or maximum correction."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		if (Garment.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU
+			&& !Garment.bFailClosedOnMissingLOD)
+		{
+			OutError = FString::Printf(
+				TEXT("Garment %s must fail closed when a compiled LOD binding is missing."),
+				*Garment.GarmentId.ToString());
+			return false;
+		}
+		for (const FName ExcludedSlot : Garment.ExcludedBodySurfaceMaterialSlots)
+		{
+			if (!ExcludedSlot.IsNone() && !Garment.HiddenBodyMaterialSlots.Contains(ExcludedSlot))
+			{
+				OutError = FString::Printf(
+					TEXT("Garment %s excludes body surface slot %s without hiding it."),
+					*Garment.GarmentId.ToString(),
+					*ExcludedSlot.ToString());
+				return false;
+			}
+		}
 	}
 	return true;
 }
@@ -75,4 +153,29 @@ float UEFClothingMorphDirectorPolicy::ClampAdditionalClearanceCm(const float Req
 		FMath::IsFinite(RequestedClearanceCm) ? RequestedClearanceCm : 0.0f,
 		0.0f,
 		SafeMaximum);
+}
+
+const FEFClothingGarmentRow* UEFClothingMorphDirectorPolicy::FindGarmentById(const FName GarmentId) const
+{
+	if (GarmentId.IsNone())
+	{
+		return nullptr;
+	}
+	return Garments.FindByPredicate([GarmentId](const FEFClothingGarmentRow& Garment)
+	{
+		return Garment.GarmentId == GarmentId;
+	});
+}
+
+bool UEFClothingMorphDirectorPolicy::GetGarmentById(
+	const FName GarmentId,
+	FEFClothingGarmentRow& OutGarment) const
+{
+	if (const FEFClothingGarmentRow* Garment = FindGarmentById(GarmentId))
+	{
+		OutGarment = *Garment;
+		return true;
+	}
+	OutGarment = FEFClothingGarmentRow();
+	return false;
 }

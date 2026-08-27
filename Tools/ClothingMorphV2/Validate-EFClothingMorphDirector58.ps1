@@ -82,8 +82,12 @@ if ($LASTEXITCODE -ne 0) {
 
 [pscustomobject]@{
     Status = $payload.status
-    CatalogIndices = @($payload.catalog_indices) -join ', '
-    RuntimeOffsetsCm = ($payload.tuning_offsets_cm | ConvertTo-Json -Compress)
+    Director = $payload.director
+    Registry = $payload.registry
+    SchemaVersion = $payload.director_schema_version
+    GarmentIds = @($payload.garment_ids) -join ', '
+    EnabledGarmentIds = @($payload.enabled_garment_ids) -join ', '
+    RuntimeOffsetsCm = ($payload.garment_offsets_cm | ConvertTo-Json -Compress)
     MaximumAdditionalClearanceCm = $payload.maximum_additional_clearance_cm
     CompilerReceipt = $payload.compiler_receipt.path
     Receipt = $receipt.FullName

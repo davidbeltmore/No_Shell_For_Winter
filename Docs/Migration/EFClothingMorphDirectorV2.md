@@ -1,65 +1,115 @@
-# EF Clothing Morph V2 — Director de prendas
+# EF Clothing Morph V2 - Director unico de prendas
 
-El control de V2 se divide deliberadamente en dos DataTables enlazadas por el
-**nombre de fila**. Ese nombre es el índice estable de una prenda; por ejemplo,
-`UnderWearPanty_Female`.
+La unica superficie publica de autoria es:
 
-| Asset | Propósito | Cuándo usarlo |
-| --- | --- | --- |
-| `/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector` | Punto de entrada tipo Director de Calysto. Expone ambos catálogos y el límite global seguro. | Abrir primero. |
-| `/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarments` | Registro estructural y de compilación. | Añadir una prenda nueva o cambiar source/body/coverage/policy. |
-| `/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarmentTuning` | Ajuste runtime sin topología. | Ajustar `Extra Surface Offset (cm)` de una prenda ya certificada. |
+`/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector`
 
-## Ajustar offset sin romper V2
+El array **Clothing Catalog** funciona como el Director de Calysto. Cada elemento
+es una prenda completa y **Garment Index / ID** es su indice estable. Mesh,
+cuerpo, ajuste, offset, cobertura y exclusiones viven en el mismo elemento. Ya
+no existen DataTables publicas paralelas.
 
-1. Abre `DA_EFClothingMorphDirector` y sigue los enlaces de catálogo.
-2. En `DT_EFClothingGarmentTuning`, encuentra la fila con el mismo índice que
-   la prenda; actualmente `UnderWearPanty_Female`.
-3. Cambia **Extra Surface Offset (cm)** entre `0.00` y `0.35` y guarda.
-4. Reinicia PIE o reequipa la prenda. No se necesita recompilar ni editar la mesh.
+## Uso cotidiano
 
-El offset se suma después de skinning/morphs en el deformer GPU y V2 reserva sus
-bounds para todo el rango permitido; no puede desaparecer por culling debido a
-ese ajuste.
+1. Abre `DA_EFClothingMorphDirector`.
+2. Expande **Clothing Catalog**.
+3. Abre el indice deseado, por ejemplo `UnderWearPanty_Female`.
+4. Activa **Enable This Garment Offset**.
+5. Ajusta **Extra Surface Offset (cm)**. Empieza con `0.05 cm` y aumenta en
+   pasos pequenos.
+6. Guarda el Director y reinicia PIE o reequipa la prenda.
 
-## Añadir una prenda nueva
+El offset se lee en runtime, despues de animacion y morphs. No cambia la mesh,
+no invalida el binding y no requiere **Compile All Garments**. Un valor fuera del
+rango se limita de forma segura; no hace desaparecer la prenda.
 
-1. En `DT_EFClothingGarments`, agrega una fila cuyo nombre sea un índice único y
-   estable, por ejemplo `F_010_Top_Leather_Female`.
-2. Configura `SourceGarment`, `BodySurface`, estado Enabled y la política de fit.
-   Los campos de exclusión son avanzados y sólo se usan si esa prenda requiere
-   excluir una zona concreta de la superficie corporal.
-3. Agrega una fila con **el mismo nombre** en
-   `DT_EFClothingGarmentTuning`; déjala inicialmente en `0.00 cm`.
-4. Cierra Unreal y ejecuta
-   `Tools/ClothingMorphV2/Compile-EFClothingGarmentCatalog58.ps1`.
-5. Reabre Unreal y prueba la prenda. El compilador publicará la mesh derivada,
-   pesos, profile y binding sólo si el par fuente/cuerpo es válido.
+La separacion efectiva es:
 
-## Regla importante
+`clamp(Global Offset + Garment Offset + Component/API Offset, 0, 0.35 cm)`
 
-No uses **Skeletal Mesh Editor → Deform → Offset** sobre una mesh fuente ya
-certificada. Eso modifica su geometría y V2 la ocultará fail-closed para evitar
-usar un binding obsoleto. Si se necesita cambiar geometría, duplica la mesh a un
-asset propio, registra la copia en el catálogo y recompila.
+Tanto **Enable Runtime Offsets** como **Enable This Garment Offset** deben estar
+activos para aplicar el valor de esa prenda.
 
-## Validación de esta entrega
+## Opciones por indice
 
-- `Validate-EFClothingMorphDirector58.ps1`: PASS. Carga de forma read-only el
-  Director, ambos catálogos, el registry V26 y el índice
-  `UnderWearPanty_Female`; también verifica que no se modificaron Female, Male,
-  Multiple, Player, la panty ni los nuevos assets de control.
-- `Compile-EFClothingGarmentCatalog58.ps1`: PASS, con una fila habilitada, un
-  profile y un binding V26 válidos.
-- Builds Editor y Game Development: PASS.
-- PIE V26: el guard de entrada ya evita que la mesh fuente de un slot inicial se
-  dibuje mientras los assets V26 terminan de cargar. El readback posterior llegó
-  al deformer/binding exactos; el gate geométrico estricto conserva un hallazgo
-  previo de dos contactos triangulares tangenciales en Idle, aunque sus gaps y
-  residuos certificados pasan. No se presenta como PASS ni se resuelve con un
-  offset de catálogo.
-- Cook/package Development: PENDING por un error preexistente de configuración
-  de Game Features (`PrimaryAssetTypesToScan` no tiene `GameFeatureData`), ajeno
-  a los assets del Director. El intento y log de UAT están bajo
-  `Saved/Migration/CalystoDungeonDirectorV4/Packages/Development_20260827_025258`
-  y `C:/Users/bigin/AppData/Roaming/Unreal Engine/AutomationTool/Logs/`.
+- **Garment Index / ID**: identidad unica y estable.
+- **Enabled / Consider As Clothing**: incluye esa mesh en la V2.
+- **Clothing Mesh (Source)**: mesh original usada por inventario/ACF.
+- **Body Surface**: cuerpo DAZ exacto, Female ahora y Male mediante otra entrada.
+- **Backend**: usa `Surface Wrap GPU` para el ajuste seguro en movimiento.
+- **Fit Policy**: `Auto` es el valor recomendado; Tight/Hybrid/Loose/Rigid son
+  overrides avanzados.
+- **Extra Surface Offset (cm)**: ajuste outward continuo de runtime.
+- **Coverage Tags / Hidden Body Material Slots**: cobertura y ocultacion visual.
+- **Advanced Surface Exclusions**: elimina slots, ramas oseas o morphs de la
+  proyeccion matematica.
+
+`Geometry Fit Fallback` conserva el comportamiento legado, pero no promete la
+misma garantia dinamica que `Surface Wrap GPU`.
+
+Para Golden Palace u otra anatomia auxiliar, **Hidden Body Material Slots** la
+oculta visualmente y **Excluded Body Surface Material Slots** la excluye de la
+geometria usada para proyectar la prenda. Todo slot excluido de la superficie
+debe estar tambien oculto.
+
+## Agregar una prenda
+
+1. Agrega un elemento a **Clothing Catalog**.
+2. Escribe un **Garment Index / ID** unico.
+3. Selecciona siempre la mesh original en **Clothing Mesh (Source)**; nunca una
+   `SK_...` generada por EF Clothing Morph.
+4. Asigna el **Body Surface** correcto.
+5. Deja `Backend = Surface Wrap GPU`, `Fit Policy = Auto` y offset `0.00 cm`.
+6. Configura coverage/exclusiones si son necesarias.
+7. Guarda, cierra Unreal y ejecuta:
+
+```powershell
+Tools\ClothingMorphV2\Compile-EFClothingGarmentCatalog58.ps1
+```
+
+Los cambios estructurales -mesh, body, backend, fit, cobertura matematica o
+exclusiones- requieren recompilar. El registry se publica de forma atomica solo
+si todas las entradas habilitadas compilan y validan; no existe publicacion
+individual de una fila.
+
+## Por que existe una mesh interna adicional
+
+V2 nunca modifica la prenda original, Female, Male, Multiple ni el skeleton
+compartido. Por eso genera una Skeletal Mesh derivada con el sculpt, pesos,
+`EF_AutoFit`, morphs y bounds certificados. Al equipar usa la derivada; al
+desequipar restaura la original.
+
+Por cada prenda compilada existen internamente:
+
+- una mesh derivada;
+- un fit profile;
+- un SurfaceBinding;
+- y un registry compartido para todo el catalogo.
+
+Son implementacion runtime, no catalogos ni archivos que deban editarse. Estan
+ocultos bajo:
+
+`/EFClothingMorph/_Internal/Compiled/V26`
+
+No deben equiparse manualmente. El binding puede ser grande y permanece separado
+para permitir streaming; incrustar bindings de cientos de prendas dentro del
+Director haria su carga inicial innecesariamente pesada.
+
+No uses **Skeletal Mesh Editor > Deform > Offset** sobre una fuente certificada.
+Eso altera su geometria/render fingerprint y vuelve obsoleto el binding. El
+control correcto es **Extra Surface Offset (cm)** en el Director.
+
+## Estado de la migracion
+
+El cutover schema 2 ya retiro las dos DataTables antiguas y el viejo root publico
+`/Game/_Generated/EFClothingMorphV2`. En Content Browser debe verse solo
+`DA_EFClothingMorphDirector` dentro de la carpeta publica de EF Clothing Morph.
+
+La validacion read-only se ejecuta con Unreal cerrado:
+
+```powershell
+Tools\ClothingMorphV2\Validate-EFClothingMorphDirector58.ps1
+```
+
+Comprueba el Director, IDs, pares source/body, offsets efectivos, registry,
+perfiles/bindings internos, receipt de compilacion y hashes protegidos.

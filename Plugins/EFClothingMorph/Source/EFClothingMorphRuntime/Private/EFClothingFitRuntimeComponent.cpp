@@ -13,7 +13,6 @@
 #include "EFClothingSurfaceDeformerProducer.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/AssetManager.h"
-#include "Engine/DataTable.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
@@ -138,9 +137,6 @@ namespace
 				&& Row.MaximumCorrectionCm > 0.0f
 				&& Row.MaximumCorrectionCm <= 10.0f);
 		return bFabricClearanceValid
-			&& FMath::IsFinite(Row.RuntimeOffsetCm)
-			&& Row.RuntimeOffsetCm >= 0.0f
-			&& Row.RuntimeOffsetCm <= 5.0f
 			&& bMaximumCorrectionValid
 			&& Row.bFailClosedOnMissingLOD;
 	}
@@ -300,10 +296,9 @@ void UEFClothingFitRuntimeComponent::BeginPlay()
 	RuntimeClearanceMultiplier = FMath::IsFinite(ConfiguredClearanceMultiplier)
 		? FMath::Clamp(ConfiguredClearanceMultiplier, 1.0f, 2.0f)
 		: 1.0f;
-	const float ConfiguredGlobalOffsetCm = Settings ? Settings->GlobalClearanceOffsetCm : 0.0f;
-	GlobalClearanceOffsetCm = FMath::IsFinite(ConfiguredGlobalOffsetCm)
-		? FMath::Clamp(ConfiguredGlobalOffsetCm, 0.0f, 0.35f)
-		: 0.0f;
+	// Authored global clearance belongs only to the Clothing Director. This
+	// transient value is reserved for the public runtime API.
+	GlobalClearanceOffsetCm = 0.0f;
 	ResolveCustomizationComponent();
 	bLastRuntimeEnabled = Settings && Settings->bEnabled && CVarEFClothingMorphV2Enabled.GetValueOnGameThread() != 0;
 	bStartupAssetsReady = false;
@@ -311,31 +306,38 @@ void UEFClothingFitRuntimeComponent::BeginPlay()
 	NextReconcileAtSeconds = 0.0;
 	NextMorphSyncAtSeconds = 0.0;
 	LoadedRegistry = nullptr;
-	LoadedGarmentCatalog = nullptr;
-	LoadedGarmentTuningCatalog = nullptr;
 	LoadedDirectorPolicy = nullptr;
 	LoadedSurfaceConstraintDeformer = nullptr;
 	BuildCatalogIndex();
-	BuildTuningIndex();
 	RefreshViewportVisibilityBinding();
-	// The structural catalog is deliberately tiny. Load just this allow-list
+	// The Director is deliberately tiny. Load just its authored allow-list
 	// synchronously before the first draw so an already-equipped source garment
 	// (for example a default ACF slot) cannot render while the registry, graph
 	// and bindings stream in. All heavyweight V26 assets remain asynchronous.
-	if (bLastRuntimeEnabled && Settings && !Settings->GarmentCatalog.IsNull())
+	if (bLastRuntimeEnabled && Settings && !Settings->DirectorPolicy.IsNull())
 	{
-		LoadedGarmentCatalog = Settings->GarmentCatalog.LoadSynchronous();
-		if (IsValid(LoadedGarmentCatalog)
-			&& LoadedGarmentCatalog->GetRowStruct() == FEFClothingGarmentRow::StaticStruct())
+		LoadedDirectorPolicy = Settings->DirectorPolicy.LoadSynchronous();
+		FString DirectorValidationError;
+		if (IsValid(LoadedDirectorPolicy)
+			&& LoadedDirectorPolicy->ValidatePolicy(DirectorValidationError))
 		{
 			BuildCatalogIndex();
 			GuardCatalogedSourceGarmentsBeforeRender();
 		}
 		else
 		{
-			LoadedGarmentCatalog = nullptr;
-			BuildCatalogIndex();
-			LastStatus = TEXT("V26 startup visibility guard could not load the structural garment catalog");
+			if (IsValid(LoadedDirectorPolicy))
+			{
+				BuildCatalogIndex();
+			}
+			LoadedDirectorPolicy = nullptr;
+			CatalogRowIndex.Reset();
+			GarmentIdIndex.Reset();
+			DuplicateCatalogKeys.Reset();
+			GuardCatalogedSourceGarmentsBeforeRender();
+			LastStatus = FString::Printf(
+				TEXT("V26 startup visibility guard could not load the Clothing Director: %s"),
+				*DirectorValidationError);
 			UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
 		}
 	}
@@ -388,12 +390,11 @@ void UEFClothingFitRuntimeComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	ObservedMeshAssignments.Reset();
 	VisibilityGuards.Reset();
 	CatalogRowIndex.Reset();
+	GarmentIdIndex.Reset();
 	DuplicateCatalogKeys.Reset();
 	CatalogedSourcePaths.Reset();
-	OrphanTuningRows.Reset();
+	GuardedSourcePaths.Reset();
 	BodyMaterialCoverage.Reset();
-	LoadedGarmentCatalog = nullptr;
-	LoadedGarmentTuningCatalog = nullptr;
 	LoadedDirectorPolicy = nullptr;
 	LoadedRegistry = nullptr;
 	Super::EndPlay(EndPlayReason);
@@ -559,7 +560,7 @@ void UEFClothingFitRuntimeComponent::GuardCatalogedSourceGarmentsBeforeRender()
 		RestoreVisibilityGuards();
 		return;
 	}
-	if (!GetOwner() || !LoadedGarmentCatalog || CatalogedSourcePaths.IsEmpty() || bIsRestoring)
+	if (!GetOwner() || GuardedSourcePaths.IsEmpty() || bIsRestoring)
 	{
 		return;
 	}
@@ -578,7 +579,7 @@ void UEFClothingFitRuntimeComponent::GuardCatalogedSourceGarmentsBeforeRender()
 		}
 
 		USkeletalMesh* SourceMesh = MeshComponent->GetSkeletalMeshAsset();
-		if (!IsValid(SourceMesh) || !CatalogedSourcePaths.Contains(FSoftObjectPath(SourceMesh)))
+		if (!IsValid(SourceMesh) || !GuardedSourcePaths.Contains(FSoftObjectPath(SourceMesh)))
 		{
 			continue;
 		}
@@ -812,17 +813,16 @@ FString UEFClothingFitRuntimeComponent::GetDebugSummary() const
 			CoverageReferenceCount += FMath::Max(SectionPair.Value.RefCount, 0);
 		}
 	}
-	const int32 TuningRowCount = LoadedGarmentTuningCatalog
-		? LoadedGarmentTuningCatalog->GetRowMap().Num()
+	const int32 GarmentDefinitionCount = LoadedDirectorPolicy
+		? LoadedDirectorPolicy->Garments.Num()
 		: 0;
 	return FString::Printf(
-		TEXT("Owner=%s | Startup=%s | Registry=%s | Director=%s | TuningRows=%d Orphans=%d | Ready=%d | Pending=%d | Surface[L=%d W=%d R=%d F=%d Enqueue=%llu RenderValidated=%llu DispatchFail=%llu] | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | ClearanceMultiplier=%.3f | GlobalOffsetCm=%.3f/%.3f | Status=%s"),
+		TEXT("Owner=%s | Startup=%s | Registry=%s | Director=%s | Garments=%d | Ready=%d | Pending=%d | Surface[L=%d W=%d R=%d F=%d Enqueue=%llu RenderValidated=%llu DispatchFail=%llu] | VisibilityGuards=%d | Reconciles=%llu | MeshEdges=%llu | CoverageSections=%d | CoverageRefs=%d | ClearanceMultiplier=%.3f | GlobalOffsetCm=%.3f/%.3f | Status=%s"),
 		GetOwner() ? *GetOwner()->GetName() : TEXT("None"),
 		bStartupAssetsReady ? TEXT("Ready") : (bStartupAssetLoadFailed ? TEXT("Failed") : TEXT("Loading")),
 		LoadedRegistry ? *LoadedRegistry->GetPathName() : TEXT("None"),
 		LoadedDirectorPolicy ? *LoadedDirectorPolicy->GetPathName() : TEXT("None"),
-		TuningRowCount,
-		OrphanTuningRows.Num(),
+		GarmentDefinitionCount,
 		GetAppliedGarmentCount(),
 		GetPendingGarmentCount(),
 		SurfaceLoadingCount,
@@ -1045,25 +1045,21 @@ void UEFClothingFitRuntimeComponent::StartStartupAssetLoad()
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
 	if (!Settings
 		|| Settings->Registry.IsNull()
-		|| Settings->GarmentCatalog.IsNull()
-		|| Settings->GarmentTuningCatalog.IsNull()
 		|| Settings->DirectorPolicy.IsNull()
 		|| Settings->SurfaceConstraintDeformer.IsNull())
 	{
 		bStartupAssetLoadFailed = true;
-		LastStatus = TEXT("V26 startup failed closed: Registry, Director, compile catalog, tuning catalog and SurfaceConstraintDeformer must all be configured");
+		LastStatus = TEXT("V26 startup failed closed: Registry, Clothing Director and SurfaceConstraintDeformer must all be configured");
 		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
 		return;
 	}
 
 	TArray<FSoftObjectPath> StartupPaths;
-	StartupPaths.Reserve(5);
+	StartupPaths.Reserve(3);
 	StartupPaths.AddUnique(Settings->Registry.ToSoftObjectPath());
 	StartupPaths.AddUnique(Settings->DirectorPolicy.ToSoftObjectPath());
-	StartupPaths.AddUnique(Settings->GarmentCatalog.ToSoftObjectPath());
-	StartupPaths.AddUnique(Settings->GarmentTuningCatalog.ToSoftObjectPath());
 	StartupPaths.AddUnique(Settings->SurfaceConstraintDeformer.ToSoftObjectPath());
-	LastStatus = TEXT("Loading V26 Registry, Clothing Director, catalogs and SurfaceConstraintDeformer asynchronously");
+	LastStatus = TEXT("Loading V26 Registry, Clothing Director and SurfaceConstraintDeformer asynchronously");
 	StartupAssetLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
 		StartupPaths,
 		FStreamableDelegate::CreateUObject(this, &UEFClothingFitRuntimeComponent::HandleStartupAssetsReady),
@@ -1090,22 +1086,18 @@ void UEFClothingFitRuntimeComponent::HandleStartupAssetsReady()
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
 	LoadedRegistry = Settings ? Settings->Registry.Get() : nullptr;
 	LoadedDirectorPolicy = Settings ? Settings->DirectorPolicy.Get() : nullptr;
-	LoadedGarmentCatalog = Settings ? Settings->GarmentCatalog.Get() : nullptr;
-	LoadedGarmentTuningCatalog = Settings ? Settings->GarmentTuningCatalog.Get() : nullptr;
 	LoadedSurfaceConstraintDeformer = Settings ? Settings->SurfaceConstraintDeformer.Get() : nullptr;
 	if (!IsValid(LoadedRegistry)
 		|| !IsValid(LoadedDirectorPolicy)
-		|| !IsValid(LoadedGarmentCatalog)
-		|| !IsValid(LoadedGarmentTuningCatalog)
 		|| !IsValid(LoadedSurfaceConstraintDeformer))
 	{
 		LoadedRegistry = nullptr;
 		LoadedDirectorPolicy = nullptr;
-		LoadedGarmentCatalog = nullptr;
-		LoadedGarmentTuningCatalog = nullptr;
 		LoadedSurfaceConstraintDeformer = nullptr;
-		BuildCatalogIndex();
-		BuildTuningIndex();
+		CatalogRowIndex.Reset();
+		GarmentIdIndex.Reset();
+		DuplicateCatalogKeys.Reset();
+		GuardCatalogedSourceGarmentsBeforeRender();
 		bStartupAssetLoadFailed = true;
 		LastStatus = TEXT("V26 startup failed closed: one or more required assets are missing, invalid or uncooked");
 		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
@@ -1113,22 +1105,19 @@ void UEFClothingFitRuntimeComponent::HandleStartupAssetsReady()
 		return;
 	}
 	FString DirectorValidationError;
-	if (LoadedDirectorPolicy->CompileCatalog.ToSoftObjectPath()
-			!= Settings->GarmentCatalog.ToSoftObjectPath()
-		|| LoadedDirectorPolicy->RuntimeTuningCatalog.ToSoftObjectPath()
-			!= Settings->GarmentTuningCatalog.ToSoftObjectPath()
-		|| !LoadedDirectorPolicy->ValidatePolicy(DirectorValidationError))
+	if (!LoadedDirectorPolicy->ValidatePolicy(DirectorValidationError))
 	{
+		BuildCatalogIndex();
 		LoadedRegistry = nullptr;
 		LoadedDirectorPolicy = nullptr;
-		LoadedGarmentCatalog = nullptr;
-		LoadedGarmentTuningCatalog = nullptr;
 		LoadedSurfaceConstraintDeformer = nullptr;
-		BuildCatalogIndex();
-		BuildTuningIndex();
+		CatalogRowIndex.Reset();
+		GarmentIdIndex.Reset();
+		DuplicateCatalogKeys.Reset();
+		GuardCatalogedSourceGarmentsBeforeRender();
 		bStartupAssetLoadFailed = true;
 		LastStatus = FString::Printf(
-			TEXT("V26 startup failed closed: Clothing Director policy/catalog contract is invalid: %s"),
+			TEXT("V26 startup failed closed: Clothing Director contract is invalid: %s"),
 			*DirectorValidationError);
 		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
 		StartupAssetLoadHandle.Reset();
@@ -1136,10 +1125,9 @@ void UEFClothingFitRuntimeComponent::HandleStartupAssetsReady()
 	}
 
 	BuildCatalogIndex();
-	BuildTuningIndex();
 	bStartupAssetsReady = true;
 	bStartupAssetLoadFailed = false;
-	// The catalog is now authoritative. Suppress any registered source garment
+	// The Director is now authoritative. Suppress any registered source garment
 	// before the next viewport draw; reconciliation may safely occur next tick.
 	GuardCatalogedSourceGarmentsBeforeRender();
 	if (Settings->bPrefetchCompiledFitsOnBeginPlay)
@@ -1326,26 +1314,37 @@ void UEFClothingFitRuntimeComponent::HandleRegistryAssetsReady()
 void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 {
 	CatalogRowIndex.Reset();
+	GarmentIdIndex.Reset();
 	DuplicateCatalogKeys.Reset();
 	CatalogedSourcePaths.Reset();
-	if (!LoadedGarmentCatalog)
+	GuardedSourcePaths.Reset();
+	if (!LoadedDirectorPolicy)
 	{
-		return;
-	}
-	if (LoadedGarmentCatalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct())
-	{
-		LastStatus = FString::Printf(
-			TEXT("Rejected garment catalog %s: RowStruct must be EFClothingGarmentRow"),
-			*LoadedGarmentCatalog->GetPathName());
-		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
 		return;
 	}
 
-	for (const TPair<FName, uint8*>& Pair : LoadedGarmentCatalog->GetRowMap())
+	for (int32 EntryIndex = 0; EntryIndex < LoadedDirectorPolicy->Garments.Num(); ++EntryIndex)
 	{
-		const FEFClothingGarmentRow* Row = reinterpret_cast<const FEFClothingGarmentRow*>(Pair.Value);
+		const FEFClothingGarmentRow* Row = &LoadedDirectorPolicy->Garments[EntryIndex];
+		if (Row->bEnabled && !Row->SourceGarment.IsNull())
+		{
+			GuardedSourcePaths.Add(Row->SourceGarment.ToSoftObjectPath());
+		}
+		const FName GarmentId = Row->GarmentId;
 		FName MissingHiddenSurfaceSlot = NAME_None;
-		if (!Row || !Row->bEnabled || !IsImplementedBackend(Row->Backend)
+		if (GarmentId.IsNone() || GarmentIdIndex.Contains(GarmentId))
+		{
+			UE_LOG(
+				LogEFClothingMorphV2,
+				Error,
+				TEXT("EFClothingMorphV2 Director has an empty or duplicate GarmentId at Index[%d]: %s"),
+				EntryIndex,
+				*GarmentId.ToString());
+			GarmentIdIndex.Remove(GarmentId);
+			continue;
+		}
+		GarmentIdIndex.Add(GarmentId, EntryIndex);
+		if (!Row->bEnabled || !IsImplementedBackend(Row->Backend)
 			|| !HasCertifiedCatalogClearance(*Row)
 			|| !HasValidSurfaceCatalogContract(*Row)
 			|| !HasCompleteHiddenSurfaceCoverage(*Row, &MissingHiddenSurfaceSlot)
@@ -1356,8 +1355,8 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 				UE_LOG(
 					LogEFClothingMorphV2,
 					Error,
-					TEXT("EFClothingMorphV2 catalog row %s requests unsupported backend %d; row rejected fail-closed."),
-					*Pair.Key.ToString(),
+					TEXT("EFClothingMorphV2 Director garment %s requests unsupported backend %d; entry rejected fail-closed."),
+					*GarmentId.ToString(),
 					static_cast<int32>(Row->Backend));
 			}
 			else if (Row && Row->bEnabled && !HasCertifiedCatalogClearance(*Row))
@@ -1365,8 +1364,8 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 				UE_LOG(
 					LogEFClothingMorphV2,
 					Error,
-					TEXT("EFClothingMorphV2 catalog row %s has MinimumClearanceMultiplier %.9g outside certified [%.3f, %.3f]; row rejected fail-closed."),
-					*Pair.Key.ToString(),
+					TEXT("EFClothingMorphV2 Director garment %s has MinimumClearanceMultiplier %.9g outside certified [%.3f, %.3f]; entry rejected fail-closed."),
+					*GarmentId.ToString(),
 					Row->MinimumClearanceMultiplier,
 					EFClothingMorphV25::ClearanceTierMin,
 					EFClothingMorphV25::ClearanceTierMax);
@@ -1376,8 +1375,8 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 				UE_LOG(
 					LogEFClothingMorphV2,
 					Error,
-					TEXT("EFClothingMorphV2 catalog row %s excludes body surface slot %s without hiding it; row rejected fail-closed."),
-					*Pair.Key.ToString(),
+					TEXT("EFClothingMorphV2 Director garment %s excludes body surface slot %s without hiding it; entry rejected fail-closed."),
+					*GarmentId.ToString(),
 					*MissingHiddenSurfaceSlot.ToString());
 			}
 			else if (Row && Row->bEnabled && !HasValidSurfaceCatalogContract(*Row))
@@ -1385,8 +1384,8 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 				UE_LOG(
 					LogEFClothingMorphV2,
 					Error,
-					TEXT("EFClothingMorphV2 catalog row %s has an invalid SurfaceWrap cm/fail-closed contract; row rejected."),
-					*Pair.Key.ToString());
+					TEXT("EFClothingMorphV2 Director garment %s has an invalid SurfaceWrap cm/fail-closed contract; entry rejected."),
+					*GarmentId.ToString());
 			}
 			continue;
 		}
@@ -1407,59 +1406,25 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 		}
 		if (!DuplicateCatalogKeys.Contains(Key))
 		{
-			CatalogRowIndex.Add(Key, Pair.Key);
+			CatalogRowIndex.Add(Key, GarmentId);
 		}
 	}
 }
 
-void UEFClothingFitRuntimeComponent::BuildTuningIndex()
+const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRowById(
+	const FName GarmentId) const
 {
-	OrphanTuningRows.Reset();
-	if (!LoadedGarmentTuningCatalog)
+	if (!LoadedDirectorPolicy || GarmentId.IsNone())
 	{
-		return;
+		return nullptr;
 	}
-	if (LoadedGarmentTuningCatalog->GetRowStruct() != FEFClothingGarmentTuningRow::StaticStruct())
+	const int32* EntryIndex = GarmentIdIndex.Find(GarmentId);
+	if (!EntryIndex || !LoadedDirectorPolicy->Garments.IsValidIndex(*EntryIndex))
 	{
-		LastStatus = FString::Printf(
-			TEXT("Rejected Clothing Director tuning table %s: RowStruct must be EFClothingGarmentTuningRow"),
-			*LoadedGarmentTuningCatalog->GetPathName());
-		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
-		return;
+		return nullptr;
 	}
-
-	for (const TPair<FName, uint8*>& Pair : LoadedGarmentTuningCatalog->GetRowMap())
-	{
-		const FEFClothingGarmentTuningRow* Row = reinterpret_cast<const FEFClothingGarmentTuningRow*>(Pair.Value);
-		if (!Row)
-		{
-			continue;
-		}
-		if (!FMath::IsFinite(Row->AdditionalClearanceCm) || Row->AdditionalClearanceCm < 0.0f)
-		{
-			UE_LOG(
-				LogEFClothingMorphV2,
-				Warning,
-				TEXT("EFClothingMorphV2 tuning row %s has an invalid extra surface offset; it will resolve to zero."),
-				*Pair.Key.ToString());
-		}
-		if (LoadedGarmentCatalog
-			&& !LoadedGarmentCatalog->FindRow<FEFClothingGarmentRow>(
-				Pair.Key,
-				TEXT("EF Clothing Morph V2 director tuning validation"),
-				false))
-		{
-			OrphanTuningRows.Add(Pair.Key);
-			if (LoadedDirectorPolicy && LoadedDirectorPolicy->bWarnOnOrphanTuningRows)
-			{
-				UE_LOG(
-					LogEFClothingMorphV2,
-					Warning,
-					TEXT("EFClothingMorphV2 tuning row %s is orphaned; it is ignored until a compile catalog row with the same index exists."),
-					*Pair.Key.ToString());
-			}
-		}
-	}
+	const FEFClothingGarmentRow* Row = &LoadedDirectorPolicy->Garments[*EntryIndex];
+	return Row->GarmentId == GarmentId ? Row : nullptr;
 }
 
 const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
@@ -1471,9 +1436,7 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 	{
 		*OutRowName = NAME_None;
 	}
-	if (!LoadedGarmentCatalog
-		|| LoadedGarmentCatalog->GetRowStruct() != FEFClothingGarmentRow::StaticStruct()
-		|| !IsValid(SourceMesh) || !IsValid(BodyMesh))
+	if (!LoadedDirectorPolicy || !IsValid(SourceMesh) || !IsValid(BodyMesh))
 	{
 		return nullptr;
 	}
@@ -1482,15 +1445,12 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 	{
 		return nullptr;
 	}
-	const FName* RowName = CatalogRowIndex.Find(Key);
-	if (!RowName)
+	const FName* GarmentId = CatalogRowIndex.Find(Key);
+	if (!GarmentId)
 	{
 		return nullptr;
 	}
-	const FEFClothingGarmentRow* Row = LoadedGarmentCatalog->FindRow<FEFClothingGarmentRow>(
-		*RowName,
-		TEXT("EFClothingMorphV2 runtime catalog"),
-		false);
+	const FEFClothingGarmentRow* Row = FindCatalogRowById(*GarmentId);
 	if (!Row || !Row->bEnabled || !IsImplementedBackend(Row->Backend)
 		|| !HasCertifiedCatalogClearance(*Row)
 		|| !HasValidSurfaceCatalogContract(*Row)
@@ -1500,27 +1460,9 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 	}
 	if (OutRowName)
 	{
-		*OutRowName = *RowName;
+		*OutRowName = *GarmentId;
 	}
 	return Row;
-}
-
-const FEFClothingGarmentTuningRow* UEFClothingFitRuntimeComponent::FindTuningRow(
-	const FName CatalogRowName) const
-{
-	if (CatalogRowName.IsNone()
-		|| !IsValid(LoadedDirectorPolicy)
-		|| !LoadedDirectorPolicy->bEnableRuntimeTuning
-		|| !LoadedGarmentTuningCatalog
-		|| LoadedGarmentTuningCatalog->GetRowStruct() != FEFClothingGarmentTuningRow::StaticStruct())
-	{
-		return nullptr;
-	}
-	const FEFClothingGarmentTuningRow* Row = LoadedGarmentTuningCatalog->FindRow<FEFClothingGarmentTuningRow>(
-		CatalogRowName,
-		TEXT("EF Clothing Morph V2 runtime tuning"),
-		false);
-	return Row && Row->bEnableTuning ? Row : nullptr;
 }
 
 float UEFClothingFitRuntimeComponent::GetMaximumRuntimeAdditionalClearanceCm() const
@@ -1552,13 +1494,19 @@ float UEFClothingFitRuntimeComponent::ResolveGlobalSurfaceOffsetCm() const
 float UEFClothingFitRuntimeComponent::ResolveDirectorGarmentOffsetCm(
 	const FAppliedGarmentState& State) const
 {
-	const FEFClothingGarmentTuningRow* TuningRow = FindTuningRow(State.CatalogRowName);
-	if (!TuningRow || !FMath::IsFinite(TuningRow->AdditionalClearanceCm))
+	if (!IsValid(LoadedDirectorPolicy) || !LoadedDirectorPolicy->bEnableRuntimeTuning)
+	{
+		return 0.0f;
+	}
+	const FEFClothingGarmentRow* Garment = FindCatalogRowById(State.CatalogRowName);
+	if (!Garment
+		|| !Garment->bEnableRuntimeTuning
+		|| !FMath::IsFinite(Garment->AdditionalClearanceCm))
 	{
 		return 0.0f;
 	}
 	return FMath::Clamp(
-		TuningRow->AdditionalClearanceCm,
+		Garment->AdditionalClearanceCm,
 		0.0f,
 		GetMaximumRuntimeAdditionalClearanceCm());
 }
@@ -1811,8 +1759,6 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 	if (!bStartupAssetsReady
 		|| !LoadedRegistry
 		|| !LoadedDirectorPolicy
-		|| !LoadedGarmentCatalog
-		|| !LoadedGarmentTuningCatalog
 		|| !LoadedSurfaceConstraintDeformer
 		|| !GetOwner())
 	{
@@ -1952,6 +1898,12 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 						bRevalidationPass = false;
 						RevalidationFailure = TEXT("Catalog backend changed after equip; an atomic unequip/re-equip is required.");
 					}
+					else if (ExistingProfile->GarmentCompileFingerprint.IsEmpty()
+						|| ExistingProfile->GarmentCompileFingerprint != CurrentCatalogRow->BuildCompileFingerprint())
+					{
+						bRevalidationPass = false;
+						RevalidationFailure = TEXT("Compile-relevant Clothing Director settings changed after profile publication.");
+					}
 					else if (CanonicalMaterialSlots(ExistingProfile->ExcludedBodySurfaceMaterialSlots)
 							!= CanonicalMaterialSlots(CurrentCatalogRow->ExcludedBodySurfaceMaterialSlots)
 						|| CanonicalMaterialSlots(ExistingProfile->ExcludedBodyBoneBranches)
@@ -2014,7 +1966,6 @@ void UEFClothingFitRuntimeComponent::ReconcileGarments()
 					{
 						ExistingState->CatalogMinimumClearanceMultiplier =
 							CurrentCatalogRow->MinimumClearanceMultiplier;
-						ExistingState->CatalogRuntimeOffsetCm = CurrentCatalogRow->RuntimeOffsetCm;
 						ExistingState->CatalogMaximumCorrectionCm = CurrentCatalogRow->MaximumCorrectionCm;
 					}
 				}
@@ -2219,7 +2170,7 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	if (!CatalogRow)
 	{
 		LastStatus = FString::Printf(
-			TEXT("Rejected %s: source/body pair is absent or disabled in DT_EFClothingGarments"),
+			TEXT("Rejected %s: source/body pair is absent or disabled in the Clothing Director"),
 			*GetNameSafe(SourceMesh));
 		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
 		return false;
@@ -2236,6 +2187,15 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 			*GetNameSafe(SourceMesh));
 		RememberProfileRejection(GarmentComponent, SourceMesh, Profile, LastStatus);
 		UE_LOG(LogEFClothingMorphV2, Error, TEXT("%s"), *LastStatus);
+		return false;
+	}
+	if (Profile->GarmentCompileFingerprint.IsEmpty()
+		|| Profile->GarmentCompileFingerprint != CatalogRow->BuildCompileFingerprint())
+	{
+		LastStatus = FString::Printf(
+			TEXT("Rejected %s: compile-relevant Clothing Director settings changed; run Compile All Garments"),
+			*GetNameSafe(SourceMesh));
+		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
 		return false;
 	}
 	if (CanonicalMaterialSlots(Profile->ExcludedBodySurfaceMaterialSlots)
@@ -2420,9 +2380,6 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 	State.SurfaceRuntimeState = bSurfaceWrapGPU
 		? EEFClothingSurfaceRuntimeState::Loading
 		: EEFClothingSurfaceRuntimeState::Disabled;
-	State.CatalogRuntimeOffsetCm = FMath::IsFinite(CatalogRow->RuntimeOffsetCm)
-		? FMath::Clamp(CatalogRow->RuntimeOffsetCm, 0.0f, 5.0f)
-		: 0.0f;
 	State.CatalogMaximumCorrectionCm = FMath::IsFinite(CatalogRow->MaximumCorrectionCm)
 		? CatalogRow->MaximumCorrectionCm
 		: -1.0f;
@@ -3575,7 +3532,7 @@ float UEFClothingFitRuntimeComponent::ResolveSurfaceGarmentOffsetCm(
 		0.0f);
 	const float DirectorOffsetCm = ResolveDirectorGarmentOffsetCm(State);
 	return FMath::Clamp(
-		State.CatalogRuntimeOffsetCm + ExplicitOffsetCm + LegacyOffsetCm + DirectorOffsetCm,
+		ExplicitOffsetCm + LegacyOffsetCm + DirectorOffsetCm,
 		0.0f,
 		RemainingGarmentBudgetCm);
 }

@@ -6,7 +6,6 @@
 
 class UEFClothingFitRegistry;
 class UEFClothingMorphDirectorPolicy;
-class UDataTable;
 class UOptimusDeformer;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Clothing Morph V2"))
@@ -20,22 +19,12 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Runtime")
 	TSoftObjectPtr<UEFClothingFitRegistry> Registry = TSoftObjectPtr<UEFClothingFitRegistry>(
-		FSoftObjectPath(TEXT("/Game/_Generated/EFClothingMorphV2/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
+		FSoftObjectPath(TEXT("/EFClothingMorph/_Internal/Compiled/V26/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
 
-	/** Authored allow-list and per-body coverage policy for every clothing mesh. */
-	UPROPERTY(Config, EditAnywhere, Category = "Runtime")
-	TSoftObjectPtr<UDataTable> GarmentCatalog = TSoftObjectPtr<UDataTable>(
-		FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarments.DT_EFClothingGarments")));
-
-	/** Project-owned Calysto-style hub for compile catalog, tuning catalog and safe offset limits. */
+	/** Single project-owned Calysto-style garment catalog and tuning policy. */
 	UPROPERTY(Config, EditAnywhere, Category = "Director")
 	TSoftObjectPtr<UEFClothingMorphDirectorPolicy> DirectorPolicy = TSoftObjectPtr<UEFClothingMorphDirectorPolicy>(
 		FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.DA_EFClothingMorphDirector")));
-
-	/** Runtime-only, topology-free table. Its row names match GarmentCatalog row names exactly. */
-	UPROPERTY(Config, EditAnywhere, Category = "Director")
-	TSoftObjectPtr<UDataTable> GarmentTuningCatalog = TSoftObjectPtr<UDataTable>(
-		FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarmentTuning.DT_EFClothingGarmentTuning")));
 
 	UPROPERTY(Config, EditAnywhere, Category = "Runtime", meta = (ClampMin = "0.02", ClampMax = "2.0"))
 	float ReconcileIntervalSeconds = 0.10f;
@@ -59,10 +48,6 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Surface Wrap")
 	TSoftObjectPtr<UOptimusDeformer> SurfaceConstraintDeformer = TSoftObjectPtr<UOptimusDeformer>(
 		FSoftObjectPath(TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint")));
-
-	/** Compatibility global offset; new authoring should use DA_EFClothingMorphDirector. */
-	UPROPERTY(Config, EditAnywhere, Category = "98 | Legacy Compatibility", meta = (ClampMin = "0.0", ClampMax = "0.35", Units = "cm", DisplayName = "Legacy Global Offset (cm)"))
-	float GlobalClearanceOffsetCm = 0.0f;
 
 	/** Number of corrected render frames required before a newly equipped garment may become visible. */
 	UPROPERTY(Config, EditAnywhere, Category = "Surface Wrap", meta = (ClampMin = "1", ClampMax = "8"))

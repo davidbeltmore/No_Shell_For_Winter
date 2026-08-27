@@ -1,6 +1,6 @@
 """Visible HUB PIE certification harness for EF Clothing Morph V26.
 
-This is a catalog-driven runtime test.  It discovers enabled SurfaceWrapGPU rows,
+This is a Director-driven runtime test. It discovers enabled SurfaceWrapGPU entries,
 acquires their fixtures through the real ACF world-item interaction route, and
 never edits or saves an Unreal asset.  Render safety is sampled after every Slate
 tick: a catalog garment may be renderable only when its exact V26 surface state is
@@ -44,8 +44,8 @@ TARGET_MAP = os.environ.get("CODEX_EF_CLOTHING_V26_QA_MAP", "/Game/_Game/Hub/HUB
 TARGET_MAP_NAME = TARGET_MAP.rsplit("/", 1)[-1].lower()
 TIMEOUT_SECONDS = float(os.environ.get("CODEX_EF_CLOTHING_V26_QA_TIMEOUT", "780"))
 
-CATALOG_PATH = "/Game/_Game/Data/EFClothingMorph/DT_EFClothingGarments"
-REGISTRY_PATH = "/Game/_Generated/EFClothingMorphV2/DA_EFClothingFitRegistry"
+DIRECTOR_PATH = "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector"
+REGISTRY_PATH = "/EFClothingMorph/_Internal/Compiled/V26/DA_EFClothingFitRegistry"
 COMPATIBILITY_PATH = "/Game/DazToUnreal/Multiple/Multiple"
 EXPECTED_COMPILER_VERSION = 26
 EXPECTED_BINDING_SCHEMA = 5
@@ -420,8 +420,13 @@ def snapshot_binding(binding, source, fitted, body):
 
 
 def load_catalog_contract():
-    catalog = unreal.load_asset(CATALOG_PATH)
-    require(isinstance(catalog, unreal.DataTable), f"Missing catalog: {CATALOG_PATH}")
+    director = unreal.load_asset(DIRECTOR_PATH)
+    require(director is not None, f"Missing Clothing Director: {DIRECTOR_PATH}")
+    require(
+        callable_method(director, "is_policy_valid")
+        and bool(call(director, "is_policy_valid")),
+        f"Invalid Clothing Director: {DIRECTOR_PATH}",
+    )
     compatibility_mesh = unreal.load_asset(COMPATIBILITY_PATH)
     require(
         isinstance(compatibility_mesh, unreal.SkeletalMesh),
@@ -434,21 +439,19 @@ def load_catalog_contract():
     )
     STATE.compatibility_mesh = compatibility_mesh
     STATE.compatibility_skeleton_path = compatibility_skeleton
-    raw_json = unreal.DataTableFunctionLibrary.export_data_table_to_json_string(catalog)
-    require(raw_json, "Could not export garment catalog to JSON")
-    authored_rows = json.loads(raw_json)
-    require(isinstance(authored_rows, list), "Garment catalog JSON is not an array")
+    authored_rows = list(get_property(director, "garments", default=[]) or [])
+    require(authored_rows, "Clothing Director has no garment entries")
 
     enabled = []
     for authored in authored_rows:
-        if not bool_from_json(json_field(authored, "bEnabled", "Enabled", default=True), True):
+        if not bool(get_property(authored, "enabled", "b_enabled", default=True)):
             continue
-        row_name = str(json_field(authored, "Name", "RowName", default=""))
-        source = canonical_asset_path(json_field(authored, "SourceGarment", default=""))
-        body = canonical_asset_path(json_field(authored, "BodySurface", default=""))
-        backend = str(json_field(authored, "Backend", default=""))
-        require(row_name and source and body, f"Enabled catalog row is incomplete: {authored}")
-        require("SURFACEWRAPGPU" in backend.replace("_", "").upper(), f"Enabled row {row_name} is not SurfaceWrapGPU: {backend}")
+        row_name = str(get_property(authored, "garment_id", default=""))
+        source = canonical_asset_path(get_property(authored, "source_garment"))
+        body = canonical_asset_path(get_property(authored, "body_surface"))
+        backend = str(get_property(authored, "backend", default=""))
+        require(row_name and row_name.lower() != "none" and source and body, f"Enabled Director entry is incomplete: {authored}")
+        require("SURFACEWRAPGPU" in backend.replace("_", "").upper(), f"Enabled garment {row_name} is not SurfaceWrapGPU: {backend}")
         enabled.append(
             {
                 "row_name": row_name,
@@ -456,8 +459,8 @@ def load_catalog_contract():
                 "source": source,
                 "body": body,
                 "backend": "SurfaceWrapGPU",
-                "fit_policy": str(json_field(authored, "FitPolicy", default="Auto")),
-                "fail_closed_missing_lod": bool_from_json(json_field(authored, "bFailClosedOnMissingLOD", default=True), True),
+                "fit_policy": str(get_property(authored, "fit_policy", default="Auto")),
+                "fail_closed_missing_lod": bool(get_property(authored, "fail_closed_on_missing_lod", "b_fail_closed_on_missing_lod", default=True)),
             }
         )
     require(enabled, "Catalog has no enabled SurfaceWrapGPU rows")
@@ -520,7 +523,7 @@ def load_catalog_contract():
     STATE.rows = internal_rows
     STATE.registry = registry
     STATE.result["catalog"] = {
-        "asset": object_path(catalog),
+        "asset": object_path(director),
         "registry": object_path(registry),
         "compatibility_reference": object_path(compatibility_mesh),
         "compatibility_skeleton": compatibility_skeleton,

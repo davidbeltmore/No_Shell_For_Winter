@@ -10,7 +10,6 @@ class UEFClothingFitRegistry;
 class UEFClothingMorphDirectorPolicy;
 class UEFClothingSurfaceBinding;
 class UEFClothingSurfaceDeformerProducer;
-class UDataTable;
 class UGameViewportClient;
 class UOptimusDeformer;
 class USkeletalMesh;
@@ -18,7 +17,6 @@ class USkeletalMeshComponent;
 class USkinnedMeshComponent;
 struct FStreamableHandle;
 struct FEFClothingGarmentRow;
-struct FEFClothingGarmentTuningRow;
 
 UENUM(BlueprintType)
 enum class EEFClothingSurfaceRuntimeState : uint8
@@ -128,7 +126,6 @@ private:
 		int32 SurfaceWarmupFramesRemaining = 0;
 		float SurfaceWarmupElapsedSeconds = 0.0f;
 		bool bSurfaceAwaitingManagerInitialization = false;
-		float CatalogRuntimeOffsetCm = 0.0f;
 		float CatalogMaximumCorrectionCm = -1.0f;
 		/** Certified correction budget plus Director offset reserve owns component bounds. */
 		float SurfaceMaximumCorrectionCm = 0.0f;
@@ -213,12 +210,11 @@ private:
 	void LaunchNextProfilePrefetchBatch();
 	void HandleRegistryAssetsReady();
 	void BuildCatalogIndex();
-	void BuildTuningIndex();
 	const FEFClothingGarmentRow* FindCatalogRow(
 		const USkeletalMesh* SourceMesh,
 		const USkeletalMesh* BodyMesh,
 		FName* OutRowName = nullptr) const;
-	const FEFClothingGarmentTuningRow* FindTuningRow(FName CatalogRowName) const;
+	const FEFClothingGarmentRow* FindCatalogRowById(FName GarmentId) const;
 	float GetMaximumRuntimeAdditionalClearanceCm() const;
 	float ResolveGlobalSurfaceOffsetCm() const;
 	float ResolveDirectorGarmentOffsetCm(const FAppliedGarmentState& State) const;
@@ -272,12 +268,6 @@ private:
 	TObjectPtr<UEFClothingFitRegistry> LoadedRegistry;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UDataTable> LoadedGarmentCatalog;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UDataTable> LoadedGarmentTuningCatalog;
-
-	UPROPERTY(Transient)
 	TObjectPtr<UEFClothingMorphDirectorPolicy> LoadedDirectorPolicy;
 
 	UPROPERTY(Transient)
@@ -298,7 +288,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UOptimusDeformer> LoadedSurfaceConstraintDeformer;
 
-	/** Pins Registry + Catalog + Surface Graph until the initial async callback validates all three. */
+	/** Pins Registry + Director + Surface Graph until the initial async callback validates all three. */
 	TSharedPtr<FStreamableHandle> StartupAssetLoadHandle;
 	TSharedPtr<FStreamableHandle> RegistryPrefetchHandle;
 	TSet<FSoftObjectPath> PendingProfilePrefetchPaths;
@@ -313,9 +303,11 @@ private:
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> GarmentClearanceMultipliers;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> GarmentClearanceOffsetsCm;
 	TMap<FString, FName> CatalogRowIndex;
+	TMap<FName, int32> GarmentIdIndex;
 	TSet<FString> DuplicateCatalogKeys;
 	TSet<FSoftObjectPath> CatalogedSourcePaths;
-	TSet<FName> OrphanTuningRows;
+	/** Enabled source meshes remain guarded even when the rest of their Director contract is invalid. */
+	TSet<FSoftObjectPath> GuardedSourcePaths;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;
 	TWeakObjectPtr<UGameViewportClient> BoundGameViewportClient;
 	FDelegateHandle ViewportBeginDrawHandle;

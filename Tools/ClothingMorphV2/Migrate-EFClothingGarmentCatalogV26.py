@@ -125,6 +125,10 @@ def main() -> None:
     original_json = ""
     table = None
     try:
+        raise RuntimeError(
+            "This DataTable migration is retired. Add or edit garments only in "
+            "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector."
+        )
         table = unreal.EditorAssetLibrary.load_asset(CATALOG_PATH)
         if table is None or not isinstance(table, unreal.DataTable):
             raise RuntimeError("Garment catalog DataTable could not be loaded.")

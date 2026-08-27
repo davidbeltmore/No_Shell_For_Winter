@@ -230,6 +230,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	int32 CompilerVersion = EFClothingMorphV26::CompilerVersion;
 
+	/** Exact compile-relevant Director entry used to produce this immutable profile. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
+	FString GarmentCompileFingerprint;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity")
 	EEFClothingFitMode FitMode = EEFClothingFitMode::Tight;
 

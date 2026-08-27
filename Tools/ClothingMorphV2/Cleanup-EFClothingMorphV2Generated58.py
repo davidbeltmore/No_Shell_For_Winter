@@ -17,8 +17,14 @@ import unreal
 PROJECT_FILE = os.path.realpath(unreal.Paths.get_project_file_path())
 PROJECT_DIR = os.path.realpath(unreal.Paths.project_dir())
 SAVED_DIR = os.path.realpath(os.path.join(PROJECT_DIR, "Saved"))
-OUTPUT_ROOT = "/Game/_Generated/EFClothingMorphV2"
+OUTPUT_ROOT = "/EFClothingMorph/_Internal/Compiled/V26"
 REGISTRY_PACKAGE = OUTPUT_ROOT + "/DA_EFClothingFitRegistry"
+PLUGIN_CONTENT_ROOT = os.path.realpath(
+    os.path.join(PROJECT_DIR, "Plugins", "EFClothingMorph", "Content")
+)
+OUTPUT_DIRECTORY = os.path.realpath(
+    os.path.join(PLUGIN_CONTENT_ROOT, "_Internal", "Compiled", "V26")
+)
 DEFAULT_RECEIPT_PATH = os.path.join(
     SAVED_DIR,
     "ClothingMorphV2QA",
@@ -30,6 +36,12 @@ RECEIPT_PATH = os.path.realpath(
 
 
 def _write_receipt(payload):
+    try:
+        contained = os.path.commonpath((RECEIPT_PATH, SAVED_DIR)).lower() == SAVED_DIR.lower()
+    except ValueError:
+        contained = False
+    if not contained or not RECEIPT_PATH.lower().endswith(".json"):
+        raise RuntimeError("Cleanup receipt must remain under project Saved and use .json.")
     os.makedirs(os.path.dirname(RECEIPT_PATH), exist_ok=True)
     temporary_path = RECEIPT_PATH + ".tmp"
     with open(temporary_path, "w", encoding="utf-8", newline="\n") as handle:
@@ -75,21 +87,13 @@ def _list_generated_packages():
 
 
 def _physical_generated_packages():
-    output_directory = os.path.realpath(
-        os.path.join(
-            unreal.Paths.project_content_dir(),
-            "_Generated",
-            "EFClothingMorphV2",
-        )
-    )
-    expected_content_root = os.path.realpath(unreal.Paths.project_content_dir())
-    if os.path.commonpath((output_directory, expected_content_root)) != expected_content_root:
-        raise RuntimeError("Generated cleanup directory escaped project Content.")
-    if not os.path.isdir(output_directory):
+    if os.path.commonpath((OUTPUT_DIRECTORY, PLUGIN_CONTENT_ROOT)) != PLUGIN_CONTENT_ROOT:
+        raise RuntimeError("Generated cleanup directory escaped EFClothingMorph Content.")
+    if not os.path.isdir(OUTPUT_DIRECTORY):
         return []
     return sorted(
         OUTPUT_ROOT + "/" + os.path.splitext(name)[0]
-        for name in os.listdir(output_directory)
+        for name in os.listdir(OUTPUT_DIRECTORY)
         if name.lower().endswith(".uasset")
     )
 
@@ -100,18 +104,10 @@ def _physical_package_files(package):
     asset_name = package.rsplit("/", 1)[-1]
     if not asset_name.startswith(("DA_", "SK_")):
         raise RuntimeError("Unexpected generated asset family: " + package)
-    output_directory = os.path.realpath(
-        os.path.join(
-            unreal.Paths.project_content_dir(),
-            "_Generated",
-            "EFClothingMorphV2",
-        )
-    )
-    content_root = os.path.realpath(unreal.Paths.project_content_dir())
-    if os.path.commonpath((output_directory, content_root)) != content_root:
-        raise RuntimeError("Physical cleanup directory escaped project Content.")
-    base_path = os.path.realpath(os.path.join(output_directory, asset_name))
-    if os.path.commonpath((base_path, output_directory)) != output_directory:
+    if os.path.commonpath((OUTPUT_DIRECTORY, PLUGIN_CONTENT_ROOT)) != PLUGIN_CONTENT_ROOT:
+        raise RuntimeError("Physical cleanup directory escaped EFClothingMorph Content.")
+    base_path = os.path.realpath(os.path.join(OUTPUT_DIRECTORY, asset_name))
+    if os.path.commonpath((base_path, OUTPUT_DIRECTORY)) != OUTPUT_DIRECTORY:
         raise RuntimeError("Physical cleanup file escaped generated directory.")
     return [
         base_path + extension
@@ -164,6 +160,15 @@ def _run(payload):
         raise RuntimeError("Expected UE 5.8, got " + engine_version)
     if os.path.commonpath((RECEIPT_PATH, SAVED_DIR)).lower() != SAVED_DIR.lower():
         raise RuntimeError("Cleanup receipt must remain under project Saved.")
+    expected_plugin_content_root = os.path.realpath(
+        os.path.join(PROJECT_DIR, "Plugins", "EFClothingMorph", "Content")
+    )
+    if PLUGIN_CONTENT_ROOT != expected_plugin_content_root:
+        raise RuntimeError("Cleanup plugin Content root does not match EFClothingMorph.")
+
+    unreal.AssetRegistryHelpers.get_asset_registry().scan_paths_synchronous(
+        [OUTPUT_ROOT], True
+    )
 
     keep = _active_packages_from_registry()
     initial_registry_packages = _list_generated_packages()
@@ -225,6 +230,23 @@ def _run(payload):
         for package in remaining_physical:
             if package not in candidates or package in keep:
                 raise RuntimeError("Unapproved physical orphan entered cleanup: " + package)
+            if package in _list_generated_packages():
+                raise RuntimeError(
+                    "Refusing raw deletion of an Asset Registry package: " + package
+                )
+            referencers = sorted(
+                {
+                    _package_name(referencer)
+                    for referencer in unreal.EditorAssetLibrary.find_package_referencers_for_asset(
+                        package,
+                        load_assets_to_confirm=True,
+                    )
+                    if _package_name(referencer) != package
+                }
+            )
+            if referencers:
+                blocked[package] = referencers
+                continue
             file_rows = []
             for path in _physical_package_files(package):
                 row = {
