@@ -170,7 +170,7 @@ namespace EFClothingFitCompilerPrivate
 		}
 		const FString CoverageSignature = FString::Join(CoverageTagStrings, TEXT(","));
 		const FString Canonical = FString::Printf(
-			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|Backend=%d|FitPolicy=%d|Coverage=%s|Fabric=%.6f|RuntimeOffset=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
+			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|Backend=%d|FitPolicy=%d|Coverage=%s|Fabric=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
 			CompilerVersion,
 			*SourceGarment->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(SourceGarment),
 			*BodySurface->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(BodySurface),
@@ -179,7 +179,6 @@ namespace EFClothingFitCompilerPrivate
 			static_cast<int32>(CatalogRow.FitPolicy),
 			*CoverageSignature,
 			CatalogRow.FabricClearanceCm,
-			CatalogRow.RuntimeOffsetCm,
 			CatalogRow.MaximumCorrectionCm,
 			CatalogRow.bFailClosedOnMissingLOD ? 1 : 0,
 			*ExcludedSurfaceSignature,

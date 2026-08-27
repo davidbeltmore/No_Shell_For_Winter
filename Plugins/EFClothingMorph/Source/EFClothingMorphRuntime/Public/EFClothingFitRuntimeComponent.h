@@ -7,6 +7,7 @@
 class UEFCharacterCustomizationComponent;
 class UEFClothingFitProfile;
 class UEFClothingFitRegistry;
+class UEFClothingMorphDirectorPolicy;
 class UEFClothingSurfaceBinding;
 class UEFClothingSurfaceDeformerProducer;
 class UDataTable;
@@ -17,6 +18,7 @@ class USkeletalMeshComponent;
 class USkinnedMeshComponent;
 struct FStreamableHandle;
 struct FEFClothingGarmentRow;
+struct FEFClothingGarmentTuningRow;
 
 UENUM(BlueprintType)
 enum class EEFClothingSurfaceRuntimeState : uint8
@@ -128,6 +130,8 @@ private:
 		bool bSurfaceAwaitingManagerInitialization = false;
 		float CatalogRuntimeOffsetCm = 0.0f;
 		float CatalogMaximumCorrectionCm = -1.0f;
+		/** Certified correction budget plus Director offset reserve owns component bounds. */
+		float SurfaceMaximumCorrectionCm = 0.0f;
 		uint64 SurfaceEnqueueCount = 0;
 		uint32 SurfaceDispatchFailureCount = 0;
 		FString SurfaceFailureReason;
@@ -209,10 +213,20 @@ private:
 	void LaunchNextProfilePrefetchBatch();
 	void HandleRegistryAssetsReady();
 	void BuildCatalogIndex();
+	void BuildTuningIndex();
 	const FEFClothingGarmentRow* FindCatalogRow(
 		const USkeletalMesh* SourceMesh,
 		const USkeletalMesh* BodyMesh,
 		FName* OutRowName = nullptr) const;
+	const FEFClothingGarmentTuningRow* FindTuningRow(FName CatalogRowName) const;
+	float GetMaximumRuntimeAdditionalClearanceCm() const;
+	float ResolveGlobalSurfaceOffsetCm() const;
+	float ResolveDirectorGarmentOffsetCm(const FAppliedGarmentState& State) const;
+	void ApplyReservedSurfaceBounds(
+		USkeletalMeshComponent* GarmentComponent,
+		FAppliedGarmentState& State,
+		const UEFClothingSurfaceBinding* SurfaceBinding,
+		float CatalogMaximumCorrectionCm);
 	void AcquireBodyCoverage(FAppliedGarmentState& State, const FEFClothingGarmentRow* CatalogRow);
 	void ReleaseBodyCoverage(FAppliedGarmentState& State);
 	USkeletalMeshComponent* ResolveBodyMesh(const UEFClothingFitProfile* Profile) const;
@@ -261,6 +275,12 @@ private:
 	TObjectPtr<UDataTable> LoadedGarmentCatalog;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UDataTable> LoadedGarmentTuningCatalog;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UEFClothingMorphDirectorPolicy> LoadedDirectorPolicy;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UEFCharacterCustomizationComponent> CustomizationComponent;
 
 	/** Hard references needed for reliable CVar rollback after the component switches to a derived mesh. */
@@ -295,6 +315,7 @@ private:
 	TMap<FString, FName> CatalogRowIndex;
 	TSet<FString> DuplicateCatalogKeys;
 	TSet<FSoftObjectPath> CatalogedSourcePaths;
+	TSet<FName> OrphanTuningRows;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;
 	TWeakObjectPtr<UGameViewportClient> BoundGameViewportClient;
 	FDelegateHandle ViewportBeginDrawHandle;

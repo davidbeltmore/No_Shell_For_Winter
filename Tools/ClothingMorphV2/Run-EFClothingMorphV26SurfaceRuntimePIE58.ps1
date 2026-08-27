@@ -126,7 +126,9 @@ function Get-ProtectedAssetState {
         'Content\DazToUnreal\UnderWearPanty\UnderWearPanty.uasset',
         'Content\DazToUnreal\UnderWearPanty\UnderWearPanty_Skeleton.uasset',
         'Content\FullSample\GASP\UEFN_Mannequin\Meshes\SK_UEFN_Mannequin.uasset',
-        'Content\_Game\Data\EFClothingMorph\DT_EFClothingGarments.uasset'
+        'Content\_Game\Data\EFClothingMorph\DT_EFClothingGarments.uasset',
+        'Content\_Game\Data\EFClothingMorph\DT_EFClothingGarmentTuning.uasset',
+        'Content\_Game\Data\EFClothingMorph\DA_EFClothingMorphDirector.uasset'
     )
     foreach ($root in @(
             (Join-Path $ProjectRoot 'Content\_Generated\EFClothingMorphV2'),
