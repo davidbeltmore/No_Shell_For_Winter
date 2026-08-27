@@ -10,7 +10,7 @@ class USkeletalMesh;
 namespace EFClothingMorphV26
 {
 	inline constexpr int32 CompilerVersion = 26;
-	inline constexpr int32 SurfaceBindingSchemaVersion = 1;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 5;
 	inline constexpr float AutomaticCentimeterValue = -1.0f;
 	inline constexpr float DefaultBaseClearanceCm = 0.45f;
 	inline constexpr float DefaultCompiledReserveCm = 0.10f;
@@ -32,7 +32,10 @@ enum class EEFClothingSurfaceVertexMode : uint8
 	Hybrid UMETA(DisplayName = "Hybrid"),
 
 	/** Preserve skinning/Chaos output and only apply an outward collision correction. */
-	CollisionOnly UMETA(DisplayName = "Collision Only")
+	CollisionOnly UMETA(DisplayName = "Collision Only"),
+
+	/** Explicit catalog/body-anatomy exclusion; preserve the upstream garment position. */
+	PreserveUpstream UMETA(DisplayName = "Preserve Upstream")
 };
 
 /** Exact cooked render topology identity for one Skeletal Mesh LOD. */
@@ -195,6 +198,10 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceBindingMetrics
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 CollisionOnlyVertexCount = 0;
 
+	/** Vertices inside a catalog-derived optional-anatomy exclusion domain. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 PreserveUpstreamVertexCount = 0;
+
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 NeighborReferenceCount = 0;
 
@@ -204,14 +211,26 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceBindingMetrics
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 WitnessCount = 0;
 
+	/** Garment faces omitted because they touch the PreserveUpstream domain. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 ExcludedPreserveUpstreamGarmentTriangleCount = 0;
+
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 DegenerateBodyTriangleCount = 0;
+
+	/** Rest-pose zero-area source triangles removed before BVH/candidate generation. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 ExcludedDegenerateBodyTriangleCount = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 ExcludedBodyTriangleCount = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	float MinimumRestSignedGapCm = 0.0f;
+
+	/** Largest unilateral push required before the first corrected frame. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	float MaximumInitialCorrectionCm = 0.0f;
 
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	float MaximumAnchorErrorCm = 0.0f;

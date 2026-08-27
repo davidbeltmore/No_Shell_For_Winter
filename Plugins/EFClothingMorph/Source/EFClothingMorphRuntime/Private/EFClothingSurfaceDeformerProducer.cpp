@@ -12,18 +12,31 @@
 #include "RenderingThread.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/SkeletalMeshRenderData.h"
+#include "SkeletalMeshDeformerHelpers.h"
+#include "SkeletalRenderPublic.h"
 #include "Templates/Atomic.h"
 
 namespace EFClothingSurfaceGraphContract
 {
 	const FName BodyBinding(TEXT("Body"));
 	const FName BindingVertexCount(TEXT("EF_BindingVertexCount"));
+	const FName BodyVertexCount(TEXT("EF_BodyVertexCount"));
 	const FName GarmentLOD(TEXT("EF_GarmentLODIndex"));
 	const FName BodyLOD(TEXT("EF_BodyLODIndex"));
 	const FName BodyTriangleAndMode(TEXT("EF_BodyTriangleAndMode"));
 	const FName BarycentricsAndFollowWeight(TEXT("EF_BarycentricsAndFollowWeight"));
 	const FName RestOffsetAndClearanceCm(TEXT("EF_RestOffsetAndClearanceCm"));
 	const FName MaximumCorrectionAndRestGapCm(TEXT("EF_MaximumCorrectionAndRestGapCm"));
+	const FName WitnessCount(TEXT("EF_WitnessCount"));
+	const FName WitnessReferenceCount(TEXT("EF_WitnessReferenceCount"));
+	const FName WitnessRanges(TEXT("EF_WitnessRanges"));
+	const FName WitnessIndices(TEXT("EF_WitnessIndices"));
+	const FName WitnessGarmentVertices(TEXT("EF_WitnessGarmentVertices"));
+	const FName WitnessGarmentBarycentricsAndClearanceCm(
+		TEXT("EF_WitnessGarmentBarycentricsAndClearanceCm"));
+	const FName WitnessBodyVertices(TEXT("EF_WitnessBodyVertices"));
+	const FName WitnessBodyBarycentricsAndMaximumCorrectionCm(
+		TEXT("EF_WitnessBodyBarycentricsAndMaximumCorrectionCm"));
 	const FName GlobalClearanceOffsetCm(TEXT("EF_GlobalClearanceOffsetCm"));
 	const FName GarmentClearanceOffsetCm(TEXT("EF_GarmentClearanceOffsetCm"));
 	const FName MaximumCorrectionOverrideCm(TEXT("EF_MaximumCorrectionOverrideCm"));
@@ -34,13 +47,23 @@ namespace EFClothingSurfaceGraphContract
 struct UEFClothingSurfaceDeformerProducer::FDispatchTelemetry
 {
 	TAtomic<uint32> DispatchFailureCount { 0u };
+	TAtomic<uint32> ImmediateEnqueueFallbackCount { 0u };
+	TAtomic<uint32> RenderValidationFallbackCount { 0u };
 	TAtomic<uint64> RenderValidatedSubmissionCount { 0u };
+	TAtomic<uint64> LastRenderEnqueueMarkerSubmission { 0u };
+	TAtomic<uint32> RenderPreflightMask { 0u };
+	TAtomic<int32> GarmentActualLOD { INDEX_NONE };
+	TAtomic<int32> BodyActualLOD { INDEX_NONE };
+	TAtomic<int32> GarmentActualSectionCount { INDEX_NONE };
+	TAtomic<int32> BodyActualSectionCount { INDEX_NONE };
 	TAtomic<bool> bRenderConfirmationArmed { false };
 	TAtomic<bool> bCancelled { false };
 };
 
 namespace
 {
+	constexpr int32 MaximumWitnessReferencesPerVertex = 256;
+
 	/**
 	 * One-shot render-thread arm. We intentionally wait through two EndFrameRT
 	 * callbacks: if the enqueue command arrived after BeginInitViews in the first
@@ -163,9 +186,11 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 	UOptimusDeformerDynamicInstanceManager* BodyManager = ResolveDynamicManager(
 		InBodyComponent,
 		BodyLODIndex);
-	if (!SourceDeformerWrites(BodyManager, EMeshDeformerOutputBuffer::SkinnedMeshPosition))
+	if (!SourceDeformerWrites(
+		BodyManager,
+		EMeshDeformerOutputBuffer::SkinnedMeshPosition))
 	{
-		OutFailureReason = TEXT("Body LOD has no Optimus source writer for the final animated surface.");
+		OutFailureReason = TEXT("Body LOD has no Optimus source writer for final animated positions.");
 		Detach();
 		return false;
 	}
@@ -255,8 +280,104 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	if (FailureCount != LastObservedDispatchFailureCount)
 	{
 		LastObservedDispatchFailureCount = FailureCount;
-		OutFailureReason = TEXT("Surface constraint graph reported a render dispatch fallback.");
-		return false;
+		if (!bRenderPreflightEnqueued
+			&& DispatchTelemetry->RenderValidationFallbackCount.Load() > 0)
+		{
+			bRenderPreflightEnqueued = true;
+			const TSharedPtr<FDispatchTelemetry, ESPMode::ThreadSafe> PreflightTelemetry = DispatchTelemetry;
+			FSceneInterface* GarmentScene = Garment->GetScene();
+			FSceneInterface* BodyScene = Body->GetScene();
+			const FPrimitiveComponentId GarmentComponentId = Garment->GetPrimitiveSceneId();
+			const FPrimitiveComponentId BodyComponentId = Body->GetPrimitiveSceneId();
+			const int32 ExpectedGarmentLOD = GarmentLODIndex;
+			const int32 ExpectedBodyLOD = BodyLODIndex;
+			uint32 GameThreadMask = 0u;
+			if (!Garment->IsRenderStateCreated()) GameThreadMask |= 1u << 0;
+			if (!Body->IsRenderStateCreated()) GameThreadMask |= 1u << 1;
+			if (!GarmentComponentId.IsValid()) GameThreadMask |= 1u << 2;
+			if (!BodyComponentId.IsValid()) GameThreadMask |= 1u << 3;
+			ENQUEUE_RENDER_COMMAND(EFClothingSurfaceRenderPreflight)(
+				[PreflightTelemetry,
+				 GarmentScene,
+				 BodyScene,
+				 GarmentComponentId,
+				 BodyComponentId,
+				 ExpectedGarmentLOD,
+				 ExpectedBodyLOD,
+				 GameThreadMask](FRHICommandListImmediate& RHICmdList)
+				{
+					if (!PreflightTelemetry.IsValid() || PreflightTelemetry->bCancelled.Load())
+					{
+						return;
+					}
+					uint32 Mask = GameThreadMask;
+					FSkeletalMeshObject* GarmentObject =
+						FSkeletalMeshDeformerHelpers::GetSkeletalMeshObject(GarmentScene, GarmentComponentId);
+					FSkeletalMeshObject* BodyObject =
+						FSkeletalMeshDeformerHelpers::GetSkeletalMeshObject(BodyScene, BodyComponentId);
+					if (!GarmentObject)
+					{
+						Mask |= 1u << 4;
+					}
+					else
+					{
+						const int32 ActualLOD = GarmentObject->GetLOD();
+						PreflightTelemetry->GarmentActualLOD.Store(ActualLOD);
+						if (ActualLOD != ExpectedGarmentLOD) Mask |= 1u << 6;
+						const FSkeletalMeshRenderData& RenderData = GarmentObject->GetSkeletalMeshRenderData();
+						if (!RenderData.LODRenderData.IsValidIndex(ActualLOD))
+						{
+							Mask |= 1u << 8;
+						}
+						else
+						{
+							PreflightTelemetry->GarmentActualSectionCount.Store(
+								RenderData.LODRenderData[ActualLOD].RenderSections.Num());
+							if (FSkeletalMeshDeformerHelpers::GetIndexOfFirstAvailableSection(
+								GarmentObject, ActualLOD) == INDEX_NONE)
+							{
+								Mask |= 1u << 10;
+							}
+						}
+					}
+					if (!BodyObject)
+					{
+						Mask |= 1u << 5;
+					}
+					else
+					{
+						const int32 ActualLOD = BodyObject->GetLOD();
+						PreflightTelemetry->BodyActualLOD.Store(ActualLOD);
+						if (ActualLOD != ExpectedBodyLOD) Mask |= 1u << 7;
+						const FSkeletalMeshRenderData& RenderData = BodyObject->GetSkeletalMeshRenderData();
+						if (!RenderData.LODRenderData.IsValidIndex(ActualLOD))
+						{
+							Mask |= 1u << 9;
+						}
+						else
+						{
+							PreflightTelemetry->BodyActualSectionCount.Store(
+								RenderData.LODRenderData[ActualLOD].RenderSections.Num());
+							if (FSkeletalMeshDeformerHelpers::GetIndexOfFirstAvailableSection(
+								BodyObject, ActualLOD) == INDEX_NONE)
+							{
+								Mask |= 1u << 11;
+							}
+						}
+					}
+					PreflightTelemetry->RenderPreflightMask.Store(Mask);
+				});
+		}
+		// ComputeFramework invokes the same fallback while an otherwise valid SM6
+		// kernel is being compiled for the first time. Keep the garment fail-closed
+		// and retry while no submission has yet been render-validated. Once this
+		// producer has produced a validated corrected frame, any later fallback is
+		// a real loss of the safety pass and must fail immediately.
+		if (DispatchTelemetry->RenderValidatedSubmissionCount.Load() > 0)
+		{
+			OutFailureReason = TEXT("Surface constraint graph reported a render dispatch fallback after becoming ready.");
+			return false;
+		}
 	}
 
 	// Read Skinned Mesh exposes component-local positions. Transport the exact
@@ -267,9 +388,14 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	if (BodyToGarment.ContainsNaN()
 		|| FMath::Abs(RelativeScale.X) <= UE_SMALL_NUMBER
 		|| FMath::Abs(RelativeScale.Y) <= UE_SMALL_NUMBER
-		|| FMath::Abs(RelativeScale.Z) <= UE_SMALL_NUMBER)
+		|| FMath::Abs(RelativeScale.Z) <= UE_SMALL_NUMBER
+		|| RelativeScale.X <= 0.0
+		|| RelativeScale.Y <= 0.0
+		|| RelativeScale.Z <= 0.0
+		|| !FMath::IsNearlyEqual(RelativeScale.X, RelativeScale.Y, 1.0e-4)
+		|| !FMath::IsNearlyEqual(RelativeScale.X, RelativeScale.Z, 1.0e-4))
 	{
-		OutFailureReason = TEXT("Body-to-garment transform is non-finite or has degenerate scale.");
+		OutFailureReason = TEXT("Body-to-garment transform is non-finite, mirrored, degenerate or non-uniform; animated surface normals cannot be certified.");
 		return false;
 	}
 
@@ -302,11 +428,20 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 		? Garment->GetSkeletalMeshAsset()->GetFName()
 		: Garment->GetFName();
 	const TSharedPtr<FDispatchTelemetry, ESPMode::ThreadSafe> Telemetry = DispatchTelemetry;
-	Desc.FallbackDelegate.BindLambda([Telemetry]()
+	const uint64 SubmissionOrdinal = EnqueuedFrameCount + 1;
+	Desc.FallbackDelegate.BindLambda([Telemetry, SubmissionOrdinal]()
 	{
 		if (Telemetry.IsValid())
 		{
 			++Telemetry->DispatchFailureCount;
+			if (Telemetry->LastRenderEnqueueMarkerSubmission.Load() >= SubmissionOrdinal)
+			{
+				++Telemetry->RenderValidationFallbackCount;
+			}
+			else
+			{
+				++Telemetry->ImmediateEnqueueFallbackCount;
+			}
 		}
 	});
 
@@ -314,6 +449,14 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	// contract intentionally exposes EnqueueWork for composition.
 	UMeshDeformerInstance* MeshDeformerInstance = Instance;
 	MeshDeformerInstance->EnqueueWork(Desc);
+	ENQUEUE_RENDER_COMMAND(EFClothingMarkSurfaceEnqueueStage)(
+		[Telemetry, SubmissionOrdinal](FRHICommandListImmediate& RHICmdList)
+		{
+			if (Telemetry.IsValid() && !Telemetry->bCancelled.Load())
+			{
+				Telemetry->LastRenderEnqueueMarkerSubmission.Store(SubmissionOrdinal);
+			}
+		});
 	++EnqueuedFrameCount;
 
 	// ComputeFramework exposes failure but no success callback. Arm a one-shot
@@ -321,8 +464,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	// fallback delegate runs during SubmitWork before EndFrameRT, so an unchanged
 	// failure count at the second EndFrameRT is the strongest non-blocking public
 	// confirmation that the surface kernel was validated and submitted.
-	if (!DispatchTelemetry->bRenderConfirmationArmed.Load()
-		&& DispatchTelemetry->RenderValidatedSubmissionCount.Load() == 0)
+	if (!DispatchTelemetry->bRenderConfirmationArmed.Load())
 	{
 		DispatchTelemetry->bRenderConfirmationArmed.Store(true);
 		const uint32 FailureCountBeforeSubmission = FailureCount;
@@ -400,6 +542,7 @@ void UEFClothingSurfaceDeformerProducer::Detach()
 	DispatchTelemetry.Reset();
 	LastObservedDispatchFailureCount = 0;
 	EnqueuedFrameCount = 0;
+	bRenderPreflightEnqueued = false;
 }
 
 bool UEFClothingSurfaceDeformerProducer::IsInstalledFor(
@@ -422,6 +565,35 @@ uint32 UEFClothingSurfaceDeformerProducer::GetDispatchFailureCount() const
 	return DispatchTelemetry.IsValid()
 		? DispatchTelemetry->DispatchFailureCount.Load()
 		: LastObservedDispatchFailureCount;
+}
+
+uint32 UEFClothingSurfaceDeformerProducer::GetImmediateEnqueueFallbackCount() const
+{
+	return DispatchTelemetry.IsValid()
+		? DispatchTelemetry->ImmediateEnqueueFallbackCount.Load()
+		: 0u;
+}
+
+uint32 UEFClothingSurfaceDeformerProducer::GetRenderValidationFallbackCount() const
+{
+	return DispatchTelemetry.IsValid()
+		? DispatchTelemetry->RenderValidationFallbackCount.Load()
+		: 0u;
+}
+
+FString UEFClothingSurfaceDeformerProducer::GetRenderPreflightSummary() const
+{
+	if (!DispatchTelemetry.IsValid())
+	{
+		return TEXT("unavailable");
+	}
+	return FString::Printf(
+		TEXT("mask=0x%03x garmentLOD=%d garmentSections=%d bodyLOD=%d bodySections=%d"),
+		DispatchTelemetry->RenderPreflightMask.Load(),
+		DispatchTelemetry->GarmentActualLOD.Load(),
+		DispatchTelemetry->GarmentActualSectionCount.Load(),
+		DispatchTelemetry->BodyActualLOD.Load(),
+		DispatchTelemetry->BodyActualSectionCount.Load());
 }
 
 uint64 UEFClothingSurfaceDeformerProducer::GetRenderValidatedSubmissionCount() const
@@ -473,6 +645,12 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	TArray<FVector4> BarycentricsAndFollowWeight;
 	TArray<FVector4> RestOffsetAndClearanceCm;
 	TArray<FVector2D> MaximumCorrectionAndRestGapCm;
+	TArray<FIntPoint> WitnessRanges;
+	TArray<int32> WitnessIndices;
+	TArray<FIntVector4> WitnessGarmentVertices;
+	TArray<FVector4> WitnessGarmentBarycentricsAndClearanceCm;
+	TArray<FIntVector4> WitnessBodyVertices;
+	TArray<FVector4> WitnessBodyBarycentricsAndMaximumCorrectionCm;
 	const int32 VertexCount = InLODPair.VertexBindings.Num();
 	BodyTriangleAndMode.Reserve(VertexCount);
 	BarycentricsAndFollowWeight.Reserve(VertexCount);
@@ -501,8 +679,130 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			Binding.RestSignedGapCm);
 	}
 
+	TArray<int32> WitnessReferenceCounts;
+	WitnessReferenceCounts.Init(0, VertexCount);
+	WitnessGarmentVertices.Reserve(InLODPair.Witnesses.Num());
+	WitnessGarmentBarycentricsAndClearanceCm.Reserve(InLODPair.Witnesses.Num());
+	WitnessBodyVertices.Reserve(InLODPair.Witnesses.Num());
+	WitnessBodyBarycentricsAndMaximumCorrectionCm.Reserve(InLODPair.Witnesses.Num());
+	constexpr float WitnessIncidenceWeightEpsilon = 1.0e-6f;
+	for (const FEFClothingSurfaceWitness& Witness : InLODPair.Witnesses)
+	{
+		const int32 GarmentVertices[3] =
+		{
+			Witness.GarmentRenderVertexIndices.X,
+			Witness.GarmentRenderVertexIndices.Y,
+			Witness.GarmentRenderVertexIndices.Z
+		};
+		const float GarmentBarycentrics[3] =
+		{
+			Witness.GarmentBarycentrics.X,
+			Witness.GarmentBarycentrics.Y,
+			Witness.GarmentBarycentrics.Z
+		};
+		for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+		{
+			if (GarmentBarycentrics[CornerIndex] <= WitnessIncidenceWeightEpsilon)
+			{
+				continue;
+			}
+			const int32 GarmentVertex = GarmentVertices[CornerIndex];
+			if (!WitnessReferenceCounts.IsValidIndex(GarmentVertex))
+			{
+				OutFailureReason = TEXT("Witness incidence construction encountered an invalid garment vertex.");
+				return false;
+			}
+			++WitnessReferenceCounts[GarmentVertex];
+			if (WitnessReferenceCounts[GarmentVertex] > MaximumWitnessReferencesPerVertex)
+			{
+				OutFailureReason = FString::Printf(
+					TEXT("Garment vertex %d has %d witness references; the certified maximum is %d."),
+					GarmentVertex,
+					WitnessReferenceCounts[GarmentVertex],
+					MaximumWitnessReferencesPerVertex);
+				return false;
+			}
+		}
+		WitnessGarmentVertices.Emplace(
+			GarmentVertices[0],
+			GarmentVertices[1],
+			GarmentVertices[2],
+			Witness.GarmentTriangleIndex);
+		WitnessGarmentBarycentricsAndClearanceCm.Emplace(
+			Witness.GarmentBarycentrics.X,
+			Witness.GarmentBarycentrics.Y,
+			Witness.GarmentBarycentrics.Z,
+			Witness.TargetClearanceCm);
+		WitnessBodyVertices.Emplace(
+			Witness.BodyRenderVertexIndices.X,
+			Witness.BodyRenderVertexIndices.Y,
+			Witness.BodyRenderVertexIndices.Z,
+			0);
+		WitnessBodyBarycentricsAndMaximumCorrectionCm.Emplace(
+			Witness.BodyBarycentrics.X,
+			Witness.BodyBarycentrics.Y,
+			Witness.BodyBarycentrics.Z,
+			Witness.MaximumCorrectionCm);
+	}
+
+	WitnessRanges.SetNum(VertexCount);
+	int64 TotalWitnessReferenceCount64 = 0;
+	for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+	{
+		const int32 ReferenceCount = WitnessReferenceCounts[VertexIndex];
+		if (TotalWitnessReferenceCount64 > MAX_int32 - ReferenceCount)
+		{
+			OutFailureReason = TEXT("Witness incidence pool exceeds the supported 32-bit range.");
+			return false;
+		}
+		WitnessRanges[VertexIndex] = FIntPoint(
+			static_cast<int32>(TotalWitnessReferenceCount64),
+			ReferenceCount);
+		TotalWitnessReferenceCount64 += ReferenceCount;
+	}
+	const int32 TotalWitnessReferenceCount = static_cast<int32>(TotalWitnessReferenceCount64);
+	WitnessIndices.Init(INDEX_NONE, TotalWitnessReferenceCount);
+	TArray<int32> WitnessWriteCursors;
+	WitnessWriteCursors.SetNumZeroed(VertexCount);
+	for (int32 WitnessIndex = 0; WitnessIndex < InLODPair.Witnesses.Num(); ++WitnessIndex)
+	{
+		const FEFClothingSurfaceWitness& Witness = InLODPair.Witnesses[WitnessIndex];
+		const FIntVector GarmentVertices = Witness.GarmentRenderVertexIndices;
+		const int32 GarmentVertexIndices[3] =
+		{
+			GarmentVertices.X,
+			GarmentVertices.Y,
+			GarmentVertices.Z
+		};
+		const float GarmentBarycentrics[3] =
+		{
+			Witness.GarmentBarycentrics.X,
+			Witness.GarmentBarycentrics.Y,
+			Witness.GarmentBarycentrics.Z
+		};
+		for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+		{
+			if (GarmentBarycentrics[CornerIndex] <= WitnessIncidenceWeightEpsilon)
+			{
+				continue;
+			}
+			const int32 GarmentVertexIndex = GarmentVertexIndices[CornerIndex];
+			const int32 DestinationIndex = WitnessRanges[GarmentVertexIndex].X
+				+ WitnessWriteCursors[GarmentVertexIndex]++;
+			WitnessIndices[DestinationIndex] = WitnessIndex;
+		}
+	}
+	if (WitnessIndices.Contains(INDEX_NONE))
+	{
+		OutFailureReason = TEXT("Witness incidence construction left an uninitialized reference.");
+		return false;
+	}
+
 	const bool bUploadAccepted =
 		Instance->SetIntVariable(EFClothingSurfaceGraphContract::BindingVertexCount, VertexCount)
+		&& Instance->SetIntVariable(
+			EFClothingSurfaceGraphContract::BodyVertexCount,
+			InLODPair.BodyTopology.RenderVertexCount)
 		&& Instance->SetIntVariable(EFClothingSurfaceGraphContract::GarmentLOD, GarmentLODIndex)
 		&& Instance->SetIntVariable(EFClothingSurfaceGraphContract::BodyLOD, BodyLODIndex)
 		&& Instance->SetInt4ArrayVariable(
@@ -516,7 +816,31 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			RestOffsetAndClearanceCm)
 		&& Instance->SetVector2ArrayVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionAndRestGapCm,
-			MaximumCorrectionAndRestGapCm);
+			MaximumCorrectionAndRestGapCm)
+		&& Instance->SetIntVariable(
+			EFClothingSurfaceGraphContract::WitnessCount,
+			InLODPair.Witnesses.Num())
+		&& Instance->SetIntVariable(
+			EFClothingSurfaceGraphContract::WitnessReferenceCount,
+			TotalWitnessReferenceCount)
+		&& Instance->SetInt2ArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessRanges,
+			WitnessRanges)
+		&& Instance->SetIntArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessIndices,
+			WitnessIndices)
+		&& Instance->SetInt4ArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessGarmentVertices,
+			WitnessGarmentVertices)
+		&& Instance->SetVector4ArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessGarmentBarycentricsAndClearanceCm,
+			WitnessGarmentBarycentricsAndClearanceCm)
+		&& Instance->SetInt4ArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessBodyVertices,
+			WitnessBodyVertices)
+		&& Instance->SetVector4ArrayVariable(
+			EFClothingSurfaceGraphContract::WitnessBodyBarycentricsAndMaximumCorrectionCm,
+			WitnessBodyBarycentricsAndMaximumCorrectionCm);
 	if (!bUploadAccepted)
 	{
 		OutFailureReason = TEXT("Surface graph variable schema does not match the EF V26 binding upload contract.");
@@ -574,9 +898,15 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 		|| !bTopologyMetadataMatches
 		|| InLODPair.Metrics.InvalidAnchorCount != 0
 		|| InLODPair.Metrics.DegenerateBodyTriangleCount != 0
+		|| !FMath::IsFinite(InLODPair.Metrics.MinimumRestSignedGapCm)
+		|| InLODPair.Metrics.MinimumRestSignedGapCm < -0.02f
+		|| !FMath::IsFinite(InLODPair.Metrics.MaximumInitialCorrectionCm)
+		|| InLODPair.Metrics.MaximumInitialCorrectionCm < 0.0f
 		|| InLODPair.Metrics.SurfaceFollowVertexCount
 			+ InLODPair.Metrics.HybridVertexCount
-			+ InLODPair.Metrics.CollisionOnlyVertexCount != GarmentVertexCount
+			+ InLODPair.Metrics.CollisionOnlyVertexCount
+			+ InLODPair.Metrics.PreserveUpstreamVertexCount != GarmentVertexCount
+		|| InLODPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount < 0
 		|| InLODPair.Metrics.NeighborReferenceCount
 			!= InLODPair.NeighborRenderVertexIndices.Num()
 		|| InLODPair.Metrics.CandidateTriangleCount != InLODPair.CandidateTriangles.Num()
@@ -648,8 +978,19 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			OutFailureReason = TEXT("Surface binding contains an invalid edge/face witness.");
 			return false;
 		}
+		if (InLODPair.VertexBindings[Witness.GarmentRenderVertexIndices.X].Mode
+				== EEFClothingSurfaceVertexMode::PreserveUpstream
+			|| InLODPair.VertexBindings[Witness.GarmentRenderVertexIndices.Y].Mode
+				== EEFClothingSurfaceVertexMode::PreserveUpstream
+			|| InLODPair.VertexBindings[Witness.GarmentRenderVertexIndices.Z].Mode
+				== EEFClothingSurfaceVertexMode::PreserveUpstream)
+		{
+			OutFailureReason = TEXT("Surface binding witness touches a PreserveUpstream triangle.");
+			return false;
+		}
 	}
 
+	float RecomputedMaximumInitialCorrectionCm = 0.0f;
 	for (int32 VertexIndex = 0; VertexIndex < InLODPair.VertexBindings.Num(); ++VertexIndex)
 	{
 		const FEFClothingSurfaceVertexBinding& Binding = InLODPair.VertexBindings[VertexIndex];
@@ -687,8 +1028,13 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			&& Binding.FollowWeight <= 1.0f
 			&& FMath::IsFinite(Binding.MaximumCorrectionCm)
 			&& Binding.MaximumCorrectionCm > 0.0f
+			&& (Binding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
+				|| FMath::Max(0.0f, Binding.TargetClearanceCm - Binding.RestSignedGapCm)
+					<= Binding.MaximumCorrectionCm + 1.0e-4f)
 			&& static_cast<uint8>(Binding.Mode)
-				<= static_cast<uint8>(EEFClothingSurfaceVertexMode::CollisionOnly);
+				<= static_cast<uint8>(EEFClothingSurfaceVertexMode::PreserveUpstream)
+			&& (Binding.Mode != EEFClothingSurfaceVertexMode::PreserveUpstream
+				|| FMath::IsNearlyZero(Binding.FollowWeight, 1.0e-6f));
 		if (!bIndicesValid || !bRangesValid || !bValuesValid)
 		{
 			OutFailureReason = FString::Printf(
@@ -696,6 +1042,20 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 				VertexIndex);
 			return false;
 		}
+		if (Binding.Mode != EEFClothingSurfaceVertexMode::PreserveUpstream)
+		{
+			RecomputedMaximumInitialCorrectionCm = FMath::Max(
+				RecomputedMaximumInitialCorrectionCm,
+				FMath::Max(0.0f, Binding.TargetClearanceCm - Binding.RestSignedGapCm));
+		}
+	}
+	if (!FMath::IsNearlyEqual(
+		InLODPair.Metrics.MaximumInitialCorrectionCm,
+		RecomputedMaximumInitialCorrectionCm,
+		1.0e-4f))
+	{
+		OutFailureReason = TEXT("Surface binding initial-correction evidence is stale.");
+		return false;
 	}
 
 	return true;

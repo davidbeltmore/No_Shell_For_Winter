@@ -58,6 +58,14 @@ public:
 	int32 SurfaceWarmupFrames = 2;
 
 	/**
+	 * Maximum fail-closed wait for first-time shader/DDC warm-up. A garment is
+	 * never exposed during this interval; persistent fallbacks transition to
+	 * Failed when the timeout expires.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Surface Wrap", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "s"))
+	float SurfaceShaderWarmupTimeoutSeconds = 15.0f;
+
+	/**
 	 * Removes the visible first-equip IO window. Generated fits are streamed
 	 * asynchronously after the small registry loads, before ACF assigns garments.
 	 */

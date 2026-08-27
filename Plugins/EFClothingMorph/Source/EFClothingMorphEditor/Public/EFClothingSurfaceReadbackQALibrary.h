@@ -64,6 +64,10 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingSurfaceReadbackQAResult
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 TestedGarmentTriangleCount = 0;
 
+	/** Garment faces outside certification because they touch PreserveUpstream vertices. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 ExcludedPreserveUpstreamGarmentTriangleCount = 0;
+
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 TestedBodyTriangleCount = 0;
 
@@ -77,6 +81,13 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingSurfaceReadbackQAResult
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 VertexSkinGapViolationCount = 0;
 
+	/** CPU reconstruction of the first GPU kernel, before witness finalization. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	float MinimumBaseCorrectedVertexSkinGapCm = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 BaseCorrectedVertexSkinGapViolationCount = 0;
+
 	/** Compiled V26 edge/interior witnesses, evaluated on final GPU positions. */
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 TriangleSampleCount = 0;
@@ -86,6 +97,20 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingSurfaceReadbackQAResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 TriangleSampleSkinGapViolationCount = 0;
+
+	/** Witness gaps on the reconstructed BaseCorrectedPosition resource. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	float MinimumBaseCorrectedTriangleSampleSkinGapCm = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 BaseCorrectedTriangleSampleSkinGapViolationCount = 0;
+
+	/** Clearance residual across reconstructed base-pass vertices and witnesses. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	float MinimumBaseCorrectedClearanceResidualCm = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 BaseCorrectedClearanceResidualViolationCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	float MinimumClearanceResidualCm = 0.0f;
@@ -100,11 +125,26 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingSurfaceReadbackQAResult
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	float MaximumCorrectionMagnitudeCm = 0.0f;
 
+	/** Post-EF output minus reconstructed BaseCorrectedPosition. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	float WitnessPassDisplacementP99Cm = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	float MaximumWitnessPassDisplacementCm = 0.0f;
+
+	/** Vertices moved by more than one micrometer relative to the reconstructed base pass. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 WitnessPassMovedVertexCount = 0;
+
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 InvalidOrNonFiniteVertexCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 SkippedDegenerateTriangleCount = 0;
+
+	/** Rest-pose body triangles deliberately excluded from the certified surface. */
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
+	int32 ExcludedDegenerateBodyTriangleCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing|QA")
 	int32 ExcludedOrHiddenBodySectionCount = 0;

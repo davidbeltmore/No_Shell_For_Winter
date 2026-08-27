@@ -1488,6 +1488,14 @@ USkeletalMeshComponent* UEFClothingFitRuntimeComponent::ResolveBodyMesh(const UE
 	}
 
 	const FSoftObjectPath ExpectedBodyPath = Profile->BodySurface.ToSoftObjectPath();
+	const auto IsRenderableSurfaceComponent = [](const USkeletalMeshComponent* Candidate)
+	{
+		return IsValid(Candidate)
+			&& Candidate->IsRegistered()
+			&& Candidate->IsVisible()
+			&& Candidate->bRenderInMainPass
+			&& !Candidate->bHiddenInGame;
+	};
 	USkeletalMeshComponent* PreferredBodyComponent = nullptr;
 	if (CustomizationComponent)
 	{
@@ -1500,30 +1508,51 @@ USkeletalMeshComponent* UEFClothingFitRuntimeComponent::ResolveBodyMesh(const UE
 			PreferredBodyComponent = Candidate;
 		}
 	}
-	// Character Creation owns the authoritative visible body selection. A hidden
-	// selection/proxy component may legitimately reference the same Female asset;
-	// that duplicate must not invalidate the explicitly owned body.
-	if (PreferredBodyComponent)
+	// Character Creation's BodyMeshComponent is the authoritative pose/morph
+	// owner, but ACF may intentionally keep it as a hidden animation driver. Such
+	// a component has no FSkeletalMeshObject and therefore cannot be the surface
+	// read binding. Prefer it only when it is also the component submitted to the
+	// renderer; otherwise resolve the unique visible component with the same exact
+	// body asset below. This never substitutes Multiple (or any other mesh).
+	if (IsRenderableSurfaceComponent(PreferredBodyComponent))
 	{
 		return PreferredBodyComponent;
 	}
 
-	USkeletalMeshComponent* UniqueBodyComponent = nullptr;
+	TArray<USkeletalMeshComponent*> ExactBodyComponents;
 	TInlineComponentArray<USkeletalMeshComponent*> MeshComponents(GetOwner());
 	for (USkeletalMeshComponent* MeshComponent : MeshComponents)
 	{
 		if (IsValid(MeshComponent) && IsValid(MeshComponent->GetSkeletalMeshAsset())
 			&& FSoftObjectPath(MeshComponent->GetSkeletalMeshAsset()) == ExpectedBodyPath)
 		{
-			if (UniqueBodyComponent && UniqueBodyComponent != MeshComponent)
-			{
-				return nullptr;
-			}
-			UniqueBodyComponent = MeshComponent;
+			ExactBodyComponents.Add(MeshComponent);
 		}
 	}
+	if (ExactBodyComponents.Num() == 1)
+	{
+		return ExactBodyComponents[0];
+	}
 
-	return UniqueBodyComponent;
+	// ACF can keep an invisible pose/selection driver and a visible final skin
+	// component on the same actor, both referencing Female. SurfaceWrap must use
+	// the geometry that is actually submitted as skin, never the hidden driver.
+	// This remains name-agnostic and fail-closed when more than one final body is
+	// renderable.
+	USkeletalMeshComponent* UniqueRenderableBody = nullptr;
+	for (USkeletalMeshComponent* Candidate : ExactBodyComponents)
+	{
+		if (!IsRenderableSurfaceComponent(Candidate))
+		{
+			continue;
+		}
+		if (UniqueRenderableBody && UniqueRenderableBody != Candidate)
+		{
+			return nullptr;
+		}
+		UniqueRenderableBody = Candidate;
+	}
+	return UniqueRenderableBody;
 }
 
 bool UEFClothingFitRuntimeComponent::IsProfileRejected(
@@ -3315,6 +3344,7 @@ bool UEFClothingFitRuntimeComponent::TryInstallSurfaceConstraint(
 		Settings ? Settings->SurfaceWarmupFrames : 2,
 		1,
 		8);
+	State.SurfaceWarmupElapsedSeconds = 0.0f;
 	State.bSurfaceAwaitingManagerInitialization = true;
 	State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::WarmingUp;
 	State.SurfaceFailureReason.Reset();
@@ -3333,6 +3363,7 @@ void UEFClothingFitRuntimeComponent::ReleaseSurfaceConstraint(FAppliedGarmentSta
 	State.SurfaceGarmentLODIndex = INDEX_NONE;
 	State.SurfaceBodyLODIndex = INDEX_NONE;
 	State.SurfaceWarmupFramesRemaining = 0;
+	State.SurfaceWarmupElapsedSeconds = 0.0f;
 	State.bSurfaceAwaitingManagerInitialization = false;
 }
 
@@ -3515,17 +3546,46 @@ void UEFClothingFitRuntimeComponent::TickSurfaceConstraints(const float DeltaTim
 		++State.SurfaceEnqueueCount;
 		if (State.SurfaceRuntimeState == EEFClothingSurfaceRuntimeState::WarmingUp)
 		{
+			const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+			const int32 RequiredValidatedFrames = FMath::Clamp(
+				Settings ? Settings->SurfaceWarmupFrames : 2,
+				1,
+				8);
+			const uint64 ValidatedFrames = Producer->GetRenderValidatedSubmissionCount();
 			State.SurfaceWarmupFramesRemaining = FMath::Max(
-				State.SurfaceWarmupFramesRemaining - 1,
+				RequiredValidatedFrames - static_cast<int32>(FMath::Min<uint64>(ValidatedFrames, RequiredValidatedFrames)),
 				0);
+			State.SurfaceWarmupElapsedSeconds += FMath::Max(DeltaTimeSeconds, 0.0f);
 			// Never expose a raw garment merely because N game frames elapsed.
-			// The producer's acknowledgement is written on the render thread only
+			// Each producer acknowledgement is written on the render thread only
 			// after ComputeFramework had an opportunity to validate/submit the
 			// BeginInitViews graph without invoking its fallback delegate.
-			if (State.SurfaceWarmupFramesRemaining == 0
-				&& Producer->HasRenderValidatedSubmission())
+			if (State.SurfaceWarmupFramesRemaining == 0)
 			{
 				State.SurfaceRuntimeState = EEFClothingSurfaceRuntimeState::Ready;
+			}
+			else
+			{
+				const float WarmupTimeoutSeconds = FMath::Clamp(
+					Settings ? Settings->SurfaceShaderWarmupTimeoutSeconds : 15.0f,
+					1.0f,
+					60.0f);
+				if (State.SurfaceWarmupElapsedSeconds >= WarmupTimeoutSeconds)
+				{
+					FailSurfaceConstraint(
+						GarmentComponent,
+						State,
+						FString::Printf(
+							TEXT("Surface shader warm-up timed out after %.2fs (%llu/%d validated frames, %u fallbacks: immediate=%u render-validation=%u; %s)."),
+							State.SurfaceWarmupElapsedSeconds,
+							ValidatedFrames,
+							RequiredValidatedFrames,
+							Producer->GetDispatchFailureCount(),
+							Producer->GetImmediateEnqueueFallbackCount(),
+							Producer->GetRenderValidationFallbackCount(),
+							*Producer->GetRenderPreflightSummary()));
+					continue;
+				}
 			}
 		}
 		TryExposeReadyGarment(GarmentComponent, State);

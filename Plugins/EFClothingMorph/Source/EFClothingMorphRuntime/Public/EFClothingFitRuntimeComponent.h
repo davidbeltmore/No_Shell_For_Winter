@@ -124,6 +124,7 @@ private:
 		int32 SurfaceGarmentLODIndex = INDEX_NONE;
 		int32 SurfaceBodyLODIndex = INDEX_NONE;
 		int32 SurfaceWarmupFramesRemaining = 0;
+		float SurfaceWarmupElapsedSeconds = 0.0f;
 		bool bSurfaceAwaitingManagerInitialization = false;
 		float CatalogRuntimeOffsetCm = 0.0f;
 		float CatalogMaximumCorrectionCm = -1.0f;

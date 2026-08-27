@@ -26,6 +26,7 @@ public class EFClothingMorphEditor : ModuleRules
 			"GeometryAlgorithms",
 			"SkeletalMeshDescription",
 			"AnimationCore",
+			"GameplayTags",
 			"MeshDescription",
 			"MeshConversion",
 			"ComputeFramework",

@@ -387,6 +387,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Metrics")
 	int32 SourceVertexCount = 0;
 
+	/** Final generated LOD0 import vertices after optional risk densification. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Metrics")
+	int32 FittedVertexCount = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Metrics")
 	int32 AdjustedVertexCount = 0;
 

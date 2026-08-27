@@ -20,6 +20,8 @@
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "UObject/UObjectHash.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogEFClothingSurfaceReadbackQA, Log, All);
+
 namespace EFClothingSurfaceReadbackQA
 {
 	using namespace UE::Geometry;
@@ -33,20 +35,35 @@ namespace EFClothingSurfaceReadbackQA
 		int32 RenderVertexCount = 0;
 		TArray<int32> TriangleIndices;
 		int32 ExcludedOrHiddenSectionCount = 0;
+		int32 ExcludedRestDegenerateTriangleCount = 0;
 	};
 
 	struct FWitnessSnapshot
 	{
 		FIntVector GarmentRenderVertexIndices = FIntVector(INDEX_NONE, INDEX_NONE, INDEX_NONE);
 		FVector3f GarmentBarycentrics = FVector3f::ZeroVector;
+		FIntVector BodyRenderVertexIndices = FIntVector(INDEX_NONE, INDEX_NONE, INDEX_NONE);
+		FVector3f BodyBarycentrics = FVector3f::ZeroVector;
 		float TargetClearanceCm = 0.0f;
+	};
+
+	struct FVertexAnchorSnapshot
+	{
+		FIntVector BodyRenderVertexIndices = FIntVector(INDEX_NONE, INDEX_NONE, INDEX_NONE);
+		FVector3f BodyBarycentrics = FVector3f::ZeroVector;
+		FVector3f RestTangentFrameOffsetCm = FVector3f::ZeroVector;
+		float TargetClearanceCm = 0.0f;
+		float FollowWeight = 0.0f;
+		float MaximumCorrectionCm = 0.0f;
+		EEFClothingSurfaceVertexMode Mode = EEFClothingSurfaceVertexMode::CollisionOnly;
 	};
 
 	struct FLODBindingSnapshot
 	{
 		int32 GarmentLODIndex = INDEX_NONE;
 		int32 BodyLODIndex = INDEX_NONE;
-		TArray<float> VertexTargetClearanceCm;
+		int32 ExcludedDegenerateBodyTriangleCount = 0;
+		TArray<FVertexAnchorSnapshot> VertexAnchors;
 		TArray<FWitnessSnapshot> Witnesses;
 	};
 
@@ -85,6 +102,13 @@ namespace EFClothingSurfaceReadbackQA
 	}
 
 	bool IsFinite(const FVector3f& Value)
+	{
+		return FMath::IsFinite(Value.X)
+			&& FMath::IsFinite(Value.Y)
+			&& FMath::IsFinite(Value.Z);
+	}
+
+	bool IsFinite(const FVector3d& Value)
 	{
 		return FMath::IsFinite(Value.X)
 			&& FMath::IsFinite(Value.Y)
@@ -161,18 +185,40 @@ namespace EFClothingSurfaceReadbackQA
 				}
 				Snapshot.TriangleIndices.Reserve(
 					Snapshot.TriangleIndices.Num() + static_cast<int32>(SectionIndexCount));
-				for (uint32 Offset = 0; Offset < SectionIndexCount; ++Offset)
+				for (uint32 TriangleOffset = 0; TriangleOffset < SectionIndexCount; TriangleOffset += 3u)
 				{
-					const uint32 VertexIndex = IndexBuffer->Get(Section.BaseIndex + Offset);
-					if (VertexIndex >= static_cast<uint32>(Snapshot.RenderVertexCount))
+					FIntVector Triangle;
+					for (int32 Corner = 0; Corner < 3; ++Corner)
 					{
-						OutError = FString::Printf(
-							TEXT("LOD %d render index %u is outside its vertex buffer."),
-							LODIndex,
-							VertexIndex);
-						return false;
+						const uint32 VertexIndex = IndexBuffer->Get(
+							Section.BaseIndex + TriangleOffset + static_cast<uint32>(Corner));
+						if (VertexIndex >= static_cast<uint32>(Snapshot.RenderVertexCount))
+						{
+							OutError = FString::Printf(
+								TEXT("LOD %d render index %u is outside its vertex buffer."),
+								LODIndex,
+								VertexIndex);
+							return false;
+						}
+						Triangle[Corner] = static_cast<int32>(VertexIndex);
 					}
-					Snapshot.TriangleIndices.Add(static_cast<int32>(VertexIndex));
+					const FVector3d A(LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Triangle.X));
+					const FVector3d B(LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Triangle.Y));
+					const FVector3d C(LODData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Triangle.Z));
+					FVector3d Tangent = B - A;
+					FVector3d Normal = Tangent.Cross(C - A);
+					if (Triangle.X == Triangle.Y
+						|| Triangle.Y == Triangle.Z
+						|| Triangle.Z == Triangle.X
+						|| !Tangent.Normalize()
+						|| !Normal.Normalize())
+					{
+						++Snapshot.ExcludedRestDegenerateTriangleCount;
+						continue;
+					}
+					Snapshot.TriangleIndices.Add(Triangle.X);
+					Snapshot.TriangleIndices.Add(Triangle.Y);
+					Snapshot.TriangleIndices.Add(Triangle.Z);
 				}
 			}
 
@@ -196,7 +242,9 @@ namespace EFClothingSurfaceReadbackQA
 			FLODBindingSnapshot Snapshot;
 			Snapshot.GarmentLODIndex = Pair.GarmentTopology.LODIndex;
 			Snapshot.BodyLODIndex = Pair.BodyTopology.LODIndex;
-			Snapshot.VertexTargetClearanceCm.Reserve(Pair.VertexBindings.Num());
+			Snapshot.ExcludedDegenerateBodyTriangleCount =
+				Pair.Metrics.ExcludedDegenerateBodyTriangleCount;
+			Snapshot.VertexAnchors.Reserve(Pair.VertexBindings.Num());
 			for (const FEFClothingSurfaceVertexBinding& Vertex : Pair.VertexBindings)
 			{
 				float TargetCm = FMath::Max(Vertex.TargetClearanceCm, 0.0f);
@@ -204,8 +252,14 @@ namespace EFClothingSurfaceReadbackQA
 				{
 					TargetCm = FMath::Max(TargetCm, Vertex.RestSignedGapCm);
 				}
-				Snapshot.VertexTargetClearanceCm.Add(
-					FMath::Max(TargetCm + RuntimeOffsetCm, 0.0f));
+				FVertexAnchorSnapshot& OutAnchor = Snapshot.VertexAnchors.AddDefaulted_GetRef();
+				OutAnchor.BodyRenderVertexIndices = Vertex.BodyRenderVertexIndices;
+				OutAnchor.BodyBarycentrics = Vertex.BodyBarycentrics;
+				OutAnchor.RestTangentFrameOffsetCm = Vertex.RestTangentFrameOffsetCm;
+				OutAnchor.TargetClearanceCm = FMath::Max(TargetCm + RuntimeOffsetCm, 0.0f);
+				OutAnchor.FollowWeight = Vertex.FollowWeight;
+				OutAnchor.MaximumCorrectionCm = Vertex.MaximumCorrectionCm;
+				OutAnchor.Mode = Vertex.Mode;
 			}
 
 			Snapshot.Witnesses.Reserve(Pair.Witnesses.Num());
@@ -214,6 +268,8 @@ namespace EFClothingSurfaceReadbackQA
 				FWitnessSnapshot& OutWitness = Snapshot.Witnesses.AddDefaulted_GetRef();
 				OutWitness.GarmentRenderVertexIndices = Witness.GarmentRenderVertexIndices;
 				OutWitness.GarmentBarycentrics = Witness.GarmentBarycentrics;
+				OutWitness.BodyRenderVertexIndices = Witness.BodyRenderVertexIndices;
+				OutWitness.BodyBarycentrics = Witness.BodyBarycentrics;
 				OutWitness.TargetClearanceCm = FMath::Max(
 					Witness.TargetClearanceCm + RuntimeOffsetCm,
 					0.0f);
@@ -281,7 +337,10 @@ namespace EFClothingSurfaceReadbackQA
 			const FVector3d A = Positions[Triangle.A];
 			const FVector3d B = Positions[Triangle.B];
 			const FVector3d C = Positions[Triangle.C];
-			if (FVector3d::CrossProduct(B - A, C - A).SquaredLength() <= UE_DOUBLE_SMALL_NUMBER)
+			// Match the exact numerical degeneracy guard used by both EF GPU
+			// kernels. UE_DOUBLE_SMALL_NUMBER is intentionally much larger and
+			// mislabeled valid sub-millimeter tessellation helpers as zero-area.
+			if (FVector3d::CrossProduct(B - A, C - A).SquaredLength() <= 1.0e-12)
 			{
 				++OutSkippedTriangleCount;
 				continue;
@@ -299,37 +358,6 @@ namespace EFClothingSurfaceReadbackQA
 		return true;
 	}
 
-	bool FindSignedGap(
-		const FDynamicMesh3& BodyMesh,
-		const FDynamicMeshAABBTree3& BodyTree,
-		const FVector3d& QueryPoint,
-		float& OutSignedGapCm)
-	{
-		double DistanceSquared = TNumericLimits<double>::Max();
-		const int32 TriangleId = BodyTree.FindNearestTriangle(QueryPoint, DistanceSquared);
-		if (TriangleId == INDEX_NONE || !BodyMesh.IsTriangle(TriangleId))
-		{
-			return false;
-		}
-		const FIndex3i Indices = BodyMesh.GetTriangle(TriangleId);
-		const FTriangle3d Triangle(
-			BodyMesh.GetVertex(Indices.A),
-			BodyMesh.GetVertex(Indices.B),
-			BodyMesh.GetVertex(Indices.C));
-		FDistPoint3Triangle3d DistanceQuery(QueryPoint, Triangle);
-		DistanceQuery.GetSquared();
-		FVector3d Normal = FVector3d::CrossProduct(
-			Triangle.V[1] - Triangle.V[0],
-			Triangle.V[2] - Triangle.V[0]);
-		if (!Normal.Normalize())
-		{
-			return false;
-		}
-		OutSignedGapCm = static_cast<float>(
-			FVector3d::DotProduct(QueryPoint - DistanceQuery.ClosestTrianglePoint, Normal));
-		return FMath::IsFinite(OutSignedGapCm);
-	}
-
 	float Percentile99(TArray<float>& Values)
 	{
 		if (Values.IsEmpty())
@@ -342,6 +370,211 @@ namespace EFClothingSurfaceReadbackQA
 			0,
 			Values.Num() - 1);
 		return Values[Index];
+	}
+
+	bool NormalizeBarycentrics(
+		const FVector3f& Input,
+		FVector3d& OutNormalized)
+	{
+		if (!IsFinite(Input))
+		{
+			return false;
+		}
+		const double Sum = static_cast<double>(Input.X)
+			+ static_cast<double>(Input.Y)
+			+ static_cast<double>(Input.Z);
+		if (!FMath::IsFinite(Sum) || FMath::Abs(Sum) <= 1.0e-8)
+		{
+			return false;
+		}
+		OutNormalized = FVector3d(Input) / Sum;
+		return IsFinite(OutNormalized);
+	}
+
+	bool ResolveBoundAnimatedFrame(
+		const TArray<FVector3d>& BodyPositions,
+		const FIntVector& TriangleIndices,
+		const FVector3f& Barycentrics,
+		FVector3d& OutAnchor,
+		FVector3d& OutTangent,
+		FVector3d& OutBitangent,
+		FVector3d& OutNormal)
+	{
+		if (!BodyPositions.IsValidIndex(TriangleIndices.X)
+			|| !BodyPositions.IsValidIndex(TriangleIndices.Y)
+			|| !BodyPositions.IsValidIndex(TriangleIndices.Z))
+		{
+			return false;
+		}
+		FVector3d NormalizedBarycentrics;
+		if (!NormalizeBarycentrics(Barycentrics, NormalizedBarycentrics))
+		{
+			return false;
+		}
+		const FVector3d& A = BodyPositions[TriangleIndices.X];
+		const FVector3d& B = BodyPositions[TriangleIndices.Y];
+		const FVector3d& C = BodyPositions[TriangleIndices.Z];
+		const FVector3d Edge01 = B - A;
+		const FVector3d Edge02 = C - A;
+		OutNormal = Edge01.Cross(Edge02);
+		const double NormalLengthSquared = OutNormal.SquaredLength();
+		if (!IsFinite(OutNormal) || NormalLengthSquared <= 1.0e-12)
+		{
+			return false;
+		}
+		// Schema 4 matches the GPU exactly: the oriented final body triangle is
+		// the normal source. This deliberately avoids Optimus' independent
+		// TangentZ static fallback for secondary-component reads.
+		OutNormal /= FMath::Sqrt(NormalLengthSquared);
+		OutTangent = Edge01 - OutNormal * Edge01.Dot(OutNormal);
+		double TangentLengthSquared = OutTangent.SquaredLength();
+		if (!IsFinite(OutTangent) || TangentLengthSquared <= 1.0e-12)
+		{
+			OutTangent = Edge02 - OutNormal * Edge02.Dot(OutNormal);
+			TangentLengthSquared = OutTangent.SquaredLength();
+		}
+		if (!IsFinite(OutTangent) || TangentLengthSquared <= 1.0e-12)
+		{
+			return false;
+		}
+		OutTangent /= FMath::Sqrt(TangentLengthSquared);
+		OutBitangent = OutNormal.Cross(OutTangent);
+		const double BitangentLengthSquared = OutBitangent.SquaredLength();
+		if (!IsFinite(OutBitangent) || BitangentLengthSquared <= 1.0e-12)
+		{
+			return false;
+		}
+		OutBitangent /= FMath::Sqrt(BitangentLengthSquared);
+		// Match the HLSL's final Gram-Schmidt step: T = normalize((N x T) x N).
+		OutTangent = OutBitangent.Cross(OutNormal);
+		const double FinalTangentLengthSquared = OutTangent.SquaredLength();
+		if (!IsFinite(OutTangent) || FinalTangentLengthSquared <= 1.0e-12)
+		{
+			return false;
+		}
+		OutTangent /= FMath::Sqrt(FinalTangentLengthSquared);
+		OutAnchor = A * NormalizedBarycentrics.X
+			+ B * NormalizedBarycentrics.Y
+			+ C * NormalizedBarycentrics.Z;
+		return IsFinite(OutAnchor)
+			&& IsFinite(OutTangent)
+			&& IsFinite(OutBitangent)
+			&& IsFinite(OutNormal);
+	}
+
+	bool ResolveBoundAnimatedSurface(
+		const TArray<FVector3d>& BodyPositions,
+		const FIntVector& TriangleIndices,
+		const FVector3f& Barycentrics,
+		FVector3d& OutAnchor,
+		FVector3d& OutNormal)
+	{
+		FVector3d IgnoredTangent;
+		FVector3d IgnoredBitangent;
+		return ResolveBoundAnimatedFrame(
+			BodyPositions,
+			TriangleIndices,
+			Barycentrics,
+			OutAnchor,
+			IgnoredTangent,
+			IgnoredBitangent,
+			OutNormal);
+	}
+
+	bool ReconstructBaseCorrectedPosition(
+		const TArray<FVector3d>& BodyPositions,
+		const FVertexAnchorSnapshot& Binding,
+		const FVector3d& GarmentPosition,
+		FVector3d& OutCorrectedPosition)
+	{
+		OutCorrectedPosition = GarmentPosition;
+		if (!IsFinite(GarmentPosition))
+		{
+			return false;
+		}
+		// PreserveUpstream is outside the surface-constraint domain. Its first-pass
+		// output is exactly the normal DAZ/skinning/Chaos garment position.
+		if (Binding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+		{
+			return true;
+		}
+		if (!IsFinite(Binding.RestTangentFrameOffsetCm)
+			|| !FMath::IsFinite(Binding.TargetClearanceCm)
+			|| !FMath::IsFinite(Binding.FollowWeight)
+			|| !FMath::IsFinite(Binding.MaximumCorrectionCm))
+		{
+			return false;
+		}
+
+		FVector3d SurfaceAnchor;
+		FVector3d SurfaceTangent;
+		FVector3d SurfaceBitangent;
+		FVector3d SurfaceNormal;
+		if (!ResolveBoundAnimatedFrame(
+			BodyPositions,
+			Binding.BodyRenderVertexIndices,
+			Binding.BodyBarycentrics,
+			SurfaceAnchor,
+			SurfaceTangent,
+			SurfaceBitangent,
+			SurfaceNormal))
+		{
+			// This is the base kernel's conservative position fallback.
+			return true;
+		}
+
+		const FVector3d RestOffset(Binding.RestTangentFrameOffsetCm);
+		const FVector3d SurfaceTarget = SurfaceAnchor
+			+ SurfaceTangent * RestOffset.X
+			+ SurfaceBitangent * RestOffset.Y
+			+ SurfaceNormal * RestOffset.Z;
+		const double FollowWeight = Binding.Mode == EEFClothingSurfaceVertexMode::CollisionOnly
+			? 0.0
+			: FMath::Clamp(static_cast<double>(Binding.FollowWeight), 0.0, 1.0);
+		FVector3d FollowDelta = (SurfaceTarget - GarmentPosition) * FollowWeight;
+		FollowDelta -= SurfaceNormal * FMath::Min(FollowDelta.Dot(SurfaceNormal), 0.0);
+		const FVector3d CandidatePosition = GarmentPosition + FollowDelta;
+
+		// The runtime override only selects the diagnostic threshold; the visual push
+		// is intentionally unclamped. A valid compiled binding always has a positive
+		// MaximumCorrectionCm, matching the kernel's normal path.
+		if (Binding.MaximumCorrectionCm <= 0.0f)
+		{
+			return true;
+		}
+		const double TargetGapCm = FMath::Max(
+			static_cast<double>(Binding.TargetClearanceCm),
+			0.0);
+		const double SignedGapCm = (CandidatePosition - SurfaceAnchor).Dot(SurfaceNormal);
+		const double RequiredPushCm = FMath::Max(TargetGapCm - SignedGapCm, 0.0);
+		const FVector3d CorrectedPosition = CandidatePosition + SurfaceNormal * RequiredPushCm;
+		if (IsFinite(CorrectedPosition))
+		{
+			OutCorrectedPosition = CorrectedPosition;
+		}
+		return true;
+	}
+
+	bool FindBoundSignedGap(
+		const TArray<FVector3d>& BodyPositions,
+		const FIntVector& TriangleIndices,
+		const FVector3f& Barycentrics,
+		const FVector3d& QueryPoint,
+		float& OutSignedGapCm)
+	{
+		FVector3d Anchor;
+		FVector3d Normal;
+		if (!ResolveBoundAnimatedSurface(
+			BodyPositions,
+			TriangleIndices,
+			Barycentrics,
+			Anchor,
+			Normal))
+		{
+			return false;
+		}
+		OutSignedGapCm = static_cast<float>((QueryPoint - Anchor).Dot(Normal));
+		return FMath::IsFinite(OutSignedGapCm);
 	}
 
 	void Analyze(const TSharedPtr<FReadbackState, ESPMode::ThreadSafe>& State)
@@ -386,29 +619,42 @@ namespace EFClothingSurfaceReadbackQA
 			FailAnalysis(TEXT("Returned GPU LOD pair has no exact cooked topology/binding snapshot."));
 			return;
 		}
-		if (Binding->VertexTargetClearanceCm.Num() != GarmentFinal.Positions.Num())
+		if (Binding->VertexAnchors.Num() != GarmentFinal.Positions.Num())
 		{
 			FailAnalysis(TEXT("V26 per-render-vertex clearance array does not match the final GPU buffer."));
 			return;
 		}
+		if (BodyTopology->ExcludedRestDegenerateTriangleCount
+			!= Binding->ExcludedDegenerateBodyTriangleCount)
+		{
+			FailAnalysis(TEXT("Live body rest-degenerate triangle exclusions differ from the V26 binding."));
+			return;
+		}
+		Result.ExcludedDegenerateBodyTriangleCount =
+			BodyTopology->ExcludedRestDegenerateTriangleCount;
 		if (GarmentBase.Positions.Num() != GarmentFinal.Positions.Num())
 		{
 			FailAnalysis(TEXT("Pre-EF and post-EF garment vertex counts differ."));
 			return;
 		}
-
 		TArray<FVector3d> BodyPositions;
 		BodyPositions.Reserve(BodyFinal.Positions.Num());
-		for (const FVector3f& Position : BodyFinal.Positions)
+		for (int32 VertexIndex = 0; VertexIndex < BodyFinal.Positions.Num(); ++VertexIndex)
 		{
-			if (!IsFinite(Position))
+			const FVector3f& Position = BodyFinal.Positions[VertexIndex];
+			const FVector3d TransformedPosition(
+				BodyToGarment.TransformPosition(FVector(Position)));
+			if (!IsFinite(Position)
+				|| !IsFinite(TransformedPosition))
 			{
 				++Result.InvalidOrNonFiniteVertexCount;
 				BodyPositions.Add(FVector3d::Zero());
 			}
 			else
 			{
-				BodyPositions.Add(FVector3d(BodyToGarment.TransformPosition(FVector(Position))));
+				// Graph/schema 4 derives every contact normal from these exact final
+				// animated positions after transforming into garment-local space.
+				BodyPositions.Add(TransformedPosition);
 			}
 		}
 
@@ -428,8 +674,32 @@ namespace EFClothingSurfaceReadbackQA
 		}
 		if (Result.InvalidOrNonFiniteVertexCount != 0)
 		{
-			FailAnalysis(TEXT("One or more final GPU positions are NaN/Inf."));
+			FailAnalysis(TEXT("One or more final GPU positions are non-finite."));
 			return;
+		}
+
+		TArray<FVector3d> BaseCorrectedPositions;
+		BaseCorrectedPositions.Reserve(GarmentBase.Positions.Num());
+		for (int32 VertexIndex = 0; VertexIndex < GarmentBase.Positions.Num(); ++VertexIndex)
+		{
+			const FVector3f& PreEFPosition = GarmentBase.Positions[VertexIndex];
+			if (!IsFinite(PreEFPosition))
+			{
+				FailAnalysis(TEXT("Pre-EF garment readback contains NaN/Inf positions."));
+				return;
+			}
+			FVector3d BaseCorrectedPosition;
+			if (!ReconstructBaseCorrectedPosition(
+				BodyPositions,
+				Binding->VertexAnchors[VertexIndex],
+				FVector3d(PreEFPosition),
+				BaseCorrectedPosition)
+				|| !IsFinite(BaseCorrectedPosition))
+			{
+				FailAnalysis(TEXT("Failed to reconstruct the GPU BaseCorrectedPosition resource."));
+				return;
+			}
+			BaseCorrectedPositions.Add(BaseCorrectedPosition);
 		}
 
 		FDynamicMesh3 BodyMesh;
@@ -454,6 +724,36 @@ namespace EFClothingSurfaceReadbackQA
 			return;
 		}
 
+		// The optional-anatomy PreserveUpstream domain intentionally keeps the
+		// upstream garment output and is therefore not part of the certified
+		// skin/garment intersection surface. Remove every touching face before the
+		// exact GeometryCore query; vertex IDs still match cooked render indices.
+		TArray<int32> PreserveUpstreamTriangles;
+		for (const int32 TriangleID : GarmentMesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = GarmentMesh.GetTriangle(TriangleID);
+			if (Binding->VertexAnchors[Triangle.A].Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
+				|| Binding->VertexAnchors[Triangle.B].Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
+				|| Binding->VertexAnchors[Triangle.C].Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+			{
+				PreserveUpstreamTriangles.Add(TriangleID);
+			}
+		}
+		for (const int32 TriangleID : PreserveUpstreamTriangles)
+		{
+			if (GarmentMesh.RemoveTriangle(TriangleID, false, false) != EMeshResult::Ok)
+			{
+				FailAnalysis(TEXT("Failed to remove a PreserveUpstream garment triangle from certification."));
+				return;
+			}
+		}
+		Result.ExcludedPreserveUpstreamGarmentTriangleCount = PreserveUpstreamTriangles.Num();
+		if (GarmentMesh.TriangleCount() == 0)
+		{
+			FailAnalysis(TEXT("PreserveUpstream excluded the complete garment topology; no certified surface remains."));
+			return;
+		}
+
 		FDynamicMeshAABBTree3 BodyTree(&BodyMesh, true);
 		FDynamicMeshAABBTree3 GarmentTree(&GarmentMesh, true);
 		const MeshIntersection::FIntersectionsQueryResult Intersections =
@@ -461,20 +761,130 @@ namespace EFClothingSurfaceReadbackQA
 		Result.TriangleIntersectionCount = Intersections.Points.Num()
 			+ Intersections.Segments.Num()
 			+ Intersections.Polygons.Num();
+		int32 LoggedIntersectionCount = 0;
+		auto LogIntersection = [
+			&BodyMesh,
+			&GarmentMesh,
+			&LoggedIntersectionCount](
+				const TCHAR* Kind,
+				int32 BodyTriangleID,
+				int32 GarmentTriangleID,
+				const FVector3d& Center)
+		{
+			if (LoggedIntersectionCount >= 64
+				|| !BodyMesh.IsTriangle(BodyTriangleID)
+				|| !GarmentMesh.IsTriangle(GarmentTriangleID))
+			{
+				return;
+			}
+			const FIndex3i BodyVertices = BodyMesh.GetTriangle(BodyTriangleID);
+			const FIndex3i GarmentVertices = GarmentMesh.GetTriangle(GarmentTriangleID);
+			const FIndex3i GarmentEdges = GarmentMesh.GetTriEdges(GarmentTriangleID);
+			const int32 BoundaryEdgeCount =
+				(GarmentMesh.IsBoundaryEdge(GarmentEdges.A) ? 1 : 0)
+				+ (GarmentMesh.IsBoundaryEdge(GarmentEdges.B) ? 1 : 0)
+				+ (GarmentMesh.IsBoundaryEdge(GarmentEdges.C) ? 1 : 0);
+			UE_LOG(
+				LogEFClothingSurfaceReadbackQA,
+				Warning,
+				TEXT("TriangleIntersection kind=%s center=(%.6f,%.6f,%.6f) bodyTri=%d body=(%d,%d,%d) garmentTri=%d garment=(%d,%d,%d) boundaryEdges=%d"),
+				Kind,
+				Center.X,
+				Center.Y,
+				Center.Z,
+				BodyTriangleID,
+				BodyVertices.A,
+				BodyVertices.B,
+				BodyVertices.C,
+				GarmentTriangleID,
+				GarmentVertices.A,
+				GarmentVertices.B,
+				GarmentVertices.C,
+				BoundaryEdgeCount);
+			++LoggedIntersectionCount;
+		};
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			LogIntersection(
+				TEXT("Point"),
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				Intersection.Point);
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			LogIntersection(
+				TEXT("Segment"),
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				(Intersection.Point[0] + Intersection.Point[1]) * 0.5);
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			FVector3d Center = FVector3d::Zero();
+			for (int32 PointIndex = 0; PointIndex < Intersection.Quantity; ++PointIndex)
+			{
+				Center += Intersection.Point[PointIndex];
+			}
+			if (Intersection.Quantity > 0)
+			{
+				Center /= static_cast<double>(Intersection.Quantity);
+			}
+			LogIntersection(
+				TEXT("Polygon"),
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				Center);
+		}
 
 		Result.MinimumVertexSkinGapCm = TNumericLimits<float>::Max();
+		Result.MinimumBaseCorrectedVertexSkinGapCm = TNumericLimits<float>::Max();
+		Result.MinimumBaseCorrectedClearanceResidualCm = TNumericLimits<float>::Max();
 		Result.MinimumClearanceResidualCm = TNumericLimits<float>::Max();
 		for (int32 VertexIndex = 0; VertexIndex < GarmentPositions.Num(); ++VertexIndex)
 		{
-			float GapCm = 0.0f;
-			if (!FindSignedGap(BodyMesh, BodyTree, GarmentPositions[VertexIndex], GapCm))
+			const FVertexAnchorSnapshot& VertexAnchor = Binding->VertexAnchors[VertexIndex];
+			if (VertexAnchor.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
 			{
-				FailAnalysis(TEXT("Failed to find a valid closest body triangle for a garment vertex."));
+				continue;
+			}
+			float BaseCorrectedGapCm = 0.0f;
+			if (!FindBoundSignedGap(
+				BodyPositions,
+				VertexAnchor.BodyRenderVertexIndices,
+				VertexAnchor.BodyBarycentrics,
+				BaseCorrectedPositions[VertexIndex],
+				BaseCorrectedGapCm))
+			{
+				FailAnalysis(TEXT("Failed to evaluate a reconstructed base-pass garment vertex."));
+				return;
+			}
+			Result.MinimumBaseCorrectedVertexSkinGapCm = FMath::Min(
+				Result.MinimumBaseCorrectedVertexSkinGapCm,
+				BaseCorrectedGapCm);
+			Result.BaseCorrectedVertexSkinGapViolationCount +=
+				BaseCorrectedGapCm < VertexGapToleranceCm ? 1 : 0;
+			const float BaseCorrectedResidualCm =
+				BaseCorrectedGapCm - VertexAnchor.TargetClearanceCm;
+			Result.MinimumBaseCorrectedClearanceResidualCm = FMath::Min(
+				Result.MinimumBaseCorrectedClearanceResidualCm,
+				BaseCorrectedResidualCm);
+			Result.BaseCorrectedClearanceResidualViolationCount +=
+				BaseCorrectedResidualCm < ClearanceResidualToleranceCm ? 1 : 0;
+			float GapCm = 0.0f;
+			if (!FindBoundSignedGap(
+				BodyPositions,
+				VertexAnchor.BodyRenderVertexIndices,
+				VertexAnchor.BodyBarycentrics,
+				GarmentPositions[VertexIndex],
+				GapCm))
+			{
+				FailAnalysis(TEXT("Failed to evaluate a certified body anchor for a garment vertex."));
 				return;
 			}
 			Result.MinimumVertexSkinGapCm = FMath::Min(Result.MinimumVertexSkinGapCm, GapCm);
 			Result.VertexSkinGapViolationCount += GapCm < VertexGapToleranceCm ? 1 : 0;
-			const float ResidualCm = GapCm - Binding->VertexTargetClearanceCm[VertexIndex];
+			const float ResidualCm = GapCm - VertexAnchor.TargetClearanceCm;
 			Result.MinimumClearanceResidualCm = FMath::Min(Result.MinimumClearanceResidualCm, ResidualCm);
 			Result.ClearanceResidualViolationCount +=
 				ResidualCm < ClearanceResidualToleranceCm ? 1 : 0;
@@ -485,8 +895,13 @@ namespace EFClothingSurfaceReadbackQA
 		Result.MinimumTriangleSampleSkinGapCm = Binding->Witnesses.IsEmpty()
 			? 0.0f
 			: TNumericLimits<float>::Max();
-		for (const FWitnessSnapshot& Witness : Binding->Witnesses)
+		Result.MinimumBaseCorrectedTriangleSampleSkinGapCm = Binding->Witnesses.IsEmpty()
+			? 0.0f
+			: TNumericLimits<float>::Max();
+		int32 LoggedViolatingWitnessCount = 0;
+		for (int32 WitnessIndex = 0; WitnessIndex < Binding->Witnesses.Num(); ++WitnessIndex)
 		{
+			const FWitnessSnapshot& Witness = Binding->Witnesses[WitnessIndex];
 			const FIntVector& Indices = Witness.GarmentRenderVertexIndices;
 			if (!GarmentPositions.IsValidIndex(Indices.X)
 				|| !GarmentPositions.IsValidIndex(Indices.Y)
@@ -495,20 +910,176 @@ namespace EFClothingSurfaceReadbackQA
 				FailAnalysis(TEXT("A compiled V26 witness references an invalid final render vertex."));
 				return;
 			}
-			const FVector3d Sample =
-				GarmentPositions[Indices.X] * Witness.GarmentBarycentrics.X
-				+ GarmentPositions[Indices.Y] * Witness.GarmentBarycentrics.Y
-				+ GarmentPositions[Indices.Z] * Witness.GarmentBarycentrics.Z;
-			float GapCm = 0.0f;
-			if (!FindSignedGap(BodyMesh, BodyTree, Sample, GapCm))
+			FVector3d GarmentBarycentrics;
+			if (!NormalizeBarycentrics(Witness.GarmentBarycentrics, GarmentBarycentrics))
 			{
-				FailAnalysis(TEXT("Failed to find a valid closest body triangle for a V26 witness."));
+				FailAnalysis(TEXT("A compiled V26 witness has invalid garment barycentrics."));
+				return;
+			}
+			const FVector3d Sample =
+				GarmentPositions[Indices.X] * GarmentBarycentrics.X
+				+ GarmentPositions[Indices.Y] * GarmentBarycentrics.Y
+				+ GarmentPositions[Indices.Z] * GarmentBarycentrics.Z;
+			const FVector3d BaseCorrectedSample =
+				BaseCorrectedPositions[Indices.X] * GarmentBarycentrics.X
+				+ BaseCorrectedPositions[Indices.Y] * GarmentBarycentrics.Y
+				+ BaseCorrectedPositions[Indices.Z] * GarmentBarycentrics.Z;
+			float BaseCorrectedGapCm = 0.0f;
+			if (!FindBoundSignedGap(
+				BodyPositions,
+				Witness.BodyRenderVertexIndices,
+				Witness.BodyBarycentrics,
+				BaseCorrectedSample,
+				BaseCorrectedGapCm))
+			{
+				FailAnalysis(TEXT("Failed to evaluate a reconstructed base-pass V26 witness."));
+				return;
+			}
+			Result.MinimumBaseCorrectedTriangleSampleSkinGapCm = FMath::Min(
+				Result.MinimumBaseCorrectedTriangleSampleSkinGapCm,
+				BaseCorrectedGapCm);
+			Result.BaseCorrectedTriangleSampleSkinGapViolationCount +=
+				BaseCorrectedGapCm < VertexGapToleranceCm ? 1 : 0;
+			const float BaseCorrectedResidualCm =
+				BaseCorrectedGapCm - Witness.TargetClearanceCm;
+			Result.MinimumBaseCorrectedClearanceResidualCm = FMath::Min(
+				Result.MinimumBaseCorrectedClearanceResidualCm,
+				BaseCorrectedResidualCm);
+			Result.BaseCorrectedClearanceResidualViolationCount +=
+				BaseCorrectedResidualCm < ClearanceResidualToleranceCm ? 1 : 0;
+			float GapCm = 0.0f;
+			if (!FindBoundSignedGap(
+				BodyPositions,
+				Witness.BodyRenderVertexIndices,
+				Witness.BodyBarycentrics,
+				Sample,
+				GapCm))
+			{
+				FailAnalysis(TEXT("Failed to evaluate a certified body anchor for a V26 witness."));
 				return;
 			}
 			Result.MinimumTriangleSampleSkinGapCm = FMath::Min(
 				Result.MinimumTriangleSampleSkinGapCm,
 				GapCm);
 			Result.TriangleSampleSkinGapViolationCount += GapCm < VertexGapToleranceCm ? 1 : 0;
+			if (GapCm < VertexGapToleranceCm && LoggedViolatingWitnessCount < 64)
+			{
+				auto ResolveAnimatedNormal = [&BodyPositions](
+					const FIntVector& Triangle,
+					const FVector3f& Barycentrics,
+					FVector3d& OutNormal) -> bool
+				{
+					FVector3d IgnoredAnchor;
+					return ResolveBoundAnimatedSurface(
+						BodyPositions,
+						Triangle,
+						Barycentrics,
+						IgnoredAnchor,
+						OutNormal);
+				};
+				FVector3d WitnessNormal = FVector3d::ZeroVector;
+				FVector3d PrimaryNormals[3] = {};
+				const int32 GarmentCornerIndices[3] = { Indices.X, Indices.Y, Indices.Z };
+				double PrimaryWitnessDots[3] = { -2.0, -2.0, -2.0 };
+				double WitnessPassPrimaryDisplacements[3] = {};
+				double WitnessPassNormalDisplacements[3] = {};
+				FVector3d WitnessPassDisplacements[3] = {};
+				double ExpectedPrimaryDisplacements[3] = {};
+				float PreEFGapCm = TNumericLimits<float>::Lowest();
+				if (ResolveAnimatedNormal(
+					Witness.BodyRenderVertexIndices,
+					Witness.BodyBarycentrics,
+					WitnessNormal))
+				{
+					const FVector3d PreEFSample =
+						FVector3d(GarmentBase.Positions[Indices.X]) * GarmentBarycentrics.X
+						+ FVector3d(GarmentBase.Positions[Indices.Y]) * GarmentBarycentrics.Y
+						+ FVector3d(GarmentBase.Positions[Indices.Z]) * GarmentBarycentrics.Z;
+					FindBoundSignedGap(
+						BodyPositions,
+						Witness.BodyRenderVertexIndices,
+						Witness.BodyBarycentrics,
+						PreEFSample,
+						PreEFGapCm);
+					double CoefficientSquaredSum = 0.0;
+					for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+					{
+						const int32 GarmentCorner = GarmentCornerIndices[CornerIndex];
+						if (Binding->VertexAnchors.IsValidIndex(GarmentCorner)
+							&& ResolveAnimatedNormal(
+								Binding->VertexAnchors[GarmentCorner].BodyRenderVertexIndices,
+								Binding->VertexAnchors[GarmentCorner].BodyBarycentrics,
+								PrimaryNormals[CornerIndex]))
+						{
+							PrimaryWitnessDots[CornerIndex] = PrimaryNormals[CornerIndex].Dot(WitnessNormal);
+							const FVector3d WitnessPassDisplacement =
+								GarmentPositions[GarmentCorner]
+								- BaseCorrectedPositions[GarmentCorner];
+							WitnessPassDisplacements[CornerIndex] = WitnessPassDisplacement;
+							WitnessPassPrimaryDisplacements[CornerIndex] =
+								WitnessPassDisplacement.Dot(PrimaryNormals[CornerIndex]);
+							WitnessPassNormalDisplacements[CornerIndex] =
+								WitnessPassDisplacement.Dot(WitnessNormal);
+							const double Coefficient = GarmentBarycentrics[CornerIndex]
+								* FMath::Max(PrimaryWitnessDots[CornerIndex], 0.0);
+							CoefficientSquaredSum += Coefficient * Coefficient;
+						}
+					}
+					const double RequiredPushCm = FMath::Max(
+						static_cast<double>(Witness.TargetClearanceCm - BaseCorrectedGapCm),
+						0.0);
+					if (CoefficientSquaredSum > 1.e-10)
+					{
+						for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+						{
+							const double Coefficient = GarmentBarycentrics[CornerIndex]
+								* FMath::Max(PrimaryWitnessDots[CornerIndex], 0.0);
+							ExpectedPrimaryDisplacements[CornerIndex] =
+								RequiredPushCm * Coefficient / CoefficientSquaredSum;
+						}
+					}
+				}
+				UE_LOG(
+					LogEFClothingSurfaceReadbackQA,
+					Warning,
+					TEXT("WitnessViolation index=%d preEFGap=%.6f baseCorrectedGap=%.6f finalGap=%.6f target=%.6f garment=(%d,%d,%d) bary=(%.6f,%.6f,%.6f) body=(%d,%d,%d) primary_dot=(%.6f,%.6f,%.6f) expected_primary=(%.6f,%.6f,%.6f) witness_pass_primary=(%.6f,%.6f,%.6f) witness_pass_normal=(%.6f,%.6f,%.6f) witness_pass_xyz0=(%.6f,%.6f,%.6f) witness_pass_xyz1=(%.6f,%.6f,%.6f) witness_pass_xyz2=(%.6f,%.6f,%.6f)"),
+					WitnessIndex,
+					PreEFGapCm,
+					BaseCorrectedGapCm,
+					GapCm,
+					Witness.TargetClearanceCm,
+					Indices.X,
+					Indices.Y,
+					Indices.Z,
+					Witness.GarmentBarycentrics.X,
+					Witness.GarmentBarycentrics.Y,
+					Witness.GarmentBarycentrics.Z,
+					Witness.BodyRenderVertexIndices.X,
+					Witness.BodyRenderVertexIndices.Y,
+					Witness.BodyRenderVertexIndices.Z,
+					PrimaryWitnessDots[0],
+					PrimaryWitnessDots[1],
+					PrimaryWitnessDots[2],
+					ExpectedPrimaryDisplacements[0],
+					ExpectedPrimaryDisplacements[1],
+					ExpectedPrimaryDisplacements[2],
+					WitnessPassPrimaryDisplacements[0],
+					WitnessPassPrimaryDisplacements[1],
+					WitnessPassPrimaryDisplacements[2],
+					WitnessPassNormalDisplacements[0],
+					WitnessPassNormalDisplacements[1],
+					WitnessPassNormalDisplacements[2],
+					WitnessPassDisplacements[0].X,
+					WitnessPassDisplacements[0].Y,
+					WitnessPassDisplacements[0].Z,
+					WitnessPassDisplacements[1].X,
+					WitnessPassDisplacements[1].Y,
+					WitnessPassDisplacements[1].Z,
+					WitnessPassDisplacements[2].X,
+					WitnessPassDisplacements[2].Y,
+					WitnessPassDisplacements[2].Z);
+				++LoggedViolatingWitnessCount;
+			}
 			const float ResidualCm = GapCm - Witness.TargetClearanceCm;
 			Result.MinimumClearanceResidualCm = FMath::Min(Result.MinimumClearanceResidualCm, ResidualCm);
 			Result.ClearanceResidualViolationCount +=
@@ -517,13 +1088,10 @@ namespace EFClothingSurfaceReadbackQA
 
 		TArray<float> CorrectionMagnitudes;
 		CorrectionMagnitudes.Reserve(GarmentFinal.Positions.Num());
+		TArray<float> WitnessPassDisplacements;
+		WitnessPassDisplacements.Reserve(GarmentFinal.Positions.Num());
 		for (int32 VertexIndex = 0; VertexIndex < GarmentFinal.Positions.Num(); ++VertexIndex)
 		{
-			if (!IsFinite(GarmentBase.Positions[VertexIndex]))
-			{
-				FailAnalysis(TEXT("Pre-EF garment readback contains NaN/Inf positions."));
-				return;
-			}
 			const float MagnitudeCm = FVector3f::Distance(
 				GarmentFinal.Positions[VertexIndex],
 				GarmentBase.Positions[VertexIndex]);
@@ -531,8 +1099,18 @@ namespace EFClothingSurfaceReadbackQA
 			Result.MaximumCorrectionMagnitudeCm = FMath::Max(
 				Result.MaximumCorrectionMagnitudeCm,
 				MagnitudeCm);
+			const float WitnessPassDisplacementCm = static_cast<float>(
+				(FVector3d(GarmentFinal.Positions[VertexIndex])
+					- BaseCorrectedPositions[VertexIndex]).Length());
+			WitnessPassDisplacements.Add(WitnessPassDisplacementCm);
+			Result.MaximumWitnessPassDisplacementCm = FMath::Max(
+				Result.MaximumWitnessPassDisplacementCm,
+				WitnessPassDisplacementCm);
+			// One micrometer expressed in Unreal centimeters.
+			Result.WitnessPassMovedVertexCount += WitnessPassDisplacementCm > 1.0e-4f ? 1 : 0;
 		}
 		Result.CorrectionMagnitudeP99Cm = Percentile99(CorrectionMagnitudes);
+		Result.WitnessPassDisplacementP99Cm = Percentile99(WitnessPassDisplacements);
 
 		Result.GarmentLODIndex = GarmentFinal.LODIndex;
 		Result.BodyLODIndex = BodyFinal.LODIndex;
@@ -598,7 +1176,7 @@ namespace EFClothingSurfaceReadbackQA
 		if (!bValid)
 		{
 			SetFailed(State, bBody
-				? TEXT("Body Optimus readback returned no render positions.")
+				? TEXT("Body Optimus readback returned no final render positions.")
 				: TEXT("Pre-EF garment Optimus readback returned no render positions."));
 			return;
 		}
@@ -614,7 +1192,8 @@ namespace EFClothingSurfaceReadbackQA
 		bool bAllCandidatesFailed = false;
 		{
 			FScopeLock Lock(&State->Mutex);
-			if (!State->bGarmentFinalReceived && CopyReadback(Data, State->GarmentFinal))
+			if (!State->bGarmentFinalReceived
+				&& CopyReadback(Data, State->GarmentFinal))
 			{
 				State->bGarmentFinalReceived = true;
 				State->Result.SurfaceInstanceName = InstanceName;
@@ -714,7 +1293,7 @@ bool UEFClothingSurfaceReadbackQALibrary::BeginFinalGeometryReadback(
 				SurfaceCandidates.Add(Instance);
 			}
 		},
-		false);
+		EGetObjectsFlags::None);
 	if (SurfaceCandidates.IsEmpty())
 	{
 		OutError = FString::Printf(

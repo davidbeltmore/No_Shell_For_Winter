@@ -150,6 +150,9 @@ def _binding_metrics(binding):
                 "collision_only_vertices": int(
                     _get(metrics, "collision_only_vertex_count")
                 ),
+                "preserve_upstream_vertices": int(
+                    _get(metrics, "preserve_upstream_vertex_count")
+                ),
                 "candidate_triangles": int(
                     _get(metrics, "candidate_triangle_count")
                 ),
@@ -157,8 +160,26 @@ def _binding_metrics(binding):
                     _get(metrics, "neighbor_reference_count")
                 ),
                 "witnesses": int(_get(metrics, "witness_count")),
+                "excluded_preserve_upstream_garment_triangles": int(
+                    _get(
+                        metrics,
+                        "excluded_preserve_upstream_garment_triangle_count",
+                    )
+                ),
+                "degenerate_body_triangles": int(
+                    _get(metrics, "degenerate_body_triangle_count")
+                ),
+                "excluded_degenerate_body_triangles": int(
+                    _get(metrics, "excluded_degenerate_body_triangle_count")
+                ),
+                "excluded_body_triangles": int(
+                    _get(metrics, "excluded_body_triangle_count")
+                ),
                 "minimum_rest_signed_gap_cm": float(
                     _get(metrics, "minimum_rest_signed_gap_cm")
+                ),
+                "maximum_initial_correction_cm": float(
+                    _get(metrics, "maximum_initial_correction_cm")
                 ),
                 "maximum_anchor_error_cm": float(
                     _get(metrics, "maximum_anchor_error_cm")

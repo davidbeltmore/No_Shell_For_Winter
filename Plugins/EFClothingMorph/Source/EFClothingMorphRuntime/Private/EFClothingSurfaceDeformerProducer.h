@@ -55,6 +55,9 @@ public:
 	int32 GetBodyLODIndex() const { return BodyLODIndex; }
 	uint64 GetEnqueuedFrameCount() const { return EnqueuedFrameCount; }
 	uint32 GetDispatchFailureCount() const;
+	uint32 GetImmediateEnqueueFallbackCount() const;
+	uint32 GetRenderValidationFallbackCount() const;
+	FString GetRenderPreflightSummary() const;
 	/**
 	 * Number of submissions which reached ComputeFramework's render-frame
 	 * validation/submit phase without invoking its fallback delegate.
@@ -93,6 +96,7 @@ private:
 	int32 BodyLODIndex = INDEX_NONE;
 	uint64 EnqueuedFrameCount = 0;
 	uint32 LastObservedDispatchFailureCount = 0;
+	bool bRenderPreflightEnqueued = false;
 	bool bRegisteredWithManager = false;
 
 	struct FDispatchTelemetry;
