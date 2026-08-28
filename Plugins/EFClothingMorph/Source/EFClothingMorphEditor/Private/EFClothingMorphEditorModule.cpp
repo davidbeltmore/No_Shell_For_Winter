@@ -73,7 +73,7 @@ protected:
 			return MakeValue(true);
 		}
 
-		// Native Skeletal Mesh edits can leave render/DDC work queued. The V3 gate
+		// Native Skeletal Mesh edits can leave render/DDC work queued. The V4 gate
 		// reads the authoritative source and can publish bindings only, never meshes.
 		FAssetCompilingManager::Get().FinishAllCompilation();
 
@@ -84,7 +84,7 @@ protected:
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Warning,
-				TEXT("EF Clothing Morph V3 could not load the configured Clothing Director. Play is allowed and every garment will use its untouched native Unreal output."));
+				TEXT("EF Clothing Morph V4 could not load the configured Clothing Director. Play is allowed and every clothing mesh will use its untouched Unreal output."));
 			return MakeValue(true);
 		}
 		if (!IsValid(CompatibilityReference))
@@ -92,17 +92,17 @@ protected:
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Warning,
-				TEXT("EF Clothing Morph V3 could not load its protected compatibility reference. Play is allowed in visible source passthrough; no protected asset was modified."));
+				TEXT("EF Clothing Morph V4 could not load its protected compatibility reference. Play is allowed in visible passthrough; no protected asset was modified."));
 			return MakeValue(true);
 		}
 
 		FString PolicyError;
-		if (!Director->ValidatePolicy(PolicyError))
+		if (!Director->ValidateIdentity(PolicyError))
 		{
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Warning,
-				TEXT("EF Clothing Morph V3 Director validation warning: %s. Play is allowed in visible source passthrough."),
+				TEXT("EF Clothing Morph V4 Director identity warning: %s. Play is allowed in visible passthrough."),
 				*PolicyError);
 			return MakeValue(true);
 		}
@@ -119,7 +119,7 @@ protected:
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Warning,
-				TEXT("EF Clothing Morph V3 source-binding refresh failed: %s. Play is allowed; affected garments remain visible with their untouched native Unreal deformation."),
+				TEXT("EF Clothing Morph V4 fit-data refresh warning: %s. Play is allowed; only affected clothes use their untouched Unreal deformation."),
 				*GateResult.Report);
 			return MakeValue(true);
 		}
@@ -129,7 +129,7 @@ protected:
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Display,
-				TEXT("EF Clothing Morph V3 PIE source binding refreshed: %s"),
+				TEXT("EF Clothing Morph V4 PIE fit data refreshed: %s"),
 				*GateResult.Report);
 		}
 		else
@@ -137,7 +137,7 @@ protected:
 			UE_LOG(
 				LogEFClothingMorphEditor,
 				Verbose,
-				TEXT("EF Clothing Morph V3 PIE source binding is fresh: %s"),
+				TEXT("EF Clothing Morph V4 PIE fit data is fresh: %s"),
 				*GateResult.Report);
 		}
 		return MakeValue(true);

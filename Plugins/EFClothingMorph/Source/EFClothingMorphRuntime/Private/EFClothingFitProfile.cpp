@@ -34,6 +34,14 @@ FString UEFClothingFitRegistry::MakeRuntimeKey(
 	return SourcePath.ToString() + TEXT("|") + BodyPath.ToString();
 }
 
+FString UEFClothingFitRegistry::MakeNativeRuntimeKey(
+	const FName ClothingId,
+	const FSoftObjectPath& SourcePath,
+	const FSoftObjectPath& BodyPath)
+{
+	return ClothingId.ToString() + TEXT("|") + MakeRuntimeKey(SourcePath, BodyPath);
+}
+
 void UEFClothingFitRegistry::RebuildRuntimeIndex() const
 {
 	RuntimeProfileIndex.Reset();
@@ -77,6 +85,82 @@ const UEFClothingFitProfile* UEFClothingFitRegistry::FindProfileForSourceAndBody
 	return Found && Found->IsValid() ? Found->Get() : nullptr;
 }
 
+uint32 UEFClothingFitRegistry::CalculateNativeBindingSignature() const
+{
+	uint32 Signature = GetTypeHash(NativeSourceBindings.Num());
+	for (const UEFClothingSurfaceBinding* Binding : NativeSourceBindings)
+	{
+		Signature = HashCombineFast(Signature, GetTypeHash(Binding));
+		if (!IsValid(Binding))
+		{
+			continue;
+		}
+		Signature = HashCombineFast(Signature, GetTypeHash(Binding->GarmentId));
+		Signature = HashCombineFast(Signature, GetTypeHash(Binding->BuildGuid));
+		Signature = HashCombineFast(
+			Signature,
+			GetTypeHash(Binding->SourceGarment.ToSoftObjectPath()));
+		Signature = HashCombineFast(
+			Signature,
+			GetTypeHash(Binding->BodySurface.ToSoftObjectPath()));
+	}
+	return Signature;
+}
+
+void UEFClothingFitRegistry::RebuildNativeBindingIndex() const
+{
+	RuntimeNativeBindingIndex.Reset();
+	for (const UEFClothingSurfaceBinding* Binding : NativeSourceBindings)
+	{
+		if (!IsValid(Binding)
+			|| Binding->GarmentId.IsNone()
+			|| Binding->SourceGarment.IsNull()
+			|| Binding->BodySurface.IsNull())
+		{
+			continue;
+		}
+		const FString Key = MakeNativeRuntimeKey(
+			Binding->GarmentId,
+			Binding->SourceGarment.ToSoftObjectPath(),
+			Binding->BodySurface.ToSoftObjectPath());
+		// Duplicate complete V4 keys are ambiguous and therefore fail closed.
+		if (RuntimeNativeBindingIndex.Contains(Key))
+		{
+			RuntimeNativeBindingIndex.Add(Key, nullptr);
+		}
+		else
+		{
+			RuntimeNativeBindingIndex.Add(Key, Binding);
+		}
+	}
+	IndexedNativeBindingCount = NativeSourceBindings.Num();
+	IndexedNativeBindingSignature = CalculateNativeBindingSignature();
+}
+
+const UEFClothingSurfaceBinding* UEFClothingFitRegistry::FindNativeSourceBinding(
+	const FName ClothingId,
+	const USkeletalMesh* SourceMesh,
+	const USkeletalMesh* BodyMesh) const
+{
+	if (ClothingId.IsNone() || !IsValid(SourceMesh) || !IsValid(BodyMesh))
+	{
+		return nullptr;
+	}
+	const uint32 CurrentSignature = CalculateNativeBindingSignature();
+	if (IndexedNativeBindingCount != NativeSourceBindings.Num()
+		|| IndexedNativeBindingSignature != CurrentSignature)
+	{
+		RebuildNativeBindingIndex();
+	}
+
+	const TWeakObjectPtr<const UEFClothingSurfaceBinding>* Match =
+		RuntimeNativeBindingIndex.Find(MakeNativeRuntimeKey(
+			ClothingId,
+			FSoftObjectPath(SourceMesh),
+			FSoftObjectPath(BodyMesh)));
+	return Match ? Match->Get() : nullptr;
+}
+
 const UEFClothingSurfaceBinding* UEFClothingFitRegistry::FindNativeSourceBinding(
 	const USkeletalMesh* SourceMesh,
 	const USkeletalMesh* BodyMesh) const
@@ -85,35 +169,21 @@ const UEFClothingSurfaceBinding* UEFClothingFitRegistry::FindNativeSourceBinding
 	{
 		return nullptr;
 	}
-	if (IndexedNativeBindingCount != NativeSourceBindings.Num())
-	{
-		RuntimeNativeBindingIndex.Reset();
-		for (const UEFClothingSurfaceBinding* Binding : NativeSourceBindings)
-		{
-			if (!IsValid(Binding)
-				|| Binding->SourceGarment.IsNull()
-				|| Binding->BodySurface.IsNull())
-			{
-				continue;
-			}
-			const FString Key = MakeRuntimeKey(
-				Binding->SourceGarment.ToSoftObjectPath(),
-				Binding->BodySurface.ToSoftObjectPath());
-			// Publication rejects duplicates. If an invalid external edit still
-			// creates one, fail closed instead of letting array order select a bind.
-			if (RuntimeNativeBindingIndex.Contains(Key))
-			{
-				RuntimeNativeBindingIndex.Add(Key, nullptr);
-			}
-			else
-			{
-				RuntimeNativeBindingIndex.Add(Key, Binding);
-			}
-		}
-		IndexedNativeBindingCount = NativeSourceBindings.Num();
-	}
 
-	const TWeakObjectPtr<const UEFClothingSurfaceBinding>* Match =
-		RuntimeNativeBindingIndex.Find(MakeRuntimeKey(FSoftObjectPath(SourceMesh), FSoftObjectPath(BodyMesh)));
-	return Match ? Match->Get() : nullptr;
+	const UEFClothingSurfaceBinding* Match = nullptr;
+	for (const UEFClothingSurfaceBinding* Binding : NativeSourceBindings)
+	{
+		if (!IsValid(Binding)
+			|| Binding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceMesh)
+			|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodyMesh))
+		{
+			continue;
+		}
+		if (Match)
+		{
+			return nullptr;
+		}
+		Match = Binding;
+	}
+	return Match;
 }

@@ -13,13 +13,15 @@ struct FEFClothingNativeSourceEditorGateResult
 	bool bSuccess = false;
 	bool bWasFresh = false;
 	bool bRefreshed = false;
+	bool bDegraded = false;
 	UEFClothingFitRegistry* Registry = nullptr;
 	FString StaleReason;
+	FString WarningReport;
 	FString Report;
 };
 
 /**
- * V3 editor freshness helper kept separate from module lifecycle code.
+ * V4 editor freshness helper kept separate from module lifecycle code.
  * It reads source meshes and may create only project-owned binding assets.
  */
 class FEFClothingNativeSourceEditorGate
@@ -31,5 +33,7 @@ public:
 		UEFClothingMorphDirectorPolicy* Director,
 		UEFClothingFitRegistry* Registry,
 		USkeletalMesh* CompatibilityReference,
-		bool bRefreshIfStale);
+		bool bRefreshIfStale,
+		FName TargetClothingName = NAME_None,
+		bool bStrictCatalogCertification = false);
 };

@@ -41,6 +41,22 @@ namespace EFClothingMorphV3
 	inline constexpr float MaximumRuntimeInflateCm = 2.0f;
 }
 
+/**
+ * Multi-clothing publication contract. V4 keeps the source-authoritative V3
+ * geometry path, but gives every clothing entry an independent identity and
+ * binding lifecycle so one draft or failed item cannot disable another.
+ */
+namespace EFClothingMorphV4
+{
+	inline constexpr int32 CompilerVersion = 28;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 8;
+	inline constexpr TCHAR CompiledOutputRoot[] = TEXT("/EFClothingMorph/_Internal/Compiled/V4");
+	inline constexpr float DefaultCollisionClearanceCm = 0.0f;
+	inline constexpr float CompiledClearanceReserveCm = 0.0f;
+	inline constexpr float MaximumRuntimeClearanceCm = 2.0f;
+	inline constexpr float MaximumRuntimeInflateCm = 2.0f;
+}
+
 /** Per-vertex behavior selected automatically by the V26 compiler. */
 UENUM(BlueprintType)
 enum class EEFClothingSurfaceVertexMode : uint8

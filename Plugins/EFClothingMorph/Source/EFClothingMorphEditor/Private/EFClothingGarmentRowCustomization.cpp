@@ -62,7 +62,7 @@ namespace EFClothingGarmentRowCustomizationPrivate
 	static void ShowResult(const bool bSuccess, const FString& Report)
 	{
 		const FString Message = Report.IsEmpty()
-			? (bSuccess ? TEXT("EF Clothing Morph action completed.") : TEXT("EF Clothing Morph action failed."))
+			? (bSuccess ? TEXT("Clothing action completed.") : TEXT("Clothing action failed."))
 			: Report;
 		FNotificationInfo Info(FText::FromString(Message));
 		Info.ExpireDuration = bSuccess ? 5.0f : 10.0f;
@@ -84,7 +84,7 @@ namespace EFClothingGarmentRowCustomizationPrivate
 		OutGarmentId = ResolveGarmentId(StructHandle);
 		if (!IsValid(OutDirector) || OutGarmentId.IsNone())
 		{
-			ShowResult(false, TEXT("Assign a unique Garment ID before using this action."));
+			ShowResult(false, TEXT("Assign both meshes so a unique Clothing Name can be created before using this action."));
 			return false;
 		}
 		return true;
@@ -118,12 +118,11 @@ namespace EFClothingGarmentRowCustomizationPrivate
 		{
 			return FReply::Handled();
 		}
-		(void)GarmentId;
 
 		USkeletalMesh* CompatibilityReference = LoadObject<USkeletalMesh>(nullptr, CompatibilityReferencePath);
 		if (!IsValid(CompatibilityReference))
 		{
-			ShowResult(false, TEXT("Refresh Binding could not load the protected Multiple compatibility reference."));
+			ShowResult(false, TEXT("Fit-data update could not load the protected Multiple compatibility reference."));
 			return FReply::Handled();
 		}
 
@@ -136,7 +135,9 @@ namespace EFClothingGarmentRowCustomizationPrivate
 				Director,
 				Registry,
 				CompatibilityReference,
-				true);
+				true,
+				GarmentId,
+				false);
 		ShowResult(Result.bSuccess, Result.Report);
 		return FReply::Handled();
 	}
@@ -154,7 +155,7 @@ namespace EFClothingGarmentRowCustomizationPrivate
 			EAppMsgType::YesNo,
 			LOCTEXT(
 				"ConfirmNativeOffset",
-				"Apply Native UE Offset to the authoritative Editable Garment Mesh?\n\nThis is an explicit transactional mesh edit. It is not applied by changing the values above, it will not auto-save, and it can be undone before saving. Review morph targets, skin weights, and Chaos Cloth after the edit. The body and shared skeleton are never modified."),
+				"Apply Native UE Offset to the Clothing Mesh?\n\nThis is an explicit Unreal Engine mesh edit. Changing the settings alone does nothing. The action does not auto-save and can be undone before saving. Review morph targets, skin weights, and Chaos Cloth afterward. The body and shared skeleton are never modified."),
 			LOCTEXT("ConfirmNativeOffsetTitle", "Apply Native Offset"));
 		if (Answer != EAppReturnType::Yes)
 		{
@@ -183,8 +184,8 @@ namespace EFClothingGarmentRowCustomizationPrivate
 			EAppMsgType::YesNo,
 			LOCTEXT(
 				"ConfirmCreateShell",
-				"Create real shell geometry on the authoritative Editable Garment Mesh?\n\nWARNING: this changes topology. Morph targets, native skin-weight profiles, and Chaos Cloth mappings can require deliberate repair. The operation is transactional and will not auto-save; EF Clothing Morph will refuse unsafe assets instead of guessing. Use Surface Inflate when visible runtime fullness is sufficient."),
-			LOCTEXT("ConfirmCreateShellTitle", "Create Shell on Editable Mesh"));
+				"Create real shell geometry on the Clothing Mesh?\n\nWARNING: this changes topology. Morph targets, skin-weight profiles, and Chaos Cloth data may need repair. The action does not auto-save. Use Surface Volume when visible runtime fullness is enough."),
+			LOCTEXT("ConfirmCreateShellTitle", "Create Shell on Clothing Mesh"));
 		if (Answer != EAppReturnType::Yes)
 		{
 			return FReply::Handled();
@@ -222,26 +223,21 @@ void FEFClothingGarmentRowCustomization::CustomizeHeader(
 {
 	const TSharedPtr<IPropertyHandle> IdHandle = StructPropertyHandle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, GarmentId));
+	if (!IdHandle.IsValid() || !IdHandle->IsValidHandle())
+	{
+		HeaderRow.NameContent()[StructPropertyHandle->CreatePropertyNameWidget()];
+		return;
+	}
 
 	HeaderRow
 	.NameContent()
 	[
-		StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("GarmentEntry", "Garment"))
+		StructPropertyHandle->CreatePropertyNameWidget(LOCTEXT("ClothingEntry", "Clothing"))
 	]
 	.ValueContent()
 	.MinDesiredWidth(280.0f)
 	[
-		SNew(STextBlock)
-		.Font(IDetailLayoutBuilder::GetDetailFontBold())
-		.Text_Lambda([IdHandle]()
-		{
-			FName GarmentId = NAME_None;
-			if (IdHandle.IsValid() && IdHandle->GetValue(GarmentId) == FPropertyAccess::Success && !GarmentId.IsNone())
-			{
-				return FText::FromName(GarmentId);
-			}
-			return LOCTEXT("NewGarment", "New Garment");
-		})
+		IdHandle->CreatePropertyValueWidget()
 	];
 }
 
@@ -257,14 +253,14 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		return StructPropertyHandle->GetChildHandle(PropertyName);
 	};
 
-	IDetailGroup& GarmentGroup = StructBuilder.AddGroup(
-		TEXT("GarmentDefinition"),
-		LOCTEXT("GarmentDefinitionGroup", "Garment"));
-	AddPropertyIfValid(GarmentGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, bEnabled)));
-	AddPropertyIfValid(GarmentGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, GarmentId)));
-	AddPropertyIfValid(GarmentGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, SourceGarment)));
-	AddPropertyIfValid(GarmentGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, BodySurface)));
-	GarmentGroup.AddWidgetRow()
+	IDetailGroup& ClothingSetupGroup = StructBuilder.AddGroup(
+		TEXT("ClothingSetup"),
+		LOCTEXT("ClothingSetupGroup", "Clothing Setup"));
+	AddPropertyIfValid(ClothingSetupGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, bEnabled)));
+	AddPropertyIfValid(ClothingSetupGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, GarmentId)));
+	AddPropertyIfValid(ClothingSetupGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, SourceGarment)));
+	AddPropertyIfValid(ClothingSetupGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, BodySurface)));
+	ClothingSetupGroup.AddWidgetRow()
 	.WholeRowContent()
 	[
 		SNew(SHorizontalBox)
@@ -273,8 +269,8 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		.Padding(0.0f, 2.0f, 8.0f, 2.0f)
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("OpenEditableMeshButton", "Open Editable Mesh"))
-			.ToolTipText(LOCTEXT("OpenEditableMeshTooltip", "Opens this entry's authoritative source mesh in Unreal Engine's native Skeletal Mesh Editor."))
+			.Text(LOCTEXT("OpenClothingMeshButton", "Open Clothing Mesh"))
+			.ToolTipText(LOCTEXT("OpenClothingMeshTooltip", "Opens this Clothing Mesh in Unreal Engine's Skeletal Mesh Editor."))
 			.OnClicked_Lambda([StructHandle]() { return OpenEditableMesh(StructHandle); })
 		]
 		+ SHorizontalBox::Slot()
@@ -282,70 +278,67 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		.Padding(0.0f, 2.0f)
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("RefreshBindingButton", "Refresh Binding"))
-			.ToolTipText(LOCTEXT("RefreshBindingTooltip", "Rebuilds only stale V3 source-surface bindings. It never replaces the garment mesh or modifies any body, skin weights, morph targets, or shared skeleton."))
+			.Text(LOCTEXT("RefreshFitDataButton", "Update This Clothing"))
+			.ToolTipText(LOCTEXT("RefreshFitDataTooltip", "Updates fit data only for this clothing. Other clothes remain active. It never replaces a Clothing Mesh or modifies a body, skin weights, morph targets, or shared skeleton."))
 			.OnClicked_Lambda([StructHandle]() { return RefreshBinding(StructHandle); })
 		]
 	];
 
-	IDetailGroup& RuntimeFitGroup = StructBuilder.AddGroup(
-		TEXT("RuntimeFit"),
-		LOCTEXT("RuntimeFitGroup", "Runtime Fit (Immediate, Per Garment)"));
-	AddPropertyIfValid(RuntimeFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, AdditionalClearanceCm)));
-	AddPropertyIfValid(RuntimeFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, ShellThicknessCm)));
+	IDetailGroup& LiveFitGroup = StructBuilder.AddGroup(
+		TEXT("LiveFit"),
+		LOCTEXT("LiveFitGroup", "Live Fit"));
+	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, AdditionalClearanceCm)));
+	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, ShellThicknessCm)));
 
-	IDetailGroup& NativeOffsetGroup = StructBuilder.AddGroup(
-		TEXT("NativeUEOffset"),
-		LOCTEXT("NativeUEOffsetGroup", "Native UE Offset (Explicit Mesh Edit)"));
+	IDetailGroup& AdvancedMeshEditGroup = StructBuilder.AddGroup(
+		TEXT("AdvancedMeshEdit"),
+		LOCTEXT("AdvancedMeshEditGroup", "Advanced Mesh Edit"));
 	if (const TSharedPtr<IPropertyHandle> NativeOffsetHandle = Child(
 		GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, NativeUEOffset)))
 	{
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, OffsetType)));
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, DistanceCm)));
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, Steps)));
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, bOffsetBoundaries)));
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, SmoothingPerStep)));
-		AddPropertyIfValid(NativeOffsetGroup, NativeOffsetHandle->GetChildHandle(
+		AddPropertyIfValid(AdvancedMeshEditGroup, NativeOffsetHandle->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FEFClothingNativeUEOffsetSettings, bReprojectAfterSmoothing)));
 	}
-	NativeOffsetGroup.AddWidgetRow()
+	AdvancedMeshEditGroup.AddWidgetRow()
 	.WholeRowContent()
 	[
 		SNew(SButton)
-		.Text(LOCTEXT("ApplyNativeOffsetButton", "Apply Native Offset to Editable Mesh"))
-		.ToolTipText(LOCTEXT("ApplyNativeOffsetTooltip", "Explicitly edits the authoritative garment mesh using the values above. The action is transactional, supports Undo, and never auto-saves. Changing the values alone has no effect."))
+		.Text(LOCTEXT("ApplyNativeOffsetButton", "Apply Native Offset to Clothing Mesh"))
+		.ToolTipText(LOCTEXT("ApplyNativeOffsetTooltip", "Edits the Clothing Mesh with the settings above. The action supports Undo and never auto-saves. Changing the settings alone has no effect."))
 		.OnClicked_Lambda([StructHandle]() { return ApplyNativeOffset(StructHandle); })
 	];
 
-	IDetailGroup& CoverageGroup = StructBuilder.AddGroup(
-		TEXT("BodyCoverage"),
-		LOCTEXT("BodyCoverageGroup", "Body Coverage"));
-	AddPropertyIfValid(CoverageGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, BodySectionsToExclude)));
-	AddPropertyIfValid(CoverageGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, CoverageTags)));
+	IDetailGroup& BodyHidingGroup = StructBuilder.AddGroup(
+		TEXT("BodyHiding"),
+		LOCTEXT("BodyHidingGroup", "Body Hiding"));
+	AddPropertyIfValid(BodyHidingGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, BodySectionsToExclude)));
+	AddPropertyIfValid(BodyHidingGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, CoverageTags)));
 
-	IDetailGroup& ShellGroup = StructBuilder.AddGroup(
-		TEXT("RealGeometry"),
-		LOCTEXT("RealGeometryGroup", "Real Geometry (Advanced)"));
-	ShellGroup.AddWidgetRow()
+	AdvancedMeshEditGroup.AddWidgetRow()
 	.WholeRowContent()
 	[
 		SNew(STextBlock)
 		.AutoWrapText(true)
 		.Text(LOCTEXT(
 			"ShellWarning",
-			"Create Shell is an explicit topology-changing edit of the source mesh. It uses Surface Inflate as the requested thickness, is never required for anti-clipping, and can invalidate morph targets, skin-weight profiles, or Chaos Cloth mappings. Use it only when real inner/outer geometry and boundary walls are necessary."))
+			"Create Shell changes the Clothing Mesh topology. It uses Surface Volume as the requested thickness and may require repairs to morph targets, skin weights, or Chaos Cloth data. Use it only when real inner and outer geometry is required."))
 	];
-	ShellGroup.AddWidgetRow()
+	AdvancedMeshEditGroup.AddWidgetRow()
 	.WholeRowContent()
 	[
 		SNew(SButton)
-		.Text(LOCTEXT("CreateShellButton", "Create Shell on Editable Mesh..."))
-		.ToolTipText(LOCTEXT("CreateShellTooltip", "Requests a transactional shell operation after an explicit warning. Unsafe assets are refused; the action does not auto-save."))
+		.Text(LOCTEXT("CreateShellButton", "Create Shell on Clothing Mesh..."))
+		.ToolTipText(LOCTEXT("CreateShellTooltip", "Creates real thickness after a warning. Unsafe assets are refused, and the action does not auto-save."))
 		.OnClicked_Lambda([StructHandle]() { return CreateShell(StructHandle); })
 	];
 

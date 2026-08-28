@@ -16,7 +16,8 @@ struct FEFClothingGarmentRow;
 struct FStreamableHandle;
 
 /**
- * Presentation state of the V3 source-first runtime.
+ * Presentation state of the V4 multi-clothing runtime. The enum/class names
+ * remain stable for serialized compatibility with the V3 rollout.
  *
  * Passthrough is deliberately safe and visible: the component continues to
  * render its original Skeletal Mesh with its normal Unreal deformation path.
@@ -55,34 +56,34 @@ public:
 		FActorComponentTickFunction* ThisTickFunction) override;
 
 	/** Re-evaluates the owner's exact source/body component pairs immediately. */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4")
 	void ForceReconcile();
 
 	/**
 	 * Overrides this component's Director-authored additional clearance in cm.
 	 * This is a scalar-only change and never rebuilds or swaps a mesh.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Runtime Tuning")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Live Fit")
 	void SetGarmentClearanceOffsetCm(USkeletalMeshComponent* GarmentComponent, float ClearanceCm);
 
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Runtime Tuning")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Live Fit")
 	void ClearGarmentClearanceOffsetCm(USkeletalMeshComponent* GarmentComponent);
 
 	/**
 	 * Overrides this component's Director-authored outward inflate distance in cm.
 	 * Inflate changes positions only; it does not create vertices or a second shell.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Runtime Tuning")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Live Fit")
 	void SetGarmentInflateCm(USkeletalMeshComponent* GarmentComponent, float InflateCm);
 
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Runtime Tuning")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Live Fit")
 	void ClearGarmentInflateCm(USkeletalMeshComponent* GarmentComponent);
 
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3")
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4")
 	EEFClothingMorphV3RuntimeState GetGarmentRuntimeState(
 		const USkeletalMeshComponent* GarmentComponent) const;
 
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3")
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4")
 	FString GetDebugSummary() const;
 
 private:
@@ -203,6 +204,7 @@ private:
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> ClearanceOverridesCm;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> InflateOverridesCm;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;
+	TArray<FString> ClothingRowIssues;
 	bool bAssetsReady = false;
 	bool bAssetLoadFailed = false;
 	double NextReconcileSeconds = 0.0;

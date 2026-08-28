@@ -463,13 +463,13 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 			FMath::Clamp(
 				FMath::IsFinite(GlobalClearanceOffsetCm) ? GlobalClearanceOffsetCm : 0.0f,
 				0.0f,
-				EFClothingMorphV3::MaximumRuntimeClearanceCm))
+				EFClothingMorphV4::MaximumRuntimeClearanceCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::GarmentClearanceOffsetCm,
 			FMath::Clamp(
 				FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f,
 				0.0f,
-				EFClothingMorphV3::MaximumRuntimeClearanceCm))
+				EFClothingMorphV4::MaximumRuntimeClearanceCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::GarmentInflateCm,
 			FMath::Clamp(
@@ -477,7 +477,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 					? GarmentInflateCm
 					: 0.0f,
 				0.0f,
-				EFClothingMorphV3::MaximumRuntimeInflateCm))
+				EFClothingMorphV4::MaximumRuntimeInflateCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
 			FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
@@ -938,7 +938,7 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			WitnessBodyBarycentricsAndMaximumCorrectionCm);
 	if (!bUploadAccepted)
 	{
-		OutFailureReason = TEXT("Surface graph variable schema does not match the EF V3 binding upload contract.");
+		OutFailureReason = TEXT("Surface graph variable schema does not match the EF V4 binding upload contract.");
 		return false;
 	}
 

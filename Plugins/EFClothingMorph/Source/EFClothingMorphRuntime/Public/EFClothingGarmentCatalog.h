@@ -8,7 +8,7 @@
 
 class USkeletalMesh;
 
-/** Internal runtime backend. V3 selects the safe automatic backend for new rows. */
+/** Internal runtime backend. V4 selects the safe automatic backend for new rows. */
 UENUM(BlueprintType)
 enum class EEFClothingSurfaceBackend : uint8
 {
@@ -44,22 +44,22 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingNativeUEOffsetSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (DisplayName = "Offset Type", ToolTip = "Uses the same iterative surface-offset concept as Unreal Engine's Modeling tools. More methods can be added later without changing the garment catalog."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Offset Type", ToolTip = "Uses the same iterative surface-offset idea as Unreal Engine's Modeling tools."))
 	EEFClothingNativeOffsetType OffsetType = EEFClothingNativeOffsetType::Iterative;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (ClampMin = "-5.0", ClampMax = "5.0", UIMin = "-1.0", UIMax = "1.0", Units = "cm", DisplayName = "Distance (cm)", ToolTip = "Distance used when Apply Native Offset to Editable Mesh is pressed. Positive values move the mesh outward; negative values move it inward. Editing this value alone does not change any mesh."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (ClampMin = "-5.0", ClampMax = "5.0", UIMin = "-1.0", UIMax = "1.0", Units = "cm", DisplayName = "Distance (cm)", ToolTip = "Distance used when Apply Native Offset to Clothing Mesh is pressed. Positive values move the mesh outward; negative values move it inward. Editing this value alone does not change any mesh."))
 	float DistanceCm = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (ClampMin = "1", ClampMax = "100", UIMin = "1", UIMax = "32", DisplayName = "Steps", ToolTip = "Number of iterative offset passes. More steps can follow curved surfaces more closely, but the explicit Apply operation takes longer."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (ClampMin = "1", ClampMax = "100", UIMin = "1", UIMax = "32", DisplayName = "Steps", ToolTip = "Number of offset passes. More steps can follow curved surfaces more closely, but the Apply action takes longer."))
 	int32 Steps = 10;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (DisplayName = "Offset Boundaries", ToolTip = "Offsets open boundaries such as waistbands, cuffs, and hems together with the rest of the surface."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Offset Boundaries", ToolTip = "Moves open edges such as waistbands, cuffs, and hems with the rest of the surface."))
 	bool bOffsetBoundaries = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", DisplayName = "Smoothing Per Step", ToolTip = "Smooths the offset result during each pass. Leave at zero to preserve authored seams and silhouette."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", DisplayName = "Smoothing Per Step", ToolTip = "Smooths the result during each pass. Leave this at zero to preserve seams and silhouette."))
 	float SmoothingPerStep = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (DisplayName = "Reproject After Smoothing", ToolTip = "Reprojects smoothed vertices toward the offset surface. Use this only when smoothing changes the intended silhouette."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Reproject After Smoothing", ToolTip = "Moves smoothed vertices back toward the offset surface. Use this only when smoothing changes the intended shape."))
 	bool bReprojectAfterSmoothing = false;
 };
 
@@ -73,16 +73,16 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Garment", meta = (DisplayName = "Use as Garment", ToolTip = "Enables automatic fitting for this entry. Keep it disabled while the garment mesh or reference body is not assigned."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Use This Clothing", ToolTip = "Turns automatic fitting on for this clothing. An unfinished entry stays a draft and cannot disable other clothes."))
 	bool bEnabled = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Garment", meta = (DisplayName = "Garment ID / Index", ToolTip = "Unique and stable ID used by gameplay and saved data. Array order is only for organization; do not rename an ID after release."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Clothing Name", ToolTip = "A unique, stable name used by gameplay and saved data. A name is created automatically after both meshes are assigned, and you may edit it at any time before release."))
 	FName GarmentId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Garment", meta = (DisplayName = "Editable Garment Mesh", ToolTip = "The authoritative garment mesh. You may edit and save this mesh with Unreal Engine's native Skeletal Mesh tools. EF Clothing Morph only rebuilds or updates hidden runtime data and never overwrites this source."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Clothing Mesh", ToolTip = "The clothing mesh shown in game. You may edit and save it with Unreal Engine's native Skeletal Mesh tools. EF Clothing Morph never replaces it."))
 	TSoftObjectPtr<USkeletalMesh> SourceGarment;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Garment", meta = (DisplayName = "Reference Body Mesh", ToolTip = "The exact visible DAZ body this garment must fit, for example Female or Male. The body mesh, its weights, and the shared skeleton are never modified."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Body Mesh", ToolTip = "The exact visible body this clothing must follow, for example Female or Male. The body mesh, skin weights, and shared skeleton are never modified."))
 	TSoftObjectPtr<USkeletalMesh> BodySurface;
 
 	/** Internal/developer-only profile selector retained for compiler compatibility. */
@@ -93,22 +93,22 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY()
 	EEFClothingFitPolicy FitPolicy = EEFClothingFitPolicy::Auto;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Fit", meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "0.5", Units = "cm", DisplayName = "Skin Clearance (cm, Runtime)", ToolTip = "Moves only this garment outward from the final animated skin. It updates immediately, requires no rebuild, and does not add material thickness. Start with small values such as 0.02 to 0.10 cm."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Live Fit", meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "0.5", Units = "cm", DisplayName = "Skin Gap (cm)", ToolTip = "Adds space between this clothing and the animated skin. It updates immediately and affects only this entry. Start with 0.02 to 0.10 cm."))
 	float AdditionalClearanceCm = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Fit", meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "0.5", Units = "cm", DisplayName = "Surface Inflate (cm, Runtime)", ToolTip = "Moves this garment's rendered surface outward along the animated body normal. It updates immediately, but it does not create geometry, an inner layer, or side walls. If Create Shell is pressed explicitly, this value is also used as the requested real shell thickness."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Live Fit", meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "0.5", Units = "cm", DisplayName = "Surface Volume (cm)", ToolTip = "Makes this clothing look fuller by moving its visible surface outward. It updates immediately and does not create new geometry."))
 	float ShellThicknessCm = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Native UE Offset", meta = (DisplayName = "Native UE Offset", ShowOnlyInnerProperties, ToolTip = "Parameters for an explicit native mesh-editing action. Changing these values alone has no effect. Press Apply Native Offset to Editable Mesh when ready, then refresh the binding. Use Skin Clearance or Surface Inflate for non-destructive runtime tuning."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Native Offset Settings", ShowOnlyInnerProperties, ToolTip = "Settings for an explicit Unreal mesh edit. Changing these values alone does nothing. Use Skin Gap or Surface Volume for immediate, non-destructive tuning."))
 	FEFClothingNativeUEOffsetSettings NativeUEOffset;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Coverage", meta = (DisplayName = "Body Sections to Exclude", ToolTip = "Body material-slot names that are hidden while this garment is equipped and excluded from fitting and collision. Use this for covered auxiliary anatomy such as graft sections. The body asset itself is not changed."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding", meta = (DisplayName = "Body Sections to Hide", ToolTip = "Body material-slot names hidden while this clothing is equipped. Use this for covered auxiliary anatomy. The body asset itself is not changed."))
 	TArray<FName> BodySectionsToExclude;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Coverage", meta = (DisplayName = "Covered Body Regions", ToolTip = "Optional gameplay tags describing the regions covered by this garment. These tags do not deform the garment."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding", meta = (DisplayName = "Covered Body Areas", ToolTip = "Optional gameplay tags that describe which body areas this clothing covers. These tags do not change its shape."))
 	FGameplayTagContainer CoverageTags;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notes", meta = (MultiLine = "true", DisplayName = "Garment Notes", ToolTip = "Optional authoring notes for this garment. Notes have no compiler or runtime effect."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notes", meta = (MultiLine = "true", DisplayName = "Notes", ToolTip = "Optional notes for this clothing. Notes do not affect fitting or gameplay."))
 	FText Notes;
 
 	// ---------------------------------------------------------------------
@@ -195,6 +195,23 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 			&& SourceGarment.IsNull()
 			&& BodySurface.IsNull();
 	}
+
+	/** True once this entry has the minimum identity and mesh pair required for fitting. */
+	bool HasCompleteClothingSetup() const
+	{
+		return !GarmentId.IsNone()
+			&& !SourceGarment.IsNull()
+			&& !BodySurface.IsNull();
+	}
+
+	/** Disabled or incomplete entries are harmless authoring drafts. */
+	bool IsClothingDraft() const
+	{
+		return !bEnabled || !HasCompleteClothingSetup();
+	}
+
+	/** Row-local validation used by V4 runtime and compiler consumers. */
+	bool ValidateClothingForUse(FString& OutError) const;
 
 	/**
 	 * Hash of compile-relevant data. Runtime sliders, notes, and unapplied native

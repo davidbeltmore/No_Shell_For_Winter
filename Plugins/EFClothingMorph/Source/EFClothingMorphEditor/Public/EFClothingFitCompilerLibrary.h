@@ -98,8 +98,8 @@ private:
 };
 
 /**
- * V3 binding-only compiler controls. This path never creates or modifies a
- * Skeletal Mesh, morph target, skin-weight profile or USkeleton.
+ * Native-source binding compiler controls. This path never creates or modifies
+ * a Skeletal Mesh, morph target, skin-weight profile or USkeleton.
  */
 USTRUCT(BlueprintType)
 struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCompileOptions
@@ -107,7 +107,7 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCompileOptions
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Output")
-	FString OutputRoot = TEXT("/EFClothingMorph/_Internal/Compiled/V3");
+	FString OutputRoot = TEXT("/EFClothingMorph/_Internal/Compiled/V4");
 
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "V3 base clearance is fixed at zero. Use the Director's per-garment Skin Clearance runtime value."))
 	float MinimumClearanceCm = 0.0f;
@@ -118,6 +118,20 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCompileOptions
 	/** Reuse current immutable bindings whose source/body/render fingerprints still match. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Incremental")
 	bool bOnlyStale = true;
+
+	/**
+	 * Compile or validate only this clothing entry. NAME_None processes every
+	 * ready entry while preserving unrelated published bindings.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Incremental")
+	FName TargetClothingName = NAME_None;
+
+	/**
+	 * Cook/package certification mode. Every enabled entry must be complete,
+	 * valid, fresh and represented exactly once in the registry.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Certification")
+	bool bStrictCatalogCertification = false;
 };
 
 USTRUCT(BlueprintType)
@@ -141,7 +155,7 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCompileRowResult
 	FString Report;
 };
 
-/** Atomic V3 publication result. The previous registry remains active on any row failure. */
+/** Native-source publication result with per-clothing diagnostics and counters. */
 USTRUCT(BlueprintType)
 struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCatalogCompileResult
 {
@@ -158,6 +172,18 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceCatalogCompileResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	int32 ReusedFreshRowCount = 0;
+
+	/** Disabled or incomplete entries skipped as harmless authoring drafts. */
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 DraftRowCount = 0;
+
+	/** Complete entries that failed row-local validation or binding compilation. */
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 FailedRowCount = 0;
+
+	/** Successful entries merged into the active registry publication. */
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 PublishedRowCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	TArray<FEFClothingNativeSourceCompileRowResult> Rows;
@@ -182,6 +208,15 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingNativeSourceFreshnessResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	int32 ValidBindingCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 DraftRowCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 InvalidRowCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Result")
+	int32 StaleRowCount = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Result")
 	FString Report;
@@ -304,6 +339,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Compiler")
 	static bool UpgradeDirectorIdentityToSchema4(UEFClothingMorphDirectorPolicy* Director);
 
+	/** Upgrade the stable Director asset to the isolated multi-clothing V4 schema. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Compiler")
+	static bool UpgradeDirectorIdentityToSchema5(UEFClothingMorphDirectorPolicy* Director);
+
 	/** Internal staging primitive. CompileGarmentCatalog is the only public publication API. */
 	static FEFClothingFitCompileResult CompileFitProfile(
 		USkeletalMesh* SourceGarment,
@@ -335,6 +374,24 @@ public:
 	/** Cheap exact-topology/content check used by pre-PIE and pre-cook gates. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Compiler")
 	static FEFClothingNativeSourceFreshnessResult ValidateNativeSourceCatalogV3(
+		UEFClothingMorphDirectorPolicy* Director,
+		UEFClothingFitRegistry* Registry,
+		USkeletalMesh* CompatibilityReference,
+		FEFClothingNativeSourceCompileOptions Options);
+
+	/**
+	 * Incrementally bakes ready V4 entries and merges them into the current
+	 * registry. Drafts and failed entries never discard successful clothing.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Compiler")
+	static FEFClothingNativeSourceCatalogCompileResult CompileNativeSourceCatalogV4(
+		UEFClothingMorphDirectorPolicy* Director,
+		USkeletalMesh* CompatibilityReference,
+		FEFClothingNativeSourceCompileOptions Options);
+
+	/** Row-isolated V4 freshness check used by ordinary editor and strict cook gates. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4|Compiler")
+	static FEFClothingNativeSourceFreshnessResult ValidateNativeSourceCatalogV4(
 		UEFClothingMorphDirectorPolicy* Director,
 		UEFClothingFitRegistry* Registry,
 		USkeletalMesh* CompatibilityReference,

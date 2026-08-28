@@ -11,9 +11,9 @@ $projectPath = Join-Path $ProjectRoot "NoShellForWinter.uproject"
 $runUAT = Join-Path $EngineRoot "Engine\Build\BatchFiles\RunUAT.bat"
 $receiptGuard = Join-Path $ProjectRoot "Tools\Migration\Repair-DazPluginReceipt58.ps1"
 $clothingCatalogCompiler = Join-Path $ProjectRoot `
-    "Tools\ClothingMorphV3\Compile-EFClothingMorphV3Catalog58.ps1"
+    "Tools\ClothingMorphV4\Compile-EFClothingMorphV4Catalog58.ps1"
 $clothingCatalogCompilerPython = Join-Path $ProjectRoot `
-    "Tools\ClothingMorphV3\Compile-EFClothingMorphV3Catalog58.py"
+    "Tools\ClothingMorphV4\Compile-EFClothingMorphV4Catalog58.py"
 $gameTarget = Join-Path $ProjectRoot "Source\NoShellForWinter.Target.cs"
 $packagedSmokeHeader = Join-Path $ProjectRoot `
     "Plugins\EFProcedural\Source\EFProceduralACFURuntime\Public\Calysto\EFCalystoPackagedSmokeSubsystem.h"
@@ -45,7 +45,7 @@ foreach ($requiredPath in @(
 }
 
 $clothingToolsRoot = [System.IO.Path]::GetFullPath(
-    (Join-Path $ProjectRoot "Tools\ClothingMorphV3"))
+    (Join-Path $ProjectRoot "Tools\ClothingMorphV4"))
 $clothingToolsPrefix = $clothingToolsRoot.TrimEnd('\') + '\'
 foreach ($compilerPath in @($clothingCatalogCompiler, $clothingCatalogCompilerPython)) {
     $compilerFullPath = [System.IO.Path]::GetFullPath($compilerPath)
@@ -163,19 +163,33 @@ if ($LASTEXITCODE -ne 0) {
     throw "Daz receipt verification failed before $Configuration cook/package."
 }
 
-Write-Host "Refreshing the EF Clothing Morph V3 source bindings before $Configuration cook/package..."
+Write-Host "Strictly certifying all enabled EF Clothing Morph V4 clothes before $Configuration cook/package..."
+$clothingCertificationStamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$clothingCertificationReceipt = Join-Path $ProjectRoot `
+    "Saved\ClothingMorphV4QA\compiler_receipt_$clothingCertificationStamp.json"
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $clothingCatalogCompiler `
     -ProjectRoot $ProjectRoot `
-    -EngineRoot $EngineRoot
+    -EngineRoot $EngineRoot `
+    -Stamp $clothingCertificationStamp
 $clothingCompilerExitCode = $LASTEXITCODE
 if ($clothingCompilerExitCode -ne 0) {
     throw (@(
-        "EF Clothing Morph V3 catalog compilation failed with exit code $clothingCompilerExitCode."
+        "EF Clothing Morph V4 catalog certification failed with exit code $clothingCompilerExitCode."
         "BuildCookRun was not started; fix the catalog/compiler error before packaging."
         "Compiler: $clothingCatalogCompiler"
     ) -join " ")
 }
-Write-Host "EF Clothing Morph V3 pre-package binding refresh: PASS"
+if (-not (Test-Path -LiteralPath $clothingCertificationReceipt -PathType Leaf)) {
+    throw "EF Clothing Morph V4 certification receipt is missing: $clothingCertificationReceipt"
+}
+$clothingCertification = Get-Content -Raw -LiteralPath $clothingCertificationReceipt |
+    ConvertFrom-Json
+if ($clothingCertification.status -ne 'UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE_PASS' -or
+    -not [bool]$clothingCertification.catalog_equality_gate -or
+    -not [bool]$clothingCertification.strict_validation.fresh) {
+    throw "EF Clothing Morph V4 certification receipt failed its strict gate: $clothingCertificationReceipt"
+}
+Write-Host "EF Clothing Morph V4 pre-package catalog certification: PASS"
 
 if ([string]::IsNullOrWhiteSpace($ArchiveRoot)) {
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -230,6 +244,10 @@ $contractReceipt = [ordered]@{
     runtime_artifact_header = "CALYSTO_V4_PROJECT_TELEMETRY schema=$telemetrySchemaVersion"
     engine_logging_override = $false
     daz_receipt_verified_before_and_after = $true
+    ef_clothing_morph_v4_catalog_certified = $true
+    ef_clothing_morph_v4_enabled_clothes = [int]$clothingCertification.enabled_row_count
+    ef_clothing_morph_v4_valid_bindings = [int]$clothingCertification.valid_binding_count
+    ef_clothing_morph_v4_certification_receipt = $clothingCertificationReceipt
     source_evidence = [ordered]@{
         target_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $gameTarget).Hash
         subsystem_header_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagedSmokeHeader).Hash
@@ -239,6 +257,12 @@ $contractReceipt = [ordered]@{
         runner_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagedSmokeRunner).Hash
         game_binary_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $gameBinary).Hash
         game_receipt_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $gameReceipt).Hash
+        clothing_compiler_wrapper_sha256 = `
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $clothingCatalogCompiler).Hash
+        clothing_compiler_python_sha256 = `
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $clothingCatalogCompilerPython).Hash
+        clothing_certification_receipt_sha256 = `
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $clothingCertificationReceipt).Hash
     }
 }
 $contractJson = $contractReceipt | ConvertTo-Json -Depth 5

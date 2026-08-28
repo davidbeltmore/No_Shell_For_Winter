@@ -592,12 +592,25 @@ public:
 		const USkeletalMesh* SourceMesh,
 		const USkeletalMesh* BodyMesh) const;
 
+	/** V4 lookup. ClothingId is part of the key so multiple equipped items remain independent. */
+	const UEFClothingSurfaceBinding* FindNativeSourceBinding(
+		FName ClothingId,
+		const USkeletalMesh* SourceMesh,
+		const USkeletalMesh* BodyMesh) const;
+
 private:
 	void RebuildRuntimeIndex() const;
 	static FString MakeRuntimeKey(const FSoftObjectPath& SourcePath, const FSoftObjectPath& BodyPath);
+	static FString MakeNativeRuntimeKey(
+		FName ClothingId,
+		const FSoftObjectPath& SourcePath,
+		const FSoftObjectPath& BodyPath);
+	uint32 CalculateNativeBindingSignature() const;
+	void RebuildNativeBindingIndex() const;
 
 	mutable TMap<FString, TWeakObjectPtr<const UEFClothingFitProfile>> RuntimeProfileIndex;
 	mutable int32 IndexedProfileCount = INDEX_NONE;
 	mutable TMap<FString, TWeakObjectPtr<const UEFClothingSurfaceBinding>> RuntimeNativeBindingIndex;
 	mutable int32 IndexedNativeBindingCount = INDEX_NONE;
+	mutable uint32 IndexedNativeBindingSignature = 0;
 };

@@ -34,9 +34,15 @@ namespace EFClothingMorphV3RuntimePrivate
 	constexpr double StaleRetrySeconds = 2.0;
 
 	TAutoConsoleVariable<int32> CVarEnabled(
+		TEXT("ef.ClothingMorph.V4.Enabled"),
+		1,
+		TEXT("Enables the independent multi-clothing EF Clothing Morph V4 runtime. 0 leaves every source mesh untouched and visible."),
+		ECVF_Default);
+
+	TAutoConsoleVariable<int32> CVarLegacyV3Enabled(
 		TEXT("ef.ClothingMorph.V3.Enabled"),
 		1,
-		TEXT("Enables the source-first EF Clothing Morph V3 runtime. 0 leaves every source garment untouched and visible."),
+		TEXT("Legacy V3 rollback alias. Setting either the V3 or V4 switch to 0 disables the runtime."),
 		ECVF_Default);
 
 	bool DoesSkeletalMaterialMatchSlot(const FSkeletalMaterial& Material, const FName SlotName)
@@ -128,7 +134,7 @@ namespace EFClothingMorphV3RuntimePrivate
 			|| Stored.TriangleCount != IndexCount / 3
 			|| Stored.SectionCount != RenderLOD.RenderSections.Num())
 		{
-			OutFailureReason = TEXT("The live source render counts no longer match the compiled V3 binding.");
+			OutFailureReason = TEXT("The live clothing render counts no longer match the compiled V4 binding.");
 			return false;
 		}
 
@@ -184,7 +190,7 @@ namespace EFClothingMorphV3RuntimePrivate
 		Hash.Final(Digest);
 		if (Stored.TopologyFingerprint != BytesToHex(Digest, UE_ARRAY_COUNT(Digest)))
 		{
-			OutFailureReason = TEXT("The exact source render topology changed after the V3 binding was compiled.");
+			OutFailureReason = TEXT("The exact clothing render topology changed after the V4 binding was built.");
 			return false;
 		}
 #endif
@@ -220,7 +226,7 @@ void UEFClothingMorphV3RuntimeComponent::BeginPlay()
 	bAssetsReady = false;
 	bAssetLoadFailed = false;
 	NextReconcileSeconds = 0.0;
-	LastStatus = TEXT("Loading V3 source-first runtime assets; source garments remain visible.");
+	LastStatus = TEXT("Loading V4 multi-clothing runtime assets; source clothes remain visible.");
 	StartAssetLoad();
 }
 
@@ -249,7 +255,8 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
 	const bool bRuntimeEnabled = Settings
 		&& Settings->bEnabled
-		&& EFClothingMorphV3RuntimePrivate::CVarEnabled.GetValueOnGameThread() != 0;
+		&& EFClothingMorphV3RuntimePrivate::CVarEnabled.GetValueOnGameThread() != 0
+		&& EFClothingMorphV3RuntimePrivate::CVarLegacyV3Enabled.GetValueOnGameThread() != 0;
 	if (!bRuntimeEnabled)
 	{
 		if (!ManagedGarments.IsEmpty())
@@ -297,7 +304,7 @@ void UEFClothingMorphV3RuntimeComponent::SetGarmentClearanceOffsetCm(
 		FMath::Clamp(
 			FMath::IsFinite(ClearanceCm) ? ClearanceCm : 0.0f,
 			0.0f,
-			EFClothingMorphV3::MaximumRuntimeClearanceCm));
+			EFClothingMorphV4::MaximumRuntimeClearanceCm));
 }
 
 void UEFClothingMorphV3RuntimeComponent::ClearGarmentClearanceOffsetCm(
@@ -319,7 +326,7 @@ void UEFClothingMorphV3RuntimeComponent::SetGarmentInflateCm(
 		FMath::Clamp(
 			FMath::IsFinite(InflateCm) ? InflateCm : 0.0f,
 			0.0f,
-			EFClothingMorphV3::MaximumRuntimeInflateCm));
+			EFClothingMorphV4::MaximumRuntimeInflateCm));
 }
 
 void UEFClothingMorphV3RuntimeComponent::ClearGarmentInflateCm(
@@ -371,14 +378,21 @@ FString UEFClothingMorphV3RuntimeComponent::GetDebugSummary() const
 				: *FString::Printf(TEXT(" reason=%s"), *State.PassthroughReason)));
 	}
 	GarmentSummaries.Sort();
+	const FString SystemState = !bAssetsReady
+		? (bAssetLoadFailed ? TEXT("Failed/Passthrough") : TEXT("Loading"))
+		: (ClothingRowIssues.IsEmpty() && PassthroughCount == 0
+			? TEXT("Ready")
+			: TEXT("Degraded"));
 	return FString::Printf(
-		TEXT("EFClothingMorphV3 assets=%s managed=%d ready=%d warming=%d passthrough=%d | %s | %s"),
-		bAssetsReady ? TEXT("Ready") : (bAssetLoadFailed ? TEXT("Failed/Passthrough") : TEXT("Loading")),
+		TEXT("EFClothingMorphV4 state=%s managed=%d ready=%d warming=%d passthrough=%d issues=%d | %s | %s | %s"),
+		*SystemState,
 		ManagedGarments.Num(),
 		ReadyCount,
 		WarmingUpCount,
 		PassthroughCount,
+		ClothingRowIssues.Num(),
 		*FString::Join(GarmentSummaries, TEXT("; ")),
+		*FString::Join(ClothingRowIssues, TEXT("; ")),
 		*LastStatus);
 }
 
@@ -387,7 +401,7 @@ void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
 	if (!Settings || !Settings->bEnabled)
 	{
-		LastStatus = TEXT("V3 disabled by project settings; source garments remain visible.");
+		LastStatus = TEXT("V4 disabled by project settings; source clothes remain visible.");
 		return;
 	}
 
@@ -407,7 +421,7 @@ void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 	if (AssetsToLoad.Num() != 3)
 	{
 		bAssetLoadFailed = true;
-		LastStatus = TEXT("V3 registry, Director or surface graph is not configured; source garments remain visible.");
+		LastStatus = TEXT("V4 registry, Director or surface graph is not configured; source clothes remain visible.");
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 		return;
 	}
@@ -419,7 +433,7 @@ void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 	if (!StartupLoadHandle.IsValid())
 	{
 		bAssetLoadFailed = true;
-		LastStatus = TEXT("V3 asynchronous asset request could not start; source garments remain visible.");
+		LastStatus = TEXT("V4 asynchronous asset request could not start; source clothes remain visible.");
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 	}
 }
@@ -436,12 +450,12 @@ void UEFClothingMorphV3RuntimeComponent::HandleAssetsReady()
 	if (!IsValid(LoadedRegistry)
 		|| !IsValid(LoadedDirector)
 		|| !IsValid(LoadedSurfaceDeformer)
-		|| !LoadedDirector->ValidatePolicy(DirectorError))
+		|| !LoadedDirector->ValidateIdentity(DirectorError))
 	{
 		bAssetLoadFailed = true;
 		bAssetsReady = false;
 		LastStatus = FString::Printf(
-			TEXT("V3 startup validation failed; source garments remain visible. %s"),
+			TEXT("V4 startup validation failed; source clothes remain visible. %s"),
 			*DirectorError);
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 		return;
@@ -449,7 +463,7 @@ void UEFClothingMorphV3RuntimeComponent::HandleAssetsReady()
 
 	bAssetLoadFailed = false;
 	bAssetsReady = true;
-	LastStatus = TEXT("V3 source-first assets loaded.");
+	LastStatus = TEXT("V4 multi-clothing assets loaded; each clothing entry will be resolved independently.");
 	ForceReconcile();
 }
 
@@ -492,17 +506,54 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 
 	TInlineComponentArray<USkeletalMeshComponent*> MeshComponents(GetOwner());
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> ObservedGarments;
+	TSet<FName> ObservedClothingIds;
+	TSet<FString> ObservedSourceBodyPairs;
+	ClothingRowIssues.Reset();
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 
-	for (const FEFClothingGarmentRow& CatalogRow : LoadedDirector->Garments)
+	for (int32 ClothingIndex = 0; ClothingIndex < LoadedDirector->Garments.Num(); ++ClothingIndex)
 	{
-		if (!CatalogRow.bEnabled
-			|| CatalogRow.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU
-			|| CatalogRow.SourceGarment.IsNull()
-			|| CatalogRow.BodySurface.IsNull())
+		const FEFClothingGarmentRow& CatalogRow = LoadedDirector->Garments[ClothingIndex];
+		if (!CatalogRow.bEnabled)
 		{
 			continue;
 		}
+		FString ClothingValidationError;
+		if (!CatalogRow.ValidateClothingForUse(ClothingValidationError))
+		{
+			ClothingRowIssues.Add(FString::Printf(
+				TEXT("Clothes[%d]: %s"),
+				ClothingIndex,
+				*ClothingValidationError));
+			continue;
+		}
+		if (CatalogRow.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			ClothingRowIssues.Add(FString::Printf(
+				TEXT("%s: the V4 live fit requires Automatic Surface Fit."),
+				*CatalogRow.GarmentId.ToString()));
+			continue;
+		}
+		if (ObservedClothingIds.Contains(CatalogRow.GarmentId))
+		{
+			ClothingRowIssues.Add(FString::Printf(
+				TEXT("%s: duplicate Clothing Name; the first entry remains active."),
+				*CatalogRow.GarmentId.ToString()));
+			continue;
+		}
+		const FString SourceBodyPair =
+			CatalogRow.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|")
+			+ CatalogRow.BodySurface.ToSoftObjectPath().ToString();
+		if (ObservedSourceBodyPairs.Contains(SourceBodyPair))
+		{
+			ClothingRowIssues.Add(FString::Printf(
+				TEXT("%s: duplicate Clothing Mesh and Body Mesh pair; the first entry remains active."),
+				*CatalogRow.GarmentId.ToString()));
+			continue;
+		}
+		ObservedClothingIds.Add(CatalogRow.GarmentId);
+		ObservedSourceBodyPairs.Add(SourceBodyPair);
 
 		USkeletalMesh* SourceMesh = CatalogRow.SourceGarment.Get();
 		USkeletalMesh* BodyMesh = CatalogRow.BodySurface.Get();
@@ -513,6 +564,7 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 		}
 
 		const UEFClothingSurfaceBinding* Binding = LoadedRegistry->FindNativeSourceBinding(
+			CatalogRow.GarmentId,
 			SourceMesh,
 			BodyMesh);
 		for (USkeletalMeshComponent* GarmentComponent : MeshComponents)
@@ -562,15 +614,15 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 					? CatalogRow.AdditionalClearanceCm
 					: 0.0f,
 				0.0f,
-				EFClothingMorphV3::MaximumRuntimeClearanceCm);
-			// V3 treats the per-index runtime thickness value as a topology-free
+				EFClothingMorphV4::MaximumRuntimeClearanceCm);
+			// V4 treats the per-clothing runtime thickness value as a topology-free
 			// visual inflate. It is always live; the source remains single-layer.
 			Existing->DirectorInflateCm = FMath::Clamp(
 				FMath::IsFinite(CatalogRow.ShellThicknessCm)
 					? CatalogRow.ShellThicknessCm
 					: 0.0f,
 				0.0f,
-				EFClothingMorphV3::MaximumRuntimeInflateCm);
+				EFClothingMorphV4::MaximumRuntimeInflateCm);
 			Existing->MaximumCorrectionCm = FMath::IsFinite(CatalogRow.MaximumCorrectionCm)
 				? CatalogRow.MaximumCorrectionCm
 				: -1.0f;
@@ -589,7 +641,7 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 				SetPassthrough(
 					GarmentComponent,
 					*Existing,
-					TEXT("No V3 native-source binding is published for this source/body pair."),
+					TEXT("No V4 binding is published for this clothing name/source/body combination."),
 					EFClothingMorphV3RuntimePrivate::StaleRetrySeconds);
 				continue;
 			}
@@ -648,18 +700,18 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 	OutFailureReason.Reset();
 	if (!IsValid(SourceMesh) || !IsValid(BodyMesh) || !IsValid(Binding))
 	{
-		OutFailureReason = TEXT("Source mesh, body mesh or V3 binding is unavailable.");
+		OutFailureReason = TEXT("Clothing mesh, body mesh or V4 binding is unavailable.");
 		return false;
 	}
-	if (Binding->CompilerVersion != EFClothingMorphV3::CompilerVersion
-		|| Binding->SchemaVersion != EFClothingMorphV3::SurfaceBindingSchemaVersion
+	if (Binding->CompilerVersion != EFClothingMorphV4::CompilerVersion
+		|| Binding->SchemaVersion != EFClothingMorphV4::SurfaceBindingSchemaVersion
 		|| Binding->GarmentId != CatalogRow.GarmentId
 		|| Binding->GarmentCompileFingerprint != CatalogRow.BuildCompileFingerprint()
 		|| Binding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceMesh)
 		|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodyMesh)
 		|| !Binding->FittedGarment.IsNull())
 	{
-		OutFailureReason = TEXT("Binding is not a V27/schema-7 native-source contract for this exact Director row.");
+		OutFailureReason = TEXT("Binding is not a V28/schema-8 multi-clothing contract for this exact Director entry.");
 		return false;
 	}
 	if (SourceMesh->GetSkeleton() != BodyMesh->GetSkeleton()
@@ -671,14 +723,14 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 		|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceMesh->GetSkeleton())
 			!= Binding->SharedSkeletonFingerprint)
 	{
-		OutFailureReason = TEXT("Source/body skeleton identity changed after the V3 binding was compiled.");
+		OutFailureReason = TEXT("Clothing/body skeleton identity changed after the V4 binding was built.");
 		return false;
 	}
 #if WITH_EDITOR
 	if (EFClothingSkeleton::BuildContentFingerprint(SourceMesh) != Binding->SourceContentFingerprint
 		|| EFClothingSkeleton::BuildContentFingerprint(BodyMesh) != Binding->BodyContentFingerprint)
 	{
-		OutFailureReason = TEXT("Source/body geometry changed; refresh the V3 binding. Rendering remains source passthrough.");
+		OutFailureReason = TEXT("Clothing/body geometry changed; update this clothing's fit data. The original mesh remains visible.");
 		return false;
 	}
 #endif
@@ -688,7 +740,7 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 		BodyLODIndex);
 	if (!LODPair || !LODPair->bCertified)
 	{
-		OutFailureReason = TEXT("The active source/body LOD pair has no certified V3 binding.");
+		OutFailureReason = TEXT("The active clothing/body LOD pair has no certified V4 binding.");
 		return false;
 	}
 	if (!EFClothingMorphV3RuntimePrivate::ValidateLiveRenderCounts(
@@ -721,7 +773,7 @@ bool UEFClothingMorphV3RuntimeComponent::TryInstallSurfaceConstraint(
 		|| !IsValid(BodyComponent)
 		|| !IsValid(LoadedSurfaceDeformer))
 	{
-		OutFailureReason = TEXT("The exact source component, body component or V3 surface graph is unavailable.");
+		OutFailureReason = TEXT("The exact clothing component, body component or V4 surface graph is unavailable.");
 		return false;
 	}
 
@@ -779,7 +831,7 @@ bool UEFClothingMorphV3RuntimeComponent::TryInstallSurfaceConstraint(
 				UE_LOG(
 					LogEFClothingMorphV3,
 					Display,
-					TEXT("V3 assigned the Director reference body's generic source writer to %s; the exact component override will be restored on release."),
+					TEXT("V4 assigned the Director reference body's generic source writer to %s; the exact component override will be restored on release."),
 					*GarmentComponent->GetName());
 			}
 		}
@@ -801,14 +853,14 @@ bool UEFClothingMorphV3RuntimeComponent::TryInstallSurfaceConstraint(
 		BodyLODIndex);
 	if (!LODPair)
 	{
-		OutFailureReason = TEXT("The certified V3 LOD pair disappeared before producer installation.");
+		OutFailureReason = TEXT("The certified V4 LOD pair disappeared before producer installation.");
 		return false;
 	}
 
 	UEFClothingSurfaceDeformerProducer* Producer = NewObject<UEFClothingSurfaceDeformerProducer>(this);
 	if (!IsValid(Producer))
 	{
-		OutFailureReason = TEXT("Could not allocate the transient V3 surface producer.");
+		OutFailureReason = TEXT("Could not allocate the transient V4 surface producer.");
 		return false;
 	}
 	RetainedRuntimeObjects.AddUnique(Producer);
@@ -832,7 +884,7 @@ bool UEFClothingMorphV3RuntimeComponent::TryInstallSurfaceConstraint(
 	State.PassthroughReason.Reset();
 	State.NextInstallAttemptSeconds = 0.0;
 	LastStatus = FString::Printf(
-		TEXT("V3 source-first surface producer installed for %s (LOD %d/%d)."),
+		TEXT("V4 independent surface producer installed for %s (LOD %d/%d)."),
 		*GetNameSafe(GarmentComponent),
 		GarmentLODIndex,
 		BodyLODIndex);
@@ -917,7 +969,7 @@ void UEFClothingMorphV3RuntimeComponent::TickSurfacePasses(const float DeltaTime
 			if (bBecameReady)
 			{
 				LastStatus = FString::Printf(
-					TEXT("V3 native-source surface guard is Ready for %s (clearance %.3f cm, inflate %.3f cm)."),
+					TEXT("V4 clothing surface guard is Ready for %s (skin gap %.3f cm, surface volume %.3f cm)."),
 					*GetNameSafe(GarmentComponent),
 					ResolveClearanceCm(GarmentComponent, State),
 					ResolveInflateCm(GarmentComponent, State));
@@ -1032,7 +1084,7 @@ void UEFClothingMorphV3RuntimeComponent::RestoreComponentDeformerOverride(
 				UE_LOG(
 					LogEFClothingMorphV3,
 					Warning,
-					TEXT("V3 restored mesh-default deformer selection for %s but could not restore its dormant component pointer."),
+					TEXT("V4 restored mesh-default deformer selection for %s but could not restore its dormant component pointer."),
 					*GarmentComponent->GetName());
 			}
 		}
@@ -1045,7 +1097,7 @@ void UEFClothingMorphV3RuntimeComponent::RestoreComponentDeformerOverride(
 		UE_LOG(
 			LogEFClothingMorphV3,
 			Warning,
-			TEXT("V3 relinquished deformer restoration for %s because another system changed the component override."),
+			TEXT("V4 relinquished deformer restoration for %s because another system changed the component override."),
 			*GarmentComponent->GetName());
 	}
 }
@@ -1085,7 +1137,7 @@ bool UEFClothingMorphV3RuntimeComponent::ApplyReservedSurfaceBounds(
 	USkeletalMesh* SourceMesh = State.SourceMesh.Get();
 	if (!IsValid(GarmentComponent) || !IsValid(SourceMesh) || !IsValid(SurfaceBinding))
 	{
-		OutFailureReason = TEXT("V3 could not reserve render bounds for the exact editable garment.");
+		OutFailureReason = TEXT("V4 could not reserve render bounds for the exact editable clothing mesh.");
 		return false;
 	}
 
@@ -1112,8 +1164,8 @@ bool UEFClothingMorphV3RuntimeComponent::ApplyReservedSurfaceBounds(
 
 	const FBoxSphereBounds SourceBounds = SourceMesh->GetImportedBounds();
 	const float ReservedOutwardTravelCm = MaximumSurfaceCorrectionCm
-		+ EFClothingMorphV3::MaximumRuntimeClearanceCm
-		+ EFClothingMorphV3::MaximumRuntimeInflateCm;
+		+ EFClothingMorphV4::MaximumRuntimeClearanceCm
+		+ EFClothingMorphV4::MaximumRuntimeInflateCm;
 	const float PreviousBoundsScale = FMath::IsFinite(GarmentComponent->BoundsScale)
 		? GarmentComponent->BoundsScale
 		: 1.0f;
@@ -1138,7 +1190,7 @@ bool UEFClothingMorphV3RuntimeComponent::ApplyReservedSurfaceBounds(
 		const float RadiusCm = SourceBounds.SphereRadius;
 		if (!FMath::IsFinite(RadiusCm) || RadiusCm <= UE_SMALL_NUMBER)
 		{
-			OutFailureReason = TEXT("The editable garment has no usable imported bounds; V3 left it in visible passthrough.");
+			OutFailureReason = TEXT("The editable clothing mesh has no usable imported bounds; V4 left it in visible passthrough.");
 			return false;
 		}
 		RequiredBoundsScale = FMath::Max(
@@ -1317,7 +1369,7 @@ float UEFClothingMorphV3RuntimeComponent::ResolveClearanceCm(
 	return FMath::Clamp(
 		Override ? *Override : State.DirectorClearanceCm,
 		0.0f,
-		EFClothingMorphV3::MaximumRuntimeClearanceCm);
+		EFClothingMorphV4::MaximumRuntimeClearanceCm);
 }
 
 float UEFClothingMorphV3RuntimeComponent::ResolveInflateCm(
@@ -1329,5 +1381,5 @@ float UEFClothingMorphV3RuntimeComponent::ResolveInflateCm(
 	return FMath::Clamp(
 		Override ? *Override : State.DirectorInflateCm,
 		0.0f,
-		EFClothingMorphV3::MaximumRuntimeInflateCm);
+		EFClothingMorphV4::MaximumRuntimeInflateCm);
 }

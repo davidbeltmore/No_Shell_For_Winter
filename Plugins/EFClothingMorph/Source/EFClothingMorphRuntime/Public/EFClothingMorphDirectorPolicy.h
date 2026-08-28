@@ -6,10 +6,10 @@
 #include "EFClothingMorphDirectorPolicy.generated.h"
 
 /**
- * Single project-owned control point for EF Clothing Morph V3. The existing
+ * Single project-owned control point for EF Clothing Morph V4. The existing
  * class and asset path remain stable so saved references do not need migration.
  */
-UCLASS(BlueprintType, meta = (DisplayName = "EF Clothing Morph Director V3"))
+UCLASS(BlueprintType, meta = (DisplayName = "EF Clothing Morph Director V4"))
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphDirectorPolicy : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
@@ -22,34 +22,50 @@ public:
 	FText AuthoringGuide;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Internal")
-	int32 SchemaVersion = 4;
+	int32 SchemaVersion = 5;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Internal")
-	FName DirectorId = TEXT("EFClothingMorphV3");
+	FName DirectorId = TEXT("EFClothingMorphV4");
 
-	/** The only public catalog. Add one entry for each garment/body pair. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Garments", meta = (TitleProperty = "GarmentId", DisplayName = "Garments", ToolTip = "The complete EF Clothing Morph catalog. Each array entry contains one garment mesh, its reference body, runtime fit controls, exclusions, and optional native authoring controls."))
+	/** The only public catalog. The serialized property name remains stable. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothes", meta = (TitleProperty = "GarmentId", DisplayName = "Clothes", ToolTip = "Add one entry for each clothing mesh and body mesh pair. Every entry is fitted independently, so several clothes can be worn at the same time."))
 	TArray<FEFClothingGarmentRow> Garments;
 
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3|Director")
+	/** Checks only the V4 schema and identity; row mistakes cannot fail this check. */
+	bool ValidateIdentity(FString& OutError) const;
+
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
+	bool IsIdentityValid() const;
+
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
+	FString GetIdentityValidationError() const;
+
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
 	bool ValidatePolicy(FString& OutError) const;
 
 	/** Python/Blueprint-friendly validation wrapper with no out parameter. */
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3|Director")
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
 	bool IsPolicyValid() const;
 
 	/** Empty only when IsPolicyValid is true. */
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3|Director")
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
 	FString GetPolicyValidationError() const;
 
-	/** Clamps one garment index's authored offset to the internal certified budget. */
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3|Director")
+	/** Clamps one clothing entry's authored offset to the internal safe budget. */
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
 	float ClampAdditionalClearanceCm(float RequestedClearanceCm) const;
 
-	/** Fast C++ lookup by the stable garment identity. */
+	/** Fast C++ lookup by the stable serialized clothing identity. */
 	const FEFClothingGarmentRow* FindGarmentById(FName GarmentId) const;
 
 	/** Blueprint/Python-friendly lookup without exposing a transient struct pointer. */
-	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V3|Director")
+	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4|Director")
 	bool GetGarmentById(FName GarmentId, FEFClothingGarmentRow& OutGarment) const;
+
+#if WITH_EDITOR
+	/** Fills only missing names after both meshes are assigned; manual names are preserved. */
+	bool EnsureMissingClothingNames();
+
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

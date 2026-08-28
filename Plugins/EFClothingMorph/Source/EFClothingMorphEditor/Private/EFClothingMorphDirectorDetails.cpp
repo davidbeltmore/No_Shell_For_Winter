@@ -22,10 +22,10 @@ void FEFClothingMorphDirectorDetails::CustomizeDetails(IDetailLayoutBuilder& Det
 	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, DirectorId));
 
 	IDetailCategoryBuilder& Overview = DetailBuilder.EditCategory(
-		TEXT("EF Clothing Morph V3"),
-		LOCTEXT("OverviewCategory", "EF Clothing Morph V3"),
+		TEXT("EF Clothing Morph V4"),
+		LOCTEXT("OverviewCategory", "EF Clothing Morph V4"),
 		ECategoryPriority::Important);
-	Overview.AddCustomRow(LOCTEXT("OverviewSearch", "Garment clothing help source mesh runtime offset"))
+	Overview.AddCustomRow(LOCTEXT("OverviewSearch", "Clothes clothing help mesh live fit"))
 	.WholeRowContent()
 	[
 		SNew(SBorder)
@@ -36,13 +36,13 @@ void FEFClothingMorphDirectorDetails::CustomizeDetails(IDetailLayoutBuilder& Det
 			.AutoWrapText(true)
 			.Text(LOCTEXT(
 				"OverviewText",
-				"Add one entry below for each garment and reference-body pair. Editable Garment Mesh is the authoritative source: native Unreal edits are allowed. Skin Clearance and Surface Inflate are immediate per-garment runtime controls. Native UE Offset and Create Shell change nothing until their explicit buttons are pressed. Refresh Binding rebuilds project-owned binding data without replacing the source mesh or modifying the shared skeleton."))
+				"Add one entry to Clothes for each Clothing Mesh and Body Mesh pair. Clothing Name is created automatically when both meshes are assigned and remains editable. Skin Gap and Surface Volume update only that clothing at runtime. Several clothes can work at the same time, and unfinished drafts cannot disable ready clothes. Advanced mesh edits happen only when you press their buttons. Fit-data updates never replace a Clothing Mesh or modify the body or shared skeleton."))
 		]
 	];
 
 	DetailBuilder.EditCategory(
-		TEXT("Garments"),
-		LOCTEXT("GarmentsCategory", "Garments"),
+		TEXT("Clothes"),
+		LOCTEXT("ClothesCategory", "Clothes"),
 		ECategoryPriority::Important);
 }
 

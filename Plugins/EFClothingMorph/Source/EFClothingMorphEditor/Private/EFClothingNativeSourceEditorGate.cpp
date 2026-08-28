@@ -17,26 +17,23 @@ namespace EFClothingNativeSourceEditorGatePrivate
 		FString& OutReport)
 	{
 		OutReport.Reset();
-		if (!IsValid(Registry))
-		{
-			OutReport = TEXT("V3 orphan cleanup requires the active registry.");
-			return false;
-		}
-
 		TSet<FName> ActivePackages;
-		ActivePackages.Add(Registry->GetOutermost()->GetFName());
-		for (const UEFClothingSurfaceBinding* Binding : Registry->NativeSourceBindings)
+		if (IsValid(Registry))
 		{
-			if (IsValid(Binding))
+			ActivePackages.Add(Registry->GetOutermost()->GetFName());
+			for (const UEFClothingSurfaceBinding* Binding : Registry->NativeSourceBindings)
 			{
-				ActivePackages.Add(Binding->GetOutermost()->GetFName());
+				if (IsValid(Binding))
+				{
+					ActivePackages.Add(Binding->GetOutermost()->GetFName());
+				}
 			}
 		}
 
 		FAssetRegistryModule& AssetRegistryModule =
 			FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-		const FString OutputRootString(EFClothingMorphV3::CompiledOutputRoot);
+		const FString OutputRootString(EFClothingMorphV4::CompiledOutputRoot);
 		const FName OutputRoot(*OutputRootString);
 		AssetRegistry.ScanPathsSynchronous({OutputRootString}, true);
 
@@ -76,30 +73,26 @@ namespace EFClothingNativeSourceEditorGatePrivate
 			Orphans.Add(Asset);
 		}
 
-		if (!Blocked.IsEmpty())
+		if (Orphans.IsEmpty() && Blocked.IsEmpty())
 		{
-			OutReport = FString::Printf(
-				TEXT("V3 orphan cleanup was blocked by referencers: %s"),
-				*FString::Join(Blocked, TEXT("; ")));
-			return false;
-		}
-		if (Orphans.IsEmpty())
-		{
-			OutReport = TEXT("V3 binding cleanup: no orphan bindings.");
+			OutReport = TEXT("V4 cleanup: no unused bindings.");
 			return true;
 		}
 
-		const int32 DeletedCount = ObjectTools::DeleteAssets(Orphans, false);
-		if (DeletedCount != Orphans.Num())
+		const int32 DeletedCount = Orphans.IsEmpty()
+			? 0
+			: ObjectTools::DeleteAssets(Orphans, false);
+		if (!Blocked.IsEmpty() || DeletedCount != Orphans.Num())
 		{
 			OutReport = FString::Printf(
-				TEXT("V3 binding cleanup deleted %d of %d audited orphan bindings."),
+				TEXT("V4 cleanup warning: removed %d of %d unused bindings; referenced items kept: %s"),
 				DeletedCount,
-				Orphans.Num());
+				Orphans.Num(),
+				Blocked.IsEmpty() ? TEXT("none") : *FString::Join(Blocked, TEXT("; ")));
 			return false;
 		}
 		OutReport = FString::Printf(
-			TEXT("V3 binding cleanup deleted %d audited orphan binding(s)."),
+			TEXT("V4 cleanup removed %d unused binding(s)."),
 			DeletedCount);
 		return true;
 	}
@@ -109,10 +102,12 @@ FEFClothingNativeSourceCompileOptions
 FEFClothingNativeSourceEditorGate::MakeCanonicalOptions()
 {
 	FEFClothingNativeSourceCompileOptions Options;
-	Options.OutputRoot = EFClothingMorphV3::CompiledOutputRoot;
-	Options.MinimumClearanceCm = EFClothingMorphV3::DefaultCollisionClearanceCm;
+	Options.OutputRoot = EFClothingMorphV4::CompiledOutputRoot;
+	Options.MinimumClearanceCm = EFClothingMorphV4::DefaultCollisionClearanceCm;
 	Options.MaximumPushCm = 2.5f;
 	Options.bOnlyStale = true;
+	Options.TargetClothingName = NAME_None;
+	Options.bStrictCatalogCertification = false;
 	return Options;
 }
 
@@ -121,7 +116,9 @@ FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 	UEFClothingMorphDirectorPolicy* Director,
 	UEFClothingFitRegistry* Registry,
 	USkeletalMesh* CompatibilityReference,
-	const bool bRefreshIfStale)
+	const bool bRefreshIfStale,
+	const FName TargetClothingName,
+	const bool bStrictCatalogCertification)
 {
 	FEFClothingNativeSourceEditorGateResult Result;
 	Result.Registry = Registry;
@@ -129,16 +126,18 @@ FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 	if (!IsValid(Director) || !IsValid(CompatibilityReference))
 	{
 		Result.Report = TEXT(
-			"V3 native-source gate requires a valid Director and protected compatibility mesh.");
+			"V4 clothing gate requires a valid Director and protected compatibility mesh.");
 		return Result;
 	}
 
 	// Native Skeletal Mesh authoring can leave render/DDC work queued. Finish it
 	// before topology fingerprints are compared; this does not resave any mesh.
 	FAssetCompilingManager::Get().FinishAllCompilation();
-	const FEFClothingNativeSourceCompileOptions Options = MakeCanonicalOptions();
+	FEFClothingNativeSourceCompileOptions Options = MakeCanonicalOptions();
+	Options.TargetClothingName = TargetClothingName;
+	Options.bStrictCatalogCertification = bStrictCatalogCertification;
 	const FEFClothingNativeSourceFreshnessResult Freshness =
-		UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV3(
+		UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 			Director,
 			Registry,
 			CompatibilityReference,
@@ -146,18 +145,19 @@ FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 	if (Freshness.bFresh)
 	{
 		FString CleanupReport;
-		if (!EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
+		const bool bCleanupSucceeded =
+			EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
 			Registry,
-			CleanupReport))
-		{
-			Result.Report = FString::Printf(
-				TEXT("%s | %s"),
-				*Freshness.Report,
-				*CleanupReport);
-			return Result;
-		}
+			CleanupReport);
 		Result.bSuccess = true;
 		Result.bWasFresh = true;
+		Result.bDegraded = Freshness.DraftRowCount > 0
+			|| Freshness.InvalidRowCount > 0
+			|| !bCleanupSucceeded;
+		if (!bCleanupSucceeded)
+		{
+			Result.WarningReport = CleanupReport;
+		}
 		Result.Report = FString::Printf(
 			TEXT("%s | %s"),
 			*Freshness.Report,
@@ -168,48 +168,76 @@ FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 	Result.StaleReason = Freshness.Report;
 	if (!bRefreshIfStale)
 	{
+		if (!bStrictCatalogCertification && Freshness.ValidBindingCount > 0)
+		{
+			Result.bSuccess = true;
+			Result.bDegraded = true;
+			Result.WarningReport = Freshness.Report;
+		}
 		Result.Report = Freshness.Report;
 		return Result;
 	}
 
 	const FEFClothingNativeSourceCatalogCompileResult CompileResult =
-		UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV3(
+		UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 			Director,
 			CompatibilityReference,
 			Options);
 	Result.Registry = CompileResult.Registry;
 	if (!CompileResult.bSuccess || !IsValid(CompileResult.Registry))
 	{
+		FString CleanupReport;
+		const bool bCleanupNeeded = IsValid(CompileResult.Registry)
+			|| !CompileResult.Rows.IsEmpty();
+		const bool bCleanupSucceeded = bCleanupNeeded
+			? EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
+				CompileResult.Registry,
+				CleanupReport)
+			: true;
+		if (!bCleanupNeeded)
+		{
+			CleanupReport = TEXT("V4 cleanup was not needed because no registry transaction started.");
+		}
+		if (!bCleanupSucceeded)
+		{
+			Result.bDegraded = true;
+			Result.WarningReport = CleanupReport;
+		}
 		Result.Report = FString::Printf(
-			TEXT("%s | Refresh failed: %s"),
+			TEXT("%s | Refresh failed: %s | %s"),
 			*Freshness.Report,
-			*CompileResult.Report);
+			*CompileResult.Report,
+			*CleanupReport);
 		return Result;
 	}
 
 	FAssetCompilingManager::Get().FinishAllCompilation();
 	const FEFClothingNativeSourceFreshnessResult PostRefresh =
-		UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV3(
+		UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 			Director,
 			CompileResult.Registry,
 			CompatibilityReference,
 			Options);
 	FString CleanupReport;
-	const bool bCleanupSucceeded = PostRefresh.bFresh
-		&& EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
+	const bool bCleanupSucceeded =
+		EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
 			CompileResult.Registry,
 			CleanupReport);
-	Result.bSuccess = PostRefresh.bFresh && bCleanupSucceeded;
-	Result.bRefreshed = Result.bSuccess;
-	Result.Report = Result.bSuccess
-		? FString::Printf(
-			TEXT("%s | %s | %s"),
-			*CompileResult.Report,
-			*PostRefresh.Report,
-			*CleanupReport)
-		: FString::Printf(
-			TEXT("%s | Post-refresh validation failed: %s"),
-			*CompileResult.Report,
-			PostRefresh.bFresh ? *CleanupReport : *PostRefresh.Report);
+	Result.bSuccess = true;
+	Result.bRefreshed = CompileResult.PublishedRowCount > 0;
+	Result.bDegraded = CompileResult.DraftRowCount > 0
+		|| CompileResult.FailedRowCount > 0
+		|| PostRefresh.InvalidRowCount > 0
+		|| PostRefresh.StaleRowCount > 0
+		|| !bCleanupSucceeded;
+	if (!bCleanupSucceeded)
+	{
+		Result.WarningReport = CleanupReport;
+	}
+	Result.Report = FString::Printf(
+		TEXT("%s | %s | %s"),
+		*CompileResult.Report,
+		*PostRefresh.Report,
+		*CleanupReport);
 	return Result;
 }
