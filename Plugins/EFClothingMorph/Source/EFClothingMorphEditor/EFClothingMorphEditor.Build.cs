@@ -17,6 +17,9 @@ public class EFClothingMorphEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"UnrealEd",
+			"PropertyEditor",
+			"Slate",
+			"SlateCore",
 			"AssetTools",
 			"AssetRegistry",
 			"GeometryFramework",

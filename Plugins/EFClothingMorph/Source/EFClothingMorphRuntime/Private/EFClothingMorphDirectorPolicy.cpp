@@ -3,19 +3,32 @@
 #include "EFClothingFitProfile.h"
 #include "EFClothingSurfaceBinding.h"
 
+namespace EFClothingMorphDirectorPrivate
+{
+	constexpr int32 CurrentSchemaVersion = 4;
+	const FName CurrentDirectorId(TEXT("EFClothingMorphV3"));
+
+	static FText MakeAuthoringGuide()
+	{
+		return FText::FromString(TEXT(
+			"Add one entry to Garments for each garment/body pair. Editable Garment Mesh is always the authoritative source and may be changed with Unreal Engine's native Skeletal Mesh tools. "
+			"Skin Clearance and Surface Inflate are immediate, non-destructive runtime controls owned by that garment entry. Native UE Offset values do nothing until Apply Native Offset to Editable Mesh is pressed. "
+			"Refresh Binding rebuilds only project-owned runtime data; it never edits the body, its weights, or the shared skeleton."));
+	}
+}
+
 UEFClothingMorphDirectorPolicy::UEFClothingMorphDirectorPolicy()
 {
-	AuthoringGuide = FText::FromString(TEXT(
-		"1) Create one index per garment/body pair. 2) Select and edit the original garment mesh with Unreal's native tools; never edit a generated SK_ mesh. "
-		"3) Runtime Clearance moves only that garment outward. 4) Enable Adjustable Thickness once and compile its paired topology. "
-		"Visible Thickness then updates immediately per garment without rebuilding or hiding it; 0.05 cm is thin fabric and 0.20 cm is visibly thicker. "
-		"Structural shell options remain advanced compile settings. Every control belongs to its expanded garment index; this Director has no global garment tuning."));
+	SchemaVersion = EFClothingMorphDirectorPrivate::CurrentSchemaVersion;
+	DirectorId = EFClothingMorphDirectorPrivate::CurrentDirectorId;
+	AuthoringGuide = EFClothingMorphDirectorPrivate::MakeAuthoringGuide();
 }
 
 bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 {
 	OutError.Reset();
-	if (SchemaVersion != 3 || DirectorId != TEXT("EFClothingMorphV2"))
+	if (SchemaVersion != EFClothingMorphDirectorPrivate::CurrentSchemaVersion
+		|| DirectorId != EFClothingMorphDirectorPrivate::CurrentDirectorId)
 	{
 		OutError = TEXT("EF Clothing Morph Director identity/schema is invalid.");
 		return false;
@@ -114,48 +127,6 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 				*Garment.GarmentId.ToString());
 			return false;
 		}
-		if (Garment.bCreateThicknessShell)
-		{
-			// Visible thickness is a clamped per-garment runtime value. It must
-			// never invalidate the Director or hide an otherwise valid garment.
-			if (Garment.ShellOffsetSteps < 1
-				|| Garment.ShellOffsetSteps > 100
-				|| !FMath::IsFinite(Garment.ShellSmoothingPerStep)
-				|| Garment.ShellSmoothingPerStep < 0.0f
-				|| Garment.ShellSmoothingPerStep > 1.0f)
-			{
-				OutError = FString::Printf(
-					TEXT("Garment %s has invalid thickness-shell settings."),
-					*Garment.GarmentId.ToString());
-				return false;
-			}
-			if (!Garment.bShellOffsetBoundaries)
-			{
-				OutError = FString::Printf(
-					TEXT("Garment %s disables boundary thickness. V2 requires visible paired borders; enable Create Boundary Walls."),
-					*Garment.GarmentId.ToString());
-				return false;
-			}
-		}
-		if (Garment.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU
-			&& !Garment.bFailClosedOnMissingLOD)
-		{
-			OutError = FString::Printf(
-				TEXT("Garment %s must fail closed when a compiled LOD binding is missing."),
-				*Garment.GarmentId.ToString());
-			return false;
-		}
-		for (const FName ExcludedSlot : Garment.ExcludedBodySurfaceMaterialSlots)
-		{
-			if (!ExcludedSlot.IsNone() && !Garment.HiddenBodyMaterialSlots.Contains(ExcludedSlot))
-			{
-				OutError = FString::Printf(
-					TEXT("Garment %s excludes body surface slot %s without hiding it."),
-					*Garment.GarmentId.ToString(),
-					*ExcludedSlot.ToString());
-				return false;
-			}
-		}
 	}
 	if (EnabledGarmentCount == 0)
 	{
@@ -183,7 +154,7 @@ float UEFClothingMorphDirectorPolicy::ClampAdditionalClearanceCm(const float Req
 	return FMath::Clamp(
 		FMath::IsFinite(RequestedClearanceCm) ? RequestedClearanceCm : 0.0f,
 		0.0f,
-		EFClothingMorphV26::MaximumRuntimeAdditionalClearanceCm);
+		EFClothingMorphV3::MaximumRuntimeClearanceCm);
 }
 
 const FEFClothingGarmentRow* UEFClothingMorphDirectorPolicy::FindGarmentById(const FName GarmentId) const

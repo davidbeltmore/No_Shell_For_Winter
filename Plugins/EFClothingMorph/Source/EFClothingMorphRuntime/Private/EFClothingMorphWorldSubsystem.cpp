@@ -1,6 +1,6 @@
 #include "EFClothingMorphWorldSubsystem.h"
 
-#include "EFClothingFitRuntimeComponent.h"
+#include "EFClothingMorphV3RuntimeComponent.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
@@ -36,7 +36,7 @@ void UEFClothingMorphWorldSubsystem::Initialize(FSubsystemCollectionBase& Collec
 		}
 
 		// Possession may happen after OnActorSpawned. A low-frequency scan makes
-		// player-only attachment deterministic without adding V2 to every NPC.
+		// player-only attachment deterministic without adding V3 to every NPC.
 		World->GetTimerManager().SetTimer(
 			EligiblePawnScanTimer,
 			this,
@@ -129,13 +129,13 @@ void UEFClothingMorphWorldSubsystem::HandlePawnControllerChanged(
 	(void)NewController;
 	// Possession can occur between the spawn callback and the periodic safety
 	// scan. Attach in the controller-change event so the viewport pre-draw guard
-	// exists before newly equipped catalog garments can be presented.
+	// exists before newly equipped catalog garments need to be reconciled.
 	AttachToPawn(Pawn);
 }
 
 void UEFClothingMorphWorldSubsystem::AttachToPawn(APawn* Pawn)
 {
-	if (!IsValid(Pawn) || Pawn->FindComponentByClass<UEFClothingFitRuntimeComponent>())
+	if (!IsValid(Pawn) || Pawn->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
 	{
 		return;
 	}
@@ -145,10 +145,10 @@ void UEFClothingMorphWorldSubsystem::AttachToPawn(APawn* Pawn)
 		return;
 	}
 
-	UEFClothingFitRuntimeComponent* Component = NewObject<UEFClothingFitRuntimeComponent>(
+	UEFClothingMorphV3RuntimeComponent* Component = NewObject<UEFClothingMorphV3RuntimeComponent>(
 		Pawn,
-		UEFClothingFitRuntimeComponent::StaticClass(),
-		TEXT("EFClothingMorphV2"));
+		UEFClothingMorphV3RuntimeComponent::StaticClass(),
+		TEXT("EFClothingMorphV3"));
 	if (Component)
 	{
 		Pawn->AddInstanceComponent(Component);

@@ -40,7 +40,7 @@ namespace EFClothingSurfaceGraphContract
 		TEXT("EF_WitnessBodyBarycentricsAndMaximumCorrectionCm"));
 	const FName GlobalClearanceOffsetCm(TEXT("EF_GlobalClearanceOffsetCm"));
 	const FName GarmentClearanceOffsetCm(TEXT("EF_GarmentClearanceOffsetCm"));
-	const FName GarmentVisibleThicknessCm(TEXT("EF_GarmentVisibleThicknessCm"));
+	const FName GarmentInflateCm(TEXT("EF_GarmentInflateCm"));
 	const FName MaximumCorrectionOverrideCm(TEXT("EF_MaximumCorrectionOverrideCm"));
 	const FName DeltaTimeSeconds(TEXT("EF_DeltaTimeSeconds"));
 	const FName BodyToGarmentTransform(TEXT("EF_BodyToGarmentTransform"));
@@ -52,6 +52,7 @@ struct UEFClothingSurfaceDeformerProducer::FDispatchTelemetry
 	TAtomic<uint32> ImmediateEnqueueFallbackCount { 0u };
 	TAtomic<uint32> RenderValidationFallbackCount { 0u };
 	TAtomic<uint64> RenderValidatedSubmissionCount { 0u };
+	TAtomic<uint32> LastValidatedFailureCount { 0u };
 	TAtomic<uint64> LastRenderEnqueueMarkerSubmission { 0u };
 	TAtomic<uint32> RenderPreflightMask { 0u };
 	TAtomic<int32> GarmentActualLOD { INDEX_NONE };
@@ -65,6 +66,13 @@ struct UEFClothingSurfaceDeformerProducer::FDispatchTelemetry
 namespace
 {
 	constexpr int32 MaximumWitnessReferencesPerVertex = 256;
+	constexpr uint32 MinimumPostReadyRecoverySubmissions = 8u;
+	constexpr uint32 MaximumPostReadyRecoverySubmissions = 120u;
+	constexpr double PostReadyRecoveryTimeoutSeconds = 1.0;
+	constexpr uint32 MinimumInitialWarmupSubmissions = 30u;
+	constexpr uint32 MaximumInitialWarmupSubmissions = 2400u;
+	constexpr double InitialWarmupTimeoutSeconds = 10.0;
+	constexpr double MaximumRecoveryDeltaSeconds = 0.25;
 
 	/**
 	 * One-shot render-thread arm. We intentionally wait through two EndFrameRT
@@ -73,7 +81,7 @@ namespace
 	 * this confirmation runs. The callback only proves successful render-graph
 	 * validation/submission (including provider and shader validation), not GPU
 	 * completion; obtaining the latter would require an asynchronous GPU fence or
-	 * readback and is not needed to keep the first raw garment frame hidden.
+	 * readback and is not needed for the component's readiness telemetry.
 	 */
 	struct FRenderSubmissionConfirmationArm
 	{
@@ -221,6 +229,10 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 
 	DispatchTelemetry = MakeShared<FDispatchTelemetry, ESPMode::ThreadSafe>();
 	LastObservedDispatchFailureCount = 0;
+	DispatchRecoverySubmissionCount = 0;
+	DispatchRecoveryElapsedSeconds = 0.0;
+	bAwaitingDispatchRecovery = false;
+	bDispatchRecoveryStartedAfterReady = false;
 	EnqueuedFrameCount = 0;
 
 	if (!UploadImmutableBinding(InLODPair, OutFailureReason))
@@ -236,7 +248,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	const float DeltaTimeSeconds,
 	const float GlobalClearanceOffsetCm,
 	const float GarmentClearanceOffsetCm,
-	const float GarmentVisibleThicknessCm,
+	const float GarmentInflateCm,
 	const float MaximumCorrectionOverrideCm,
 	FString& OutFailureReason)
 {
@@ -280,6 +292,16 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	}
 
 	const uint32 FailureCount = DispatchTelemetry->DispatchFailureCount.Load();
+	const bool bCurrentFailureGenerationValidated =
+		DispatchTelemetry->RenderValidatedSubmissionCount.Load() > 0
+		&& DispatchTelemetry->LastValidatedFailureCount.Load() == FailureCount;
+	if (bAwaitingDispatchRecovery && bCurrentFailureGenerationValidated)
+	{
+		bAwaitingDispatchRecovery = false;
+		DispatchRecoverySubmissionCount = 0;
+		DispatchRecoveryElapsedSeconds = 0.0;
+		bDispatchRecoveryStartedAfterReady = false;
+	}
 	if (FailureCount != LastObservedDispatchFailureCount)
 	{
 		LastObservedDispatchFailureCount = FailureCount;
@@ -371,20 +393,50 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 					PreflightTelemetry->RenderPreflightMask.Store(Mask);
 				});
 		}
-		// ComputeFramework invokes the same fallback while an otherwise valid SM6
-		// kernel is being compiled for the first time. Keep the garment fail-closed
-		// and retry while no submission has yet been render-validated. Once this
-		// producer has produced a validated corrected frame, any later fallback is
-		// a real loss of the safety pass and must fail immediately.
-		if (DispatchTelemetry->RenderValidatedSubmissionCount.Load() > 0)
+		// ComputeFramework invokes the same fallback during shader warm-up and can
+		// also invoke it for an already queued submission while ACF recreates the
+		// component render state. Treat that transition as recoverable. Readiness is
+		// revoked until a submission from the new failure generation is validated.
+		if (!bCurrentFailureGenerationValidated && !bAwaitingDispatchRecovery)
 		{
-			OutFailureReason = TEXT("Surface constraint graph reported a render dispatch fallback after becoming ready.");
+			bAwaitingDispatchRecovery = true;
+			bDispatchRecoveryStartedAfterReady =
+				DispatchTelemetry->RenderValidatedSubmissionCount.Load() > 0;
+			DispatchRecoverySubmissionCount = 0;
+			DispatchRecoveryElapsedSeconds = 0.0;
+		}
+	}
+	if (bAwaitingDispatchRecovery)
+	{
+		DispatchRecoveryElapsedSeconds += FMath::Clamp(
+			static_cast<double>(FMath::IsFinite(DeltaTimeSeconds) ? DeltaTimeSeconds : 0.0f),
+			0.0,
+			MaximumRecoveryDeltaSeconds);
+		const uint32 MinimumRecoverySubmissions = bDispatchRecoveryStartedAfterReady
+			? MinimumPostReadyRecoverySubmissions
+			: MinimumInitialWarmupSubmissions;
+		const uint32 MaximumRecoverySubmissions = bDispatchRecoveryStartedAfterReady
+			? MaximumPostReadyRecoverySubmissions
+			: MaximumInitialWarmupSubmissions;
+		const double RecoveryTimeoutSeconds = bDispatchRecoveryStartedAfterReady
+			? PostReadyRecoveryTimeoutSeconds
+			: InitialWarmupTimeoutSeconds;
+		if (DispatchRecoverySubmissionCount >= MaximumRecoverySubmissions
+			|| (DispatchRecoverySubmissionCount >= MinimumRecoverySubmissions
+				&& DispatchRecoveryElapsedSeconds >= RecoveryTimeoutSeconds))
+		{
+			OutFailureReason = FString::Printf(
+				TEXT("Surface constraint graph did not recover within the bounded dispatch retry window (failures=%u, immediate=%u, render=%u)."),
+				FailureCount,
+				DispatchTelemetry->ImmediateEnqueueFallbackCount.Load(),
+				DispatchTelemetry->RenderValidationFallbackCount.Load());
 			return false;
 		}
 	}
 
 	// Read Skinned Mesh exposes component-local positions. Transport the exact
-	// final Female surface into garment-local space before evaluating anchors.
+	// final Director-selected body surface into garment-local space before
+	// evaluating anchors.
 	const FTransform BodyToGarment = Body->GetComponentTransform().GetRelativeTransform(
 		Garment->GetComponentTransform());
 	const FVector RelativeScale = BodyToGarment.GetScale3D();
@@ -408,18 +460,24 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 			BodyToGarment)
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::GlobalClearanceOffsetCm,
-			FMath::Max(FMath::IsFinite(GlobalClearanceOffsetCm) ? GlobalClearanceOffsetCm : 0.0f, 0.0f))
+			FMath::Clamp(
+				FMath::IsFinite(GlobalClearanceOffsetCm) ? GlobalClearanceOffsetCm : 0.0f,
+				0.0f,
+				EFClothingMorphV3::MaximumRuntimeClearanceCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::GarmentClearanceOffsetCm,
-			FMath::Max(FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f, 0.0f))
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::GarmentVisibleThicknessCm,
 			FMath::Clamp(
-				FMath::IsFinite(GarmentVisibleThicknessCm)
-					? GarmentVisibleThicknessCm
-					: EFClothingMorphV26::CompiledThicknessReferenceCm,
+				FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f,
 				0.0f,
-				EFClothingMorphV26::MaximumRuntimeVisibleThicknessCm))
+				EFClothingMorphV3::MaximumRuntimeClearanceCm))
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::GarmentInflateCm,
+			FMath::Clamp(
+				FMath::IsFinite(GarmentInflateCm)
+					? GarmentInflateCm
+					: 0.0f,
+				0.0f,
+				EFClothingMorphV3::MaximumRuntimeInflateCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
 			FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
@@ -442,7 +500,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	const uint64 SubmissionOrdinal = EnqueuedFrameCount + 1;
 	Desc.FallbackDelegate.BindLambda([Telemetry, SubmissionOrdinal]()
 	{
-		if (Telemetry.IsValid())
+		if (Telemetry.IsValid() && !Telemetry->bCancelled.Load())
 		{
 			++Telemetry->DispatchFailureCount;
 			if (Telemetry->LastRenderEnqueueMarkerSubmission.Load() >= SubmissionOrdinal)
@@ -469,6 +527,10 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 			}
 		});
 	++EnqueuedFrameCount;
+	if (bAwaitingDispatchRecovery)
+	{
+		++DispatchRecoverySubmissionCount;
+	}
 
 	// ComputeFramework exposes failure but no success callback. Arm a one-shot
 	// render-thread acknowledgement only for the first candidate submission. Its
@@ -513,6 +575,8 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 							&& ConfirmationTelemetry->DispatchFailureCount.Load()
 								== FailureCountBeforeSubmission)
 						{
+							ConfirmationTelemetry->LastValidatedFailureCount.Store(
+								FailureCountBeforeSubmission);
 							++ConfirmationTelemetry->RenderValidatedSubmissionCount;
 						}
 						ConfirmationTelemetry->bRenderConfirmationArmed.Store(false);
@@ -552,6 +616,10 @@ void UEFClothingSurfaceDeformerProducer::Detach()
 	InstanceGuid.Invalidate();
 	DispatchTelemetry.Reset();
 	LastObservedDispatchFailureCount = 0;
+	DispatchRecoverySubmissionCount = 0;
+	DispatchRecoveryElapsedSeconds = 0.0;
+	bAwaitingDispatchRecovery = false;
+	bDispatchRecoveryStartedAfterReady = false;
 	EnqueuedFrameCount = 0;
 	bRenderPreflightEnqueued = false;
 }
@@ -612,6 +680,14 @@ uint64 UEFClothingSurfaceDeformerProducer::GetRenderValidatedSubmissionCount() c
 	return DispatchTelemetry.IsValid()
 		? DispatchTelemetry->RenderValidatedSubmissionCount.Load()
 		: 0u;
+}
+
+bool UEFClothingSurfaceDeformerProducer::HasRenderValidatedSubmission() const
+{
+	return DispatchTelemetry.IsValid()
+		&& DispatchTelemetry->RenderValidatedSubmissionCount.Load() > 0
+		&& DispatchTelemetry->LastValidatedFailureCount.Load()
+			== DispatchTelemetry->DispatchFailureCount.Load();
 }
 
 void UEFClothingSurfaceDeformerProducer::BeginDestroy()
@@ -862,7 +938,7 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			WitnessBodyBarycentricsAndMaximumCorrectionCm);
 	if (!bUploadAccepted)
 	{
-		OutFailureReason = TEXT("Surface graph variable schema does not match the EF V26 binding upload contract.");
+		OutFailureReason = TEXT("Surface graph variable schema does not match the EF V3 binding upload contract.");
 		return false;
 	}
 

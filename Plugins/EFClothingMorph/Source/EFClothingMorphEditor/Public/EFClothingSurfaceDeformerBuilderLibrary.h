@@ -11,17 +11,17 @@ struct EFCLOTHINGMORPHEDITOR_API FEFClothingSurfaceDeformerBuildResult
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V2|Surface Deformer")
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V3|Surface Guard")
 	bool bSuccess = false;
 
-	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V2|Surface Deformer")
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V3|Surface Guard")
 	bool bRebuilt = false;
 
-	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V2|Surface Deformer")
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V3|Surface Guard")
 	FSoftObjectPath DeformerAsset;
 
 	/** Structural validation and Optimus compile diagnostics. */
-	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V2|Surface Deformer")
+	UPROPERTY(BlueprintReadOnly, Category = "EF Clothing Morph V3|Surface Guard")
 	FString Report;
 };
 
@@ -42,12 +42,12 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingSurfaceDeformerBuilderLibrary final
 	GENERATED_BODY()
 
 public:
-	/** Build, structurally validate, compile and save the canonical V26 graph asset. */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Deformer")
+	/** Build, structurally validate, compile and save the canonical V3 graph asset. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Surface Guard")
 	static FEFClothingSurfaceDeformerBuildResult BuildOrUpdateSurfaceConstraintDeformer(
 		bool bForceRebuild = false);
 
 	/** Read-only structural/status validation of the canonical graph asset. */
-	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Surface Deformer")
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Surface Guard")
 	static FEFClothingSurfaceDeformerBuildResult ValidateSurfaceConstraintDeformer();
 };

@@ -31,7 +31,7 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR AssetObjectPath[] = TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint");
 	constexpr TCHAR GraphSchemaMetadataKey[] = TEXT("EFClothingMorph.SurfaceGraphSchema");
 	constexpr TCHAR PrimarySemanticMetadataKey[] = TEXT("EFClothingMorph.PrimaryBindingSemantic");
-	constexpr TCHAR GraphSchemaVersion[] = TEXT("26.5");
+	constexpr TCHAR GraphSchemaVersion[] = TEXT("27.0");
 	constexpr TCHAR PrimarySemantic[] = TEXT("Garment");
 
 	constexpr TCHAR CustomKernelClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_CustomComputeKernel");
@@ -95,7 +95,7 @@ namespace EFClothingSurfaceDeformerBuilder
 			{ TEXT("EF_WitnessBodyBarycentricsAndMaximumCorrectionCm"), EVariableType::Float4Array },
 			{ TEXT("EF_GlobalClearanceOffsetCm"), EVariableType::Float },
 			{ TEXT("EF_GarmentClearanceOffsetCm"), EVariableType::Float },
-			{ TEXT("EF_GarmentVisibleThicknessCm"), EVariableType::Float },
+			{ TEXT("EF_GarmentInflateCm"), EVariableType::Float },
 			{ TEXT("EF_MaximumCorrectionOverrideCm"), EVariableType::Float },
 			{ TEXT("EF_DeltaTimeSeconds"), EVariableType::Float },
 			{ TEXT("EF_BodyToGarmentTransform"), EVariableType::Transform }
@@ -362,27 +362,61 @@ KERNEL
 	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
 		+ ReadEF_GarmentClearanceOffsetCm();
 	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
-	float RuntimeVisibleThicknessCm = ReadEF_GarmentVisibleThicknessCm();
-	RuntimeVisibleThicknessCm = isfinite(RuntimeVisibleThicknessCm)
-		? clamp(RuntimeVisibleThicknessCm, 0.01f, 0.35f)
-		: 0.05f;
+	// V3 keeps the authored source mesh as the runtime mesh. For a legacy paired
+	// shell this value scales the existing outer layer. For a native single-layer
+	// garment it is a non-destructive surface inflate: no topology is invented and
+	// a value of zero is an exact pass-through.
+	float RuntimeInflateCm = ReadEF_GarmentInflateCm();
+	RuntimeInflateCm = isfinite(RuntimeInflateCm)
+		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
+		: 0.0f;
 	float CorrectionOverrideCm = ReadEF_MaximumCorrectionOverrideCm();
 	CorrectionOverrideCm = isfinite(CorrectionOverrideCm)
 		? max(CorrectionOverrideCm, 0.0f)
 		: 0.0f;
 	// Imported DAZ garment tangents are not a certified exterior direction at
-	// every seam. Invalid binding/buffer data is handled fail-closed by component
-	// visibility; this shader fallback must therefore preserve upstream geometry
-	// rather than risk applying an inward displacement.
-	float3 ConservativePosition = GarmentPosition;
-
-	if (!all(isfinite(GarmentPosition))
-		|| !all(isfinite(GarmentTangentX))
-		|| !all(isfinite(GarmentTangentZ)))
+	// every seam. V3 never hides or replaces the garment on invalid/stale data;
+	// the safe fallback is the exact upstream UE-deformed source position.
+	bool HasFinitePosition = all(isfinite(GarmentPosition));
+	float3 ConservativePosition = HasFinitePosition
+		? GarmentPosition
+		: float3(0.0f, 0.0f, 0.0f);
+	bool HasUsableTangentX = all(isfinite(GarmentTangentX.xyz))
+		&& dot(GarmentTangentX.xyz, GarmentTangentX.xyz) > 1.0e-12f;
+	bool HasUsableTangentZ = all(isfinite(GarmentTangentZ.xyz))
+		&& dot(GarmentTangentZ.xyz, GarmentTangentZ.xyz) > 1.0e-12f;
+	float3 SafeTangentDirection = HasUsableTangentX
+		? normalize(GarmentTangentX.xyz)
+		: float3(1.0f, 0.0f, 0.0f);
+	float3 SafeNormalDirection = HasUsableTangentZ
+		? normalize(GarmentTangentZ.xyz)
+		: float3(0.0f, 0.0f, 1.0f);
+	if (!HasUsableTangentZ)
 	{
-		WriteCorrectedPosition(Index, float3(0.0f, 0.0f, 0.0f));
-		WritePreservedTangentX(Index, float4(1.0f, 0.0f, 0.0f, 1.0f));
-		WritePreservedTangentZ(Index, float4(0.0f, 0.0f, 1.0f, 1.0f));
+		float3 ReferenceAxis = abs(SafeTangentDirection.z) < 0.999f
+			? float3(0.0f, 0.0f, 1.0f)
+			: float3(0.0f, 1.0f, 0.0f);
+		SafeNormalDirection = normalize(cross(SafeTangentDirection, ReferenceAxis));
+	}
+	if (!HasUsableTangentX)
+	{
+		float3 ReferenceAxis = abs(SafeNormalDirection.z) < 0.999f
+			? float3(0.0f, 0.0f, 1.0f)
+			: float3(0.0f, 1.0f, 0.0f);
+		SafeTangentDirection = normalize(cross(ReferenceAxis, SafeNormalDirection));
+	}
+	GarmentTangentX = float4(
+		HasUsableTangentX ? GarmentTangentX.xyz : SafeTangentDirection,
+		isfinite(GarmentTangentX.w) ? GarmentTangentX.w : 1.0f);
+	GarmentTangentZ = float4(
+		HasUsableTangentZ ? GarmentTangentZ.xyz : SafeNormalDirection,
+		isfinite(GarmentTangentZ.w) ? GarmentTangentZ.w : 1.0f);
+
+	if (!HasFinitePosition)
+	{
+		WriteCorrectedPosition(Index, ConservativePosition);
+		WritePreservedTangentX(Index, GarmentTangentX);
+		WritePreservedTangentZ(Index, GarmentTangentZ);
 		return;
 	}
 
@@ -494,7 +528,7 @@ KERNEL
 			WritePreservedTangentZ(Index, GarmentTangentZ);
 			return;
 		}
-		float ThicknessScale = RuntimeVisibleThicknessCm / CompiledLayerLengthCm;
+		float ThicknessScale = RuntimeInflateCm / CompiledLayerLengthCm;
 		RuntimeGarmentPosition = InnerGarmentPosition
 			+ (GarmentPosition - InnerGarmentPosition) * ThicknessScale;
 		RuntimeRestOffsetCm = InnerRestOffsetAndClearanceCm.xyz
@@ -591,14 +625,30 @@ KERNEL
 	{
 		BaseTargetGapCm = max(BaseTargetGapCm, RuntimeRestOffsetCm.z);
 	}
-	float TargetGapCm = max(BaseTargetGapCm + RuntimeOffsetCm, 0.0f);
+	// A source-authored single layer has no generated inner/outer pairing. Its
+	// runtime inflate is therefore expressed along the already-certified body
+	// surface normal. This is deliberately distinct from a native Create Shell
+	// edit, which must author real side walls/topology on the source asset.
+	float SourceSurfaceInflateCm =
+		(ThicknessReferenceAndLayer.x < 0 && ThicknessReferenceAndLayer.y == 0)
+			? RuntimeInflateCm
+			: 0.0f;
+	float TargetGapCm = max(
+		BaseTargetGapCm + RuntimeOffsetCm + SourceSurfaceInflateCm,
+		0.0f);
 	float SignedGapCm = dot(CandidatePosition - SurfaceAnchor, SurfaceNormal);
 	float RequiredPushCm = max(TargetGapCm - SignedGapCm, 0.0f);
 	float CompiledMaximumCorrectionCm = max(MaximumCorrectionAndRestGapCm.x, 0.0f);
 	float MaximumCorrectionCm = CorrectionOverrideCm > 0.0f
 		? CorrectionOverrideCm
 		: CompiledMaximumCorrectionCm;
-	if (MaximumCorrectionCm <= 0.0f)
+	// Runtime clearance and inflate are bounded independently by the V3 public
+	// contract. Add their active budgets to the certified/override correction so
+	// manual tuning remains useful without allowing a malformed gap to explode.
+	float RuntimeCorrectionBudgetCm = clamp(max(RuntimeOffsetCm, 0.0f), 0.0f, 2.0f)
+		+ clamp(RuntimeInflateCm, 0.0f, 2.0f);
+	float MaximumAppliedPushCm = MaximumCorrectionCm + RuntimeCorrectionBudgetCm;
+	if (MaximumAppliedPushCm <= 0.0f)
 	{
 		WriteCorrectedPosition(Index, ConservativePosition);
 		WritePreservedTangentX(Index, GarmentTangentX);
@@ -606,12 +656,9 @@ KERNEL
 		return;
 	}
 
-	// MaximumCorrectionCm is a certification/diagnostic threshold, never a
-	// visual clamp. Clamping here would deliberately leave a penetrated vertex
-	// inside the body in the exact frame that needs the strongest correction.
-	// The exterior-safe output therefore applies the complete unilateral push;
-	// QA/readback reports any threshold excess so the binding can be rebuilt.
-	float AppliedPushCm = RequiredPushCm;
+	// The correction remains unilateral: it can only move outward, and is capped
+	// by the certified/override correction plus the active runtime tuning budget.
+	float AppliedPushCm = clamp(RequiredPushCm, 0.0f, MaximumAppliedPushCm);
 	float3 CorrectedPosition = CandidatePosition + SurfaceNormal * AppliedPushCm;
 	if (!all(isfinite(CorrectedPosition)))
 	{
@@ -639,25 +686,56 @@ KERNEL
 	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
 		+ ReadEF_GarmentClearanceOffsetCm();
 	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
-	float RuntimeVisibleThicknessCm = ReadEF_GarmentVisibleThicknessCm();
-	RuntimeVisibleThicknessCm = isfinite(RuntimeVisibleThicknessCm)
-		? clamp(RuntimeVisibleThicknessCm, 0.01f, 0.35f)
-		: 0.05f;
+	float RuntimeInflateCm = ReadEF_GarmentInflateCm();
+	RuntimeInflateCm = isfinite(RuntimeInflateCm)
+		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
+		: 0.0f;
 	// The base pass is already vertex-safe against an explicitly oriented body
 	// triangle. Never use the imported garment tangent normal as an emergency
 	// direction here: DAZ garments can expose an inward tangent basis at seams,
 	// which would turn a fail-safe into a 2.5 cm inward displacement. Until a GPU
 	// failure flag hides the component, preserving the certified base result is
 	// the only non-regressive fallback for malformed/conflicting witness cones.
-	float3 ConservativePosition = BasePosition;
-
-	if (!all(isfinite(BasePosition))
-		|| !all(isfinite(BaseTangentX))
-		|| !all(isfinite(BaseTangentZ)))
+	bool HasFinitePosition = all(isfinite(BasePosition));
+	float3 ConservativePosition = HasFinitePosition
+		? BasePosition
+		: float3(0.0f, 0.0f, 0.0f);
+	bool HasUsableTangentX = all(isfinite(BaseTangentX.xyz))
+		&& dot(BaseTangentX.xyz, BaseTangentX.xyz) > 1.0e-12f;
+	bool HasUsableTangentZ = all(isfinite(BaseTangentZ.xyz))
+		&& dot(BaseTangentZ.xyz, BaseTangentZ.xyz) > 1.0e-12f;
+	float3 SafeTangentDirection = HasUsableTangentX
+		? normalize(BaseTangentX.xyz)
+		: float3(1.0f, 0.0f, 0.0f);
+	float3 SafeNormalDirection = HasUsableTangentZ
+		? normalize(BaseTangentZ.xyz)
+		: float3(0.0f, 0.0f, 1.0f);
+	if (!HasUsableTangentZ)
 	{
-		WriteFinalPosition(Index, float3(0.0f, 0.0f, 0.0f));
-		WriteFinalTangentX(Index, float4(1.0f, 0.0f, 0.0f, 1.0f));
-		WriteFinalTangentZ(Index, float4(0.0f, 0.0f, 1.0f, 1.0f));
+		float3 ReferenceAxis = abs(SafeTangentDirection.z) < 0.999f
+			? float3(0.0f, 0.0f, 1.0f)
+			: float3(0.0f, 1.0f, 0.0f);
+		SafeNormalDirection = normalize(cross(SafeTangentDirection, ReferenceAxis));
+	}
+	if (!HasUsableTangentX)
+	{
+		float3 ReferenceAxis = abs(SafeNormalDirection.z) < 0.999f
+			? float3(0.0f, 0.0f, 1.0f)
+			: float3(0.0f, 1.0f, 0.0f);
+		SafeTangentDirection = normalize(cross(ReferenceAxis, SafeNormalDirection));
+	}
+	BaseTangentX = float4(
+		HasUsableTangentX ? BaseTangentX.xyz : SafeTangentDirection,
+		isfinite(BaseTangentX.w) ? BaseTangentX.w : 1.0f);
+	BaseTangentZ = float4(
+		HasUsableTangentZ ? BaseTangentZ.xyz : SafeNormalDirection,
+		isfinite(BaseTangentZ.w) ? BaseTangentZ.w : 1.0f);
+
+	if (!HasFinitePosition)
+	{
+		WriteFinalPosition(Index, ConservativePosition);
+		WriteFinalTangentX(Index, BaseTangentX);
+		WriteFinalTangentZ(Index, BaseTangentZ);
 		return;
 	}
 
@@ -954,9 +1032,16 @@ KERNEL
 						break;
 					}
 					float3 EffectiveRest = InnerRest.xyz
-						+ LayerVectorCm * (RuntimeVisibleThicknessCm / LayerLengthCm);
+						+ LayerVectorCm * (RuntimeInflateCm / LayerLengthCm);
 					EffectiveClearanceCm = InnerRest.w
 						+ max(EffectiveRest.z - InnerRest.z, 0.0f);
+				}
+				else if (ThicknessReferenceAndLayer.y == 0
+					&& ThicknessReferenceAndLayer.x < 0)
+				{
+					// V3 single-layer source mesh: use the same certified body-normal
+					// inflate as the vertex pass so face/edge witnesses remain coherent.
+					EffectiveClearanceCm += RuntimeInflateCm;
 				}
 				else if (ThicknessReferenceAndLayer.y != 0)
 				{
@@ -1005,11 +1090,9 @@ KERNEL
 	}
 )EFHLSL") + TEXT(R"EFHLSL(
 
-	// The earlier unrestricted local projection could displace individual vertices
-	// by more than 1.6 cm and visibly tear the garment in locomotion. Keep the same
-	// unilateral edge/face direction, but expose at most 3.5 millimeters per frame.
-	// This is enough to close the small moving border leak while the vertex-safe base
-	// pass remains the dominant shape and the excluded crotch stays untouched.
+	// Keep the edge/face correction subordinate to the vertex-safe base pass. This
+	// visual stability limit is topology-agnostic; excluded Director sections have
+	// already taken the PreserveUpstream path before witness evaluation.
 	static const float MaximumVisualEdgeCorrectionCm = 0.35f;
 	float ExtraCorrectionLength = length(ExtraCorrection);
 	float BoundedCorrectionScale = ExtraCorrectionLength > 1.0e-8f
@@ -1432,7 +1515,7 @@ KERNEL
 			if (A.Name != E.Name || A.DataType != E.DataType || A.DataDomain != E.DataDomain)
 			{
 				OutError = FString::Printf(
-					TEXT("Kernel binding %s[%d] does not match V26.5 schema (%s)."),
+					TEXT("Kernel binding %s[%d] does not match V3 schema (%s)."),
 					*PropertyName.ToString(),
 					Index,
 					*E.Name.ToString());
@@ -1635,7 +1718,7 @@ KERNEL
 				|| VariableNodes.Num() != GetVariableSpecs().Num()
 				|| ResourceNodes.Num() != 1)
 			{
-				Errors.Add(TEXT("Required two-kernel/read/write/component/resource/variable node cardinality does not match V26.5."));
+				Errors.Add(TEXT("Required two-kernel/read/write/component/resource/variable node cardinality does not match V3."));
 			}
 			else
 			{
@@ -1719,7 +1802,7 @@ KERNEL
 						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"));
 					if (!bCoreLinksValid)
 					{
-						Errors.Add(TEXT("Core Garment/Body/base/resource/witness/write links do not match V26.5."));
+						Errors.Add(TEXT("Core Garment/Body/base/resource/witness/write links do not match V3."));
 					}
 				}
 
@@ -1783,11 +1866,11 @@ KERNEL
 				const IOptimusShaderTextProvider* WitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(WitnessKernelNode);
 				if (!BaseShaderTextProvider || BaseShaderTextProvider->GetShaderText() != GetBaseKernelSource())
 				{
-					Errors.Add(TEXT("Base kernel source differs from the generated V26.5 source."));
+					Errors.Add(TEXT("Base kernel source differs from the generated V3 source."));
 				}
 				if (!WitnessShaderTextProvider || WitnessShaderTextProvider->GetShaderText() != GetWitnessKernelSource())
 				{
-					Errors.Add(TEXT("Witness kernel source differs from the generated V26.5 source."));
+					Errors.Add(TEXT("Witness kernel source differs from the generated V3 source."));
 				}
 
 				for (const FVariableSpec& Spec : GetVariableSpecs())

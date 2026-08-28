@@ -1,5 +1,7 @@
 #include "EFClothingFitProfile.h"
 
+#include "EFClothingSurfaceBinding.h"
+
 #include "Engine/SkeletalMesh.h"
 
 bool UEFClothingFitProfile::MatchesSource(const USkeletalMesh* Mesh) const
@@ -73,4 +75,45 @@ const UEFClothingFitProfile* UEFClothingFitRegistry::FindProfileForSourceAndBody
 	const TWeakObjectPtr<const UEFClothingFitProfile>* Found = RuntimeProfileIndex.Find(
 		MakeRuntimeKey(FSoftObjectPath(SourceMesh), FSoftObjectPath(BodyMesh)));
 	return Found && Found->IsValid() ? Found->Get() : nullptr;
+}
+
+const UEFClothingSurfaceBinding* UEFClothingFitRegistry::FindNativeSourceBinding(
+	const USkeletalMesh* SourceMesh,
+	const USkeletalMesh* BodyMesh) const
+{
+	if (!IsValid(SourceMesh) || !IsValid(BodyMesh))
+	{
+		return nullptr;
+	}
+	if (IndexedNativeBindingCount != NativeSourceBindings.Num())
+	{
+		RuntimeNativeBindingIndex.Reset();
+		for (const UEFClothingSurfaceBinding* Binding : NativeSourceBindings)
+		{
+			if (!IsValid(Binding)
+				|| Binding->SourceGarment.IsNull()
+				|| Binding->BodySurface.IsNull())
+			{
+				continue;
+			}
+			const FString Key = MakeRuntimeKey(
+				Binding->SourceGarment.ToSoftObjectPath(),
+				Binding->BodySurface.ToSoftObjectPath());
+			// Publication rejects duplicates. If an invalid external edit still
+			// creates one, fail closed instead of letting array order select a bind.
+			if (RuntimeNativeBindingIndex.Contains(Key))
+			{
+				RuntimeNativeBindingIndex.Add(Key, nullptr);
+			}
+			else
+			{
+				RuntimeNativeBindingIndex.Add(Key, Binding);
+			}
+		}
+		IndexedNativeBindingCount = NativeSourceBindings.Num();
+	}
+
+	const TWeakObjectPtr<const UEFClothingSurfaceBinding>* Match =
+		RuntimeNativeBindingIndex.Find(MakeRuntimeKey(FSoftObjectPath(SourceMesh), FSoftObjectPath(BodyMesh)));
+	return Match ? Match->Get() : nullptr;
 }

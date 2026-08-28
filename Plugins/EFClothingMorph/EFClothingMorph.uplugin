@@ -1,9 +1,9 @@
 {
 	"FileVersion": 3,
-	"Version": 2,
-	"VersionName": "2.0.0",
+	"Version": 3,
+	"VersionName": "3.0.0",
 	"FriendlyName": "EF Clothing Morph",
-	"Description": "Non-destructive clothing fit compiler and automatic runtime binding for body clearance, skin weights and morph synchronization.",
+	"Description": "Native-first garment surface guard. Keeps the authored Unreal Skeletal Mesh, skin weights, morphs and Chaos output, then applies a non-destructive post-deformation clearance pass.",
 	"Category": "Character",
 	"CanContainContent": true,
 	"Installed": false,

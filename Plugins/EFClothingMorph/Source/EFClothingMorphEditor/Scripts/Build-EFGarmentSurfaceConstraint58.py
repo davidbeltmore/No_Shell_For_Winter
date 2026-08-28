@@ -1,4 +1,4 @@
-"""Build and validate the canonical EF Clothing Morph V26 Optimus graph.
+"""Build and validate the canonical EF Clothing Morph V3 Optimus graph.
 
 Run through Tools/Migration/Launch-NoShellForWinterEditor58.ps1 so the DAZ
 plugin receipt guard remains active. The C++ builder owns all asset mutation;
@@ -40,7 +40,7 @@ def main() -> None:
 
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     receipt_directory = os.path.join(
-        unreal.Paths.project_saved_dir(), "ClothingMorphV2QA", "GraphBuilder"
+        unreal.Paths.project_saved_dir(), "ClothingMorphV3QA", "GraphBuilder"
     )
     os.makedirs(receipt_directory, exist_ok=True)
     receipt_path = os.path.join(
@@ -49,7 +49,7 @@ def main() -> None:
     with open(receipt_path, "w", encoding="utf-8") as receipt_file:
         json.dump(
             {
-                "schema": "EFClothingMorph.SurfaceGraph.26.6",
+                "schema": "EFClothingMorph.SurfaceGraph.27.0",
                 "asset": (
                     "/EFClothingMorph/Deformers/"
                     "DG_EFGarmentSurfaceConstraint."
@@ -65,7 +65,7 @@ def main() -> None:
             indent=2,
             sort_keys=True,
         )
-    unreal.log(f"EF Clothing Morph V26 graph receipt: {receipt_path}")
+    unreal.log(f"EF Clothing Morph V3 graph receipt: {receipt_path}")
 
 
 if __name__ == "__main__":

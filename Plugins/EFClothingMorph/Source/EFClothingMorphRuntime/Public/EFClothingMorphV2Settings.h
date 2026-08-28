@@ -8,21 +8,24 @@ class UEFClothingFitRegistry;
 class UEFClothingMorphDirectorPolicy;
 class UOptimusDeformer;
 
-UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Clothing Morph V2"))
+// The C++ class name remains V2 for config/class-path compatibility. The public
+// product and Director schema are V3.
+UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Clothing Morph V3"))
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphV2Settings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Config, EditAnywhere, Category = "Runtime")
+	UPROPERTY(Config, EditAnywhere, Category = "Runtime", meta = (DisplayName = "Enable EF Clothing Morph", ToolTip = "Enables the EF Clothing Morph runtime. Per-garment fit controls remain in the Clothing Morph Director."))
 	bool bEnabled = true;
 
-	UPROPERTY(Config, EditAnywhere, Category = "Runtime")
+	/** Internal generated registry path. Deliberately hidden from Project Settings. */
+	UPROPERTY(Config)
 	TSoftObjectPtr<UEFClothingFitRegistry> Registry = TSoftObjectPtr<UEFClothingFitRegistry>(
-		FSoftObjectPath(TEXT("/EFClothingMorph/_Internal/Compiled/V26/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
+		FSoftObjectPath(TEXT("/EFClothingMorph/_Internal/Compiled/V3/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
 
-	/** Single project-owned Calysto-style garment catalog and tuning policy. */
-	UPROPERTY(Config, EditAnywhere, Category = "Director")
+	/** Fixed public Director path. Hidden so the project cannot accidentally split its catalog. */
+	UPROPERTY(Config)
 	TSoftObjectPtr<UEFClothingMorphDirectorPolicy> DirectorPolicy = TSoftObjectPtr<UEFClothingMorphDirectorPolicy>(
 		FSoftObjectPath(TEXT("/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.DA_EFClothingMorphDirector")));
 

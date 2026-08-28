@@ -40,7 +40,7 @@ public:
 		float DeltaTimeSeconds,
 		float GlobalClearanceOffsetCm,
 		float GarmentClearanceOffsetCm,
-		float GarmentVisibleThicknessCm,
+		float GarmentInflateCm,
 		float MaximumCorrectionOverrideCm,
 		FString& OutFailureReason);
 
@@ -65,10 +65,8 @@ public:
 	 * This is deliberately not a synchronous GPU readback or completion fence.
 	 */
 	uint64 GetRenderValidatedSubmissionCount() const;
-	bool HasRenderValidatedSubmission() const
-	{
-		return GetRenderValidatedSubmissionCount() > 0;
-	}
+	/** True only when a submission was validated after the latest fallback. */
+	bool HasRenderValidatedSubmission() const;
 
 	// IMeshDeformerProducer
 	FMeshDeformerBeginDestroyEvent& OnBeginDestroy() override { return BeginDestroyEvent; }
@@ -97,6 +95,10 @@ private:
 	int32 BodyLODIndex = INDEX_NONE;
 	uint64 EnqueuedFrameCount = 0;
 	uint32 LastObservedDispatchFailureCount = 0;
+	uint32 DispatchRecoverySubmissionCount = 0;
+	double DispatchRecoveryElapsedSeconds = 0.0;
+	bool bAwaitingDispatchRecovery = false;
+	bool bDispatchRecoveryStartedAfterReady = false;
 	bool bRenderPreflightEnqueued = false;
 	bool bRegisteredWithManager = false;
 

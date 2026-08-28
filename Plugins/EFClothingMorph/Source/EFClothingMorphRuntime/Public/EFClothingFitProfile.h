@@ -575,8 +575,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EF Clothing Morph V2")
 	TArray<TObjectPtr<UEFClothingFitProfile>> Profiles;
 
+	/**
+	 * V3 source-authoritative bindings. A V3 registry contains no generated fit
+	 * profiles: the component renders the exact SourceGarment selected in the
+	 * Director and uploads only this immutable surface correspondence.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "EF Clothing Morph V3")
+	TArray<TObjectPtr<UEFClothingSurfaceBinding>> NativeSourceBindings;
+
 	const UEFClothingFitProfile* FindProfileForSource(const USkeletalMesh* SourceMesh) const;
 	const UEFClothingFitProfile* FindProfileForSourceAndBody(
+		const USkeletalMesh* SourceMesh,
+		const USkeletalMesh* BodyMesh) const;
+
+	const UEFClothingSurfaceBinding* FindNativeSourceBinding(
 		const USkeletalMesh* SourceMesh,
 		const USkeletalMesh* BodyMesh) const;
 
@@ -586,4 +598,6 @@ private:
 
 	mutable TMap<FString, TWeakObjectPtr<const UEFClothingFitProfile>> RuntimeProfileIndex;
 	mutable int32 IndexedProfileCount = INDEX_NONE;
+	mutable TMap<FString, TWeakObjectPtr<const UEFClothingSurfaceBinding>> RuntimeNativeBindingIndex;
+	mutable int32 IndexedNativeBindingCount = INDEX_NONE;
 };

@@ -27,6 +27,20 @@ namespace EFClothingMorphV26
 	}
 }
 
+/** Native-source publication contract introduced after the V26 derived-mesh path. */
+namespace EFClothingMorphV3
+{
+	inline constexpr int32 CompilerVersion = 27;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 7;
+	inline constexpr TCHAR CompiledOutputRoot[] = TEXT("/EFClothingMorph/_Internal/Compiled/V3");
+	/** Native-first V3 preserves the authored silhouette unless skin is actually penetrated. */
+	inline constexpr float DefaultCollisionClearanceCm = 0.0f;
+	/** V3 exposes every visible gap through the per-garment runtime control; no hidden reserve. */
+	inline constexpr float CompiledClearanceReserveCm = 0.0f;
+	inline constexpr float MaximumRuntimeClearanceCm = 2.0f;
+	inline constexpr float MaximumRuntimeInflateCm = 2.0f;
+}
+
 /** Per-vertex behavior selected automatically by the V26 compiler. */
 UENUM(BlueprintType)
 enum class EEFClothingSurfaceVertexMode : uint8
@@ -309,9 +323,21 @@ class EFCLOTHINGMORPHRUNTIME_API UEFClothingSurfaceBinding : public UPrimaryData
 	GENERATED_BODY()
 
 public:
+	/** Stable Director identity. Array order is deliberately not part of this key. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	FName GarmentId = NAME_None;
+
+	/** Hash of binding-relevant Director authoring. Runtime-only sliders are excluded. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	FString GarmentCompileFingerprint;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
 	TSoftObjectPtr<USkeletalMesh> SourceGarment;
 
+	/**
+	 * Legacy V26 field. V3 leaves it null because SourceGarment is the exact mesh
+	 * rendered by the component; no generated Skeletal Mesh is created or swapped.
+	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
 	TSoftObjectPtr<USkeletalMesh> FittedGarment;
 

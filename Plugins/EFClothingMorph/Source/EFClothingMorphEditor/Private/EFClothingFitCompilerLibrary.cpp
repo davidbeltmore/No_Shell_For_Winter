@@ -9857,7 +9857,8 @@ namespace EFClothingFitCompilerPrivate
 		float CompiledReserveCm,
 		float DefaultMaximumCorrectionCm,
 		FEFClothingSurfaceLODPairBinding& OutPair,
-		FString& OutError)
+		FString& OutError,
+		const bool bAllowCorrectableInitialPenetration = false)
 	{
 		OutError.Reset();
 		OutPair = FEFClothingSurfaceLODPairBinding();
@@ -10680,13 +10681,16 @@ namespace EFClothingFitCompilerPrivate
 				&& OutPair.Metrics.PreserveUpstreamVertexCount * 100
 					<= GarmentVertexCount * 35
 				&& OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount > 0;
+		const bool bRestGapIsCertifiable = bAllowCorrectableInitialPenetration
+			? FMath::IsFinite(OutPair.Metrics.MinimumRestSignedGapCm)
+			: OutPair.Metrics.MinimumRestSignedGapCm >= -0.02f;
 		OutPair.bCertified = OutPair.Metrics.InvalidAnchorCount == 0
 			&& OutPair.Metrics.BoundRenderVertexCount == GarmentLOD.Topology.RenderVertexCount
 			// The fitted mesh is independently certified intersection-free. A small
 			// render-normal clearance deficit is legal because SurfaceWrap is hidden
 			// until its first unilateral GPU correction; the exact required push must
 			// still fit inside the immutable per-garment correction budget.
-			&& OutPair.Metrics.MinimumRestSignedGapCm >= -0.02f
+			&& bRestGapIsCertifiable
 			&& OutPair.Metrics.MaximumInitialCorrectionCm <= MaximumCorrectionCm + 1.e-4f
 			&& OutPair.Metrics.MaximumAnchorErrorCm <= 0.001f
 			&& OutPair.VertexBindings.Num() == GarmentLOD.Topology.RenderVertexCount
@@ -11221,6 +11225,512 @@ namespace EFClothingFitCompilerPrivate
 		}
 		return true;
 	}
+
+	static bool IsAllowedNativeSourceOutputRoot(const FString& Root)
+	{
+		const FString AllowedRoot(EFClothingMorphV3::CompiledOutputRoot);
+		return (Root == AllowedRoot
+				|| Root.StartsWith(AllowedRoot + TEXT("/"), ESearchCase::CaseSensitive))
+			&& !Root.Contains(TEXT(".."));
+	}
+
+	static FString BuildNativeSourceRowFingerprint(
+		const FEFClothingGarmentRow& Row,
+		const FEFClothingNativeSourceCompileOptions& Options)
+	{
+		// Runtime and editor must compare the exact same authoring fingerprint.
+		// Compile-option budgets are certified independently in every LOD pair
+		// below, so they must not create a second, runtime-invisible row hash.
+		(void)Options;
+		return Row.BuildCompileFingerprint();
+	}
+
+	static bool NativeTopologyMatches(
+		const FEFClothingSurfaceTopologyFingerprint& Stored,
+		const FSurfaceRenderLOD& Actual)
+	{
+		return Stored.LODIndex == Actual.Topology.LODIndex
+			&& Stored.RenderVertexCount == Actual.Topology.RenderVertexCount
+			&& Stored.RenderIndexCount == Actual.Topology.RenderIndexCount
+			&& Stored.TriangleCount == Actual.Topology.TriangleCount
+			&& Stored.SectionCount == Actual.Topology.SectionCount
+			&& Stored.TopologyFingerprint == Actual.Topology.TopologyFingerprint
+			&& Stored.ContentFingerprint == Actual.Topology.ContentFingerprint;
+	}
+
+	static bool ValidateNativeSourceBindingInternal(
+		const UEFClothingSurfaceBinding* Binding,
+		const FEFClothingGarmentRow& Row,
+		USkeletalMesh* SourceGarment,
+		USkeletalMesh* BodySurface,
+		USkeletalMesh* CompatibilityReference,
+		const FEFClothingNativeSourceCompileOptions& Options,
+		FString& OutError)
+	{
+		OutError.Reset();
+		if (!IsValid(Binding)
+			|| !IsValid(SourceGarment)
+			|| !IsValid(BodySurface)
+			|| !IsValid(CompatibilityReference)
+			|| Binding->CompilerVersion != EFClothingMorphV3::CompilerVersion
+			|| Binding->SchemaVersion != EFClothingMorphV3::SurfaceBindingSchemaVersion
+			|| !Binding->BuildGuid.IsValid()
+			|| Binding->GarmentId != Row.GarmentId
+			|| Binding->GarmentCompileFingerprint
+				!= BuildNativeSourceRowFingerprint(Row, Options)
+			|| Binding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceGarment)
+			|| !Binding->FittedGarment.IsNull()
+			|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodySurface)
+			|| Binding->LODPairBindings.IsEmpty())
+		{
+			OutError = TEXT("V3 native-source binding identity, schema or Director fingerprint is stale.");
+			return false;
+		}
+
+		USkeleton* SharedSkeleton = SourceGarment->GetSkeleton();
+		if (!IsValid(SharedSkeleton)
+			|| BodySurface->GetSkeleton() != SharedSkeleton
+			|| CompatibilityReference->GetSkeleton() != SharedSkeleton
+			|| Binding->SourceContentFingerprint
+				!= EFClothingSkeleton::BuildContentFingerprint(SourceGarment)
+			|| Binding->BodyContentFingerprint
+				!= EFClothingSkeleton::BuildContentFingerprint(BodySurface)
+			|| Binding->SourceSkeletonFingerprint
+				!= EFClothingSkeleton::BuildFingerprint(SourceGarment)
+			|| Binding->BodySkeletonFingerprint
+				!= EFClothingSkeleton::BuildFingerprint(BodySurface)
+			|| Binding->SharedSkeletonFingerprint
+				!= EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeleton)
+			|| !Binding->FittedContentFingerprint.IsEmpty()
+			|| !Binding->FittedSkeletonFingerprint.IsEmpty())
+		{
+			OutError = TEXT("V3 native-source binding content or shared-skeleton fingerprint is stale.");
+			return false;
+		}
+
+		TArray<FName> ExpectedExcludedSlots = Row.GetEffectiveBodySectionsToExclude();
+		CanonicalizeMaterialSlotNames(ExpectedExcludedSlots);
+		TArray<FName> StoredExcludedSlots = Binding->ExcludedBodySurfaceMaterialSlots;
+		CanonicalizeMaterialSlotNames(StoredExcludedSlots);
+		if (StoredExcludedSlots != ExpectedExcludedSlots)
+		{
+			OutError = TEXT("V3 native-source binding body-surface exclusions are stale.");
+			return false;
+		}
+
+		// V3 is native-source authoritative. Legacy V2 clearance fields are
+		// intentionally ignored so the Director's per-garment runtime control is
+		// the only source of visible spacing.
+		const float ExpectedBaseClearanceCm =
+			EFClothingMorphV3::DefaultCollisionClearanceCm;
+		const float ExpectedTargetClearanceCm = ExpectedBaseClearanceCm
+			+ EFClothingMorphV3::CompiledClearanceReserveCm;
+		const float ExpectedMaximumCorrectionCm =
+			EFClothingMorphV26::IsAutomaticCentimeterValue(Row.MaximumCorrectionCm)
+				? Options.MaximumPushCm
+				: Row.MaximumCorrectionCm;
+		if (!FMath::IsFinite(ExpectedBaseClearanceCm)
+			|| !FMath::IsFinite(ExpectedMaximumCorrectionCm)
+			|| ExpectedMaximumCorrectionCm <= 0.0f)
+		{
+			OutError = TEXT("V3 native-source compile-option clearance budget is invalid.");
+			return false;
+		}
+
+		FSkinnedAssetCompilingManager::Get().FinishCompilation({SourceGarment, BodySurface});
+		const FSkeletalMeshRenderData* GarmentRenderData = SourceGarment->GetResourceForRendering();
+		const FSkeletalMeshRenderData* BodyRenderData = BodySurface->GetResourceForRendering();
+		if (!GarmentRenderData || !BodyRenderData)
+		{
+			OutError = TEXT("V3 native-source freshness check could not access cooked render data.");
+			return false;
+		}
+		const int32 ExpectedPairCount = GarmentRenderData->LODRenderData.Num()
+			* BodyRenderData->LODRenderData.Num();
+		if (Binding->LODPairBindings.Num() != ExpectedPairCount)
+		{
+			OutError = FString::Printf(
+				TEXT("V3 native-source binding has %d LOD pairs; exact source/body topology requires %d."),
+				Binding->LODPairBindings.Num(),
+				ExpectedPairCount);
+			return false;
+		}
+
+		TMap<int32, FSurfaceRenderLOD> GarmentLODs;
+		TMap<int32, FSurfaceRenderLOD> BodyLODs;
+		TSet<uint64> UniquePairs;
+		for (const FEFClothingSurfaceLODPairBinding& Pair : Binding->LODPairBindings)
+		{
+			const int32 GarmentLODIndex = Pair.GarmentTopology.LODIndex;
+			const int32 BodyLODIndex = Pair.BodyTopology.LODIndex;
+			const uint64 PairKey =
+				(static_cast<uint64>(static_cast<uint32>(GarmentLODIndex)) << 32)
+				| static_cast<uint32>(BodyLODIndex);
+			if (GarmentLODIndex < 0
+				|| BodyLODIndex < 0
+				|| UniquePairs.Contains(PairKey)
+				|| !Pair.bCertified
+				|| !FMath::IsNearlyEqual(
+					Pair.BaseClearanceCm,
+					ExpectedBaseClearanceCm,
+					1.e-4f)
+				|| !FMath::IsNearlyEqual(
+					Pair.CompiledReserveCm,
+					EFClothingMorphV3::CompiledClearanceReserveCm,
+					1.e-4f)
+				|| Pair.Metrics.InvalidAnchorCount != 0
+				|| Pair.Metrics.DegenerateBodyTriangleCount != 0
+				|| !FMath::IsFinite(Pair.Metrics.MinimumRestSignedGapCm)
+				|| !FMath::IsFinite(Pair.Metrics.MaximumInitialCorrectionCm)
+				|| Pair.Metrics.MaximumInitialCorrectionCm < 0.0f
+				|| Pair.VertexBindings.Num() != Pair.GarmentTopology.RenderVertexCount
+				|| Pair.Metrics.BoundRenderVertexCount != Pair.VertexBindings.Num()
+				|| Pair.CandidateTriangles.IsEmpty()
+				|| Pair.Witnesses.IsEmpty())
+			{
+				OutError = FString::Printf(
+					TEXT("V3 native-source binding has an incomplete or duplicate LOD pair %d/%d."),
+					GarmentLODIndex,
+					BodyLODIndex);
+				return false;
+			}
+			UniquePairs.Add(PairKey);
+
+			if (!GarmentLODs.Contains(GarmentLODIndex))
+			{
+				FSurfaceRenderLOD ActualGarmentLOD;
+				if (!BuildSurfaceRenderLOD(
+					SourceGarment,
+					GarmentLODIndex,
+					{},
+					Row.NativeSkinWeightProfile,
+					ActualGarmentLOD,
+					OutError))
+				{
+					return false;
+				}
+				GarmentLODs.Add(GarmentLODIndex, MoveTemp(ActualGarmentLOD));
+			}
+			if (!BodyLODs.Contains(BodyLODIndex))
+			{
+				FSurfaceRenderLOD ActualBodyLOD;
+				if (!BuildSurfaceRenderLOD(
+					BodySurface,
+					BodyLODIndex,
+					ExpectedExcludedSlots,
+					NAME_None,
+					ActualBodyLOD,
+					OutError))
+				{
+					return false;
+				}
+				BodyLODs.Add(BodyLODIndex, MoveTemp(ActualBodyLOD));
+			}
+			if (!NativeTopologyMatches(Pair.GarmentTopology, GarmentLODs.FindChecked(GarmentLODIndex))
+				|| !NativeTopologyMatches(Pair.BodyTopology, BodyLODs.FindChecked(BodyLODIndex)))
+			{
+				OutError = FString::Printf(
+					TEXT("V3 native-source render topology changed for LOD pair %d/%d."),
+					GarmentLODIndex,
+					BodyLODIndex);
+				return false;
+			}
+
+			for (int32 VertexIndex = 0; VertexIndex < Pair.VertexBindings.Num(); ++VertexIndex)
+			{
+				const FEFClothingSurfaceVertexBinding& Vertex = Pair.VertexBindings[VertexIndex];
+				const bool bPreserve = Vertex.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream;
+				const float BarycentricSum = Vertex.BodyBarycentrics.X
+					+ Vertex.BodyBarycentrics.Y + Vertex.BodyBarycentrics.Z;
+				if (Vertex.GarmentRenderVertexIndex != VertexIndex
+					|| (!bPreserve && Vertex.Mode != EEFClothingSurfaceVertexMode::CollisionOnly)
+					|| !FMath::IsNearlyZero(Vertex.FollowWeight, 1.e-6f)
+					|| Vertex.ThicknessReferenceRenderVertexIndex != INDEX_NONE
+					|| Vertex.bOuterThicknessLayer
+					|| Vertex.BodyRenderVertexIndices.X < 0
+					|| Vertex.BodyRenderVertexIndices.Y < 0
+					|| Vertex.BodyRenderVertexIndices.Z < 0
+					|| Vertex.BodyRenderVertexIndices.X >= Pair.BodyTopology.RenderVertexCount
+					|| Vertex.BodyRenderVertexIndices.Y >= Pair.BodyTopology.RenderVertexCount
+					|| Vertex.BodyRenderVertexIndices.Z >= Pair.BodyTopology.RenderVertexCount
+					|| !FMath::IsNearlyEqual(BarycentricSum, 1.0f, 1.e-3f)
+					|| !FMath::IsFinite(Vertex.RestSignedGapCm)
+					|| !FMath::IsFinite(Vertex.TargetClearanceCm)
+					|| !FMath::IsNearlyEqual(
+						Vertex.TargetClearanceCm,
+						ExpectedTargetClearanceCm,
+						1.e-4f)
+					|| !FMath::IsFinite(Vertex.MaximumCorrectionCm)
+					|| !FMath::IsNearlyEqual(
+						Vertex.MaximumCorrectionCm,
+						ExpectedMaximumCorrectionCm,
+						1.e-4f)
+					|| (!bPreserve
+						&& FMath::Max(0.0f, Vertex.TargetClearanceCm - Vertex.RestSignedGapCm)
+							> Vertex.MaximumCorrectionCm + 1.e-4f))
+				{
+					OutError = FString::Printf(
+						TEXT("V3 native-source LOD pair %d/%d has invalid vertex binding %d."),
+						GarmentLODIndex,
+						BodyLODIndex,
+						VertexIndex);
+					return false;
+				}
+			}
+			for (int32 WitnessIndex = 0; WitnessIndex < Pair.Witnesses.Num(); ++WitnessIndex)
+			{
+				const FEFClothingSurfaceWitness& Witness = Pair.Witnesses[WitnessIndex];
+				const float GarmentBarycentricSum = Witness.GarmentBarycentrics.X
+					+ Witness.GarmentBarycentrics.Y + Witness.GarmentBarycentrics.Z;
+				const float BodyBarycentricSum = Witness.BodyBarycentrics.X
+					+ Witness.BodyBarycentrics.Y + Witness.BodyBarycentrics.Z;
+				if (Witness.GarmentTriangleIndex < 0
+					|| Witness.GarmentRenderVertexIndices.X < 0
+					|| Witness.GarmentRenderVertexIndices.Y < 0
+					|| Witness.GarmentRenderVertexIndices.Z < 0
+					|| Witness.GarmentRenderVertexIndices.X >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.GarmentRenderVertexIndices.Y >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.GarmentRenderVertexIndices.Z >= Pair.GarmentTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.X < 0
+					|| Witness.BodyRenderVertexIndices.Y < 0
+					|| Witness.BodyRenderVertexIndices.Z < 0
+					|| Witness.BodyRenderVertexIndices.X >= Pair.BodyTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.Y >= Pair.BodyTopology.RenderVertexCount
+					|| Witness.BodyRenderVertexIndices.Z >= Pair.BodyTopology.RenderVertexCount
+					|| !FMath::IsNearlyEqual(GarmentBarycentricSum, 1.0f, 1.e-3f)
+					|| !FMath::IsNearlyEqual(BodyBarycentricSum, 1.0f, 1.e-3f)
+					|| !FMath::IsNearlyEqual(
+						Witness.TargetClearanceCm,
+						ExpectedTargetClearanceCm,
+						1.e-4f)
+					|| !FMath::IsNearlyEqual(
+						Witness.MaximumCorrectionCm,
+						ExpectedMaximumCorrectionCm,
+						1.e-4f))
+				{
+					OutError = FString::Printf(
+						TEXT("V3 native-source LOD pair %d/%d has invalid witness %d."),
+						GarmentLODIndex,
+						BodyLODIndex,
+						WitnessIndex);
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	static bool BuildNativeSourceBindingAsset(
+		const FEFClothingGarmentRow& Row,
+		USkeletalMesh* SourceGarment,
+		USkeletalMesh* BodySurface,
+		USkeletalMesh* CompatibilityReference,
+		const FEFClothingNativeSourceCompileOptions& Options,
+		UEFClothingSurfaceBinding*& OutBinding,
+		FString& OutError)
+	{
+		OutBinding = nullptr;
+		OutError.Reset();
+		if (!IsValid(SourceGarment)
+			|| !IsValid(BodySurface)
+			|| !IsValid(CompatibilityReference)
+			|| !IsValid(SourceGarment->GetSkeleton())
+			|| SourceGarment->GetSkeleton() != BodySurface->GetSkeleton()
+			|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton())
+		{
+			OutError = TEXT("V3 binding requires source, body and compatibility meshes to share the exact protected USkeleton object.");
+			return false;
+		}
+
+		FSkinnedAssetCompilingManager::Get().FinishCompilation({SourceGarment, BodySurface});
+		FSkeletalMeshRenderData* GarmentRenderData = SourceGarment->GetResourceForRendering();
+		FSkeletalMeshRenderData* BodyRenderData = BodySurface->GetResourceForRendering();
+		if (!GarmentRenderData
+			|| !BodyRenderData
+			|| GarmentRenderData->LODRenderData.IsEmpty()
+			|| BodyRenderData->LODRenderData.IsEmpty())
+		{
+			OutError = TEXT("V3 binding could not load source/body render LOD data.");
+			return false;
+		}
+
+		TArray<FName> ExcludedSurfaceSlots = Row.GetEffectiveBodySectionsToExclude();
+		CanonicalizeMaterialSlotNames(ExcludedSurfaceSlots);
+		// Any excluded body section defines a generic preserve-upstream domain.
+		// This intentionally contains no garment, anatomy-tag or product-specific
+		// branch: every catalog row receives identical solver behavior.
+		const bool bPreserveExcludedAnatomyUpstream = !ExcludedSurfaceSlots.IsEmpty();
+
+		// Never bake a hidden V2 gap into a V3 binding. The exact native mesh is
+		// preserved at zero clearance and each garment adds only its visible
+		// Director runtime values after animation.
+		const float BaseClearanceCm =
+			EFClothingMorphV3::DefaultCollisionClearanceCm;
+		const float MaximumCorrectionCm = EFClothingMorphV26::IsAutomaticCentimeterValue(
+			Row.MaximumCorrectionCm)
+			? Options.MaximumPushCm
+			: Row.MaximumCorrectionCm;
+		if (!FMath::IsFinite(BaseClearanceCm)
+			|| BaseClearanceCm < 0.0f
+			|| !FMath::IsFinite(MaximumCorrectionCm)
+			|| MaximumCorrectionCm
+				< BaseClearanceCm + EFClothingMorphV3::CompiledClearanceReserveCm)
+		{
+			OutError = TEXT("V3 binding clearance/correction budget is invalid.");
+			return false;
+		}
+
+		const FGuid BuildGuid = FGuid::NewGuid();
+		const FString PublicationKey = BuildGuid.ToString(EGuidFormats::Digits);
+		const FString BindingName = FString::Printf(
+			TEXT("DA_%s_%s_%s_%s_EFV3Surface_%s"),
+			*SanitizeAssetName(Row.GarmentId.ToString()),
+			*BuildSourceKey(SourceGarment),
+			*SanitizeAssetName(BodySurface->GetName()),
+			*BuildSourceKey(BodySurface),
+			*PublicationKey);
+		const FString BindingObjectPath = FString::Printf(
+			TEXT("%s/%s.%s"),
+			*Options.OutputRoot,
+			*BindingName,
+			*BindingName);
+		if (LoadObject<UEFClothingSurfaceBinding>(nullptr, *BindingObjectPath))
+		{
+			OutError = FString::Printf(
+				TEXT("Fresh V3 publication key collided with %s."),
+				*BindingObjectPath);
+			return false;
+		}
+		UEFClothingSurfaceBinding* Binding = FindOrCreateDataAsset<UEFClothingSurfaceBinding>(
+			Options.OutputRoot,
+			BindingName);
+		if (!IsValid(Binding))
+		{
+			OutError = TEXT("Could not create the immutable V3 source-surface binding asset.");
+			return false;
+		}
+
+		Binding->GarmentId = Row.GarmentId;
+		Binding->GarmentCompileFingerprint = BuildNativeSourceRowFingerprint(Row, Options);
+		Binding->SourceGarment = SourceGarment;
+		Binding->FittedGarment.Reset();
+		Binding->BodySurface = BodySurface;
+		Binding->BuildGuid = BuildGuid;
+		Binding->CompilerVersion = EFClothingMorphV3::CompilerVersion;
+		Binding->SchemaVersion = EFClothingMorphV3::SurfaceBindingSchemaVersion;
+		Binding->SourceContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(SourceGarment);
+		Binding->FittedContentFingerprint.Reset();
+		Binding->BodyContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(BodySurface);
+		Binding->SourceSkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(SourceGarment);
+		Binding->FittedSkeletonFingerprint.Reset();
+		Binding->BodySkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(BodySurface);
+		Binding->SharedSkeletonFingerprint =
+			EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton());
+		Binding->ExcludedBodySurfaceMaterialSlots = ExcludedSurfaceSlots;
+		Binding->LODPairBindings.Reset();
+
+		FEFClothingGarmentRow CollisionOnlyRow = Row;
+		CollisionOnlyRow.FitPolicy = EEFClothingFitPolicy::Loose;
+		CollisionOnlyRow.bCreateThicknessShell = false;
+		CollisionOnlyRow.ShellThicknessCm = 0.0f;
+		for (int32 GarmentLODIndex = 0;
+			GarmentLODIndex < GarmentRenderData->LODRenderData.Num();
+			++GarmentLODIndex)
+		{
+			FSurfaceRenderLOD GarmentLOD;
+			if (!BuildSurfaceRenderLOD(
+				SourceGarment,
+				GarmentLODIndex,
+				{},
+				Row.NativeSkinWeightProfile,
+				GarmentLOD,
+				OutError))
+			{
+				return false;
+			}
+
+			for (int32 BodyLODIndex = 0;
+				BodyLODIndex < BodyRenderData->LODRenderData.Num();
+				++BodyLODIndex)
+			{
+				FSurfaceRenderLOD BodyLOD;
+				if (!BuildSurfaceRenderLOD(
+					BodySurface,
+					BodyLODIndex,
+					ExcludedSurfaceSlots,
+					NAME_None,
+					BodyLOD,
+					OutError))
+				{
+					return false;
+				}
+
+				FDynamicMesh3 ExcludedAnatomyMesh;
+				const FDynamicMesh3* ExcludedAnatomyMeshPtr = nullptr;
+				if (bPreserveExcludedAnatomyUpstream)
+				{
+					FSurfaceRenderLOD FullBodyLOD;
+					if (!BuildSurfaceRenderLOD(
+						BodySurface,
+						BodyLODIndex,
+						{},
+						NAME_None,
+						FullBodyLOD,
+						OutError))
+					{
+						return false;
+					}
+					int32 ExcludedTriangleCount = 0;
+					if (!BuildExcludedAnatomySurface(
+						FullBodyLOD,
+						BodyLOD,
+						ExcludedAnatomyMesh,
+						ExcludedTriangleCount,
+						OutError))
+					{
+						return false;
+					}
+					ExcludedAnatomyMeshPtr = &ExcludedAnatomyMesh;
+				}
+
+				FEFClothingSurfaceLODPairBinding& Pair =
+					Binding->LODPairBindings.AddDefaulted_GetRef();
+				if (!BuildSurfaceLODPairBinding(
+					GarmentLOD,
+					BodyLOD,
+					ExcludedAnatomyMeshPtr,
+					CollisionOnlyRow,
+					BaseClearanceCm,
+					EFClothingMorphV3::CompiledClearanceReserveCm,
+					MaximumCorrectionCm,
+					Pair,
+					OutError,
+					true))
+				{
+					return false;
+				}
+			}
+		}
+
+		Binding->MarkPackageDirty();
+		if (!SaveAsset(Binding, OutError))
+		{
+			return false;
+		}
+		if (!ValidateNativeSourceBindingInternal(
+			Binding,
+			Row,
+			SourceGarment,
+			BodySurface,
+			CompatibilityReference,
+			Options,
+			OutError))
+		{
+			return false;
+		}
+		OutBinding = Binding;
+		return true;
+	}
 }
 
 FGameplayTagContainer UEFClothingFitCompilerLibrary::MakeGameplayTagContainerFromNames(
@@ -11266,6 +11776,54 @@ bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema3(
 		"3) Runtime Clearance moves only that garment outward. 4) Enable Adjustable Thickness once and compile its paired topology. "
 		"Visible Thickness then updates immediately per garment without rebuilding or hiding it; 0.05 cm is thin fabric and 0.20 cm is visibly thicker. "
 		"Structural shell options remain advanced compile settings. Every control belongs to its expanded garment index; this Director has no global garment tuning."));
+	Director->MarkPackageDirty();
+	return true;
+}
+
+bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema4(
+	UEFClothingMorphDirectorPolicy* Director)
+{
+	if (!IsValid(Director)
+		|| Director->SchemaVersion < 1
+		|| Director->SchemaVersion > 4
+		|| (!Director->DirectorId.IsNone()
+			&& Director->DirectorId != TEXT("EFClothingMorphV2")
+			&& Director->DirectorId != TEXT("EFClothingMorphV3")))
+	{
+		return false;
+	}
+
+	Director->Modify();
+	for (FEFClothingGarmentRow& Garment : Director->Garments)
+	{
+		// Backend is an internal implementation detail in the V3 Director UI.
+		// Every enabled V3 row therefore selects the native-source surface guard
+		// explicitly instead of inheriting a serialized V2 fallback value.
+		Garment.Backend = EEFClothingSurfaceBackend::SurfaceWrapGPU;
+		Garment.BodySectionsToExclude = Garment.GetEffectiveBodySectionsToExclude();
+		EFClothingFitCompilerPrivate::CanonicalizeMaterialSlotNames(
+			Garment.BodySectionsToExclude);
+
+		// Schema <= 3 used this legacy switch as the authority for the runtime
+		// clearance. Preserve that explicit opt-out during the one-time migration.
+		if (!Garment.bEnableRuntimeTuning)
+		{
+			Garment.AdditionalClearanceCm = 0.0f;
+		}
+
+		// V3 never generates or swaps a thickened Skeletal Mesh. ShellThicknessCm
+		// remains a non-destructive runtime surface-inflate value, while this old
+		// topology-generation switch is permanently retired for the migrated row.
+		Garment.bCreateThicknessShell = false;
+		Garment.bFailClosedOnMissingLOD = false;
+	}
+
+	Director->SchemaVersion = 4;
+	Director->DirectorId = TEXT("EFClothingMorphV3");
+	Director->AuthoringGuide = FText::FromString(TEXT(
+		"Add one entry to Garments for each garment/body pair. Editable Garment Mesh is always the authoritative source and may be changed with Unreal Engine's native Skeletal Mesh tools. "
+		"Skin Clearance and Surface Inflate are immediate, non-destructive runtime controls owned by that garment entry. Native UE Offset values do nothing until Apply Native Offset to Editable Mesh is pressed. "
+		"Refresh Binding rebuilds only project-owned runtime data; it never edits the body, its weights, or the shared skeleton."));
 	Director->MarkPackageDirty();
 	return true;
 }
@@ -12924,6 +13482,12 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 	{
 		return Fail(TEXT("CompileGarmentCatalog requires a valid EF Clothing Morph Director."));
 	}
+	if (Director->SchemaVersion >= 4)
+	{
+		return Fail(TEXT(
+			"The legacy V26 generated-mesh compiler is disabled for a V3 Director. "
+			"Use CompileNativeSourceCatalogV3 or Refresh Binding."));
+	}
 	if (!IsValid(CompatibilityReference))
 	{
 		return Fail(TEXT("CompileGarmentCatalog requires a compatibility reference mesh."));
@@ -13133,6 +13697,491 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 		ValidBindingCount,
 		Result.Rows.Num(),
 		PassedRowCount,
+		*Registry->GetPathName());
+	UE_LOG(LogEFClothingFitCompiler, Display, TEXT("%s"), *Result.Report);
+	return Result;
+}
+
+FEFClothingNativeSourceFreshnessResult
+UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV3(
+	UEFClothingMorphDirectorPolicy* Director,
+	UEFClothingFitRegistry* Registry,
+	USkeletalMesh* CompatibilityReference,
+	FEFClothingNativeSourceCompileOptions Options)
+{
+	using namespace EFClothingFitCompilerPrivate;
+
+	FEFClothingNativeSourceFreshnessResult Result;
+	auto Fail = [&Result](const FString& Message)
+	{
+		Result.bFresh = false;
+		Result.Report = FString::Printf(TEXT("STALE: %s"), *Message);
+		return Result;
+	};
+	if (!IsValid(Director))
+	{
+		return Fail(TEXT("the configured Clothing Director is unavailable"));
+	}
+	if (!IsValid(Registry))
+	{
+		return Fail(TEXT("the V3 native-source binding registry is unavailable"));
+	}
+	if (!IsValid(CompatibilityReference)
+		|| !IsValid(CompatibilityReference->GetSkeleton()))
+	{
+		return Fail(TEXT("the protected compatibility reference is unavailable"));
+	}
+	if (!IsAllowedNativeSourceOutputRoot(Options.OutputRoot))
+	{
+		return Fail(TEXT("the configured V3 output root is outside the project-owned internal mount"));
+	}
+	FString DirectorError;
+	if (!Director->ValidatePolicy(DirectorError))
+	{
+		return Fail(FString::Printf(TEXT("the Clothing Director is invalid: %s"), *DirectorError));
+	}
+	if (!Registry->Profiles.IsEmpty())
+	{
+		return Fail(TEXT("a V3 binding-only registry contains generated V26 fit profiles"));
+	}
+
+	TSet<FName> EnabledIds;
+	TSet<FString> EnabledPairs;
+	for (const FEFClothingGarmentRow& Row : Director->Garments)
+	{
+		if (Row.IsDisabledEmptyPlaceholder() || !Row.bEnabled)
+		{
+			continue;
+		}
+		++Result.EnabledRowCount;
+		if (Row.GarmentId.IsNone()
+			|| EnabledIds.Contains(Row.GarmentId)
+			|| Row.SourceGarment.IsNull()
+			|| Row.BodySurface.IsNull()
+			|| Row.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			return Fail(FString::Printf(
+				TEXT("enabled row %s is duplicate, incomplete or does not use SurfaceWrapGPU"),
+				*Row.GarmentId.ToString()));
+		}
+		EnabledIds.Add(Row.GarmentId);
+		const FString PairKey = Row.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + Row.BodySurface.ToSoftObjectPath().ToString();
+		if (EnabledPairs.Contains(PairKey))
+		{
+			return Fail(FString::Printf(
+				TEXT("enabled row %s duplicates a source/body pair"),
+				*Row.GarmentId.ToString()));
+		}
+		EnabledPairs.Add(PairKey);
+
+		USkeletalMesh* SourceGarment = Row.SourceGarment.LoadSynchronous();
+		USkeletalMesh* BodySurface = Row.BodySurface.LoadSynchronous();
+		if (!IsValid(SourceGarment) || !IsValid(BodySurface))
+		{
+			return Fail(FString::Printf(
+				TEXT("row %s could not load its exact source garment or reference body"),
+				*Row.GarmentId.ToString()));
+		}
+
+		int32 MatchingBindingCount = 0;
+		const UEFClothingSurfaceBinding* MatchingBinding = nullptr;
+		for (const UEFClothingSurfaceBinding* Binding : Registry->NativeSourceBindings)
+		{
+			if (IsValid(Binding)
+				&& Binding->SourceGarment.ToSoftObjectPath() == Row.SourceGarment.ToSoftObjectPath()
+				&& Binding->BodySurface.ToSoftObjectPath() == Row.BodySurface.ToSoftObjectPath())
+			{
+				++MatchingBindingCount;
+				MatchingBinding = Binding;
+			}
+		}
+		if (MatchingBindingCount != 1)
+		{
+			return Fail(FString::Printf(
+				TEXT("row %s has %d V3 bindings for its exact source/body pair (expected one)"),
+				*Row.GarmentId.ToString(),
+				MatchingBindingCount));
+		}
+
+		FString BindingError;
+		if (!ValidateNativeSourceBindingInternal(
+			MatchingBinding,
+			Row,
+			SourceGarment,
+			BodySurface,
+			CompatibilityReference,
+			Options,
+			BindingError))
+		{
+			return Fail(FString::Printf(
+				TEXT("row %s: %s"),
+				*Row.GarmentId.ToString(),
+				*BindingError));
+		}
+		++Result.ValidBindingCount;
+	}
+
+	if (Result.EnabledRowCount <= 0)
+	{
+		return Fail(TEXT("the Clothing Director has no enabled garments"));
+	}
+	if (Registry->NativeSourceBindings.Num() != Result.EnabledRowCount
+		|| Result.ValidBindingCount != Result.EnabledRowCount)
+	{
+		return Fail(FString::Printf(
+			TEXT("catalog equality failed: enabled=%d registry=%d valid=%d"),
+			Result.EnabledRowCount,
+			Registry->NativeSourceBindings.Num(),
+			Result.ValidBindingCount));
+	}
+
+	Result.bFresh = true;
+	Result.Report = FString::Printf(
+		TEXT("FRESH | Director=%s | enabled=%d valid_bindings=%d | Registry=%s"),
+		*Director->GetPathName(),
+		Result.EnabledRowCount,
+		Result.ValidBindingCount,
+		*Registry->GetPathName());
+	return Result;
+}
+
+FEFClothingNativeSourceCatalogCompileResult
+UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV3(
+	UEFClothingMorphDirectorPolicy* Director,
+	USkeletalMesh* CompatibilityReference,
+	FEFClothingNativeSourceCompileOptions Options)
+{
+	using namespace EFClothingFitCompilerPrivate;
+
+	FEFClothingNativeSourceCatalogCompileResult Result;
+	auto Fail = [&Result](const FString& Message)
+	{
+		Result.bSuccess = false;
+		Result.Report = FString::Printf(TEXT("FAIL: %s"), *Message);
+		UE_LOG(LogEFClothingFitCompiler, Error, TEXT("%s"), *Result.Report);
+		return Result;
+	};
+	if (!IsValid(Director))
+	{
+		return Fail(TEXT("CompileNativeSourceCatalogV3 requires a valid Clothing Director."));
+	}
+	if (!IsValid(CompatibilityReference)
+		|| !IsValid(CompatibilityReference->GetSkeleton()))
+	{
+		return Fail(TEXT("CompileNativeSourceCatalogV3 requires the protected compatibility mesh."));
+	}
+	if (!IsAllowedNativeSourceOutputRoot(Options.OutputRoot))
+	{
+		return Fail(TEXT("V3 OutputRoot must remain under /EFClothingMorph/_Internal/Compiled/V3."));
+	}
+	if (!FMath::IsFinite(Options.MinimumClearanceCm)
+		|| !FMath::IsNearlyZero(Options.MinimumClearanceCm, KINDA_SMALL_NUMBER)
+		|| !FMath::IsFinite(Options.MaximumPushCm)
+		|| Options.MaximumPushCm < 0.05f
+		|| Options.MaximumPushCm > 10.0f)
+	{
+		return Fail(TEXT("V3 base clearance must remain zero; use the Director's per-garment Skin Clearance runtime value."));
+	}
+	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	UEFClothingMorphDirectorPolicy* ConfiguredDirector = Settings
+		&& !Settings->DirectorPolicy.IsNull()
+		? Settings->DirectorPolicy.LoadSynchronous()
+		: nullptr;
+	if (ConfiguredDirector != Director)
+	{
+		return Fail(TEXT("V3 publication is restricted to the exact configured Clothing Director."));
+	}
+	FString DirectorError;
+	if (!Director->ValidatePolicy(DirectorError))
+	{
+		return Fail(FString::Printf(TEXT("Configured Clothing Director is invalid: %s"), *DirectorError));
+	}
+
+	TArray<const FEFClothingGarmentRow*> EnabledRows;
+	TSet<FName> UniqueIds;
+	TSet<FString> UniquePairs;
+	for (const FEFClothingGarmentRow& Row : Director->Garments)
+	{
+		if (Row.IsDisabledEmptyPlaceholder() || !Row.bEnabled)
+		{
+			continue;
+		}
+		if (Row.GarmentId.IsNone()
+			|| UniqueIds.Contains(Row.GarmentId)
+			|| Row.SourceGarment.IsNull()
+			|| Row.BodySurface.IsNull())
+		{
+			return Fail(FString::Printf(
+				TEXT("Enabled Director row %s is duplicate or incomplete."),
+				*Row.GarmentId.ToString()));
+		}
+		if (Row.Backend != EEFClothingSurfaceBackend::SurfaceWrapGPU)
+		{
+			return Fail(FString::Printf(
+				TEXT("Enabled Director row %s must use SurfaceWrapGPU for the V3 source-authoritative registry."),
+				*Row.GarmentId.ToString()));
+		}
+		const FString PairKey = Row.SourceGarment.ToSoftObjectPath().ToString()
+			+ TEXT("|") + Row.BodySurface.ToSoftObjectPath().ToString();
+		if (UniquePairs.Contains(PairKey))
+		{
+			return Fail(FString::Printf(
+				TEXT("Enabled Director row %s duplicates a source/body pair."),
+				*Row.GarmentId.ToString()));
+		}
+		UniqueIds.Add(Row.GarmentId);
+		UniquePairs.Add(PairKey);
+		EnabledRows.Add(&Row);
+	}
+	EnabledRows.Sort([](const FEFClothingGarmentRow& A, const FEFClothingGarmentRow& B)
+	{
+		return A.GarmentId.LexicalLess(B.GarmentId);
+	});
+	Result.EnabledRowCount = EnabledRows.Num();
+	if (EnabledRows.IsEmpty())
+	{
+		return Fail(TEXT("Clothing Director has no enabled garments; refusing to publish an empty V3 registry."));
+	}
+
+	struct FProtectedMeshState
+	{
+		TWeakObjectPtr<USkeletalMesh> Mesh;
+		FString ContentFingerprint;
+		FString SkeletonFingerprint;
+		bool bPackageDirty = false;
+	};
+	TArray<FProtectedMeshState> ProtectedMeshes;
+	TSet<USkeletalMesh*> CapturedMeshes;
+	auto CaptureMesh = [&ProtectedMeshes, &CapturedMeshes](USkeletalMesh* Mesh)
+	{
+		if (!IsValid(Mesh) || CapturedMeshes.Contains(Mesh))
+		{
+			return;
+		}
+		CapturedMeshes.Add(Mesh);
+		FProtectedMeshState& State = ProtectedMeshes.AddDefaulted_GetRef();
+		State.Mesh = Mesh;
+		State.ContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(Mesh);
+		State.SkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(Mesh);
+		State.bPackageDirty = Mesh->GetOutermost()->IsDirty();
+	};
+	CaptureMesh(CompatibilityReference);
+	for (const FEFClothingGarmentRow* Row : EnabledRows)
+	{
+		CaptureMesh(Row->SourceGarment.LoadSynchronous());
+		CaptureMesh(Row->BodySurface.LoadSynchronous());
+	}
+	USkeleton* ProtectedSkeleton = CompatibilityReference->GetSkeleton();
+	const FString SharedSkeletonFingerprintBefore =
+		EFClothingSkeleton::BuildSharedSkeletonFingerprint(ProtectedSkeleton);
+	const FString SharedSkeletonEditorFingerprintBefore =
+		EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(ProtectedSkeleton);
+	const bool bSkeletonPackageDirtyBefore = ProtectedSkeleton->GetOutermost()->IsDirty();
+	auto ProtectedInputsUnchanged = [&]()
+	{
+		if (!IsValid(ProtectedSkeleton)
+			|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(ProtectedSkeleton)
+				!= SharedSkeletonFingerprintBefore
+			|| EFClothingSkeleton::BuildSharedSkeletonEditorFingerprint(ProtectedSkeleton)
+				!= SharedSkeletonEditorFingerprintBefore
+			|| ProtectedSkeleton->GetOutermost()->IsDirty() != bSkeletonPackageDirtyBefore)
+		{
+			return false;
+		}
+		for (const FProtectedMeshState& State : ProtectedMeshes)
+		{
+			USkeletalMesh* Mesh = State.Mesh.Get();
+			if (!IsValid(Mesh)
+				|| EFClothingSkeleton::BuildContentFingerprint(Mesh) != State.ContentFingerprint
+				|| EFClothingSkeleton::BuildFingerprint(Mesh) != State.SkeletonFingerprint
+				|| Mesh->GetOutermost()->IsDirty() != State.bPackageDirty)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+	if (!ProtectedInputsUnchanged())
+	{
+		return Fail(TEXT("Protected source/body/compatibility state changed while the V3 guard was armed."));
+	}
+
+	const FString RegistryObjectPath = FString::Printf(
+		TEXT("%s/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry"),
+		*Options.OutputRoot);
+	UEFClothingFitRegistry* Registry = LoadObject<UEFClothingFitRegistry>(
+		nullptr,
+		*RegistryObjectPath);
+	if (!IsValid(Registry))
+	{
+		Registry = FindOrCreateDataAsset<UEFClothingFitRegistry>(
+			Options.OutputRoot,
+			TEXT("DA_EFClothingFitRegistry"));
+	}
+	if (!IsValid(Registry))
+	{
+		return Fail(TEXT("Could not create the internal V3 binding registry."));
+	}
+	Result.Registry = Registry;
+
+	TArray<TObjectPtr<UEFClothingSurfaceBinding>> StagedBindings;
+	StagedBindings.Reserve(EnabledRows.Num());
+	Result.Rows.Reserve(EnabledRows.Num());
+	for (const FEFClothingGarmentRow* Row : EnabledRows)
+	{
+		FEFClothingNativeSourceCompileRowResult& RowResult =
+			Result.Rows.AddDefaulted_GetRef();
+		RowResult.GarmentId = Row->GarmentId;
+		USkeletalMesh* SourceGarment = Row->SourceGarment.LoadSynchronous();
+		USkeletalMesh* BodySurface = Row->BodySurface.LoadSynchronous();
+		if (!IsValid(SourceGarment)
+			|| !IsValid(BodySurface)
+			|| SourceGarment->GetSkeleton() != ProtectedSkeleton
+			|| BodySurface->GetSkeleton() != ProtectedSkeleton)
+		{
+			RowResult.Report = TEXT("FAIL: source/body do not share the protected compatibility USkeleton.");
+			return Fail(FString::Printf(
+				TEXT("Row %s: %s"),
+				*Row->GarmentId.ToString(),
+				*RowResult.Report));
+		}
+
+		UEFClothingSurfaceBinding* Binding = nullptr;
+		if (Options.bOnlyStale)
+		{
+			int32 MatchCount = 0;
+			for (UEFClothingSurfaceBinding* Candidate : Registry->NativeSourceBindings)
+			{
+				if (IsValid(Candidate)
+					&& Candidate->SourceGarment.ToSoftObjectPath()
+						== Row->SourceGarment.ToSoftObjectPath()
+					&& Candidate->BodySurface.ToSoftObjectPath()
+						== Row->BodySurface.ToSoftObjectPath())
+				{
+					++MatchCount;
+					Binding = Candidate;
+				}
+			}
+			FString FreshnessError;
+			if (MatchCount == 1
+				&& ValidateNativeSourceBindingInternal(
+					Binding,
+					*Row,
+					SourceGarment,
+					BodySurface,
+					CompatibilityReference,
+					Options,
+					FreshnessError))
+			{
+				RowResult.bReusedFreshBinding = true;
+				++Result.ReusedFreshRowCount;
+			}
+			else
+			{
+				Binding = nullptr;
+			}
+		}
+
+		if (!IsValid(Binding))
+		{
+			FString BuildError;
+			if (!BuildNativeSourceBindingAsset(
+				*Row,
+				SourceGarment,
+				BodySurface,
+				CompatibilityReference,
+				Options,
+				Binding,
+				BuildError))
+			{
+				RowResult.Report = FString::Printf(TEXT("FAIL: %s"), *BuildError);
+				return Fail(FString::Printf(
+					TEXT("Row %s native-source binding failed: %s"),
+					*Row->GarmentId.ToString(),
+					*BuildError));
+			}
+		}
+		if (!ProtectedInputsUnchanged())
+		{
+			RowResult.Report = TEXT("FAIL: protected source/body/skeleton state changed during binding bake.");
+			return Fail(FString::Printf(
+				TEXT("Row %s violated the protected-input guard."),
+				*Row->GarmentId.ToString()));
+		}
+		RowResult.bSuccess = true;
+		RowResult.SurfaceBinding = Binding;
+		RowResult.Report = RowResult.bReusedFreshBinding
+			? TEXT("PASS: reused exact fresh native-source binding.")
+			: TEXT("PASS: baked exact native-source binding without a generated Skeletal Mesh or fit profile.");
+		StagedBindings.Add(Binding);
+		++Result.CompiledRowCount;
+	}
+
+	if (Result.CompiledRowCount != Result.EnabledRowCount
+		|| StagedBindings.Num() != Result.EnabledRowCount
+		|| Result.Rows.Num() != Result.EnabledRowCount)
+	{
+		return Fail(FString::Printf(
+			TEXT("V3 catalog equality failed before publication: enabled=%d resolved=%d bindings=%d tested=%d."),
+			Result.EnabledRowCount,
+			Result.CompiledRowCount,
+			StagedBindings.Num(),
+			Result.Rows.Num()));
+	}
+	StagedBindings.Sort([](const UEFClothingSurfaceBinding& A, const UEFClothingSurfaceBinding& B)
+	{
+		return A.GarmentId.LexicalLess(B.GarmentId);
+	});
+
+	const TArray<TObjectPtr<UEFClothingFitProfile>> PreviousProfiles = Registry->Profiles;
+	const TArray<TObjectPtr<UEFClothingSurfaceBinding>> PreviousBindings =
+		Registry->NativeSourceBindings;
+	UPackage* RegistryPackage = Registry->GetOutermost();
+	const bool bRegistryDirtyBefore = RegistryPackage && RegistryPackage->IsDirty();
+	Registry->Profiles.Reset();
+	Registry->NativeSourceBindings = StagedBindings;
+	Registry->MarkPackageDirty();
+	FString SaveError;
+	if (!SaveAsset(Registry, SaveError))
+	{
+		Registry->Profiles = PreviousProfiles;
+		Registry->NativeSourceBindings = PreviousBindings;
+		if (RegistryPackage)
+		{
+			RegistryPackage->SetDirtyFlag(bRegistryDirtyBefore);
+		}
+		return Fail(FString::Printf(TEXT("Atomic V3 registry save failed: %s"), *SaveError));
+	}
+
+	const FEFClothingNativeSourceFreshnessResult Freshness =
+		ValidateNativeSourceCatalogV3(Director, Registry, CompatibilityReference, Options);
+	if (!Freshness.bFresh || !ProtectedInputsUnchanged())
+	{
+		Registry->Profiles = PreviousProfiles;
+		Registry->NativeSourceBindings = PreviousBindings;
+		Registry->MarkPackageDirty();
+		FString RollbackError;
+		if (!SaveAsset(Registry, RollbackError))
+		{
+			return Fail(FString::Printf(
+				TEXT("V3 post-publication validation failed and registry rollback also failed: validation=%s rollback=%s"),
+				*Freshness.Report,
+				*RollbackError));
+		}
+		return Fail(FString::Printf(
+			TEXT("V3 post-publication validation failed; previous registry restored: %s"),
+			*Freshness.Report));
+	}
+
+	Result.bSuccess = true;
+	Result.Report = FString::Printf(
+		TEXT("PASS | V3 native source | Director=%s | enabled=%d resolved=%d reused=%d valid_bindings=%d profiles=0 | Registry=%s"),
+		*Director->GetPathName(),
+		Result.EnabledRowCount,
+		Result.CompiledRowCount,
+		Result.ReusedFreshRowCount,
+		Freshness.ValidBindingCount,
 		*Registry->GetPathName());
 	UE_LOG(LogEFClothingFitCompiler, Display, TEXT("%s"), *Result.Report);
 	return Result;
