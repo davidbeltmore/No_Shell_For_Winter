@@ -218,6 +218,8 @@ private:
 	float GetMaximumRuntimeAdditionalClearanceCm() const;
 	float ResolveGlobalSurfaceOffsetCm() const;
 	float ResolveDirectorGarmentOffsetCm(const FAppliedGarmentState& State) const;
+	float ResolveDirectorGarmentVisibleThicknessCm(
+		const FAppliedGarmentState& State) const;
 	void ApplyReservedSurfaceBounds(
 		USkeletalMeshComponent* GarmentComponent,
 		FAppliedGarmentState& State,
@@ -306,6 +308,8 @@ private:
 	TMap<FName, int32> GarmentIdIndex;
 	TSet<FString> DuplicateCatalogKeys;
 	TSet<FSoftObjectPath> CatalogedSourcePaths;
+	/** Prevent repeated warnings while an author-edited source mesh uses its last known-good compiled runtime bundle. */
+	mutable TSet<FSoftObjectPath> WarnedStaleSourceGarmentPaths;
 	/** Enabled source meshes remain guarded even when the rest of their Director contract is invalid. */
 	TSet<FSoftObjectPath> GuardedSourcePaths;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;

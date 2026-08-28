@@ -1,12 +1,12 @@
 """Create or migrate the single-authority EF Clothing Morph V2 Director.
 
-Schema 2 deliberately exposes one human-authored asset:
+Schema 3 deliberately exposes one human-authored asset:
 
     /Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector
 
 When the two schema-1 DataTables still exist, this commandlet reads them and
 merges rows by DataTable RowName into Director.Garments.  It never modifies or
-deletes either legacy table.  A populated, valid schema-2 Director is treated
+deletes either legacy table.  A populated, valid schema-3 Director is treated
 as authoritative and is only validated; authored garment values are not reset.
 
 No SkeletalMesh, USkeleton, Player, DAZ/ACFU asset or generated fit artifact is
@@ -35,14 +35,18 @@ DIRECTOR_PATH = PUBLIC_DIRECTORY + "/DA_EFClothingMorphDirector"
 LEGACY_COMPILE_PATH = PUBLIC_DIRECTORY + "/DT_EFClothingGarments"
 LEGACY_TUNING_PATH = PUBLIC_DIRECTORY + "/DT_EFClothingGarmentTuning"
 DIRECTOR_CLASS_PATH = "/Script/EFClothingMorphRuntime.EFClothingMorphDirectorPolicy"
-DIRECTOR_SCHEMA = 2
+DIRECTOR_SCHEMA = 3
+THICKNESS_AUTHORING_METADATA_TAG = "EFClothingMorph.ThicknessAuthoringVersion"
+THICKNESS_AUTHORING_METADATA_VERSION = "2"
 MAXIMUM_SAFE_OFFSET_CM = 0.35
 AUTHORING_GUIDE = (
-    "1) Crea un indice por prenda y cuerpo. 2) Selecciona siempre la mesh original, "
-    "nunca una SK_ generada. 3) Deja Metodo de ajuste y Tipo de ajuste en sus valores "
-    "recomendados. 4) Si aun ves clipping, activa el offset de esa prenda y prueba "
-    "primero 0.05 cm. El offset no requiere recompilar y no existe un offset global "
-    "en este Director."
+	"1) Create one index per garment/body pair. 2) Select and edit the original garment "
+	"mesh with Unreal's native tools; never edit a generated SK_ mesh. 3) Runtime Clearance "
+	"moves only that garment outward. 4) Enable Adjustable Thickness once and compile its "
+	"paired topology. Visible Thickness then updates immediately per garment without "
+	"rebuilding or hiding it; 0.05 cm is thin fabric and 0.20 cm is visibly thicker. "
+	"Structural shell options remain advanced compile settings. Every control belongs to "
+	"its expanded garment index; this Director has no global garment tuning."
 )
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 RECEIPT_PATH = os.path.join(
@@ -374,6 +378,43 @@ def make_director_garment(compile_row: dict, tuning_row: dict | None):
         ),
     )
     set_property(garment, "additional_clearance_cm", tuning_offset)
+    # Shell authoring is a per-row, garment-agnostic decision. Migration and
+    # onboarding must never infer it from a specific garment name.
+    create_shell = boolean(
+        optional_field(
+            compile_row,
+            "bCreateThicknessShell",
+            "CreateThicknessShell",
+            default=False,
+        ),
+        False,
+    )
+    set_property(garment, "create_thickness_shell", create_shell)
+    set_property(
+        garment,
+        "shell_thickness_cm",
+        numeric(optional_field(compile_row, "ShellThicknessCm", default=0.05), 0.05),
+    )
+    set_property(
+        garment,
+        "shell_offset_steps",
+        int(numeric(optional_field(compile_row, "ShellOffsetSteps", default=10), 10)),
+    )
+    set_property(
+        garment,
+        "shell_offset_boundaries",
+        boolean(optional_field(compile_row, "bShellOffsetBoundaries", default=True), True),
+    )
+    set_property(
+        garment,
+        "shell_smoothing_per_step",
+        numeric(optional_field(compile_row, "ShellSmoothingPerStep", default=0.0), 0.0),
+    )
+    set_property(
+        garment,
+        "shell_reproject_smooth",
+        boolean(optional_field(compile_row, "bShellReprojectSmooth", default=False), False),
+    )
     set_property(
         garment,
         "notes",
@@ -420,16 +461,75 @@ def validate_policy(policy) -> str:
         if bool(validator()):
             return ""
         return str(error_getter()) or "IsPolicyValid returned false"
-    fail("Director does not expose the schema-2 validation API")
+    fail("Director does not expose the schema-3 validation API")
 
 
 def garment_id(garment) -> str:
     return str(garment.get_editor_property("garment_id"))
 
 
+SHELL_AUTHORING_PROPERTIES = (
+    "create_thickness_shell",
+    "shell_thickness_cm",
+    "shell_offset_steps",
+    "shell_offset_boundaries",
+    "shell_smoothing_per_step",
+    "shell_reproject_smooth",
+)
+
+
+PRESERVED_GARMENT_PROPERTIES = (
+    "garment_id",
+    "display_name",
+    "enabled",
+    "source_garment",
+    "body_surface",
+    "backend",
+    "fit_policy",
+    "coverage_tags",
+    "hidden_body_material_slots",
+    "excluded_body_surface_material_slots",
+    "excluded_body_bone_branches",
+    "excluded_body_morph_prefixes",
+    "minimum_clearance_multiplier",
+    "fabric_clearance_cm",
+    "enable_runtime_tuning",
+    "additional_clearance_cm",
+    "notes",
+    "maximum_correction_cm",
+    "fail_closed_on_missing_lod",
+) + SHELL_AUTHORING_PROPERTIES
+
+
+def preserved_garment_snapshot(garment) -> dict:
+    return {
+        name: re.sub(
+            r"\(0x[0-9A-Fa-f]+\)",
+            "(PTR)",
+            str(garment.get_editor_property(name)),
+        )
+        for name in PRESERVED_GARMENT_PROPERTIES
+    }
+
+
+def preserved_snapshot_differences(before: dict, after: dict) -> dict:
+    differences = {}
+    for index in sorted(set(before) | set(after)):
+        before_row = before.get(index, {})
+        after_row = after.get(index, {})
+        row_differences = {
+            name: {"before": before_row.get(name), "after": after_row.get(name)}
+            for name in sorted(set(before_row) | set(after_row))
+            if before_row.get(name) != after_row.get(name)
+        }
+        if row_differences:
+            differences[index] = row_differences
+    return differences
+
+
 def main() -> None:
     result = {
-        "schema": "EFClothingMorph.Director.2",
+        "schema": "EFClothingMorph.Director.3",
         "status": "FAIL",
         "success": False,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -440,6 +540,8 @@ def main() -> None:
         "created_assets": [],
         "migration_mode": "unresolved",
         "per_garment_runtime_offsets_only": True,
+        "per_garment_controls_only": True,
+        "existing_authoring_fields_preserved": False,
         "errors": [],
     }
     try:
@@ -463,9 +565,41 @@ def main() -> None:
 
         existing_schema = int(policy.get_editor_property("schema_version"))
         existing_garments = list(policy.get_editor_property("garments"))
+        existing_thickness_marker = str(
+            unreal.EditorAssetLibrary.get_metadata_tag(
+                policy, THICKNESS_AUTHORING_METADATA_TAG
+            )
+            or ""
+        )
+        preserved_before = {
+            garment_id(row): preserved_garment_snapshot(row)
+            for row in existing_garments
+        }
         changed = False
         if existing_schema == DIRECTOR_SCHEMA and existing_garments:
-            result["migration_mode"] = "validate_existing_schema2"
+            result["migration_mode"] = "validate_existing_schema3"
+            # SchemaVersion used to equal the native default, so an old schema-2
+            # asset can load as 3 after the code default changes without having
+            # serialized the new shell fields.  Asset metadata is the narrow
+            # one-time migration marker; once saved, later authored shell values
+            # are never reset by this commandlet.
+            if existing_thickness_marker != THICKNESS_AUTHORING_METADATA_VERSION:
+                # Newly reflected fields already carry their safe struct defaults.
+                # Do not infer thickness topology from a garment name.
+                if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema3(
+                    policy
+                ):
+                    fail("Native Director schema gate rejected thickness normalization")
+                changed = True
+                result["migration_mode"] = "normalize_loaded_schema3_thickness"
+        elif existing_schema == 2 and existing_garments:
+            if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema3(
+                policy
+            ):
+                fail("Native Director schema gate rejected the 2 -> 3 migration")
+            set_property(policy, "garments", existing_garments)
+            changed = True
+            result["migration_mode"] = "migrate_schema2_to_schema3_thickness"
         else:
             compile_table = unreal.EditorAssetLibrary.load_asset(LEGACY_COMPILE_PATH)
             tuning_table = unreal.EditorAssetLibrary.load_asset(LEGACY_TUNING_PATH)
@@ -473,7 +607,7 @@ def main() -> None:
                 tuning_table, unreal.DataTable
             ):
                 fail(
-                    "Schema-2 Director is empty and both legacy DataTables are required for one-time migration"
+                    "Schema-3 Director is empty and both legacy DataTables are required for one-time migration"
                 )
             if package_is_dirty(compile_table) or package_is_dirty(tuning_table):
                 fail("A legacy DataTable is dirty; save or discard it before migration")
@@ -498,13 +632,13 @@ def main() -> None:
                         tuning_by_id.get(index),
                     )
                 )
-            if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema2(
+            if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema3(
                 policy
             ):
-                fail("Native Director schema gate rejected the 1 -> 2 migration")
+                fail("Native Director schema gate rejected the 1 -> 3 migration")
             set_property(policy, "garments", garments)
             changed = True
-            result["migration_mode"] = "create_from_legacy" if created_policy else "migrate_schema1_from_legacy"
+            result["migration_mode"] = "create_schema3_from_legacy" if created_policy else "migrate_schema1_to_schema3_from_legacy"
             result["missing_legacy_tuning_rows_defaulted"] = sorted(
                 set(compile_ids) - set(tuning_by_id)
             )
@@ -512,22 +646,68 @@ def main() -> None:
                 set(tuning_by_id) - set(compile_ids)
             )
 
+        if (
+            existing_thickness_marker != THICKNESS_AUTHORING_METADATA_VERSION
+            and preserved_before
+        ):
+            # The missing metadata marker authorizes exactly one normalization
+            # of the six newly introduced shell fields. Keep every other
+            # authored field anchored to its pre-migration value, then treat
+            # the normalized shell values as the preservation baseline.
+            normalized_shell_snapshot = {
+                garment_id(row): preserved_garment_snapshot(row)
+                for row in list(policy.get_editor_property("garments"))
+            }
+            for index, before_row in preserved_before.items():
+                normalized_row = normalized_shell_snapshot.get(index)
+                if normalized_row is None:
+                    continue
+                for property_name in SHELL_AUTHORING_PROPERTIES:
+                    before_row[property_name] = normalized_row[property_name]
+            result["intentional_shell_authoring_normalization"] = True
+
+        if existing_thickness_marker != THICKNESS_AUTHORING_METADATA_VERSION:
+            unreal.EditorAssetLibrary.set_metadata_tag(
+                policy,
+                THICKNESS_AUTHORING_METADATA_TAG,
+                THICKNESS_AUTHORING_METADATA_VERSION,
+            )
+            changed = True
+        result["thickness_authoring_metadata_version"] = (
+            THICKNESS_AUTHORING_METADATA_VERSION
+        )
+
         # The guide revision is also the one-time narrow resave marker for the
         # per-garment-only layout. Saving this project-owned DataAsset strips the
         # three retired top-level property tags without touching Garments.
         if str(policy.get_editor_property("authoring_guide")) != AUTHORING_GUIDE:
-            set_property(policy, "authoring_guide", AUTHORING_GUIDE)
+            if not unreal.EFClothingFitCompilerLibrary.upgrade_director_identity_to_schema3(
+                policy
+            ):
+                fail("Native Director guide normalization was rejected")
             changed = True
-            if result["migration_mode"] == "validate_existing_schema2":
-                result["migration_mode"] = "normalize_existing_schema2_per_garment_offsets"
+            if result["migration_mode"] == "validate_existing_schema3":
+                result["migration_mode"] = "normalize_existing_schema3_guide"
 
         policy_error = validate_policy(policy)
         if policy_error:
             fail("Director policy validation failed: " + policy_error)
         garments = list(policy.get_editor_property("garments"))
+        preserved_in_memory = {
+            garment_id(row): preserved_garment_snapshot(row)
+            for row in garments
+        }
+        if preserved_before and preserved_before != preserved_in_memory:
+            result["preserved_in_memory_differences"] = preserved_snapshot_differences(
+                preserved_before, preserved_in_memory
+            )
+            fail(
+                "Schema-3 migration changed an existing authored garment field "
+                "before save"
+            )
         ids = [garment_id(garment) for garment in garments]
         if not ids or len(ids) != len(set(ids)):
-            fail("Schema-2 Director Garment Id values are empty or duplicated")
+            fail("Schema-3 Director Garment Id values are empty or duplicated")
 
         if changed and not unreal.EditorAssetLibrary.save_loaded_asset(
             policy, only_if_is_dirty=False
@@ -541,11 +721,36 @@ def main() -> None:
             fail("Reloaded Director validation failed: " + policy_error)
 
         reloaded_garments = list(reloaded.get_editor_property("garments"))
+        preserved_after = {
+            garment_id(row): preserved_garment_snapshot(row)
+            for row in reloaded_garments
+        }
+        if preserved_before and preserved_before != preserved_after:
+            result["preserved_after_reload_differences"] = (
+                preserved_snapshot_differences(preserved_before, preserved_after)
+            )
+            fail("Schema-3 migration changed an existing authored garment field")
+        result["existing_authoring_fields_preserved"] = True
         result["director_schema_version"] = int(
             reloaded.get_editor_property("schema_version")
         )
         result["garment_ids"] = sorted(garment_id(row) for row in reloaded_garments)
         result["garment_count"] = len(reloaded_garments)
+        result["garment_runtime_offsets_cm"] = {
+            garment_id(row): float(row.get_editor_property("additional_clearance_cm"))
+            for row in reloaded_garments
+        }
+        result["garment_thickness_shells"] = {
+            garment_id(row): {
+                "enabled": bool(row.get_editor_property("create_thickness_shell")),
+                "thickness_cm": float(row.get_editor_property("shell_thickness_cm")),
+                "steps": int(row.get_editor_property("shell_offset_steps")),
+                "offset_boundaries": bool(row.get_editor_property("shell_offset_boundaries")),
+                "smoothing_per_step": float(row.get_editor_property("shell_smoothing_per_step")),
+                "reproject_smooth": bool(row.get_editor_property("shell_reproject_smooth")),
+            }
+            for row in reloaded_garments
+        }
         result["legacy_hashes_after"] = {
             LEGACY_COMPILE_PATH: optional_asset_hash(LEGACY_COMPILE_PATH),
             LEGACY_TUNING_PATH: optional_asset_hash(LEGACY_TUNING_PATH),

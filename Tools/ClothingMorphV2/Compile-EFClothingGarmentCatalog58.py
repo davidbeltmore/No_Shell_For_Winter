@@ -1,4 +1,4 @@
-"""Compile the schema-2 EF Clothing Morph Director transactionally.
+"""Compile the schema-3 EF Clothing Morph Director transactionally.
 
 The single Director is the only human-authored catalog.  Native compilation
 publishes derived meshes, fit certificates, surface bindings and the registry
@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import traceback
@@ -40,7 +41,9 @@ RECEIPT_PATH = os.path.realpath(
     )
 )
 OUTPUT_ROOT = "/EFClothingMorph/_Internal/Compiled/V26"
-DIRECTOR_SCHEMA = 2
+DIRECTOR_SCHEMA = 3
+COMPILER_RECEIPT_SCHEMA = 10
+THICKNESS_SHELL_ALGORITHM_VERSION = 4
 
 
 def _get(value, name):
@@ -128,10 +131,24 @@ def _bool(value) -> bool:
 
 
 def _director_rows(director):
-    rows = list(_get(director, "garments"))
+    rows = [
+        row
+        for row in list(_get(director, "garments"))
+        if not _is_disabled_empty_placeholder(row)
+    ]
     if not rows:
-        raise RuntimeError("Schema-2 Director has no garments.")
+        raise RuntimeError("Schema-3 Director has no configured garments.")
     return rows
+
+
+def _is_disabled_empty_placeholder(row) -> bool:
+    if _bool(_get(row, "enabled")):
+        return False
+    raw_id = str(_try_get(row, "garment_id", default="")).strip()
+    has_id = bool(raw_id) and raw_id.casefold() != "none"
+    has_source = bool(_package_name(_try_get(row, "source_garment", default=None)))
+    has_body = bool(_package_name(_try_get(row, "body_surface", default=None)))
+    return not has_id and not has_source and not has_body
 
 
 def _garment_id(row) -> str:
@@ -165,11 +182,11 @@ def _extract_director_mesh_packages(director):
 
 def _validate_director(director):
     if int(_get(director, "schema_version")) != DIRECTOR_SCHEMA:
-        raise RuntimeError("Director schema is not 2.")
+        raise RuntimeError("Director schema is not 3.")
     validator = getattr(director, "is_policy_valid", None)
     error_getter = getattr(director, "get_policy_validation_error", None)
     if not callable(validator) or not callable(error_getter):
-        raise RuntimeError("Director does not expose schema-2 validation functions.")
+        raise RuntimeError("Director does not expose schema-3 validation functions.")
     if not bool(validator()):
         raise RuntimeError("Director validation failed: " + str(error_getter()))
 
@@ -232,6 +249,63 @@ def _binding_metrics(binding):
     return rows
 
 
+def _shell_metrics(profile):
+    return {
+        "enabled": bool(_get(profile, "compiled_thickness_shell")),
+        "algorithm_version": int(_get(profile, "thickness_shell_algorithm_version")),
+        "requested_thickness_cm": float(_get(profile, "compiled_thickness_cm")),
+        "pre_shell_vertices": int(_get(profile, "pre_shell_vertex_count")),
+        "pre_shell_triangles": int(_get(profile, "pre_shell_triangle_count")),
+        "final_shell_vertices": int(_get(profile, "final_shell_vertex_count")),
+        "final_shell_triangles": int(_get(profile, "final_shell_triangle_count")),
+        "vertex_pairs": int(_get(profile, "shell_vertex_pair_count")),
+        "boundary_loops": int(_get(profile, "shell_boundary_loop_count")),
+        "wall_triangles": int(_get(profile, "shell_wall_triangle_count")),
+        "open_boundaries_after": int(_get(profile, "shell_open_boundary_count_after")),
+        "degenerate_triangles": int(_get(profile, "shell_degenerate_triangle_count")),
+        "detected_non_adjacent_intersection_pairs": int(
+            _get(profile, "shell_detected_non_adjacent_intersection_count")
+        ),
+        "baseline_source_intersection_pairs": int(
+            _get(profile, "shell_baseline_source_intersection_pair_count")
+        ),
+        "tolerated_inherited_source_intersection_pairs": int(
+            _get(profile, "shell_tolerated_inherited_source_intersection_count")
+        ),
+        "baseline_inheritance_radius_cm": float(
+            _get(profile, "shell_baseline_inheritance_radius_cm")
+        ),
+        "tolerated_local_repair_intersection_count": int(
+            _get(profile, "shell_tolerated_local_repair_intersection_count")
+        ),
+        "local_repair_thickness_ceiling_cm": float(
+            _get(profile, "shell_local_repair_thickness_ceiling_cm")
+        ),
+        "tolerated_excluded_region_intersection_pairs": int(
+            _get(profile, "shell_tolerated_excluded_region_intersection_count")
+        ),
+        "excluded_region_affected_source_triangles": int(
+            _get(profile, "shell_excluded_region_affected_source_triangle_count")
+        ),
+        "excluded_region_certification_radius_cm": float(
+            _get(profile, "shell_excluded_region_certification_radius_cm")
+        ),
+        "excluded_region_maximum_witness_distance_cm": float(
+            _get(profile, "shell_excluded_region_maximum_witness_distance_cm")
+        ),
+        "self_intersects": bool(_get(profile, "shell_self_intersects")),
+        "minimum_measured_thickness_cm": float(
+            _get(profile, "shell_minimum_measured_thickness_cm")
+        ),
+        "average_measured_thickness_cm": float(
+            _get(profile, "shell_average_measured_thickness_cm")
+        ),
+        "maximum_measured_thickness_cm": float(
+            _get(profile, "shell_maximum_measured_thickness_cm")
+        ),
+    }
+
+
 def _write_receipt(payload):
     if os.path.commonpath((RECEIPT_PATH, SAVED_DIR)).lower() != SAVED_DIR.lower():
         raise RuntimeError("Compiler receipt must remain under project Saved.")
@@ -264,9 +338,18 @@ def _run(payload):
     director_mesh_packages, garment_ids, enabled_garment_ids = _extract_director_mesh_packages(
         director
     )
+    director_rows = list(_director_rows(director))
+    director_rows_by_id = {_garment_id(row): row for row in director_rows}
+    enabled_shell_ids = sorted(
+        _garment_id(row)
+        for row in director_rows
+        if _bool(_get(row, "enabled"))
+        and _bool(_get(row, "create_thickness_shell"))
+    )
     payload["director_schema_version"] = int(_get(director, "schema_version"))
     payload["garment_ids"] = garment_ids
     payload["enabled_garment_ids"] = enabled_garment_ids
+    payload["enabled_thickness_shell_ids"] = enabled_shell_ids
 
     protected_packages = set(director_mesh_packages)
     protected_packages.update(
@@ -328,13 +411,26 @@ def _run(payload):
     payload["compiled_row_count"] = int(_get(result, "compiled_row_count"))
     payload["surface_wrap_row_count"] = int(_get(result, "surface_wrap_row_count"))
     payload["registry"] = _object_path(_get(result, "registry"))
-    if not _package_name(_get(result, "registry")).startswith(OUTPUT_ROOT + "/"):
+    if bool(_get(result, "success")) and not _package_name(
+        _get(result, "registry")
+    ).startswith(OUTPUT_ROOT + "/"):
         raise RuntimeError("Published registry escaped the internal plugin output root.")
 
     payload["rows"] = []
     valid_profile_count = 0
     valid_binding_count = 0
     passed_row_count = 0
+    valid_shell_count = 0
+    detected_shell_intersection_pair_count = 0
+    baseline_source_shell_intersection_pair_count = 0
+    tolerated_inherited_shell_intersection_pair_count = 0
+    tolerated_local_repair_shell_intersection_pair_count = 0
+    tolerated_excluded_region_shell_intersection_pair_count = 0
+    residual_shell_intersection_pair_count = 0
+    inherited_shell_intersection_ids = []
+    local_repair_shell_intersection_ids = []
+    excluded_region_shell_intersection_ids = []
+    shell_intersection_policy_gate = True
     compiled_ids = []
     for row in list(_get(result, "rows")):
         profile = _get(row, "profile")
@@ -343,6 +439,7 @@ def _run(payload):
         compiled_ids.append(row_id)
         row_payload = {
             "garment_id": row_id,
+            "thickness_shell_requested": row_id in enabled_shell_ids,
             "success": bool(_get(row, "success")),
             "requires_surface_binding": bool(_get(row, "requires_surface_binding")),
             "report": str(_get(row, "report")),
@@ -351,7 +448,9 @@ def _run(payload):
             "surface_binding": _object_path(binding),
         }
         for field in ("derived_garment", "profile"):
-            if not _package_name(row_payload[field]).startswith(OUTPUT_ROOT + "/"):
+            if row_payload["success"] and not _package_name(
+                row_payload[field]
+            ).startswith(OUTPUT_ROOT + "/"):
                 raise RuntimeError(f"Compiled {field} for {row_id} escaped internal output root.")
         if profile is not None:
             validation = unreal.EFClothingFitCompilerLibrary.validate_compiled_profile_detailed(
@@ -360,10 +459,213 @@ def _run(payload):
             row_payload["validation_success"] = bool(_get(validation, "success"))
             row_payload["validation_report"] = str(_get(validation, "report"))
             row_payload["build_guid"] = _guid(_get(profile, "build_guid"))
+            row_payload["thickness_shell"] = _shell_metrics(profile)
+            shell = row_payload["thickness_shell"]
+            director_row = director_rows_by_id.get(row_id)
+            has_explicit_anatomy_exclusion = bool(
+                director_row is not None
+                and list(_get(director_row, "excluded_body_surface_material_slots"))
+                and list(_get(director_row, "excluded_body_bone_branches"))
+            )
+            detected_pairs = shell["detected_non_adjacent_intersection_pairs"]
+            baseline_pairs = shell["baseline_source_intersection_pairs"]
+            inherited_pairs = shell[
+                "tolerated_inherited_source_intersection_pairs"
+            ]
+            local_repair_pairs = shell[
+                "tolerated_local_repair_intersection_count"
+            ]
+            excluded_pairs = shell[
+                "tolerated_excluded_region_intersection_pairs"
+            ]
+            residual_pairs = (
+                detected_pairs
+                - inherited_pairs
+                - local_repair_pairs
+                - excluded_pairs
+            )
+            maximum_inherited_pairs = baseline_pairs * 8 + 64
+            maximum_local_repair_pairs = min(
+                512,
+                int(math.ceil(shell["final_shell_triangles"] * 0.01)),
+            )
+            maximum_excluded_pairs = min(
+                512,
+                int(math.ceil(shell["final_shell_triangles"] * 0.01)),
+            )
+            maximum_affected_source_triangles = int(
+                math.ceil(shell["pre_shell_triangles"] * 0.01)
+            )
+            expected_local_repair_thickness_ceiling_cm = max(
+                0.0001,
+                shell["requested_thickness_cm"] * 0.15,
+            )
+            shell["residual_new_intersection_pairs"] = residual_pairs
+            shell["maximum_tolerated_inherited_pairs"] = maximum_inherited_pairs
+            shell["maximum_tolerated_local_repair_pairs"] = (
+                maximum_local_repair_pairs
+            )
+            shell["maximum_tolerated_excluded_region_pairs"] = (
+                maximum_excluded_pairs
+            )
+            shell["maximum_affected_source_triangles"] = (
+                maximum_affected_source_triangles
+            )
+            shell["has_explicit_anatomy_exclusion"] = (
+                has_explicit_anatomy_exclusion
+            )
+            intersection_policy_valid = (
+                detected_pairs >= 0
+                and baseline_pairs >= 0
+                and inherited_pairs >= 0
+                and local_repair_pairs >= 0
+                and excluded_pairs >= 0
+                and inherited_pairs + local_repair_pairs + excluded_pairs
+                == detected_pairs
+                and residual_pairs == 0
+                and inherited_pairs <= maximum_inherited_pairs
+                and (baseline_pairs > 0 or inherited_pairs == 0)
+                and local_repair_pairs <= maximum_local_repair_pairs
+                and math.isfinite(shell["baseline_inheritance_radius_cm"])
+                and shell["baseline_inheritance_radius_cm"] > 0.0
+                and math.isfinite(shell["local_repair_thickness_ceiling_cm"])
+                and shell["local_repair_thickness_ceiling_cm"] > 0.0
+                and math.isclose(
+                    shell["local_repair_thickness_ceiling_cm"],
+                    expected_local_repair_thickness_ceiling_cm,
+                    rel_tol=0.0,
+                    abs_tol=0.000001,
+                )
+                and shell["excluded_region_affected_source_triangles"] >= 0
+                and math.isfinite(shell["excluded_region_certification_radius_cm"])
+                and shell["excluded_region_certification_radius_cm"] > 0.0
+                and math.isfinite(
+                    shell["excluded_region_maximum_witness_distance_cm"]
+                )
+                and shell["excluded_region_maximum_witness_distance_cm"] >= 0.0
+                and shell["self_intersects"]
+                == (detected_pairs > 0)
+                and (
+                    excluded_pairs == 0
+                    and shell["excluded_region_affected_source_triangles"] == 0
+                    and shell["excluded_region_maximum_witness_distance_cm"]
+                    <= 0.0001
+                    or (
+                        excluded_pairs > 0
+                        and has_explicit_anatomy_exclusion
+                        and excluded_pairs <= maximum_excluded_pairs
+                        and shell["excluded_region_affected_source_triangles"]
+                        <= maximum_affected_source_triangles
+                        and shell["excluded_region_certification_radius_cm"] > 0.0
+                        and shell["excluded_region_maximum_witness_distance_cm"]
+                        <= shell["excluded_region_certification_radius_cm"] + 0.0001
+                    )
+                )
+            )
+            row_payload["thickness_shell_intersection_policy_valid"] = (
+                intersection_policy_valid
+                if row_payload["thickness_shell_requested"]
+                else not shell["self_intersects"]
+            )
+            disabled_shell_metrics_valid = (
+                not shell["enabled"]
+                and shell["algorithm_version"] == 0
+                and shell["requested_thickness_cm"] == 0.0
+                and shell["pre_shell_vertices"] == 0
+                and shell["pre_shell_triangles"] == 0
+                and shell["final_shell_vertices"] == 0
+                and shell["final_shell_triangles"] == 0
+                and shell["vertex_pairs"] == 0
+                and shell["boundary_loops"] == 0
+                and shell["wall_triangles"] == 0
+                and shell["open_boundaries_after"] == 0
+                and shell["degenerate_triangles"] == 0
+                and shell["detected_non_adjacent_intersection_pairs"] == 0
+                and shell["baseline_source_intersection_pairs"] == 0
+                and shell["tolerated_inherited_source_intersection_pairs"] == 0
+                and shell["baseline_inheritance_radius_cm"] == 0.0
+                and shell["tolerated_local_repair_intersection_count"] == 0
+                and shell["local_repair_thickness_ceiling_cm"] == 0.0
+                and shell["tolerated_excluded_region_intersection_pairs"] == 0
+                and shell["excluded_region_affected_source_triangles"] == 0
+                and shell["excluded_region_certification_radius_cm"] == 0.0
+                and shell["excluded_region_maximum_witness_distance_cm"] == 0.0
+                and not shell["self_intersects"]
+                and shell["minimum_measured_thickness_cm"] == 0.0
+                and shell["average_measured_thickness_cm"] == 0.0
+                and shell["maximum_measured_thickness_cm"] == 0.0
+            )
+            row_payload["thickness_shell_valid"] = (
+                shell["enabled"] == row_payload["thickness_shell_requested"]
+                and (
+                    (
+                        not row_payload["thickness_shell_requested"]
+                        and disabled_shell_metrics_valid
+                    )
+                    or (
+                        row_payload["thickness_shell_requested"]
+                        and shell["algorithm_version"]
+                        == THICKNESS_SHELL_ALGORITHM_VERSION
+                        and shell["requested_thickness_cm"] > 0.0
+                        and shell["pre_shell_vertices"] > 0
+                        and shell["pre_shell_triangles"] > 0
+                        and shell["final_shell_vertices"]
+                        == shell["pre_shell_vertices"] * 2
+                        and shell["final_shell_triangles"]
+                        == shell["pre_shell_triangles"] * 2
+                        + shell["wall_triangles"]
+                        and shell["vertex_pairs"] == shell["pre_shell_vertices"]
+                        and shell["boundary_loops"] > 0
+                        and shell["wall_triangles"] > 0
+                        and shell["open_boundaries_after"] == 0
+                        and shell["degenerate_triangles"] == 0
+                        and intersection_policy_valid
+                        and shell["minimum_measured_thickness_cm"] > 0.0
+                        and shell["average_measured_thickness_cm"] > 0.0
+                        and shell["maximum_measured_thickness_cm"] > 0.0
+                        and shell["minimum_measured_thickness_cm"]
+                        <= shell["average_measured_thickness_cm"]
+                        <= shell["maximum_measured_thickness_cm"]
+                    )
+                )
+            )
+            valid_shell_count += int(
+                row_payload["thickness_shell_requested"]
+                and row_payload["thickness_shell_valid"]
+            )
+            if row_payload["thickness_shell_requested"]:
+                detected_shell_intersection_pair_count += shell[
+                    "detected_non_adjacent_intersection_pairs"
+                ]
+                baseline_source_shell_intersection_pair_count += shell[
+                    "baseline_source_intersection_pairs"
+                ]
+                tolerated_inherited_shell_intersection_pair_count += shell[
+                    "tolerated_inherited_source_intersection_pairs"
+                ]
+                tolerated_local_repair_shell_intersection_pair_count += shell[
+                    "tolerated_local_repair_intersection_count"
+                ]
+                tolerated_excluded_region_shell_intersection_pair_count += shell[
+                    "tolerated_excluded_region_intersection_pairs"
+                ]
+                residual_shell_intersection_pair_count += residual_pairs
+                if shell["tolerated_inherited_source_intersection_pairs"] > 0:
+                    inherited_shell_intersection_ids.append(row_id)
+                if shell["tolerated_local_repair_intersection_count"] > 0:
+                    local_repair_shell_intersection_ids.append(row_id)
+                if shell["tolerated_excluded_region_intersection_pairs"] > 0:
+                    excluded_region_shell_intersection_ids.append(row_id)
+                shell_intersection_policy_gate &= intersection_policy_valid
             valid_profile_count += int(row_payload["validation_success"])
         else:
             row_payload["validation_success"] = False
             row_payload["validation_report"] = "Profile is null."
+            row_payload["thickness_shell"] = None
+            row_payload["thickness_shell_valid"] = False
+            row_payload["thickness_shell_intersection_policy_valid"] = False
+            if row_payload["thickness_shell_requested"]:
+                shell_intersection_policy_gate = False
         if binding is not None:
             if not _package_name(binding).startswith(OUTPUT_ROOT + "/"):
                 raise RuntimeError(f"Compiled binding for {row_id} escaped internal output root.")
@@ -380,6 +682,7 @@ def _run(payload):
         passed_row_count += int(
             row_payload["success"]
             and row_payload["validation_success"]
+            and row_payload["thickness_shell_valid"]
             and (
                 row_payload["binding_valid"]
                 if row_payload["requires_surface_binding"]
@@ -393,6 +696,48 @@ def _run(payload):
     payload["valid_binding_count"] = valid_binding_count
     payload["tested_row_count"] = len(payload["rows"])
     payload["passed_row_count"] = passed_row_count
+    payload["requested_thickness_shell_count"] = len(enabled_shell_ids)
+    payload["valid_thickness_shell_count"] = valid_shell_count
+    payload["detected_shell_intersection_pair_count"] = (
+        detected_shell_intersection_pair_count
+    )
+    payload["baseline_source_shell_intersection_pair_count"] = (
+        baseline_source_shell_intersection_pair_count
+    )
+    payload["tolerated_inherited_shell_intersection_pair_count"] = (
+        tolerated_inherited_shell_intersection_pair_count
+    )
+    payload["tolerated_local_repair_shell_intersection_pair_count"] = (
+        tolerated_local_repair_shell_intersection_pair_count
+    )
+    payload["tolerated_excluded_region_shell_intersection_pair_count"] = (
+        tolerated_excluded_region_shell_intersection_pair_count
+    )
+    payload["residual_shell_intersection_pair_count"] = (
+        residual_shell_intersection_pair_count
+    )
+    payload["inherited_shell_intersection_ids"] = sorted(
+        inherited_shell_intersection_ids
+    )
+    payload["local_repair_shell_intersection_ids"] = sorted(
+        local_repair_shell_intersection_ids
+    )
+    payload["excluded_region_shell_intersection_ids"] = sorted(
+        excluded_region_shell_intersection_ids
+    )
+    # Compatibility aliases for older receipt readers. In schema 10 these mean
+    # every explicitly classified/tolerated pair, not only anatomy exclusions.
+    payload["tolerated_shell_intersection_pair_count"] = (
+        tolerated_inherited_shell_intersection_pair_count
+        + tolerated_local_repair_shell_intersection_pair_count
+        + tolerated_excluded_region_shell_intersection_pair_count
+    )
+    payload["tolerated_shell_intersection_ids"] = sorted(
+        set(inherited_shell_intersection_ids)
+        | set(local_repair_shell_intersection_ids)
+        | set(excluded_region_shell_intersection_ids)
+    )
+    payload["shell_intersection_policy_gate"] = shell_intersection_policy_gate
     payload["protected_sha256_after"] = _capture_hashes(protected_packages)
     payload["protected_inputs_unchanged"] = (
         payload["protected_sha256_before"] == payload["protected_sha256_after"]
@@ -406,6 +751,8 @@ def _run(payload):
         and payload["surface_wrap_row_count"] == valid_binding_count
         and expected == payload["tested_row_count"]
         and expected == passed_row_count
+        and len(enabled_shell_ids) == valid_shell_count
+        and shell_intersection_policy_gate
         and sorted(enabled_garment_ids) == sorted(compiled_ids)
     )
     payload["catalog_equality_gate"] = equality_gate
@@ -413,12 +760,14 @@ def _run(payload):
         raise RuntimeError("Native Director compiler failed: " + payload["native_report"])
     if not equality_gate:
         raise RuntimeError(
-            "Director equality gate failed: enabled={} surface_wrap={} compiled={} profiles={} bindings={} tested={} passed={} ids={}/{}".format(
+            "Director equality gate failed: enabled={} surface_wrap={} compiled={} profiles={} bindings={} shells={}/{} tested={} passed={} ids={}/{}".format(
                 expected,
                 payload["surface_wrap_row_count"],
                 payload["compiled_row_count"],
                 valid_profile_count,
                 valid_binding_count,
+                valid_shell_count,
+                len(enabled_shell_ids),
                 payload["tested_row_count"],
                 passed_row_count,
                 sorted(enabled_garment_ids),
@@ -431,8 +780,9 @@ def _run(payload):
 
 def main():
     payload = {
-        "schema_version": 7,
+        "schema_version": COMPILER_RECEIPT_SCHEMA,
         "compiler_version": 26,
+        "thickness_shell_algorithm_version": THICKNESS_SHELL_ALGORITHM_VERSION,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "status": "UE58_EF_CLOTHING_MORPH_V26_CATALOG_COMPILE_FAIL",
         "success": False,

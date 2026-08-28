@@ -10,11 +10,16 @@ class USkeletalMesh;
 namespace EFClothingMorphV26
 {
 	inline constexpr int32 CompilerVersion = 26;
-	inline constexpr int32 SurfaceBindingSchemaVersion = 5;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 6;
 	inline constexpr float AutomaticCentimeterValue = -1.0f;
 	inline constexpr float DefaultBaseClearanceCm = 0.45f;
 	inline constexpr float DefaultCompiledReserveCm = 0.10f;
 	inline constexpr float MaximumRuntimeAdditionalClearanceCm = 0.35f;
+	/** Stable authoring shell used only to publish paired inner/outer topology. */
+	inline constexpr float CompiledThicknessReferenceCm = 0.05f;
+	/** Runtime-visible range. Invalid authored values are clamped, never used to hide a garment. */
+	inline constexpr float MinimumRuntimeVisibleThicknessCm = 0.01f;
+	inline constexpr float MaximumRuntimeVisibleThicknessCm = 0.35f;
 
 	FORCEINLINE bool IsAutomaticCentimeterValue(const float Value)
 	{
@@ -133,12 +138,23 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceVertexBinding
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float FollowWeight = 0.0f;
 
-	/** Hard safety bound for the one-frame outward correction. */
+	/** Certified one-frame outward correction delta; not an absolute body-gap target. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float MaximumCorrectionCm = 0.0f;
 
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	EEFClothingSurfaceVertexMode Mode = EEFClothingSurfaceVertexMode::CollisionOnly;
+
+	/**
+	 * Exact render vertex on the fitted inner layer paired with this vertex.
+	 * INDEX_NONE means the garment has no generated thickness shell.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Thickness")
+	int32 ThicknessReferenceRenderVertexIndex = INDEX_NONE;
+
+	/** Only outer-layer vertices move when visible thickness is changed at runtime. */
+	UPROPERTY(VisibleAnywhere, Category = "Thickness")
+	bool bOuterThicknessLayer = false;
 
 	/** Range into FEFClothingSurfaceLODPairBinding::NeighborRenderVertexIndices. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
@@ -174,6 +190,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceWitness
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float TargetClearanceCm = EFClothingMorphV26::DefaultBaseClearanceCm;
 
+	/** Certified correction delta shared by this witness' garment vertices. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float MaximumCorrectionCm = 0.0f;
 };

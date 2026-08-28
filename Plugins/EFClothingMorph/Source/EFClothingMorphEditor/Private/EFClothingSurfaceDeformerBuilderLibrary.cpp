@@ -84,6 +84,7 @@ namespace EFClothingSurfaceDeformerBuilder
 			{ TEXT("EF_BarycentricsAndFollowWeight"), EVariableType::Float4Array },
 			{ TEXT("EF_RestOffsetAndClearanceCm"), EVariableType::Float4Array },
 			{ TEXT("EF_MaximumCorrectionAndRestGapCm"), EVariableType::Float2Array },
+			{ TEXT("EF_ThicknessReferenceAndLayer"), EVariableType::Int2Array },
 			{ TEXT("EF_WitnessCount"), EVariableType::Int },
 			{ TEXT("EF_WitnessReferenceCount"), EVariableType::Int },
 			{ TEXT("EF_WitnessRanges"), EVariableType::Int2Array },
@@ -94,6 +95,7 @@ namespace EFClothingSurfaceDeformerBuilder
 			{ TEXT("EF_WitnessBodyBarycentricsAndMaximumCorrectionCm"), EVariableType::Float4Array },
 			{ TEXT("EF_GlobalClearanceOffsetCm"), EVariableType::Float },
 			{ TEXT("EF_GarmentClearanceOffsetCm"), EVariableType::Float },
+			{ TEXT("EF_GarmentVisibleThicknessCm"), EVariableType::Float },
 			{ TEXT("EF_MaximumCorrectionOverrideCm"), EVariableType::Float },
 			{ TEXT("EF_DeltaTimeSeconds"), EVariableType::Float },
 			{ TEXT("EF_BodyToGarmentTransform"), EVariableType::Transform }
@@ -360,6 +362,10 @@ KERNEL
 	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
 		+ ReadEF_GarmentClearanceOffsetCm();
 	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
+	float RuntimeVisibleThicknessCm = ReadEF_GarmentVisibleThicknessCm();
+	RuntimeVisibleThicknessCm = isfinite(RuntimeVisibleThicknessCm)
+		? clamp(RuntimeVisibleThicknessCm, 0.01f, 0.35f)
+		: 0.05f;
 	float CorrectionOverrideCm = ReadEF_MaximumCorrectionOverrideCm();
 	CorrectionOverrideCm = isfinite(CorrectionOverrideCm)
 		? max(CorrectionOverrideCm, 0.0f)
@@ -398,20 +404,24 @@ KERNEL
 	StructuredBuffer<float4> BarycentricsAndFollowWeightBuffer = ReadEF_BarycentricsAndFollowWeight();
 	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer = ReadEF_RestOffsetAndClearanceCm();
 	StructuredBuffer<float2> MaximumCorrectionAndRestGapCmBuffer = ReadEF_MaximumCorrectionAndRestGapCm();
+	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer = ReadEF_ThicknessReferenceAndLayer();
 
 	uint TriangleBufferCount = 0;
 	uint BarycentricBufferCount = 0;
 	uint RestOffsetBufferCount = 0;
 	uint LimitBufferCount = 0;
+	uint ThicknessBufferCount = 0;
 	uint IgnoredStride = 0;
 	BodyTriangleAndModeBuffer.GetDimensions(TriangleBufferCount, IgnoredStride);
 	BarycentricsAndFollowWeightBuffer.GetDimensions(BarycentricBufferCount, IgnoredStride);
 	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
 	MaximumCorrectionAndRestGapCmBuffer.GetDimensions(LimitBufferCount, IgnoredStride);
+	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
 	if (Index >= TriangleBufferCount
 		|| Index >= BarycentricBufferCount
 		|| Index >= RestOffsetBufferCount
-		|| Index >= LimitBufferCount)
+		|| Index >= LimitBufferCount
+		|| Index >= ThicknessBufferCount)
 	{
 		WriteCorrectedPosition(Index, ConservativePosition);
 		WritePreservedTangentX(Index, GarmentTangentX);
@@ -423,6 +433,7 @@ KERNEL
 	float4 BarycentricsAndFollowWeight = BarycentricsAndFollowWeightBuffer[Index];
 	float4 RestOffsetAndClearanceCm = RestOffsetAndClearanceCmBuffer[Index];
 	float2 MaximumCorrectionAndRestGapCm = MaximumCorrectionAndRestGapCmBuffer[Index];
+	int2 ThicknessReferenceAndLayer = ThicknessReferenceAndLayerBuffer[Index];
 
 	int BodyVertexCountValue = ReadEF_BodyVertexCount();
 	uint BodyVertexCount = (uint)max(BodyVertexCountValue, 0);
@@ -433,7 +444,9 @@ KERNEL
 		|| BodyTriangleAndMode.w > 3
 		|| !all(isfinite(BarycentricsAndFollowWeight))
 		|| !all(isfinite(RestOffsetAndClearanceCm))
-		|| !all(isfinite(MaximumCorrectionAndRestGapCm)))
+		|| !all(isfinite(MaximumCorrectionAndRestGapCm))
+		|| ThicknessReferenceAndLayer.y < 0
+		|| ThicknessReferenceAndLayer.y > 1)
 	{
 		WriteCorrectedPosition(Index, ConservativePosition);
 		WritePreservedTangentX(Index, GarmentTangentX);
@@ -448,6 +461,46 @@ KERNEL
 		WritePreservedTangentX(Index, GarmentTangentX);
 		WritePreservedTangentZ(Index, GarmentTangentZ);
 		return;
+	}
+
+	float3 RuntimeGarmentPosition = GarmentPosition;
+	float3 RuntimeRestOffsetCm = RestOffsetAndClearanceCm.xyz;
+	float RuntimeTargetClearanceCm = RestOffsetAndClearanceCm.w;
+	if (ThicknessReferenceAndLayer.y == 1)
+	{
+		int InnerReference = ThicknessReferenceAndLayer.x;
+		if (InnerReference < 0
+			|| InnerReference >= BindingVertexCount
+			|| (uint)InnerReference >= RestOffsetBufferCount
+			|| (uint)InnerReference >= ThicknessBufferCount)
+		{
+			WriteCorrectedPosition(Index, ConservativePosition);
+			WritePreservedTangentX(Index, GarmentTangentX);
+			WritePreservedTangentZ(Index, GarmentTangentZ);
+			return;
+		}
+		float4 InnerRestOffsetAndClearanceCm =
+			RestOffsetAndClearanceCmBuffer[InnerReference];
+		float3 CompiledLayerVectorCm =
+			RestOffsetAndClearanceCm.xyz - InnerRestOffsetAndClearanceCm.xyz;
+		float CompiledLayerLengthCm = length(CompiledLayerVectorCm);
+		float3 InnerGarmentPosition = ReadGarmentPosition((uint)InnerReference);
+		if (!all(isfinite(InnerRestOffsetAndClearanceCm))
+			|| !all(isfinite(InnerGarmentPosition))
+			|| CompiledLayerLengthCm <= 1.0e-6f)
+		{
+			WriteCorrectedPosition(Index, ConservativePosition);
+			WritePreservedTangentX(Index, GarmentTangentX);
+			WritePreservedTangentZ(Index, GarmentTangentZ);
+			return;
+		}
+		float ThicknessScale = RuntimeVisibleThicknessCm / CompiledLayerLengthCm;
+		RuntimeGarmentPosition = InnerGarmentPosition
+			+ (GarmentPosition - InnerGarmentPosition) * ThicknessScale;
+		RuntimeRestOffsetCm = InnerRestOffsetAndClearanceCm.xyz
+			+ CompiledLayerVectorCm * ThicknessScale;
+		RuntimeTargetClearanceCm = InnerRestOffsetAndClearanceCm.w
+			+ max(RuntimeRestOffsetCm.z - InnerRestOffsetAndClearanceCm.z, 0.0f);
 	}
 
 	float BarycentricSum = BarycentricsAndFollowWeight.x
@@ -519,24 +572,24 @@ KERNEL
 		+ BodyP1 * Barycentrics.y
 		+ BodyP2 * Barycentrics.z;
 	float3 SurfaceTarget = SurfaceAnchor
-		+ SurfaceTangent * RestOffsetAndClearanceCm.x
-		+ SurfaceBitangent * RestOffsetAndClearanceCm.y
-		+ SurfaceNormal * RestOffsetAndClearanceCm.z;
+		+ SurfaceTangent * RuntimeRestOffsetCm.x
+		+ SurfaceBitangent * RuntimeRestOffsetCm.y
+		+ SurfaceNormal * RuntimeRestOffsetCm.z;
 
 	int SurfaceMode = BodyTriangleAndMode.w;
 	float FollowWeight = SurfaceMode == 2
 		? 0.0f
 		: saturate(BarycentricsAndFollowWeight.w);
-	float3 FollowDelta = (SurfaceTarget - GarmentPosition) * FollowWeight;
+	float3 FollowDelta = (SurfaceTarget - RuntimeGarmentPosition) * FollowWeight;
 	// Surface following may transport tangentially or outward, never toward skin.
 	FollowDelta -= SurfaceNormal * min(dot(FollowDelta, SurfaceNormal), 0.0f);
-	float3 CandidatePosition = GarmentPosition + FollowDelta;
+	float3 CandidatePosition = RuntimeGarmentPosition + FollowDelta;
 
-	float BaseTargetGapCm = max(RestOffsetAndClearanceCm.w, 0.0f);
+	float BaseTargetGapCm = max(RuntimeTargetClearanceCm, 0.0f);
 	// Only SurfaceFollow preserves a larger compiled rest gap.
 	if (SurfaceMode == 0)
 	{
-		BaseTargetGapCm = max(BaseTargetGapCm, MaximumCorrectionAndRestGapCm.y);
+		BaseTargetGapCm = max(BaseTargetGapCm, RuntimeRestOffsetCm.z);
 	}
 	float TargetGapCm = max(BaseTargetGapCm + RuntimeOffsetCm, 0.0f);
 	float SignedGapCm = dot(CandidatePosition - SurfaceAnchor, SurfaceNormal);
@@ -586,6 +639,10 @@ KERNEL
 	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
 		+ ReadEF_GarmentClearanceOffsetCm();
 	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
+	float RuntimeVisibleThicknessCm = ReadEF_GarmentVisibleThicknessCm();
+	RuntimeVisibleThicknessCm = isfinite(RuntimeVisibleThicknessCm)
+		? clamp(RuntimeVisibleThicknessCm, 0.01f, 0.35f)
+		: 0.05f;
 	// The base pass is already vertex-safe against an explicitly oriented body
 	// triangle. Never use the imported garment tangent normal as an emergency
 	// direction here: DAZ garments can expose an inward tangent basis at seams,
@@ -627,6 +684,10 @@ KERNEL
 	StructuredBuffer<int4> PrimaryBodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
 	StructuredBuffer<float4> PrimaryBarycentricsAndFollowWeightBuffer =
 		ReadEF_BarycentricsAndFollowWeight();
+	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer =
+		ReadEF_RestOffsetAndClearanceCm();
+	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer =
+		ReadEF_ThicknessReferenceAndLayer();
 	StructuredBuffer<int4> WitnessGarmentVerticesBuffer = ReadEF_WitnessGarmentVertices();
 	StructuredBuffer<float4> WitnessGarmentBarycentricsAndClearanceCmBuffer =
 		ReadEF_WitnessGarmentBarycentricsAndClearanceCm();
@@ -638,6 +699,8 @@ KERNEL
 	uint WitnessIndexBufferCount = 0;
 	uint PrimaryBodyTriangleBufferCount = 0;
 	uint PrimaryBarycentricBufferCount = 0;
+	uint RestOffsetBufferCount = 0;
+	uint ThicknessBufferCount = 0;
 	uint WitnessGarmentVertexBufferCount = 0;
 	uint WitnessGarmentBarycentricBufferCount = 0;
 	uint WitnessBodyVertexBufferCount = 0;
@@ -649,6 +712,8 @@ KERNEL
 	PrimaryBarycentricsAndFollowWeightBuffer.GetDimensions(
 		PrimaryBarycentricBufferCount,
 		IgnoredStride);
+	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
+	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
 	WitnessGarmentVerticesBuffer.GetDimensions(WitnessGarmentVertexBufferCount, IgnoredStride);
 	WitnessGarmentBarycentricsAndClearanceCmBuffer.GetDimensions(
 		WitnessGarmentBarycentricBufferCount,
@@ -665,6 +730,8 @@ KERNEL
 		|| WitnessIndexBufferCount < (uint)WitnessReferenceCountValue
 		|| PrimaryBodyTriangleBufferCount < (uint)BindingVertexCount
 		|| PrimaryBarycentricBufferCount < (uint)BindingVertexCount
+		|| RestOffsetBufferCount < (uint)BindingVertexCount
+		|| ThicknessBufferCount < (uint)BindingVertexCount
 		|| WitnessGarmentVertexBufferCount < (uint)WitnessCountValue
 		|| WitnessGarmentBarycentricBufferCount < (uint)WitnessCountValue
 		|| WitnessBodyVertexBufferCount < (uint)WitnessCountValue
@@ -853,8 +920,61 @@ KERNEL
 			float3 BodyAnchor = BodyP0 * BodyBarycentrics.x
 				+ BodyP1 * BodyBarycentrics.y
 				+ BodyP2 * BodyBarycentrics.z;
+			float DynamicVertexClearanceCm[3];
+			int GarmentVertexArray[3] =
+			{
+				GarmentVertices.x,
+				GarmentVertices.y,
+				GarmentVertices.z
+			};
+			[unroll]
+			for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+			{
+				int GarmentVertexIndex = GarmentVertexArray[CornerIndex];
+				float4 VertexRest = RestOffsetAndClearanceCmBuffer[GarmentVertexIndex];
+				int2 ThicknessReferenceAndLayer =
+					ThicknessReferenceAndLayerBuffer[GarmentVertexIndex];
+				float EffectiveClearanceCm = VertexRest.w;
+				if (ThicknessReferenceAndLayer.y == 1)
+				{
+					int InnerReference = ThicknessReferenceAndLayer.x;
+					if (InnerReference < 0 || InnerReference >= BindingVertexCount)
+					{
+						InvalidWitnessData = true;
+						break;
+					}
+					float4 InnerRest = RestOffsetAndClearanceCmBuffer[InnerReference];
+					float3 LayerVectorCm = VertexRest.xyz - InnerRest.xyz;
+					float LayerLengthCm = length(LayerVectorCm);
+					if (!all(isfinite(VertexRest))
+						|| !all(isfinite(InnerRest))
+						|| LayerLengthCm <= 1.0e-6f)
+					{
+						InvalidWitnessData = true;
+						break;
+					}
+					float3 EffectiveRest = InnerRest.xyz
+						+ LayerVectorCm * (RuntimeVisibleThicknessCm / LayerLengthCm);
+					EffectiveClearanceCm = InnerRest.w
+						+ max(EffectiveRest.z - InnerRest.z, 0.0f);
+				}
+				else if (ThicknessReferenceAndLayer.y != 0)
+				{
+					InvalidWitnessData = true;
+					break;
+				}
+				DynamicVertexClearanceCm[CornerIndex] = EffectiveClearanceCm;
+			}
+			if (InvalidWitnessData)
+			{
+				break;
+			}
+			float DynamicWitnessClearanceCm =
+				DynamicVertexClearanceCm[0] * GarmentBarycentrics.x
+				+ DynamicVertexClearanceCm[1] * GarmentBarycentrics.y
+				+ DynamicVertexClearanceCm[2] * GarmentBarycentrics.z;
 			float TargetClearanceCm =
-				max(GarmentBarycentricsAndClearanceCm.w + RuntimeOffsetCm, 0.0f);
+				max(DynamicWitnessClearanceCm + RuntimeOffsetCm, 0.0f);
 			float RequiredPushCm = max(
 				TargetClearanceCm - dot(SamplePosition - BodyAnchor, WitnessNormal),
 				0.0f);

@@ -267,6 +267,100 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Metrics")
 	int32 ExcludedBodySurfaceTriangleCount = 0;
 
+	/** Compile-time geometric shell evidence. The source garment is never modified. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	bool bCompiledThicknessShell = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ThicknessShellAlgorithmVersion = 0;
+
+	/** Fixed reference shell used to publish runtime-adjustable paired topology. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float CompiledThicknessCm = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 PreShellVertexCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 PreShellTriangleCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 FinalShellVertexCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 FinalShellTriangleCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellVertexPairCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellBoundaryLoopCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellWallTriangleCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellOpenBoundaryCountAfter = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellDegenerateTriangleCount = 0;
+
+	/** Unique non-adjacent shell triangle pairs measured before policy classification. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellDetectedNonAdjacentIntersectionCount = 0;
+
+	/** Unique non-adjacent pairs already present on the fitted one-layer garment. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellBaselineSourceIntersectionPairCount = 0;
+
+	/** Shell pairs spatially proven to descend from the fitted one-layer baseline. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellToleratedInheritedSourceIntersectionCount = 0;
+
+	/** Radius derived from certified topology spacing plus authored thickness. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellBaselineInheritanceRadiusCm = 0.0f;
+
+	/** Residual contacts confined to compiler-contracted outer-layer micro patches. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellToleratedLocalRepairIntersectionCount = 0;
+
+	/** Maximum paired thickness accepted as a deterministic local-repair contact. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellLocalRepairThicknessCeilingCm = 0.0f;
+
+	/**
+	 * Exact subset whose complete intersection witnesses lie inside the compiled
+	 * excluded-anatomy radius. Validation recomputes this count from cooked data.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellToleratedExcludedRegionIntersectionCount = 0;
+
+	/** Distinct source triangles participating in excluded-region shell contacts. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	int32 ShellExcludedRegionAffectedSourceTriangleCount = 0;
+
+	/** Spatial radius used to prove that every tolerated witness belongs to the excluded region. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellExcludedRegionCertificationRadiusCm = 0.0f;
+
+	/** Furthest tolerated excluded-region witness from the exact excluded body geometry. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellExcludedRegionMaximumWitnessDistanceCm = 0.0f;
+
+	/** Honest raw evidence: true whenever any unique non-adjacent pair was detected. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell")
+	bool bShellSelfIntersects = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellMinimumMeasuredThicknessCm = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellAverageMeasuredThicknessCm = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Thickness Shell", meta = (Units = "cm"))
+	float ShellMaximumMeasuredThicknessCm = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clearance")
 	FName ClearanceMorphName = TEXT("EF_AutoFit_Clearance");
 

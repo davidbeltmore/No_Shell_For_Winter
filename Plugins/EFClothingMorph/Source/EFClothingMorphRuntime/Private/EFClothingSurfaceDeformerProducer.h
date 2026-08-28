@@ -40,6 +40,7 @@ public:
 		float DeltaTimeSeconds,
 		float GlobalClearanceOffsetCm,
 		float GarmentClearanceOffsetCm,
+		float GarmentVisibleThicknessCm,
 		float MaximumCorrectionOverrideCm,
 		FString& OutFailureReason);
 

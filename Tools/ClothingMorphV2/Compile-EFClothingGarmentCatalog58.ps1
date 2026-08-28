@@ -120,9 +120,29 @@ if (
     $commandletFailed -or
     $compileResult.status -ne 'UE58_EF_CLOTHING_MORPH_V26_CATALOG_COMPILE_PASS' -or
     -not [bool]$compileResult.success -or
-    [int]$compileResult.director_schema_version -ne 2 -or
+    [int]$compileResult.schema_version -ne 10 -or
+    [int]$compileResult.compiler_version -ne 26 -or
+    [int]$compileResult.thickness_shell_algorithm_version -ne 4 -or
+    [int]$compileResult.director_schema_version -ne 3 -or
     $compileResult.output_root -ne '/EFClothingMorph/_Internal/Compiled/V26' -or
     -not [bool]$compileResult.catalog_equality_gate -or
+    -not [bool]$compileResult.shell_intersection_policy_gate -or
+    [int]$compileResult.baseline_source_shell_intersection_pair_count -lt 0 -or
+    [int]$compileResult.tolerated_inherited_shell_intersection_pair_count -lt 0 -or
+    [int]$compileResult.tolerated_local_repair_shell_intersection_pair_count -lt 0 -or
+    [int]$compileResult.tolerated_excluded_region_shell_intersection_pair_count -lt 0 -or
+    [int]$compileResult.residual_shell_intersection_pair_count -ne (
+        [int]$compileResult.detected_shell_intersection_pair_count -
+        [int]$compileResult.tolerated_inherited_shell_intersection_pair_count -
+        [int]$compileResult.tolerated_local_repair_shell_intersection_pair_count -
+        [int]$compileResult.tolerated_excluded_region_shell_intersection_pair_count
+    ) -or
+    (
+        [int]$compileResult.tolerated_inherited_shell_intersection_pair_count +
+        [int]$compileResult.tolerated_local_repair_shell_intersection_pair_count +
+        [int]$compileResult.tolerated_excluded_region_shell_intersection_pair_count
+    ) -ne [int]$compileResult.detected_shell_intersection_pair_count -or
+    [int]$compileResult.residual_shell_intersection_pair_count -ne 0 -or
     -not [bool]$compileResult.protected_inputs_unchanged
 ) {
     throw "V26 Director compiler gate failed: exit=$compileExitCode receipt=$receipt log=$log"
@@ -145,6 +165,17 @@ if ($LASTEXITCODE -ne 0) {
     CompiledRows = $compileResult.compiled_row_count
     ValidProfiles = $compileResult.valid_profile_count
     ValidBindings = $compileResult.valid_binding_count
+    ThicknessShells = "$($compileResult.valid_thickness_shell_count)/$($compileResult.requested_thickness_shell_count)"
+    ThicknessShellAlgorithm = $compileResult.thickness_shell_algorithm_version
+    DetectedShellIntersectionPairs = $compileResult.detected_shell_intersection_pair_count
+    BaselineSourceIntersectionPairs = $compileResult.baseline_source_shell_intersection_pair_count
+    ToleratedInheritedSourcePairs = $compileResult.tolerated_inherited_shell_intersection_pair_count
+    ToleratedLocalRepairPairs = $compileResult.tolerated_local_repair_shell_intersection_pair_count
+    ResidualNewIntersectionPairs = $compileResult.residual_shell_intersection_pair_count
+    ToleratedExcludedRegionPairs = $compileResult.tolerated_excluded_region_shell_intersection_pair_count
+    InheritedShellIds = @($compileResult.inherited_shell_intersection_ids) -join ', '
+    LocalRepairShellIds = @($compileResult.local_repair_shell_intersection_ids) -join ', '
+    ExcludedRegionShellIds = @($compileResult.excluded_region_shell_intersection_ids) -join ', '
     ProtectedInputsUnchanged = $compileResult.protected_inputs_unchanged
     Registry = $compileResult.registry
     OutputRoot = $compileResult.output_root

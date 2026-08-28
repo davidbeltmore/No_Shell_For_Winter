@@ -1,8 +1,8 @@
-"""Read-only validation for the schema-2 single Clothing Director.
+"""Read-only validation for the schema-3 single Clothing Director.
 
 The validator intentionally ignores the retired schema-1 DataTables.  It checks
 the one public Director, its stable garment IDs and safe offsets, the internal
-compiled registry and the latest schema-2 compiler receipt.  No package is
+compiled registry and the latest schema-3 compiler receipt.  No package is
 saved, compiled, renamed or deleted.
 """
 
@@ -29,7 +29,10 @@ INTERNAL_ROOT = "/EFClothingMorph/_Internal/Compiled/V26"
 SETTINGS_SECTION = "/Script/EFClothingMorphRuntime.EFClothingMorphV2Settings"
 EXPECTED_DIRECTOR_CONFIG = DIRECTOR_PATH + ".DA_EFClothingMorphDirector"
 EXPECTED_REGISTRY_CONFIG = REGISTRY_PATH + ".DA_EFClothingFitRegistry"
-DIRECTOR_SCHEMA = 2
+DIRECTOR_SCHEMA = 3
+COMPILER_RECEIPT_SCHEMA = 10
+COMPILER_VERSION = 26
+THICKNESS_SHELL_ALGORITHM_VERSION = 4
 MAXIMUM_SAFE_OFFSET_CM = 0.35
 STAMP = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 RECEIPT_PATH = os.path.join(
@@ -126,6 +129,268 @@ def boolean(value) -> bool:
     return str(value).strip().casefold() not in {"0", "false", "no", "off", "disabled"}
 
 
+def shell_metrics(profile) -> dict:
+    return {
+        "enabled": boolean(get_property(profile, "compiled_thickness_shell")),
+        "algorithm_version": int(
+            get_property(profile, "thickness_shell_algorithm_version")
+        ),
+        "requested_thickness_cm": float(
+            get_property(profile, "compiled_thickness_cm")
+        ),
+        "pre_shell_vertices": int(get_property(profile, "pre_shell_vertex_count")),
+        "pre_shell_triangles": int(
+            get_property(profile, "pre_shell_triangle_count")
+        ),
+        "final_shell_vertices": int(
+            get_property(profile, "final_shell_vertex_count")
+        ),
+        "final_shell_triangles": int(
+            get_property(profile, "final_shell_triangle_count")
+        ),
+        "vertex_pairs": int(get_property(profile, "shell_vertex_pair_count")),
+        "boundary_loops": int(
+            get_property(profile, "shell_boundary_loop_count")
+        ),
+        "wall_triangles": int(
+            get_property(profile, "shell_wall_triangle_count")
+        ),
+        "open_boundaries_after": int(
+            get_property(profile, "shell_open_boundary_count_after")
+        ),
+        "degenerate_triangles": int(
+            get_property(profile, "shell_degenerate_triangle_count")
+        ),
+        "detected_non_adjacent_intersection_pairs": int(
+            get_property(
+                profile, "shell_detected_non_adjacent_intersection_count"
+            )
+        ),
+        "baseline_source_intersection_pairs": int(
+            get_property(profile, "shell_baseline_source_intersection_pair_count")
+        ),
+        "tolerated_inherited_source_intersection_pairs": int(
+            get_property(
+                profile, "shell_tolerated_inherited_source_intersection_count"
+            )
+        ),
+        "baseline_inheritance_radius_cm": float(
+            get_property(profile, "shell_baseline_inheritance_radius_cm")
+        ),
+        "tolerated_local_repair_intersection_count": int(
+            get_property(
+                profile, "shell_tolerated_local_repair_intersection_count"
+            )
+        ),
+        "local_repair_thickness_ceiling_cm": float(
+            get_property(profile, "shell_local_repair_thickness_ceiling_cm")
+        ),
+        "tolerated_excluded_region_intersection_pairs": int(
+            get_property(
+                profile, "shell_tolerated_excluded_region_intersection_count"
+            )
+        ),
+        "excluded_region_affected_source_triangles": int(
+            get_property(
+                profile, "shell_excluded_region_affected_source_triangle_count"
+            )
+        ),
+        "excluded_region_certification_radius_cm": float(
+            get_property(profile, "shell_excluded_region_certification_radius_cm")
+        ),
+        "excluded_region_maximum_witness_distance_cm": float(
+            get_property(
+                profile, "shell_excluded_region_maximum_witness_distance_cm"
+            )
+        ),
+        "self_intersects": boolean(
+            get_property(profile, "shell_self_intersects")
+        ),
+        "minimum_measured_thickness_cm": float(
+            get_property(profile, "shell_minimum_measured_thickness_cm")
+        ),
+        "average_measured_thickness_cm": float(
+            get_property(profile, "shell_average_measured_thickness_cm")
+        ),
+        "maximum_measured_thickness_cm": float(
+            get_property(profile, "shell_maximum_measured_thickness_cm")
+        ),
+    }
+
+
+def shell_metrics_match(profile_values: dict, receipt_values: dict) -> bool:
+    for name, expected in profile_values.items():
+        if name not in receipt_values:
+            return False
+        actual = receipt_values[name]
+        if isinstance(expected, float):
+            try:
+                if not math.isclose(
+                    expected, float(actual), rel_tol=0.0, abs_tol=0.00001
+                ):
+                    return False
+            except (TypeError, ValueError):
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
+def validate_shell_contract(
+    shell: dict,
+    requested: bool,
+    has_explicit_anatomy_exclusion: bool,
+    require_derived_receipt_fields: bool = False,
+) -> tuple[bool, str]:
+    try:
+        if boolean(shell.get("enabled")) != requested:
+            return False, "compiled shell enabled state differs from Director"
+
+        integer_fields = (
+            "algorithm_version",
+            "pre_shell_vertices",
+            "pre_shell_triangles",
+            "final_shell_vertices",
+            "final_shell_triangles",
+            "vertex_pairs",
+            "boundary_loops",
+            "wall_triangles",
+            "open_boundaries_after",
+            "degenerate_triangles",
+            "detected_non_adjacent_intersection_pairs",
+            "baseline_source_intersection_pairs",
+            "tolerated_inherited_source_intersection_pairs",
+            "tolerated_local_repair_intersection_count",
+            "tolerated_excluded_region_intersection_pairs",
+            "excluded_region_affected_source_triangles",
+        )
+        float_fields = (
+            "requested_thickness_cm",
+            "baseline_inheritance_radius_cm",
+            "local_repair_thickness_ceiling_cm",
+            "excluded_region_certification_radius_cm",
+            "excluded_region_maximum_witness_distance_cm",
+            "minimum_measured_thickness_cm",
+            "average_measured_thickness_cm",
+            "maximum_measured_thickness_cm",
+        )
+        values = {name: int(shell[name]) for name in integer_fields}
+        values.update({name: float(shell[name]) for name in float_fields})
+        if not all(math.isfinite(values[name]) for name in float_fields):
+            return False, "shell receipt contains NaN or Inf"
+
+        if not requested:
+            zero_fields = integer_fields + float_fields
+            if any(values[name] != 0 for name in zero_fields) or boolean(
+                shell.get("self_intersects")
+            ):
+                return False, "disabled shell retains non-zero V4 evidence"
+            return True, "disabled shell evidence is zero"
+
+        if values["algorithm_version"] != THICKNESS_SHELL_ALGORITHM_VERSION:
+            return False, "shell algorithm is not V4"
+        if (
+            values["requested_thickness_cm"] <= 0.0
+            or values["pre_shell_vertices"] <= 0
+            or values["pre_shell_triangles"] <= 0
+            or values["final_shell_vertices"]
+            != values["pre_shell_vertices"] * 2
+            or values["final_shell_triangles"]
+            != values["pre_shell_triangles"] * 2 + values["wall_triangles"]
+            or values["vertex_pairs"] != values["pre_shell_vertices"]
+            or values["boundary_loops"] <= 0
+            or values["wall_triangles"] <= 0
+            or values["open_boundaries_after"] != 0
+            or values["degenerate_triangles"] != 0
+            or values["minimum_measured_thickness_cm"] <= 0.0
+            or not (
+                values["minimum_measured_thickness_cm"]
+                <= values["average_measured_thickness_cm"]
+                <= values["maximum_measured_thickness_cm"]
+            )
+        ):
+            return False, "shell topology or measured thickness evidence is invalid"
+
+        detected = values["detected_non_adjacent_intersection_pairs"]
+        baseline = values["baseline_source_intersection_pairs"]
+        inherited = values["tolerated_inherited_source_intersection_pairs"]
+        local_repair = values["tolerated_local_repair_intersection_count"]
+        excluded = values["tolerated_excluded_region_intersection_pairs"]
+        affected = values["excluded_region_affected_source_triangles"]
+        residual = detected - inherited - local_repair - excluded
+        maximum_inherited = baseline * 8 + 64
+        maximum_local_repair = min(
+            512, int(math.ceil(values["final_shell_triangles"] * 0.01))
+        )
+        maximum_excluded = min(
+            512, int(math.ceil(values["final_shell_triangles"] * 0.01))
+        )
+        maximum_affected = int(
+            math.ceil(values["pre_shell_triangles"] * 0.01)
+        )
+        witness_distance = values[
+            "excluded_region_maximum_witness_distance_cm"
+        ]
+        exclusion_radius = values["excluded_region_certification_radius_cm"]
+        expected_local_repair_thickness_ceiling = max(
+            0.0001, values["requested_thickness_cm"] * 0.15
+        )
+
+        if (
+            detected < 0
+            or baseline < 0
+            or inherited < 0
+            or local_repair < 0
+            or excluded < 0
+            or affected < 0
+            or inherited + local_repair + excluded != detected
+            or residual != 0
+            or inherited > maximum_inherited
+            or (baseline == 0 and inherited != 0)
+            or local_repair > maximum_local_repair
+            or values["baseline_inheritance_radius_cm"] <= 0.0
+            or values["local_repair_thickness_ceiling_cm"] <= 0.0
+            or not math.isclose(
+                values["local_repair_thickness_ceiling_cm"],
+                expected_local_repair_thickness_ceiling,
+                rel_tol=0.0,
+                abs_tol=0.000001,
+            )
+            or exclusion_radius <= 0.0
+            or witness_distance < 0.0
+            or boolean(shell.get("self_intersects")) != (detected > 0)
+        ):
+            return False, "shell baseline/intersection evidence is inconsistent"
+
+        if excluded == 0:
+            if affected != 0 or witness_distance > 0.0001:
+                return False, "shell without exclusions reports exclusion evidence"
+        elif (
+            not has_explicit_anatomy_exclusion
+            or excluded > maximum_excluded
+            or affected > maximum_affected
+            or exclusion_radius <= 0.0
+            or witness_distance > exclusion_radius + 0.0001
+        ):
+            return False, "new shell intersections are not spatially certified exclusions"
+
+        derived_expectations = {
+            "residual_new_intersection_pairs": residual,
+            "maximum_tolerated_inherited_pairs": maximum_inherited,
+            "maximum_tolerated_local_repair_pairs": maximum_local_repair,
+            "maximum_tolerated_excluded_region_pairs": maximum_excluded,
+            "maximum_affected_source_triangles": maximum_affected,
+            "has_explicit_anatomy_exclusion": has_explicit_anatomy_exclusion,
+        }
+        if require_derived_receipt_fields:
+            for name, expected in derived_expectations.items():
+                if name not in shell or shell[name] != expected:
+                    return False, f"shell derived receipt field {name} is inconsistent"
+        return True, "shell V4 baseline/local-repair/exclusion contract is valid"
+    except (KeyError, TypeError, ValueError) as exc:
+        return False, "shell V4 receipt is incomplete: " + repr(exc)
+
+
 def read_configured_asset_paths() -> tuple[str, str]:
     """Read the two authoritative soft-object paths without Python class reflection."""
     config_path = os.path.realpath(os.path.join(PROJECT_DIR, "Config", "DefaultGame.ini"))
@@ -190,11 +455,11 @@ def garment_id(garment) -> str:
 
 def validate_policy(director) -> None:
     if int(get_property(director, "schema_version")) != DIRECTOR_SCHEMA:
-        fail("Director schema is not 2")
+        fail("Director schema is not 3")
     validator = getattr(director, "is_policy_valid", None)
     error_getter = getattr(director, "get_policy_validation_error", None)
     if not callable(validator) or not callable(error_getter):
-        fail("Director does not expose schema-2 validation functions")
+        fail("Director does not expose schema-3 validation functions")
     if not bool(validator()):
         fail("Director policy validation failed: " + str(error_getter()))
 
@@ -206,7 +471,13 @@ def validate_internal_path(value, label: str) -> str:
     return path
 
 
-def load_latest_compiler_receipt(expected_ids, enabled_ids, registry_path) -> dict:
+def load_latest_compiler_receipt(
+    expected_ids,
+    enabled_ids,
+    enabled_shell_ids,
+    explicit_anatomy_exclusion_ids,
+    registry_path,
+) -> dict:
     pattern = os.path.join(
         SAVED_DIR, "ClothingMorphV2QA", "compiler_receipt_FullCatalog_V26*.json"
     )
@@ -219,31 +490,169 @@ def load_latest_compiler_receipt(expected_ids, enabled_ids, registry_path) -> di
             continue
         if not payload.get("success"):
             continue
+        if int(payload.get("schema_version", -1)) != COMPILER_RECEIPT_SCHEMA:
+            continue
+        if int(payload.get("compiler_version", -1)) != COMPILER_VERSION:
+            continue
+        if (
+            int(payload.get("thickness_shell_algorithm_version", -1))
+            != THICKNESS_SHELL_ALGORITHM_VERSION
+        ):
+            continue
         if payload.get("status") != "UE58_EF_CLOTHING_MORPH_V26_CATALOG_COMPILE_PASS":
             continue
         if canonical_asset_path(payload.get("director")) != DIRECTOR_PATH:
             continue
         if payload.get("output_root") != INTERNAL_ROOT:
             continue
+        if int(payload.get("director_schema_version", -1)) != DIRECTOR_SCHEMA:
+            continue
         if sorted(str(value) for value in payload.get("garment_ids", [])) != sorted(expected_ids):
             continue
         if sorted(str(value) for value in payload.get("enabled_garment_ids", [])) != sorted(enabled_ids):
             continue
+        if sorted(
+            str(value) for value in payload.get("enabled_thickness_shell_ids", [])
+        ) != sorted(enabled_shell_ids):
+            continue
+        if int(payload.get("requested_thickness_shell_count", -1)) != len(
+            enabled_shell_ids
+        ) or int(payload.get("valid_thickness_shell_count", -1)) != len(
+            enabled_shell_ids
+        ):
+            continue
         if canonical_asset_path(payload.get("registry")) != registry_path:
             continue
-        if not payload.get("catalog_equality_gate") or not payload.get(
-            "protected_inputs_unchanged"
+        if (
+            not payload.get("catalog_equality_gate")
+            or not payload.get("shell_intersection_policy_gate")
+            or not payload.get("protected_inputs_unchanged")
+        ):
+            continue
+
+        rows = payload.get("rows", [])
+        if not isinstance(rows, list):
+            continue
+        rows_by_id = {}
+        duplicate_row = False
+        for row in rows:
+            row_id = str(row.get("garment_id", ""))
+            if not row_id or row_id in rows_by_id:
+                duplicate_row = True
+                break
+            rows_by_id[row_id] = row
+        if duplicate_row or sorted(rows_by_id) != sorted(enabled_ids):
+            continue
+
+        detected_total = 0
+        baseline_total = 0
+        inherited_total = 0
+        local_repair_total = 0
+        excluded_total = 0
+        residual_total = 0
+        inherited_ids = []
+        local_repair_ids = []
+        excluded_ids = []
+        receipt_shell_contract_valid = True
+        for row_id, row in rows_by_id.items():
+            requested = row_id in enabled_shell_ids
+            shell = row.get("thickness_shell")
+            if not isinstance(shell, dict):
+                receipt_shell_contract_valid = False
+                break
+            contract_valid, _ = validate_shell_contract(
+                shell,
+                requested,
+                row_id in explicit_anatomy_exclusion_ids,
+                require_derived_receipt_fields=True,
+            )
+            if (
+                not contract_valid
+                or not boolean(row.get("thickness_shell_valid"))
+                or boolean(row.get("thickness_shell_requested")) != requested
+                or not boolean(
+                    row.get("thickness_shell_intersection_policy_valid")
+                )
+            ):
+                receipt_shell_contract_valid = False
+                break
+            if not requested:
+                continue
+            detected = int(shell["detected_non_adjacent_intersection_pairs"])
+            baseline = int(shell["baseline_source_intersection_pairs"])
+            inherited = int(
+                shell["tolerated_inherited_source_intersection_pairs"]
+            )
+            local_repair = int(
+                shell["tolerated_local_repair_intersection_count"]
+            )
+            excluded = int(
+                shell["tolerated_excluded_region_intersection_pairs"]
+            )
+            detected_total += detected
+            baseline_total += baseline
+            inherited_total += inherited
+            local_repair_total += local_repair
+            excluded_total += excluded
+            residual_total += detected - inherited - local_repair - excluded
+            if inherited > 0:
+                inherited_ids.append(row_id)
+            if local_repair > 0:
+                local_repair_ids.append(row_id)
+            if excluded > 0:
+                excluded_ids.append(row_id)
+        if not receipt_shell_contract_valid:
+            continue
+        if residual_total != 0:
+            continue
+
+        aggregate_contract = {
+            "detected_shell_intersection_pair_count": detected_total,
+            "baseline_source_shell_intersection_pair_count": baseline_total,
+            "tolerated_inherited_shell_intersection_pair_count": inherited_total,
+            "tolerated_local_repair_shell_intersection_pair_count": local_repair_total,
+            "tolerated_excluded_region_shell_intersection_pair_count": excluded_total,
+            "residual_shell_intersection_pair_count": residual_total,
+            "tolerated_shell_intersection_pair_count": inherited_total
+            + local_repair_total
+            + excluded_total,
+        }
+        if any(
+            int(payload.get(name, -1)) != expected
+            for name, expected in aggregate_contract.items()
+        ):
+            continue
+        if sorted(
+            str(value)
+            for value in payload.get("inherited_shell_intersection_ids", [])
+        ) != sorted(inherited_ids):
+            continue
+        if sorted(
+            str(value)
+            for value in payload.get("local_repair_shell_intersection_ids", [])
+        ) != sorted(local_repair_ids):
+            continue
+        if sorted(
+            str(value)
+            for value in payload.get("excluded_region_shell_intersection_ids", [])
+        ) != sorted(excluded_ids):
+            continue
+        if sorted(
+            str(value)
+            for value in payload.get("tolerated_shell_intersection_ids", [])
+        ) != sorted(
+            set(inherited_ids) | set(local_repair_ids) | set(excluded_ids)
         ):
             continue
         payload = dict(payload)
         payload["path"] = path
         return payload
-    fail("No successful schema-2 Director compiler receipt matches the current policy")
+    fail("No successful schema-3 Director compiler receipt matches the current policy")
 
 
 def main() -> None:
     result = {
-        "schema": "EFClothingMorph.Director.Validation.2",
+        "schema": "EFClothingMorph.Director.Validation.3",
         "status": "FAIL",
         "success": False,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -312,13 +721,27 @@ def main() -> None:
 
         ids = []
         enabled_ids = []
+        enabled_shell_ids = []
         offsets = {}
+        thickness_shells = {}
         pairs = {}
+        garments_by_id = {}
+        explicit_anatomy_exclusion_ids = set()
         for garment in garments:
+            enabled = boolean(get_property(garment, "enabled"))
+            raw_id = str(get_property(garment, "garment_id")).strip()
+            has_id = bool(raw_id) and raw_id.casefold() != "none"
+            source_path = canonical_asset_path(get_property(garment, "source_garment"))
+            body_path = canonical_asset_path(get_property(garment, "body_surface"))
+            if not enabled and not has_id and not source_path and not body_path:
+                # Details-panel array placeholders are intentionally ignored until
+                # the author assigns an identity/source/body and enables the row.
+                continue
             index = garment_id(garment)
             if index in ids:
                 fail("Duplicate Garment Id: " + index)
             ids.append(index)
+            garments_by_id[index] = garment
             offset = float(get_property(garment, "additional_clearance_cm"))
             offset_enabled = boolean(get_property(garment, "enable_runtime_tuning"))
             effective_offset = (
@@ -331,10 +754,40 @@ def main() -> None:
                 "authored_additional_clearance_cm": offset,
                 "effective_additional_clearance_cm": effective_offset,
             }
-            if not boolean(get_property(garment, "enabled")):
+            shell_enabled = boolean(get_property(garment, "create_thickness_shell"))
+            shell_thickness_cm = float(get_property(garment, "shell_thickness_cm"))
+            shell_steps = int(get_property(garment, "shell_offset_steps"))
+            shell_offset_boundaries = boolean(
+                get_property(garment, "shell_offset_boundaries")
+            )
+            shell_smoothing = float(
+                get_property(garment, "shell_smoothing_per_step")
+            )
+            shell_reproject = boolean(get_property(garment, "shell_reproject_smooth"))
+            if shell_enabled and (
+                not math.isfinite(shell_thickness_cm)
+                or shell_thickness_cm < 0.01
+                or shell_thickness_cm > 0.35
+                or shell_steps < 1
+                or shell_steps > 100
+                or not shell_offset_boundaries
+                or not math.isfinite(shell_smoothing)
+                or shell_smoothing < 0.0
+                or shell_smoothing > 1.0
+            ):
+                fail(f"Garment {index} has invalid real-thickness settings")
+            thickness_shells[index] = {
+                "enabled": shell_enabled,
+                "thickness_cm": shell_thickness_cm,
+                "steps": shell_steps,
+                "offset_boundaries": shell_offset_boundaries,
+                "smoothing_per_step": shell_smoothing,
+                "reproject_smooth": shell_reproject,
+            }
+            if not enabled:
                 continue
-            source = canonical_asset_path(get_property(garment, "source_garment"))
-            body = canonical_asset_path(get_property(garment, "body_surface"))
+            source = source_path
+            body = body_path
             if not source or not body:
                 fail(f"Enabled garment {index} has no source/body pair")
             pair = source + "|" + body
@@ -342,6 +795,17 @@ def main() -> None:
                 fail(f"Garments {pairs[pair]} and {index} duplicate a source/body pair")
             pairs[pair] = index
             enabled_ids.append(index)
+            if (
+                list(
+                    get_property(
+                        garment, "excluded_body_surface_material_slots"
+                    )
+                )
+                and list(get_property(garment, "excluded_body_bone_branches"))
+            ):
+                explicit_anatomy_exclusion_ids.add(index)
+            if shell_enabled:
+                enabled_shell_ids.append(index)
 
         if not ids or not enabled_ids:
             fail("Director requires at least one garment and one enabled garment")
@@ -353,6 +817,7 @@ def main() -> None:
             )
         registry_ids = []
         native_profile_reports = {}
+        profile_shell_evidence = {}
         compiler_library = getattr(unreal, "EFClothingFitCompilerLibrary", None)
         if compiler_library is None:
             fail("Native EFClothingFitCompilerLibrary is unavailable")
@@ -377,6 +842,18 @@ def main() -> None:
             native_profile_reports[index] = validation_report
             if not validation_success:
                 fail(f"Native profile validation failed for {index}: {validation_report}")
+            profile_shell = shell_metrics(profile)
+            shell_contract_valid, shell_contract_report = validate_shell_contract(
+                profile_shell,
+                index in enabled_shell_ids,
+                index in explicit_anatomy_exclusion_ids,
+            )
+            if not shell_contract_valid:
+                fail(
+                    f"Profile shell V4 contract failed for {index}: "
+                    + shell_contract_report
+                )
+            profile_shell_evidence[index] = profile_shell
         if sorted(registry_ids) != sorted(enabled_ids):
             fail(
                 "Internal registry identities differ from enabled Director entries: "
@@ -388,14 +865,41 @@ def main() -> None:
         )
         result["garment_ids"] = sorted(ids)
         result["enabled_garment_ids"] = sorted(enabled_ids)
+        result["enabled_thickness_shell_ids"] = sorted(enabled_shell_ids)
         result["per_garment_runtime_offsets_only"] = True
+        result["per_garment_controls_only"] = True
         result["retired_global_director_controls_absent"] = True
         result["runtime_offset_limit_cm"] = maximum_offset
         result["garment_offsets_cm"] = offsets
+        result["garment_thickness_shells"] = thickness_shells
         result["registry_profile_count"] = len(profiles)
         result["native_profile_reports"] = native_profile_reports
         result["compiler_receipt"] = load_latest_compiler_receipt(
-            ids, enabled_ids, REGISTRY_PATH
+            ids,
+            enabled_ids,
+            enabled_shell_ids,
+            explicit_anatomy_exclusion_ids,
+            REGISTRY_PATH,
+        )
+        receipt_rows = {
+            str(row["garment_id"]): row
+            for row in result["compiler_receipt"]["rows"]
+        }
+        for index, profile_shell in profile_shell_evidence.items():
+            receipt_shell = receipt_rows[index]["thickness_shell"]
+            if not shell_metrics_match(profile_shell, receipt_shell):
+                fail(
+                    f"Profile/receipt shell V4 evidence differs for garment {index}"
+                )
+        result["profile_shell_evidence"] = profile_shell_evidence
+        result["compiler_receipt_schema_version"] = int(
+            result["compiler_receipt"]["schema_version"]
+        )
+        result["thickness_shell_algorithm_version"] = int(
+            result["compiler_receipt"]["thickness_shell_algorithm_version"]
+        )
+        result["shell_intersection_policy_gate"] = boolean(
+            result["compiler_receipt"]["shell_intersection_policy_gate"]
         )
 
         dirty_packages = list(

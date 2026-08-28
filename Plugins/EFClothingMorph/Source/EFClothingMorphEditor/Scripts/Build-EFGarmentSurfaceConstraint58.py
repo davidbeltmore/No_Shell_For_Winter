@@ -49,7 +49,7 @@ def main() -> None:
     with open(receipt_path, "w", encoding="utf-8") as receipt_file:
         json.dump(
             {
-                "schema": "EFClothingMorph.SurfaceGraph.26.5",
+                "schema": "EFClothingMorph.SurfaceGraph.26.6",
                 "asset": (
                     "/EFClothingMorph/Deformers/"
                     "DG_EFGarmentSurfaceConstraint."

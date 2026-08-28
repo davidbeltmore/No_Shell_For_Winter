@@ -202,6 +202,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
 	static bool UpgradeDirectorIdentityToSchema2(UEFClothingMorphDirectorPolicy* Director);
 
+	/** Schema-3 authoring gate for per-garment real-thickness controls. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V2|Compiler")
+	static bool UpgradeDirectorIdentityToSchema3(UEFClothingMorphDirectorPolicy* Director);
+
 	/** Internal staging primitive. CompileGarmentCatalog is the only public publication API. */
 	static FEFClothingFitCompileResult CompileFitProfile(
 		USkeletalMesh* SourceGarment,

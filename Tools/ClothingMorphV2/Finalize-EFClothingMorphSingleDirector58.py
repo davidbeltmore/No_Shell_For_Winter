@@ -1,7 +1,7 @@
 """Finalize EF Clothing Morph V2's single-Director cutover safely.
 
 This commandlet is intentionally narrow and fail-closed. It validates the
-schema-2 Director and the newly compiled internal V26 registry, audits every
+schema-3 Director and the newly compiled internal V26 registry, audits every
 legacy referencer, then retires only the two legacy DataTables and the old
 generated output root through Unreal's EditorAssetLibrary. It never deletes a
 live Unreal package through the filesystem.
@@ -173,7 +173,7 @@ def validate_director() -> dict[str, object]:
     director_class = unreal.load_class(None, DIRECTOR_CLASS_PATH)
     director = unreal.EditorAssetLibrary.load_asset(DIRECTOR_PATH)
     if director_class is None or director is None:
-        fail("Schema-2 Clothing Director class or asset could not be loaded.")
+        fail("Schema-3 Clothing Director class or asset could not be loaded.")
     if asset_class_path(director) != DIRECTOR_CLASS_PATH:
         fail(
             "Clothing Director has the wrong class: actual={} expected={}".format(
@@ -181,8 +181,8 @@ def validate_director() -> dict[str, object]:
             )
         )
     schema_version = int(property_value(director, "SchemaVersion"))
-    if schema_version != 2:
-        fail("Clothing Director schema must be 2 before legacy retirement.")
+    if schema_version != 3:
+        fail("Clothing Director schema must be 3 before legacy retirement.")
     garments = list(property_value(director, "Garments"))
     if not garments:
         fail("Clothing Director Garments array is empty.")
@@ -196,12 +196,20 @@ def validate_director() -> dict[str, object]:
     enabled_keys: set[str] = set()
     for garment in garments:
         garment_id = str(property_value(garment, "GarmentId"))
+        enabled = bool(property_value(garment, "bEnabled", "Enabled"))
+        source = package_name(load_soft(property_value(garment, "SourceGarment")))
+        body = package_name(load_soft(property_value(garment, "BodySurface")))
+        if (
+            not enabled
+            and (not garment_id or garment_id.casefold() == "none")
+            and not source
+            and not body
+        ):
+            continue
         if not garment_id or garment_id.casefold() == "none":
             fail("Clothing Director contains an empty GarmentId.")
         garment_ids.append(garment_id)
-        if bool(property_value(garment, "bEnabled", "Enabled")):
-            source = package_name(load_soft(property_value(garment, "SourceGarment")))
-            body = package_name(load_soft(property_value(garment, "BodySurface")))
+        if enabled:
             if not source or not body:
                 fail("Enabled garment {} has an unresolved source/body pair.".format(garment_id))
             enabled_keys.add(source + "|" + body)
@@ -214,7 +222,7 @@ def validate_director() -> dict[str, object]:
         "class_path": asset_class_path(director),
         "schema_version": schema_version,
         "garment_ids": sorted(garment_ids),
-        "garment_count": len(garments),
+        "garment_count": len(garment_ids),
         "enabled_pair_keys": sorted(enabled_keys),
     }
 
@@ -389,6 +397,10 @@ def validate_execution_context() -> Path:
 
 
 def main() -> None:
+    fail(
+        "RETIRED: legacy Clothing Morph finalization is intentionally disabled; "
+        "schema 3 must not delete legacy assets."
+    )
     default_receipt = (
         SAVED_ROOT
         / "ClothingMorphV2QA"

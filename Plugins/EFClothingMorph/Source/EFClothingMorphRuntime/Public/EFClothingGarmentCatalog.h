@@ -13,10 +13,10 @@ UENUM(BlueprintType)
 enum class EEFClothingSurfaceBackend : uint8
 {
 	/** Geometry-compiled correspondence, certified weights and adaptive clearance. */
-	GeometryFitFallback UMETA(DisplayName = "Ajuste geometrico de respaldo"),
+	GeometryFitFallback UMETA(DisplayName = "Geometry Fit Fallback"),
 
 	/** Final GPU surface-wrap backend; rows can opt in as its cooked graph becomes available. */
-	SurfaceWrapGPU UMETA(DisplayName = "Ajuste automatico GPU (Recomendado)"),
+	SurfaceWrapGPU UMETA(DisplayName = "Automatic GPU Surface Wrap (Recommended)"),
 
 	Disabled UMETA(Hidden)
 };
@@ -25,11 +25,11 @@ enum class EEFClothingSurfaceBackend : uint8
 UENUM(BlueprintType)
 enum class EEFClothingFitPolicy : uint8
 {
-	Auto UMETA(DisplayName = "Automatico (Recomendado)"),
-	Tight UMETA(DisplayName = "Ajustado al cuerpo"),
-	Hybrid UMETA(DisplayName = "Hibrido"),
-	Loose UMETA(DisplayName = "Suelto"),
-	Rigid UMETA(DisplayName = "Rigido")
+	Auto UMETA(DisplayName = "Automatic Region Classification (Recommended)"),
+	Tight UMETA(DisplayName = "Tight / Follow Body Surface"),
+	Hybrid UMETA(DisplayName = "Hybrid / Blend Authored Motion"),
+	Loose UMETA(DisplayName = "Loose / Collision Only"),
+	Rigid UMETA(DisplayName = "Rigid / Collision Only")
 };
 
 /**
@@ -42,39 +42,39 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	GENERATED_BODY()
 
 	/** Immutable authoring/runtime identity. Array order is presentation-only. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Identidad de la prenda", meta = (DisplayName = "Indice / ID de la prenda", ToolTip = "Nombre unico y estable de esta entrada. No lo cambies despues de compilar la prenda."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Garment Identity", meta = (DisplayName = "Garment Index / ID", ToolTip = "Unique, stable identity for this entry. Do not rename it after compiling the garment."))
 	FName GarmentId = NAME_None;
 
 	/** Friendly name shown by the Clothing Director. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Identidad de la prenda", meta = (DisplayName = "Nombre visible", ToolTip = "Nombre facil de reconocer dentro del Director."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Garment Identity", meta = (DisplayName = "Display Name", ToolTip = "Human-readable name shown in the Clothing Director."))
 	FText DisplayName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Identidad de la prenda", meta = (DisplayName = "Usar como prenda", ToolTip = "Activalo para que EF Clothing Morph compile y controle esta mesh como ropa."))
-	bool bEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Garment Identity", meta = (DisplayName = "Enable Garment", ToolTip = "Enable only after the ID, original garment mesh, and reference body are assigned. New rows start disabled and do not block configured garments."))
+	bool bEnabled = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Identidad de la prenda", meta = (DisplayName = "Mesh original de la prenda", ToolTip = "Selecciona la mesh original usada por el inventario/ACF. Nunca selecciones una SK_ generada por EF Clothing Morph."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Garment Identity", meta = (DisplayName = "Editable Source Garment Mesh", ToolTip = "This is the garment you may edit with Unreal's native Skeletal Mesh Deform tools. Save your changes and EF Clothing Morph refreshes its hidden runtime fit before Play or packaging. Never assign or edit an internal generated SK_ mesh."))
 	TSoftObjectPtr<USkeletalMesh> SourceGarment;
 
 	/** Exact visible body surface for this compiled row (Female now, Male later). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Identidad de la prenda", meta = (DisplayName = "Cuerpo de referencia", ToolTip = "Cuerpo DAZ al que debe ajustarse esta prenda, por ejemplo Female o Male."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "01 | Garment Identity", meta = (DisplayName = "Reference Body", ToolTip = "Exact DAZ body this garment must fit, for example Female or Male."))
 	TSoftObjectPtr<USkeletalMesh> BodySurface;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Ajuste automatico", meta = (DisplayName = "Metodo de ajuste", ToolTip = "Usa Ajuste automatico GPU para prendas nuevas. El respaldo geometrico se conserva solo por compatibilidad."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Automatic Fit", meta = (DisplayName = "Fit Backend", ToolTip = "Use Automatic GPU Surface Wrap for new garments. Geometry Fit Fallback remains for compatibility only."))
 	EEFClothingSurfaceBackend Backend = EEFClothingSurfaceBackend::SurfaceWrapGPU;
 
 	/** Auto classifies connected garment regions; explicit modes remain available for authoring exceptions. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Ajuste automatico", meta = (DisplayName = "Tipo de ajuste", ToolTip = "Automatico detecta si cada zona debe seguir la piel o conservar movimiento. Cambialo solo si una prenda necesita una excepcion."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Automatic Fit", meta = (DisplayName = "Runtime Fit Policy", ToolTip = "Automatic classifies each region after preserving your authored source shape. Tight follows the body most strongly; Hybrid blends body following with authored motion; Loose and Rigid preserve native skinning or Chaos motion and only prevent penetration."))
 	EEFClothingFitPolicy FitPolicy = EEFClothingFitPolicy::Auto;
 
 	/** Semantic coverage used by gameplay/UI and future body-region proxy masks. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Cobertura corporal", meta = (DisplayName = "Zonas que cubre", ToolTip = "Describe las regiones del cuerpo cubiertas por esta prenda."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Body Coverage", meta = (DisplayName = "Covered Body Regions", ToolTip = "Gameplay coverage tags for the body regions covered by this garment."))
 	FGameplayTagContainer CoverageTags;
 
 	/**
 	 * Body material slots hidden only on the live body component while this garment
 	 * is applied. Visibility is reference-counted and restored exactly on unequip.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Cobertura corporal", meta = (DisplayName = "Partes del cuerpo a ocultar", ToolTip = "Materiales del cuerpo que deben ocultarse mientras esta prenda esta equipada. Se restauran al desequiparla."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "03 | Body Coverage", meta = (DisplayName = "Body Material Slots to Hide", ToolTip = "Body material slots hidden while this garment is equipped. They are restored on unequip."))
 	TArray<FName> HiddenBodyMaterialSlots;
 
 	/**
@@ -83,7 +83,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	 * auxiliary anatomy can be hidden at runtime and also excluded from the
 	 * mathematical body envelope without hard-coding a garment or DAZ product.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (AdvancedDisplay, DisplayName = "Superficies excluidas del ajuste", ToolTip = "Materiales corporales que el solver no debe usar como superficie de referencia."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (AdvancedDisplay, DisplayName = "Excluded Body Surfaces", ToolTip = "Body material slots the solver must not use as reference surfaces."))
 	TArray<FName> ExcludedBodySurfaceMaterialSlots;
 
 	/**
@@ -91,46 +91,83 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	 * The compiler redirects their influence to the nearest non-excluded,
 	 * hierarchy-compatible ancestor on the generated EF_AutoFit profile only.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (AdvancedDisplay, DisplayName = "Ramas oseas excluidas", ToolTip = "Ramas de huesos auxiliares que nunca deben transferir peso a esta prenda."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (AdvancedDisplay, DisplayName = "Excluded Bone Branches", ToolTip = "Auxiliary bone branches that must never transfer skin weights to this garment."))
 	TArray<FName> ExcludedBodyBoneBranches;
 
 	/** Body morph namespaces belonging to an excluded accessory/graft. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (AdvancedDisplay, DisplayName = "Prefijos de morph excluidos", ToolTip = "Morphs de anatomia auxiliar que no deben participar en el ajuste."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (AdvancedDisplay, DisplayName = "Excluded Morph Prefixes", ToolTip = "Auxiliary-anatomy morph namespaces excluded from garment fitting."))
 	TArray<FString> ExcludedBodyMorphPrefixes;
 
 	/** Optional authored floor; it is always rounded upward to a compiler-certified tier. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (ClampMin = "1.0", ClampMax = "2.0", AdvancedDisplay, DisplayName = "Multiplicador minimo de separacion", ToolTip = "Piso heredado de separacion. Normalmente debe permanecer en 1.0."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (ClampMin = "1.0", ClampMax = "2.0", AdvancedDisplay, DisplayName = "Minimum Clearance Multiplier", ToolTip = "Legacy certified clearance floor. Normally leave this at 1.0."))
 	float MinimumClearanceMultiplier = 1.0f;
 
 	/** Negative means compiler-selected from geometry/fabric data; otherwise an absolute cm floor. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Ajuste automatico", meta = (ClampMin = "-1.0", ClampMax = "5.0", UIMin = "-1.0", UIMax = "2.0", Units = "cm", DisplayName = "Separacion de la tela (cm; -1 = Automatico)", ToolTip = "Separacion base de esta tela respecto a la piel. Deja -1 para que el compilador la calcule.", AdvancedDisplay))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Automatic Fit", meta = (ClampMin = "-1.0", ClampMax = "5.0", UIMin = "-1.0", UIMax = "2.0", Units = "cm", DisplayName = "Compiled Base Clearance (cm; -1 = Automatic)", ToolTip = "Base skin clearance used during compilation. Leave at -1 for automatic selection. Changing this value requires Compile All Garments.", AdvancedDisplay))
 	float FabricClearanceCm = -1.0f;
 
 	/** Enables this garment index's topology-free runtime clearance override. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "04 | Offset de esta prenda", meta = (DisplayName = "Activar offset de esta prenda", ToolTip = "Afecta solamente este indice del catalogo. Si esta apagado, se ignora el offset extra de esta prenda."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "04 | Per-Garment Runtime Clearance", meta = (DisplayName = "Enable Runtime Clearance", ToolTip = "Affects only this garment. Pushes the entire garment outward without creating real thickness. This setting is immediate and does not require recompilation."))
 	bool bEnableRuntimeTuning = true;
 
 	/** Extra outward clearance applied after skinning and morphs, in centimeters. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "04 | Offset de esta prenda", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm", DisplayName = "Offset extra hacia afuera (cm)", ToolTip = "Empuja solamente esta prenda hacia afuera despues de animaciones y morphs. Prueba primero 0.05 cm. No requiere recompilar.", EditCondition = "bEnableRuntimeTuning"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "04 | Per-Garment Runtime Clearance", meta = (ClampMin = "0.0", ClampMax = "0.35", UIMin = "0.0", UIMax = "0.35", Units = "cm", DisplayName = "Additional Skin Clearance (cm)", ToolTip = "Pushes this garment outward after animation and morphs. It does not add cloth thickness and takes effect without recompiling.", EditCondition = "bEnableRuntimeTuning"))
 	float AdditionalClearanceCm = 0.0f;
+
+	/** Generates an outward-only two-sided shell on the internal derived mesh. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (DisplayName = "Enable Adjustable Thickness (One-Time Compile)", ToolTip = "Creates the paired inner/outer topology required for runtime thickness. Compile once after enabling or disabling it. Changing Visible Thickness afterward is immediate and never rebuilds or hides the garment. The original mesh is never modified. Garments with authored Chaos Cloth need rebuilt Cloth mapping for this generated topology."))
+	bool bCreateThicknessShell = false;
+
+	/** Runtime distance between the fitted inner layer and its visible outer layer. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (ClampMin = "0.01", ClampMax = "0.35", UIMin = "0.01", UIMax = "0.35", Units = "cm", DisplayName = "Visible Thickness (cm, Runtime)", ToolTip = "Changes only this garment's visible geometric thickness. The fitted inner layer stays against the body while the outer layer and boundary walls expand outward. This takes effect at runtime without compiling, rebuilding, or hiding the garment. 0.05 cm is thin fabric; 0.20 cm is visibly thicker.", EditCondition = "bCreateThicknessShell"))
+	float ShellThicknessCm = 0.05f;
+
+	/** Same iterative solve control exposed by UE's native Modeling Offset tool. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (ClampMin = "1", ClampMax = "100", UIMin = "1", UIMax = "32", DisplayName = "Iterative Offset Steps", ToolTip = "Number of Unreal Iterative Offset steps used to build the outer layer. More steps may follow curved surfaces better but increase compile time.", EditCondition = "bCreateThicknessShell", AdvancedDisplay))
+	int32 ShellOffsetSteps = 10;
+
+	/** Boundary offset is required by the certified paired-layer contract. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (DisplayName = "Create Boundary Walls (Required)", ToolTip = "Creates visible walls at waistbands, cuffs, sleeves, and other openings. Keep this enabled: an open shell cannot be certified and is rejected safely.", EditCondition = "bCreateThicknessShell", AdvancedDisplay))
+	bool bShellOffsetBoundaries = true;
+
+	/** Per-step smoothing matching UE's iterative offset option. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", DisplayName = "Smoothing Per Step", ToolTip = "Smooths the outer layer during each offset step. Leave at 0 to preserve the original shape and detail as closely as possible.", EditCondition = "bCreateThicknessShell", AdvancedDisplay))
+	float ShellSmoothingPerStep = 0.0f;
+
+	/** Optional native reproject-smooth behavior. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Per-Garment Real Thickness", meta = (DisplayName = "Reproject After Smoothing", ToolTip = "Reprojects the smoothed result toward the offset surface. Use only when smoothing changes the silhouette too much.", EditCondition = "bCreateThicknessShell && ShellSmoothingPerStep > 0.0", AdvancedDisplay))
+	bool bShellReprojectSmooth = false;
 
 	/** Hidden schema-1 field retained only until legacy DataTables are retired. */
 	UPROPERTY()
 	float RuntimeOffsetCm = 0.0f;
 
 	/** Optional human-facing note; it has no runtime or compiler effect. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "05 | Notas", meta = (MultiLine = "true", DisplayName = "Notas de esta prenda", ToolTip = "Texto libre para recordar decisiones o excepciones. No afecta el runtime."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "06 | Notes", meta = (MultiLine = "true", DisplayName = "Garment Notes", ToolTip = "Free-form authoring notes. This text has no runtime effect."))
 	FText Notes;
 
 	/** Negative means compiler-selected; otherwise the hard one-frame outward correction bound. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (ClampMin = "-1.0", ClampMax = "10.0", UIMin = "-1.0", UIMax = "10.0", Units = "cm", DisplayName = "Correccion maxima (cm; -1 = Automatico)", ToolTip = "Limite de correccion por frame. Deja -1 para que el sistema lo calcule.", AdvancedDisplay))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (ClampMin = "-1.0", ClampMax = "10.0", UIMin = "-1.0", UIMax = "10.0", Units = "cm", DisplayName = "Maximum Correction (cm; -1 = Automatic)", ToolTip = "Maximum outward correction allowed per frame. Leave at -1 for automatic selection.", AdvancedDisplay))
 	float MaximumCorrectionCm = -1.0f;
 
 	/** Missing or stale body/garment LOD bindings must never expose the uncorrected garment. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Opciones avanzadas", meta = (AdvancedDisplay, DisplayName = "Ocultar si falta ajuste de un LOD", ToolTip = "Evita mostrar una prenda sin binding valido durante cambios de LOD."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "99 | Advanced", meta = (AdvancedDisplay, DisplayName = "Hide When an LOD Binding Is Missing", ToolTip = "Prevents an unbound garment from becoming visible during LOD changes."))
 	bool bFailClosedOnMissingLOD = true;
 
-	/** Hash of compile-relevant authoring only; runtime offsets and notes are excluded. */
+	/**
+	 * An untouched array element created with the Details-panel plus button is a
+	 * harmless authoring placeholder. It must not invalidate already configured
+	 * garments until the user assigns an Id/source/body and explicitly enables it.
+	 */
+	bool IsDisabledEmptyPlaceholder() const
+	{
+		return !bEnabled
+			&& GarmentId.IsNone()
+			&& SourceGarment.IsNull()
+			&& BodySurface.IsNull();
+	}
+
+	/** Hash of compile-relevant authoring only; runtime clearance, visible thickness and notes are excluded. */
 	FString BuildCompileFingerprint() const
 	{
 		auto CanonicalNames = [](const TArray<FName>& Values)
@@ -172,8 +209,12 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 			TagStrings.Add(Tag.ToString());
 		}
 
+		// Keep the authored fingerprint in lockstep with the compiler's paired-layer
+		// shell contract. Changing this value invalidates stale generated assets.
+		constexpr int32 ShellAlgorithmVersion = 4;
+		const bool bCanonicalShellEnabled = bCreateThicknessShell;
 		const FString Canonical = FString::Printf(
-			TEXT("Backend=%d|Fit=%d|Coverage=%s|Hidden=%s|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|MinMultiplier=%.6f|Fabric=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d"),
+			TEXT("Backend=%d|Fit=%d|Coverage=%s|Hidden=%s|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|MinMultiplier=%.6f|Fabric=%.6f|ShellAlgorithm=%d|Shell=%d|ShellSteps=%d|ShellBoundaries=%d|ShellSmooth=%.6f|ShellReproject=%d|MaxCorrection=%.6f|FailClosedLOD=%d"),
 			static_cast<int32>(Backend),
 			static_cast<int32>(FitPolicy),
 			*FString::Join(TagStrings, TEXT(",")),
@@ -183,6 +224,12 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 			*CanonicalStrings(ExcludedBodyMorphPrefixes),
 			MinimumClearanceMultiplier,
 			FabricClearanceCm,
+			ShellAlgorithmVersion,
+			bCanonicalShellEnabled ? 1 : 0,
+			bCanonicalShellEnabled ? ShellOffsetSteps : 0,
+			bCanonicalShellEnabled && bShellOffsetBoundaries ? 1 : 0,
+			bCanonicalShellEnabled ? ShellSmoothingPerStep : 0.0f,
+			bCanonicalShellEnabled && bShellReprojectSmooth ? 1 : 0,
 			MaximumCorrectionCm,
 			bFailClosedOnMissingLOD ? 1 : 0);
 		return FMD5::HashAnsiString(*Canonical);

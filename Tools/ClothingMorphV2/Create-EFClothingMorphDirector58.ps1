@@ -79,7 +79,9 @@ if (
     $payload.status -ne 'PASS' -or
     -not [bool]$payload.protected_inputs_unchanged -or
     -not [bool]$payload.legacy_assets_retained_unchanged -or
-    [int]$payload.director_schema_version -ne 2 -or
+    -not [bool]$payload.existing_authoring_fields_preserved -or
+    [string]$payload.thickness_authoring_metadata_version -ne '2' -or
+    [int]$payload.director_schema_version -ne 3 -or
     [int]$payload.garment_count -lt 1
 ) {
     throw "Clothing Director creation failed: exit=$($process.ExitCode) receipt=$($receipt.FullName) log=$log"
@@ -97,6 +99,9 @@ if ($LASTEXITCODE -ne 0) {
     MigrationMode = $payload.migration_mode
     GarmentIds = @($payload.garment_ids) -join ', '
     GarmentCount = $payload.garment_count
+    RuntimeOffsetsCm = ($payload.garment_runtime_offsets_cm | ConvertTo-Json -Compress)
+    ThicknessShells = ($payload.garment_thickness_shells | ConvertTo-Json -Compress)
+    ExistingAuthoringFieldsPreserved = $payload.existing_authoring_fields_preserved
     LegacyAssetsRetainedUnchanged = $payload.legacy_assets_retained_unchanged
     CreatedAssets = @($payload.created_assets) -join ', '
     Receipt = $receipt.FullName

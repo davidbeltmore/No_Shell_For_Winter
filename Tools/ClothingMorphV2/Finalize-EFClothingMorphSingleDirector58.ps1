@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+throw 'RETIRED: legacy Clothing Morph finalization is intentionally disabled. Schema 3 keeps one Director without deleting legacy assets.'
 $projectRootPath = (Resolve-Path -LiteralPath $ProjectRoot).Path
 $engineRootPath = (Resolve-Path -LiteralPath $EngineRoot).Path
 $project = Join-Path $projectRootPath 'NoShellForWinter.uproject'
@@ -117,7 +118,7 @@ if (
     $commandletFailed -or
     -not [bool]$payload.success -or
     $payload.status -ne 'UE58_EF_CLOTHING_SINGLE_DIRECTOR_FINALIZE_PASS' -or
-    [int]$payload.director_validation.schema_version -ne 2 -or
+    [int]$payload.director_validation.schema_version -ne 3 -or
     [int]$payload.director_validation.garment_count -lt 1 -or
     [int]$payload.registry_validation.profile_count -lt 1 -or
     -not [bool]$payload.protected_inputs_unchanged -or

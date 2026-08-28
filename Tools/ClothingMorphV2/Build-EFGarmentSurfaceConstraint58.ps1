@@ -79,7 +79,7 @@ if (-not $receipt) {
     throw 'Surface graph builder produced no receipt.'
 }
 $result = Get-Content -LiteralPath $receipt.FullName -Raw | ConvertFrom-Json
-if (-not [bool]$result.success -or $result.schema -ne 'EFClothingMorph.SurfaceGraph.26.5') {
+if (-not [bool]$result.success -or $result.schema -ne 'EFClothingMorph.SurfaceGraph.26.6') {
     throw "Surface graph receipt is stale or failed: $($receipt.FullName)"
 }
 

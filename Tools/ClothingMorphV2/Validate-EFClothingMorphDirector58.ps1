@@ -71,7 +71,26 @@ if ($null -eq $receipt) {
 $payload = Get-Content -LiteralPath $receipt.FullName -Raw | ConvertFrom-Json
 $succeeded = Select-String -LiteralPath $log -SimpleMatch 'Python script executed successfully' -Quiet
 $failed = Select-String -LiteralPath $log -SimpleMatch 'Python script executed with errors' -Quiet
-if ($process.ExitCode -notin @(0, 1) -or -not $succeeded -or $failed -or -not [bool]$payload.success -or $payload.status -ne 'PASS' -or -not [bool]$payload.protected_inputs_unchanged) {
+if (
+    $process.ExitCode -notin @(0, 1) -or
+    -not $succeeded -or
+    $failed -or
+    -not [bool]$payload.success -or
+    $payload.status -ne 'PASS' -or
+    [int]$payload.director_schema_version -ne 3 -or
+    [int]$payload.compiler_receipt_schema_version -ne 10 -or
+    [int]$payload.thickness_shell_algorithm_version -ne 4 -or
+    -not [bool]$payload.shell_intersection_policy_gate -or
+    -not [bool]$payload.compiler_receipt.catalog_equality_gate -or
+    -not [bool]$payload.compiler_receipt.protected_inputs_unchanged -or
+    [int]$payload.compiler_receipt.residual_shell_intersection_pair_count -ne 0 -or
+    (
+        [int]$payload.compiler_receipt.tolerated_inherited_shell_intersection_pair_count +
+        [int]$payload.compiler_receipt.tolerated_local_repair_shell_intersection_pair_count +
+        [int]$payload.compiler_receipt.tolerated_excluded_region_shell_intersection_pair_count
+    ) -ne [int]$payload.compiler_receipt.detected_shell_intersection_pair_count -or
+    -not [bool]$payload.protected_inputs_unchanged
+) {
     throw "Clothing Director validation failed: exit=$($process.ExitCode) receipt=$($receipt.FullName) log=$log"
 }
 
@@ -88,6 +107,14 @@ if ($LASTEXITCODE -ne 0) {
     GarmentIds = @($payload.garment_ids) -join ', '
     EnabledGarmentIds = @($payload.enabled_garment_ids) -join ', '
     RuntimeOffsetsCm = ($payload.garment_offsets_cm | ConvertTo-Json -Compress)
+    ThicknessShells = ($payload.garment_thickness_shells | ConvertTo-Json -Compress)
+    ThicknessShellAlgorithm = $payload.thickness_shell_algorithm_version
+    DetectedShellIntersectionPairs = $payload.compiler_receipt.detected_shell_intersection_pair_count
+    BaselineSourceIntersectionPairs = $payload.compiler_receipt.baseline_source_shell_intersection_pair_count
+    ToleratedInheritedSourcePairs = $payload.compiler_receipt.tolerated_inherited_shell_intersection_pair_count
+    ToleratedLocalRepairPairs = $payload.compiler_receipt.tolerated_local_repair_shell_intersection_pair_count
+    ResidualNewIntersectionPairs = $payload.compiler_receipt.residual_shell_intersection_pair_count
+    ToleratedExcludedRegionPairs = $payload.compiler_receipt.tolerated_excluded_region_shell_intersection_pair_count
     RuntimeOffsetLimitCm = $payload.runtime_offset_limit_cm
     PerGarmentOffsetsOnly = $payload.per_garment_runtime_offsets_only
     CompilerReceipt = $payload.compiler_receipt.path

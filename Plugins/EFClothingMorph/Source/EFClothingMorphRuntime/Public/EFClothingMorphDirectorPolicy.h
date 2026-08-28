@@ -18,17 +18,17 @@ class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphDirectorPolicy : public UPrimar
 public:
 	UEFClothingMorphDirectorPolicy();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "00 | Como usar", meta = (MultiLine = "true", DisplayName = "Guia rapida"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "00 | How to Use", meta = (MultiLine = "true", DisplayName = "Quick Guide"))
 	FText AuthoringGuide;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identidad", meta = (DisplayName = "Version del formato", AdvancedDisplay))
-	int32 SchemaVersion = 2;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity", meta = (DisplayName = "Schema Version", AdvancedDisplay))
+	int32 SchemaVersion = 3;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identidad", meta = (DisplayName = "ID del Director", AdvancedDisplay))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "01 | Identity", meta = (DisplayName = "Director ID", AdvancedDisplay))
 	FName DirectorId = TEXT("EFClothingMorphV2");
 
 	/** Add garments here. GarmentId is stable; array order is presentation-only. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Catalogo de prendas", meta = (TitleProperty = "GarmentId", DisplayName = "Catalogo de prendas", ToolTip = "Un indice por cada combinacion de prenda y cuerpo. Expande una entrada para configurar todo en un solo lugar."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "02 | Garment Catalog", meta = (TitleProperty = "GarmentId", DisplayName = "Garment Catalog", ToolTip = "Create one entry for each garment/body combination. Expand an entry to configure all of its options in one place."))
 	TArray<FEFClothingGarmentRow> Garments;
 
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Director")

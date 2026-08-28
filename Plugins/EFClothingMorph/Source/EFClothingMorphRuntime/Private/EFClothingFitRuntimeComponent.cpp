@@ -1326,6 +1326,10 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 	for (int32 EntryIndex = 0; EntryIndex < LoadedDirectorPolicy->Garments.Num(); ++EntryIndex)
 	{
 		const FEFClothingGarmentRow* Row = &LoadedDirectorPolicy->Garments[EntryIndex];
+		if (Row->IsDisabledEmptyPlaceholder())
+		{
+			continue;
+		}
 		if (Row->bEnabled && !Row->SourceGarment.IsNull())
 		{
 			GuardedSourcePaths.Add(Row->SourceGarment.ToSoftObjectPath());
@@ -1499,6 +1503,27 @@ float UEFClothingFitRuntimeComponent::ResolveDirectorGarmentOffsetCm(
 		Garment->AdditionalClearanceCm,
 		0.0f,
 		GetMaximumRuntimeAdditionalClearanceCm());
+}
+
+float UEFClothingFitRuntimeComponent::ResolveDirectorGarmentVisibleThicknessCm(
+	const FAppliedGarmentState& State) const
+{
+	const UEFClothingFitProfile* Profile = State.Profile.Get();
+	if (!IsValid(Profile) || !Profile->bCompiledThicknessShell)
+	{
+		return 0.0f;
+	}
+
+	const FEFClothingGarmentRow* Garment = FindCatalogRowById(State.CatalogRowName);
+	const float RequestedThicknessCm = Garment
+		&& Garment->bCreateThicknessShell
+		&& FMath::IsFinite(Garment->ShellThicknessCm)
+		? Garment->ShellThicknessCm
+		: EFClothingMorphV26::CompiledThicknessReferenceCm;
+	return FMath::Clamp(
+		RequestedThicknessCm,
+		EFClothingMorphV26::MinimumRuntimeVisibleThicknessCm,
+		EFClothingMorphV26::MaximumRuntimeVisibleThicknessCm);
 }
 
 void UEFClothingFitRuntimeComponent::AcquireBodyCoverage(
@@ -2821,17 +2846,21 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 	}
 #endif
 
-	const FBoxSphereBounds SourceBounds = SourceMesh->GetImportedBounds();
+	// The editable source mesh is authoring input, not the geometry rendered by V2.
+	// Once profile + fitted mesh + binding provenance has passed above, validating
+	// the fitted asset against *live* source bounds would make a native Deform edit
+	// hide the garment before the editor freshness gate can rebuild it. Validate the
+	// immutable fitted output itself here and keep using the last known-good bundle.
 	const FBoxSphereBounds FittedBounds = FittedMesh->GetImportedBounds();
-	const FVector RequiredExtent = SourceBounds.BoxExtent + BoundsExpansion;
-	if (!FittedBounds.Origin.Equals(SourceBounds.Origin, 0.001)
-		|| FittedBounds.BoxExtent.X + 0.001 < RequiredExtent.X
-		|| FittedBounds.BoxExtent.Y + 0.001 < RequiredExtent.Y
-		|| FittedBounds.BoxExtent.Z + 0.001 < RequiredExtent.Z
-		|| FittedBounds.SphereRadius + 0.001
-			< SourceBounds.SphereRadius + Profile->CompiledConcurrentSphereExpansionCm)
+	if (FittedBounds.Origin.ContainsNaN()
+		|| FittedBounds.BoxExtent.ContainsNaN()
+		|| !FMath::IsFinite(FittedBounds.SphereRadius)
+		|| FittedBounds.BoxExtent.X < 0.0
+		|| FittedBounds.BoxExtent.Y < 0.0
+		|| FittedBounds.BoxExtent.Z < 0.0
+		|| FittedBounds.SphereRadius <= 0.0)
 	{
-		OutFailureReason = TEXT("Generated garment bounds do not contain the certified concurrent morph expansion.");
+		OutFailureReason = TEXT("Generated garment has invalid fitted bounds.");
 		return false;
 	}
 
@@ -2860,12 +2889,16 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 		OutFailureReason = TEXT("Generated garment skeleton fingerprint changed after compilation.");
 		return false;
 	}
+	bool bSourceAuthoringStale = false;
 #if WITH_EDITORONLY_DATA
 	if (!Profile->SourcePackageGuid.IsEmpty()
 		&& SourceMesh->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) != Profile->SourcePackageGuid)
 	{
-		OutFailureReason = TEXT("Source garment package changed after fit compilation; recompile the artifact.");
-		return false;
+		// Native source-mesh edits intentionally do not invalidate the rendered
+		// fitted/binding pair. The editor gate refreshes this bundle before Play or
+		// packaging; if an edit occurs while running, the previous certified bundle
+		// remains visible until that refresh.
+		bSourceAuthoringStale = true;
 	}
 	if (!Profile->BodyPackageGuid.IsEmpty()
 		&& BodyMesh->GetOutermost()->GetPersistentGuid().ToString(EGuidFormats::DigitsWithHyphens) != Profile->BodyPackageGuid)
@@ -2888,15 +2921,36 @@ bool UEFClothingFitRuntimeComponent::ValidateProfileForComponents(
 #endif
 
 #if WITH_EDITOR
-	if (EFClothingSkeleton::BuildContentFingerprint(SourceMesh) != Profile->SourceContentFingerprint
-		|| EFClothingSkeleton::BuildContentFingerprint(BodyMesh) != Profile->BodyContentFingerprint
+	if (EFClothingSkeleton::BuildContentFingerprint(SourceMesh) != Profile->SourceContentFingerprint)
+	{
+		bSourceAuthoringStale = true;
+	}
+	if (EFClothingSkeleton::BuildContentFingerprint(BodyMesh) != Profile->BodyContentFingerprint
 		|| EFClothingSkeleton::BuildContentFingerprint(CompatibilityMesh) != Profile->CompatibilityContentFingerprint
 		|| EFClothingSkeleton::BuildContentFingerprint(FittedMesh) != Profile->FittedContentFingerprint)
 	{
-		OutFailureReason = TEXT("Editor mesh content changed after fit compilation; regenerate the derived artifact.");
+		OutFailureReason = TEXT("Body, compatibility or generated mesh content changed after fit compilation; regenerate the derived artifact.");
 		return false;
 	}
 #endif
+
+	const FSoftObjectPath SourcePath(SourceMesh);
+	if (bSourceAuthoringStale)
+	{
+		if (!WarnedStaleSourceGarmentPaths.Contains(SourcePath))
+		{
+			WarnedStaleSourceGarmentPaths.Add(SourcePath);
+			UE_LOG(
+				LogEFClothingMorphV2,
+				Warning,
+				TEXT("Editable source garment %s changed after compilation; keeping the last known-good fitted mesh and surface binding visible until the automatic editor refresh."),
+				*SourcePath.ToString());
+		}
+	}
+	else
+	{
+		WarnedStaleSourceGarmentPaths.Remove(SourcePath);
+	}
 
 	const bool bSkinProfileExists = FittedMesh->GetSkinWeightProfiles().ContainsByPredicate([Profile](const FSkinWeightProfileInfo& Info)
 	{
@@ -3580,7 +3634,8 @@ void UEFClothingFitRuntimeComponent::ApplyReservedSurfaceBounds(
 	// such as underwear can need its largest outward correction on its narrowest
 	// axis, so calculate a conservative scale separately for all three axes.
 	const float ReservedOutwardTravelCm = MaximumSurfaceCorrectionCm
-		+ 0.35f;
+		+ EFClothingMorphV26::MaximumRuntimeAdditionalClearanceCm
+		+ EFClothingMorphV26::MaximumRuntimeVisibleThicknessCm;
 	float RequiredBoundsScale = State.ComponentBoundsScaleBeforeV2;
 	bool bHasUsableExtent = false;
 	for (const float ExtentCm : {
@@ -3741,6 +3796,7 @@ void UEFClothingFitRuntimeComponent::TickSurfaceConstraints(const float DeltaTim
 				DeltaTimeSeconds,
 				ResolveGlobalSurfaceOffsetCm(),
 				ResolveSurfaceGarmentOffsetCm(GarmentComponent, State),
+				ResolveDirectorGarmentVisibleThicknessCm(State),
 				MaximumCorrectionOverrideCm,
 				DispatchFailure))
 		{

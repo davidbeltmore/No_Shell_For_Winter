@@ -27,6 +27,7 @@ namespace EFClothingSurfaceGraphContract
 	const FName BarycentricsAndFollowWeight(TEXT("EF_BarycentricsAndFollowWeight"));
 	const FName RestOffsetAndClearanceCm(TEXT("EF_RestOffsetAndClearanceCm"));
 	const FName MaximumCorrectionAndRestGapCm(TEXT("EF_MaximumCorrectionAndRestGapCm"));
+	const FName ThicknessReferenceAndLayer(TEXT("EF_ThicknessReferenceAndLayer"));
 	const FName WitnessCount(TEXT("EF_WitnessCount"));
 	const FName WitnessReferenceCount(TEXT("EF_WitnessReferenceCount"));
 	const FName WitnessRanges(TEXT("EF_WitnessRanges"));
@@ -39,6 +40,7 @@ namespace EFClothingSurfaceGraphContract
 		TEXT("EF_WitnessBodyBarycentricsAndMaximumCorrectionCm"));
 	const FName GlobalClearanceOffsetCm(TEXT("EF_GlobalClearanceOffsetCm"));
 	const FName GarmentClearanceOffsetCm(TEXT("EF_GarmentClearanceOffsetCm"));
+	const FName GarmentVisibleThicknessCm(TEXT("EF_GarmentVisibleThicknessCm"));
 	const FName MaximumCorrectionOverrideCm(TEXT("EF_MaximumCorrectionOverrideCm"));
 	const FName DeltaTimeSeconds(TEXT("EF_DeltaTimeSeconds"));
 	const FName BodyToGarmentTransform(TEXT("EF_BodyToGarmentTransform"));
@@ -234,6 +236,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	const float DeltaTimeSeconds,
 	const float GlobalClearanceOffsetCm,
 	const float GarmentClearanceOffsetCm,
+	const float GarmentVisibleThicknessCm,
 	const float MaximumCorrectionOverrideCm,
 	FString& OutFailureReason)
 {
@@ -409,6 +412,14 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::GarmentClearanceOffsetCm,
 			FMath::Max(FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f, 0.0f))
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::GarmentVisibleThicknessCm,
+			FMath::Clamp(
+				FMath::IsFinite(GarmentVisibleThicknessCm)
+					? GarmentVisibleThicknessCm
+					: EFClothingMorphV26::CompiledThicknessReferenceCm,
+				0.0f,
+				EFClothingMorphV26::MaximumRuntimeVisibleThicknessCm))
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
 			FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
@@ -645,6 +656,7 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	TArray<FVector4> BarycentricsAndFollowWeight;
 	TArray<FVector4> RestOffsetAndClearanceCm;
 	TArray<FVector2D> MaximumCorrectionAndRestGapCm;
+	TArray<FIntPoint> ThicknessReferenceAndLayer;
 	TArray<FIntPoint> WitnessRanges;
 	TArray<int32> WitnessIndices;
 	TArray<FIntVector4> WitnessGarmentVertices;
@@ -656,6 +668,7 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	BarycentricsAndFollowWeight.Reserve(VertexCount);
 	RestOffsetAndClearanceCm.Reserve(VertexCount);
 	MaximumCorrectionAndRestGapCm.Reserve(VertexCount);
+	ThicknessReferenceAndLayer.Reserve(VertexCount);
 
 	for (const FEFClothingSurfaceVertexBinding& Binding : InLODPair.VertexBindings)
 	{
@@ -677,6 +690,9 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 		MaximumCorrectionAndRestGapCm.Emplace(
 			Binding.MaximumCorrectionCm,
 			Binding.RestSignedGapCm);
+		ThicknessReferenceAndLayer.Emplace(
+			Binding.ThicknessReferenceRenderVertexIndex,
+			Binding.bOuterThicknessLayer ? 1 : 0);
 	}
 
 	TArray<int32> WitnessReferenceCounts;
@@ -817,6 +833,9 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 		&& Instance->SetVector2ArrayVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionAndRestGapCm,
 			MaximumCorrectionAndRestGapCm)
+		&& Instance->SetInt2ArrayVariable(
+			EFClothingSurfaceGraphContract::ThicknessReferenceAndLayer,
+			ThicknessReferenceAndLayer)
 		&& Instance->SetIntVariable(
 			EFClothingSurfaceGraphContract::WitnessCount,
 			InLODPair.Witnesses.Num())
@@ -994,7 +1013,15 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 	for (int32 VertexIndex = 0; VertexIndex < InLODPair.VertexBindings.Num(); ++VertexIndex)
 	{
 		const FEFClothingSurfaceVertexBinding& Binding = InLODPair.VertexBindings[VertexIndex];
+		const bool bThicknessReferenceValid =
+			Binding.ThicknessReferenceRenderVertexIndex == INDEX_NONE
+				? !Binding.bOuterThicknessLayer
+				: InLODPair.VertexBindings.IsValidIndex(
+					Binding.ThicknessReferenceRenderVertexIndex)
+					&& !InLODPair.VertexBindings[
+						Binding.ThicknessReferenceRenderVertexIndex].bOuterThicknessLayer;
 		const bool bIndicesValid = Binding.GarmentRenderVertexIndex == VertexIndex
+			&& bThicknessReferenceValid
 			&& Binding.BodyRenderVertexIndices.X >= 0
 			&& Binding.BodyRenderVertexIndices.Y >= 0
 			&& Binding.BodyRenderVertexIndices.Z >= 0

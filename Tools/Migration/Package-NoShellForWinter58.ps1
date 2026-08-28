@@ -10,6 +10,10 @@ $ErrorActionPreference = "Stop"
 $projectPath = Join-Path $ProjectRoot "NoShellForWinter.uproject"
 $runUAT = Join-Path $EngineRoot "Engine\Build\BatchFiles\RunUAT.bat"
 $receiptGuard = Join-Path $ProjectRoot "Tools\Migration\Repair-DazPluginReceipt58.ps1"
+$clothingCatalogCompiler = Join-Path $ProjectRoot `
+    "Tools\ClothingMorphV2\Compile-EFClothingGarmentCatalog58.ps1"
+$clothingCatalogCompilerPython = Join-Path $ProjectRoot `
+    "Tools\ClothingMorphV2\Compile-EFClothingGarmentCatalog58.py"
 $gameTarget = Join-Path $ProjectRoot "Source\NoShellForWinter.Target.cs"
 $packagedSmokeHeader = Join-Path $ProjectRoot `
     "Plugins\EFProcedural\Source\EFProceduralACFURuntime\Public\Calysto\EFCalystoPackagedSmokeSubsystem.h"
@@ -27,6 +31,8 @@ foreach ($requiredPath in @(
         $projectPath,
         $runUAT,
         $receiptGuard,
+        $clothingCatalogCompiler,
+        $clothingCatalogCompilerPython,
         $gameTarget,
         $packagedSmokeHeader,
         $packagedSmokeSource,
@@ -35,6 +41,21 @@ foreach ($requiredPath in @(
         $packagedSmokeRunner)) {
     if (!(Test-Path -LiteralPath $requiredPath)) {
         throw "Required packaging path not found: $requiredPath"
+    }
+}
+
+$clothingToolsRoot = [System.IO.Path]::GetFullPath(
+    (Join-Path $ProjectRoot "Tools\ClothingMorphV2"))
+$clothingToolsPrefix = $clothingToolsRoot.TrimEnd('\') + '\'
+foreach ($compilerPath in @($clothingCatalogCompiler, $clothingCatalogCompilerPython)) {
+    $compilerFullPath = [System.IO.Path]::GetFullPath($compilerPath)
+    if (-not $compilerFullPath.StartsWith(
+            $clothingToolsPrefix,
+            [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "EF Clothing catalog compiler escapes the project-owned tools directory: $compilerFullPath"
+    }
+    if (-not (Test-Path -LiteralPath $compilerFullPath -PathType Leaf)) {
+        throw "Required EF Clothing catalog compiler file is missing: $compilerFullPath"
     }
 }
 
@@ -141,6 +162,20 @@ foreach ($buildOutput in @($gameBinary, $gameReceipt)) {
 if ($LASTEXITCODE -ne 0) {
     throw "Daz receipt verification failed before $Configuration cook/package."
 }
+
+Write-Host "Refreshing the EF Clothing Morph V26 catalog before $Configuration cook/package..."
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $clothingCatalogCompiler `
+    -ProjectRoot $ProjectRoot `
+    -EngineRoot $EngineRoot
+$clothingCompilerExitCode = $LASTEXITCODE
+if ($clothingCompilerExitCode -ne 0) {
+    throw (@(
+        "EF Clothing Morph V26 catalog compilation failed with exit code $clothingCompilerExitCode."
+        "BuildCookRun was not started; fix the catalog/compiler error before packaging."
+        "Compiler: $clothingCatalogCompiler"
+    ) -join " ")
+}
+Write-Host "EF Clothing Morph V26 pre-package catalog refresh: PASS"
 
 if ([string]::IsNullOrWhiteSpace($ArchiveRoot)) {
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"

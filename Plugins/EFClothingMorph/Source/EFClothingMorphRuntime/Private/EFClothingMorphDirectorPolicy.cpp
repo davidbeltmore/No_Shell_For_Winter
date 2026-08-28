@@ -6,15 +6,16 @@
 UEFClothingMorphDirectorPolicy::UEFClothingMorphDirectorPolicy()
 {
 	AuthoringGuide = FText::FromString(TEXT(
-		"1) Crea un indice por prenda y cuerpo. 2) Selecciona siempre la mesh original, nunca una SK_ generada. "
-		"3) Deja Metodo de ajuste y Tipo de ajuste en sus valores recomendados. 4) Si aun ves clipping, activa el offset "
-		"de esa prenda y prueba primero 0.05 cm. El offset no requiere recompilar y no existe un offset global en este Director."));
+		"1) Create one index per garment/body pair. 2) Select and edit the original garment mesh with Unreal's native tools; never edit a generated SK_ mesh. "
+		"3) Runtime Clearance moves only that garment outward. 4) Enable Adjustable Thickness once and compile its paired topology. "
+		"Visible Thickness then updates immediately per garment without rebuilding or hiding it; 0.05 cm is thin fabric and 0.20 cm is visibly thicker. "
+		"Structural shell options remain advanced compile settings. Every control belongs to its expanded garment index; this Director has no global garment tuning."));
 }
 
 bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 {
 	OutError.Reset();
-	if (SchemaVersion != 2 || DirectorId != TEXT("EFClothingMorphV2"))
+	if (SchemaVersion != 3 || DirectorId != TEXT("EFClothingMorphV2"))
 	{
 		OutError = TEXT("EF Clothing Morph Director identity/schema is invalid.");
 		return false;
@@ -30,8 +31,15 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 
 	TSet<FName> GarmentIds;
 	TSet<FString> SourceBodyPairs;
+	int32 EnabledGarmentCount = 0;
 	for (const FEFClothingGarmentRow& Garment : Garments)
 	{
+		const bool bHasSource = !Garment.SourceGarment.IsNull();
+		const bool bHasBody = !Garment.BodySurface.IsNull();
+		if (Garment.IsDisabledEmptyPlaceholder())
+		{
+			continue;
+		}
 		if (Garment.GarmentId.IsNone())
 		{
 			OutError = TEXT("EF Clothing Morph Director contains a garment with an empty Garment Id.");
@@ -46,8 +54,6 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 		}
 		GarmentIds.Add(Garment.GarmentId);
 
-		const bool bHasSource = !Garment.SourceGarment.IsNull();
-		const bool bHasBody = !Garment.BodySurface.IsNull();
 		if (Garment.bEnabled && bHasSource && bHasBody)
 		{
 			const FString PairKey = Garment.SourceGarment.ToSoftObjectPath().ToString()
@@ -66,6 +72,7 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 		{
 			continue;
 		}
+		++EnabledGarmentCount;
 		if (!bHasSource || !bHasBody)
 		{
 			OutError = FString::Printf(
@@ -107,6 +114,29 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 				*Garment.GarmentId.ToString());
 			return false;
 		}
+		if (Garment.bCreateThicknessShell)
+		{
+			// Visible thickness is a clamped per-garment runtime value. It must
+			// never invalidate the Director or hide an otherwise valid garment.
+			if (Garment.ShellOffsetSteps < 1
+				|| Garment.ShellOffsetSteps > 100
+				|| !FMath::IsFinite(Garment.ShellSmoothingPerStep)
+				|| Garment.ShellSmoothingPerStep < 0.0f
+				|| Garment.ShellSmoothingPerStep > 1.0f)
+			{
+				OutError = FString::Printf(
+					TEXT("Garment %s has invalid thickness-shell settings."),
+					*Garment.GarmentId.ToString());
+				return false;
+			}
+			if (!Garment.bShellOffsetBoundaries)
+			{
+				OutError = FString::Printf(
+					TEXT("Garment %s disables boundary thickness. V2 requires visible paired borders; enable Create Boundary Walls."),
+					*Garment.GarmentId.ToString());
+				return false;
+			}
+		}
 		if (Garment.Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU
 			&& !Garment.bFailClosedOnMissingLOD)
 		{
@@ -126,6 +156,11 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 				return false;
 			}
 		}
+	}
+	if (EnabledGarmentCount == 0)
+	{
+		OutError = TEXT("EF Clothing Morph Director has no enabled garment definitions.");
+		return false;
 	}
 	return true;
 }

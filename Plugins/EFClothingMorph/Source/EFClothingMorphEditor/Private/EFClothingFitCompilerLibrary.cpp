@@ -13,7 +13,9 @@
 #include "DynamicMesh/DynamicMeshAttributeSet.h"
 #include "DynamicMesh/DynamicVertexSkinWeightsAttribute.h"
 #include "DynamicMesh/MeshNormals.h"
+#include "DynamicMesh/MeshIndexMappings.h"
 #include "DynamicMesh/NonManifoldMappingSupport.h"
+#include "DynamicMeshEditor.h"
 #include "EFClothingGarmentCatalog.h"
 #include "EFClothingFitProfile.h"
 #include "EFClothingMorphDirectorPolicy.h"
@@ -23,13 +25,16 @@
 #include "Engine/SkeletalMesh.h"
 #include "GeometryScript/GeometryScriptTypes.h"
 #include "GeometryScript/MeshAssetFunctions.h"
+#include "GeometryScript/MeshModelingFunctions.h"
 #include "IAssetTools.h"
 #include "MeshDescription.h"
+#include "MeshBoundaryLoops.h"
 #include "MeshQueries.h"
 #include "Misc/Crc.h"
 #include "Misc/PackageName.h"
 #include "Misc/SecureHash.h"
 #include "Operations/SelectiveTessellate.h"
+#include "Operations/JoinMeshLoops.h"
 #include "Rendering/SkinWeightProfile.h"
 #include "Rendering/SkeletalMeshLODModel.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
@@ -61,6 +66,11 @@ namespace EFClothingFitCompilerPrivate
 	// derived-vertex cap below remains the fail-closed guard for unsuitable input.
 	static constexpr double SurfaceRuntimeMaximumEdgeLengthCm = 0.50;
 	static constexpr int32 SurfaceRuntimeMaximumDerivedVertexCount = 65535;
+	static constexpr int32 ThicknessShellAlgorithmVersion = 4;
+	// Explicitly excluded DAZ anatomy can leave a very small inherited overlap in
+	// an otherwise closed shell. Keep the exception bounded, measurable and tied
+	// to catalog-authored surface + bone exclusions; ordinary garments remain at 0.
+	static constexpr double MaximumExcludedAnatomyShellIntersectionFraction = 0.01;
 	static const FName FitWeightProfileName(TEXT("EF_AutoFit"));
 	static const FName ClearanceMorphName(TEXT("EF_AutoFit_Clearance"));
 
@@ -90,6 +100,48 @@ namespace EFClothingFitCompilerPrivate
 		double MinimumClearanceMultiplier = CertifiedClearanceTierMin;
 			TArray<FVector3d> MorphDeltas;
 	};
+
+	/** In-memory pairing that keeps both geometric shell layers deformation-identical. */
+	struct FThicknessShellCompileData
+	{
+		bool bEnabled = false;
+		int32 PreShellVertexCount = 0;
+		int32 PreShellTriangleCount = 0;
+		int32 FinalShellVertexCount = 0;
+		int32 FinalShellTriangleCount = 0;
+		int32 BoundaryLoopCount = 0;
+		int32 WallTriangleCount = 0;
+		int32 OpenBoundaryCountAfter = 0;
+		int32 DegenerateTriangleCount = 0;
+		int32 DetectedNonAdjacentIntersectionCount = 0;
+		int32 BaselineSourceIntersectionPairCount = 0;
+		int32 ToleratedInheritedSourceIntersectionCount = 0;
+		double BaselineInheritanceRadiusCm = 0.0;
+		int32 ToleratedLocalRepairIntersectionCount = 0;
+		double LocalRepairThicknessCeilingCm = 0.0;
+		int32 ToleratedExcludedRegionIntersectionCount = 0;
+		int32 ExcludedRegionAffectedSourceTriangleCount = 0;
+		double ExcludedRegionCertificationRadiusCm = 0.0;
+		double ExcludedRegionMaximumWitnessDistanceCm = 0.0;
+		bool bSelfIntersects = false;
+		double RequestedThicknessCm = 0.0;
+		double MinimumMeasuredThicknessCm = 0.0;
+		double AverageMeasuredThicknessCm = 0.0;
+		double MaximumMeasuredThicknessCm = 0.0;
+		TArray<int32> SourceVertexIDByOrdinal;
+		TArray<int32> SourceOrdinalByVertex;
+		TArray<uint8> LayerByVertex;
+		TArray<TArray<int32>> OuterVerticesBySourceOrdinal;
+		TArray<TArray<int32>> InnerVerticesBySourceOrdinal;
+	};
+
+	static double MinimumCertifiedThicknessPointCm(const double RequestedThicknessCm)
+	{
+		// Prevent numerical layer collapse without forcing a visibly different shape
+		// through concave/excluded anatomy. The requested thickness remains the normal
+		// result; this micro-floor is used only by local collision contraction.
+		return FMath::Max(1.e-5, RequestedThicknessCm * 0.001);
+	}
 
 	static FString SanitizeAssetName(const FString& Name)
 	{
@@ -172,13 +224,14 @@ namespace EFClothingFitCompilerPrivate
 		}
 		const FString CoverageSignature = FString::Join(CoverageTagStrings, TEXT(","));
 		const FString Canonical = FString::Printf(
-			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|Backend=%d|FitPolicy=%d|Coverage=%s|Fabric=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
+			TEXT("V=%d|S=%s:%s|B=%s:%s|C=%s:%s|Backend=%d|FitPolicy=%d|CatalogFingerprint=%s|Coverage=%s|Fabric=%.6f|MaxCorrection=%.6f|FailClosedLOD=%d|ExcludedSurface=%s|ExcludedBones=%s|ExcludedMorphs=%s|Clearance=%.6f|Push=%.6f|Smooth=%d|Influences=%d|CompileMorphs=%d|Transfer=%d|MaxMorphs=%d|MinMorph=%.6f|MorphSamples=%d|MorphRepair=%.6f|Pairs=%s|PairGrid=%d|PairProbes=%d|PairEpsilon=%.9f|Deformer=%d"),
 			CompilerVersion,
 			*SourceGarment->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(SourceGarment),
 			*BodySurface->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(BodySurface),
 			*CompatibilityReference->GetPathName(), *EFClothingSkeleton::BuildContentFingerprint(CompatibilityReference),
 			static_cast<int32>(CatalogRow.Backend),
 			static_cast<int32>(CatalogRow.FitPolicy),
+			*CatalogRow.BuildCompileFingerprint(),
 			*CoverageSignature,
 			CatalogRow.FabricClearanceCm,
 			CatalogRow.MaximumCorrectionCm,
@@ -275,6 +328,10 @@ namespace EFClothingFitCompilerPrivate
 		TSet<FString> UniqueSourceBodyKeys;
 		for (const FEFClothingGarmentRow& Row : Director->Garments)
 		{
+			if (Row.IsDisabledEmptyPlaceholder())
+			{
+				continue;
+			}
 			if (Row.GarmentId.IsNone())
 			{
 				OutError = TEXT("Configured Clothing Director contains a garment with an empty GarmentId.");
@@ -374,6 +431,19 @@ namespace EFClothingFitCompilerPrivate
 				*OutCatalogRowName.ToString());
 			return false;
 		}
+		if (MatchedRow->bCreateThicknessShell
+			&& (MatchedRow->ShellOffsetSteps < 1
+				|| MatchedRow->ShellOffsetSteps > 100
+				|| !FMath::IsFinite(MatchedRow->ShellSmoothingPerStep)
+				|| MatchedRow->ShellSmoothingPerStep < 0.0f
+				|| MatchedRow->ShellSmoothingPerStep > 1.0f
+				|| !MatchedRow->bShellOffsetBoundaries))
+		{
+			OutError = FString::Printf(
+				TEXT("Clothing Director garment %s has an invalid thickness-shell policy."),
+				*OutCatalogRowName.ToString());
+			return false;
+		}
 
 		OutExcludedBodySurfaceMaterialSlots = MatchedRow->ExcludedBodySurfaceMaterialSlots;
 		OutExcludedBodyBoneBranches = MatchedRow->ExcludedBodyBoneBranches;
@@ -403,9 +473,14 @@ namespace EFClothingFitCompilerPrivate
 		UDynamicMesh* BodyDynamicMesh,
 		const TArray<FName>& ExcludedBodySurfaceMaterialSlots,
 		int32& OutExcludedTriangleCount,
+		FDynamicMesh3* OutExcludedBodySurface,
 		FString& OutError)
 	{
 		OutExcludedTriangleCount = 0;
+		if (OutExcludedBodySurface)
+		{
+			OutExcludedBodySurface->Clear();
+		}
 		if (ExcludedBodySurfaceMaterialSlots.IsEmpty())
 		{
 			return true;
@@ -483,6 +558,54 @@ namespace EFClothingFitCompilerPrivate
 		{
 			OutError = TEXT("Surface exclusion would remove every body LOD0 triangle.");
 			return false;
+		}
+		if (OutExcludedBodySurface)
+		{
+			TMap<int32, int32> ExcludedVertexMap;
+			for (const int32 TriangleID : TrianglesToRemove)
+			{
+				if (!BodyMesh.IsTriangle(TriangleID))
+				{
+					OutError = TEXT("Excluded body surface contains an invalid source triangle.");
+					return false;
+				}
+				const FIndex3i SourceTriangle = BodyMesh.GetTriangle(TriangleID);
+				const int32 SourceVertices[3] = {
+					SourceTriangle.A,
+					SourceTriangle.B,
+					SourceTriangle.C};
+				int32 ExcludedVertices[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
+				for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+				{
+					const int32 SourceVertexID = SourceVertices[CornerIndex];
+					if (const int32* ExistingVertexID = ExcludedVertexMap.Find(SourceVertexID))
+					{
+						ExcludedVertices[CornerIndex] = *ExistingVertexID;
+					}
+					else
+					{
+						const int32 NewVertexID = OutExcludedBodySurface->AppendVertex(
+							BodyMesh.GetVertex(SourceVertexID));
+						ExcludedVertexMap.Add(SourceVertexID, NewVertexID);
+						ExcludedVertices[CornerIndex] = NewVertexID;
+					}
+				}
+				if (OutExcludedBodySurface->AppendTriangle(FIndex3i(
+					ExcludedVertices[0],
+					ExcludedVertices[1],
+					ExcludedVertices[2])) < 0)
+				{
+					OutError = FString::Printf(
+						TEXT("Failed to copy excluded body LOD0 triangle %d into the transient certification surface."),
+						TriangleID);
+					return false;
+				}
+			}
+			if (OutExcludedBodySurface->TriangleCount() != TrianglesToRemove.Num())
+			{
+				OutError = TEXT("Transient excluded-body certification surface lost triangles.");
+				return false;
+			}
 		}
 		for (const int32 TriangleID : TrianglesToRemove)
 		{
@@ -744,10 +867,2006 @@ namespace EFClothingFitCompilerPrivate
 		return true;
 	}
 
+	static bool RebuildThicknessShellPairing(
+		const FDynamicMesh3& Mesh,
+		FThicknessShellCompileData& InOutShell,
+		FString& OutError)
+	{
+		if (!InOutShell.bEnabled || InOutShell.PreShellVertexCount <= 0)
+		{
+			OutError = TEXT("Thickness-shell pairing was requested without a compiled shell.");
+			return false;
+		}
+		const int32 ExpectedImportVertexCount = InOutShell.PreShellVertexCount * 2;
+		InOutShell.SourceOrdinalByVertex.Init(INDEX_NONE, Mesh.MaxVertexID());
+		InOutShell.LayerByVertex.Init(MAX_uint8, Mesh.MaxVertexID());
+		InOutShell.OuterVerticesBySourceOrdinal.SetNum(InOutShell.PreShellVertexCount);
+		InOutShell.InnerVerticesBySourceOrdinal.SetNum(InOutShell.PreShellVertexCount);
+		for (TArray<int32>& Vertices : InOutShell.OuterVerticesBySourceOrdinal)
+		{
+			Vertices.Reset();
+		}
+		for (TArray<int32>& Vertices : InOutShell.InnerVerticesBySourceOrdinal)
+		{
+			Vertices.Reset();
+		}
+
+		const FNonManifoldMappingSupport Mapping(Mesh);
+		TBitArray<> SeenImportVertices(false, ExpectedImportVertexCount);
+		for (const int32 VertexID : Mesh.VertexIndicesItr())
+		{
+			const int32 ImportVertexID = Mapping.GetOriginalNonManifoldVertexID(VertexID);
+			if (ImportVertexID < 0 || ImportVertexID >= ExpectedImportVertexCount)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell dynamic vertex %d maps to invalid import vertex %d (expected 0..%d)."),
+					VertexID,
+					ImportVertexID,
+					ExpectedImportVertexCount - 1);
+				return false;
+			}
+			const bool bOuter = ImportVertexID < InOutShell.PreShellVertexCount;
+			const int32 SourceOrdinal = bOuter
+				? ImportVertexID
+				: ImportVertexID - InOutShell.PreShellVertexCount;
+			InOutShell.SourceOrdinalByVertex[VertexID] = SourceOrdinal;
+			InOutShell.LayerByVertex[VertexID] = bOuter ? 0 : 1;
+			(bOuter
+				? InOutShell.OuterVerticesBySourceOrdinal[SourceOrdinal]
+				: InOutShell.InnerVerticesBySourceOrdinal[SourceOrdinal]).Add(VertexID);
+			SeenImportVertices[ImportVertexID] = true;
+		}
+		for (int32 ImportVertexID = 0; ImportVertexID < ExpectedImportVertexCount; ++ImportVertexID)
+		{
+			if (!SeenImportVertices[ImportVertexID])
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell import vertex %d disappeared after skeletal-mesh publication."),
+					ImportVertexID);
+				return false;
+			}
+		}
+
+		double ThicknessSum = 0.0;
+		InOutShell.MinimumMeasuredThicknessCm = TNumericLimits<double>::Max();
+		InOutShell.MaximumMeasuredThicknessCm = 0.0;
+		for (int32 SourceOrdinal = 0; SourceOrdinal < InOutShell.PreShellVertexCount; ++SourceOrdinal)
+		{
+			const TArray<int32>& OuterVertices = InOutShell.OuterVerticesBySourceOrdinal[SourceOrdinal];
+			const TArray<int32>& InnerVertices = InOutShell.InnerVerticesBySourceOrdinal[SourceOrdinal];
+			if (OuterVertices.IsEmpty() || InnerVertices.IsEmpty())
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell source ordinal %d has an incomplete outer/inner pair."),
+					SourceOrdinal);
+				return false;
+			}
+			FVector3d OuterPosition = FVector3d::Zero();
+			for (const int32 VertexID : OuterVertices)
+			{
+				OuterPosition += Mesh.GetVertex(VertexID);
+			}
+			OuterPosition /= static_cast<double>(OuterVertices.Num());
+			FVector3d InnerPosition = FVector3d::Zero();
+			for (const int32 VertexID : InnerVertices)
+			{
+				InnerPosition += Mesh.GetVertex(VertexID);
+			}
+			InnerPosition /= static_cast<double>(InnerVertices.Num());
+			const double MeasuredThicknessCm = (OuterPosition - InnerPosition).Length();
+			if (!FMath::IsFinite(MeasuredThicknessCm))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell pair %d has non-finite measured thickness."),
+					SourceOrdinal);
+				return false;
+			}
+			ThicknessSum += MeasuredThicknessCm;
+			InOutShell.MinimumMeasuredThicknessCm = FMath::Min(
+				InOutShell.MinimumMeasuredThicknessCm,
+				MeasuredThicknessCm);
+			InOutShell.MaximumMeasuredThicknessCm = FMath::Max(
+				InOutShell.MaximumMeasuredThicknessCm,
+				MeasuredThicknessCm);
+		}
+		InOutShell.AverageMeasuredThicknessCm = ThicknessSum
+			/ static_cast<double>(InOutShell.PreShellVertexCount);
+		const double MinimumUsefulThickness =
+			MinimumCertifiedThicknessPointCm(InOutShell.RequestedThicknessCm);
+		if (InOutShell.MinimumMeasuredThicknessCm + 1.e-6 < MinimumUsefulThickness
+			|| InOutShell.AverageMeasuredThicknessCm < InOutShell.RequestedThicknessCm * 0.90
+			|| InOutShell.AverageMeasuredThicknessCm > InOutShell.RequestedThicknessCm * 1.50
+			|| InOutShell.MaximumMeasuredThicknessCm > InOutShell.RequestedThicknessCm * 2.50)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness-shell measurement is outside the certified iterative-offset envelope (requested %.8fcm, measured %.8f/%.8f/%.8fcm)."),
+				InOutShell.RequestedThicknessCm,
+				InOutShell.MinimumMeasuredThicknessCm,
+				InOutShell.AverageMeasuredThicknessCm,
+				InOutShell.MaximumMeasuredThicknessCm);
+			return false;
+		}
+		return true;
+	}
+
+	static bool MeasureUnsafeThicknessShellSelfIntersections(
+		const FDynamicMesh3& Mesh,
+		const int32 PreShellImportVertexCount,
+		int32& OutUnsafeIntersectionCount,
+		int32& OutOuterLayerIntersectionCount,
+		int32& OutInnerLayerIntersectionCount,
+		int32& OutCrossLayerOrWallIntersectionCount,
+		FString& OutError)
+	{
+		OutUnsafeIntersectionCount = 0;
+		OutOuterLayerIntersectionCount = 0;
+		OutInnerLayerIntersectionCount = 0;
+		OutCrossLayerOrWallIntersectionCount = 0;
+		if (PreShellImportVertexCount <= 0 || !Mesh.HasAttributes())
+		{
+			OutError = TEXT("Thickness-shell self-intersection audit has no paired import topology.");
+			return false;
+		}
+		const int32 ExpectedImportVertexCount = PreShellImportVertexCount * 2;
+		const FNonManifoldMappingSupport Mapping(Mesh);
+		for (const int32 VertexID : Mesh.VertexIndicesItr())
+		{
+			const int32 ImportVertexID = Mapping.GetOriginalNonManifoldVertexID(VertexID);
+			if (ImportVertexID < 0 || ImportVertexID >= ExpectedImportVertexCount)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell self-intersection audit found invalid import vertex %d."),
+					ImportVertexID);
+				return false;
+			}
+		}
+
+		auto TriangleImportIDs = [&](const int32 TriangleID)
+		{
+			const FIndex3i Triangle = Mesh.GetTriangle(TriangleID);
+			return FIndex3i(
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.A),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.B),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.C));
+		};
+		auto TriangleLayer = [&](const FIndex3i& ImportIDs)
+		{
+			const int32 OuterCount =
+				(ImportIDs.A < PreShellImportVertexCount ? 1 : 0)
+				+ (ImportIDs.B < PreShellImportVertexCount ? 1 : 0)
+				+ (ImportIDs.C < PreShellImportVertexCount ? 1 : 0);
+			return OuterCount == 3 ? 0 : (OuterCount == 0 ? 1 : 2);
+		};
+		auto SharesImportVertex = [](const FIndex3i& A, const FIndex3i& B)
+		{
+			const int32 AValues[3] = {A.A, A.B, A.C};
+			const int32 BValues[3] = {B.A, B.B, B.C};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if (AValue == BValue)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SharesSourceOrdinal = [PreShellImportVertexCount](
+			const FIndex3i& A,
+			const FIndex3i& B)
+		{
+			const int32 AValues[3] = {
+				A.A % PreShellImportVertexCount,
+				A.B % PreShellImportVertexCount,
+				A.C % PreShellImportVertexCount};
+			const int32 BValues[3] = {
+				B.A % PreShellImportVertexCount,
+				B.B % PreShellImportVertexCount,
+				B.C % PreShellImportVertexCount};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if (AValue == BValue)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SharesCoincidentMeshVertex = [&Mesh](
+			const int32 TriangleA,
+			const int32 TriangleB)
+		{
+			const FIndex3i VerticesA = Mesh.GetTriangle(TriangleA);
+			const FIndex3i VerticesB = Mesh.GetTriangle(TriangleB);
+			const int32 AValues[3] = {VerticesA.A, VerticesA.B, VerticesA.C};
+			const int32 BValues[3] = {VerticesB.A, VerticesB.B, VerticesB.C};
+			constexpr double CoincidentVertexToleranceSquared = 1.e-12;
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if ((Mesh.GetVertex(AValue) - Mesh.GetVertex(BValue)).SquaredLength()
+						<= CoincidentVertexToleranceSquared)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SourceTriangleKey = [PreShellImportVertexCount](const FIndex3i& Imports)
+		{
+			const int32 A = Imports.A % PreShellImportVertexCount;
+			const int32 B = Imports.B % PreShellImportVertexCount;
+			const int32 C = Imports.C % PreShellImportVertexCount;
+			const int32 Minimum = FMath::Min3(A, B, C);
+			const int32 Maximum = FMath::Max3(A, B, C);
+			const int32 Middle = A + B + C - Minimum - Maximum;
+			return FString::Printf(TEXT("%d,%d,%d"), Minimum, Middle, Maximum);
+		};
+		auto SourceIntersectionKey = [&SourceTriangleKey](
+			const FIndex3i& ImportsA,
+			const FIndex3i& ImportsB)
+		{
+			const FString KeyA = SourceTriangleKey(ImportsA);
+			const FString KeyB = SourceTriangleKey(ImportsB);
+			return KeyA < KeyB
+				? KeyA + TEXT("|") + KeyB
+				: KeyB + TEXT("|") + KeyA;
+		};
+
+		const FDynamicMeshAABBTree3 ShellSpatial(&Mesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			ShellSpatial.FindAllSelfIntersections(true);
+		TArray<FIntPoint> IntersectionTrianglePairs;
+		IntersectionTrianglePairs.Reserve(
+			Intersections.Points.Num()
+			+ Intersections.Segments.Num()
+			+ Intersections.Polygons.Num());
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			IntersectionTrianglePairs.Emplace(
+				Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			IntersectionTrianglePairs.Emplace(
+				Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			IntersectionTrianglePairs.Emplace(
+				Intersection.TriangleID[0], Intersection.TriangleID[1]);
+		}
+
+		TSet<FString> InheritedSourceIntersectionPairs;
+		for (const FIntPoint& Pair : IntersectionTrianglePairs)
+		{
+			if (!Mesh.IsTriangle(Pair.X) || !Mesh.IsTriangle(Pair.Y))
+			{
+				continue;
+			}
+			const FIndex3i ImportsA = TriangleImportIDs(Pair.X);
+			const FIndex3i ImportsB = TriangleImportIDs(Pair.Y);
+			const int32 LayerA = TriangleLayer(ImportsA);
+			const int32 LayerB = TriangleLayer(ImportsB);
+			if (LayerA == 1 && LayerB == 1
+				&& !SharesImportVertex(ImportsA, ImportsB))
+			{
+				InheritedSourceIntersectionPairs.Add(
+					SourceIntersectionKey(ImportsA, ImportsB));
+			}
+		}
+
+		for (const FIntPoint& Pair : IntersectionTrianglePairs)
+		{
+			if (!Mesh.IsTriangle(Pair.X) || !Mesh.IsTriangle(Pair.Y))
+			{
+				continue;
+			}
+			const FIndex3i ImportsA = TriangleImportIDs(Pair.X);
+			const FIndex3i ImportsB = TriangleImportIDs(Pair.Y);
+			const int32 LayerA = TriangleLayer(ImportsA);
+			const int32 LayerB = TriangleLayer(ImportsB);
+			// Attribute seams retain one exact import ID. Stitched wall triangles
+			// use the paired outer/inner IDs, so canonical source-ordinal adjacency
+			// is also expected only when at least one triangle is a wall.
+			const bool bSameSurfaceLayer = LayerA == LayerB && LayerA != 2;
+			const bool bTouchesWallLayer = LayerA == 2 || LayerB == 2;
+			if (SharesImportVertex(ImportsA, ImportsB)
+				|| ((bSameSurfaceLayer || bTouchesWallLayer)
+					&& (SharesSourceOrdinal(ImportsA, ImportsB)
+						|| SharesCoincidentMeshVertex(
+							Pair.X,
+							Pair.Y))))
+			{
+				continue;
+			}
+			if (LayerA == 0 && LayerB == 0)
+			{
+				++OutOuterLayerIntersectionCount;
+			}
+			else if (LayerA == 1 && LayerB == 1)
+			{
+				++OutInnerLayerIntersectionCount;
+				continue;
+			}
+			else
+			{
+				++OutCrossLayerOrWallIntersectionCount;
+			}
+			if (!InheritedSourceIntersectionPairs.Contains(
+				SourceIntersectionKey(ImportsA, ImportsB)))
+			{
+				++OutUnsafeIntersectionCount;
+			}
+		}
+		return true;
+	}
+
+	static bool ClassifyThicknessShellIntersections(
+		const FEFClothingGarmentRow& CatalogRow,
+		const int32 DetectedIntersectionCount,
+		const int32 FinalTriangleCount,
+		int32& OutToleratedExcludedAnatomyIntersectionCount,
+		FString& OutError)
+	{
+		OutToleratedExcludedAnatomyIntersectionCount = 0;
+		if (DetectedIntersectionCount < 0 || FinalTriangleCount <= 0)
+		{
+			OutError = TEXT("Thickness-shell intersection policy received invalid geometry metrics.");
+			return false;
+		}
+		if (DetectedIntersectionCount == 0)
+		{
+			return true;
+		}
+
+		// This is intentionally a catalog contract rather than a garment-name rule.
+		// A row must identify both the excluded rendered surface and the excluded
+		// skeletal branch before a tiny residual can be kept inside that declared
+		// anatomy domain. Rows without both declarations remain strictly zero-hit.
+		const bool bHasExplicitAnatomyExclusion =
+			!CatalogRow.ExcludedBodySurfaceMaterialSlots.IsEmpty()
+			&& !CatalogRow.ExcludedBodyBoneBranches.IsEmpty();
+		const int32 MaximumToleratedIntersectionCount = FMath::FloorToInt(
+			static_cast<double>(FinalTriangleCount)
+			* MaximumExcludedAnatomyShellIntersectionFraction);
+		if (!bHasExplicitAnatomyExclusion
+			|| DetectedIntersectionCount > MaximumToleratedIntersectionCount)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness shell has %d non-adjacent intersections; the explicit-anatomy allowance is %d (surfaceExclusions=%d, boneExclusions=%d, limit=%.2f%% of %d triangles)."),
+				DetectedIntersectionCount,
+				MaximumToleratedIntersectionCount,
+				CatalogRow.ExcludedBodySurfaceMaterialSlots.Num(),
+				CatalogRow.ExcludedBodyBoneBranches.Num(),
+				MaximumExcludedAnatomyShellIntersectionFraction * 100.0,
+				FinalTriangleCount);
+			return false;
+		}
+
+		OutToleratedExcludedAnatomyIntersectionCount = DetectedIntersectionCount;
+		return true;
+	}
+
+	static bool ExtractThicknessShellInnerLayer(
+		const FDynamicMesh3& ShellMesh,
+		const int32 PreShellImportVertexCount,
+		FDynamicMesh3& OutInnerLayer,
+		FString& OutError)
+	{
+		OutInnerLayer.Clear();
+		if (PreShellImportVertexCount <= 0 || !ShellMesh.HasAttributes())
+		{
+			OutError = TEXT("Cannot extract a thickness-shell inner layer without paired import topology.");
+			return false;
+		}
+		const FNonManifoldMappingSupport Mapping(ShellMesh);
+		TMap<int32, int32> InnerVertexMap;
+		TArray<int32> NormalizedImportVertexIDs;
+		for (const int32 TriangleID : ShellMesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = ShellMesh.GetTriangle(TriangleID);
+			const int32 Vertices[3] = {Triangle.A, Triangle.B, Triangle.C};
+			int32 ImportIDs[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
+			bool bInnerTriangle = true;
+			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+			{
+				ImportIDs[CornerIndex] = Mapping.GetOriginalNonManifoldVertexID(
+					Vertices[CornerIndex]);
+				bInnerTriangle &= ImportIDs[CornerIndex] >= PreShellImportVertexCount
+					&& ImportIDs[CornerIndex] < PreShellImportVertexCount * 2;
+			}
+			if (!bInnerTriangle)
+			{
+				continue;
+			}
+			int32 InnerVertices[3] = {INDEX_NONE, INDEX_NONE, INDEX_NONE};
+			for (int32 CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+			{
+				const int32 ShellVertexID = Vertices[CornerIndex];
+				if (const int32* Existing = InnerVertexMap.Find(ShellVertexID))
+				{
+					InnerVertices[CornerIndex] = *Existing;
+				}
+				else
+				{
+					const int32 NewVertexID = OutInnerLayer.AppendVertex(
+						ShellMesh.GetVertex(ShellVertexID));
+					InnerVertexMap.Add(ShellVertexID, NewVertexID);
+					if (NormalizedImportVertexIDs.Num() <= NewVertexID)
+					{
+						NormalizedImportVertexIDs.SetNum(NewVertexID + 1);
+					}
+					NormalizedImportVertexIDs[NewVertexID] =
+						ImportIDs[CornerIndex] - PreShellImportVertexCount;
+					InnerVertices[CornerIndex] = NewVertexID;
+				}
+			}
+			if (OutInnerLayer.AppendTriangle(FIndex3i(
+				InnerVertices[0], InnerVertices[1], InnerVertices[2])) < 0)
+			{
+				OutError = TEXT("Thickness-shell inner-layer extraction produced invalid topology.");
+				return false;
+			}
+		}
+		if (OutInnerLayer.TriangleCount() <= 0)
+		{
+			OutError = TEXT("Thickness-shell inner-layer extraction found no pure inner triangles.");
+			return false;
+		}
+		OutInnerLayer.EnableAttributes();
+		if (NormalizedImportVertexIDs.Num() != OutInnerLayer.MaxVertexID()
+			|| !FNonManifoldMappingSupport::AttachNonManifoldVertexMappingData(
+				NormalizedImportVertexIDs,
+				OutInnerLayer))
+		{
+			OutError = TEXT("Thickness-shell inner-layer extraction could not preserve normalized source import identities.");
+			return false;
+		}
+		return true;
+	}
+
+	struct FSourceIntersectionWitnessEvidence
+	{
+		FIndex3i SourceTriangleA = FIndex3i::Invalid();
+		FIndex3i SourceTriangleB = FIndex3i::Invalid();
+		TArray<FVector3d> WitnessPoints;
+	};
+
+	static bool CollectSelfIntersectionWitnessEvidence(
+		const FDynamicMesh3& Mesh,
+		const int32 SourceImportVertexCount,
+		TMap<FString, FSourceIntersectionWitnessEvidence>& OutEvidenceBySourcePair,
+		int32& OutUniquePairCount,
+		FString& OutError)
+	{
+		OutEvidenceBySourcePair.Reset();
+		OutUniquePairCount = 0;
+		if (Mesh.TriangleCount() <= 0
+			|| SourceImportVertexCount <= 0
+			|| !Mesh.HasAttributes())
+		{
+			OutError = TEXT("Self-intersection baseline has no attributed source topology.");
+			return false;
+		}
+		const FNonManifoldMappingSupport Mapping(Mesh);
+		auto TriangleImportIDs = [&](const int32 TriangleID)
+		{
+			const FIndex3i Triangle = Mesh.GetTriangle(TriangleID);
+			return FIndex3i(
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.A),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.B),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.C));
+		};
+		auto SourceTriangleKey = [SourceImportVertexCount](const FIndex3i& Imports)
+		{
+			const int32 A = Imports.A % SourceImportVertexCount;
+			const int32 B = Imports.B % SourceImportVertexCount;
+			const int32 C = Imports.C % SourceImportVertexCount;
+			const int32 Minimum = FMath::Min3(A, B, C);
+			const int32 Maximum = FMath::Max3(A, B, C);
+			const int32 Middle = A + B + C - Minimum - Maximum;
+			return FString::Printf(TEXT("%d,%d,%d"), Minimum, Middle, Maximum);
+		};
+		auto SourceIntersectionKey = [&SourceTriangleKey](
+			const FIndex3i& ImportsA,
+			const FIndex3i& ImportsB)
+		{
+			const FString KeyA = SourceTriangleKey(ImportsA);
+			const FString KeyB = SourceTriangleKey(ImportsB);
+			return KeyA < KeyB
+				? KeyA + TEXT("|") + KeyB
+				: KeyB + TEXT("|") + KeyA;
+		};
+		auto SharesSourceOrdinal = [SourceImportVertexCount](
+			const FIndex3i& A,
+			const FIndex3i& B)
+		{
+			const int32 AValues[3] = {
+				A.A % SourceImportVertexCount,
+				A.B % SourceImportVertexCount,
+				A.C % SourceImportVertexCount};
+			const int32 BValues[3] = {
+				B.A % SourceImportVertexCount,
+				B.B % SourceImportVertexCount,
+				B.C % SourceImportVertexCount};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if (AValue == BValue)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SharesCoincidentMeshVertex = [&Mesh](
+			const int32 TriangleA,
+			const int32 TriangleB)
+		{
+			const FIndex3i VerticesA = Mesh.GetTriangle(TriangleA);
+			const FIndex3i VerticesB = Mesh.GetTriangle(TriangleB);
+			const int32 AValues[3] = {VerticesA.A, VerticesA.B, VerticesA.C};
+			const int32 BValues[3] = {VerticesB.A, VerticesB.B, VerticesB.C};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if ((Mesh.GetVertex(AValue) - Mesh.GetVertex(BValue)).SquaredLength()
+						<= 1.e-12)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		struct FBaselinePairEvidence
+		{
+			FIntPoint TrianglePair = FIntPoint(INDEX_NONE, INDEX_NONE);
+			TArray<FVector3d> WitnessPoints;
+		};
+		TMap<uint64, FBaselinePairEvidence> RawPairEvidence;
+		const FDynamicMeshAABBTree3 Spatial(&Mesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			Spatial.FindAllSelfIntersections(true);
+		auto AppendWitness = [&](const int32 TriangleA, const int32 TriangleB, const FVector3d& Point)
+		{
+			if (!FMath::IsFinite(Point.X)
+				|| !FMath::IsFinite(Point.Y)
+				|| !FMath::IsFinite(Point.Z))
+			{
+				return false;
+			}
+			const uint32 Minimum = static_cast<uint32>(FMath::Min(TriangleA, TriangleB));
+			const uint32 Maximum = static_cast<uint32>(FMath::Max(TriangleA, TriangleB));
+			const uint64 PairKey = (static_cast<uint64>(Minimum) << 32) | Maximum;
+			FBaselinePairEvidence& Evidence = RawPairEvidence.FindOrAdd(PairKey);
+			Evidence.TrianglePair = FIntPoint(
+				static_cast<int32>(Minimum),
+				static_cast<int32>(Maximum));
+			Evidence.WitnessPoints.Add(Point);
+			return true;
+		};
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			if (!AppendWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Intersection.Point))
+			{
+				OutError = TEXT("Self-intersection baseline contains a non-finite point.");
+				return false;
+			}
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			if (!AppendWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Intersection.Point[0])
+				|| !AppendWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Intersection.Point[1])
+				|| !AppendWitness(
+					Intersection.TriangleID[0],
+					Intersection.TriangleID[1],
+					(Intersection.Point[0] + Intersection.Point[1]) * 0.5))
+			{
+				OutError = TEXT("Self-intersection baseline contains a non-finite segment.");
+				return false;
+			}
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			if (Intersection.Quantity <= 0 || Intersection.Quantity > UE_ARRAY_COUNT(Intersection.Point))
+			{
+				OutError = TEXT("Self-intersection baseline contains an invalid polygon.");
+				return false;
+			}
+			FVector3d Centroid = FVector3d::Zero();
+			for (int32 PointIndex = 0; PointIndex < Intersection.Quantity; ++PointIndex)
+			{
+				Centroid += Intersection.Point[PointIndex];
+				if (!AppendWitness(
+					Intersection.TriangleID[0],
+					Intersection.TriangleID[1],
+					Intersection.Point[PointIndex]))
+				{
+					OutError = TEXT("Self-intersection baseline contains a non-finite polygon point.");
+					return false;
+				}
+			}
+			if (!AppendWitness(
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				Centroid / static_cast<double>(Intersection.Quantity)))
+			{
+				OutError = TEXT("Self-intersection baseline contains a non-finite polygon centroid.");
+				return false;
+			}
+		}
+		for (const TPair<uint64, FBaselinePairEvidence>& Pair : RawPairEvidence)
+		{
+			const FBaselinePairEvidence& Evidence = Pair.Value;
+			if (!Mesh.IsTriangle(Evidence.TrianglePair.X)
+				|| !Mesh.IsTriangle(Evidence.TrianglePair.Y)
+				|| Evidence.WitnessPoints.IsEmpty())
+			{
+				OutError = TEXT("Self-intersection baseline retained invalid pair evidence.");
+				return false;
+			}
+			const FIndex3i ImportsA = TriangleImportIDs(Evidence.TrianglePair.X);
+			const FIndex3i ImportsB = TriangleImportIDs(Evidence.TrianglePair.Y);
+			const int32 ImportValues[6] = {
+				ImportsA.A, ImportsA.B, ImportsA.C,
+				ImportsB.A, ImportsB.B, ImportsB.C};
+			for (const int32 ImportValue : ImportValues)
+			{
+				if (ImportValue < 0 || ImportValue >= SourceImportVertexCount)
+				{
+					OutError = TEXT("Self-intersection baseline contains an invalid normalized source import identity.");
+					return false;
+				}
+			}
+			if (SharesSourceOrdinal(ImportsA, ImportsB)
+				|| SharesCoincidentMeshVertex(
+					Evidence.TrianglePair.X,
+					Evidence.TrianglePair.Y))
+			{
+				continue;
+			}
+			const FIndex3i NormalizedA(
+				ImportsA.A % SourceImportVertexCount,
+				ImportsA.B % SourceImportVertexCount,
+				ImportsA.C % SourceImportVertexCount);
+			const FIndex3i NormalizedB(
+				ImportsB.A % SourceImportVertexCount,
+				ImportsB.B % SourceImportVertexCount,
+				ImportsB.C % SourceImportVertexCount);
+			const FString KeyA = SourceTriangleKey(NormalizedA);
+			const FString KeyB = SourceTriangleKey(NormalizedB);
+			FSourceIntersectionWitnessEvidence& StoredEvidence =
+				OutEvidenceBySourcePair.FindOrAdd(
+					SourceIntersectionKey(NormalizedA, NormalizedB));
+			StoredEvidence.SourceTriangleA = KeyA < KeyB ? NormalizedA : NormalizedB;
+			StoredEvidence.SourceTriangleB = KeyA < KeyB ? NormalizedB : NormalizedA;
+			StoredEvidence.WitnessPoints.Append(Evidence.WitnessPoints);
+		}
+		OutUniquePairCount = OutEvidenceBySourcePair.Num();
+		if (OutUniquePairCount == 0 && !OutEvidenceBySourcePair.IsEmpty())
+		{
+			OutError = TEXT("Self-intersection baseline witness/pair evidence is inconsistent.");
+			return false;
+		}
+		return true;
+	}
+
+	struct FThicknessShellIntersectionAudit
+	{
+		int32 DetectedPairCount = 0;
+		int32 ToleratedInheritedSourcePairCount = 0;
+		int32 ToleratedLocalRepairPairCount = 0;
+		int32 ToleratedExcludedRegionPairCount = 0;
+		int32 AffectedSourceTriangleCount = 0;
+		int32 OuterLayerPairCount = 0;
+		int32 InnerLayerPairCount = 0;
+		int32 CrossLayerOrWallPairCount = 0;
+		int32 UnrepairableInnerOnlyPairCount = 0;
+		TSet<int32> UnsafeOuterSourceOrdinals;
+		TSet<FString> UnsafeSourcePairKeys;
+		double MaximumExcludedRegionWitnessDistanceCm = 0.0;
+	};
+
+	static bool MeasureThicknessShellIntersectionsV3(
+		const FDynamicMesh3& Mesh,
+		const int32 PreShellImportVertexCount,
+		const TMap<FString, FSourceIntersectionWitnessEvidence>& BaselineEvidenceBySourcePair,
+		const double BaselineInheritanceRadiusCm,
+		const FDynamicMesh3* ExcludedBodySurface,
+		const double ExcludedRegionCertificationRadiusCm,
+		const double LocalRepairThicknessCeilingCm,
+		FThicknessShellIntersectionAudit& OutAudit,
+		FString& OutError)
+	{
+		OutAudit = FThicknessShellIntersectionAudit();
+		if (PreShellImportVertexCount <= 0 || !Mesh.HasAttributes())
+		{
+			OutError = TEXT("Thickness-shell V3 self-intersection audit has no paired import topology.");
+			return false;
+		}
+		const int32 ExpectedImportVertexCount = PreShellImportVertexCount * 2;
+		const FNonManifoldMappingSupport Mapping(Mesh);
+		TArray<FVector3d> MeanPositionByImportID;
+		MeanPositionByImportID.Init(FVector3d::Zero(), ExpectedImportVertexCount);
+		TArray<int32> VertexCountByImportID;
+		VertexCountByImportID.Init(0, ExpectedImportVertexCount);
+		for (const int32 VertexID : Mesh.VertexIndicesItr())
+		{
+			const int32 ImportVertexID = Mapping.GetOriginalNonManifoldVertexID(VertexID);
+			if (ImportVertexID < 0 || ImportVertexID >= ExpectedImportVertexCount)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell V3 audit found invalid import vertex %d."),
+					ImportVertexID);
+				return false;
+			}
+			MeanPositionByImportID[ImportVertexID] += Mesh.GetVertex(VertexID);
+			++VertexCountByImportID[ImportVertexID];
+		}
+		for (int32 ImportVertexID = 0;
+			ImportVertexID < ExpectedImportVertexCount;
+			++ImportVertexID)
+		{
+			if (VertexCountByImportID[ImportVertexID] <= 0)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell V3 audit is missing import vertex %d."),
+					ImportVertexID);
+				return false;
+			}
+			MeanPositionByImportID[ImportVertexID] /=
+				static_cast<double>(VertexCountByImportID[ImportVertexID]);
+		}
+
+		auto TriangleImportIDs = [&](const int32 TriangleID)
+		{
+			const FIndex3i Triangle = Mesh.GetTriangle(TriangleID);
+			return FIndex3i(
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.A),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.B),
+				Mapping.GetOriginalNonManifoldVertexID(Triangle.C));
+		};
+		auto TriangleLayer = [&](const FIndex3i& ImportIDs)
+		{
+			const int32 OuterCount =
+				(ImportIDs.A < PreShellImportVertexCount ? 1 : 0)
+				+ (ImportIDs.B < PreShellImportVertexCount ? 1 : 0)
+				+ (ImportIDs.C < PreShellImportVertexCount ? 1 : 0);
+			return OuterCount == 3 ? 0 : (OuterCount == 0 ? 1 : 2);
+		};
+		auto SharesImportVertex = [](const FIndex3i& A, const FIndex3i& B)
+		{
+			const int32 AValues[3] = {A.A, A.B, A.C};
+			const int32 BValues[3] = {B.A, B.B, B.C};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if (AValue == BValue)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SharesSourceOrdinal = [PreShellImportVertexCount](
+			const FIndex3i& A,
+			const FIndex3i& B)
+		{
+			const int32 AValues[3] = {
+				A.A % PreShellImportVertexCount,
+				A.B % PreShellImportVertexCount,
+				A.C % PreShellImportVertexCount};
+			const int32 BValues[3] = {
+				B.A % PreShellImportVertexCount,
+				B.B % PreShellImportVertexCount,
+				B.C % PreShellImportVertexCount};
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if (AValue == BValue)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		auto SourceTriangleKey = [PreShellImportVertexCount](const FIndex3i& Imports)
+		{
+			const int32 A = Imports.A % PreShellImportVertexCount;
+			const int32 B = Imports.B % PreShellImportVertexCount;
+			const int32 C = Imports.C % PreShellImportVertexCount;
+			const int32 Minimum = FMath::Min3(A, B, C);
+			const int32 Maximum = FMath::Max3(A, B, C);
+			const int32 Middle = A + B + C - Minimum - Maximum;
+			return FString::Printf(TEXT("%d,%d,%d"), Minimum, Middle, Maximum);
+		};
+		auto SourceIntersectionKey = [&SourceTriangleKey](
+			const FIndex3i& ImportsA,
+			const FIndex3i& ImportsB)
+		{
+			const FString KeyA = SourceTriangleKey(ImportsA);
+			const FString KeyB = SourceTriangleKey(ImportsB);
+			return KeyA < KeyB
+				? KeyA + TEXT("|") + KeyB
+				: KeyB + TEXT("|") + KeyA;
+		};
+
+		struct FIntersectionPairEvidence
+		{
+			uint64 Key = 0;
+			FIntPoint TrianglePair = FIntPoint(INDEX_NONE, INDEX_NONE);
+			TArray<FVector3d> WitnessPoints;
+		};
+		TArray<FIntersectionPairEvidence> UniquePairs;
+		TMap<uint64, int32> PairIndexByKey;
+		auto AppendPairWitness = [&](const int32 TriangleA, const int32 TriangleB, const FVector3d& Point)
+		{
+			if (!FMath::IsFinite(Point.X)
+				|| !FMath::IsFinite(Point.Y)
+				|| !FMath::IsFinite(Point.Z))
+			{
+				return false;
+			}
+			const uint32 Minimum = static_cast<uint32>(FMath::Min(TriangleA, TriangleB));
+			const uint32 Maximum = static_cast<uint32>(FMath::Max(TriangleA, TriangleB));
+			const uint64 Key = (static_cast<uint64>(Minimum) << 32) | Maximum;
+			int32* ExistingPairIndex = PairIndexByKey.Find(Key);
+			if (!ExistingPairIndex)
+			{
+				const int32 NewPairIndex = UniquePairs.AddDefaulted();
+				FIntersectionPairEvidence& Evidence = UniquePairs[NewPairIndex];
+				Evidence.Key = Key;
+				Evidence.TrianglePair = FIntPoint(
+					static_cast<int32>(Minimum),
+					static_cast<int32>(Maximum));
+				PairIndexByKey.Add(Key, NewPairIndex);
+				ExistingPairIndex = PairIndexByKey.Find(Key);
+			}
+			UniquePairs[*ExistingPairIndex].WitnessPoints.Add(Point);
+			return true;
+		};
+
+		const FDynamicMeshAABBTree3 ShellSpatial(&Mesh, true);
+		const MeshIntersection::FIntersectionsQueryResult Intersections =
+			ShellSpatial.FindAllSelfIntersections(true);
+		for (const MeshIntersection::FPointIntersection& Intersection : Intersections.Points)
+		{
+			if (!AppendPairWitness(
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				Intersection.Point))
+			{
+				OutError = TEXT("Thickness-shell V3 audit found a non-finite point witness.");
+				return false;
+			}
+		}
+		for (const MeshIntersection::FSegmentIntersection& Intersection : Intersections.Segments)
+		{
+			const FVector3d Midpoint = (Intersection.Point[0] + Intersection.Point[1]) * 0.5;
+			if (!AppendPairWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Intersection.Point[0])
+				|| !AppendPairWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Intersection.Point[1])
+				|| !AppendPairWitness(Intersection.TriangleID[0], Intersection.TriangleID[1], Midpoint))
+			{
+				OutError = TEXT("Thickness-shell V3 audit found a non-finite segment witness.");
+				return false;
+			}
+		}
+		for (const MeshIntersection::FPolygonIntersection& Intersection : Intersections.Polygons)
+		{
+			if (Intersection.Quantity <= 0 || Intersection.Quantity > UE_ARRAY_COUNT(Intersection.Point))
+			{
+				OutError = TEXT("Thickness-shell V3 audit found an invalid polygon witness.");
+				return false;
+			}
+			FVector3d Centroid = FVector3d::Zero();
+			for (int32 PointIndex = 0; PointIndex < Intersection.Quantity; ++PointIndex)
+			{
+				Centroid += Intersection.Point[PointIndex];
+				if (!AppendPairWitness(
+					Intersection.TriangleID[0],
+					Intersection.TriangleID[1],
+					Intersection.Point[PointIndex]))
+				{
+					OutError = TEXT("Thickness-shell V3 audit found a non-finite polygon witness.");
+					return false;
+				}
+			}
+			Centroid /= static_cast<double>(Intersection.Quantity);
+			if (!AppendPairWitness(
+				Intersection.TriangleID[0],
+				Intersection.TriangleID[1],
+				Centroid))
+			{
+				OutError = TEXT("Thickness-shell V3 audit found a non-finite polygon centroid.");
+				return false;
+			}
+		}
+		UniquePairs.Sort([](const FIntersectionPairEvidence& A, const FIntersectionPairEvidence& B)
+		{
+			return A.Key < B.Key;
+		});
+
+		TUniquePtr<FDynamicMeshAABBTree3> ExcludedBodySpatial;
+		if (ExcludedBodySurface
+			&& ExcludedBodySurface->TriangleCount() > 0
+			&& FMath::IsFinite(ExcludedRegionCertificationRadiusCm)
+			&& ExcludedRegionCertificationRadiusCm > 0.0)
+		{
+			ExcludedBodySpatial = MakeUnique<FDynamicMeshAABBTree3>(ExcludedBodySurface, true);
+		}
+		const double CertificationRadiusSquared = FMath::Square(
+			FMath::Max(0.0, ExcludedRegionCertificationRadiusCm));
+		const double BaselineInheritanceRadiusSquared = FMath::Square(
+			FMath::Max(0.0, BaselineInheritanceRadiusCm));
+		auto SharesCoincidentMeshVertexV3 = [&Mesh](
+			const int32 TriangleA,
+			const int32 TriangleB)
+		{
+			const FIndex3i VerticesA = Mesh.GetTriangle(TriangleA);
+			const FIndex3i VerticesB = Mesh.GetTriangle(TriangleB);
+			const int32 AValues[3] = {VerticesA.A, VerticesA.B, VerticesA.C};
+			const int32 BValues[3] = {VerticesB.A, VerticesB.B, VerticesB.C};
+			constexpr double CoincidentVertexToleranceSquared = 1.e-12;
+			for (const int32 AValue : AValues)
+			{
+				for (const int32 BValue : BValues)
+				{
+					if ((Mesh.GetVertex(AValue) - Mesh.GetVertex(BValue)).SquaredLength()
+						<= CoincidentVertexToleranceSquared)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		TSet<FString> AffectedSourceTriangles;
+		for (const FIntersectionPairEvidence& Evidence : UniquePairs)
+		{
+			if (!Mesh.IsTriangle(Evidence.TrianglePair.X)
+				|| !Mesh.IsTriangle(Evidence.TrianglePair.Y)
+				|| Evidence.WitnessPoints.IsEmpty())
+			{
+				OutError = TEXT("Thickness-shell V3 audit retained invalid pair evidence.");
+				return false;
+			}
+			const FIndex3i ImportsA = TriangleImportIDs(Evidence.TrianglePair.X);
+			const FIndex3i ImportsB = TriangleImportIDs(Evidence.TrianglePair.Y);
+			const int32 LayerA = TriangleLayer(ImportsA);
+			const int32 LayerB = TriangleLayer(ImportsB);
+			const bool bSameSurfaceLayer = LayerA == LayerB && LayerA != 2;
+			const bool bTouchesWallLayer = LayerA == 2 || LayerB == 2;
+			if (SharesImportVertex(ImportsA, ImportsB)
+				|| ((bSameSurfaceLayer || bTouchesWallLayer)
+					&& (SharesSourceOrdinal(ImportsA, ImportsB)
+						|| SharesCoincidentMeshVertexV3(
+							Evidence.TrianglePair.X,
+							Evidence.TrianglePair.Y))))
+			{
+				continue;
+			}
+
+			++OutAudit.DetectedPairCount;
+			if (LayerA == 0 && LayerB == 0)
+			{
+				++OutAudit.OuterLayerPairCount;
+			}
+			else if (LayerA == 1 && LayerB == 1)
+			{
+				++OutAudit.InnerLayerPairCount;
+			}
+			else
+			{
+				++OutAudit.CrossLayerOrWallPairCount;
+			}
+
+			const FIndex3i NormalizedA(
+				ImportsA.A % PreShellImportVertexCount,
+				ImportsA.B % PreShellImportVertexCount,
+				ImportsA.C % PreShellImportVertexCount);
+			const FIndex3i NormalizedB(
+				ImportsB.A % PreShellImportVertexCount,
+				ImportsB.B % PreShellImportVertexCount,
+				ImportsB.C % PreShellImportVertexCount);
+			auto WitnessesMatchBaseline = [
+				&Evidence,
+				BaselineInheritanceRadiusSquared](
+				const FSourceIntersectionWitnessEvidence& BaselineEvidence)
+			{
+				if (BaselineEvidence.WitnessPoints.IsEmpty())
+				{
+					return false;
+				}
+				for (const FVector3d& WitnessPoint : Evidence.WitnessPoints)
+				{
+					double MinimumBaselineDistanceSquared = TNumericLimits<double>::Max();
+					for (const FVector3d& BaselinePoint : BaselineEvidence.WitnessPoints)
+					{
+						MinimumBaselineDistanceSquared = FMath::Min(
+							MinimumBaselineDistanceSquared,
+							(WitnessPoint - BaselinePoint).SquaredLength());
+					}
+					if (!FMath::IsFinite(MinimumBaselineDistanceSquared)
+						|| MinimumBaselineDistanceSquared
+							> BaselineInheritanceRadiusSquared + 1.e-8)
+					{
+						return false;
+					}
+				}
+				return true;
+			};
+			bool bAllWitnessesInheritedFromSource = false;
+			if (FMath::IsFinite(BaselineInheritanceRadiusCm)
+				&& BaselineInheritanceRadiusCm > 0.0)
+			{
+				const FString ExactSourcePairKey =
+					SourceIntersectionKey(NormalizedA, NormalizedB);
+				if (const FSourceIntersectionWitnessEvidence* ExactBaseline =
+					BaselineEvidenceBySourcePair.Find(ExactSourcePairKey))
+				{
+					bAllWitnessesInheritedFromSource =
+						WitnessesMatchBaseline(*ExactBaseline);
+				}
+				if (!bAllWitnessesInheritedFromSource)
+				{
+					for (const TPair<FString, FSourceIntersectionWitnessEvidence>& Pair :
+						BaselineEvidenceBySourcePair)
+					{
+						const FSourceIntersectionWitnessEvidence& Baseline = Pair.Value;
+						const bool bSameTopologicalNeighborhood =
+							(SharesSourceOrdinal(NormalizedA, Baseline.SourceTriangleA)
+								&& SharesSourceOrdinal(NormalizedB, Baseline.SourceTriangleB))
+							|| (SharesSourceOrdinal(NormalizedA, Baseline.SourceTriangleB)
+								&& SharesSourceOrdinal(NormalizedB, Baseline.SourceTriangleA));
+						if (bSameTopologicalNeighborhood
+							&& WitnessesMatchBaseline(Baseline))
+						{
+							bAllWitnessesInheritedFromSource = true;
+							break;
+						}
+					}
+				}
+			}
+			if (bAllWitnessesInheritedFromSource)
+			{
+				++OutAudit.ToleratedInheritedSourcePairCount;
+				continue;
+			}
+
+			bool bAllWitnessesInsideExcludedRegion = ExcludedBodySpatial.IsValid();
+			double PairMaximumExcludedRegionDistanceCm = 0.0;
+			for (const FVector3d& WitnessPoint : Evidence.WitnessPoints)
+			{
+				double DistanceSquared = TNumericLimits<double>::Max();
+				const int32 ExcludedTriangleID = ExcludedBodySpatial
+					? ExcludedBodySpatial->FindNearestTriangle(WitnessPoint, DistanceSquared)
+					: IndexConstants::InvalidID;
+				if (ExcludedTriangleID == IndexConstants::InvalidID
+					|| !FMath::IsFinite(DistanceSquared))
+				{
+					bAllWitnessesInsideExcludedRegion = false;
+					continue;
+				}
+				const double DistanceCm = FMath::Sqrt(FMath::Max(0.0, DistanceSquared));
+				PairMaximumExcludedRegionDistanceCm = FMath::Max(
+					PairMaximumExcludedRegionDistanceCm,
+					DistanceCm);
+				bAllWitnessesInsideExcludedRegion &= DistanceSquared
+					<= CertificationRadiusSquared + 1.e-8;
+			}
+			if (bAllWitnessesInsideExcludedRegion)
+			{
+				++OutAudit.ToleratedExcludedRegionPairCount;
+				AffectedSourceTriangles.Add(SourceTriangleKey(ImportsA));
+				AffectedSourceTriangles.Add(SourceTriangleKey(ImportsB));
+				OutAudit.MaximumExcludedRegionWitnessDistanceCm = FMath::Max(
+					OutAudit.MaximumExcludedRegionWitnessDistanceCm,
+					PairMaximumExcludedRegionDistanceCm);
+				continue;
+			}
+			const int32 ImportValues[6] = {
+				ImportsA.A, ImportsA.B, ImportsA.C,
+				ImportsB.A, ImportsB.B, ImportsB.C};
+			bool bHasRepairableOuterVertex = false;
+			bool bAllOuterVerticesLocallyContracted =
+				FMath::IsFinite(LocalRepairThicknessCeilingCm)
+				&& LocalRepairThicknessCeilingCm > 0.0;
+			for (const int32 ImportValue : ImportValues)
+			{
+				if (ImportValue >= 0
+					&& ImportValue < PreShellImportVertexCount)
+				{
+					bHasRepairableOuterVertex = true;
+					const double LocalThicknessCm =
+						(MeanPositionByImportID[ImportValue]
+							- MeanPositionByImportID[
+								PreShellImportVertexCount + ImportValue]).Length();
+					bAllOuterVerticesLocallyContracted &=
+						FMath::IsFinite(LocalThicknessCm)
+						&& LocalThicknessCm
+							<= LocalRepairThicknessCeilingCm + 1.e-6;
+				}
+			}
+			if (bHasRepairableOuterVertex
+				&& bAllOuterVerticesLocallyContracted)
+			{
+				++OutAudit.ToleratedLocalRepairPairCount;
+				continue;
+			}
+			OutAudit.UnsafeSourcePairKeys.Add(
+				SourceIntersectionKey(ImportsA, ImportsB));
+			for (const int32 ImportValue : ImportValues)
+			{
+				if (ImportValue >= 0
+					&& ImportValue < PreShellImportVertexCount)
+				{
+					OutAudit.UnsafeOuterSourceOrdinals.Add(ImportValue);
+				}
+			}
+			if (!bHasRepairableOuterVertex)
+			{
+				++OutAudit.UnrepairableInnerOnlyPairCount;
+			}
+		}
+		OutAudit.AffectedSourceTriangleCount = AffectedSourceTriangles.Num();
+		return true;
+	}
+
+	static bool ClassifyThicknessShellIntersectionsV3(
+		const FEFClothingGarmentRow& CatalogRow,
+		const int32 ExcludedBodyTriangleCount,
+		const int32 BaselineSourceIntersectionPairCount,
+		const double BaselineInheritanceRadiusCm,
+		const int32 PreShellTriangleCount,
+		const int32 FinalShellTriangleCount,
+		const double CertificationRadiusCm,
+		const FThicknessShellIntersectionAudit& Audit,
+		FString& OutError)
+	{
+		if (Audit.DetectedPairCount < 0
+			|| Audit.ToleratedInheritedSourcePairCount < 0
+			|| Audit.ToleratedLocalRepairPairCount < 0
+			|| Audit.ToleratedExcludedRegionPairCount < 0
+			|| Audit.ToleratedInheritedSourcePairCount
+				+ Audit.ToleratedLocalRepairPairCount
+				+ Audit.ToleratedExcludedRegionPairCount > Audit.DetectedPairCount
+			|| Audit.AffectedSourceTriangleCount < 0
+			|| BaselineSourceIntersectionPairCount < 0
+			|| !FMath::IsFinite(BaselineInheritanceRadiusCm)
+			|| BaselineInheritanceRadiusCm <= 0.0
+			|| PreShellTriangleCount <= 0
+			|| FinalShellTriangleCount <= 0
+			|| !FMath::IsFinite(CertificationRadiusCm)
+			|| CertificationRadiusCm <= 0.0
+			|| !FMath::IsFinite(Audit.MaximumExcludedRegionWitnessDistanceCm))
+		{
+			OutError = TEXT("Thickness-shell V3 intersection evidence is invalid.");
+			return false;
+		}
+		if (Audit.DetectedPairCount == 0)
+		{
+			return Audit.ToleratedInheritedSourcePairCount == 0
+				&& Audit.ToleratedLocalRepairPairCount == 0
+				&& Audit.ToleratedExcludedRegionPairCount == 0
+				&& Audit.AffectedSourceTriangleCount == 0;
+		}
+
+		const int32 MaximumInheritedPairCount = FMath::Max(
+			64,
+			BaselineSourceIntersectionPairCount * 8 + 64);
+		const int32 ResidualPairCount = Audit.DetectedPairCount
+			- Audit.ToleratedInheritedSourcePairCount
+			- Audit.ToleratedLocalRepairPairCount;
+		const bool bHasExplicitAnatomyExclusion =
+			!CatalogRow.ExcludedBodySurfaceMaterialSlots.IsEmpty()
+			&& !CatalogRow.ExcludedBodyBoneBranches.IsEmpty()
+			&& ExcludedBodyTriangleCount > 0;
+		const int32 MaximumPairCount = FMath::Min(
+			512,
+			FMath::CeilToInt(
+				static_cast<double>(FinalShellTriangleCount)
+				* MaximumExcludedAnatomyShellIntersectionFraction));
+		const int32 MaximumAffectedSourceTriangleCount = FMath::CeilToInt(
+			static_cast<double>(PreShellTriangleCount)
+			* MaximumExcludedAnatomyShellIntersectionFraction);
+		const bool bInheritedPolicyPass =
+			Audit.ToleratedInheritedSourcePairCount <= MaximumInheritedPairCount
+			&& (BaselineSourceIntersectionPairCount > 0
+				|| Audit.ToleratedInheritedSourcePairCount == 0);
+		const int32 MaximumLocallyRepairedPairCount = FMath::Min(
+			512,
+			FMath::CeilToInt(
+				static_cast<double>(FinalShellTriangleCount)
+				* MaximumExcludedAnatomyShellIntersectionFraction));
+		const bool bLocalRepairPolicyPass =
+			Audit.ToleratedLocalRepairPairCount <= MaximumLocallyRepairedPairCount
+			&& Audit.UnrepairableInnerOnlyPairCount == 0;
+		const bool bResidualPolicyPass = ResidualPairCount == 0
+			? Audit.ToleratedExcludedRegionPairCount == 0
+				&& Audit.AffectedSourceTriangleCount == 0
+			: bHasExplicitAnatomyExclusion
+				&& ResidualPairCount == Audit.ToleratedExcludedRegionPairCount
+				&& ResidualPairCount <= MaximumPairCount
+				&& Audit.AffectedSourceTriangleCount <= MaximumAffectedSourceTriangleCount
+				&& Audit.MaximumExcludedRegionWitnessDistanceCm
+					<= CertificationRadiusCm + 1.e-4;
+		const bool bPass = bInheritedPolicyPass
+			&& bLocalRepairPolicyPass
+			&& bResidualPolicyPass;
+		if (!bPass)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness-shell V3 intersection policy failed: detected/inherited/localRepair/excluded=%d/%d/%d/%d (inheritedMax %d, localRepairMax %d, residualMax %d), baselinePairs/radius=%d/%.6fcm, affectedExcludedSourceTriangles=%d (max %d), maxExcludedWitnessDistance=%.6fcm (radius %.6fcm), innerOnly=%d, excludedSlots/bones/bodyTriangles=%d/%d/%d."),
+				Audit.DetectedPairCount,
+				Audit.ToleratedInheritedSourcePairCount,
+				Audit.ToleratedLocalRepairPairCount,
+				Audit.ToleratedExcludedRegionPairCount,
+				MaximumInheritedPairCount,
+				MaximumLocallyRepairedPairCount,
+				MaximumPairCount,
+				BaselineSourceIntersectionPairCount,
+				BaselineInheritanceRadiusCm,
+				Audit.AffectedSourceTriangleCount,
+				MaximumAffectedSourceTriangleCount,
+				Audit.MaximumExcludedRegionWitnessDistanceCm,
+				CertificationRadiusCm,
+				Audit.UnrepairableInnerOnlyPairCount,
+				CatalogRow.ExcludedBodySurfaceMaterialSlots.Num(),
+				CatalogRow.ExcludedBodyBoneBranches.Num(),
+				ExcludedBodyTriangleCount);
+		}
+		return bPass;
+	}
+
+	static bool BuildGeneratedThicknessShell(
+		UDynamicMesh* GarmentDynamicMesh,
+		const FEFClothingGarmentRow& CatalogRow,
+		const TArray<FSurfaceCorrespondence>& SurfaceCorrespondence,
+		const FDynamicMesh3* ExcludedBodySurface,
+		const int32 ExcludedBodyTriangleCount,
+		const double ExcludedRegionCertificationRadiusCm,
+		FThicknessShellCompileData& OutShell,
+		FString& OutError)
+	{
+		OutShell = FThicknessShellCompileData();
+		if (!CatalogRow.bCreateThicknessShell)
+		{
+			return true;
+		}
+		if (!IsValid(GarmentDynamicMesh)
+			|| CatalogRow.ShellOffsetSteps < 1
+			|| CatalogRow.ShellOffsetSteps > 100
+			|| !FMath::IsFinite(CatalogRow.ShellSmoothingPerStep)
+			|| CatalogRow.ShellSmoothingPerStep < 0.0f
+			|| CatalogRow.ShellSmoothingPerStep > 1.0f
+			|| !CatalogRow.bShellOffsetBoundaries)
+		{
+			OutError = TEXT("Thickness-shell settings are invalid or disable the required boundary offset.");
+			return false;
+		}
+
+		FDynamicMesh3& Mesh = GarmentDynamicMesh->GetMeshRef();
+		if (!Mesh.HasAttributes() || Mesh.VertexCount() <= 0 || Mesh.TriangleCount() <= 0)
+		{
+			OutError = TEXT("Thickness shell requires a non-empty attributed garment mesh.");
+			return false;
+		}
+		FMeshBoundaryLoops BoundaryLoops(&Mesh, true);
+		if (BoundaryLoops.bAborted
+			|| BoundaryLoops.bSawOpenSpans
+			|| BoundaryLoops.bFellBackToSpansOnFailure
+			|| !BoundaryLoops.Spans.IsEmpty()
+			|| BoundaryLoops.Loops.IsEmpty())
+		{
+			OutError = TEXT("Thickness shell requires simple closed garment boundary loops; closed/bowtie/open-span input is rejected.");
+			return false;
+		}
+
+		OutShell.bEnabled = true;
+		// Visible thickness is a per-garment runtime control. Build one stable,
+		// conservative reference shell so editing the Director slider never changes
+		// topology, content fingerprints or publication identity.
+		OutShell.RequestedThicknessCm =
+			EFClothingMorphV26::CompiledThicknessReferenceCm;
+		OutShell.ExcludedRegionCertificationRadiusCm =
+			ExcludedRegionCertificationRadiusCm;
+		OutShell.PreShellVertexCount = Mesh.VertexCount();
+		OutShell.PreShellTriangleCount = Mesh.TriangleCount();
+		OutShell.BoundaryLoopCount = BoundaryLoops.Loops.Num();
+		OutShell.SourceVertexIDByOrdinal.Reserve(OutShell.PreShellVertexCount);
+		for (const int32 VertexID : Mesh.VertexIndicesItr())
+		{
+			OutShell.SourceVertexIDByOrdinal.Add(VertexID);
+		}
+		OutShell.SourceVertexIDByOrdinal.Sort();
+
+		TArray<TArray<int32>> BoundaryVertexLoops;
+		TArray<TArray<int32>> BoundaryMaterialIDs;
+		BoundaryVertexLoops.Reserve(BoundaryLoops.Loops.Num());
+		BoundaryMaterialIDs.Reserve(BoundaryLoops.Loops.Num());
+		const FDynamicMeshMaterialAttribute* InitialMaterialIDs = Mesh.Attributes()->HasMaterialID()
+			? Mesh.Attributes()->GetMaterialID()
+			: nullptr;
+		for (const FEdgeLoop& BoundaryLoop : BoundaryLoops.Loops)
+		{
+			BoundaryVertexLoops.Add(BoundaryLoop.Vertices);
+			TArray<int32>& LoopMaterials = BoundaryMaterialIDs.AddDefaulted_GetRef();
+			LoopMaterials.SetNum(BoundaryLoop.Vertices.Num());
+			for (int32 LoopIndex = 0; LoopIndex < BoundaryLoop.Vertices.Num(); ++LoopIndex)
+			{
+				const int32 NextLoopIndex = (LoopIndex + 1) % BoundaryLoop.Vertices.Num();
+				const int32 EdgeID = Mesh.FindEdge(
+					BoundaryLoop.Vertices[LoopIndex],
+					BoundaryLoop.Vertices[NextLoopIndex]);
+				if (EdgeID == FDynamicMesh3::InvalidID || !Mesh.IsBoundaryEdge(EdgeID))
+				{
+					OutError = TEXT("Thickness-shell boundary loop contains an invalid source edge.");
+					return false;
+				}
+				const int32 AdjacentTriangleID = Mesh.GetEdgeT(EdgeID).A;
+				LoopMaterials[LoopIndex] = InitialMaterialIDs && Mesh.IsTriangle(AdjacentTriangleID)
+					? InitialMaterialIDs->GetValue(AdjacentTriangleID)
+					: 0;
+			}
+		}
+
+		const FDynamicMesh3 InnerMesh(Mesh);
+		TMap<FString, FSourceIntersectionWitnessEvidence> BaselineIntersectionWitnessPointsBySourcePair;
+		if (!CollectSelfIntersectionWitnessEvidence(
+			InnerMesh,
+			OutShell.PreShellVertexCount,
+			BaselineIntersectionWitnessPointsBySourcePair,
+			OutShell.BaselineSourceIntersectionPairCount,
+			OutError))
+		{
+			return false;
+		}
+		OutShell.BaselineInheritanceRadiusCm =
+			SurfaceRuntimeMaximumEdgeLengthCm * 0.5
+			+ OutShell.RequestedThicknessCm
+			+ 0.01;
+		FMeshNormals GarmentNormals(&Mesh);
+		GarmentNormals.ComputeVertexNormals();
+		double OrientationAlignmentSum = 0.0;
+		double OrientationAlignmentMagnitude = 0.0;
+		for (const int32 SourceVertexID : OutShell.SourceVertexIDByOrdinal)
+		{
+			if (!SurfaceCorrespondence.IsValidIndex(SourceVertexID))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell source vertex %d has no body-surface correspondence."),
+					SourceVertexID);
+				return false;
+			}
+			FVector3d GarmentNormal = GarmentNormals[SourceVertexID];
+			FVector3d BodyOutwardNormal = SurfaceCorrespondence[SourceVertexID].SurfaceNormal;
+			if (!GarmentNormal.Normalize() || !BodyOutwardNormal.Normalize())
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell source vertex %d has a degenerate orientation frame."),
+					SourceVertexID);
+				return false;
+			}
+			const double Alignment = GarmentNormal.Dot(BodyOutwardNormal);
+			OrientationAlignmentSum += Alignment;
+			OrientationAlignmentMagnitude += FMath::Abs(Alignment);
+		}
+		if (!FMath::IsFinite(OrientationAlignmentSum)
+			|| OrientationAlignmentMagnitude <= 1.e-6)
+		{
+			OutError = TEXT("Thickness-shell could not resolve an exterior direction from the body surface.");
+			return false;
+		}
+		// Modeling Offset follows the garment winding. Select its sign from the
+		// already-certified body correspondence so reversed source winding still
+		// grows away from skin. A per-vertex signed check below rejects mixed or
+		// locally folded winding instead of ever publishing inward thickness.
+		const double SignedOffsetDistanceCm = OrientationAlignmentSum >= 0.0
+			? OutShell.RequestedThicknessCm
+			: -OutShell.RequestedThicknessCm;
+		FGeometryScriptMeshOffsetOptions OffsetOptions;
+		OffsetOptions.OffsetDistance = SignedOffsetDistanceCm;
+		OffsetOptions.bFixedBoundary = false;
+		OffsetOptions.SolveSteps = CatalogRow.ShellOffsetSteps;
+		OffsetOptions.SmoothAlpha = CatalogRow.ShellSmoothingPerStep;
+		OffsetOptions.bReprojectDuringSmoothing = CatalogRow.bShellReprojectSmooth;
+		OffsetOptions.BoundaryAlpha = 0.2f;
+		UGeometryScriptLibrary_MeshModelingFunctions::ApplyMeshOffset(
+			GarmentDynamicMesh,
+			OffsetOptions,
+			nullptr);
+
+		FDynamicMesh3& OffsetMesh = GarmentDynamicMesh->GetMeshRef();
+		if (OffsetMesh.VertexCount() != OutShell.PreShellVertexCount
+			|| OffsetMesh.TriangleCount() != OutShell.PreShellTriangleCount)
+		{
+			OutError = TEXT("Iterative offset unexpectedly changed the source-layer topology.");
+			return false;
+		}
+		for (const int32 SourceVertexID : OutShell.SourceVertexIDByOrdinal)
+		{
+			if (!OffsetMesh.IsVertex(SourceVertexID))
+			{
+				OutError = FString::Printf(
+					TEXT("Iterative offset lost source vertex %d."),
+					SourceVertexID);
+				return false;
+			}
+		}
+		double SignedThicknessSum = 0.0;
+		double MinimumSignedThicknessCm = TNumericLimits<double>::Max();
+		int32 AmbiguousSignedThicknessVertexCount = 0;
+		const double MinimumUsefulSignedThicknessCm = FMath::Max(
+			1.e-4,
+			OutShell.RequestedThicknessCm * 0.10);
+		for (const int32 SourceVertexID : OutShell.SourceVertexIDByOrdinal)
+		{
+			FVector3d BodyOutwardNormal = SurfaceCorrespondence[SourceVertexID].SurfaceNormal;
+			if (!BodyOutwardNormal.Normalize())
+			{
+				OutError = TEXT("Thickness-shell lost a valid body-surface normal after offset.");
+				return false;
+			}
+			const double SignedThicknessCm =
+				(OffsetMesh.GetVertex(SourceVertexID) - InnerMesh.GetVertex(SourceVertexID))
+				.Dot(BodyOutwardNormal);
+			if (!FMath::IsFinite(SignedThicknessCm))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell source vertex %d has non-finite signed thickness."),
+					SourceVertexID);
+				return false;
+			}
+			MinimumSignedThicknessCm = FMath::Min(
+				MinimumSignedThicknessCm,
+				SignedThicknessCm);
+			AmbiguousSignedThicknessVertexCount +=
+				SignedThicknessCm < MinimumUsefulSignedThicknessCm ? 1 : 0;
+			SignedThicknessSum += SignedThicknessCm;
+		}
+		const double AverageSignedThicknessCm = SignedThicknessSum
+			/ static_cast<double>(OutShell.SourceVertexIDByOrdinal.Num());
+		const double AmbiguousSignedThicknessFraction =
+			static_cast<double>(AmbiguousSignedThicknessVertexCount)
+			/ static_cast<double>(OutShell.SourceVertexIDByOrdinal.Num());
+		// Concave anatomy (notably the explicitly excluded DAZ genital domain) can
+		// expose the opposite nearest-body branch for a small local patch. Defer
+		// those vertices to the exclusion-aware render binding below, but reject a
+		// globally inward or broadly ambiguous shell here.
+		if (AverageSignedThicknessCm < OutShell.RequestedThicknessCm * 0.50
+			|| AmbiguousSignedThicknessFraction > 0.10)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness shell does not remain predominantly exterior to the body (signed min/avg %.6f/%.6fcm, ambiguous %d/%d, requested %.6fcm)."),
+				MinimumSignedThicknessCm,
+				AverageSignedThicknessCm,
+				AmbiguousSignedThicknessVertexCount,
+				OutShell.SourceVertexIDByOrdinal.Num(),
+				OutShell.RequestedThicknessCm);
+			return false;
+		}
+
+		TArray<FVector3d> DesiredOuterPositionBySourceOrdinal;
+		DesiredOuterPositionBySourceOrdinal.SetNum(
+			OutShell.SourceVertexIDByOrdinal.Num());
+		for (int32 SourceOrdinal = 0;
+			SourceOrdinal < OutShell.SourceVertexIDByOrdinal.Num();
+			++SourceOrdinal)
+		{
+			const int32 SourceVertexID =
+				OutShell.SourceVertexIDByOrdinal[SourceOrdinal];
+			DesiredOuterPositionBySourceOrdinal[SourceOrdinal] =
+				OffsetMesh.GetVertex(SourceVertexID);
+		}
+
+		FDynamicMesh3 ReversedInnerMesh(InnerMesh);
+		ReversedInnerMesh.ReverseOrientation();
+		FDynamicMeshEditor MeshEditor(&OffsetMesh);
+		FMeshIndexMappings InnerMappings;
+		MeshEditor.AppendMesh(&ReversedInnerMesh, InnerMappings);
+		for (int32 BoundaryLoopIndex = 0; BoundaryLoopIndex < BoundaryVertexLoops.Num(); ++BoundaryLoopIndex)
+		{
+			const TArray<int32>& OuterLoop = BoundaryVertexLoops[BoundaryLoopIndex];
+			TArray<int32> InnerLoop;
+			InnerLoop.SetNum(OuterLoop.Num());
+			for (int32 LoopIndex = 0; LoopIndex < OuterLoop.Num(); ++LoopIndex)
+			{
+				InnerLoop[LoopIndex] = InnerMappings.GetNewVertex(OuterLoop[LoopIndex]);
+				if (!OffsetMesh.IsVertex(InnerLoop[LoopIndex]))
+				{
+					OutError = TEXT("Thickness shell could not resolve an appended inner boundary vertex.");
+					return false;
+				}
+			}
+			FJoinMeshLoops Join(&OffsetMesh, OuterLoop, InnerLoop);
+			if (Join.Validate() != EOperationValidationResult::Ok
+				|| !Join.Apply()
+				|| Join.JoinQuads.Num() != OuterLoop.Num())
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness shell could not stitch boundary loop %d."),
+					BoundaryLoopIndex);
+				return false;
+			}
+			FDynamicMeshMaterialAttribute* MaterialIDs = OffsetMesh.Attributes()->HasMaterialID()
+				? OffsetMesh.Attributes()->GetMaterialID()
+				: nullptr;
+			if (MaterialIDs)
+			{
+				for (int32 QuadIndex = 0; QuadIndex < Join.JoinQuads.Num(); ++QuadIndex)
+				{
+					const int32 MaterialID = BoundaryMaterialIDs[BoundaryLoopIndex][QuadIndex];
+					const FIndex2i WallTriangles = Join.JoinQuads[QuadIndex];
+					if (OffsetMesh.IsTriangle(WallTriangles.A))
+					{
+						MaterialIDs->SetValue(WallTriangles.A, MaterialID);
+					}
+					if (OffsetMesh.IsTriangle(WallTriangles.B))
+					{
+						MaterialIDs->SetValue(WallTriangles.B, MaterialID);
+					}
+				}
+			}
+			OutShell.WallTriangleCount += Join.JoinTriangles.Num();
+		}
+
+		const int32 ExpectedVertexCount = OutShell.PreShellVertexCount * 2;
+		const int32 ExpectedTriangleCount = OutShell.PreShellTriangleCount * 2
+			+ OutShell.WallTriangleCount;
+		if (OffsetMesh.VertexCount() != ExpectedVertexCount
+			|| OffsetMesh.TriangleCount() != ExpectedTriangleCount
+			|| OffsetMesh.VertexCount() > SurfaceRuntimeMaximumDerivedVertexCount)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness shell violates its topology/budget contract (vertices %d/%d, triangles %d/%d, cap %d)."),
+				OffsetMesh.VertexCount(),
+				ExpectedVertexCount,
+				OffsetMesh.TriangleCount(),
+				ExpectedTriangleCount,
+				SurfaceRuntimeMaximumDerivedVertexCount);
+			return false;
+		}
+
+		TArray<int32> UniqueImportVertexIDs;
+		UniqueImportVertexIDs.Init(INDEX_NONE, OffsetMesh.MaxVertexID());
+		for (int32 SourceOrdinal = 0; SourceOrdinal < OutShell.SourceVertexIDByOrdinal.Num(); ++SourceOrdinal)
+		{
+			const int32 OuterVertexID = OutShell.SourceVertexIDByOrdinal[SourceOrdinal];
+			const int32 InnerVertexID = InnerMappings.GetNewVertex(OuterVertexID);
+			if (!OffsetMesh.IsVertex(OuterVertexID) || !OffsetMesh.IsVertex(InnerVertexID))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell pair %d is invalid before publication."),
+					SourceOrdinal);
+				return false;
+			}
+			UniqueImportVertexIDs[OuterVertexID] = SourceOrdinal;
+			UniqueImportVertexIDs[InnerVertexID] = OutShell.PreShellVertexCount + SourceOrdinal;
+		}
+		for (const int32 VertexID : OffsetMesh.VertexIndicesItr())
+		{
+			if (!UniqueImportVertexIDs.IsValidIndex(VertexID)
+				|| UniqueImportVertexIDs[VertexID] == INDEX_NONE)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness shell produced untracked vertex %d."),
+					VertexID);
+				return false;
+			}
+		}
+		FNonManifoldMappingSupport::RemoveAllNonManifoldMappingData(OffsetMesh);
+		if (!FNonManifoldMappingSupport::AttachNonManifoldVertexMappingData(
+			UniqueImportVertexIDs,
+			OffsetMesh))
+		{
+			OutError = TEXT("Could not publish unique outer/inner thickness-shell import identities.");
+			return false;
+		}
+
+		FMeshNormals::QuickRecomputeOverlayNormals(OffsetMesh);
+		FMeshBoundaryLoops ClosedShellBoundaries(&OffsetMesh, true);
+		OutShell.OpenBoundaryCountAfter = ClosedShellBoundaries.Loops.Num()
+			+ ClosedShellBoundaries.Spans.Num();
+		OutShell.DegenerateTriangleCount = 0;
+		for (const int32 TriangleID : OffsetMesh.TriangleIndicesItr())
+		{
+			OutShell.DegenerateTriangleCount += OffsetMesh.GetTriArea(TriangleID) <= 1.e-10 ? 1 : 0;
+		}
+		FThicknessShellIntersectionAudit IntersectionAudit;
+		const double LocalRepairThicknessCeilingCm = FMath::Max(
+			1.e-4,
+			OutShell.RequestedThicknessCm * 0.15);
+		auto MeasureCurrentIntersections = [
+			&OffsetMesh,
+			&OutShell,
+			&BaselineIntersectionWitnessPointsBySourcePair,
+			ExcludedBodySurface,
+			ExcludedRegionCertificationRadiusCm,
+			LocalRepairThicknessCeilingCm,
+			&OutError](FThicknessShellIntersectionAudit& OutAudit)
+		{
+			return MeasureThicknessShellIntersectionsV3(
+				OffsetMesh,
+				OutShell.PreShellVertexCount,
+				BaselineIntersectionWitnessPointsBySourcePair,
+				OutShell.BaselineInheritanceRadiusCm,
+				ExcludedBodySurface,
+				ExcludedRegionCertificationRadiusCm,
+				LocalRepairThicknessCeilingCm,
+				OutAudit,
+				OutError);
+		};
+		if (!MeasureCurrentIntersections(IntersectionAudit))
+		{
+			return false;
+		}
+
+		// UE's native Create Shell deliberately preserves topology and therefore
+		// cannot boolean-away a new local self contact. Repair only the generated
+		// outer layer by contracting it along its exact inner->outer pairing. The
+		// inner fitted surface, source asset, weights, morphs and skeleton never move.
+		auto UnsafePairCount = [](const FThicknessShellIntersectionAudit& Audit)
+		{
+			return Audit.DetectedPairCount
+				- Audit.ToleratedInheritedSourcePairCount
+				- Audit.ToleratedLocalRepairPairCount
+				- Audit.ToleratedExcludedRegionPairCount;
+		};
+		constexpr int32 MaximumLocalRepairIterations = 8;
+		// MeshDescription stores positions at render precision. Keep a tiny margin
+		// above the certification floor so publication/readback cannot quantize a
+		// locally repaired pair back below it.
+		const double MinimumRepairThicknessCm = FMath::Max(
+			1.e-4,
+			MinimumCertifiedThicknessPointCm(OutShell.RequestedThicknessCm) * 4.0);
+		TArray<double> MinimumThicknessScaleBySourceOrdinal;
+		MinimumThicknessScaleBySourceOrdinal.SetNum(OutShell.PreShellVertexCount);
+		for (int32 SourceOrdinal = 0;
+			SourceOrdinal < OutShell.PreShellVertexCount;
+			++SourceOrdinal)
+		{
+			const int32 OuterVertexID =
+				OutShell.SourceVertexIDByOrdinal[SourceOrdinal];
+			const int32 InnerVertexID = InnerMappings.GetNewVertex(OuterVertexID);
+			if (!OffsetMesh.IsVertex(InnerVertexID))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell pair %d cannot establish its repair floor."),
+					SourceOrdinal);
+				return false;
+			}
+			const FVector3d DesiredOffset =
+				DesiredOuterPositionBySourceOrdinal[SourceOrdinal]
+					- OffsetMesh.GetVertex(InnerVertexID);
+			const double DesiredThicknessCm = DesiredOffset.Length();
+			if (!FMath::IsFinite(DesiredThicknessCm)
+				|| DesiredThicknessCm <= 1.e-8)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell pair %d has invalid repair reach %.8fcm."),
+					SourceOrdinal,
+					DesiredThicknessCm);
+				return false;
+			}
+			MinimumThicknessScaleBySourceOrdinal[SourceOrdinal] = FMath::Clamp(
+				MinimumRepairThicknessCm / DesiredThicknessCm,
+				0.002,
+				1.0);
+		}
+		TArray<double> CurrentThicknessScale;
+		CurrentThicknessScale.Init(1.0, OutShell.PreShellVertexCount);
+		TArray<double> BestThicknessScale = CurrentThicknessScale;
+		int32 AcceptedRepairIterationCount = 0;
+		UE_LOG(
+			LogEFClothingFitCompiler,
+			Display,
+			TEXT("Thickness-shell local collision repair input: unsafePairs=%d regions=%d outerSeeds=%d innerOnly=%d."),
+			UnsafePairCount(IntersectionAudit),
+			IntersectionAudit.UnsafeSourcePairKeys.Num(),
+			IntersectionAudit.UnsafeOuterSourceOrdinals.Num(),
+			IntersectionAudit.UnrepairableInnerOnlyPairCount);
+		auto ApplyThicknessScale = [
+			&OffsetMesh,
+			&OutShell,
+			&InnerMappings,
+			&DesiredOuterPositionBySourceOrdinal](const TArray<double>& Scale)
+		{
+			if (Scale.Num() != OutShell.PreShellVertexCount)
+			{
+				return false;
+			}
+			for (int32 SourceOrdinal = 0;
+				SourceOrdinal < OutShell.PreShellVertexCount;
+				++SourceOrdinal)
+			{
+				const int32 OuterVertexID =
+					OutShell.SourceVertexIDByOrdinal[SourceOrdinal];
+				const int32 InnerVertexID = InnerMappings.GetNewVertex(OuterVertexID);
+				if (!OffsetMesh.IsVertex(OuterVertexID)
+					|| !OffsetMesh.IsVertex(InnerVertexID)
+					|| !DesiredOuterPositionBySourceOrdinal.IsValidIndex(SourceOrdinal)
+					|| !FMath::IsFinite(Scale[SourceOrdinal]))
+				{
+					return false;
+				}
+				const FVector3d InnerPosition = OffsetMesh.GetVertex(InnerVertexID);
+				OffsetMesh.SetVertex(
+					OuterVertexID,
+					InnerPosition
+						+ (DesiredOuterPositionBySourceOrdinal[SourceOrdinal]
+							- InnerPosition)
+							* Scale[SourceOrdinal]);
+			}
+			return true;
+		};
+		auto IsUnsafeRegionSubset = [](
+			const TSet<FString>& Candidate,
+			const TSet<FString>& Current)
+		{
+			for (const FString& CandidateKey : Candidate)
+			{
+				if (!Current.Contains(CandidateKey))
+				{
+					return false;
+				}
+			}
+			return true;
+		};
+		for (int32 RepairIteration = 0;
+			RepairIteration < MaximumLocalRepairIterations
+				&& UnsafePairCount(IntersectionAudit) > 0;
+			++RepairIteration)
+		{
+			if (IntersectionAudit.UnrepairableInnerOnlyPairCount > 0
+				|| IntersectionAudit.UnsafeOuterSourceOrdinals.IsEmpty())
+			{
+				break;
+			}
+			TArray<double> RepairWeight;
+			RepairWeight.Init(0.0, OutShell.PreShellVertexCount);
+			TSet<int32> Frontier = IntersectionAudit.UnsafeOuterSourceOrdinals;
+			for (const int32 SourceOrdinal : Frontier)
+			{
+				if (RepairWeight.IsValidIndex(SourceOrdinal))
+				{
+					RepairWeight[SourceOrdinal] = 1.0;
+				}
+			}
+			const FNonManifoldMappingSupport ShellMapping(OffsetMesh);
+			for (int32 RingIndex = 1; RingIndex <= 2; ++RingIndex)
+			{
+				TSet<int32> NextFrontier;
+				const double RingWeight = RingIndex == 1 ? 0.50 : 0.25;
+				for (const int32 SourceOrdinal : Frontier)
+				{
+					if (!OutShell.SourceVertexIDByOrdinal.IsValidIndex(SourceOrdinal))
+					{
+						continue;
+					}
+					const int32 OuterVertexID =
+						OutShell.SourceVertexIDByOrdinal[SourceOrdinal];
+					for (const int32 NeighborVertexID : OffsetMesh.VtxVerticesItr(OuterVertexID))
+					{
+						const int32 NeighborImportID =
+							ShellMapping.GetOriginalNonManifoldVertexID(NeighborVertexID);
+						if (NeighborImportID < 0
+							|| NeighborImportID >= OutShell.PreShellVertexCount
+							|| !RepairWeight.IsValidIndex(NeighborImportID))
+						{
+							continue;
+						}
+						RepairWeight[NeighborImportID] = FMath::Max(
+							RepairWeight[NeighborImportID],
+							RingWeight);
+						NextFrontier.Add(NeighborImportID);
+					}
+				}
+				Frontier = MoveTemp(NextFrontier);
+			}
+
+			const int32 CurrentUnsafePairCount = UnsafePairCount(IntersectionAudit);
+			const int32 CurrentUnsafeRegionCount =
+				IntersectionAudit.UnsafeSourcePairKeys.Num();
+			bool bFoundImprovement = false;
+			FThicknessShellIntersectionAudit BestAudit = IntersectionAudit;
+			const double CandidateAmplitudes[] = {0.25, 0.50, 0.75, 1.0};
+			for (const double Amplitude : CandidateAmplitudes)
+			{
+				TArray<double> CandidateScale = CurrentThicknessScale;
+				double CandidateScaleSum = 0.0;
+				for (int32 SourceOrdinal = 0;
+					SourceOrdinal < CandidateScale.Num();
+					++SourceOrdinal)
+				{
+					const double MinimumThicknessScale =
+						MinimumThicknessScaleBySourceOrdinal[SourceOrdinal];
+					CandidateScale[SourceOrdinal] = FMath::Clamp(
+						CurrentThicknessScale[SourceOrdinal]
+							- Amplitude * RepairWeight[SourceOrdinal]
+								* (CurrentThicknessScale[SourceOrdinal]
+									- MinimumThicknessScale),
+						MinimumThicknessScale,
+						1.0);
+					CandidateScaleSum += CandidateScale[SourceOrdinal];
+				}
+				const double CandidateAverageScale = CandidateScaleSum
+					/ static_cast<double>(CandidateScale.Num());
+				if (CandidateAverageScale < 0.90
+					|| !ApplyThicknessScale(CandidateScale))
+				{
+					continue;
+				}
+				FThicknessShellIntersectionAudit CandidateAudit;
+				if (!MeasureCurrentIntersections(CandidateAudit))
+				{
+					return false;
+				}
+				int32 CandidateDegenerateTriangleCount = 0;
+				for (const int32 TriangleID : OffsetMesh.TriangleIndicesItr())
+				{
+					CandidateDegenerateTriangleCount +=
+						OffsetMesh.GetTriArea(TriangleID) <= 1.e-10 ? 1 : 0;
+				}
+				const int32 CandidateUnsafePairCount =
+					UnsafePairCount(CandidateAudit);
+				const bool bStrictlyImproves =
+					CandidateUnsafePairCount < CurrentUnsafePairCount
+					|| (CandidateUnsafePairCount == CurrentUnsafePairCount
+						&& CandidateAudit.UnsafeSourcePairKeys.Num()
+							< CurrentUnsafeRegionCount);
+				const bool bBeatsBest = !bFoundImprovement
+					|| CandidateUnsafePairCount < UnsafePairCount(BestAudit)
+					|| (CandidateUnsafePairCount == UnsafePairCount(BestAudit)
+						&& CandidateAudit.DetectedPairCount < BestAudit.DetectedPairCount);
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Display,
+					TEXT("Thickness-shell repair candidate iteration=%d amplitude=%.2f unsafe=%d regions=%d newRegion=%d degenerate=%d innerOnly=%d avgScale=%.4f."),
+					RepairIteration,
+					Amplitude,
+					CandidateUnsafePairCount,
+					CandidateAudit.UnsafeSourcePairKeys.Num(),
+					IsUnsafeRegionSubset(
+						CandidateAudit.UnsafeSourcePairKeys,
+						IntersectionAudit.UnsafeSourcePairKeys) ? 0 : 1,
+					CandidateDegenerateTriangleCount,
+					CandidateAudit.UnrepairableInnerOnlyPairCount,
+					CandidateAverageScale);
+				if (CandidateDegenerateTriangleCount == 0
+					&& CandidateAudit.UnrepairableInnerOnlyPairCount == 0
+					&& CandidateAudit.UnsafeSourcePairKeys.Num()
+						<= CurrentUnsafeRegionCount
+					&& bStrictlyImproves
+					&& bBeatsBest)
+				{
+					bFoundImprovement = true;
+					BestThicknessScale = MoveTemp(CandidateScale);
+					BestAudit = MoveTemp(CandidateAudit);
+				}
+			}
+			if (!bFoundImprovement)
+			{
+				ApplyThicknessScale(CurrentThicknessScale);
+				break;
+			}
+			CurrentThicknessScale = BestThicknessScale;
+			IntersectionAudit = MoveTemp(BestAudit);
+			++AcceptedRepairIterationCount;
+			if (!ApplyThicknessScale(CurrentThicknessScale))
+			{
+				OutError = TEXT("Thickness-shell local collision repair lost its outer/inner pairing.");
+				return false;
+			}
+		}
+		FMeshNormals::QuickRecomputeOverlayNormals(OffsetMesh);
+		OutShell.DegenerateTriangleCount = 0;
+		for (const int32 TriangleID : OffsetMesh.TriangleIndicesItr())
+		{
+			OutShell.DegenerateTriangleCount +=
+				OffsetMesh.GetTriArea(TriangleID) <= 1.e-10 ? 1 : 0;
+		}
+		if (!MeasureCurrentIntersections(IntersectionAudit))
+		{
+			return false;
+		}
+		if (AcceptedRepairIterationCount > 0)
+		{
+			int32 AdjustedVertexCount = 0;
+			double MinimumAppliedScale = 1.0;
+			double AverageAppliedScale = 0.0;
+			for (const double Scale : CurrentThicknessScale)
+			{
+				AdjustedVertexCount += Scale < 1.0 - 1.e-6 ? 1 : 0;
+				MinimumAppliedScale = FMath::Min(MinimumAppliedScale, Scale);
+				AverageAppliedScale += Scale;
+			}
+			AverageAppliedScale /= static_cast<double>(CurrentThicknessScale.Num());
+			UE_LOG(
+				LogEFClothingFitCompiler,
+				Display,
+				TEXT("Thickness-shell local collision repair accepted %d iterations: adjusted=%d/%d scale min/avg=%.4f/%.4f residualPairs=%d."),
+				AcceptedRepairIterationCount,
+				AdjustedVertexCount,
+				CurrentThicknessScale.Num(),
+				MinimumAppliedScale,
+				AverageAppliedScale,
+				UnsafePairCount(IntersectionAudit));
+		}
+		OutShell.DetectedNonAdjacentIntersectionCount =
+			IntersectionAudit.DetectedPairCount;
+		OutShell.ToleratedInheritedSourceIntersectionCount =
+			IntersectionAudit.ToleratedInheritedSourcePairCount;
+		OutShell.ToleratedLocalRepairIntersectionCount =
+			IntersectionAudit.ToleratedLocalRepairPairCount;
+		OutShell.LocalRepairThicknessCeilingCm =
+			LocalRepairThicknessCeilingCm;
+		OutShell.ToleratedExcludedRegionIntersectionCount =
+			IntersectionAudit.ToleratedExcludedRegionPairCount;
+		OutShell.ExcludedRegionAffectedSourceTriangleCount =
+			IntersectionAudit.AffectedSourceTriangleCount;
+		OutShell.ExcludedRegionMaximumWitnessDistanceCm =
+			IntersectionAudit.MaximumExcludedRegionWitnessDistanceCm;
+		OutShell.bSelfIntersects = IntersectionAudit.DetectedPairCount > 0;
+		FString IntersectionPolicyError;
+		const bool bIntersectionPolicyPass = ClassifyThicknessShellIntersectionsV3(
+			CatalogRow,
+			ExcludedBodyTriangleCount,
+			OutShell.BaselineSourceIntersectionPairCount,
+			OutShell.BaselineInheritanceRadiusCm,
+			OutShell.PreShellTriangleCount,
+			ExpectedTriangleCount,
+			ExcludedRegionCertificationRadiusCm,
+			IntersectionAudit,
+			IntersectionPolicyError);
+		if (ClosedShellBoundaries.bAborted
+			|| OutShell.OpenBoundaryCountAfter != 0
+			|| OutShell.DegenerateTriangleCount != 0
+			|| !bIntersectionPolicyPass)
+		{
+			OutError = FString::Printf(
+				TEXT("Thickness shell failed closed-surface certification (open=%d, degenerate=%d, detected/inherited/excluded=%d/%d/%d, baselinePairs/radius=%d/%.6fcm, affectedResidualSource=%d, maxExcludedWitnessDistance/radius=%.6f/%.6fcm, outer/inner/cross=%d/%d/%d, policy=%s)."),
+				OutShell.OpenBoundaryCountAfter,
+				OutShell.DegenerateTriangleCount,
+				IntersectionAudit.DetectedPairCount,
+				IntersectionAudit.ToleratedInheritedSourcePairCount,
+				IntersectionAudit.ToleratedExcludedRegionPairCount,
+				OutShell.BaselineSourceIntersectionPairCount,
+				OutShell.BaselineInheritanceRadiusCm,
+				IntersectionAudit.AffectedSourceTriangleCount,
+				IntersectionAudit.MaximumExcludedRegionWitnessDistanceCm,
+				ExcludedRegionCertificationRadiusCm,
+				IntersectionAudit.OuterLayerPairCount,
+				IntersectionAudit.InnerLayerPairCount,
+				IntersectionAudit.CrossLayerOrWallPairCount,
+				IntersectionPolicyError.IsEmpty() ? TEXT("none") : *IntersectionPolicyError);
+			return false;
+		}
+		OutShell.FinalShellVertexCount = ExpectedVertexCount;
+		OutShell.FinalShellTriangleCount = ExpectedTriangleCount;
+		return RebuildThicknessShellPairing(OffsetMesh, OutShell, OutError);
+	}
+
 	static bool WriteGeneratedSurfaceTopology(
 		UDynamicMesh* GarmentDynamicMesh,
 		USkeletalMesh* Derived,
-		FString& OutError)
+		FString& OutError,
+		bool bRecomputeTangents = false)
 	{
 		if (!IsValid(GarmentDynamicMesh) || !IsValid(Derived))
 		{
@@ -757,7 +2876,7 @@ namespace EFClothingFitCompilerPrivate
 
 		FGeometryScriptCopyMeshToAssetOptions WriteOptions;
 		WriteOptions.bEnableRecomputeNormals = false;
-		WriteOptions.bEnableRecomputeTangents = false;
+		WriteOptions.bEnableRecomputeTangents = bRecomputeTangents;
 		WriteOptions.bEnableRemoveDegenerates = false;
 		WriteOptions.BoneHierarchyMismatchHandling =
 			EGeometryScriptBoneHierarchyMismatchHandling::RemapGeometryToReferenceSkeleton;
@@ -2925,7 +5044,8 @@ namespace EFClothingFitCompilerPrivate
 
 	static void ReconcileNonManifoldVectorField(
 		const FDynamicMesh3& Mesh,
-		TArray<FVector3d>& InOutValues)
+		TArray<FVector3d>& InOutValues,
+		const FThicknessShellCompileData* Shell = nullptr)
 	{
 		if (InOutValues.Num() < Mesh.MaxVertexID())
 		{
@@ -2954,6 +5074,118 @@ namespace EFClothingFitCompilerPrivate
 				InOutValues[SplitVertexID] = Average;
 			}
 		}
+		if (!Shell || !Shell->bEnabled)
+		{
+			return;
+		}
+		for (int32 SourceOrdinal = 0; SourceOrdinal < Shell->PreShellVertexCount; ++SourceOrdinal)
+		{
+			if (!Shell->OuterVerticesBySourceOrdinal.IsValidIndex(SourceOrdinal)
+				|| !Shell->InnerVerticesBySourceOrdinal.IsValidIndex(SourceOrdinal))
+			{
+				continue;
+			}
+			const TArray<int32>& OuterVertices = Shell->OuterVerticesBySourceOrdinal[SourceOrdinal];
+			const TArray<int32>& InnerVertices = Shell->InnerVerticesBySourceOrdinal[SourceOrdinal];
+			FVector3d PairValue = FVector3d::Zero();
+			double PairValueSquaredLength = -1.0;
+			for (const int32 VertexID : OuterVertices)
+			{
+				if (InOutValues.IsValidIndex(VertexID))
+				{
+					const double CandidateSquaredLength = InOutValues[VertexID].SquaredLength();
+					if (CandidateSquaredLength > PairValueSquaredLength)
+					{
+						PairValue = InOutValues[VertexID];
+						PairValueSquaredLength = CandidateSquaredLength;
+					}
+				}
+			}
+			for (const int32 VertexID : InnerVertices)
+			{
+				if (InOutValues.IsValidIndex(VertexID))
+				{
+					const double CandidateSquaredLength = InOutValues[VertexID].SquaredLength();
+					if (CandidateSquaredLength > PairValueSquaredLength)
+					{
+						PairValue = InOutValues[VertexID];
+						PairValueSquaredLength = CandidateSquaredLength;
+					}
+				}
+			}
+			if (PairValueSquaredLength < 0.0)
+			{
+				continue;
+			}
+			for (const int32 VertexID : OuterVertices)
+			{
+				if (InOutValues.IsValidIndex(VertexID))
+				{
+					InOutValues[VertexID] = PairValue;
+				}
+			}
+			for (const int32 VertexID : InnerVertices)
+			{
+				if (InOutValues.IsValidIndex(VertexID))
+				{
+					InOutValues[VertexID] = PairValue;
+				}
+			}
+		}
+	}
+
+	static bool ReconcileThicknessShellCorrespondence(
+		const FThicknessShellCompileData& Shell,
+		TArray<FSurfaceCorrespondence>& InOutCorrespondence,
+		FString& OutError)
+	{
+		if (!Shell.bEnabled)
+		{
+			return true;
+		}
+		for (int32 SourceOrdinal = 0; SourceOrdinal < Shell.PreShellVertexCount; ++SourceOrdinal)
+		{
+			if (!Shell.OuterVerticesBySourceOrdinal.IsValidIndex(SourceOrdinal)
+				|| !Shell.InnerVerticesBySourceOrdinal.IsValidIndex(SourceOrdinal)
+				|| Shell.OuterVerticesBySourceOrdinal[SourceOrdinal].IsEmpty()
+				|| Shell.InnerVerticesBySourceOrdinal[SourceOrdinal].IsEmpty())
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell correspondence pair %d is incomplete."),
+					SourceOrdinal);
+				return false;
+			}
+			const int32 AuthoritativeInnerVertexID =
+				Shell.InnerVerticesBySourceOrdinal[SourceOrdinal][0];
+			if (!InOutCorrespondence.IsValidIndex(AuthoritativeInnerVertexID))
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell inner correspondence %d is invalid."),
+					AuthoritativeInnerVertexID);
+				return false;
+			}
+			const FSurfaceCorrespondence Authoritative =
+				InOutCorrespondence[AuthoritativeInnerVertexID];
+			for (const int32 VertexID : Shell.OuterVerticesBySourceOrdinal[SourceOrdinal])
+			{
+				if (!InOutCorrespondence.IsValidIndex(VertexID))
+				{
+					OutError = TEXT("Thickness-shell outer correspondence array is incomplete.");
+					return false;
+				}
+				InOutCorrespondence[VertexID] = Authoritative;
+			}
+			for (const int32 VertexID : Shell.InnerVerticesBySourceOrdinal[SourceOrdinal])
+			{
+				if (!InOutCorrespondence.IsValidIndex(VertexID))
+				{
+					OutError = TEXT("Thickness-shell inner correspondence array is incomplete.");
+					return false;
+				}
+				InOutCorrespondence[VertexID] = Authoritative;
+			}
+		}
+		return true;
 	}
 
 	static bool BuildDirectionalClearanceCorrections(
@@ -3713,6 +5945,7 @@ namespace EFClothingFitCompilerPrivate
 		const UDynamicMesh* GarmentDynamicMesh,
 		const TArray<FSurfaceCorrespondence>& Correspondence,
 		const TArray<FVector3d>& ClearanceDeltas,
+		const FThicknessShellCompileData* ThicknessShell,
 		const TArray<FString>& ExcludedBodyMorphPrefixes,
 		const FEFClothingFitCompileOptions& Options,
 		TArray<FEFClothingMorphBinding>& OutBindings,
@@ -4065,6 +6298,7 @@ namespace EFClothingFitCompilerPrivate
 
 		auto WriteAndCertifyStoredShapeMorph = [
 			Derived,
+			ThicknessShell,
 			&GarmentMesh,
 			&ClearanceDeltas,
 			&MeasureRuntimeShapeAcrossOffsetTiers,
@@ -4096,7 +6330,7 @@ namespace EFClothingFitCompilerPrivate
 			}
 
 			TArray<FVector3d> RequestedDeltas = InOutShapeMorphDeltas;
-			ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+			ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas, ThicknessShell);
 			const TArray<FVector3d> InitialRequestedDeltas = RequestedDeltas;
 			const FDynamicMeshAABBTree3 ShapeBodySpatial(&ShapeBody, true);
 			FMeshNormals ShapeBodyNormals(&ShapeBody);
@@ -4355,7 +6589,7 @@ namespace EFClothingFitCompilerPrivate
 					bAppliedCorrection |= !Corrections[VertexID].IsNearlyZero(1.e-8);
 					RequestedDeltas[VertexID] = CandidateDelta;
 				}
-				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas, ThicknessShell);
 
 				// The coherent surface correction may already have established a
 				// certified upper suffix of runtime clearance tiers. Persist that
@@ -5106,7 +7340,7 @@ namespace EFClothingFitCompilerPrivate
 									}
 									CandidateDeltas[VertexID] = AcceptedDelta;
 								}
-								ReconcileNonManifoldVectorField(GarmentMesh, CandidateDeltas);
+								ReconcileNonManifoldVectorField(GarmentMesh, CandidateDeltas, ThicknessShell);
 								for (int32 VertexID : GarmentMesh.VertexIndicesItr())
 								{
 									const FVector3d TotalRepair = CandidateDeltas[VertexID]
@@ -5274,7 +7508,7 @@ namespace EFClothingFitCompilerPrivate
 					OutError = FString::Printf(TEXT("Stored morph auto-sculpt produced no correction for %s."), *Context);
 					return false;
 				}
-				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas);
+				ReconcileNonManifoldVectorField(GarmentMesh, RequestedDeltas, ThicknessShell);
 				bOutRepaired = true;
 				UE_LOG(
 					LogEFClothingFitCompiler,
@@ -6524,7 +8758,7 @@ namespace EFClothingFitCompilerPrivate
 							+ FQuat4d::FindBetweenNormals(RestNormal, SeedNormal).RotateVector(RestSurfaceOffset);
 						CellMorphDeltas[VertexID] = SeedGarmentPosition - BaseFittedPosition;
 					}
-					ReconcileNonManifoldVectorField(GarmentMesh, CellMorphDeltas);
+					ReconcileNonManifoldVectorField(GarmentMesh, CellMorphDeltas, ThicknessShell);
 					const TArray<FVector3d> InitialCellMorphDeltas = CellMorphDeltas;
 
 					const FString PairCellMorphNameString = FString::Printf(
@@ -7641,7 +9875,7 @@ namespace EFClothingFitCompilerPrivate
 			: CatalogRow.MaximumCorrectionCm;
 		if (!FMath::IsFinite(TargetClearanceCm)
 			|| !FMath::IsFinite(MaximumCorrectionCm)
-			|| MaximumCorrectionCm < TargetClearanceCm)
+			|| MaximumCorrectionCm <= 0.0f)
 		{
 			OutError = TEXT("Surface binding clearance/correction policy is invalid.");
 			return false;
@@ -7707,6 +9941,74 @@ namespace EFClothingFitCompilerPrivate
 			{
 				BoundaryImportVertices.Add(static_cast<int32>(Edge.Key >> 32));
 				BoundaryImportVertices.Add(static_cast<int32>(Edge.Key & 0xffffffffu));
+			}
+		}
+		int32 ThicknessShellPreImportVertexCount = 0;
+		TArray<TArray<int32>> ThicknessShellRenderVerticesByImportID;
+		TArray<int32> ThicknessShellAuthoritativeInnerBySourceOrdinal;
+		if (CatalogRow.bCreateThicknessShell)
+		{
+			int32 MaximumImportVertexID = INDEX_NONE;
+			TSet<int32> UniqueImportVertexIDs;
+			for (const int32 ImportVertexID : GarmentLOD.MeshToImportVertexMap)
+			{
+				if (ImportVertexID < 0)
+				{
+					OutError = TEXT("Thickness-shell render topology contains an invalid import vertex ID.");
+					return false;
+				}
+				MaximumImportVertexID = FMath::Max(MaximumImportVertexID, ImportVertexID);
+				UniqueImportVertexIDs.Add(ImportVertexID);
+			}
+			const int32 ImportVertexCount = MaximumImportVertexID + 1;
+			if (ImportVertexCount <= 0
+				|| (ImportVertexCount % 2) != 0
+				|| UniqueImportVertexIDs.Num() != ImportVertexCount)
+			{
+				OutError = FString::Printf(
+					TEXT("Thickness-shell render topology does not preserve compact paired import IDs (unique=%d range=%d)."),
+					UniqueImportVertexIDs.Num(),
+					ImportVertexCount);
+				return false;
+			}
+			ThicknessShellPreImportVertexCount = ImportVertexCount / 2;
+			ThicknessShellRenderVerticesByImportID.SetNum(ImportVertexCount);
+			ThicknessShellAuthoritativeInnerBySourceOrdinal.Init(
+				INDEX_NONE,
+				ThicknessShellPreImportVertexCount);
+			for (int32 RenderVertexIndex = 0;
+				RenderVertexIndex < GarmentLOD.MeshToImportVertexMap.Num();
+				++RenderVertexIndex)
+			{
+				ThicknessShellRenderVerticesByImportID[
+					GarmentLOD.MeshToImportVertexMap[RenderVertexIndex]].Add(RenderVertexIndex);
+			}
+			int32 WallTriangleCount = 0;
+			for (const int32 TriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
+			{
+				const FIndex3i Triangle = GarmentLOD.Mesh.GetTriangle(TriangleID);
+				const int32 ImportIDs[3] = {
+					GarmentLOD.MeshToImportVertexMap[Triangle.A],
+					GarmentLOD.MeshToImportVertexMap[Triangle.B],
+					GarmentLOD.MeshToImportVertexMap[Triangle.C]};
+				const bool bHasOuter = ImportIDs[0] < ThicknessShellPreImportVertexCount
+					|| ImportIDs[1] < ThicknessShellPreImportVertexCount
+					|| ImportIDs[2] < ThicknessShellPreImportVertexCount;
+				const bool bHasInner = ImportIDs[0] >= ThicknessShellPreImportVertexCount
+					|| ImportIDs[1] >= ThicknessShellPreImportVertexCount
+					|| ImportIDs[2] >= ThicknessShellPreImportVertexCount;
+				if (bHasOuter && bHasInner)
+				{
+					++WallTriangleCount;
+					BoundaryImportVertices.Add(ImportIDs[0]);
+					BoundaryImportVertices.Add(ImportIDs[1]);
+					BoundaryImportVertices.Add(ImportIDs[2]);
+				}
+			}
+			if (WallTriangleCount <= 0 || BoundaryImportVertices.IsEmpty())
+			{
+				OutError = TEXT("Thickness-shell binding could not recover any stitched border triangles.");
+				return false;
 			}
 		}
 		TBitArray<> BoundaryRiskVertices(false, GarmentVertexCount);
@@ -7926,6 +10228,161 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 
+		if (CatalogRow.bCreateThicknessShell)
+		{
+			if (ThicknessShellPreImportVertexCount <= 0
+				|| ThicknessShellRenderVerticesByImportID.Num()
+					!= ThicknessShellPreImportVertexCount * 2)
+			{
+				OutError = TEXT("Thickness-shell render pairing was not initialized.");
+				return false;
+			}
+			const double MinimumSignedThicknessCm =
+				MinimumCertifiedThicknessPointCm(
+					EFClothingMorphV26::CompiledThicknessReferenceCm);
+			for (int32 SourceOrdinal = 0;
+				SourceOrdinal < ThicknessShellPreImportVertexCount;
+				++SourceOrdinal)
+			{
+				const TArray<int32>& OuterRenderVertices =
+					ThicknessShellRenderVerticesByImportID[SourceOrdinal];
+				const TArray<int32>& InnerRenderVertices =
+					ThicknessShellRenderVerticesByImportID[
+						ThicknessShellPreImportVertexCount + SourceOrdinal];
+				if (OuterRenderVertices.IsEmpty() || InnerRenderVertices.IsEmpty())
+				{
+					OutError = FString::Printf(
+						TEXT("Thickness-shell render pair %d is incomplete."),
+						SourceOrdinal);
+					return false;
+				}
+
+				auto ModePriority = [](const EEFClothingSurfaceVertexMode Mode)
+				{
+					return Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
+						? -1
+						: static_cast<int32>(Mode);
+				};
+				int32 AuthoritativeInnerRenderVertex = InnerRenderVertices[0];
+				for (const int32 CandidateInnerRenderVertex : InnerRenderVertices)
+				{
+					const FEFClothingSurfaceVertexBinding& Candidate =
+						OutPair.VertexBindings[CandidateInnerRenderVertex];
+					const FEFClothingSurfaceVertexBinding& Current =
+						OutPair.VertexBindings[AuthoritativeInnerRenderVertex];
+					const int32 CandidatePriority = ModePriority(Candidate.Mode);
+					const int32 CurrentPriority = ModePriority(Current.Mode);
+					if (CandidatePriority < CurrentPriority
+						|| (CandidatePriority == CurrentPriority
+							&& Candidate.FollowWeight > Current.FollowWeight + 1.e-6f)
+						|| (CandidatePriority == CurrentPriority
+							&& FMath::IsNearlyEqual(Candidate.FollowWeight, Current.FollowWeight, 1.e-6f)
+							&& CandidateInnerRenderVertex < AuthoritativeInnerRenderVertex))
+					{
+						AuthoritativeInnerRenderVertex = CandidateInnerRenderVertex;
+					}
+				}
+				ThicknessShellAuthoritativeInnerBySourceOrdinal[SourceOrdinal] =
+					AuthoritativeInnerRenderVertex;
+				const FEFClothingSurfaceVertexBinding AuthoritativeBinding =
+					OutPair.VertexBindings[AuthoritativeInnerRenderVertex];
+				const FVector3d AuthoritativeBarycentrics(
+					AuthoritativeBinding.BodyBarycentrics.X,
+					AuthoritativeBinding.BodyBarycentrics.Y,
+					AuthoritativeBinding.BodyBarycentrics.Z);
+				FVector3d Tangent;
+				FVector3d Bitangent;
+				FVector3d BodyNormal;
+				if (!BuildSurfaceTangentFrame(
+					BodyLOD,
+					AuthoritativeBinding.BodyRenderVertexIndices,
+					AuthoritativeBarycentrics,
+					Tangent,
+					Bitangent,
+					BodyNormal))
+				{
+					OutError = FString::Printf(
+						TEXT("Thickness-shell render pair %d has an invalid authoritative body frame."),
+						SourceOrdinal);
+					return false;
+				}
+				const FVector3d ClosestPoint =
+					BodyLOD.Positions[AuthoritativeBinding.BodyRenderVertexIndices.X]
+						* AuthoritativeBarycentrics.X
+					+ BodyLOD.Positions[AuthoritativeBinding.BodyRenderVertexIndices.Y]
+						* AuthoritativeBarycentrics.Y
+					+ BodyLOD.Positions[AuthoritativeBinding.BodyRenderVertexIndices.Z]
+						* AuthoritativeBarycentrics.Z;
+
+				FVector3d AverageOuterPosition = FVector3d::Zero();
+				for (const int32 RenderVertexIndex : OuterRenderVertices)
+				{
+					AverageOuterPosition += GarmentLOD.Positions[RenderVertexIndex];
+				}
+				AverageOuterPosition /= static_cast<double>(OuterRenderVertices.Num());
+				FVector3d AverageInnerPosition = FVector3d::Zero();
+				for (const int32 RenderVertexIndex : InnerRenderVertices)
+				{
+					AverageInnerPosition += GarmentLOD.Positions[RenderVertexIndex];
+				}
+				AverageInnerPosition /= static_cast<double>(InnerRenderVertices.Num());
+				const double PairThicknessCm =
+					(AverageOuterPosition - AverageInnerPosition).Length();
+				const double SignedThicknessCm =
+					(AverageOuterPosition - AverageInnerPosition).Dot(BodyNormal);
+				// UE's iterative offset follows the garment surface, not the body normal.
+				// On a curved but valid closed shell its layer vector may be tangential or
+				// locally point toward the selected skin frame. Preserve that full 3D rest
+				// vector and certify its Euclidean thickness; the unilateral runtime target
+				// below still prevents either layer from crossing the animated skin.
+				if (!FMath::IsFinite(PairThicknessCm)
+					|| !FMath::IsFinite(SignedThicknessCm)
+					|| PairThicknessCm + 1.e-6 < MinimumSignedThicknessCm)
+				{
+					OutError = FString::Printf(
+						TEXT("Thickness-shell render pair %d collapses (distance/signed %.8f/%.8fcm, minimum %.8fcm)."),
+						SourceOrdinal,
+						PairThicknessCm,
+						SignedThicknessCm,
+						MinimumSignedThicknessCm);
+					return false;
+				}
+
+				auto CoupleRenderVertex = [&OutPair, &GarmentLOD, &AuthoritativeBinding,
+					AuthoritativeInnerRenderVertex, &ClosestPoint, &Tangent, &Bitangent,
+					&BodyNormal](const int32 RenderVertexIndex, const bool bOuterLayer)
+				{
+					FEFClothingSurfaceVertexBinding& VertexBinding =
+						OutPair.VertexBindings[RenderVertexIndex];
+					VertexBinding.BodyRenderVertexIndices =
+						AuthoritativeBinding.BodyRenderVertexIndices;
+					VertexBinding.BodyBarycentrics = AuthoritativeBinding.BodyBarycentrics;
+					VertexBinding.Mode = AuthoritativeBinding.Mode;
+					VertexBinding.FollowWeight = AuthoritativeBinding.FollowWeight;
+					VertexBinding.CandidateRange = AuthoritativeBinding.CandidateRange;
+					VertexBinding.ThicknessReferenceRenderVertexIndex =
+						AuthoritativeInnerRenderVertex;
+					VertexBinding.bOuterThicknessLayer = bOuterLayer;
+					const FVector3d RestOffset =
+						GarmentLOD.Positions[RenderVertexIndex] - ClosestPoint;
+					const double SignedGap = RestOffset.Dot(BodyNormal);
+					VertexBinding.RestTangentFrameOffsetCm = FVector3f(
+						static_cast<float>(RestOffset.Dot(Tangent)),
+						static_cast<float>(RestOffset.Dot(Bitangent)),
+						static_cast<float>(SignedGap));
+					VertexBinding.RestSignedGapCm = static_cast<float>(SignedGap);
+				};
+				for (const int32 RenderVertexIndex : OuterRenderVertices)
+				{
+					CoupleRenderVertex(RenderVertexIndex, true);
+				}
+				for (const int32 RenderVertexIndex : InnerRenderVertices)
+				{
+					CoupleRenderVertex(RenderVertexIndex, false);
+				}
+			}
+		}
+
 		constexpr float BoundaryClearanceReserveCm = 0.35f;
 		for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
 		{
@@ -7940,12 +10397,15 @@ namespace EFClothingFitCompilerPrivate
 				&& VertexBinding.Mode != EEFClothingSurfaceVertexMode::CollisionOnly;
 			VertexBinding.TargetClearanceCm = TargetClearanceCm
 				+ (bNeedsBoundaryReserve ? BoundaryClearanceReserveCm : 0.0f);
+			const float RequiredInitialPushCm = FMath::Max(
+				0.0f,
+				VertexBinding.TargetClearanceCm - VertexBinding.RestSignedGapCm);
 			if (VertexBinding.MaximumCorrectionCm + 1.e-4f
-				< VertexBinding.TargetClearanceCm)
+				< RequiredInitialPushCm)
 			{
 				OutError = FString::Printf(
-					TEXT("Boundary reserve %.4fcm exceeds the correction budget at garment vertex %d."),
-					VertexBinding.TargetClearanceCm,
+					TEXT("Boundary reserve requires %.4fcm initial push beyond the correction budget at garment vertex %d."),
+					RequiredInitialPushCm,
 					VertexIndex);
 				return false;
 			}
@@ -7961,6 +10421,107 @@ namespace EFClothingFitCompilerPrivate
 			MinimumRestGap = FMath::Min(
 				MinimumRestGap,
 				static_cast<double>(VertexBinding.RestSignedGapCm));
+		}
+
+		if (CatalogRow.bCreateThicknessShell)
+		{
+			for (int32 SourceOrdinal = 0;
+				SourceOrdinal < ThicknessShellPreImportVertexCount;
+				++SourceOrdinal)
+			{
+				const int32 AuthoritativeInnerRenderVertex =
+					ThicknessShellAuthoritativeInnerBySourceOrdinal[SourceOrdinal];
+				if (!OutPair.VertexBindings.IsValidIndex(AuthoritativeInnerRenderVertex))
+				{
+					OutError = FString::Printf(
+						TEXT("Thickness-shell render pair %d lost its authoritative inner binding."),
+						SourceOrdinal);
+					return false;
+				}
+				const FEFClothingSurfaceVertexBinding AuthoritativeBinding =
+					OutPair.VertexBindings[AuthoritativeInnerRenderVertex];
+				auto SynchronizeFinalConstraint = [
+					&OutPair,
+					&AuthoritativeBinding,
+					&OutError,
+					SourceOrdinal](
+					const int32 RenderVertexIndex,
+					const bool bOuterLayer)
+				{
+					FEFClothingSurfaceVertexBinding& VertexBinding =
+						OutPair.VertexBindings[RenderVertexIndex];
+					const float SignedLayerHeightCm = bOuterLayer
+						? FMath::Max(
+							0.0f,
+							VertexBinding.RestSignedGapCm
+								- AuthoritativeBinding.RestSignedGapCm)
+						: 0.0f;
+					VertexBinding.Mode = AuthoritativeBinding.Mode;
+					// Inner and outer layers share the same unilateral correction, not
+					// the same absolute body plane. Offsetting the outer target by its
+					// signed layer height prevents Hybrid/CollisionOnly and boundary
+					// reserve from crushing real thickness during animation.
+					VertexBinding.TargetClearanceCm =
+						AuthoritativeBinding.TargetClearanceCm + SignedLayerHeightCm;
+					VertexBinding.MaximumCorrectionCm = AuthoritativeBinding.MaximumCorrectionCm;
+					const float RequiredInitialPushCm = FMath::Max(
+						0.0f,
+						VertexBinding.TargetClearanceCm - VertexBinding.RestSignedGapCm);
+					if (VertexBinding.MaximumCorrectionCm + 1.e-4f
+						< RequiredInitialPushCm)
+					{
+						OutError = FString::Printf(
+							TEXT("Thickness-shell pair %d requires %.6fcm initial push but only %.6fcm correction is certified."),
+							SourceOrdinal,
+							RequiredInitialPushCm,
+							VertexBinding.MaximumCorrectionCm);
+						return false;
+					}
+					VertexBinding.FollowWeight = VertexBinding.Mode
+						== EEFClothingSurfaceVertexMode::PreserveUpstream
+						? 0.0f
+						: SurfaceFollowWeight(
+							VertexBinding.Mode,
+							VertexBinding.RestSignedGapCm,
+							VertexBinding.TargetClearanceCm);
+					return true;
+				};
+				for (const int32 RenderVertexIndex :
+					ThicknessShellRenderVerticesByImportID[SourceOrdinal])
+				{
+					if (!SynchronizeFinalConstraint(RenderVertexIndex, true))
+					{
+						return false;
+					}
+				}
+				for (const int32 RenderVertexIndex :
+					ThicknessShellRenderVerticesByImportID[
+						ThicknessShellPreImportVertexCount + SourceOrdinal])
+				{
+					if (!SynchronizeFinalConstraint(RenderVertexIndex, false))
+					{
+						return false;
+					}
+				}
+			}
+
+			OutPair.Metrics.MaximumInitialCorrectionCm = 0.0f;
+			MinimumRestGap = TNumericLimits<double>::Max();
+			for (const FEFClothingSurfaceVertexBinding& VertexBinding : OutPair.VertexBindings)
+			{
+				if (VertexBinding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+				{
+					continue;
+				}
+				OutPair.Metrics.MaximumInitialCorrectionCm = FMath::Max(
+					OutPair.Metrics.MaximumInitialCorrectionCm,
+					FMath::Max(
+						0.0f,
+						VertexBinding.TargetClearanceCm - VertexBinding.RestSignedGapCm));
+				MinimumRestGap = FMath::Min(
+					MinimumRestGap,
+					static_cast<double>(VertexBinding.RestSignedGapCm));
+			}
 		}
 
 		// Adaptive edge/interior witnesses close the vertex-only loophole. A
@@ -8064,7 +10625,15 @@ namespace EFClothingFitCompilerPrivate
 				// Boundary vertices carry their own opening reserve. Face witnesses keep
 				// the fabric-wide clearance so the strip behind an opening is not inflated
 				// or pushed across a different concave body surface.
-				Witness.TargetClearanceCm = TargetClearanceCm;
+				Witness.TargetClearanceCm = CatalogRow.bCreateThicknessShell
+					? static_cast<float>(
+						OutPair.VertexBindings[GarmentTriangleVertices.X].TargetClearanceCm
+							* GarmentBarycentrics.X
+						+ OutPair.VertexBindings[GarmentTriangleVertices.Y].TargetClearanceCm
+							* GarmentBarycentrics.Y
+						+ OutPair.VertexBindings[GarmentTriangleVertices.Z].TargetClearanceCm
+							* GarmentBarycentrics.Z)
+					: TargetClearanceCm;
 				Witness.MaximumCorrectionCm = MaximumCorrectionCm;
 			}
 		}
@@ -8497,8 +11066,27 @@ namespace EFClothingFitCompilerPrivate
 				const FEFClothingSurfaceVertexBinding& Vertex = Pair.VertexBindings[VertexIndex];
 				const bool bPreserveUpstream = Vertex.Mode
 					== EEFClothingSurfaceVertexMode::PreserveUpstream;
+				bool bThicknessContractValid = !Profile->bCompiledThicknessShell
+					? Vertex.ThicknessReferenceRenderVertexIndex == INDEX_NONE
+						&& !Vertex.bOuterThicknessLayer
+					: Pair.VertexBindings.IsValidIndex(
+						Vertex.ThicknessReferenceRenderVertexIndex);
+				if (bThicknessContractValid && Profile->bCompiledThicknessShell)
+				{
+					const FEFClothingSurfaceVertexBinding& InnerReference =
+						Pair.VertexBindings[Vertex.ThicknessReferenceRenderVertexIndex];
+					bThicknessContractValid = !InnerReference.bOuterThicknessLayer;
+					if (bThicknessContractValid && Vertex.bOuterThicknessLayer)
+					{
+						bThicknessContractValid =
+							(Vertex.RestTangentFrameOffsetCm
+								- InnerReference.RestTangentFrameOffsetCm).Length()
+								> UE_SMALL_NUMBER;
+					}
+				}
 				const float BarycentricSum = Vertex.BodyBarycentrics.X + Vertex.BodyBarycentrics.Y + Vertex.BodyBarycentrics.Z;
 				if (Vertex.GarmentRenderVertexIndex != VertexIndex
+					|| !bThicknessContractValid
 					|| Vertex.BodyRenderVertexIndices.X < 0
 					|| Vertex.BodyRenderVertexIndices.Y < 0
 					|| Vertex.BodyRenderVertexIndices.Z < 0
@@ -8521,7 +11109,7 @@ namespace EFClothingFitCompilerPrivate
 					|| Vertex.FollowWeight < 0.0f
 					|| Vertex.FollowWeight > 1.0f
 					|| !FMath::IsFinite(Vertex.MaximumCorrectionCm)
-					|| Vertex.MaximumCorrectionCm < Vertex.TargetClearanceCm
+					|| Vertex.MaximumCorrectionCm <= 0.0f
 					|| static_cast<uint8>(Vertex.Mode)
 						> static_cast<uint8>(EEFClothingSurfaceVertexMode::PreserveUpstream)
 					|| (bPreserveUpstream && !FMath::IsNearlyZero(Vertex.FollowWeight, 1.e-6f))
@@ -8620,7 +11208,7 @@ namespace EFClothingFitCompilerPrivate
 					|| !FMath::IsFinite(Witness.TargetClearanceCm)
 					|| Witness.TargetClearanceCm <= 0.0f
 					|| !FMath::IsFinite(Witness.MaximumCorrectionCm)
-					|| Witness.MaximumCorrectionCm < Witness.TargetClearanceCm
+					|| Witness.MaximumCorrectionCm <= 0.0f
 					|| bTouchesPreserveUpstream)
 				{
 					OutError = FString::Printf(
@@ -8657,14 +11245,27 @@ FGameplayTagContainer UEFClothingFitCompilerLibrary::MakeGameplayTagContainerFro
 bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema2(
 	UEFClothingMorphDirectorPolicy* Director)
 {
+	return UpgradeDirectorIdentityToSchema3(Director);
+}
+
+bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema3(
+	UEFClothingMorphDirectorPolicy* Director)
+{
 	if (!IsValid(Director)
-		|| (Director->SchemaVersion != 1 && Director->SchemaVersion != 2)
+		|| (Director->SchemaVersion != 1
+			&& Director->SchemaVersion != 2
+			&& Director->SchemaVersion != 3)
 		|| (!Director->DirectorId.IsNone() && Director->DirectorId != TEXT("EFClothingMorphV2")))
 	{
 		return false;
 	}
-	Director->SchemaVersion = 2;
+	Director->SchemaVersion = 3;
 	Director->DirectorId = TEXT("EFClothingMorphV2");
+	Director->AuthoringGuide = FText::FromString(TEXT(
+		"1) Create one index per garment/body pair. 2) Select and edit the original garment mesh with Unreal's native tools; never edit a generated SK_ mesh. "
+		"3) Runtime Clearance moves only that garment outward. 4) Enable Adjustable Thickness once and compile its paired topology. "
+		"Visible Thickness then updates immediately per garment without rebuilding or hiding it; 0.05 cm is thin fabric and 0.20 cm is visibly thicker. "
+		"Structural shell options remain advanced compile settings. Every control belongs to its expanded garment index; this Director has no global garment tuning."));
 	Director->MarkPackageDirty();
 	return true;
 }
@@ -8927,11 +11528,13 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		return Fail(Error);
 	}
 	int32 ExcludedBodySurfaceTriangleCount = 0;
+	FDynamicMesh3 ExcludedBodySurfaceMesh;
 	if (!ExcludeBodySurfaceMaterialSlots(
 		BodySurface,
 		BodyDynamicMesh,
 		ExcludedBodySurfaceMaterialSlots,
 		ExcludedBodySurfaceTriangleCount,
+		&ExcludedBodySurfaceMesh,
 		Error))
 	{
 		return Fail(Error);
@@ -9020,6 +11623,223 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 			MinimumAfter,
 			Error.IsEmpty() ? TEXT("clearance gate failed") : *Error));
 	}
+
+	FThicknessShellCompileData ThicknessShell;
+	if (CatalogRow.bCreateThicknessShell)
+	{
+		if (SourceGarment->GetMeshClothingAssets().Num() > 0)
+		{
+			return Fail(TEXT("Real-thickness compilation cannot publish stale Chaos cloth mappings; this garment must be rebuilt without authored Chaos topology first."));
+		}
+		const TArray<FSurfaceCorrespondence> PreShellCorrespondence = Correspondence;
+		const TArray<FVector3d> PreShellClearanceDeltas = ClearanceDeltas;
+		const double ExcludedRegionCertificationRadiusCm = FMath::Min(
+			3.0,
+			static_cast<double>(Options.MinimumClearanceCm)
+				+ CompilerClearanceReserveCm
+				+ static_cast<double>(
+					EFClothingMorphV26::CompiledThicknessReferenceCm)
+				+ CompilerClearanceReserveCm);
+		if (!BuildGeneratedThicknessShell(
+			GarmentDynamicMesh,
+			CatalogRow,
+			PreShellCorrespondence,
+			ExcludedBodySurfaceMesh.TriangleCount() > 0
+				? &ExcludedBodySurfaceMesh
+				: nullptr,
+			ExcludedBodySurfaceTriangleCount,
+			ExcludedRegionCertificationRadiusCm,
+			ThicknessShell,
+			Error))
+		{
+			return Fail(FString::Printf(
+				TEXT("Generated real-thickness shell failed: %s"),
+				*Error));
+		}
+		if (!WriteGeneratedSurfaceTopology(GarmentDynamicMesh, Derived, Error, true)
+			|| Derived->GetSkeleton() != SharedSkeletonBefore
+			|| !RebindGeneratedMeshToBody(Derived, BodySurface, Error)
+			|| Derived->GetSkeleton() != SharedSkeletonBefore
+			|| !ValidateGeneratedBodyBindArtifacts(Derived, BodySurface, Error))
+		{
+			return Fail(FString::Printf(
+				TEXT("Generated real-thickness topology could not preserve skeleton/body bind invariants: %s"),
+				Error.IsEmpty() ? TEXT("unknown shell publication failure") : *Error));
+		}
+		UDynamicMesh* CanonicalShellMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+		if (!CopySourceLOD(Derived, CanonicalShellMesh, Error))
+		{
+			return Fail(FString::Printf(
+				TEXT("Could not recapture the committed real-thickness topology: %s"),
+				*Error));
+		}
+		GarmentDynamicMesh->SetMesh(CanonicalShellMesh->GetMeshRef());
+		if (!RebuildThicknessShellPairing(
+			GarmentDynamicMesh->GetMeshRef(),
+			ThicknessShell,
+			Error))
+		{
+			return Fail(FString::Printf(
+				TEXT("Committed real-thickness pairing is invalid: %s"),
+				*Error));
+		}
+		// The skeletal-mesh writer is allowed to canonicalize seam vertices and
+		// triangle IDs. Re-certify the committed SourceModel and store only this
+		// post-publication evidence so editor validation and cooked render data agree.
+		const FDynamicMesh3& CanonicalShell = GarmentDynamicMesh->GetMeshRef();
+		FDynamicMesh3 CanonicalInnerLayer;
+		TMap<FString, FSourceIntersectionWitnessEvidence>
+			CanonicalBaselineEvidenceBySourcePair;
+		int32 CanonicalBaselinePairCount = 0;
+		FMeshBoundaryLoops CanonicalBoundaryLoops(&CanonicalShell, true);
+		int32 CanonicalDegenerateTriangleCount = 0;
+		for (const int32 TriangleID : CanonicalShell.TriangleIndicesItr())
+		{
+			CanonicalDegenerateTriangleCount +=
+				CanonicalShell.GetTriArea(TriangleID) <= 1.e-10 ? 1 : 0;
+		}
+		const double CanonicalBaselineInheritanceRadiusCm =
+			SurfaceRuntimeMaximumEdgeLengthCm * 0.5
+			+ ThicknessShell.RequestedThicknessCm
+			+ 0.01;
+		const double CanonicalLocalRepairThicknessCeilingCm = FMath::Max(
+			1.e-4,
+			ThicknessShell.RequestedThicknessCm * 0.15);
+		FThicknessShellIntersectionAudit CanonicalIntersectionAudit;
+		FString CanonicalIntersectionPolicyError;
+		const bool bCanonicalGeometryPass =
+			!CanonicalBoundaryLoops.bAborted
+			&& CanonicalBoundaryLoops.Loops.IsEmpty()
+			&& CanonicalBoundaryLoops.Spans.IsEmpty()
+			&& CanonicalDegenerateTriangleCount == 0
+			&& ExtractThicknessShellInnerLayer(
+				CanonicalShell,
+				ThicknessShell.PreShellVertexCount,
+				CanonicalInnerLayer,
+				Error)
+			&& CollectSelfIntersectionWitnessEvidence(
+				CanonicalInnerLayer,
+				ThicknessShell.PreShellVertexCount,
+				CanonicalBaselineEvidenceBySourcePair,
+				CanonicalBaselinePairCount,
+				Error)
+			&& MeasureThicknessShellIntersectionsV3(
+				CanonicalShell,
+				ThicknessShell.PreShellVertexCount,
+				CanonicalBaselineEvidenceBySourcePair,
+				CanonicalBaselineInheritanceRadiusCm,
+				ExcludedBodySurfaceMesh.TriangleCount() > 0
+					? &ExcludedBodySurfaceMesh
+					: nullptr,
+				ExcludedRegionCertificationRadiusCm,
+				CanonicalLocalRepairThicknessCeilingCm,
+				CanonicalIntersectionAudit,
+				Error)
+			&& ClassifyThicknessShellIntersectionsV3(
+				CatalogRow,
+				ExcludedBodySurfaceTriangleCount,
+				CanonicalBaselinePairCount,
+				CanonicalBaselineInheritanceRadiusCm,
+				ThicknessShell.PreShellTriangleCount,
+				CanonicalShell.TriangleCount(),
+				ExcludedRegionCertificationRadiusCm,
+				CanonicalIntersectionAudit,
+				CanonicalIntersectionPolicyError);
+		if (!bCanonicalGeometryPass)
+		{
+			return Fail(FString::Printf(
+				TEXT("Committed real-thickness geometry failed canonical certification: geometry=%s policy=%s"),
+				Error.IsEmpty() ? TEXT("invalid") : *Error,
+				CanonicalIntersectionPolicyError.IsEmpty()
+					? TEXT("invalid")
+					: *CanonicalIntersectionPolicyError));
+		}
+		ThicknessShell.OpenBoundaryCountAfter = 0;
+		ThicknessShell.DegenerateTriangleCount = CanonicalDegenerateTriangleCount;
+		ThicknessShell.BaselineSourceIntersectionPairCount =
+			CanonicalBaselinePairCount;
+		ThicknessShell.BaselineInheritanceRadiusCm =
+			CanonicalBaselineInheritanceRadiusCm;
+		ThicknessShell.DetectedNonAdjacentIntersectionCount =
+			CanonicalIntersectionAudit.DetectedPairCount;
+		ThicknessShell.ToleratedInheritedSourceIntersectionCount =
+			CanonicalIntersectionAudit.ToleratedInheritedSourcePairCount;
+		ThicknessShell.ToleratedLocalRepairIntersectionCount =
+			CanonicalIntersectionAudit.ToleratedLocalRepairPairCount;
+		ThicknessShell.LocalRepairThicknessCeilingCm =
+			CanonicalLocalRepairThicknessCeilingCm;
+		ThicknessShell.ToleratedExcludedRegionIntersectionCount =
+			CanonicalIntersectionAudit.ToleratedExcludedRegionPairCount;
+		ThicknessShell.ExcludedRegionAffectedSourceTriangleCount =
+			CanonicalIntersectionAudit.AffectedSourceTriangleCount;
+		ThicknessShell.ExcludedRegionMaximumWitnessDistanceCm =
+			CanonicalIntersectionAudit.MaximumExcludedRegionWitnessDistanceCm;
+		ThicknessShell.bSelfIntersects =
+			CanonicalIntersectionAudit.DetectedPairCount > 0;
+		const FMeshDescription* ShellDescription = Derived->GetMeshDescription(0);
+		const int32 ExpectedShellImportVertexCount = ThicknessShell.PreShellVertexCount * 2;
+		if (!ShellDescription
+			|| ShellDescription->Vertices().Num() != ExpectedShellImportVertexCount)
+		{
+			return Fail(FString::Printf(
+				TEXT("Committed real-thickness import topology has %d vertices; expected exactly %d paired vertices."),
+				ShellDescription ? ShellDescription->Vertices().Num() : 0,
+				ExpectedShellImportVertexCount));
+		}
+		ThicknessShell.FinalShellVertexCount = ShellDescription->Vertices().Num();
+		ThicknessShell.FinalShellTriangleCount = GarmentDynamicMesh->GetMeshRef().TriangleCount();
+		SurfaceFinalVertexCount = GarmentDynamicMesh->GetMeshRef().VertexCount();
+
+		Correspondence.SetNum(GarmentDynamicMesh->GetMeshRef().MaxVertexID());
+		ClearanceDeltas.Init(
+			FVector3d::Zero(),
+			GarmentDynamicMesh->GetMeshRef().MaxVertexID());
+		for (const int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
+		{
+			if (!ThicknessShell.SourceOrdinalByVertex.IsValidIndex(VertexID))
+			{
+				return Fail(FString::Printf(
+					TEXT("Real-thickness vertex %d has no source ordinal."),
+					VertexID));
+			}
+			const int32 SourceOrdinal = ThicknessShell.SourceOrdinalByVertex[VertexID];
+			if (!ThicknessShell.SourceVertexIDByOrdinal.IsValidIndex(SourceOrdinal))
+			{
+				return Fail(FString::Printf(
+					TEXT("Real-thickness vertex %d resolves invalid source ordinal %d."),
+					VertexID,
+					SourceOrdinal));
+			}
+			const int32 SourceVertexID = ThicknessShell.SourceVertexIDByOrdinal[SourceOrdinal];
+			if (!PreShellCorrespondence.IsValidIndex(SourceVertexID)
+				|| !PreShellClearanceDeltas.IsValidIndex(SourceVertexID))
+			{
+				return Fail(FString::Printf(
+					TEXT("Real-thickness source vertex %d has no pre-shell fit data."),
+					SourceVertexID));
+			}
+			Correspondence[VertexID] = PreShellCorrespondence[SourceVertexID];
+			ClearanceDeltas[VertexID] = PreShellClearanceDeltas[SourceVertexID];
+		}
+		ReconcileNonManifoldVectorField(
+			GarmentDynamicMesh->GetMeshRef(),
+			ClearanceDeltas,
+			&ThicknessShell);
+		UE_LOG(
+			LogEFClothingFitCompiler,
+			Display,
+			TEXT("V26 real-thickness shell compiled: requested %.4fcm measured %.4f/%.4f/%.4fcm vertices %d->%d triangles %d->%d loops=%d walls=%d."),
+			ThicknessShell.RequestedThicknessCm,
+			ThicknessShell.MinimumMeasuredThicknessCm,
+			ThicknessShell.AverageMeasuredThicknessCm,
+			ThicknessShell.MaximumMeasuredThicknessCm,
+			ThicknessShell.PreShellVertexCount,
+			ThicknessShell.FinalShellVertexCount,
+			ThicknessShell.PreShellTriangleCount,
+			ThicknessShell.FinalShellTriangleCount,
+			ThicknessShell.BoundaryLoopCount,
+			ThicknessShell.WallTriangleCount);
+	}
 	int32 CertifiedSkinWeightVertexCount = 0;
 
 	const FDynamicMesh3& BodyRestMesh = BodyDynamicMesh->GetMeshRef();
@@ -9039,7 +11859,8 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	// serializable field so the first cook and every repair share one truth.
 	ReconcileNonManifoldVectorField(
 		GarmentDynamicMesh->GetMeshRef(),
-		RequestedClearanceDeltas);
+		RequestedClearanceDeltas,
+		ThicknessShell.bEnabled ? &ThicknessShell : nullptr);
 	for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
 	{
 		const FVector3d& Delta = RequestedClearanceDeltas[VertexID];
@@ -9288,7 +12109,8 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		}
 		ReconcileNonManifoldVectorField(
 			GarmentDynamicMesh->GetMeshRef(),
-			RequestedClearanceDeltas);
+			RequestedClearanceDeltas,
+			ThicknessShell.bEnabled ? &ThicknessShell : nullptr);
 		for (int32 VertexID : GarmentDynamicMesh->GetMeshRef().VertexIndicesItr())
 		{
 			const FVector3d& Delta = RequestedClearanceDeltas[VertexID];
@@ -9384,7 +12206,8 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		// cannot make the corrective solve oscillate at a seam.
 		ReconcileNonManifoldVectorField(
 			GarmentDynamicMesh->GetMeshRef(),
-			RequestedClearanceDeltas);
+			RequestedClearanceDeltas,
+			ThicknessShell.bEnabled ? &ThicknessShell : nullptr);
 
 		UE_LOG(
 			LogEFClothingFitCompiler,
@@ -9409,6 +12232,12 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	{
 		return Fail(FString::Printf(
 			TEXT("Final post-sculpt surface correspondence failed: %s"),
+			*Error));
+	}
+	if (!ReconcileThicknessShellCorrespondence(ThicknessShell, Correspondence, Error))
+	{
+		return Fail(FString::Printf(
+			TEXT("Final real-thickness weight/morph correspondence failed: %s"),
 			*Error));
 	}
 	if (!TransferWeights(
@@ -9464,6 +12293,7 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		GarmentDynamicMesh,
 		Correspondence,
 		ClearanceDeltas,
+		ThicknessShell.bEnabled ? &ThicknessShell : nullptr,
 		ExcludedBodyMorphPrefixes,
 		Options,
 		MorphBindings,
@@ -9583,6 +12413,16 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 		Error))
 	{
 		return Fail(Error);
+	}
+	if (ThicknessShell.bEnabled)
+	{
+		// Imported bounds still originate from the immutable one-layer source.
+		// Add the measured shell reach conservatively on every axis so neither the
+		// outward layer nor its walls can be culled before the runtime deformer.
+		const float ShellBoundsReserveCm = static_cast<float>(
+			ThicknessShell.MaximumMeasuredThicknessCm);
+		ConcurrentBoundsExpansion += FVector(ShellBoundsReserveCm);
+		ConcurrentSphereExpansion += ShellBoundsReserveCm;
 	}
 
 	Derived->SetDefaultMeshDeformer(BodySurface->GetDefaultMeshDeformer());
@@ -9727,6 +12567,81 @@ FEFClothingFitCompileResult UEFClothingFitCompilerLibrary::CompileFitProfile(
 	Profile->ExcludedBodyBoneBranches = ExcludedBodyBoneBranches;
 	Profile->ExcludedBodyMorphPrefixes = ExcludedBodyMorphPrefixes;
 	Profile->ExcludedBodySurfaceTriangleCount = ExcludedBodySurfaceTriangleCount;
+	Profile->bCompiledThicknessShell = ThicknessShell.bEnabled;
+	Profile->ThicknessShellAlgorithmVersion = ThicknessShell.bEnabled
+		? ThicknessShellAlgorithmVersion
+		: 0;
+	Profile->CompiledThicknessCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.RequestedThicknessCm)
+		: 0.0f;
+	Profile->PreShellVertexCount = ThicknessShell.bEnabled
+		? ThicknessShell.PreShellVertexCount
+		: 0;
+	Profile->PreShellTriangleCount = ThicknessShell.bEnabled
+		? ThicknessShell.PreShellTriangleCount
+		: 0;
+	Profile->FinalShellVertexCount = ThicknessShell.bEnabled
+		? ThicknessShell.FinalShellVertexCount
+		: 0;
+	Profile->FinalShellTriangleCount = ThicknessShell.bEnabled
+		? ThicknessShell.FinalShellTriangleCount
+		: 0;
+	Profile->ShellVertexPairCount = ThicknessShell.bEnabled
+		? ThicknessShell.PreShellVertexCount
+		: 0;
+	Profile->ShellBoundaryLoopCount = ThicknessShell.bEnabled
+		? ThicknessShell.BoundaryLoopCount
+		: 0;
+	Profile->ShellWallTriangleCount = ThicknessShell.bEnabled
+		? ThicknessShell.WallTriangleCount
+		: 0;
+	Profile->ShellOpenBoundaryCountAfter = ThicknessShell.bEnabled
+		? ThicknessShell.OpenBoundaryCountAfter
+		: 0;
+	Profile->ShellDegenerateTriangleCount = ThicknessShell.bEnabled
+		? ThicknessShell.DegenerateTriangleCount
+		: 0;
+	Profile->ShellDetectedNonAdjacentIntersectionCount = ThicknessShell.bEnabled
+		? ThicknessShell.DetectedNonAdjacentIntersectionCount
+		: 0;
+	Profile->ShellBaselineSourceIntersectionPairCount = ThicknessShell.bEnabled
+		? ThicknessShell.BaselineSourceIntersectionPairCount
+		: 0;
+	Profile->ShellToleratedInheritedSourceIntersectionCount = ThicknessShell.bEnabled
+		? ThicknessShell.ToleratedInheritedSourceIntersectionCount
+		: 0;
+	Profile->ShellBaselineInheritanceRadiusCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.BaselineInheritanceRadiusCm)
+		: 0.0f;
+	Profile->ShellToleratedLocalRepairIntersectionCount = ThicknessShell.bEnabled
+		? ThicknessShell.ToleratedLocalRepairIntersectionCount
+		: 0;
+	Profile->ShellLocalRepairThicknessCeilingCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.LocalRepairThicknessCeilingCm)
+		: 0.0f;
+	Profile->ShellToleratedExcludedRegionIntersectionCount = ThicknessShell.bEnabled
+		? ThicknessShell.ToleratedExcludedRegionIntersectionCount
+		: 0;
+	Profile->ShellExcludedRegionAffectedSourceTriangleCount = ThicknessShell.bEnabled
+		? ThicknessShell.ExcludedRegionAffectedSourceTriangleCount
+		: 0;
+	Profile->ShellExcludedRegionCertificationRadiusCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.ExcludedRegionCertificationRadiusCm)
+		: 0.0f;
+	Profile->ShellExcludedRegionMaximumWitnessDistanceCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.ExcludedRegionMaximumWitnessDistanceCm)
+		: 0.0f;
+	Profile->bShellSelfIntersects = ThicknessShell.bEnabled
+		&& ThicknessShell.bSelfIntersects;
+	Profile->ShellMinimumMeasuredThicknessCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.MinimumMeasuredThicknessCm)
+		: 0.0f;
+	Profile->ShellAverageMeasuredThicknessCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.AverageMeasuredThicknessCm)
+		: 0.0f;
+	Profile->ShellMaximumMeasuredThicknessCm = ThicknessShell.bEnabled
+		? static_cast<float>(ThicknessShell.MaximumMeasuredThicknessCm)
+		: 0.0f;
 	Profile->ClearanceMorphName = ClearanceMorphName;
 	Profile->DefaultClearanceValue = 1.0f;
 	Profile->CertifiedClearanceMultiplierMin = static_cast<float>(CertifiedClearanceTierMin);
@@ -10038,6 +12953,10 @@ FEFClothingCatalogCompileResult UEFClothingFitCompilerLibrary::CompileGarmentCat
 	TSet<FString> UniqueSourceBodyKeys;
 	for (const FEFClothingGarmentRow& Row : Director->Garments)
 	{
+		if (Row.IsDisabledEmptyPlaceholder())
+		{
+			continue;
+		}
 		if (Row.GarmentId.IsNone())
 		{
 			return Fail(TEXT("Clothing Director contains a garment with an empty GarmentId."));
@@ -10328,6 +13247,268 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 	const bool bClearanceMorphExists = IsValid(ClearanceMorph)
 		&& ClearanceMorph->HasDataForLOD(0)
 		&& ClearanceMorph->GetNumDeltasForLOD(0) > 0;
+	bool bThicknessShellPass = true;
+	FString ThicknessShellFailureReason;
+	auto RejectThicknessShell = [&bThicknessShellPass, &ThicknessShellFailureReason](const FString& Reason)
+	{
+		bThicknessShellPass = false;
+		if (ThicknessShellFailureReason.IsEmpty())
+		{
+			ThicknessShellFailureReason = Reason;
+		}
+	};
+	const FMeshDescription* FittedShellDescription = Fitted->GetMeshDescription(0);
+	if (CatalogRow.bCreateThicknessShell)
+	{
+		if (!Profile->bCompiledThicknessShell
+			|| Profile->ThicknessShellAlgorithmVersion != EFClothingFitCompilerPrivate::ThicknessShellAlgorithmVersion
+			|| !FMath::IsFinite(Profile->CompiledThicknessCm)
+			|| !FMath::IsNearlyEqual(
+				Profile->CompiledThicknessCm,
+				EFClothingMorphV26::CompiledThicknessReferenceCm,
+				1.e-4f)
+			|| Profile->PreShellVertexCount <= 0
+			|| Profile->PreShellTriangleCount <= 0
+			|| Profile->FinalShellVertexCount != Profile->PreShellVertexCount * 2
+			|| Profile->FinalShellTriangleCount
+				!= Profile->PreShellTriangleCount * 2 + Profile->ShellWallTriangleCount
+			|| Profile->ShellVertexPairCount != Profile->PreShellVertexCount
+			|| Profile->ShellBoundaryLoopCount <= 0
+			|| Profile->ShellWallTriangleCount <= 0
+			|| Profile->ShellOpenBoundaryCountAfter != 0
+			|| Profile->ShellDegenerateTriangleCount != 0
+			|| Profile->ShellDetectedNonAdjacentIntersectionCount < 0
+			|| Profile->ShellBaselineSourceIntersectionPairCount < 0
+			|| Profile->ShellToleratedInheritedSourceIntersectionCount < 0
+			|| Profile->ShellToleratedLocalRepairIntersectionCount < 0
+			|| Profile->ShellToleratedExcludedRegionIntersectionCount < 0
+			|| Profile->ShellToleratedInheritedSourceIntersectionCount
+				+ Profile->ShellToleratedLocalRepairIntersectionCount
+				+ Profile->ShellToleratedExcludedRegionIntersectionCount
+				> Profile->ShellDetectedNonAdjacentIntersectionCount
+			|| !FMath::IsFinite(Profile->ShellBaselineInheritanceRadiusCm)
+			|| Profile->ShellBaselineInheritanceRadiusCm <= 0.0f
+			|| !FMath::IsFinite(Profile->ShellLocalRepairThicknessCeilingCm)
+			|| Profile->ShellLocalRepairThicknessCeilingCm <= 0.0f
+			|| Profile->ShellExcludedRegionAffectedSourceTriangleCount < 0
+			|| !FMath::IsFinite(Profile->ShellExcludedRegionCertificationRadiusCm)
+			|| Profile->ShellExcludedRegionCertificationRadiusCm <= 0.0f
+			|| !FMath::IsFinite(Profile->ShellExcludedRegionMaximumWitnessDistanceCm)
+			|| Profile->ShellExcludedRegionMaximumWitnessDistanceCm < 0.0f
+			|| Profile->bShellSelfIntersects
+				!= (Profile->ShellDetectedNonAdjacentIntersectionCount > 0)
+			|| !FittedShellDescription
+			|| FittedShellDescription->Vertices().Num() != Profile->FinalShellVertexCount
+			|| FittedShellDescription->Triangles().Num() != Profile->FinalShellTriangleCount)
+		{
+			RejectThicknessShell(TEXT("stored shell topology/settings do not match the catalog or fitted MeshDescription"));
+		}
+		if (bThicknessShellPass)
+		{
+			UDynamicMesh* ValidationShellMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+			UDynamicMesh* ValidationBodyMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+			UE::Geometry::FDynamicMesh3 ValidationExcludedBodySurface;
+			int32 ValidationExcludedBodyTriangleCount = 0;
+			FString ShellReadError;
+			if (!EFClothingFitCompilerPrivate::CopySourceLOD(
+				Fitted,
+				ValidationShellMesh,
+				ShellReadError)
+				|| !EFClothingFitCompilerPrivate::CopySourceLOD(
+					Body,
+					ValidationBodyMesh,
+					ShellReadError)
+				|| !EFClothingFitCompilerPrivate::ExcludeBodySurfaceMaterialSlots(
+					Body,
+					ValidationBodyMesh,
+					CatalogExcludedSurfaceSlots,
+					ValidationExcludedBodyTriangleCount,
+					&ValidationExcludedBodySurface,
+					ShellReadError))
+			{
+				RejectThicknessShell(FString::Printf(
+					TEXT("could not recapture fitted shell/excluded anatomy: %s"),
+					*ShellReadError));
+			}
+			else
+			{
+				const UE::Geometry::FDynamicMesh3& ValidationMesh = ValidationShellMesh->GetMeshRef();
+				UE::Geometry::FMeshBoundaryLoops BoundaryLoops(&ValidationMesh, true);
+				int32 DegenerateTriangleCount = 0;
+				for (const int32 TriangleID : ValidationMesh.TriangleIndicesItr())
+				{
+					DegenerateTriangleCount += ValidationMesh.GetTriArea(TriangleID) <= 1.e-10 ? 1 : 0;
+				}
+				const double ExpectedExcludedRegionRadiusCm = FMath::Min(
+					3.0,
+					static_cast<double>(Profile->CompiledMinimumClearanceCm)
+						+ static_cast<double>(Profile->CompiledClearanceReserveCm)
+						+ static_cast<double>(Profile->CompiledThicknessCm)
+						+ static_cast<double>(Profile->CompiledClearanceReserveCm));
+				const double ExpectedBaselineInheritanceRadiusCm =
+					EFClothingFitCompilerPrivate::SurfaceRuntimeMaximumEdgeLengthCm * 0.5
+					+ static_cast<double>(Profile->CompiledThicknessCm)
+					+ 0.01;
+				const double ExpectedLocalRepairThicknessCeilingCm = FMath::Max(
+					1.e-4,
+					static_cast<double>(Profile->CompiledThicknessCm) * 0.15);
+				UE::Geometry::FDynamicMesh3 ValidationInnerLayer;
+				TMap<FString, EFClothingFitCompilerPrivate::FSourceIntersectionWitnessEvidence>
+					ValidationBaselineWitnessPointsBySourcePair;
+				int32 ValidationBaselinePairCount = 0;
+				const bool bBaselineEvidenceValid =
+					EFClothingFitCompilerPrivate::ExtractThicknessShellInnerLayer(
+						ValidationMesh,
+						Profile->PreShellVertexCount,
+						ValidationInnerLayer,
+						ShellReadError)
+					&& EFClothingFitCompilerPrivate::CollectSelfIntersectionWitnessEvidence(
+						ValidationInnerLayer,
+						Profile->PreShellVertexCount,
+						ValidationBaselineWitnessPointsBySourcePair,
+						ValidationBaselinePairCount,
+						ShellReadError);
+				EFClothingFitCompilerPrivate::FThicknessShellIntersectionAudit IntersectionAudit;
+				const bool bSelfIntersectionAuditValid = bBaselineEvidenceValid
+					&&
+					EFClothingFitCompilerPrivate::MeasureThicknessShellIntersectionsV3(
+						ValidationMesh,
+						Profile->PreShellVertexCount,
+						ValidationBaselineWitnessPointsBySourcePair,
+						ExpectedBaselineInheritanceRadiusCm,
+						ValidationExcludedBodySurface.TriangleCount() > 0
+							? &ValidationExcludedBodySurface
+							: nullptr,
+						ExpectedExcludedRegionRadiusCm,
+						ExpectedLocalRepairThicknessCeilingCm,
+						IntersectionAudit,
+						ShellReadError);
+				FString IntersectionPolicyError;
+				const bool bIntersectionPolicyPass = bSelfIntersectionAuditValid
+					&& EFClothingFitCompilerPrivate::ClassifyThicknessShellIntersectionsV3(
+						CatalogRow,
+						ValidationExcludedBodyTriangleCount,
+						ValidationBaselinePairCount,
+						ExpectedBaselineInheritanceRadiusCm,
+						Profile->PreShellTriangleCount,
+						Profile->FinalShellTriangleCount,
+						ExpectedExcludedRegionRadiusCm,
+						IntersectionAudit,
+						IntersectionPolicyError);
+				const bool bIntersectionEvidenceMatches =
+					ValidationExcludedBodyTriangleCount
+						== Profile->ExcludedBodySurfaceTriangleCount
+					&& IntersectionAudit.DetectedPairCount
+						== Profile->ShellDetectedNonAdjacentIntersectionCount
+					&& ValidationBaselinePairCount
+						== Profile->ShellBaselineSourceIntersectionPairCount
+					&& IntersectionAudit.ToleratedInheritedSourcePairCount
+						== Profile->ShellToleratedInheritedSourceIntersectionCount
+					&& IntersectionAudit.ToleratedLocalRepairPairCount
+						== Profile->ShellToleratedLocalRepairIntersectionCount
+					&& FMath::IsNearlyEqual(
+						Profile->ShellBaselineInheritanceRadiusCm,
+						static_cast<float>(ExpectedBaselineInheritanceRadiusCm),
+						1.e-4f)
+					&& FMath::IsNearlyEqual(
+						Profile->ShellLocalRepairThicknessCeilingCm,
+						static_cast<float>(ExpectedLocalRepairThicknessCeilingCm),
+						1.e-4f)
+					&& IntersectionAudit.ToleratedExcludedRegionPairCount
+						== Profile->ShellToleratedExcludedRegionIntersectionCount
+					&& IntersectionAudit.AffectedSourceTriangleCount
+						== Profile->ShellExcludedRegionAffectedSourceTriangleCount
+					&& Profile->bShellSelfIntersects
+						== (IntersectionAudit.DetectedPairCount > 0)
+					&& FMath::IsNearlyEqual(
+						Profile->ShellExcludedRegionCertificationRadiusCm,
+						static_cast<float>(ExpectedExcludedRegionRadiusCm),
+						1.e-4f)
+					&& FMath::IsNearlyEqual(
+						Profile->ShellExcludedRegionMaximumWitnessDistanceCm,
+						static_cast<float>(IntersectionAudit.MaximumExcludedRegionWitnessDistanceCm),
+						1.e-3f);
+				EFClothingFitCompilerPrivate::FThicknessShellCompileData ValidationShell;
+				ValidationShell.bEnabled = true;
+				ValidationShell.PreShellVertexCount = Profile->PreShellVertexCount;
+				ValidationShell.RequestedThicknessCm = Profile->CompiledThicknessCm;
+				if (BoundaryLoops.bAborted
+					|| !BoundaryLoops.Loops.IsEmpty()
+					|| !BoundaryLoops.Spans.IsEmpty()
+					|| DegenerateTriangleCount != 0
+					|| !bIntersectionPolicyPass
+					|| !bIntersectionEvidenceMatches
+					|| !EFClothingFitCompilerPrivate::RebuildThicknessShellPairing(
+						ValidationMesh,
+						ValidationShell,
+						ShellReadError))
+				{
+					RejectThicknessShell(FString::Printf(
+					TEXT("recomputed shell geometry failed (open=%d degenerate=%d detected/inherited/excluded=%d/%d/%d baselinePairs/radius=%d/%.6fcm affectedResidualSource=%d maxExcludedWitness/radius=%.6f/%.6fcm outer/inner/cross=%d/%d/%d evidence=%s policy=%s reason=%s)"),
+						BoundaryLoops.Loops.Num() + BoundaryLoops.Spans.Num(),
+						DegenerateTriangleCount,
+						IntersectionAudit.DetectedPairCount,
+						IntersectionAudit.ToleratedInheritedSourcePairCount,
+						IntersectionAudit.ToleratedExcludedRegionPairCount,
+						ValidationBaselinePairCount,
+						ExpectedBaselineInheritanceRadiusCm,
+						IntersectionAudit.AffectedSourceTriangleCount,
+						IntersectionAudit.MaximumExcludedRegionWitnessDistanceCm,
+						ExpectedExcludedRegionRadiusCm,
+						IntersectionAudit.OuterLayerPairCount,
+						IntersectionAudit.InnerLayerPairCount,
+						IntersectionAudit.CrossLayerOrWallPairCount,
+						bIntersectionEvidenceMatches ? TEXT("match") : TEXT("mismatch"),
+						bIntersectionPolicyPass ? TEXT("pass") : *IntersectionPolicyError,
+						ShellReadError.IsEmpty() ? TEXT("none") : *ShellReadError));
+				}
+				else if (!FMath::IsNearlyEqual(
+						Profile->ShellMinimumMeasuredThicknessCm,
+						static_cast<float>(ValidationShell.MinimumMeasuredThicknessCm),
+						1.e-3f)
+					|| !FMath::IsNearlyEqual(
+						Profile->ShellAverageMeasuredThicknessCm,
+						static_cast<float>(ValidationShell.AverageMeasuredThicknessCm),
+						1.e-3f)
+					|| !FMath::IsNearlyEqual(
+						Profile->ShellMaximumMeasuredThicknessCm,
+						static_cast<float>(ValidationShell.MaximumMeasuredThicknessCm),
+						1.e-3f))
+				{
+					RejectThicknessShell(TEXT("stored thickness measurements differ from fitted geometry readback"));
+				}
+			}
+		}
+	}
+	else if (Profile->bCompiledThicknessShell
+		|| Profile->ThicknessShellAlgorithmVersion != 0
+		|| !FMath::IsNearlyZero(Profile->CompiledThicknessCm)
+		|| Profile->PreShellVertexCount != 0
+		|| Profile->PreShellTriangleCount != 0
+		|| Profile->FinalShellVertexCount != 0
+		|| Profile->FinalShellTriangleCount != 0
+		|| Profile->ShellVertexPairCount != 0
+		|| Profile->ShellBoundaryLoopCount != 0
+		|| Profile->ShellWallTriangleCount != 0
+		|| Profile->ShellOpenBoundaryCountAfter != 0
+		|| Profile->ShellDegenerateTriangleCount != 0
+		|| Profile->ShellDetectedNonAdjacentIntersectionCount != 0
+		|| Profile->ShellBaselineSourceIntersectionPairCount != 0
+		|| Profile->ShellToleratedInheritedSourceIntersectionCount != 0
+		|| !FMath::IsNearlyZero(Profile->ShellBaselineInheritanceRadiusCm)
+		|| Profile->ShellToleratedLocalRepairIntersectionCount != 0
+		|| !FMath::IsNearlyZero(Profile->ShellLocalRepairThicknessCeilingCm)
+		|| Profile->ShellToleratedExcludedRegionIntersectionCount != 0
+		|| Profile->ShellExcludedRegionAffectedSourceTriangleCount != 0
+		|| !FMath::IsNearlyZero(Profile->ShellExcludedRegionCertificationRadiusCm)
+		|| !FMath::IsNearlyZero(Profile->ShellExcludedRegionMaximumWitnessDistanceCm)
+		|| Profile->bShellSelfIntersects
+		|| !FMath::IsNearlyZero(Profile->ShellMinimumMeasuredThicknessCm)
+		|| !FMath::IsNearlyZero(Profile->ShellAverageMeasuredThicknessCm)
+		|| !FMath::IsNearlyZero(Profile->ShellMaximumMeasuredThicknessCm))
+	{
+		RejectThicknessShell(TEXT("catalog disables thickness but the profile retains shell evidence"));
+	}
 	bool bSurfacePolicyPass = Profile->ExcludedBodySurfaceTriangleCount >= 0
 		&& !Profile->GarmentCompileFingerprint.IsEmpty()
 		&& Profile->GarmentCompileFingerprint == CatalogRow.BuildCompileFingerprint()
@@ -10802,6 +13983,7 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 			FittedLODInfo->BuildSettings.MorphThresholdPosition,
 			KINDA_SMALL_NUMBER)
 		&& Profile->PostThresholdAlteredDeltaCount >= 0
+		&& bThicknessShellPass
 		&& bBoundsPass
 		&& Profile->ClearanceValidatedMorphCount == Profile->MorphBindings.Num()
 		&& Profile->MorphClearanceSampleCount >= 2
@@ -10826,6 +14008,7 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		&& bSurfaceBindingPass
 		&& bProfileExists
 		&& bClearanceMorphExists
+		&& bThicknessShellPass
 		&& bSurfacePolicyPass
 		&& bWeightedBonesPass
 		&& bBindingsPass
@@ -10833,7 +14016,7 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		&& bBoundsPass
 		&& bMetricsPass;
 	OutReport = FString::Printf(
-		TEXT("%s | Skeletons=%s | Content=%s | Packages=%s | Catalog=%s:%s backend=%d mode=%d | SurfaceBinding=%s:%s | SkinProfile=%s | SurfacePolicy=%s:slots=%d triangles=%d branches=%d morphPrefixes=%d | WeightedBones=%s:%d remapped=%d reason=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4f/%.4fcm | MorphSamples=%.4fcm:%d repaired=%d | Bindings=%s:%d | Pairs=%s:%d cells=%d probes=%d tiers=%d | LODs=%d | Compiler=%d"),
+		TEXT("%s | Skeletons=%s | Content=%s | Packages=%s | Catalog=%s:%s backend=%d mode=%d | SurfaceBinding=%s:%s | SkinProfile=%s | SurfacePolicy=%s:slots=%d triangles=%d branches=%d morphPrefixes=%d | Thickness=%s:enabled=%d requested=%.4fcm measured=%.4f/%.4f/%.4fcm pairs=%d walls=%d reason=%s | WeightedBones=%s:%d remapped=%d reason=%s | ClearanceMorph=%s | RestPenetration=%d | MinGap=%.4f/%.4fcm | MorphSamples=%.4fcm:%d repaired=%d | Bindings=%s:%d | Pairs=%s:%d cells=%d probes=%d tiers=%d | LODs=%d | Compiler=%d"),
 		bPass ? TEXT("PASS") : TEXT("FAIL"),
 		bSkeletonFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
 		bContentFingerprintPass ? TEXT("PASS") : TEXT("FAIL"),
@@ -10850,6 +14033,15 @@ bool UEFClothingFitCompilerLibrary::ValidateCompiledProfile(UEFClothingFitProfil
 		Profile->ExcludedBodySurfaceTriangleCount,
 		Profile->ExcludedBodyBoneBranches.Num(),
 		Profile->ExcludedBodyMorphPrefixes.Num(),
+		bThicknessShellPass ? TEXT("PASS") : TEXT("FAIL"),
+		Profile->bCompiledThicknessShell ? 1 : 0,
+		Profile->CompiledThicknessCm,
+		Profile->ShellMinimumMeasuredThicknessCm,
+		Profile->ShellAverageMeasuredThicknessCm,
+		Profile->ShellMaximumMeasuredThicknessCm,
+		Profile->ShellVertexPairCount,
+		Profile->ShellWallTriangleCount,
+		bThicknessShellPass ? TEXT("none") : *ThicknessShellFailureReason,
 		bWeightedBonesPass ? TEXT("PASS") : TEXT("FAIL"),
 		Profile->RequiredWeightedBones.Num(),
 		Profile->RemappedWeightedBoneCount,
