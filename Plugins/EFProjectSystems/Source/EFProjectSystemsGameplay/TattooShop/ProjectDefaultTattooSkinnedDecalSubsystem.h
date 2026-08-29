@@ -4,12 +4,15 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Tickable.h"
 #include "TattooShop/ProjectAutomaticTattooTypes.h"
+#include "TattooShop/ProjectTattooShopStateSubsystem.h"
 #include "ProjectDefaultTattooSkinnedDecalSubsystem.generated.h"
 
 class APawn;
 class USkeletalMeshComponent;
 class USkinnedDecalSampler;
+class UTexture;
 class UTexture2D;
+class UTextureRenderTarget2D;
 
 struct FProjectAutomaticTattooRuntimePlacementOverride
 {
@@ -43,6 +46,30 @@ struct FProjectAutomaticTattooRuntimeDebugSnapshot
 	FString TattooTexturePath;
 };
 
+/**
+ * Read-only evidence for the runtime compositor.  This intentionally exposes
+ * identifiers and hashes rather than mutable renderer objects, so automation
+ * can prove that every manual GUID owns a distinct decal/cell and that a
+ * rebuild for one tattoo leaves the other tattoo's pixels unchanged.
+ */
+struct FProjectManualTattooRuntimeDebugSnapshot
+{
+	FGuid TattooId;
+	FName RowName = NAME_None;
+	int32 DecalIndex = INDEX_NONE;
+	int32 SubUV = INDEX_NONE;
+	int32 AtlasSubImagesX = 1;
+	int32 AtlasSubImagesY = 1;
+	FIntRect AtlasCellRect;
+	int32 NonTransparentPixelCount = 0;
+	uint8 MinimumAlpha = 0;
+	uint8 MaximumAlpha = 0;
+	FIntRect VisiblePixelBounds;
+	FString AtlasCellPixelHash;
+	FString StateHash;
+	FString TattooTexturePath;
+};
+
 UCLASS()
 class EFPROJECTSYSTEMSGAMEPLAY_API UProjectDefaultTattooSkinnedDecalSubsystem : public UTickableWorldSubsystem
 {
@@ -68,6 +95,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Project|TattooShop|Automation")
 	bool HasActiveAutomaticTattoo(APawn* Pawn = nullptr) const;
 
+	/**
+	 * Replaces the old full-body follower meshes with persistent SkinnedDecal
+	 * layers.  TextureByTattooId may contain transient PNG textures as well as
+	 * /Game assets; the caller owns their lifetime through its runtime cache.
+	 */
+	void SynchronizeManualTattoos(
+		APawn* Pawn,
+		const TArray<FProjectTattooRecord>& Records,
+		const TMap<FGuid, UTexture2D*>& TextureByTattooId);
+	bool HasActiveManualTattoo(APawn* Pawn = nullptr) const;
+
 	UFUNCTION(BlueprintPure, Category = "Project|TattooShop|Automation")
 	bool IsAutomaticTattooUnlockedForAutomation() const;
 
@@ -82,6 +120,8 @@ public:
 
 	void GetAutomaticTattooRuntimeDebugSnapshots(TArray<FProjectAutomaticTattooRuntimeDebugSnapshot>& OutSnapshots) const;
 	bool GetAutomaticTattooRuntimeDebugSnapshot(FName RowName, FProjectAutomaticTattooRuntimeDebugSnapshot& OutSnapshot) const;
+	void GetManualTattooRuntimeDebugSnapshots(TArray<FProjectManualTattooRuntimeDebugSnapshot>& OutSnapshots) const;
+	bool GetManualTattooRuntimeDebugSnapshot(const FGuid& TattooId, FProjectManualTattooRuntimeDebugSnapshot& OutSnapshot) const;
 	FProjectAutomaticTattooRuntimeDebugState CaptureAutomaticTattooRuntimeDebugState(FName RowName) const;
 	bool RestoreAutomaticTattooRuntimeDebugState(APawn* Pawn, FName RowName, const FProjectAutomaticTattooRuntimeDebugState& State);
 	bool SetAutomaticTattooRuntimeDebugPlacement(APawn* Pawn, FName RowName, const FProjectAutomaticTattooTableRow& TattooRow);
@@ -103,10 +143,12 @@ private:
 	bool IsTattooShopOpen() const;
 	bool RestoreSkinnedDecalOverlayIfNeeded() const;
 	bool EnsureAutomaticTattoo(APawn* Pawn);
+	bool EnsureManualTattoos(APawn* Pawn);
 	bool TryApplyTattooShopPreview(APawn* Pawn);
 	bool ApplyTattooLayer(APawn* Pawn, int32 DecalIndex, const TCHAR* LayerName, FName RowName, const FProjectAutomaticTattooTableRow* TattooRow, int32 SubUV);
 	bool ApplyAutomaticTattooLayer(APawn* Pawn, int32 DecalIndex, FName RowName, const FProjectAutomaticTattooTableRow* TattooRow, int32 SubUV);
 	void ClearAutomaticTattoo(APawn* Pawn);
+	void ClearManualTattoos(APawn* Pawn);
 	void ClearTattooShopPreviewLayer(APawn* Pawn);
 	void ClearProjectTattooLayers(APawn* Pawn);
 	void ClearTattooLayer(APawn* Pawn, int32 DecalIndex);
@@ -126,7 +168,7 @@ private:
 	bool RefreshAutomaticTattooAfterRuntimeDebugChange(APawn* Pawn);
 	bool AppendTattooShopPreviewAtlasRow(TArray<FName>& InOutRowNames, TArray<const FProjectAutomaticTattooTableRow*>& InOutRows, FName* OutPreviewRowName = nullptr, const FProjectAutomaticTattooTableRow** OutPreviewRow = nullptr) const;
 	UTexture2D* ResolveTattooTexture(const FProjectAutomaticTattooTableRow* TattooRow) const;
-	UTexture2D* CreateAutomaticTattooAtlas(const TArray<FName>& RowNames, const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows, int32& OutSubImagesX, int32& OutSubImagesY, TMap<FName, int32>& OutSubUVByRow, TMap<FName, int32>& OutCompositeSourceCountByRow, TMap<FName, FString>& OutCompositeGroupKeyByRow);
+	UTexture* CreateAutomaticTattooAtlas(const TArray<FName>& RowNames, const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows, int32& OutSubImagesX, int32& OutSubImagesY, TMap<FName, int32>& OutSubUVByRow, TMap<FName, int32>& OutCompositeSourceCountByRow, TMap<FName, FString>& OutCompositeGroupKeyByRow);
 	UTexture2D* CreateMaskedTattooTexture(UTexture2D* SourceTexture);
 	FName ResolveAnchorBone(const USkeletalMeshComponent* TargetMesh) const;
 	FVector ComputeTattooLocation(const APawn* Pawn, const USkeletalMeshComponent* TargetMesh, FName AnchorBone, const FProjectAutomaticTattooTableRow* TattooRow) const;
@@ -140,22 +182,40 @@ private:
 	TWeakObjectPtr<USkinnedDecalSampler> AppliedSampler;
 
 	UPROPERTY(Transient)
+	TWeakObjectPtr<USkeletalMeshComponent> AppliedTargetMesh;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> RuntimeMaskedTattooTexture;
+
+	// Keeps every transient, alpha-masked source used by the current atlas alive.
+	// A single UPROPERTY is insufficient when the atlas contains several layers.
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTexture2D>> RuntimeAtlasSourceTextures;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> RuntimeAutomaticTattooAtlasTexture;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UTextureRenderTarget2D> RuntimeAutomaticTattooAtlasRenderTarget;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> RuntimeNeutralCompactTexture;
 
 	TMap<FName, int32> AutomaticTattooDecalIndices;
+	TMap<FName, int32> ManualTattooDecalIndices;
 	TMap<FName, int32> AutomaticTattooSubUVByRow;
 	TMap<FName, FString> AutomaticTattooPlacementSignatures;
+	TMap<FName, FString> ManualTattooPlacementSignatures;
 	TMap<FName, FVector2D> AutomaticTattooEffectiveOffsets;
 	TMap<FName, int32> AutomaticTattooCompositeSourceCountByRow;
 	TMap<FName, FString> AutomaticTattooCompositeGroupKeyByRow;
 	TMap<FName, FProjectAutomaticTattooRuntimePlacementOverride> RuntimeDebugPlacementOverrides;
 	TSet<FName> RuntimeDebugForcedActiveRows;
+	TArray<FName> ManualTattooRowNames;
+	TArray<FProjectAutomaticTattooTableRow> ManualTattooRows;
+	TMap<FName, FProjectTattooParameters> ManualTattooParametersByRow;
+	TMap<FName, TObjectPtr<UTexture2D>> ManualTattooTexturesByRow;
+	FString ManualTattooStateSignature;
 	int32 AutomaticTattooAtlasSubImagesX = 1;
 	int32 AutomaticTattooAtlasSubImagesY = 1;
 	TWeakObjectPtr<USkinnedDecalSampler> CachedOverlaySampler;

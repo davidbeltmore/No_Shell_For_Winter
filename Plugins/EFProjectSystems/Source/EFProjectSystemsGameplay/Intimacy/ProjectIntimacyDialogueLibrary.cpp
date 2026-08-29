@@ -151,7 +151,7 @@ void UProjectIntimacyDialogueLibrary::BuildFallbackTalkOptions(TArray<FProjectIn
 		const EProjectIntimacyTalkAction Action,
 		const TCHAR* CategoryId,
 		std::initializer_list<const TCHAR*> Tags,
-		const float SessionProgressGain = 0.0f,
+		const float ClimaxGain = 0.0f,
 		const bool bCanBeFlavorCorrectOption = true)
 	{
 		FProjectIntimacyTalkOptionRow& Option = OutOptions.AddDefaulted_GetRef();
@@ -159,7 +159,9 @@ void UProjectIntimacyDialogueLibrary::BuildFallbackTalkOptions(TArray<FProjectIn
 		Option.Label = FText::FromString(Label);
 		Option.Action = Action;
 		Option.CategoryId = FName(CategoryId);
-		Option.SessionProgressGain = SessionProgressGain;
+		Option.ClimaxGain = ClimaxGain;
+		Option.SessionProgressGain = ClimaxGain; // Serialized-row compatibility.
+		Option.ClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
 		Option.bCanBeCorrectTalkOption = bCanBeFlavorCorrectOption;
 		Option.bCanBeFlavorCorrectOption = bCanBeFlavorCorrectOption;
 		for (const TCHAR* TagName : Tags)
@@ -205,8 +207,8 @@ void UProjectIntimacyDialogueLibrary::BuildFallbackMediaCues(TArray<FProjectInti
 	MorePreview.bEnabled = true;
 
 	FProjectIntimacyMediaCueRow& PeakPreview = OutRows.AddDefaulted_GetRef();
-	PeakPreview.CueId = TEXT("SessionPeak.Preview");
-	PeakPreview.TriggerEventId = TEXT("SessionPeak");
+	PeakPreview.CueId = TEXT("Climax.Preview");
+	PeakPreview.TriggerEventId = TEXT("Climax");
 	PeakPreview.MediaType = EProjectIntimacyMediaType::Image;
 	PeakPreview.SourceImagePath = TEXT("_Game/Images/Intimacy/Preview_IntimacyImage.png");
 	PeakPreview.FadeInSeconds = 1.0f;
@@ -241,10 +243,11 @@ void UProjectIntimacyDialogueLibrary::BuildFallbackSocialCardRows(TArray<FProjec
 
 	AddRow(TEXT("Gender"), TEXT("Gender"), TEXT(""), 10, true);
 	AddRow(TEXT("Personality"), TEXT("Personality"), TEXT(""), 20, true);
-	AddRow(TEXT("SessionProgress"), TEXT("Session Progress"), TEXT(""), 30, true);
+	AddRow(TEXT("PlayerClimax"), TEXT("Player Climax"), TEXT(""), 30, true);
+	AddRow(TEXT("PartnerClimax"), TEXT("Partner Climax"), TEXT(""), 40, true);
 	AddRow(TEXT("Encounters"), TEXT("Encounters"), TEXT(""), 100, false);
-	AddRow(TEXT("SatisfiedWins"), TEXT("Satisfied Wins"), TEXT(""), 110, false);
-	AddRow(TEXT("SessionPeakCount"), TEXT("Session Peaks"), TEXT(""), 120, false);
+	AddRow(TEXT("PlayerOrgasmCount"), TEXT("Player Orgasms"), TEXT(""), 110, false);
+	AddRow(TEXT("PartnerOrgasmCount"), TEXT("Partner Orgasms"), TEXT(""), 120, false);
 	AddRow(TEXT("FirstEncounter"), TEXT("First Encounter"), TEXT(""), 140, false);
 	AddRow(TEXT("TotalIntimateTime"), TEXT("Total Intimate Time"), TEXT(""), 150, false);
 }

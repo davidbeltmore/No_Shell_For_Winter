@@ -262,6 +262,7 @@ bool UEFCharacterCreationSubsystem::EnterCharacterCreationMode(APlayerController
 	ApplyCharacterCreationInputState(PlayerController, true);
 	SuspendGameplayForPawn(Pawn, true);
 	bIsCharacterCreationActive = true;
+	CharacterCreationActiveChanged.Broadcast(true);
 	return true;
 }
 
@@ -308,6 +309,7 @@ void UEFCharacterCreationSubsystem::ExitCharacterCreationMode(bool bKeepCurrentC
 
 	CleanupSessionObjects();
 	bIsCharacterCreationActive = false;
+	CharacterCreationActiveChanged.Broadcast(false);
 }
 
 void UEFCharacterCreationSubsystem::HandleStartGameRequested()

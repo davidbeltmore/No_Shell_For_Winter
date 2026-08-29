@@ -282,6 +282,9 @@ namespace ProjectEmoteComponentPrivate
 
 		if (NodeId == ActionsPartnerNodeId)
 		{
+			// The migrated DataAsset still carries the retired Allure metadata.
+			// Charisma is the authoritative runtime gate and themed visual attribute.
+			Node.VisualAttribute = TEXT("Charisma");
 			ApplyPresentationDefaults(Node, NSLOCTEXT("ProjectEmoteComponent", "ActionsPartnerDescription", "Actions that involve another character."), TEXT("Partner"), TEXT("Charisma"), 1);
 			return;
 		}
@@ -316,8 +319,19 @@ namespace ProjectEmoteComponentPrivate
 			return;
 		}
 
-		if (NodeId == TogetherFolderNodeId || NodeId == TogetherScene0001NodeId)
+		if (NodeId == TogetherScene0001NodeId)
 		{
+			// Keep the stable interaction ID and scene asset contract while presenting
+			// the product-facing name consistently, including data-asset-authored nodes.
+			Node.DisplayName = NSLOCTEXT("ProjectEmoteComponent", "TogetherScene0001NodeLabel", "Intimacy");
+			Node.VisualAttribute = TEXT("Charisma");
+			ApplyPresentationDefaults(Node, NSLOCTEXT("ProjectEmoteComponent", "IntimacySceneDescription", "Start an Intimacy session with the selected partner."), TEXT("Partner"), TEXT("Charisma"), 1);
+			return;
+		}
+
+		if (NodeId == TogetherFolderNodeId)
+		{
+			Node.VisualAttribute = TEXT("Charisma");
 			ApplyPresentationDefaults(Node, NSLOCTEXT("ProjectEmoteComponent", "PartnerSceneDescription", "Synchronized partner scene."), TEXT("Partner"), TEXT("Charisma"), 1);
 			return;
 		}
@@ -1138,7 +1152,7 @@ void UProjectEmoteComponent::BuildDefaultInteractionCatalog()
 	TogetherSceneInteraction.InteractionId = ProjectEmoteComponentPrivate::TogetherScene0001NodeId;
 	TogetherSceneInteraction.SourceNodeId = ProjectEmoteComponentPrivate::TogetherScene0001NodeId;
 	TogetherSceneInteraction.ParentNodeId = ProjectEmoteComponentPrivate::TogetherFolderNodeId;
-	TogetherSceneInteraction.DisplayName = NSLOCTEXT("ProjectEmoteComponent", "TogetherScene0001InteractionLabel", "0001 Scene");
+	TogetherSceneInteraction.DisplayName = NSLOCTEXT("ProjectEmoteComponent", "TogetherScene0001InteractionLabel", "Intimacy");
 	TogetherSceneInteraction.MenuCategory = EProjectEmoteMenuCategory::Actions;
 	TogetherSceneInteraction.PlaybackMode = EProjectEmotePlaybackMode::Looping;
 	TogetherSceneInteraction.LegacyEmoteType = EProjectEmoteType::None;
@@ -1330,7 +1344,7 @@ void UProjectEmoteComponent::BuildDefaultMenuNodes()
 	AddBlueprintSceneMenuNode(
 		ProjectEmoteComponentPrivate::TogetherScene0001NodeId,
 		ProjectEmoteComponentPrivate::ActionsPartnerNodeId,
-		NSLOCTEXT("ProjectEmoteComponent", "TogetherScene0001NodeLabel", "0001 Scene"),
+		NSLOCTEXT("ProjectEmoteComponent", "TogetherScene0001NodeLabel", "Intimacy"),
 		FSoftObjectPath(ProjectEmoteComponentPrivate::DefaultTogetherSceneBlueprintPath),
 		0,
 		ProjectEmoteComponentPrivate::MakeStandardRootOffset(ProjectEmoteComponentPrivate::StandardTogetherScene0001RootOffsetZ));
@@ -1949,9 +1963,7 @@ bool UProjectEmoteComponent::IsInteractionCurrentlyAvailable(
 		FText FailureReason;
 		if (!IntimacySubsystem
 			|| !PartnerActor
-			|| !IntimacySubsystem->CanRequestIntimacyWithPartner(
-				PartnerActor,
-				FailureReason))
+			|| !IntimacySubsystem->CanRequestIntimacyWithPartner(PartnerActor, FailureReason))
 		{
 			return false;
 		}

@@ -1,8 +1,6 @@
 #include "EFProceduralEditorCoordinator.h"
 
 #include "EFProceduralSettings.h"
-#include "EngineUtils.h"
-#include "GameFramework/Actor.h"
 #include "Misc/PackageName.h"
 
 FString FEFProceduralEditorCoordinator::NormalizeMapName(const FString& PackageName)
@@ -38,61 +36,13 @@ bool FEFProceduralEditorCoordinator::IsManagedEditorWorld(const UWorld* World) c
 
 void FEFProceduralEditorCoordinator::PrepareEditorDungeon(UWorld* World) const
 {
-	if (!IsManagedEditorWorld(World))
-	{
-		return;
-	}
-
-	if (AActor* DungeonActor = FindDungeonActor(World))
-	{
-		TryInvokeActorFunction(DungeonActor, UEFProceduralSettings::Get()->DungeonRefreshFunctionNames);
-	}
+	// Phase 2 never invokes editor refresh/randomize functions on Calysto. The
+	// editor coordinator remains as a lifecycle seam, but preparation is a
+	// deliberate no-op; all adaptation happens on runtime transient clones.
+	(void)World;
 }
 
 void FEFProceduralEditorCoordinator::CleanupEditorDungeon(UWorld* World) const
 {
-	if (!IsManagedEditorWorld(World))
-	{
-		return;
-	}
-}
-
-AActor* FEFProceduralEditorCoordinator::FindDungeonActor(UWorld* World) const
-{
-	if (!IsValid(World))
-	{
-		return nullptr;
-	}
-
-	UClass* DungeonClass = UEFProceduralSettings::Get()->GetDungeonActorClassResolved().LoadSynchronous();
-	if (!IsValid(DungeonClass))
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<AActor> It(World, DungeonClass); It; ++It)
-	{
-		return *It;
-	}
-
-	return nullptr;
-}
-
-bool FEFProceduralEditorCoordinator::TryInvokeActorFunction(AActor* Actor, const TArray<FName>& CandidateNames) const
-{
-	if (!IsValid(Actor))
-	{
-		return false;
-	}
-
-	for (const FName& CandidateName : CandidateNames)
-	{
-		if (UFunction* Function = Actor->FindFunction(CandidateName))
-		{
-			Actor->ProcessEvent(Function, nullptr);
-			return true;
-		}
-	}
-
-	return false;
+	(void)World;
 }

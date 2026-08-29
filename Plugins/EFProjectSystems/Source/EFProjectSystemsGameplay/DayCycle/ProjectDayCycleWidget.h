@@ -30,6 +30,9 @@ private:
 	TObjectPtr<UTextBlock> DayText;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> CurrentTimeText;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> MorningLabel;
 
 	UPROPERTY(Transient)

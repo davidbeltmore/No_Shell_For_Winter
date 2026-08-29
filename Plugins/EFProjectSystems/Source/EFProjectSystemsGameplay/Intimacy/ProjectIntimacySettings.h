@@ -18,6 +18,13 @@ public:
 
 	static const UProjectIntimacySettings* Get();
 	static bool MeetsAdultInteractionCharismaRequirement(int32 CharismaLevel);
+	static float ClampClimax(float Climax, const UProjectIntimacySettings* Settings = nullptr);
+	static float NormalizeClimaxPercent(float CurrentClimax, float ClimaxMaximum);
+	static float ComputePleaseClimaxGain(int32 SuccessfulHits, const UProjectIntimacySettings* Settings = nullptr);
+	static int32 ConsumeClimax(float CurrentClimax, float ClimaxGain, float ClimaxMaximum, float& OutRemainingClimax);
+	static float ComputeClimaxAnticipationMultiplier(float CurrentClimax, float ClimaxMaximum, const UProjectIntimacySettings* Settings = nullptr);
+
+	/** Legacy compatibility wrappers. New gameplay should use the Climax APIs above. */
 	static float ClampSessionProgress(float SessionProgress, const UProjectIntimacySettings* Settings = nullptr);
 	static float ComputePleaseProgressGain(int32 SuccessfulHits, const UProjectIntimacySettings* Settings = nullptr);
 	static float ComputePleasePulsePeriod(int32 PartnerLevel, const UProjectIntimacySettings* Settings = nullptr);
@@ -29,25 +36,55 @@ public:
 
 	virtual FName GetCategoryName() const override;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session", meta = (ClampMin = "1.0", ClampMax = "100.0"))
+	/** Repeating, session-local meter maximum for both participants. */
+	UPROPERTY(EditAnywhere, Config, Category = "Climax", meta = (ClampMin = "1.0", ClampMax = "100.0"))
+	float ClimaxMaximum = 100.0f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Climax", meta = (ClampMin = "0.0"))
+	float PassivePlayerClimaxPerSecond = 1.0f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Climax", meta = (ClampMin = "0.0"))
+	float PassivePartnerClimaxPerSecond = 1.0f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Climax", meta = (ClampMin = "0.0"))
+	float ClimaxAnticipationWindow = 5.0f;
+
+	/** One session-local state shared by the most recent orgasm participant. */
+	UPROPERTY(EditAnywhere, Config, Category = "Climax|Orgasm Rush", meta = (ClampMin = "0.0"))
+	float OrgasmRushDurationSeconds = 2.0f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Climax|Orgasm Rush", meta = (ClampMin = "1.0"))
+	float OrgasmRushIntensityMultiplier = 1.25f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Climax|Orgasm Rush")
+	FName OrgasmMediaEventId = TEXT("Climax");
+
+	/** Percentage points of the player's Curse maximum removed per second. */
+	UPROPERTY(EditAnywhere, Config, Category = "Curse", meta = (ClampMin = "0.0", ClampMax = "100.0"))
+	float CurseReductionPercentPerSecond = 1.0f;
+
+	UPROPERTY(EditAnywhere, Config, Category = "Curse", meta = (ClampMin = "0.02", ClampMax = "1.0"))
+	float CurseUpdateIntervalSeconds = 0.10f;
+
+	UPROPERTY(Config)
 	float SessionProgressMaximum = 100.0f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session", meta = (ClampMin = "0.0"))
+	UPROPERTY(Config)
 	float PassiveSessionProgressPerSecond = 1.0f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session Peak", meta = (ClampMin = "1.0", ClampMax = "100.0"))
+	UPROPERTY(Config)
 	float SessionPeakThreshold = 25.0f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session Peak", meta = (ClampMin = "0.0"))
+	UPROPERTY(Config)
 	float SessionPeakAnticipationWindow = 5.0f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session Peak", meta = (ClampMin = "1.0"))
+	UPROPERTY(Config)
 	float SessionPeakIntensityMultiplier = 1.25f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session Peak", meta = (ClampMin = "0.0"))
+	UPROPERTY(Config)
 	float SessionPeakRecoverySeconds = 2.0f;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Session Peak")
+	UPROPERTY(Config)
 	FName SessionPeakMediaEventId = TEXT("SessionPeak");
 
 	UPROPERTY(EditAnywhere, Config, Category = "Please", meta = (ClampMin = "1"))
@@ -81,18 +118,24 @@ public:
 	float TalkRefusalChance = 0.10f;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Please", meta = (ClampMin = "0.0"))
+	float PleaseClimaxPerSuccessfulHit = 5.0f;
+
+	UPROPERTY(Config)
 	float PleaseProgressPerSuccessfulHit = 5.0f;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Talk", meta = (ClampMin = "0.0"))
 	float TalkCooldownSeconds = 2.0f;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Talk", meta = (ClampMin = "0.0"))
+	float CorrectTalkClimaxBonus = 5.0f;
+
+	UPROPERTY(Config)
 	float CorrectTalkProgressBonus = 5.0f;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Relationship", meta = (ClampMin = "1"))
 	int32 AffectMax = 100;
 
-	UPROPERTY(EditAnywhere, Config, Category = "Relationship", meta = (ClampMin = "0"))
+	UPROPERTY(Config)
 	int32 SatisfiedWinAffectGain = 10;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Animation", meta = (ClampMin = "0.05"))
@@ -115,6 +158,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "UI", meta = (ClampMin = "0"))
 	int32 IntimacyHudZOrder = 325;
+
+	UPROPERTY(EditAnywhere, Config, Category = "UI", meta = (ClampMin = "0.02", ClampMax = "1.0"))
+	float HudRefreshIntervalSeconds = 0.10f;
 
 	UPROPERTY(EditAnywhere, Config, Category = "DataTables")
 	FSoftObjectPath TalkOptionsTable;
@@ -148,6 +194,22 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Eligibility", meta = (ClampMin = "0.0"))
 	float CombatLockoutSeconds = 8.0f;
+
+	/**
+	 * Charisma mastery makes a selected allowlisted adult companion a contextual,
+	 * session-scoped partner without requiring map-authored social/zone metadata.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "Eligibility")
+	bool bAllowCharismaMasteryTargetedPartners = true;
+
+	/**
+	 * Explicit project-owned companion and enemy classes eligible for the
+	 * Charisma-10 targeted adapter. Charisma may override hostility for these
+	 * classes, while adult, life, consciousness, consent, and live combat gates
+	 * remain authoritative.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "Eligibility")
+	TArray<FSoftClassPath> CharismaTargetedPartnerClasses;
 
 	/** Project-owned companion used by the explicit HUB social route. */
 	UPROPERTY(EditAnywhere, Config, Category = "Eligibility|HUB")

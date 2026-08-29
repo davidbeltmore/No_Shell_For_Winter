@@ -55,6 +55,7 @@ public:
 		const TArray<TSubclassOf<APawn>>& OptionalMatureTargetClasses);
 
 private:
+	bool ResolveConfiguredClasses();
 	void ProcessExistingPawns();
 	void HandleActorSpawned(AActor* SpawnedActor);
 	void QueueVariationApplication(APawn* Pawn, int32 AttemptIndex);
@@ -103,6 +104,7 @@ private:
 	TMap<TObjectKey<APawn>, FProjectEnemyOptionalMatureMorphState> TrackedOptionalMatureMorphStates;
 	TWeakObjectPtr<UProjectContentPolicySubsystem> ContentPolicySubsystem;
 	bool bInitialPawnScanPending = true;
+	bool bConfiguredClassesPending = true;
 	bool bOptionalMatureMorphPolicyAllowed = false;
 	double LastOptionalMatureVisibilityPollTimeSeconds = -1.0;
 };

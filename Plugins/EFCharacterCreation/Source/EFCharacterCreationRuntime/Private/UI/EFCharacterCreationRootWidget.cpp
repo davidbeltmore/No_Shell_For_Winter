@@ -28,10 +28,25 @@
 #include "Components/PanelWidget.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "InputCoreTypes.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/ScopeExit.h"
 
 namespace CharacterCreationRootWidgetPrivate
 {
+	static bool UsesSkinnedDecalTattooShopLayout()
+	{
+		bool bUseSkinnedDecalTattooShop = false;
+		if (GConfig)
+		{
+			GConfig->GetBool(
+				TEXT("/Script/EFProjectSystemsGameplay.ProjectTattooShopSettings"),
+				TEXT("bUseSkinnedDecalTattooShop"),
+				bUseSkinnedDecalTattooShop,
+				GGameIni);
+		}
+		return bUseSkinnedDecalTattooShop;
+	}
+
 	static void SetTextSize(UTextBlock* TextBlock, const int32 FontSize)
 	{
 		if (!IsValid(TextBlock))
@@ -1480,6 +1495,8 @@ void UEFCharacterCreationRootWidget::ApplyTattooLayoutSettings()
 		return;
 	}
 
+	const bool bUseCompactSkinnedDecalLayout = CharacterCreationRootWidgetPrivate::UsesSkinnedDecalTattooShopLayout();
+
 	if (IsValid(TattooHostFrame))
 	{
 		const FVector2D HostSize = Settings->TattooHostSize;
@@ -1501,7 +1518,10 @@ void UEFCharacterCreationRootWidget::ApplyTattooLayoutSettings()
 			TattooHostFrame->ClearHeightOverride();
 		}
 
-		TattooHostFrame->SetClipping(Settings->bClipTattooWidgetToHost ? EWidgetClipping::ClipToBoundsAlways : EWidgetClipping::Inherit);
+		TattooHostFrame->SetClipping(
+			bUseCompactSkinnedDecalLayout || Settings->bClipTattooWidgetToHost
+				? EWidgetClipping::ClipToBoundsAlways
+				: EWidgetClipping::Inherit);
 	}
 
 	if (UWidget* HostFrameWidget = TattooHostFrame.Get())
@@ -1513,6 +1533,41 @@ void UEFCharacterCreationRootWidget::ApplyTattooLayoutSettings()
 				HostVerticalSlot->SetPadding(Settings->TattooHostPadding);
 			}
 		}
+	}
+
+	if (bUseCompactSkinnedDecalLayout)
+	{
+		// The Marketplace widgets use large render translations and scales. The
+		// project-owned SkinnedDecal UI is already authored at its final size, so
+		// give each host a stable column and never inherit the legacy transforms.
+		const FVector2D HostSize = Settings->TattooHostSize;
+		const float HorizontalMargin = 10.0f;
+		const float VerticalMargin = 20.0f;
+		const float ColumnGap = 10.0f;
+		const float ContentCenterY = -48.0f;
+		const float ManagementWidth = FMath::Clamp(HostSize.X * 0.42f, 300.0f, 340.0f);
+		const float WorkspaceWidth = FMath::Max(
+			360.0f,
+			HostSize.X - (HorizontalMargin * 2.0f) - ColumnGap - ManagementWidth);
+		const float ContentHeight = FMath::Max(480.0f, HostSize.Y - (VerticalMargin * 2.0f));
+		const float HostHalfWidth = HostSize.X * 0.5f;
+		const float ManagementCenterX = -HostHalfWidth + HorizontalMargin + (ManagementWidth * 0.5f);
+		const float WorkspaceCenterX = ManagementCenterX + (ManagementWidth * 0.5f) + ColumnGap + (WorkspaceWidth * 0.5f);
+
+		ApplyCenteredTattooWidgetLayout(
+			TattooShopHostBox,
+			FVector2D(ManagementCenterX, ContentCenterY),
+			FVector2D(ManagementWidth, ContentHeight),
+			FVector2D::UnitVector,
+			FVector2D::ZeroVector);
+
+		ApplyCenteredTattooWidgetLayout(
+			TattooAssetPreviewerHostBox,
+			FVector2D(WorkspaceCenterX, ContentCenterY),
+			FVector2D(WorkspaceWidth, ContentHeight),
+			FVector2D::UnitVector,
+			FVector2D::ZeroVector);
+		return;
 	}
 
 	ApplyCenteredTattooWidgetLayout(

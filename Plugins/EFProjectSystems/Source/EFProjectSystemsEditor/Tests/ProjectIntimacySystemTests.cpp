@@ -40,48 +40,127 @@ bool FProjectIntimacyProviderContractTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FProjectIntimacySessionProgressMathTest,
-	"NoShellForWinter.Intimacy.SessionProgress.Math",
+	FProjectIntimacyClimaxMathTest,
+	"NoShellForWinter.Intimacy.Climax.Math",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FProjectIntimacySessionProgressMathTest::RunTest(const FString& Parameters)
+bool FProjectIntimacyClimaxMathTest::RunTest(const FString& Parameters)
 {
-	TestTrue(TEXT("Session progress clamps below zero"), FMath::IsNearlyZero(
-		UProjectIntimacySettings::ClampSessionProgress(-10.0f)));
-	TestTrue(TEXT("Session progress preserves values in range"), FMath::IsNearlyEqual(
-		UProjectIntimacySettings::ClampSessionProgress(55.0f),
+	TestTrue(TEXT("Climax clamps below zero"), FMath::IsNearlyZero(
+		UProjectIntimacySettings::ClampClimax(-10.0f)));
+	TestTrue(TEXT("Climax preserves values in range"), FMath::IsNearlyEqual(
+		UProjectIntimacySettings::ClampClimax(55.0f),
 		55.0f));
-	TestTrue(TEXT("Session progress clamps to 100"), FMath::IsNearlyEqual(
-		UProjectIntimacySettings::ClampSessionProgress(250.0f),
+	TestTrue(TEXT("Climax clamps to 100"), FMath::IsNearlyEqual(
+		UProjectIntimacySettings::ClampClimax(250.0f),
+		100.0f));
+	TestTrue(TEXT("HUD Climax normalizes against a configurable maximum"), FMath::IsNearlyEqual(
+		UProjectIntimacySettings::NormalizeClimaxPercent(40.0f, 80.0f),
+		50.0f));
+	TestTrue(TEXT("HUD Climax normalization caps at 100 percent"), FMath::IsNearlyEqual(
+		UProjectIntimacySettings::NormalizeClimaxPercent(120.0f, 80.0f),
 		100.0f));
 
-	TestTrue(TEXT("Please has no progress without a successful hit"), FMath::IsNearlyZero(
-		UProjectIntimacySettings::ComputePleaseProgressGain(0)));
-	TestTrue(TEXT("Please grants five progress per successful hit"), FMath::IsNearlyEqual(
-		UProjectIntimacySettings::ComputePleaseProgressGain(3),
+	TestTrue(TEXT("Please has no Climax gain without a successful hit"), FMath::IsNearlyZero(
+		UProjectIntimacySettings::ComputePleaseClimaxGain(0)));
+	TestTrue(TEXT("Please grants five Climax per successful hit"), FMath::IsNearlyEqual(
+		UProjectIntimacySettings::ComputePleaseClimaxGain(3),
 		15.0f));
 
-	float RemainingPeak = 0.0f;
+	float RemainingClimax = 0.0f;
 	TestEqual(
-		TEXT("Crossing one threshold emits one session peak"),
-		UProjectIntimacySettings::ConsumeSessionPeak(10.0f, 20.0f, 25.0f, RemainingPeak),
+		TEXT("Crossing the Climax maximum emits one orgasm"),
+		UProjectIntimacySettings::ConsumeClimax(90.0f, 20.0f, 100.0f, RemainingClimax),
 		1);
-	TestTrue(TEXT("A session peak preserves residual progress"), FMath::IsNearlyEqual(RemainingPeak, 5.0f));
+	TestTrue(TEXT("An orgasm preserves residual Climax for the continuing session"), FMath::IsNearlyEqual(
+		RemainingClimax,
+		10.0f));
 
 	TestEqual(
-		TEXT("A large gain can emit multiple local peaks"),
-		UProjectIntimacySettings::ConsumeSessionPeak(20.0f, 60.0f, 25.0f, RemainingPeak),
+		TEXT("A large cosmetic gain can emit multiple orgasms without a terminal result"),
+		UProjectIntimacySettings::ConsumeClimax(20.0f, 285.0f, 100.0f, RemainingClimax),
 		3);
-	TestTrue(TEXT("Multiple peaks preserve residual progress"), FMath::IsNearlyEqual(RemainingPeak, 5.0f));
+	TestTrue(TEXT("Multiple orgasms preserve residual Climax"), FMath::IsNearlyEqual(RemainingClimax, 5.0f));
+
+	TestEqual(
+		TEXT("Residual Climax can immediately continue into another orgasm cycle"),
+		UProjectIntimacySettings::ConsumeClimax(RemainingClimax, 95.0f, 100.0f, RemainingClimax),
+		1);
+	TestTrue(TEXT("A completed follow-up cycle returns to zero Climax"), FMath::IsNearlyZero(RemainingClimax));
 
 	TestTrue(
-		TEXT("Peak anticipation remains neutral outside its window"),
+		TEXT("Climax anticipation remains neutral outside its window"),
 		FMath::IsNearlyEqual(
-			UProjectIntimacySettings::ComputeSessionPeakAnticipationMultiplier(19.0f, 25.0f),
+			UProjectIntimacySettings::ComputeClimaxAnticipationMultiplier(94.0f, 100.0f),
 			1.0f));
 	TestTrue(
-		TEXT("Peak anticipation increases inside its final window"),
-		UProjectIntimacySettings::ComputeSessionPeakAnticipationMultiplier(22.0f, 25.0f) > 1.0f);
+		TEXT("Climax anticipation increases inside its final window"),
+		UProjectIntimacySettings::ComputeClimaxAnticipationMultiplier(98.0f, 100.0f) > 1.0f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectIntimacySessionLocalStateDefaultsTest,
+	"NoShellForWinter.Intimacy.Climax.SessionLocalStateDefaults",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectIntimacySessionLocalStateDefaultsTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FProjectIntimacySessionSnapshot Snapshot;
+	TestEqual(
+		TEXT("A new snapshot starts by building Climax"),
+		Snapshot.SessionState,
+		EProjectIntimacySessionState::BuildingClimax);
+	TestEqual(
+		TEXT("Orgasm Rush remains a session-local state enum"),
+		static_cast<uint8>(EProjectIntimacySessionState::OrgasmRush),
+		static_cast<uint8>(1));
+	TestTrue(TEXT("Player Climax starts at zero"), FMath::IsNearlyZero(Snapshot.PlayerClimax));
+	TestTrue(TEXT("Partner Climax starts at zero"), FMath::IsNearlyZero(Snapshot.PartnerClimax));
+	TestEqual(
+		TEXT("An unset Orgasm Rush snapshot uses the partner as its neutral target"),
+		Snapshot.OrgasmRushTarget,
+		EProjectIntimacyClimaxTarget::Partner);
+	TestFalse(TEXT("A new snapshot has no player Orgasm Rush"), Snapshot.bPlayerOrgasmRush);
+	TestFalse(TEXT("A new snapshot has no partner Orgasm Rush"), Snapshot.bPartnerOrgasmRush);
+	TestTrue(TEXT("Player Orgasm Rush time starts at zero"), FMath::IsNearlyZero(
+		Snapshot.PlayerOrgasmRushRemaining));
+	TestTrue(TEXT("Partner Orgasm Rush time starts at zero"), FMath::IsNearlyZero(
+		Snapshot.PartnerOrgasmRushRemaining));
+	TestEqual(TEXT("Player orgasm history starts at zero"), Snapshot.PlayerOrgasmCount, 0);
+	TestEqual(TEXT("Partner orgasm history starts at zero"), Snapshot.PartnerOrgasmCount, 0);
+	TestTrue(TEXT("The snapshot advertises one percent Curse reduction per second"), FMath::IsNearlyEqual(
+		Snapshot.CurseReductionPercentPerSecond,
+		1.0f));
+
+	const UEnum* SessionStateEnum = StaticEnum<EProjectIntimacySessionState>();
+	TestNotNull(TEXT("The session-local Orgasm Rush enum is reflected"), SessionStateEnum);
+	if (SessionStateEnum)
+	{
+		TestEqual(
+			TEXT("The Climax state machine has no terminal Satisfied state"),
+			SessionStateEnum->GetValueByNameString(TEXT("Satisfied")),
+			static_cast<int64>(INDEX_NONE));
+		TestEqual(
+			TEXT("The Climax state machine has no terminal Finished state"),
+			SessionStateEnum->GetValueByNameString(TEXT("Finished")),
+			static_cast<int64>(INDEX_NONE));
+	}
+
+	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
+	TestNotNull(TEXT("Intimacy settings should be available"), Settings);
+	if (Settings)
+	{
+		TestTrue(TEXT("Curse reduction defaults to one percent per second"), FMath::IsNearlyEqual(
+			Settings->CurseReductionPercentPerSecond,
+			1.0f));
+		TestEqual(
+			TEXT("Orgasm presentation uses the Climax media event"),
+			Settings->OrgasmMediaEventId,
+			FName(TEXT("Climax")));
+	}
 	return true;
 }
 
@@ -169,7 +248,7 @@ bool FProjectIntimacyPartnerSecureDefaultsTest::RunTest(const FString& Parameter
 	TestFalse(TEXT("Social-companion identity must be authored explicitly"), PartnerComponent->bSocialCompanion);
 	TestFalse(TEXT("A companion consent offer must be authored explicitly"), PartnerComponent->bOffersPlayerInitiatedConsent);
 	TestTrue(TEXT("A newly configured participant starts conscious"), PartnerComponent->bConscious);
-	TestTrue(TEXT("Combat state can revoke eligibility at runtime"), PartnerComponent->bOutsideCombat);
+	TestFalse(TEXT("Combat eligibility fails closed until runtime authority verifies safety"), PartnerComponent->bOutsideCombat);
 	return true;
 }
 
@@ -226,6 +305,22 @@ bool FProjectIntimacyCharismaAndZoneGateTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Intimacy settings should be available"), Settings);
 	if (Settings)
 	{
+		TestTrue(
+			TEXT("Charisma mastery enables the currently targeted adult-partner route"),
+			Settings->bAllowCharismaMasteryTargetedPartners);
+		TestTrue(
+			TEXT("Charisma targeting has an explicit companion-class allowlist"),
+			Settings->CharismaTargetedPartnerClasses.Num() > 0);
+		bool bFoundCompanionClass = false;
+		bool bFoundEnemyClass = false;
+		for (const FSoftClassPath& ApprovedClass : Settings->CharismaTargetedPartnerClasses)
+		{
+			const FString ApprovedPath = ApprovedClass.ToString();
+			bFoundCompanionClass |= ApprovedPath.Contains(TEXT("Companion"));
+			bFoundEnemyClass |= ApprovedPath.Contains(TEXT("EnemyBP"));
+		}
+		TestTrue(TEXT("Charisma targeting includes authored companion classes"), bFoundCompanionClass);
+		TestTrue(TEXT("Charisma targeting includes authored enemy classes"), bFoundEnemyClass);
 		const FString CompanionPath = Settings->HubSocialCompanionClass.ToString();
 		TestTrue(TEXT("The HUB product route resolves a companion class"), CompanionPath.Contains(TEXT("Companion")));
 		TestFalse(TEXT("The HUB product route does not resolve an enemy class"), CompanionPath.Contains(TEXT("EnemyBP")));
@@ -238,7 +333,7 @@ bool FProjectIntimacyCharismaAndZoneGateTest::RunTest(const FString& Parameters)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FProjectIntimacyTalkOptionsTest,
-	"NoShellForWinter.Intimacy.Talk.NeutralLocalProgress",
+	"NoShellForWinter.Intimacy.Talk.ClimaxFallback",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FProjectIntimacyTalkOptionsTest::RunTest(const FString& Parameters)
@@ -262,9 +357,13 @@ bool FProjectIntimacyTalkOptionsTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Fallback talk includes a neutral keep-going option"), MoreOption);
 	if (MoreOption)
 	{
-		TestTrue(TEXT("Keep-going only adds local session progress"), FMath::IsNearlyEqual(
-			MoreOption->SessionProgressGain,
+		TestTrue(TEXT("Keep-going adds temporary partner Climax"), FMath::IsNearlyEqual(
+			MoreOption->ClimaxGain,
 			5.0f));
+		TestEqual(
+			TEXT("Keep-going targets the partner Climax meter"),
+			MoreOption->ClimaxTarget,
+			EProjectIntimacyClimaxTarget::Partner);
 	}
 
 	const FProjectIntimacyTalkOptionRow* ComplimentOption = Options.FindByPredicate([](const FProjectIntimacyTalkOptionRow& Row)
@@ -274,9 +373,13 @@ bool FProjectIntimacyTalkOptionsTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Fallback talk includes a compliment"), ComplimentOption);
 	if (ComplimentOption)
 	{
-		TestTrue(TEXT("Compliment only adds local session progress"), FMath::IsNearlyEqual(
-			ComplimentOption->SessionProgressGain,
+		TestTrue(TEXT("Compliment adds temporary partner Climax"), FMath::IsNearlyEqual(
+			ComplimentOption->ClimaxGain,
 			2.0f));
+		TestEqual(
+			TEXT("Compliment targets the partner Climax meter"),
+			ComplimentOption->ClimaxTarget,
+			EProjectIntimacyClimaxTarget::Partner);
 	}
 
 	const TSet<FName> AllowedOptionIds =
@@ -298,48 +401,62 @@ bool FProjectIntimacyTalkOptionsTest::RunTest(const FString& Parameters)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FProjectIntimacyPresentationMetadataTest,
-	"NoShellForWinter.Intimacy.Presentation.NeutralMetadata",
+	"NoShellForWinter.Intimacy.Presentation.ClimaxMetadata",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FProjectIntimacyPresentationMetadataTest::RunTest(const FString& Parameters)
 {
 	TArray<FProjectIntimacyMediaCueRow> MediaRows;
 	UProjectIntimacyDialogueLibrary::BuildFallbackMediaCues(MediaRows);
-	const FProjectIntimacyMediaCueRow* PeakCue = MediaRows.FindByPredicate([](const FProjectIntimacyMediaCueRow& Row)
+	const FProjectIntimacyMediaCueRow* ClimaxCue = MediaRows.FindByPredicate([](const FProjectIntimacyMediaCueRow& Row)
 	{
-		return Row.CueId == TEXT("SessionPeak.Preview");
+		return Row.CueId == TEXT("Climax.Preview");
 	});
-	TestNotNull(TEXT("Fallback media has a neutral session-peak cue"), PeakCue);
-	if (PeakCue)
+	TestNotNull(TEXT("Fallback media has a Climax cue"), ClimaxCue);
+	if (ClimaxCue)
 	{
-		TestEqual(TEXT("Session-peak cue uses the neutral event id"), PeakCue->TriggerEventId, FName(TEXT("SessionPeak")));
+		TestEqual(TEXT("Climax cue uses the Climax event id"), ClimaxCue->TriggerEventId, FName(TEXT("Climax")));
 	}
 
 	TArray<FProjectSocialCardRow> SocialRows;
 	UProjectIntimacyDialogueLibrary::BuildFallbackSocialCardRows(SocialRows);
-	TestTrue(TEXT("Social card exposes local session progress"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
+	TestTrue(TEXT("Social card exposes temporary player Climax"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
 	{
-		return Row.ValueId == TEXT("SessionProgress");
+		return Row.ValueId == TEXT("PlayerClimax");
 	}));
-	TestTrue(TEXT("Social card exposes neutral peak history"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
+	TestTrue(TEXT("Social card exposes temporary partner Climax"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
 	{
-		return Row.ValueId == TEXT("SessionPeakCount");
+		return Row.ValueId == TEXT("PartnerClimax");
+	}));
+	TestTrue(TEXT("Social card exposes player orgasm history"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
+	{
+		return Row.ValueId == TEXT("PlayerOrgasmCount");
+	}));
+	TestTrue(TEXT("Social card exposes partner orgasm history"), SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
+	{
+		return Row.ValueId == TEXT("PartnerOrgasmCount");
 	}));
 	const TSet<FName> AllowedValueIds =
 	{
 		FName(TEXT("Gender")),
 		FName(TEXT("Personality")),
-		FName(TEXT("SessionProgress")),
+		FName(TEXT("PlayerClimax")),
+		FName(TEXT("PartnerClimax")),
 		FName(TEXT("Encounters")),
-		FName(TEXT("SatisfiedWins")),
-		FName(TEXT("SessionPeakCount")),
+		FName(TEXT("PlayerOrgasmCount")),
+		FName(TEXT("PartnerOrgasmCount")),
 		FName(TEXT("FirstEncounter")),
 		FName(TEXT("TotalIntimateTime"))
 	};
-	TestFalse(TEXT("Social card contains only the neutral allowlist"), SocialRows.ContainsByPredicate(
+	TestFalse(TEXT("Social card contains only the Climax allowlist"), SocialRows.ContainsByPredicate(
 		[&AllowedValueIds](const FProjectSocialCardRow& Row)
 		{
 			return !AllowedValueIds.Contains(Row.ValueId);
+		}));
+	TestFalse(TEXT("Social card no longer exposes terminal satisfied-win semantics"), SocialRows.ContainsByPredicate(
+		[](const FProjectSocialCardRow& Row)
+		{
+			return Row.ValueId == TEXT("SatisfiedWins");
 		}));
 	return true;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Game/ACFDamageType.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Tickable.h"
 #include "ProjectRuntimePerformanceSubsystem.generated.h"
@@ -16,6 +17,15 @@ class UBrainComponent;
 class UProjectCombatAttributeComponent;
 class UProjectLockpickableComponent;
 class UProjectRuntimePerformanceSettings;
+
+UENUM(BlueprintType)
+enum class EProjectRuntimePerformanceProfile58 : uint8
+{
+	DungeonSmoke58,
+	DungeonNaturalGameplay58,
+	DungeonAcceptance58,
+	DungeonFullStackDiagnostic58
+};
 
 USTRUCT(BlueprintType)
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectRuntimePerformanceMetrics
@@ -62,7 +72,7 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectRuntimePerformanceBenchmarkRequest
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
-	FName BenchmarkId = TEXT("DungeonCombatStable");
+	FName BenchmarkId = TEXT("DungeonAcceptance58");
 
 	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
 	float DurationSeconds = -1.0f;
@@ -75,6 +85,27 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectRuntimePerformanceBenchmarkRequest
 
 	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
 	bool bStrictScenarioFailures = false;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
+	int32 Seed = 42;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
+	FName QualityPreset = TEXT("Balanced58");
+
+	UPROPERTY(BlueprintReadWrite, Category = "Project|Runtime Performance")
+	FString SourceCommit;
+};
+
+USTRUCT(BlueprintType)
+struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectRuntimePerformanceGateResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Project|Runtime Performance")
+	bool bPassed = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Project|Runtime Performance")
+	TArray<FString> FailureReasons;
 };
 
 UCLASS()
@@ -90,6 +121,18 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 	virtual bool IsTickable() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Runtime Performance")
+	bool RequestDungeonSmoke58(bool bQuitOnFinish = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Runtime Performance")
+	bool RequestDungeonNaturalGameplay58(float DurationSeconds = -1.0f, bool bQuitOnFinish = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Runtime Performance")
+	bool RequestDungeonAcceptance58(float DurationSeconds = -1.0f, int32 EnemyCount = 8, bool bQuitOnFinish = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Runtime Performance")
+	bool RequestDungeonFullStackDiagnostic58(float DurationSeconds = -1.0f, bool bQuitOnFinish = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Project|Runtime Performance")
 	bool RequestDefaultDungeonCombatBenchmark(float DurationSeconds = -1.0f, int32 EnemyCount = -1, bool bQuitOnFinish = false);
@@ -114,7 +157,16 @@ public:
 	static double AverageSlowestFps(const TArray<double>& SortedFrameTimesDescending, double Fraction);
 	static bool IsSupportedBenchmarkId(FName BenchmarkId);
 	static TArray<FName> BuildFullStackStageIds();
+	static TArray<FName> BuildAcceptanceStageIds();
+	static TArray<FName> BuildNaturalGameplayStageIds();
 	static bool ShouldFailForScenarioIssue(bool bStrictScenarioFailures, bool bRequiredStage);
+	static FProjectRuntimePerformanceGateResult EvaluateAcceptanceMetrics(
+		const FProjectRuntimePerformanceMetrics& Metrics,
+		double MinimumAverageFps = 60.0,
+		double MinimumMedianFps = 60.0,
+		double MinimumOnePercentLowFps = 55.0,
+		double MaximumP99FrameMs = 18.2,
+		int32 MaximumHitchesOver100Ms = 0);
 
 private:
 	enum class EBenchmarkPhase : uint8
@@ -129,6 +181,7 @@ private:
 
 	struct FProjectRuntimePerformanceFrameSample
 	{
+		uint64 FrameNumber = 0;
 		double TimeSeconds = 0.0;
 		double DeltaSeconds = 0.0;
 		double FrameMs = 0.0;
@@ -139,7 +192,12 @@ private:
 		double UsedMemoryMb = 0.0;
 		FName StageId = NAME_None;
 		FString StageName;
+		FString MapName;
 		FString ScenarioFlags;
+		FVector PlayerLocation = FVector::ZeroVector;
+		double PlayerSpeedCmPerSecond = 0.0;
+		double TraversalDistance = 0.0;
+		int32 RoutePointIndex = INDEX_NONE;
 		int32 ActorCount = 0;
 		int32 PawnCount = 0;
 		int32 BenchmarkSpawnedEnemyCount = 0;
@@ -257,11 +315,19 @@ private:
 	void ResetRuntimeState();
 	void TickPreparing(float DeltaTime);
 	void TickSampling(float DeltaTime);
+	void CaptureNaturalBootstrapSample(float DeltaTime);
 	void ApplyAutopilot(float DeltaTime);
+	void ApplyAcceptanceAutopilot(float DeltaTime);
+	void ApplyNaturalGameplayAutopilot(float DeltaTime);
+	bool IsSmoke58Profile() const;
+	bool IsNaturalGameplay58Profile() const;
+	bool IsAcceptance58Profile() const;
+	bool IsDiagnostic58Profile() const;
 	bool IsStableCombatProfile() const;
 	bool IsRealGameplayProfile() const;
 	bool IsFullStackOverloadProfile() const;
 	float ResolveActiveDurationSeconds() const;
+	float ResolveActiveWarmupSeconds() const;
 	int32 ResolveFullStackEnemyCap() const;
 	bool IsTargetMapLoaded() const;
 	FString GetConfiguredMapPackageName() const;
@@ -271,7 +337,7 @@ private:
 	bool ResolveBenchmarkStartTransform(FTransform& OutTransform) const;
 	bool ResolveVisualSafeStartTransform(const FTransform& RequestedTransform, FTransform& OutTransform);
 	bool ResolveGroundedBenchmarkLocation(const FVector& RequestedLocation, FVector& OutLocation, FString& OutReason) const;
-	void TeleportPlayerToBenchmarkStart(const FTransform& StartTransform);
+	void TeleportPlayerToBenchmarkStart(const FTransform& StartTransform, bool bUseBenchmarkCamera = true);
 	void CleanupBenchmarkVisualState(bool bCancelInteractions);
 	void RemoveBenchmarkBlockingMenus();
 	void ApplyBenchmarkPlayerDamageGuard(APawn* PlayerPawn, bool bEnabled);
@@ -283,16 +349,33 @@ private:
 	void MaybeCaptureBenchmarkVisualScreenshot();
 	void RequestBenchmarkTargetedPreload();
 	void MarkBenchmarkSyntheticWork(float ExclusionSeconds, const FString& Reason);
+	bool ApplyBenchmarkQualityPreset();
+	FString BuildEffectiveCVarSnapshot() const;
+	FString BuildEffectiveCVarHash() const;
 	int32 SpawnBenchmarkEnemies(const FTransform& StartTransform);
+	int32 SpawnAcceptanceEnemies(const FTransform& StartTransform);
 	APawn* SpawnBenchmarkEnemyByClassHint(const FTransform& CenterTransform, FName ClassHint, int32 SpawnIndex, bool bRequired);
 	int32 EnsureFullStackEnemyPopulation(const FTransform& CenterTransform, int32 DesiredEnemyCount);
 	bool PrepareBenchmarkEnemyAI(APawn* EnemyPawn, APawn* PlayerPawn, bool bInitialSetup);
 	void RefreshBenchmarkEnemyAI();
 	bool ShouldUseDirectBenchmarkEnemyTargeting() const;
-	void ResolveConfiguredRuntimeEnemyClasses() const;
+	void ResolveConfiguredRuntimeEnemyClasses(bool bAllowSynchronousLoad = true) const;
 	bool IsConfiguredRuntimeEnemyPawn(const APawn* Pawn) const;
 	int32 RemovePreexistingRuntimeEnemiesForBenchmark();
 	int32 CountActiveBenchmarkEnemies() const;
+	void InitializeAcceptanceStages();
+	void InitializeNaturalGameplayStage();
+	bool BuildAcceptanceRoute(APawn* PlayerPawn);
+	void BeginNaturalGameplayStage();
+	void CompleteNaturalGameplayStage();
+	void TickNaturalGameplayScenario(float DeltaTime);
+	bool ValidateNaturalGameplayIntegrity(FString& OutReason) const;
+	void FailNaturalGameplayScenario(const FString& Reason);
+	void TickAcceptanceScenario(float DeltaTime);
+	void BeginAcceptanceStage(int32 StageIndex);
+	void CompleteAcceptanceStage(int32 StageIndex);
+	bool ValidateAcceptanceIntegrity(FString& OutReason) const;
+	void FailAcceptanceScenario(const FString& Reason);
 	void InitializeFullStackStages();
 	void TickFullStackScenario(float DeltaTime);
 	bool BeginFullStackStage(int32 StageIndex);
@@ -334,6 +417,9 @@ private:
 	UFUNCTION()
 	void HandleBenchmarkDamageApplied(AActor* SourceActor, FName DamageType, float RequestedDamage, float AppliedDamage, float RemainingValue, bool bKilledTarget);
 
+	UFUNCTION()
+	void HandleAcfDamageReceived(const FACFDamageEvent& DamageEvent);
+
 private:
 	EBenchmarkPhase Phase = EBenchmarkPhase::Idle;
 	FProjectRuntimePerformanceBenchmarkRequest ActiveRequest;
@@ -370,14 +456,20 @@ private:
 	TWeakObjectPtr<AActor> DamageGuardedActor;
 	TWeakObjectPtr<UACFDamageHandlerComponent> DamageGuardedAcfComponent;
 	TArray<TWeakObjectPtr<UProjectCombatAttributeComponent>> BoundDamageTelemetryComponents;
+	TArray<TWeakObjectPtr<UACFDamageHandlerComponent>> BoundAcfDamageTelemetryComponents;
 	TArray<FProjectRuntimePerformanceFullStackStage> FullStackStages;
 	TArray<FProjectRuntimePerformanceEnemySceneSuppressionState> FullStackSceneSuppressionStates;
 	TArray<FProjectRuntimePerformanceFrameSample> Samples;
+	TArray<FProjectRuntimePerformanceFrameSample> NaturalBootstrapSamples;
 	TMap<FName, FProjectRuntimePerformanceSystemAccumulator> SystemMetricAccumulators;
 	TSharedPtr<FStreamableHandle> RuntimeBenchmarkPreloadHandle;
+	bool bBenchmarkPreloadRequested = false;
+	bool bBenchmarkPreloadCompleted = false;
 	FProjectRuntimePerformanceWorldSnapshot CurrentWorldSnapshot;
 	FProjectRuntimePerformanceWorldSnapshot PeakWorldSnapshot;
+	FProjectRuntimePerformanceWorldSnapshot NaturalBootstrapWorldSnapshot;
 	double WorldSnapshotElapsedSeconds = 0.0;
+	double NaturalBootstrapSnapshotElapsedSeconds = 0.0;
 	FString LastObservedMapName;
 	FTransform FullStackStartTransform = FTransform::Identity;
 	TWeakObjectPtr<APawn> ActiveStageEnemy;
@@ -412,4 +504,27 @@ private:
 	FString CurrentStageName;
 	FName CurrentStageId = NAME_None;
 	FString CurrentScenarioFlags;
+	TArray<FVector> AcceptanceRoutePoints;
+	int32 AcceptanceRoutePointIndex = 0;
+	int32 NaturalRouteDirection = 1;
+	int32 NaturalRouteReversalCount = 0;
+	int32 NaturalInitialEnemyCount = 0;
+	int32 ActiveAcceptanceStageIndex = INDEX_NONE;
+	double AcceptanceStageElapsedSeconds = 0.0;
+	double AcceptanceIntegrityElapsedSeconds = 0.0;
+	double AcceptanceCombatInputElapsedSeconds = 0.0;
+	FVector AcceptanceStartLocation = FVector::ZeroVector;
+	FVector AcceptanceLastPlayerLocation = FVector::ZeroVector;
+	double AcceptanceTraversalDistance = 0.0;
+	int32 AcceptanceAttackInputCount = 0;
+	int32 AcceptanceDodgeInputCount = 0;
+	bool bAcceptanceRouteBuilt = false;
+	bool bAcceptanceEnemiesSpawned = false;
+	bool bAcceptanceDirtyWorkloadStarted = false;
+	bool bAcceptanceUiOpened = false;
+	bool bAcceptanceScenarioFailed = false;
+	FString AcceptanceScenarioFailureReason;
+	double NaturalGameplayIntegrityElapsedSeconds = 0.0;
+	bool bNaturalGameplayScenarioFailed = false;
+	FString NaturalGameplayScenarioFailureReason;
 };

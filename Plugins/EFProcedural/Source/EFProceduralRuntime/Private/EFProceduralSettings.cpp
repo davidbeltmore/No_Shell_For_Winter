@@ -26,19 +26,6 @@ UEFProceduralSettings::UEFProceduralSettings()
 
 	ManagedMapNames.Reset();
 
-	DungeonRandomizeFunctionNames = {
-		FName(TEXT("Randomize Dungeon")),
-		FName(TEXT("RandomizeDungeon"))
-	};
-
-	DungeonRefreshFunctionNames = {
-		FName(TEXT("Force Refresh")),
-		FName(TEXT("ForceRefresh")),
-		FName(TEXT("Refresh")),
-		FName(TEXT("Refresh Editor")),
-		FName(TEXT("RefreshEditor"))
-	};
-
 	DungeonActorClass.Reset();
 	StartPointActorClass.Reset();
 	MeleeAIControllerClass.Reset();

@@ -51,13 +51,15 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationState
 		: SensationName(NAME_None)
 		, CurrentValue(0.f)
 		, MaxValue(100.f)
+		, PassiveDeltaPerSecond(0.f)
 	{
 	}
 
-	FProjectSurvivalSensationState(FName InSensationName, float InCurrentValue, float InMaxValue)
+	FProjectSurvivalSensationState(FName InSensationName, float InCurrentValue, float InMaxValue, float InPassiveDeltaPerSecond = 0.f)
 		: SensationName(InSensationName)
 		, CurrentValue(InCurrentValue)
 		, MaxValue(InMaxValue)
+		, PassiveDeltaPerSecond(InPassiveDeltaPerSecond)
 	{
 	}
 
@@ -69,6 +71,9 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationState
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	float MaxValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	float PassiveDeltaPerSecond;
 };
 
 USTRUCT(BlueprintType)
@@ -263,6 +268,7 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationSnapshot
 		, NormalizedValue(0.f)
 		, FilledBars(0)
 		, TotalBars(10)
+		, PassiveDeltaPerSecond(0.f)
 	{
 	}
 
@@ -283,6 +289,9 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationSnapshot
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	int32 TotalBars;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	float PassiveDeltaPerSecond;
 };
 
 USTRUCT(BlueprintType)

@@ -1,22 +1,39 @@
 {
 	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0.0",
+	"Version": 2,
+	"VersionName": "2.0.0",
 	"FriendlyName": "EF Clothing Morph",
-	"Description": "Copies shared or compatible body morph targets to clothing meshes and lets you scale clothing morphs to reduce clipping.",
+	"Description": "Non-destructive clothing fit compiler and automatic runtime binding for body clearance, skin weights and morph synchronization.",
 	"Category": "Character",
-	"CanContainContent": false,
+	"CanContainContent": true,
 	"Installed": false,
 	"Modules": [
 		{
 			"Name": "EFClothingMorphRuntime",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "EFClothingMorphEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
 		}
 	],
 	"Plugins": [
 		{
 			"Name": "EFCharacterCreation",
+			"Enabled": true
+		},
+		{
+			"Name": "GeometryScripting",
+			"Enabled": true
+		},
+		{
+			"Name": "ComputeFramework",
+			"Enabled": true
+		},
+		{
+			"Name": "DeformerGraph",
 			"Enabled": true
 		}
 	]

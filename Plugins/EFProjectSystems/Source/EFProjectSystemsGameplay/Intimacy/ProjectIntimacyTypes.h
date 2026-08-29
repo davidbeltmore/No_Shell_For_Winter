@@ -33,6 +33,22 @@ enum class EProjectIntimacyHudMode : uint8
 	Please UMETA(DisplayName = "Please")
 };
 
+/** Session-local recipient for Climax gains and orgasm presentation. */
+UENUM(BlueprintType)
+enum class EProjectIntimacyClimaxTarget : uint8
+{
+	Player UMETA(DisplayName = "Player"),
+	Partner UMETA(DisplayName = "Partner")
+};
+
+/** Orgasm Rush is deliberately local to an active Intimacy session. */
+UENUM(BlueprintType)
+enum class EProjectIntimacySessionState : uint8
+{
+	BuildingClimax UMETA(DisplayName = "Building Climax"),
+	OrgasmRush UMETA(DisplayName = "Orgasm Rush")
+};
+
 UENUM(BlueprintType)
 enum class EProjectIntimacyTalkAction : uint8
 {
@@ -132,6 +148,14 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectIntimacyPartnerProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	int32 SessionPeakCount = 0;
 
+	/** Historical player orgasms reached in sessions with this partner. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
+	int32 PlayerOrgasmCount = 0;
+
+	/** Historical partner orgasms. SessionPeakCount remains as a save compatibility alias. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
+	int32 PartnerOrgasmCount = 0;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	FDateTime FirstEncounterUtc = FDateTime();
 
@@ -185,6 +209,13 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectIntimacyTalkOptionRow : public FTabl
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy", meta = (ClampMin = "0.0"))
 	float SessionProgressGain = 0.0f;
+
+	/** Preferred rework field. Legacy rows fall back to SessionProgressGain when this is zero. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy", meta = (ClampMin = "0.0"))
+	float ClimaxGain = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
+	EProjectIntimacyClimaxTarget ClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	int32 AffectDelta = 0;
@@ -313,6 +344,13 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectIntimacyItemEffectRow : public FTabl
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy", meta = (ClampMin = "0.0"))
 	float SessionProgressBonus = 0.0f;
 
+	/** Preferred rework field. Legacy rows fall back to SessionProgressBonus when this is zero. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy", meta = (ClampMin = "0.0"))
+	float ClimaxBonus = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
+	EProjectIntimacyClimaxTarget ClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	int32 AffectBonus = 0;
 };
@@ -379,6 +417,49 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectIntimacySessionSnapshot
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy", meta = (ClampMin = "0.0"))
 	float SessionProgressPerSecond = 0.0f;
 
+	/** Temporary player Climax for this session. It cycles at 100 and never ends the session. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0", ClampMax = "100.0"))
+	float PlayerClimax = 0.0f;
+
+	/** Temporary partner Climax for this session. It cycles at 100 and never ends the session. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0", ClampMax = "100.0"))
+	float PartnerClimax = 0.0f;
+
+	/** Normalized percentage points per second, independent of ClimaxMaximum. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0"))
+	float PlayerClimaxPerSecond = 0.0f;
+
+	/** Normalized percentage points per second, independent of ClimaxMaximum. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0"))
+	float PartnerClimaxPerSecond = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax")
+	EProjectIntimacySessionState SessionState = EProjectIntimacySessionState::BuildingClimax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax")
+	EProjectIntimacyClimaxTarget OrgasmRushTarget = EProjectIntimacyClimaxTarget::Partner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax")
+	bool bPlayerOrgasmRush = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax")
+	bool bPartnerOrgasmRush = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0"))
+	float PlayerOrgasmRushRemaining = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0.0"))
+	float PartnerOrgasmRushRemaining = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0"))
+	int32 PlayerOrgasmCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax", meta = (ClampMin = "0"))
+	int32 PartnerOrgasmCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Curse", meta = (ClampMin = "0.0"))
+	float CurseReductionPercentPerSecond = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	int32 Affect = 0;
 
@@ -396,6 +477,9 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectIntimacySessionSnapshot
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	bool bPleaseActive = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy|Climax")
+	EProjectIntimacyClimaxTarget PleaseClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Project|Intimacy")
 	int32 PleaseAttemptIndex = 0;

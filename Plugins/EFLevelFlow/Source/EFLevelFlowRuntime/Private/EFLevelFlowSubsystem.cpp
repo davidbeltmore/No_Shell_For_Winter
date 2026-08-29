@@ -1,5 +1,7 @@
 #include "EFLevelFlowSubsystem.h"
 
+#include "Calysto/EFCalystoDungeonSubsystem.h"
+
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCameraManager.h"
 #include "EFCharacterCreationGameplayHooks.h"
@@ -308,6 +310,30 @@ void UEFLevelFlowSubsystem::TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld>
 		}
 
 		return;
+	}
+
+	if (const UEFCalystoDungeonSubsystem* DungeonSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr)
+	{
+		const FEFCalystoDungeonSnapshotV4 DungeonSnapshot = DungeonSubsystem->GetSnapshot();
+		if (DungeonSnapshot.State == EEFCalystoDungeonRunStateV4::Failed)
+		{
+			const FString Diagnostic = FString::Printf(
+				TEXT("Dungeon failure [%s] %s | intent=%s | attempt=%d/%d"),
+				*DungeonSnapshot.FailureCode.ToString(),
+				*DungeonSnapshot.FailureMessage,
+				*DungeonSnapshot.IntentHash,
+				DungeonSnapshot.CurrentAttempt,
+				DungeonSnapshot.MaximumAttempts);
+			UE_LOG(LogEFLevelFlow, Error, TEXT("%s"), *Diagnostic);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(INDEX_NONE, 12.0f, FColor::Red, Diagnostic);
+			}
+			ResetLevelLoadingSequence(true);
+			return;
+		}
 	}
 
 	UEFProceduralRuntimeSubsystem* ProceduralSubsystem =

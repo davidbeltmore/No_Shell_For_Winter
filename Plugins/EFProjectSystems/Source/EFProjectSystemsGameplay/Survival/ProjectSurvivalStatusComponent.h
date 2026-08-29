@@ -163,6 +163,12 @@ public:
 
 #if WITH_DEV_AUTOMATION_TESTS
 	static float AutomationResolveInvertedMovementInput(float RawInput);
+	static bool AutomationEvaluateThresholdStatus(
+		bool bWasActive,
+		float NormalizedValue,
+		EProjectSurvivalStatusThresholdMode ThresholdMode,
+		float ActivationThresholdNormalized,
+		float DeactivationThresholdNormalized);
 #endif
 
 	UPROPERTY(BlueprintAssignable, Category = "Survival|Status")

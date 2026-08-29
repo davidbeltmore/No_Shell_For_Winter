@@ -16,7 +16,13 @@ public class EFProceduralEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"UnrealEd"
+			"UnrealEd",
+			"PropertyEditor",
+			"InputCore",
+			"Slate",
+			"SlateCore",
+			"PCG",
+			"EFProceduralPCGRuntime"
 		});
 	}
 }

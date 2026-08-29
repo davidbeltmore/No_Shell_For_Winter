@@ -14,14 +14,71 @@ SOURCE_VISUAL_SCRIPT = os.environ.get(
 )
 TARGET_CHARACTER_CLASS = os.environ.get(
     "CODEX_TARGETED_EMOTE_CHARACTER_CLASS",
-    "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C",
+    "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
 )
-TARGET_CHARACTER_LABEL = os.environ.get("CODEX_TARGETED_EMOTE_CHARACTER_LABEL", "Male enemy")
+TARGET_CHARACTER_LABEL = os.environ.get("CODEX_TARGETED_EMOTE_CHARACTER_LABEL", "Male companion")
+CAPTURE_SESSION_HUD = os.environ.get("CODEX_TARGETED_EMOTE_CAPTURE_SESSION_HUD", "0") == "1"
+
+
+# Avoid an Auto Reimport popup contaminating the OS-level captures. This is a
+# process-local editor preference only; it is intentionally never saved.
+try:
+    loading_settings = unreal.get_default_object(unreal.EditorLoadingSavingSettings)
+    loading_settings.set_editor_property("monitor_content_directories", False)
+except Exception:
+    pass
 
 
 namespace = runpy.run_path(SOURCE_VISUAL_SCRIPT, run_name="__codex_targeted_enemy_emote_base__")
 original_execute_action = namespace["execute_action"]
+is_lads_menu_visible = namespace["is_lads_menu_visible"]
 selection_applied = False
+
+
+# The source visual harness normally captures Actions > Basic. Reuse its
+# synchronization/capture protocol while driving the product route requested
+# here: Y > Actions > Partner > Intimacy.
+visual_scenario = [
+    {
+        "action": "toggle_menu",
+        "marker": "Root",
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 0,
+    },
+    {
+        "action": "confirm",
+        "marker": None,
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 0,
+    },
+    {
+        "action": "navigate_down",
+        "marker": None,
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 1,
+    },
+    {
+        "action": "navigate_down",
+        "marker": None,
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 2,
+    },
+    {
+        "action": "navigate_down",
+        "marker": "ActionsCategory",
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 3,
+    },
+    {
+        "action": "confirm",
+        "marker": None if CAPTURE_SESSION_HUD else "AnimationList",
+        "condition": lambda state: is_lads_menu_visible(state) and state["selected_index"] == 0,
+    },
+]
+if CAPTURE_SESSION_HUD:
+    visual_scenario.append(
+        {
+            "action": "confirm",
+            "marker": "AnimationList",
+            "condition": lambda state: not state["menu_open"] and state["emote_active"],
+        }
+    )
+original_execute_action.__globals__["VISUAL_SCENARIO"] = visual_scenario
 
 
 def defer_toggle_menu(subsystem, delay_seconds=2.0):
@@ -68,6 +125,26 @@ def select_enemy_target():
             "Targeted Y-menu QA could not resolve the player and " + TARGET_CHARACTER_LABEL + "."
         )
 
+    doctrine = None
+    for owner in (player, unreal.GameplayStatics.get_player_controller(world, 0)):
+        if not owner:
+            continue
+        for component in owner.get_components_by_class(unreal.ActorComponent):
+            if "ProjectInnerDoctrineComponent" in component.get_class().get_name():
+                doctrine = component
+                break
+        if doctrine:
+            break
+    if not doctrine:
+        raise RuntimeError("Targeted Y-menu QA could not resolve ProjectInnerDoctrineComponent.")
+    charisma = unreal.ProjectDoctrineAttribute.CHARISMA
+    charisma_before = int(doctrine.get_attribute_level(charisma))
+    if charisma_before != 10 and not doctrine.apply_free_attribute_levels(charisma, 10 - charisma_before):
+        raise RuntimeError("Targeted Y-menu QA could not set transient Charisma to level 10.")
+    charisma_after = int(doctrine.get_attribute_level(charisma))
+    if charisma_after != 10:
+        raise RuntimeError(f"Targeted Y-menu QA Charisma mismatch: {charisma_after}.")
+
     targeting_component = None
     for component in player.get_components_by_class(unreal.ActorComponent):
         if "ProjectTargetingFixComponent" in component.get_class().get_name():
@@ -83,6 +160,10 @@ def select_enemy_target():
         + TARGET_CHARACTER_LABEL
         + " enemy="
         + enemy.get_name()
+        + " charisma_before="
+        + str(charisma_before)
+        + " charisma_after="
+        + str(charisma_after)
     )
 
 

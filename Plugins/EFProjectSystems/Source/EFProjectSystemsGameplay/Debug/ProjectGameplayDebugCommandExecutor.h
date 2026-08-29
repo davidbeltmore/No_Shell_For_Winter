@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Calysto/EFCalystoDungeonTypesV4.h"
 #include "InnerDoctrine/ProjectInnerDoctrineTypes.h"
 
 class AActor;
@@ -21,6 +22,26 @@ public:
 	static bool RaiseDoctrineAttributeToLevel(AActor* OwnerActor, EProjectDoctrineAttribute Attribute, int32 TargetLevel);
 	static bool StartRuntimeFpsBenchmark(AActor* OwnerActor);
 	static bool StartFullStackOverloadBenchmark(AActor* OwnerActor);
+	static FText GetDungeonHarnessStatusLabel(AActor* OwnerActor);
+	static FText GetDungeonHarnessStatusDescription(AActor* OwnerActor);
+	static FText GetDungeonHarnessFloorChoiceLabel(AActor* OwnerActor, int64 FloorNumber);
+	static FText GetDungeonHarnessStyleChoiceLabel(AActor* OwnerActor, bool bAuto, EEFCalystoStyleV4 Style);
+	static FText GetDungeonHarnessThemeChoiceLabel(AActor* OwnerActor, bool bAuto, EEFCalystoThemeV4 Theme);
+	static FText GetDungeonHarnessBiasChoiceLabel(AActor* OwnerActor, FName BiasName, float Bias);
+	static FText GetDungeonHarnessVolatilityChoiceLabel(AActor* OwnerActor, float Volatility);
+	static bool RefreshDungeonHarnessStatus(AActor* OwnerActor);
+	static bool RequestAdvanceDungeonFloor(AActor* OwnerActor);
+	static bool RequestTravelToDungeonFloor(AActor* OwnerActor, int64 FloorNumber);
+	static bool RequestReplayDungeonFloor(AActor* OwnerActor);
+	static bool RequestRerollDungeonFloor(AActor* OwnerActor);
+	static bool RequestStartNewDungeonRun(AActor* OwnerActor);
+	static bool RequestStartDungeonTestRun(AActor* OwnerActor);
+	static bool SetDungeonHarnessPreferredStyle(AActor* OwnerActor, bool bAuto, EEFCalystoStyleV4 Style);
+	static bool SetDungeonHarnessPreferredTheme(AActor* OwnerActor, bool bAuto, EEFCalystoThemeV4 Theme);
+	static bool SetDungeonHarnessIntentBias(AActor* OwnerActor, FName BiasName, float Bias);
+	static bool SetDungeonHarnessIntentVolatility(AActor* OwnerActor, float Volatility);
+	static bool ClearDungeonHarnessDirectorIntent(AActor* OwnerActor);
+	static bool IsDungeonHarnessPersistentCommand(FName OptionId);
 	static TArray<FName> GetAutomaticTattooDebugRowNames(AActor* OwnerActor);
 	static FText GetAutomaticTattooDebugRowLabel(AActor* OwnerActor, FName RowName);
 	static FText GetAutomaticTattooDebugRowDescription(AActor* OwnerActor, FName RowName);

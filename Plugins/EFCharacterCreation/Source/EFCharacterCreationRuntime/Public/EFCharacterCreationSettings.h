@@ -20,7 +20,7 @@ public:
 	virtual FName GetCategoryName() const override;
 
 	UPROPERTY(EditAnywhere, Config, Category = "General")
-	bool bAutoEnterTestingMap = true;
+	bool bAutoEnterTestingMap = false;
 
 	UPROPERTY(EditAnywhere, Config, Category = "General")
 	FString TestingMapName = TEXT("TestingMap");
@@ -29,7 +29,7 @@ public:
 	int32 MaxAutoEnterAttempts = 90;
 
 	UPROPERTY(EditAnywhere, Config, Category = "General")
-	bool bAutoOpenOnCompatibleMainPawn = true;
+	bool bAutoOpenOnCompatibleMainPawn = false;
 
 	UPROPERTY(EditAnywhere, Config, Category = "General")
 	TArray<FString> AutoOpenMapNames;

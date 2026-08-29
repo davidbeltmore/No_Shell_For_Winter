@@ -20,6 +20,9 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectDayCycleSnapshot
 	int32 DayNumber = 1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Day Cycle")
+	int64 FloorNumber = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Day Cycle")
 	float NormalizedDayProgress = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Day Cycle")

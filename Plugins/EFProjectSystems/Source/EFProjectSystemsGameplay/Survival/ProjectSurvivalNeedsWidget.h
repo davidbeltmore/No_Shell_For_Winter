@@ -48,6 +48,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Survival|UI")
 	bool IsHudVisible() const;
 
+	static bool IsEntryHiddenFromHud(FName EntryName);
+
 protected:
 	virtual void NativeOnProjectThemeApplied(
 		EEFProjectHUDThemePreset Preset,

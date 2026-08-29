@@ -1,0 +1,4 @@
+interface:
+  display_name: "Calysto Dungeon Master"
+  short_description: "Orchestrate probabilistic Dungeon Director V3 runs"
+  default_prompt: "Use $calysto-dungeon-master to validate Dungeon Director V3 ecology, intent, manifest, replay, reroll, population, and floor advance without editing vendor assets."

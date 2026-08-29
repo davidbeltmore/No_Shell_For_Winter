@@ -12,6 +12,11 @@ public class EFClothingMorphRuntime : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"GameplayTags",
+			"DeveloperSettings",
+			"ComputeFramework",
+			"OptimusCore",
+			"RenderCore",
+			"RHI",
 			"EFCharacterCreationRuntime"
 		});
 	}

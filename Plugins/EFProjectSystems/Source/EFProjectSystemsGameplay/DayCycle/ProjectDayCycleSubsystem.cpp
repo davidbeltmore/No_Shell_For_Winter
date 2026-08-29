@@ -1,11 +1,13 @@
 #include "DayCycle/ProjectDayCycleSubsystem.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "DayCycle/ProjectDayCycleSettings.h"
 #include "DayCycle/ProjectDayCycleStateActor.h"
 #include "DayCycle/ProjectDayCycleWidget.h"
 #include "EFCharacterCreationSubsystem.h"
 #include "EFProjectUISettings.h"
+#include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
@@ -92,15 +94,29 @@ bool UProjectDayCycleSubsystem::IsTickableWhenPaused() const
 
 FProjectDayCycleSnapshot UProjectDayCycleSubsystem::GetCurrentSnapshot() const
 {
+	FProjectDayCycleSnapshot Snapshot;
 	if (StateActor)
 	{
-		return StateActor->GetCurrentSnapshot();
+		Snapshot = StateActor->GetCurrentSnapshot();
+	}
+	else
+	{
+		const UProjectDayCycleSettings* Settings = UProjectDayCycleSettings::Get();
+		Snapshot.DayNumber = FMath::Max(1, Settings ? Settings->InitialDayNumber : 1);
+		Snapshot.DayLengthSeconds = FMath::Max(1.0f, Settings ? Settings->DayLengthSeconds : 600.0f);
 	}
 
-	FProjectDayCycleSnapshot Snapshot;
-	const UProjectDayCycleSettings* Settings = UProjectDayCycleSettings::Get();
-	Snapshot.DayNumber = FMath::Max(1, Settings ? Settings->InitialDayNumber : 1);
-	Snapshot.DayLengthSeconds = FMath::Max(1.0f, Settings ? Settings->DayLengthSeconds : 600.0f);
+	Snapshot.FloorNumber = 1;
+	if (UWorld* World = GetWorld())
+	{
+		if (UGameInstance* GameInstance = World->GetGameInstance())
+		{
+			if (const UEFCalystoDungeonSubsystem* DungeonSubsystem = GameInstance->GetSubsystem<UEFCalystoDungeonSubsystem>())
+			{
+				Snapshot.FloorNumber = FMath::Max<int64>(1, DungeonSubsystem->GetCurrentFloor());
+			}
+		}
+	}
 	return Snapshot;
 }
 

@@ -1,4 +1,5 @@
 #include "Characters/ProjectEnemyLevelLogic.h"
+#include "Characters/ProjectEnemyLevelComponent.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -83,6 +84,46 @@ bool FProjectEnemyLevelLogicDistributionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Level 2 should be more common than level 3"), LevelCounts.FindRef(2) > LevelCounts.FindRef(3));
 	TestTrue(TEXT("Level 3 should be more common than level 4"), LevelCounts.FindRef(3) > LevelCounts.FindRef(4));
 	TestTrue(TEXT("Level 4 should be more common than level 5"), LevelCounts.FindRef(4) > LevelCounts.FindRef(5));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectEnemyDirectorPhysicalLevelContractTest,
+	"NoShellForWinter.Enemies.Leveling.DirectorPhysicalLevelContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectEnemyDirectorPhysicalLevelContractTest::RunTest(const FString& Parameters)
+{
+	TestEqual(
+		TEXT("An invalid logical level must not be promoted silently"),
+		UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(0),
+		0);
+	TestEqual(
+		TEXT("A normal logical level remains unchanged"),
+		UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(73),
+		73);
+	TestEqual(
+		TEXT("Logical level 100 remains physical level 100"),
+		UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(100),
+		100);
+	TestEqual(
+		TEXT("Winter levels are capped before reaching ACF"),
+		UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(101),
+		100);
+	TestEqual(
+		TEXT("Deep Winter levels remain capped before reaching ACF"),
+		UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(1000),
+		100);
+
+	UProjectEnemyLevelComponent* Component = NewObject<UProjectEnemyLevelComponent>();
+	if (!TestNotNull(TEXT("A transient level component can be created"), Component))
+	{
+		return false;
+	}
+	Component->SetAssignedLevelData(125, 125, 125, 125, 1.0f);
+	TestEqual(TEXT("The project logical level remains unbounded"), Component->GetAssignedLevel(), 125);
+	TestEqual(TEXT("The ACF-facing physical level is capped"), Component->GetPhysicalAscentLevel(), 100);
 
 	return true;
 }

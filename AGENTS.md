@@ -29,6 +29,7 @@ Target, writable:
 - Never resave the source with UE 5.8.
 - Never overwrite target ACFU with the old plugin.
 - Never overwrite target DazToUnreal.
+- Never launch or leave an editor receipt with `DazToUnreal` or `EFCharacterCreationDazBridge` disabled. The current precompiled Daz plugin may require a temporary UBT-only exclusion; use `Tools/Migration/Build-NoShellForWinterEditor58.ps1`, which repairs the receipt immediately, and launch through `Tools/Migration/Launch-NoShellForWinterEditor58.ps1`.
 - Never directly modify Marketplace or Engine plugins.
 - Never bulk-copy Content, Config, Plugins, Saved, Intermediate or Binaries.
 - Never overwrite `/Game/FullSample` or `Player` wholesale.
@@ -78,3 +79,8 @@ Keep `Docs/Migration` current.
 - Prefer the live UE 5.8 `unreal-mcp` server for editor-owned state that cannot be established safely from files alone.
 - Keep the initial MCP pass read-only. Do not mutate assets or editor state unless the user's request authorizes that change.
 - If `unreal-mcp` is unavailable, verify that this target project is open in Unreal Editor before falling back to filesystem-only inspection, and mark live-editor conclusions `PENDING`.
+
+## Default Calysto dungeon context
+
+- Invoke `$calysto-dungeon-master` after `$noshellforwinter-unreal-mcp` for any task involving Calysto, `BP_MassiveDungeon`, dungeon floors, procedural size, PCG seeds, enemy/spawner weights, room themes, `End_Point`, the floor door, or the `L > Dungeon Harness` menu.
+- Treat `Plugins/EFProcedural` as the single project-owned master integration. Never patch or save `BP_MassiveDungeon` or Calysto source DataAssets; tune through transient clones and `/Game/_Game/Data/CalystoDungeon`.

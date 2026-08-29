@@ -1,5 +1,6 @@
 #include "Defeat/ProjectDefeatTravelSubsystem.h"
 
+#include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "Defeat/ProjectDefeatFlowComponent.h"
 #include "Defeat/ProjectDefeatFlowSettings.h"
 #include "Engine/GameInstance.h"
@@ -86,6 +87,41 @@ bool UProjectDefeatTravelSubsystem::BeginDefeatedTravel(
 				true);
 			UE_LOG(LogProjectDefeatTravel, Display, TEXT("Using same-map defeated travel fast path for %s."), *World->GetName());
 			return true;
+		}
+	}
+
+	// A full DungeonGeneration reload must retain and replay the active immutable
+	// run context. The Calysto subsystem owns the URL options and recalculates the
+	// PCG seed at the destination; a raw OpenLevel here would accidentally begin
+	// a different run after defeat.
+	if (UWorld* World = WorldContextObject->GetWorld())
+	{
+		const FString TargetShortMapName =
+			ProjectDefeatTravelPrivate::StripPIEPrefix(Settings->DefeatedMapName.ToString());
+		if (TargetShortMapName.Equals(TEXT("DungeonGeneration"), ESearchCase::IgnoreCase))
+		{
+			UGameInstance* GameInstance = World->GetGameInstance();
+			UEFCalystoDungeonSubsystem* DungeonSubsystem = GameInstance
+				? GameInstance->GetSubsystem<UEFCalystoDungeonSubsystem>()
+				: nullptr;
+			if (DungeonSubsystem && DungeonSubsystem->HasActiveRun())
+			{
+				if (DungeonSubsystem->RequestReplayCurrentFloor())
+				{
+					UE_LOG(
+						LogProjectDefeatTravel,
+						Display,
+						TEXT("Replaying the active seeded dungeon floor for defeated travel."));
+					return true;
+				}
+
+				ClearPendingTransfer();
+				UE_LOG(
+					LogProjectDefeatTravel,
+					Error,
+					TEXT("Active Calysto run rejected defeated replay; raw travel was not attempted."));
+				return false;
+			}
 		}
 	}
 

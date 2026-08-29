@@ -12,6 +12,11 @@ namespace
 	static const FName MadnessName(TEXT("Madness"));
 	static const FName PainName(TEXT("Pain"));
 	static const FName CurseName(TEXT("Curse"));
+
+	float IntegrateSensationValue(const float CurrentValue, const float MaxValue, const float DeltaPerSecond, const float DeltaTime)
+	{
+		return FMath::Clamp(CurrentValue + (DeltaPerSecond * FMath::Max(DeltaTime, 0.f)), 0.f, FMath::Max(MaxValue, 0.f));
+	}
 }
 
 UProjectSurvivalNeedsComponent::UProjectSurvivalNeedsComponent()
@@ -83,28 +88,28 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 		}
 	}
 
-	if (StatusComponent)
+	for (FProjectSurvivalSensationState& Sensation : Sensations)
 	{
-		for (FProjectSurvivalSensationState& Sensation : Sensations)
+		if (Sensation.SensationName.IsNone())
 		{
-			if (Sensation.SensationName.IsNone())
-			{
-				continue;
-			}
+			continue;
+		}
 
-			const float DeltaPerSecond = StatusComponent->GetSensationDeltaPerSecond(Sensation.SensationName);
-			if (FMath::IsNearlyZero(DeltaPerSecond))
-			{
-				continue;
-			}
+		const float StatusDeltaPerSecond = StatusComponent
+			? StatusComponent->GetSensationDeltaPerSecond(Sensation.SensationName)
+			: 0.f;
+		const float DeltaPerSecond = Sensation.PassiveDeltaPerSecond + StatusDeltaPerSecond;
+		if (FMath::IsNearlyZero(DeltaPerSecond))
+		{
+			continue;
+		}
 
-			const float OldValue = Sensation.CurrentValue;
-			Sensation.CurrentValue = ClampToEntryRange(Sensation.CurrentValue + (DeltaPerSecond * DeltaTime), 0.f, Sensation.MaxValue);
-			if (!FMath::IsNearlyEqual(OldValue, Sensation.CurrentValue))
-			{
-				bChanged = true;
-				BroadcastValueChanged(Sensation.SensationName, OldValue, Sensation.CurrentValue, Sensation.MaxValue, true);
-			}
+		const float OldValue = Sensation.CurrentValue;
+		Sensation.CurrentValue = IntegrateSensationValue(Sensation.CurrentValue, Sensation.MaxValue, DeltaPerSecond, DeltaTime);
+		if (!FMath::IsNearlyEqual(OldValue, Sensation.CurrentValue))
+		{
+			bChanged = true;
+			BroadcastValueChanged(Sensation.SensationName, OldValue, Sensation.CurrentValue, Sensation.MaxValue, true);
 		}
 	}
 
@@ -113,6 +118,17 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 		UpdateCachedPenaltyMultiplier(true);
 	}
 }
+
+#if WITH_DEV_AUTOMATION_TESTS
+float UProjectSurvivalNeedsComponent::AutomationIntegrateSensationValue(
+	const float CurrentValue,
+	const float MaxValue,
+	const float DeltaPerSecond,
+	const float DeltaTime)
+{
+	return IntegrateSensationValue(CurrentValue, MaxValue, DeltaPerSecond, DeltaTime);
+}
+#endif
 
 void UProjectSurvivalNeedsComponent::ResetToDefaults()
 {
@@ -483,6 +499,7 @@ TArray<FProjectSurvivalSensationSnapshot> UProjectSurvivalNeedsComponent::BuildS
 		const int32 SafeBarCount = FMath::Max(1, BarsPerNeed);
 		Snapshot.FilledBars = FMath::Clamp(FMath::FloorToInt(Snapshot.NormalizedValue * static_cast<float>(SafeBarCount) + KINDA_SMALL_NUMBER), 0, SafeBarCount);
 		Snapshot.TotalBars = SafeBarCount;
+		Snapshot.PassiveDeltaPerSecond = Sensation.PassiveDeltaPerSecond;
 		Snapshots.Add(Snapshot);
 	}
 
@@ -565,6 +582,7 @@ void UProjectSurvivalNeedsComponent::InitializeDefaultState()
 			FProjectSurvivalSensationState(MadnessName, 0.f, 100.f),
 			FProjectSurvivalSensationState(PainName, 0.f, 100.f),
 			FProjectSurvivalSensationState(CurseName, 0.f, 100.f),
+			FProjectSurvivalSensationState(TEXT("Alcohol"), 0.f, 100.f, -0.25f),
 		};
 
 		AffectedSecondaryAttributes = {
@@ -619,6 +637,10 @@ void UProjectSurvivalNeedsComponent::SanitizeState()
 
 		Sensation.MaxValue = FMath::Max(Sensation.MaxValue, 0.001f);
 		Sensation.CurrentValue = ClampToEntryRange(Sensation.CurrentValue, 0.f, Sensation.MaxValue);
+		if (!FMath::IsFinite(Sensation.PassiveDeltaPerSecond))
+		{
+			Sensation.PassiveDeltaPerSecond = 0.f;
+		}
 	}
 }
 

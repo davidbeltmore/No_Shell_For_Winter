@@ -24,3 +24,12 @@ if os.environ.get("CODEX_RUN_PROJECT_EMOTE_VISUAL_TEST") == "1":
     if not os.path.isfile(script_path):
         raise RuntimeError("Project emote visual script is missing: " + script_path)
     runpy.run_path(script_path, run_name="__codex_project_emote_visual__")
+
+
+if os.environ.get("CODEX_RUN_FOODKIT_ALCOHOL_PIE") == "1":
+    os.environ["CODEX_RUN_FOODKIT_ALCOHOL_PIE"] = "0"
+    script_path = os.environ.get("CODEX_FOODKIT_ALCOHOL_PIE_SCRIPT", "")
+    if not script_path or not os.path.isfile(script_path):
+        raise RuntimeError("FoodKit Alcohol PIE script is missing: " + script_path)
+    runpy.run_path(script_path, run_name="__codex_foodkit_alcohol_pie__")
+

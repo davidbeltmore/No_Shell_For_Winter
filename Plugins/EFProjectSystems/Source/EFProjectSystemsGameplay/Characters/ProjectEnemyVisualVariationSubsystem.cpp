@@ -1,6 +1,7 @@
 #include "Characters/ProjectEnemyVisualVariationSubsystem.h"
 
 #include "Characters/ProjectEnemyLevelComponent.h"
+#include "Characters/ProjectEnemyLevelSubsystem.h"
 #include "Characters/ProjectEnemyVisualVariationSelection.h"
 #include "Characters/ProjectEnemyVisualVariationSettings.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -138,37 +139,7 @@ void UProjectEnemyVisualVariationSubsystem::Initialize(FSubsystemCollectionBase&
 	LastOptionalMatureVisibilityPollTimeSeconds = -1.0;
 
 	const UProjectEnemyVisualVariationSettings* Settings = UProjectEnemyVisualVariationSettings::Get();
-	for (const TSoftClassPtr<APawn>& TargetEnemyClass : Settings->TargetEnemyClasses)
-	{
-		if (UClass* ResolvedClass = TargetEnemyClass.LoadSynchronous())
-		{
-			TargetEnemyClasses.AddUnique(ResolvedClass);
-		}
-		else
-		{
-			UE_LOG(
-				LogProjectEnemyVisualVariation,
-				Warning,
-				TEXT("Could not resolve target enemy class '%s'."),
-				*TargetEnemyClass.ToSoftObjectPath().ToString());
-		}
-	}
-
-	for (const TSoftClassPtr<APawn>& TargetEnemyClass : Settings->OptionalMatureMorphTargetEnemyClasses)
-	{
-		if (UClass* ResolvedClass = TargetEnemyClass.LoadSynchronous())
-		{
-			OptionalMatureMorphTargetEnemyClasses.AddUnique(ResolvedClass);
-		}
-		else
-		{
-			UE_LOG(
-				LogProjectEnemyVisualVariation,
-				Warning,
-				TEXT("Could not resolve optional mature morph target enemy class '%s'."),
-				*TargetEnemyClass.ToSoftObjectPath().ToString());
-		}
-	}
+	bConfiguredClassesPending = !ResolveConfiguredClasses();
 
 	for (const FName MorphName : Settings->AllowedMorphNames)
 	{
@@ -218,6 +189,7 @@ void UProjectEnemyVisualVariationSubsystem::Deinitialize()
 	TrackedOptionalMatureMorphStates.Reset();
 	ContentPolicySubsystem.Reset();
 	bInitialPawnScanPending = false;
+	bConfiguredClassesPending = false;
 	bOptionalMatureMorphPolicyAllowed = false;
 	LastOptionalMatureVisibilityPollTimeSeconds = -1.0;
 
@@ -232,7 +204,13 @@ void UProjectEnemyVisualVariationSubsystem::Tick(float DeltaTime)
 		return;
 	}
 
-	if (bInitialPawnScanPending)
+	if (bConfiguredClassesPending && ResolveConfiguredClasses())
+	{
+		bConfiguredClassesPending = false;
+		bInitialPawnScanPending = true;
+	}
+
+	if (bInitialPawnScanPending && !bConfiguredClassesPending)
 	{
 		ProcessExistingPawns();
 		bInitialPawnScanPending = false;
@@ -281,7 +259,46 @@ bool UProjectEnemyVisualVariationSubsystem::IsTickable() const
 	const UWorld* World = GetWorld();
 	return World != nullptr
 		&& World->IsGameWorld()
-		&& (bInitialPawnScanPending || TrackedOptionalMatureMorphStates.Num() > 0);
+		&& (bInitialPawnScanPending || bConfiguredClassesPending || TrackedOptionalMatureMorphStates.Num() > 0);
+}
+
+bool UProjectEnemyVisualVariationSubsystem::ResolveConfiguredClasses()
+{
+	TargetEnemyClasses.Reset();
+	OptionalMatureMorphTargetEnemyClasses.Reset();
+
+	const UProjectEnemyVisualVariationSettings* Settings = UProjectEnemyVisualVariationSettings::Get();
+	if (!Settings)
+	{
+		return true;
+	}
+
+	bool bAllClassesResolved = true;
+	auto ResolveClasses = [&bAllClassesResolved](
+		const TArray<TSoftClassPtr<APawn>>& SoftClasses,
+		TArray<TSubclassOf<APawn>>& ResolvedClasses)
+	{
+		for (const TSoftClassPtr<APawn>& SoftClass : SoftClasses)
+		{
+			if (SoftClass.IsNull())
+			{
+				continue;
+			}
+
+			if (UClass* ResolvedClass = SoftClass.Get())
+			{
+				ResolvedClasses.AddUnique(ResolvedClass);
+			}
+			else
+			{
+				bAllClassesResolved = false;
+			}
+		}
+	};
+
+	ResolveClasses(Settings->TargetEnemyClasses, TargetEnemyClasses);
+	ResolveClasses(Settings->OptionalMatureMorphTargetEnemyClasses, OptionalMatureMorphTargetEnemyClasses);
+	return bAllClassesResolved;
 }
 
 bool UProjectEnemyVisualVariationSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
@@ -415,6 +432,25 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 
 		MarkActorProcessed(Pawn);
 	};
+
+	// Enemy level assignment retains its original next-tick timing. If subsystem
+	// delegate order puts variation first, wait without consuming a retry so the
+	// level-biased morph selection cannot silently fall back to level one.
+	if (UWorld* World = GetWorld())
+	{
+		if (const UProjectEnemyLevelSubsystem* EnemyLevelSubsystem =
+			World->GetSubsystem<UProjectEnemyLevelSubsystem>())
+		{
+			const UProjectEnemyLevelComponent* LevelComponent =
+				Pawn->FindComponentByClass<UProjectEnemyLevelComponent>();
+			if (EnemyLevelSubsystem->IsEnemyInitializationPending(Pawn)
+				&& (!LevelComponent || !LevelComponent->HasAssignedLevel()))
+			{
+				QueueVariationApplication(Pawn, AttemptIndex);
+				return;
+			}
+		}
+	}
 
 	UEFCharacterCustomizationComponent* CustomizationComponent = FindOrCreateCustomizationComponent(Pawn);
 	if (!IsValid(CustomizationComponent))

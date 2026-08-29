@@ -9,6 +9,19 @@ UProjectIntimacySettings::UProjectIntimacySettings()
 	SocialCardRowsTable = FSoftObjectPath(TEXT("/Game/_Game/Data/Intimacy/DT_ProjectSocialCardRows.DT_ProjectSocialCardRows"));
 	HubSocialCompanionClass = FSoftClassPath(
 		TEXT("/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C"));
+	CharismaTargetedPartnerClasses = {
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale.ACFDummyAmbushEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C")),
+		FSoftClassPath(TEXT("/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C"))
+	};
 }
 
 const UProjectIntimacySettings* UProjectIntimacySettings::Get()
@@ -22,26 +35,91 @@ bool UProjectIntimacySettings::MeetsAdultInteractionCharismaRequirement(
 	return FProjectContentPolicyRules::IsMatureUnlockedByCharismaLevel(CharismaLevel);
 }
 
-float UProjectIntimacySettings::ClampSessionProgress(
-	const float SessionProgress,
+float UProjectIntimacySettings::ClampClimax(
+	const float Climax,
 	const UProjectIntimacySettings* Settings)
 {
 	const UProjectIntimacySettings* ResolvedSettings = Settings ? Settings : Get();
 	const float Maximum = ResolvedSettings
-		? FMath::Clamp(ResolvedSettings->SessionProgressMaximum, 1.0f, 100.0f)
+		? FMath::Clamp(ResolvedSettings->ClimaxMaximum, 1.0f, 100.0f)
 		: 100.0f;
-	return FMath::Clamp(SessionProgress, 0.0f, Maximum);
+	return FMath::Clamp(Climax, 0.0f, Maximum);
+}
+
+float UProjectIntimacySettings::NormalizeClimaxPercent(
+	const float CurrentClimax,
+	const float ClimaxMaximum)
+{
+	return FMath::Clamp(
+		(FMath::Max(0.0f, CurrentClimax) / FMath::Max(1.0f, ClimaxMaximum)) * 100.0f,
+		0.0f,
+		100.0f);
+}
+
+float UProjectIntimacySettings::ComputePleaseClimaxGain(
+	const int32 SuccessfulHits,
+	const UProjectIntimacySettings* Settings)
+{
+	const UProjectIntimacySettings* ResolvedSettings = Settings ? Settings : Get();
+	const float PerHit = ResolvedSettings
+		? FMath::Max(0.0f, ResolvedSettings->PleaseClimaxPerSuccessfulHit)
+		: 5.0f;
+	return PerHit * static_cast<float>(FMath::Max(0, SuccessfulHits));
+}
+
+int32 UProjectIntimacySettings::ConsumeClimax(
+	const float CurrentClimax,
+	const float ClimaxGain,
+	const float ClimaxMaximum,
+	float& OutRemainingClimax)
+{
+	const float SafeMaximum = FMath::Max(1.0f, ClimaxMaximum);
+	const float TotalClimax = FMath::Max(0.0f, CurrentClimax) + FMath::Max(0.0f, ClimaxGain);
+	const int32 OrgasmCount = FMath::FloorToInt(TotalClimax / SafeMaximum);
+	OutRemainingClimax = FMath::Fmod(TotalClimax, SafeMaximum);
+	return FMath::Max(0, OrgasmCount);
+}
+
+float UProjectIntimacySettings::ComputeClimaxAnticipationMultiplier(
+	const float CurrentClimax,
+	const float ClimaxMaximum,
+	const UProjectIntimacySettings* Settings)
+{
+	const UProjectIntimacySettings* ResolvedSettings = Settings ? Settings : Get();
+	const float TargetMultiplier = ResolvedSettings
+		? FMath::Max(1.0f, ResolvedSettings->OrgasmRushIntensityMultiplier)
+		: 1.25f;
+	const float Window = ResolvedSettings
+		? FMath::Max(0.0f, ResolvedSettings->ClimaxAnticipationWindow)
+		: 5.0f;
+	const float SafeMaximum = FMath::Max(1.0f, ClimaxMaximum);
+	if (Window <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	const float Remaining = SafeMaximum - FMath::Clamp(CurrentClimax, 0.0f, SafeMaximum);
+	if (Remaining > Window)
+	{
+		return 1.0f;
+	}
+
+	const float Alpha = FMath::Clamp(1.0f - (Remaining / Window), 0.0f, 1.0f);
+	return FMath::Lerp(1.0f, TargetMultiplier, Alpha);
+}
+
+float UProjectIntimacySettings::ClampSessionProgress(
+	const float SessionProgress,
+	const UProjectIntimacySettings* Settings)
+{
+	return ClampClimax(SessionProgress, Settings);
 }
 
 float UProjectIntimacySettings::ComputePleaseProgressGain(
 	const int32 SuccessfulHits,
 	const UProjectIntimacySettings* Settings)
 {
-	const UProjectIntimacySettings* ResolvedSettings = Settings ? Settings : Get();
-	const float PerHit = ResolvedSettings
-		? FMath::Max(0.0f, ResolvedSettings->PleaseProgressPerSuccessfulHit)
-		: 5.0f;
-	return PerHit * static_cast<float>(FMath::Max(0, SuccessfulHits));
+	return ComputePleaseClimaxGain(SuccessfulHits, Settings);
 }
 
 float UProjectIntimacySettings::ComputePleasePulsePeriod(
@@ -76,11 +154,7 @@ int32 UProjectIntimacySettings::ConsumeSessionPeak(
 	const float PeakThreshold,
 	float& OutRemainingPeak)
 {
-	const float SafeThreshold = FMath::Max(1.0f, PeakThreshold);
-	const float TotalPeak = FMath::Max(0.0f, CurrentPeak) + FMath::Max(0.0f, ProgressGain);
-	const int32 PeakCount = FMath::FloorToInt(TotalPeak / SafeThreshold);
-	OutRemainingPeak = FMath::Fmod(TotalPeak, SafeThreshold);
-	return FMath::Max(0, PeakCount);
+	return ConsumeClimax(CurrentPeak, ProgressGain, PeakThreshold, OutRemainingPeak);
 }
 
 float UProjectIntimacySettings::ComputeSessionPeakAnticipationMultiplier(
@@ -88,27 +162,7 @@ float UProjectIntimacySettings::ComputeSessionPeakAnticipationMultiplier(
 	const float PeakThreshold,
 	const UProjectIntimacySettings* Settings)
 {
-	const UProjectIntimacySettings* ResolvedSettings = Settings ? Settings : Get();
-	const float TargetMultiplier = ResolvedSettings
-		? FMath::Max(1.0f, ResolvedSettings->SessionPeakIntensityMultiplier)
-		: 1.25f;
-	const float Window = ResolvedSettings
-		? FMath::Max(0.0f, ResolvedSettings->SessionPeakAnticipationWindow)
-		: 5.0f;
-	const float SafeThreshold = FMath::Max(1.0f, PeakThreshold);
-	if (Window <= 0.0f)
-	{
-		return 1.0f;
-	}
-
-	const float Remaining = SafeThreshold - FMath::Clamp(CurrentPeak, 0.0f, SafeThreshold);
-	if (Remaining > Window)
-	{
-		return 1.0f;
-	}
-
-	const float Alpha = FMath::Clamp(1.0f - (Remaining / Window), 0.0f, 1.0f);
-	return FMath::Lerp(1.0f, TargetMultiplier, Alpha);
+	return ComputeClimaxAnticipationMultiplier(CurrentPeak, PeakThreshold, Settings);
 }
 
 EProjectIntimacyEligibilityFailure UProjectIntimacySettings::EvaluateEligibility(

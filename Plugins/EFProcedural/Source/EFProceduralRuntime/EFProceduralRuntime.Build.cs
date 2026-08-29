@@ -11,6 +11,7 @@ public class EFProceduralRuntime : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"AssetRegistry",
 			"DeveloperSettings"
 		});
 

@@ -38,6 +38,7 @@ public:
 
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	void InitializeForBackground(
@@ -70,6 +71,7 @@ private:
 	void ConfirmOrAdvance();
 	void GoBack();
 	bool HandleMenuKey(const FKey& Key);
+	void HandleCharacterCreationActiveChanged(bool bIsActive);
 	FText BuildBackstorySubtitle(const FProjectCharacterBackstoryData& Data) const;
 	FText BuildProfessionSubtitle(const FProjectCharacterProfessionData& Data) const;
 	FText BuildModifierLine(FName AttributeID, int32 Delta) const;
@@ -93,6 +95,7 @@ private:
 private:
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UProjectCharacterBackgroundComponent> BackgroundComponent;
+	FDelegateHandle CharacterCreationActiveChangedHandle;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCanvasPanel> RootCanvas;

@@ -156,6 +156,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inner Doctrine|Curse")
 	bool IsCursed() const;
 
+	/**
+	 * Adds or removes a source-owned suppression of Curse's passive decay.
+	 * Explicit cleansing through CleanseCurse remains available while suppressed.
+	 * Returns false for NAME_None or when the requested state was already set.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Inner Doctrine|Curse")
+	bool SetPassiveCurseDecaySuppressed(FName SourceId, bool bSuppressed);
+
+	UFUNCTION(BlueprintPure, Category = "Inner Doctrine|Curse")
+	bool IsPassiveCurseDecaySuppressed() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Inner Doctrine|Curse")
 	bool RegisterCurseZonePresence(FGuid ZonePresenceToken);
 
@@ -331,6 +342,7 @@ private:
 	TMap<FName, float> RuntimeBaseNeedMaxByName;
 	TMap<FName, float> RuntimeBaseSensationMaxByName;
 	TSet<FName> ProcessedFloorTransitionIds;
+	TSet<FName> PassiveCurseDecaySuppressionSources;
 	TSet<FGuid> ActiveCurseZonePresenceTokens;
 	TSet<FGuid> ProcessedCurseApplicationIds;
 	TArray<FGuid> ProcessedCurseApplicationOrder;

@@ -11,7 +11,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectCharacterIdentity, Log, All);
 
 namespace ProjectCharacterIdentitySubsystemPrivate
 {
-	constexpr float IdentityAuditIntervalSeconds = 1.0f;
+	// Actor-spawn events are authoritative. This low-frequency audit only catches
+	// actors that predated subsystem initialization or unusual spawn paths.
+	constexpr float IdentityAuditIntervalSeconds = 5.0f;
 
 	static FGameplayTag GenderTag(const TCHAR* TagName)
 	{
@@ -23,7 +25,7 @@ void UProjectCharacterIdentitySubsystem::Initialize(FSubsystemCollectionBase& Co
 {
 	Super::Initialize(Collection);
 
-	LoadConfiguredClasses();
+	bConfiguredClassesPending = !LoadConfiguredClasses();
 	bInitialPawnScanPending = true;
 
 	if (UWorld* World = GetWorld(); IsValid(World) && World->IsGameWorld())
@@ -44,13 +46,26 @@ void UProjectCharacterIdentitySubsystem::Deinitialize()
 	MaleCharacterClasses.Reset();
 	FemaleCharacterClasses.Reset();
 	PendingPawns.Reset();
+	ProcessedPawns.Reset();
 	SecondsUntilNextIdentityAudit = 0.0f;
 	bInitialPawnScanPending = false;
+	bConfiguredClassesPending = false;
 	Super::Deinitialize();
 }
 
 void UProjectCharacterIdentitySubsystem::Tick(const float DeltaTime)
 {
+	if (bConfiguredClassesPending)
+	{
+		if (!LoadConfiguredClasses())
+		{
+			return;
+		}
+
+		bConfiguredClassesPending = false;
+		bInitialPawnScanPending = true;
+	}
+
 	SecondsUntilNextIdentityAudit -= FMath::Max(0.0f, DeltaTime);
 	if (bInitialPawnScanPending || SecondsUntilNextIdentityAudit <= 0.0f)
 	{
@@ -63,7 +78,13 @@ void UProjectCharacterIdentitySubsystem::Tick(const float DeltaTime)
 	PendingPawns.Reset();
 	for (const TWeakObjectPtr<APawn>& Pawn : PawnsToProcess)
 	{
-		ProcessPawn(Pawn.Get());
+		APawn* ResolvedPawn = Pawn.Get();
+		if (IsValid(ResolvedPawn)
+			&& !ProcessedPawns.Contains(TObjectKey<APawn>(ResolvedPawn))
+			&& ProcessPawn(ResolvedPawn))
+		{
+			ProcessedPawns.Add(TObjectKey<APawn>(ResolvedPawn));
+		}
 	}
 }
 
@@ -133,7 +154,7 @@ bool UProjectCharacterIdentitySubsystem::IsMaleGenderTag(const FGameplayTag Gend
 	return MaleTag.IsValid() && GenderTag.MatchesTagExact(MaleTag);
 }
 
-void UProjectCharacterIdentitySubsystem::LoadConfiguredClasses()
+bool UProjectCharacterIdentitySubsystem::LoadConfiguredClasses()
 {
 	MaleCharacterClasses.Reset();
 	FemaleCharacterClasses.Reset();
@@ -141,26 +162,33 @@ void UProjectCharacterIdentitySubsystem::LoadConfiguredClasses()
 	const UEFProjectEnemySettings* Settings = UEFProjectEnemySettings::Get();
 	if (!Settings)
 	{
-		return;
+		return true;
 	}
 
-	auto LoadClasses = [](const TArray<FSoftClassPath>& ClassPaths, TArray<TSubclassOf<APawn>>& OutClasses, const TCHAR* RegistryLabel)
+	bool bAllClassesResolved = true;
+	auto ResolveClasses = [&bAllClassesResolved](const TArray<FSoftClassPath>& ClassPaths, TArray<TSubclassOf<APawn>>& OutClasses)
 	{
 		for (const FSoftClassPath& ClassPath : ClassPaths)
 		{
-			if (UClass* ResolvedClass = ClassPath.TryLoadClass<APawn>())
+			if (!ClassPath.IsValid())
+			{
+				continue;
+			}
+
+			if (UClass* ResolvedClass = ClassPath.ResolveClass())
 			{
 				OutClasses.AddUnique(ResolvedClass);
 			}
 			else
 			{
-				UE_LOG(LogProjectCharacterIdentity, Warning, TEXT("Could not resolve %s identity class '%s'."), RegistryLabel, *ClassPath.ToString());
+				bAllClassesResolved = false;
 			}
 		}
 	};
 
-	LoadClasses(Settings->MaleCharacterClasses, MaleCharacterClasses, TEXT("Male"));
-	LoadClasses(Settings->FemaleCharacterClasses, FemaleCharacterClasses, TEXT("Female"));
+	ResolveClasses(Settings->MaleCharacterClasses, MaleCharacterClasses);
+	ResolveClasses(Settings->FemaleCharacterClasses, FemaleCharacterClasses);
+	return bAllClassesResolved;
 }
 
 void UProjectCharacterIdentitySubsystem::ProcessExistingPawns()
@@ -173,7 +201,13 @@ void UProjectCharacterIdentitySubsystem::ProcessExistingPawns()
 
 	for (TActorIterator<APawn> It(World); It; ++It)
 	{
-		ProcessPawn(*It);
+		APawn* Pawn = *It;
+		if (IsValid(Pawn)
+			&& !ProcessedPawns.Contains(TObjectKey<APawn>(Pawn))
+			&& ProcessPawn(Pawn))
+		{
+			ProcessedPawns.Add(TObjectKey<APawn>(Pawn));
+		}
 	}
 }
 

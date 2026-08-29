@@ -33,6 +33,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectActivityFeed, Log, All);
 namespace ProjectActivityFeedPrivate
 {
 	constexpr double EnemyAwarenessPollIntervalSeconds = 0.10;
+	constexpr double EnemyMaintenanceIntervalSeconds = 0.25;
 	constexpr int32 ActivityFeedInputPriority = 75;
 
 	FProjectActivityFeedEntry MakeStandardEntry(const EProjectActivityFeedChannel Channel, const FText& Message)
@@ -692,7 +693,9 @@ void UProjectActivityFeedSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	ResetReflectionState();
 	ResetInventoryState();
 	ResetAggregates();
-	LoadEnemyTargetClasses();
+	bEnemyTargetClassesPending = !LoadEnemyTargetClasses();
+	bHasPendingEnemyBindings = true;
+	NextEnemyMaintenanceTimeSeconds = 0.0;
 
 	if (UWorld* World = GetWorld(); World && World->IsGameWorld())
 	{
@@ -716,6 +719,9 @@ void UProjectActivityFeedSubsystem::Deinitialize()
 	LastInventorySnapshot.Reset();
 	PendingLootEntries.Reset();
 	ActorSpawnedHandle.Reset();
+	bEnemyTargetClassesPending = false;
+	bHasPendingEnemyBindings = false;
+	NextEnemyMaintenanceTimeSeconds = 0.0;
 
 	Super::Deinitialize();
 }
@@ -730,9 +736,6 @@ void UProjectActivityFeedSubsystem::Tick(float DeltaTime)
 		bInitialEnemyScanPending = false;
 	}
 
-	UnregisterInvalidEnemies();
-	RefreshEnemyBindings();
-
 	UWorld* World = GetWorld();
 	if (!World || !World->IsGameWorld())
 	{
@@ -740,6 +743,23 @@ void UProjectActivityFeedSubsystem::Tick(float DeltaTime)
 	}
 
 	const float CurrentTimeSeconds = World->GetTimeSeconds();
+	if (bHasPendingEnemyBindings)
+	{
+		RefreshEnemyBindings();
+	}
+
+	if (CurrentTimeSeconds >= NextEnemyMaintenanceTimeSeconds)
+	{
+		NextEnemyMaintenanceTimeSeconds = CurrentTimeSeconds + ProjectActivityFeedPrivate::EnemyMaintenanceIntervalSeconds;
+		UnregisterInvalidEnemies();
+
+		if (bEnemyTargetClassesPending && LoadEnemyTargetClasses())
+		{
+			bEnemyTargetClassesPending = false;
+			ProcessExistingEnemies();
+		}
+	}
+
 	PollLevelingBridge(CurrentTimeSeconds);
 	PollInventoryBridge(CurrentTimeSeconds);
 	EvaluateEnemyBarks(CurrentTimeSeconds);
@@ -960,23 +980,35 @@ void UProjectActivityFeedSubsystem::HandleEnemyDamageApplied(
 	TryEmitEnemyDefeatFromPendingDamage(SourceActor);
 }
 
-void UProjectActivityFeedSubsystem::LoadEnemyTargetClasses()
+bool UProjectActivityFeedSubsystem::LoadEnemyTargetClasses()
 {
 	TargetEnemyBaseClasses.Reset();
 
 	const UProjectEnemyLevelSettings* Settings = UProjectEnemyLevelSettings::Get();
 	if (!Settings)
 	{
-		return;
+		return true;
 	}
 
+	bool bAllClassesResolved = true;
 	for (const TSoftClassPtr<APawn>& EnemyClass : Settings->TargetEnemyBaseClasses)
 	{
-		if (UClass* ResolvedClass = EnemyClass.LoadSynchronous())
+		if (EnemyClass.IsNull())
+		{
+			continue;
+		}
+
+		if (UClass* ResolvedClass = EnemyClass.Get())
 		{
 			TargetEnemyBaseClasses.AddUnique(ResolvedClass);
 		}
+		else
+		{
+			bAllClassesResolved = false;
+		}
 	}
+
+	return bAllClassesResolved;
 }
 
 void UProjectActivityFeedSubsystem::TryResolveRuntimeContext()
@@ -1356,10 +1388,12 @@ void UProjectActivityFeedSubsystem::RegisterEnemyPawn(APawn* EnemyPawn)
 
 	FProjectActivityFeedTrackedEnemyState& EnemyState = TrackedEnemies.Add(EnemyKey);
 	EnemyState.EnemyPawn = EnemyPawn;
+	bHasPendingEnemyBindings = true;
 }
 
 void UProjectActivityFeedSubsystem::RefreshEnemyBindings()
 {
+	bHasPendingEnemyBindings = false;
 	for (TPair<TObjectKey<APawn>, FProjectActivityFeedTrackedEnemyState>& EnemyPair : TrackedEnemies)
 	{
 		FProjectActivityFeedTrackedEnemyState& EnemyState = EnemyPair.Value;
@@ -1375,6 +1409,10 @@ void UProjectActivityFeedSubsystem::RefreshEnemyBindings()
 			if (EnemyState.CombatComponent.IsValid())
 			{
 				EnemyState.bWasDead = EnemyState.CombatComponent->IsDead();
+			}
+			else
+			{
+				bHasPendingEnemyBindings = true;
 			}
 		}
 
@@ -1443,6 +1481,10 @@ void UProjectActivityFeedSubsystem::EvaluateEnemyBarks(const float CurrentTimeSe
 
 	TArray<APawn*> BarkCandidates;
 	int32 AwarenessCount = 0;
+	FVector PlayerViewLocation = TrackedPlayerPawn->GetActorLocation();
+	FRotator PlayerViewRotation = TrackedPlayerPawn->GetActorRotation();
+	TrackedPlayerPawn->GetActorEyesViewPoint(PlayerViewLocation, PlayerViewRotation);
+	const float MaxSightRangeSquared = FMath::Square(FMath::Max(Settings->SightRange, 0.0f));
 
 	for (TPair<TObjectKey<APawn>, FProjectActivityFeedTrackedEnemyState>& EnemyPair : TrackedEnemies)
 	{
@@ -1465,13 +1507,8 @@ void UProjectActivityFeedSubsystem::EvaluateEnemyBarks(const float CurrentTimeSe
 		FRotator EnemyViewRotation = EnemyPawn->GetActorRotation();
 		EnemyPawn->GetActorEyesViewPoint(EnemyViewLocation, EnemyViewRotation);
 
-		FVector PlayerViewLocation = TrackedPlayerPawn->GetActorLocation();
-		FRotator PlayerViewRotation = TrackedPlayerPawn->GetActorRotation();
-		TrackedPlayerPawn->GetActorEyesViewPoint(PlayerViewLocation, PlayerViewRotation);
-
 		const FVector ToPlayer = PlayerViewLocation - EnemyViewLocation;
-		const float MaxSightRange = FMath::Max(Settings->SightRange, 0.0f);
-		bool bCanSeePlayer = ToPlayer.SizeSquared() <= FMath::Square(MaxSightRange);
+		bool bCanSeePlayer = ToPlayer.SizeSquared() <= MaxSightRangeSquared;
 
 		if (bCanSeePlayer)
 		{

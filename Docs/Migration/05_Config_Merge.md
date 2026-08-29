@@ -7,7 +7,7 @@ This document began as the Phase 2 three-way decision set. Phase 3 contains the 
 ## User-directed scope reduction
 
 - SaveGame migration, compatibility with legacy UE 5.7 save slots, and ALS persistence validation are `OUT_OF_SCOPE_BY_USER`.
-- All remaining visual QA is `USER_OWNED_OUT_OF_SCOPE` and will be executed and accepted by the user.
+- Historical broad visual QA remains `USER_OWNED_OUT_OF_SCOPE`. The current Intimacy Climax rework is an explicit scoped exception: its visible Partner-menu and active-theme dual-Climax HUD checks are `PASS`; separate coverage of every HUD Theme preset remains `PENDING`.
 - These scope labels are not `PASS`. Existing historical visual evidence and native persistence-contract facts are retained without promotion.
 
 Evidence: [Phase2_Config_ThreeWay_Audit.md](Evidence/Phase2_Config_ThreeWay_Audit.md)
@@ -34,15 +34,28 @@ DoorToLevel evidence: run `FASTIMPORT_20260713_1948`, `DoorToLevel58Rebuild.json
 
 NoShellForWinter has one runtime presentation, not separate SFW and NSFW modes. The default tone is neutral and ARPG-focused while all approved content remains in the project.
 
-- Intimacy and Fap are secondary social interactions unlocked at Charisma level 10.
-- Intimacy requires verified adult characters, explicit consent, life, consciousness, non-hostility, no active combat, and an allowed location.
-- Intimacy and Fap do not modify Curse, grant DXP, provide combat power, force recruitment, or create exclusive progression.
+- Intimacy is a secondary social interaction unlocked at Charisma level 10. `T` plus `Hyphen`/`Subtract` requests immediate start, while `T` plus `Y` exposes `Partner > Intimacy` for an explicitly allowlisted compatible Male companion or Enemy target.
+- The normal authored companion route honors the partner's authored social participation and allowed-location metadata.
+- For the targeted Charisma-10 entry only, a project-owned temporary adapter may supply missing social or zone metadata for the explicit companion and registered Male Enemy class allowlist. Charisma may override the partner's hostile classification for these targets. Verified-adult, bilateral-consent, alive, conscious, recent-combat lockout, partner ACF-controller battle, and global ACF battle gates are revalidated before start and throughout the session.
+- Intimacy consumes `Space`, `Enter`, and arrow navigation only while its session is active; those keys continue to lower-priority gameplay/UI input outside Intimacy.
+- Intimacy deliberately reduces Curse by exactly one percent of the character's Curse maximum per second while the session is active. It does not grant DXP, combat power, forced recruitment, or exclusive progression. Fap remains mechanically separate from this Intimacy exception.
 - A real struggle-minigame loss makes one authoritative mature-defeat roll. A result below 0.10 selects the retained vignette; all other results respawn directly without a character animation.
 - Mature defeat is independent of Charisma and the consent checks used by voluntary Intimacy.
 - Enemy barks select the neutral external table with 0.90 probability and the protected original Chronicle payload with 0.10 probability. The original payload remains byte-exact.
 - `-StreamerSafe` is a fail-closed presentation override that suppresses adult interactions, mature defeat presentation, and original adult barks. It does not select a second gameplay mode.
 
 The previous selector and independent opt-in design is retired. Any config keys that only supported those controls must be removed after project-owned assets are resaved and must not survive as public redirects or aliases.
+
+## Intimacy Climax rework contract
+
+- Lust is not part of the Intimacy runtime contract. Player and Partner instead own independent temporary Climax values that exist only for the active session.
+- Reaching Climax triggers that participant's orgasm, preserves the session, and allows later orgasms. Only explicit exit or cancellation ends the session.
+- Orgasm Rush is one session-local state. It may represent either or both participants without becoming a persistent global status.
+- Talk and minigame rewards are acceleration inputs for Player or Partner Climax. They currently provide presentation and pacing rather than progression power.
+- The HUD presents both Climax bars, orgasm counts, Rush state, and Curse feedback using the active HUD Theme. Native automation, focused live PIE, and representative active-theme visual acceptance are `PASS`; separate coverage of every HUD Theme preset remains `PENDING`.
+- The Intimacy runtime owns its exact Curse cleanse while active so that passive decay cannot double-count the required one-percent-of-maximum-per-second rate.
+
+Evidence: [Intimacy_Climax_Rework_20260802.md](Evidence/Intimacy_Climax_Rework_20260802.md)
 
 ## Three-way decision matrix
 
@@ -64,6 +77,7 @@ The previous selector and independent opt-in design is retired. Any config keys 
 | `DefaultGame.ini` | ACFU CommonUI/CommonInput | Present in source baseline and ACFU 4.3.5 | Missing because target file currently contains only Daz settings | `DEFER_MERGE_FROM_ACFU_4_3_5` | Config parse and baseline UI/input smoke |
 | `DefaultGame.ini` | ACFU always-cook roots | `/AscentCombatFramework`, `/Game/FullSample` | Missing from project file; present in ACFU 4.3.5 template | `DEFER_MERGE_FROM_ACFU_4_3_5` | Cook manifest confirms roots |
 | `DefaultGame.ini` | `/Game/_Game/Widgets` always-cook root | Project-owned addition | Exact 127-package Modern UI batch now present | `APPLIED_PACKAGING_STRUCTURAL_PASS` | Config/load/compile/resave/build PASS; cook-manifest and packaged validation pending |
+| `DefaultGame.ini` | `_Game/Images/Intimacy` staged NonUFS directory | Project-owned loose Intimacy preview media | Explicit staging rule present | `APPLIED_CONFIG_COOK_PACKAGE_PASS` | Build, final NonUFS manifest/staging, package inclusion, and active-theme HUD visual QA `PASS`; packaged Intimacy interaction/media render and every HUD Theme preset remain `PENDING` |
 | `DefaultGame.ini` | `/NNEDenoiser` always-cook root | Legacy source entry | Absent | `REJECT_UNLESS_REFERENCED` | NNEDenoiser enabled and an asset dependency proves need |
 | `DefaultGame.ini` | EFProjectSystems, EFCharacterCreation, GameplayAbilities sections | Project-owned settings added after initial import | Selective owner sections applied | `MERGE_SECTION_BY_SECTION` | Owning plugin loads; every configured asset path resolves |
 | `DefaultGame.ini` | `EFProceduralSettings` dungeon actor/start-point settings | Source uses `BP_MassiveDungeon` and canonical `BP_StartPoint` contracts | Exact contract batch, `BP_StartPoint`, statically validated `DungeonGeneration` World, and rebuilt DoorToLevel present; `BP_MassiveDungeon` absent | `DEFER_MERGE`; do not point settings at `BP_MassiveDungeon` yet | Migrate/replace the remaining dungeon actor, then pass dungeon/door PIE, cook, and package gates; visual QA is `USER_OWNED_OUT_OF_SCOPE` |
@@ -238,10 +252,12 @@ The project settings source of truth is:
 | Y | `ToggleInteractionMenuKey=Y` | Actions/emotes/interactions |
 | J | `ToggleActivityFeedKey=J` | Chronicle |
 | H | Direct conditional `EKeys::H` in survival subsystem | Conditional status debug |
-| Minus | Direct `Hyphen` and `Subtract` defaults in intimacy settings | Preserve both keyboard variants |
-| T / Plus | Not represented in textual config; owned by input assets/Blueprint contracts | `PENDING` asset inspection and PIE |
+| T | Existing interaction modifier | With Charisma 10 and an allowlisted compatible Male companion or Enemy target, combines with `Hyphen`/`Subtract` for immediate Intimacy or with `Y` for the Partner menu |
+| Hyphen / Subtract | Direct defaults in Intimacy settings | Preserve both keyboard variants; `T` plus either key requests immediate Intimacy |
+| Y while T is held | Existing action-menu route | Expose `Partner > Intimacy` only when the hard fail-closed gates and the route-specific social/location handling described above pass |
+| Plus | Existing source interaction contract | Preserve exact interaction; behavioral validation remains `PENDING_PIE` |
 
-`Equals` has been removed from console ownership without replacing the UE 5.8 Enhanced Input section. The structural probe validates CDO/config only; the complete Period, H, O, N, C, Y, J, L, Comma, Down, T, Plus, Hyphen, and Subtract behavior remains `PENDING_PIE`.
+`Equals` has been removed from console ownership without replacing the UE 5.8 Enhanced Input section. Native Intimacy automation plus binding-equivalent PIE validate its Charisma threshold, fail-closed eligibility, quick-start/menu routing, and Climax presentation metadata, but do not prove physical operating-system keyboard dispatch. The broader Period, H, O, N, C, J, L, Comma, Down, and Plus behavior, together with physical `T`+`Y` and `T`+`Hyphen`/`Subtract` capture, remains `PENDING_PIE`.
 
 ## Core redirect disposition
 

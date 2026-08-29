@@ -1,8 +1,10 @@
 #include "RuntimePerformance/ProjectRuntimePerformanceSettings.h"
 #include "RuntimePerformance/ProjectRuntimePerformanceSubsystem.h"
 #include "RuntimePerformance/ProjectPerformanceBudgetSettings.h"
+#include "RuntimePerformance/ProjectRuntimeAssetPreloadSubsystem.h"
 #include "Debug/ProjectGameplayDebugCommandExecutor.h"
 #include "Debug/ProjectGameplayDebugMenuWidget.h"
+#include "Characters/ProjectEnemyLevelSettings.h"
 #include "Survival/ProjectSurvivalStatusComponent.h"
 
 #include "Misc/AutomationTest.h"
@@ -56,16 +58,38 @@ bool FProjectRuntimePerformanceSettingsTest::RunTest(const FString& Parameters)
 	}
 
 	TestTrue(TEXT("Dungeon combat map should point at DungeonGeneration"), Settings->DungeonCombatMap.ToString().Contains(TEXT("DungeonGeneration")));
-	TestTrue(TEXT("Default benchmark duration should be 180 seconds"), FMath::IsNearlyEqual(Settings->DefaultDurationSeconds, 180.0f));
-	TestTrue(TEXT("Real gameplay benchmark duration should be 300 seconds"), FMath::IsNearlyEqual(Settings->RealGameplayDurationSeconds, 300.0f));
-	TestTrue(TEXT("Warmup should be 10 seconds"), FMath::IsNearlyEqual(Settings->WarmupSeconds, 10.0f));
-	TestEqual(TEXT("Default enemy count"), Settings->EnemyCount, 4);
+	TestTrue(TEXT("Legacy benchmark adapter duration should be 120 seconds"), FMath::IsNearlyEqual(Settings->DefaultDurationSeconds, 120.0f));
+	TestTrue(TEXT("Legacy real gameplay adapter duration should be 120 seconds"), FMath::IsNearlyEqual(Settings->RealGameplayDurationSeconds, 120.0f));
+	TestTrue(TEXT("Acceptance warmup should be 15 seconds"), FMath::IsNearlyEqual(Settings->AcceptanceWarmupSeconds, 15.0f));
+	TestTrue(TEXT("Smoke warmup should be 10 seconds"), FMath::IsNearlyEqual(Settings->SmokeWarmupSeconds, 10.0f));
+	TestTrue(TEXT("Natural gameplay warmup should be 10 seconds"), FMath::IsNearlyEqual(Settings->NaturalGameplayWarmupSeconds, 10.0f));
+	TestTrue(TEXT("Acceptance duration should be 120 seconds"), FMath::IsNearlyEqual(Settings->AcceptanceDurationSeconds, 120.0f));
+	TestTrue(TEXT("Smoke duration should be 30 seconds"), FMath::IsNearlyEqual(Settings->SmokeDurationSeconds, 30.0f));
+	TestTrue(TEXT("Natural gameplay duration should be 60 seconds"), FMath::IsNearlyEqual(Settings->NaturalGameplayDurationSeconds, 60.0f));
+	TestEqual(TEXT("Acceptance seed"), Settings->AcceptanceSeed, 42);
+	TestEqual(TEXT("Mandatory acceptance enemy count"), Settings->AcceptanceEnemyCount, 8);
+	TestEqual(TEXT("Default enemy count"), Settings->EnemyCount, 8);
+	TestEqual(TEXT("Default quality preset"), Settings->DefaultQualityPreset, FName(TEXT("Performance58")));
 	TestTrue(TEXT("Benchmarks should use vanilla ACF perception by default"), Settings->bUseVanillaAIPerceptionForBenchmarks);
 	TestFalse(TEXT("Benchmarks should not force direct ACF targets by default"), Settings->bAllowBenchmarkDirectAITargeting);
 	TestFalse(TEXT("Output path should not be empty"), Settings->OutputRelativePath.IsEmpty());
 	TestTrue(TEXT("Stable combat profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonCombatStable")));
 	TestTrue(TEXT("Real gameplay profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonGameplayReal")));
 	TestTrue(TEXT("Full stack overload profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonFullStackOverload")));
+	TestTrue(TEXT("UE 5.8 smoke profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonSmoke58")));
+	TestTrue(TEXT("UE 5.8 natural gameplay profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonNaturalGameplay58")));
+	TestTrue(TEXT("UE 5.8 acceptance profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonAcceptance58")));
+	TestTrue(TEXT("UE 5.8 diagnostic profile should be supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonFullStackDiagnostic58")));
+
+	const UProjectEnemyLevelSettings* EnemyLevelSettings = UProjectEnemyLevelSettings::Get();
+	TestNotNull(TEXT("Enemy level settings exist"), EnemyLevelSettings);
+	if (EnemyLevelSettings)
+	{
+		TestEqual(
+			TEXT("Project enemy initialization is limited to one actor per frame"),
+			EnemyLevelSettings->MaxEnemyInitializationsPerFrame,
+			1);
+	}
 	return true;
 }
 
@@ -86,8 +110,17 @@ bool FProjectRuntimePerformanceBudgetSettingsTest::RunTest(const FString& Parame
 	}
 
 	TestFalse(TEXT("Runtime budgeting should not affect vanilla gameplay by default"), Settings->bEnableRuntimeBudgeting);
-	TestFalse(TEXT("Runtime combat preload should not affect vanilla gameplay by default"), Settings->bPreloadRuntimeCombatAssets);
+	TestTrue(TEXT("Runtime combat assets should preload without enabling gameplay budgeting"), Settings->bPreloadRuntimeCombatAssets);
 	TestFalse(TEXT("Runtime preload should include project-owned assets"), Settings->AdditionalPreloadAssets.IsEmpty());
+	TestTrue(
+		TEXT("Runtime preload should include the dungeon torch Niagara system"),
+		Settings->AdditionalPreloadAssets.ContainsByPredicate([](const FSoftObjectPath& Path)
+		{
+			return Path.ToString().Contains(TEXT("FXS_LowPolyTorch"));
+		}));
+	TestTrue(
+		TEXT("Runtime preload ownership should persist for the game instance"),
+		UProjectRuntimeAssetPreloadSubsystem::StaticClass()->IsChildOf(UGameInstanceSubsystem::StaticClass()));
 	TestTrue(TEXT("Dormant full-rate budget should allow a normal ACF encounter"), Settings->MaxFullRateEnemyAnimations >= 8);
 	TestTrue(TEXT("Dormant awake enemy budget should not aggressively sleep the dungeon"), Settings->MaxAwakeDungeonEnemies >= 20);
 	TestTrue(TEXT("Dormant runtime enemy cap should not cull normal dungeon spawns"), Settings->MaxRuntimeEnemyActors >= 32);
@@ -134,7 +167,7 @@ bool FProjectRuntimePerformanceFullStackProfileSupportedTest::RunTest(const FStr
 	}
 
 	TestTrue(TEXT("Full stack profile is supported"), UProjectRuntimePerformanceSubsystem::IsSupportedBenchmarkId(TEXT("DungeonFullStackOverload")));
-	TestTrue(TEXT("Full stack duration defaults to 540 seconds"), FMath::IsNearlyEqual(Settings->FullStackOverloadDurationSeconds, 540.0f));
+	TestTrue(TEXT("Full stack diagnostic duration is capped at 120 seconds"), FMath::IsNearlyEqual(Settings->FullStackOverloadDurationSeconds, 120.0f));
 	TestEqual(TEXT("Full stack enemy cap defaults to 8"), Settings->FullStackOverloadEnemyCap, 8);
 	TestTrue(TEXT("Full stack strict failures default on"), Settings->bStrictFullStackScenarioFailures);
 	return true;
@@ -157,6 +190,69 @@ bool FProjectRuntimePerformanceFullStackStageScheduleTest::RunTest(const FString
 	TestTrue(TEXT("Mage stage present"), StageIds.Contains(FName(TEXT("EnemySoloMage"))));
 	TestTrue(TEXT("Dirty Pawn stacked combat stage present"), StageIds.Contains(FName(TEXT("StackedCombatDirtyPawn"))));
 	TestEqual(TEXT("Last stage"), StageIds.Num() > 0 ? StageIds.Last() : NAME_None, FName(TEXT("DebugCommandSweep")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectRuntimePerformanceAcceptanceStageScheduleTest,
+	"Project.RuntimePerformance.Acceptance58.StageSchedule",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectRuntimePerformanceAcceptanceStageScheduleTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const TArray<FName> StageIds = UProjectRuntimePerformanceSubsystem::BuildAcceptanceStageIds();
+	TestEqual(TEXT("Acceptance stage count"), StageIds.Num(), 3);
+	TestEqual(TEXT("Traversal stage"), StageIds.IsValidIndex(0) ? StageIds[0] : NAME_None, FName(TEXT("TraversalStreaming")));
+	TestEqual(TEXT("Eight-enemy combat stage"), StageIds.IsValidIndex(1) ? StageIds[1] : NAME_None, FName(TEXT("CombatEight")));
+	TestEqual(TEXT("DirtyPawn and HUD stage"), StageIds.IsValidIndex(2) ? StageIds[2] : NAME_None, FName(TEXT("CombatDirtyPawnHud")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectRuntimePerformanceNaturalGameplayStageScheduleTest,
+	"Project.RuntimePerformance.NaturalGameplay58.StageSchedule",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectRuntimePerformanceNaturalGameplayStageScheduleTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	const TArray<FName> StageIds = UProjectRuntimePerformanceSubsystem::BuildNaturalGameplayStageIds();
+	TestEqual(TEXT("Natural gameplay stage count"), StageIds.Num(), 1);
+	TestEqual(
+		TEXT("Natural traversal stage"),
+		StageIds.IsValidIndex(0) ? StageIds[0] : NAME_None,
+		FName(TEXT("NaturalTraversal")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FProjectRuntimePerformanceAcceptanceGateTest,
+	"Project.RuntimePerformance.Acceptance58.MetricGate",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FProjectRuntimePerformanceAcceptanceGateTest::RunTest(const FString& Parameters)
+{
+	(void)Parameters;
+
+	FProjectRuntimePerformanceMetrics PassingMetrics;
+	PassingMetrics.FrameSampleCount = 7200;
+	PassingMetrics.AverageFps = 60.0;
+	PassingMetrics.MedianFps = 61.0;
+	PassingMetrics.OnePercentLowFps = 55.0;
+	PassingMetrics.P99FrameMs = 18.2;
+	PassingMetrics.HitchesOver100Ms = 0;
+	TestTrue(
+		TEXT("Metrics exactly on the acceptance boundary pass"),
+		UProjectRuntimePerformanceSubsystem::EvaluateAcceptanceMetrics(PassingMetrics).bPassed);
+
+	PassingMetrics.OnePercentLowFps = 54.99;
+	const FProjectRuntimePerformanceGateResult FailingResult =
+		UProjectRuntimePerformanceSubsystem::EvaluateAcceptanceMetrics(PassingMetrics);
+	TestFalse(TEXT("1% low below the boundary fails"), FailingResult.bPassed);
+	TestTrue(TEXT("Gate provides an actionable reason"), !FailingResult.FailureReasons.IsEmpty());
 	return true;
 }
 

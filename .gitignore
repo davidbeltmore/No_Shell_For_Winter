@@ -21,6 +21,10 @@ Saved/
 
 # Local assistant/vendor reference cache
 .claude/
+!.claude/
+!.claude/skills/
+!.claude/skills/calysto-dungeon-master/
+!.claude/skills/calysto-dungeon-master/SKILL.md
 
 # OS/editor noise
 .DS_Store

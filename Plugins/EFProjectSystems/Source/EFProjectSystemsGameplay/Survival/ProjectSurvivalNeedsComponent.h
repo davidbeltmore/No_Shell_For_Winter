@@ -115,6 +115,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Survival")
 	bool HasAnyRegisteredNeeds() const;
 
+#if WITH_DEV_AUTOMATION_TESTS
+	static float AutomationIntegrateSensationValue(float CurrentValue, float MaxValue, float DeltaPerSecond, float DeltaTime);
+#endif
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
 	int32 BarsPerNeed;
 

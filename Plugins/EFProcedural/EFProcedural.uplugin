@@ -1,15 +1,19 @@
 {
 	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0.0",
-	"FriendlyName": "EF Procedural",
-	"Description": "Reusable procedural runtime with integrated ACFU bridge, PCG bootstrap and editor coordination.",
+	"Version": 4,
+	"VersionName": "4.0.0",
+	"FriendlyName": "EF Procedural - Calysto Dungeon Master",
+	"Description": "Project-owned Calysto master integration for reproducible infinite procedural runs, transient policy adapters, ACFU floor travel and editor coordination.",
 	"Category": "EF",
 	"CanContainContent": false,
 	"Installed": false,
 	"Plugins": [
 		{
 			"Name": "PCG",
+			"Enabled": true
+		},
+		{
+			"Name": "AscentCombatFramework",
 			"Enabled": true
 		}
 	],

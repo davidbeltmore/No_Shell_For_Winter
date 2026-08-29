@@ -1,5 +1,6 @@
 #include "Intimacy/ProjectIntimacySubsystem.h"
 
+#include "ACFAIController.h"
 #include "Characters/ProjectTargetingFixComponent.h"
 #include "Combat/ProjectCombatAttributeComponent.h"
 #include "Components/ACFDamageHandlerComponent.h"
@@ -8,6 +9,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "EFProjectEnemySettings.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
@@ -42,7 +44,17 @@ namespace ProjectIntimacySubsystemPrivate
 	const FName HostileActorTag(TEXT("Project.State.Hostile"));
 	const FName HubSocialCompanionTag(TEXT("Project.Social.HubCompanion"));
 	const FName HubSocialZoneTag(TEXT("Project.Intimacy.HubAllowedZone"));
+	const FName IntimacyCurseDecaySuppressionId(TEXT("Project.Intimacy.Session"));
 	constexpr int32 InputPriority = 75;
+
+	bool IsActorInACFBattle(const AActor* Actor)
+	{
+		const APawn* Pawn = Cast<APawn>(Actor);
+		const AACFAIController* ACFController = Pawn
+			? Cast<AACFAIController>(Pawn->GetController())
+			: nullptr;
+		return ACFController && ACFController->IsInBattle();
+	}
 
 	bool IsSelectableTalkAction(const EProjectIntimacyTalkAction Action)
 	{
@@ -150,6 +162,7 @@ void UProjectIntimacySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	HubSocialZoneActor.Reset();
 	HubSocialRegisteredPlayer.Reset();
 	bHubSocialProductRouteAttempted = false;
+	CharismaSocialOverride = FProjectIntimacySocialOverrideState();
 	LoadPersistentState();
 
 	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -176,6 +189,7 @@ void UProjectIntimacySubsystem::Deinitialize()
 		}
 	}
 	EndSession(false);
+	RestoreCharismaSocialOverride();
 	if (ContentPolicy)
 	{
 		ContentPolicy->UnregisterMatureContentProvider(this);
@@ -201,9 +215,29 @@ void UProjectIntimacySubsystem::Tick(const float DeltaTime)
 
 	if (!bSceneActive)
 	{
+		const UProjectEmoteSubsystem* EmoteSubsystem = GetWorld()
+			? GetWorld()->GetSubsystem<UProjectEmoteSubsystem>()
+			: nullptr;
+		const bool bIntimacySceneActionStarting =
+			!bSessionActive
+			&& MaturePresentationRequestId.IsValid()
+			&& EmoteSubsystem
+			&& EmoteSubsystem->IsRuntimeActionActive()
+			&& EmoteSubsystem->GetActiveRuntimeActionId()
+				== ProjectIntimacySubsystemPrivate::IntimacySceneId;
+		// Blueprint-scene roles become observable one or more ticks after the
+		// runtime action starts. Keep the interaction-scoped social registration
+		// and bilateral consent alive across that asynchronous startup window.
+		// If playback really fails, the runtime action ends and the normal cleanup
+		// path below runs on the next tick.
+		if (bIntimacySceneActionStarting)
+		{
+			return;
+		}
+
 		if (bSessionActive)
 		{
-			if (!ActiveSession.bSatisfied && !bSuppressStartUntilSceneEnds)
+			if (!bSuppressStartUntilSceneEnds)
 			{
 				UE_LOG(
 					LogProjectIntimacy,
@@ -214,7 +248,7 @@ void UProjectIntimacySubsystem::Tick(const float DeltaTime)
 					ActiveSession.bPleaseActive ? TEXT("true") : TEXT("false"),
 					ActiveSession.SessionTimeSeconds);
 			}
-			EndSession(!ActiveSession.bSatisfied);
+			EndSession(true);
 		}
 		else if (MaturePresentationRequestId.IsValid())
 		{
@@ -236,7 +270,7 @@ void UProjectIntimacySubsystem::Tick(const float DeltaTime)
 	}
 	else if (ActiveSession.PartnerActor.Get() != PartnerActor)
 	{
-		EndSession(!ActiveSession.bSatisfied);
+		EndSession(true);
 		StartSession(PartnerActor, PartnerComponent);
 	}
 
@@ -423,12 +457,29 @@ FString UProjectIntimacySubsystem::GetActivePartnerId() const
 
 float UProjectIntimacySubsystem::GetCurrentSessionProgress() const
 {
-	return bSessionActive ? ActiveSession.SessionProgress : 0.0f;
+	return GetPartnerClimax();
 }
 
 float UProjectIntimacySubsystem::GetCurrentSessionPeak() const
 {
-	return bSessionActive ? ActiveSession.SessionPeak : 0.0f;
+	return GetPartnerClimax();
+}
+
+float UProjectIntimacySubsystem::GetPlayerClimax() const
+{
+	return bSessionActive ? ActiveSession.PlayerClimax : 0.0f;
+}
+
+float UProjectIntimacySubsystem::GetPartnerClimax() const
+{
+	return bSessionActive ? ActiveSession.PartnerClimax : 0.0f;
+}
+
+bool UProjectIntimacySubsystem::IsOrgasmRushActive() const
+{
+	return bSessionActive
+		&& ActiveSession.SessionState == EProjectIntimacySessionState::OrgasmRush
+		&& ActiveSession.OrgasmRushRemaining > 0.0f;
 }
 
 float UProjectIntimacySubsystem::GetTalkCooldownRemaining() const
@@ -513,6 +564,12 @@ bool UProjectIntimacySubsystem::GrantFirstIntimacyEncounterForAutomation()
 }
 
 bool UProjectIntimacySubsystem::ForceSessionPeakForAutomation()
+
+{
+	return ForcePartnerOrgasmForAutomation();
+}
+
+bool UProjectIntimacySubsystem::ForcePartnerOrgasmForAutomation()
 {
 #if UE_BUILD_SHIPPING
 	return false;
@@ -529,12 +586,37 @@ bool UProjectIntimacySubsystem::ForceSessionPeakForAutomation()
 	}
 
 	FProjectIntimacyPartnerProfile& Profile = GetMutableProfile(PartnerComponent);
-	const int32 PreviousPeakCount = Profile.SessionPeakCount;
-	const float RequiredProgress = FMath::Max(
+	const int32 PreviousOrgasmCount = Profile.PartnerOrgasmCount;
+	const float RequiredClimax = FMath::Max(
 		1.0f,
-		ActiveSession.SessionPeakThreshold - ActiveSession.SessionPeak + 1.0f);
-	ApplySessionProgress(RequiredProgress, FText::FromString(TEXT("Automation session peak")));
-	return Profile.SessionPeakCount > PreviousPeakCount;
+		ActiveSession.ClimaxMaximum - ActiveSession.PartnerClimax + 1.0f);
+	ApplyClimaxGain(
+		EProjectIntimacyClimaxTarget::Partner,
+		RequiredClimax,
+		FText::FromString(TEXT("Automation orgasm")));
+	return Profile.PartnerOrgasmCount > PreviousOrgasmCount;
+#endif
+}
+
+bool UProjectIntimacySubsystem::ForcePlayerOrgasmForAutomation()
+{
+#if UE_BUILD_SHIPPING
+	return false;
+#else
+	if (!bSessionActive)
+	{
+		return false;
+	}
+
+	const int32 PreviousOrgasmCount = ActiveSession.PlayerSessionOrgasmCount;
+	const float RequiredClimax = FMath::Max(
+		1.0f,
+		ActiveSession.ClimaxMaximum - ActiveSession.PlayerClimax + 1.0f);
+	ApplyClimaxGain(
+		EProjectIntimacyClimaxTarget::Player,
+		RequiredClimax,
+		FText::FromString(TEXT("Automation orgasm")));
+	return ActiveSession.PlayerSessionOrgasmCount > PreviousOrgasmCount;
 #endif
 }
 
@@ -577,13 +659,13 @@ bool UProjectIntimacySubsystem::RequestQuickStartIntimacy()
 	}
 
 	UProjectIntimacyPartnerComponent* TargetPartnerComponent =
-		TargetActor->FindComponentByClass<UProjectIntimacyPartnerComponent>();
+		ResolveOrCreateTargetParticipant(TargetActor);
 	if (!TargetPartnerComponent)
 	{
 		UE_LOG(
 			LogProjectIntimacy,
 			Warning,
-			TEXT("[ProjectIntimacy] Quick start denied: the selected actor is not an authored social companion."));
+			TEXT("[ProjectIntimacy] Quick start denied: the selected actor could not be adapted as an Intimacy participant."));
 		return false;
 	}
 
@@ -591,6 +673,7 @@ bool UProjectIntimacySubsystem::RequestQuickStartIntimacy()
 	RegisterSocialParticipants(TargetActor, TargetPartnerComponent, false);
 	if (!CanRequestIntimacyWithPartner(TargetActor, EligibilityFailure))
 	{
+		ClearConsentForPartner(TargetActor);
 		UE_LOG(
 			LogProjectIntimacy,
 			Warning,
@@ -630,22 +713,38 @@ bool UProjectIntimacySubsystem::CanRequestIntimacyWithPartner(
 	FText& OutFailureReason) const
 {
 	const UProjectIntimacyPartnerComponent* PartnerComponent = IsValid(PartnerActor)
-		? PartnerActor->FindComponentByClass<UProjectIntimacyPartnerComponent>()
+		? ResolveOrCreateTargetParticipant(PartnerActor)
 		: nullptr;
-	if (!PartnerComponent || !PartnerComponent->bSocialCompanion)
+	if (!PartnerComponent)
+	{
+		OutFailureReason = FText::FromString(TEXT("The selected character is not registered as an adult participant."));
+		return false;
+	}
+	const FGameplayTag RequiredMaleRole =
+		ProjectIntimacySubsystemPrivate::Tag(TEXT("Project.Gender.Male"));
+	if (!RequiredMaleRole.IsValid()
+		|| !PartnerComponent->GetResolvedGenderTag().MatchesTagExact(RequiredMaleRole))
+	{
+		OutFailureReason = FText::FromString(
+			TEXT("The current Intimacy scene requires a compatible male partner."));
+		return false;
+	}
+
+	const bool bCharismaTargetRoute = IsCharismaMasteryTargetRoute(PartnerActor, PartnerComponent);
+	if (!bCharismaTargetRoute && !PartnerComponent->bSocialCompanion)
 	{
 		OutFailureReason = FText::FromString(TEXT("The selected character is not an available companion."));
 		return false;
 	}
-	if (!PartnerComponent->bOffersPlayerInitiatedConsent)
+	if (!bCharismaTargetRoute && !PartnerComponent->bOffersPlayerInitiatedConsent)
 	{
 		OutFailureReason = FText::FromString(TEXT("The selected companion has not offered this interaction."));
 		return false;
 	}
 
 	FProjectIntimacyEligibilityContext Context = BuildEligibilityContext(PartnerActor, PartnerComponent);
-	// This is a non-mutating preflight. The subsequent request records both
-	// directional consent entries atomically; all other gates remain real.
+	// This preflight may attach the project-owned identity adapter, but it does
+	// not alter social state or record consent. The actual request does that atomically.
 	Context.bExplicitConsent = true;
 	const EProjectIntimacyEligibilityFailure Failure =
 		UProjectIntimacySettings::EvaluateEligibility(Context);
@@ -653,6 +752,11 @@ bool UProjectIntimacySubsystem::CanRequestIntimacyWithPartner(
 	{
 		OutFailureReason = UProjectIntimacySettings::GetEligibilityFailureText(Failure);
 		return false;
+	}
+	if (bCharismaTargetRoute)
+	{
+		OutFailureReason = FText();
+		return true;
 	}
 
 	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -977,18 +1081,21 @@ bool UProjectIntimacySubsystem::AutomationRunMenuAndPleaseSmoke(
 	if (UProjectIntimacyPartnerComponent* PartnerComponent = ActiveSession.PartnerComponent.Get())
 	{
 		FProjectIntimacyPartnerProfile& Profile = GetMutableProfile(PartnerComponent);
-		const int32 PreviousPeakCount = Profile.SessionPeakCount;
-		const float RequiredProgress = FMath::Max(
+		const int32 PreviousOrgasmCount = Profile.PartnerOrgasmCount;
+		const float RequiredClimax = FMath::Max(
 			1.0f,
-			ActiveSession.SessionPeakThreshold - ActiveSession.SessionPeak + 1.0f);
-		ApplySessionProgress(RequiredProgress, FText::FromString(TEXT("Automation session peak")));
-		bOutSessionPeakTriggered = Profile.SessionPeakCount > PreviousPeakCount;
+			ActiveSession.ClimaxMaximum - ActiveSession.PartnerClimax + 1.0f);
+		ApplyClimaxGain(
+			EProjectIntimacyClimaxTarget::Partner,
+			RequiredClimax,
+			FText::FromString(TEXT("Automation orgasm")));
+		bOutSessionPeakTriggered = Profile.PartnerOrgasmCount > PreviousOrgasmCount;
 		++OutStepCount;
 	}
 
 	if (!bOutSessionPeakTriggered)
 	{
-		return Fail(TEXT("Automation session peak did not trigger."));
+		return Fail(TEXT("Automation partner orgasm did not trigger."));
 	}
 
 	RefreshResolvedOptions();
@@ -1003,19 +1110,44 @@ FProjectIntimacySessionSnapshot UProjectIntimacySubsystem::BuildSnapshot() const
 	Snapshot.bActive = bSessionActive;
 	Snapshot.bHudVisible = bSessionActive && ActiveSession.bHudVisible;
 	Snapshot.HudMode = ActiveSession.HudMode;
-	Snapshot.SessionProgress = UProjectIntimacySettings::ClampSessionProgress(ActiveSession.SessionProgress);
-	Snapshot.SessionPeak = FMath::Clamp(
-		ActiveSession.SessionPeakThreshold > 0.0f
-			? (ActiveSession.SessionPeak / ActiveSession.SessionPeakThreshold) * 100.0f
-			: 0.0f,
-		0.0f,
-		100.0f);
-	Snapshot.SessionProgressPerSecond = ActiveSession.SessionProgressPerSecond;
+	Snapshot.PlayerClimax = UProjectIntimacySettings::NormalizeClimaxPercent(
+		ActiveSession.PlayerClimax,
+		ActiveSession.ClimaxMaximum);
+	Snapshot.PartnerClimax = UProjectIntimacySettings::NormalizeClimaxPercent(
+		ActiveSession.PartnerClimax,
+		ActiveSession.ClimaxMaximum);
+	const float ClimaxRateNormalization = 100.0f / FMath::Max(1.0f, ActiveSession.ClimaxMaximum);
+	Snapshot.PlayerClimaxPerSecond =
+		FMath::Max(0.0f, ActiveSession.PlayerClimaxPerSecond) * ClimaxRateNormalization;
+	Snapshot.PartnerClimaxPerSecond =
+		FMath::Max(0.0f, ActiveSession.PartnerClimaxPerSecond) * ClimaxRateNormalization;
+	Snapshot.SessionState = ActiveSession.SessionState;
+	Snapshot.OrgasmRushTarget = ActiveSession.OrgasmRushTarget;
+	Snapshot.bPlayerOrgasmRush = IsOrgasmRushActive() && ActiveSession.bPlayerOrgasmRush;
+	Snapshot.bPartnerOrgasmRush = IsOrgasmRushActive() && ActiveSession.bPartnerOrgasmRush;
+	Snapshot.PlayerOrgasmRushRemaining = Snapshot.bPlayerOrgasmRush
+		? ActiveSession.OrgasmRushRemaining
+		: 0.0f;
+	Snapshot.PartnerOrgasmRushRemaining = Snapshot.bPartnerOrgasmRush
+		? ActiveSession.OrgasmRushRemaining
+		: 0.0f;
+	Snapshot.PlayerOrgasmCount = ActiveSession.PlayerSessionOrgasmCount;
+	Snapshot.PartnerOrgasmCount = ActiveSession.PartnerSessionOrgasmCount;
+	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
+	Snapshot.CurseReductionPercentPerSecond = Settings
+		? FMath::Max(0.0f, Settings->CurseReductionPercentPerSecond)
+		: 1.0f;
+
+	// Preserve the old Blueprint snapshot surface as Partner Climax aliases.
+	Snapshot.SessionProgress = Snapshot.PartnerClimax;
+	Snapshot.SessionPeak = Snapshot.PartnerClimax;
+	Snapshot.SessionProgressPerSecond = Snapshot.PartnerClimaxPerSecond;
 	Snapshot.RelationshipText = FText::FromString(TEXT("Unknown"));
 	Snapshot.GenderText = FText::FromString(TEXT("Unknown"));
 	Snapshot.TalkCooldownRemaining = ActiveSession.TalkCooldownRemaining;
 	Snapshot.CorrectTalkOptionId = ActiveSession.CorrectTalkOptionId;
 	Snapshot.bPleaseActive = ActiveSession.bPleaseActive;
+	Snapshot.PleaseClimaxTarget = ActiveSession.PleaseClimaxTarget;
 	Snapshot.PleaseAttemptIndex = ActiveSession.PleaseAttemptIndex;
 	Snapshot.PleaseAttemptCount = UProjectIntimacySettings::Get()
 		? UProjectIntimacySettings::Get()->PleaseAttemptCount
@@ -1024,7 +1156,7 @@ FProjectIntimacySessionSnapshot UProjectIntimacySubsystem::BuildSnapshot() const
 	Snapshot.PleaseCursorValue = ActiveSession.PleaseCursorValue;
 	Snapshot.PleaseTargetCenter = ActiveSession.PleaseTargetCenter;
 	Snapshot.PleaseTargetHalfRange = ActiveSession.PleaseTargetHalfRange;
-	Snapshot.PleasePreviewProgress = UProjectIntimacySettings::ComputePleaseProgressGain(ActiveSession.PleaseSuccessCount);
+	Snapshot.PleasePreviewProgress = UProjectIntimacySettings::ComputePleaseClimaxGain(ActiveSession.PleaseSuccessCount);
 	Snapshot.SelectedOptionIndex = ActiveSession.SelectedOptionIndex;
 	Snapshot.StatusText = ActiveSession.StatusText;
 	Snapshot.HintText = FText::FromString(TEXT("Arrows navigate. Space confirms. '-' hides."));
@@ -1093,7 +1225,9 @@ void UProjectIntimacySubsystem::AppendTargetIntimacyRows(AActor* PartnerActor, F
 	UProjectIntimacyPartnerComponent* PartnerComponent = IsValid(PartnerActor)
 		? PartnerActor->FindComponentByClass<UProjectIntimacyPartnerComponent>()
 		: nullptr;
-	if (!PartnerComponent || !PartnerComponent->bSocialCompanion)
+	if (!PartnerComponent
+		|| (!PartnerComponent->bSocialCompanion
+			&& !IsCharismaMasteryTargetRoute(PartnerActor, PartnerComponent)))
 	{
 		return;
 	}
@@ -1144,19 +1278,21 @@ void UProjectIntimacySubsystem::AppendTargetIntimacyRows(AActor* PartnerActor, F
 	{
 		SocialRows = DefaultSocialRows;
 	}
-	else if (!SocialRows.ContainsByPredicate([](const FProjectSocialCardRow& Row)
+	else
 	{
-		const FName ValueId = !Row.ValueId.IsNone() ? Row.ValueId : Row.RowId;
-		return ValueId == TEXT("SessionPeakCount");
-	}))
-	{
-		if (const FProjectSocialCardRow* PeakRow = DefaultSocialRows.FindByPredicate([](const FProjectSocialCardRow& Row)
+		for (const FProjectSocialCardRow& DefaultRow : DefaultSocialRows)
 		{
-			const FName ValueId = !Row.ValueId.IsNone() ? Row.ValueId : Row.RowId;
-			return ValueId == TEXT("SessionPeakCount");
-		}))
-		{
-			SocialRows.Add(*PeakRow);
+			const FName DefaultValueId = !DefaultRow.ValueId.IsNone()
+				? DefaultRow.ValueId
+				: DefaultRow.RowId;
+			if (!SocialRows.ContainsByPredicate([DefaultValueId](const FProjectSocialCardRow& Row)
+			{
+				const FName ValueId = !Row.ValueId.IsNone() ? Row.ValueId : Row.RowId;
+				return ValueId == DefaultValueId;
+			}))
+			{
+				SocialRows.Add(DefaultRow);
+			}
 		}
 	}
 
@@ -1180,10 +1316,26 @@ void UProjectIntimacySubsystem::AppendTargetIntimacyRows(AActor* PartnerActor, F
 
 	auto ResolveValue = [this, PartnerComponent, Profile, EffectivePersonality, GenderTag](const FName ValueId, FString& OutValue) -> bool
 	{
-		if (ValueId == TEXT("SessionProgress"))
+		if (ValueId == TEXT("PlayerClimax"))
 		{
 			const bool bIsActivePartner = bSessionActive && ActiveSession.PartnerComponent.Get() == PartnerComponent;
-			OutValue = FString::Printf(TEXT("%.0f%%"), bIsActivePartner ? ActiveSession.SessionProgress : 0.0f);
+			const float PlayerClimaxPercent = bIsActivePartner
+				? UProjectIntimacySettings::NormalizeClimaxPercent(
+					ActiveSession.PlayerClimax,
+					ActiveSession.ClimaxMaximum)
+				: 0.0f;
+			OutValue = FString::Printf(TEXT("%.0f%%"), PlayerClimaxPercent);
+			return true;
+		}
+		if (ValueId == TEXT("PartnerClimax"))
+		{
+			const bool bIsActivePartner = bSessionActive && ActiveSession.PartnerComponent.Get() == PartnerComponent;
+			const float PartnerClimaxPercent = bIsActivePartner
+				? UProjectIntimacySettings::NormalizeClimaxPercent(
+					ActiveSession.PartnerClimax,
+					ActiveSession.ClimaxMaximum)
+				: 0.0f;
+			OutValue = FString::Printf(TEXT("%.0f%%"), PartnerClimaxPercent);
 			return true;
 		}
 		if (ValueId == TEXT("Gender"))
@@ -1215,14 +1367,14 @@ void UProjectIntimacySubsystem::AppendTargetIntimacyRows(AActor* PartnerActor, F
 			OutValue = FString::Printf(TEXT("%d"), Profile->Encounters);
 			return true;
 		}
-		if (ValueId == TEXT("SatisfiedWins"))
+		if (ValueId == TEXT("PlayerOrgasmCount"))
 		{
-			OutValue = FString::Printf(TEXT("%d"), Profile->SatisfiedWins);
+			OutValue = FString::Printf(TEXT("%d"), Profile->PlayerOrgasmCount);
 			return true;
 		}
-		if (ValueId == TEXT("SessionPeakCount"))
+		if (ValueId == TEXT("PartnerOrgasmCount"))
 		{
-			OutValue = FString::Printf(TEXT("%d"), Profile->SessionPeakCount);
+			OutValue = FString::Printf(TEXT("%d"), Profile->PartnerOrgasmCount);
 			return true;
 		}
 		if (ValueId == TEXT("FirstEncounter"))
@@ -1591,23 +1743,26 @@ void UProjectIntimacySubsystem::BindInputToTrackedPlayerController()
 	IntimacyInputComponent->RegisterComponent();
 
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-	auto BindKey = [this](const FKey& Key, void (UProjectIntimacySubsystem::*Handler)())
+	auto BindKey = [this](
+		const FKey& Key,
+		void (UProjectIntimacySubsystem::*Handler)(),
+		const bool bSessionNavigation)
 	{
 		if (Key.IsValid())
 		{
 			FInputKeyBinding& Binding = IntimacyInputComponent->BindKey(Key, IE_Pressed, this, Handler);
-			Binding.bConsumeInput = true;
+			Binding.bConsumeInput = !bSessionNavigation || bSessionActive;
 		}
 	};
 
-	BindKey(Settings ? Settings->HudToggleKey : EKeys::Hyphen, &ThisClass::HandleToggleHudPressed);
-	BindKey(Settings ? Settings->HudSecondaryToggleKey : EKeys::Subtract, &ThisClass::HandleToggleHudPressed);
-	BindKey(EKeys::Up, &ThisClass::HandleNavigateUpPressed);
-	BindKey(EKeys::Down, &ThisClass::HandleNavigateDownPressed);
-	BindKey(EKeys::Left, &ThisClass::HandleNavigateLeftPressed);
-	BindKey(EKeys::Right, &ThisClass::HandleNavigateRightPressed);
-	BindKey(EKeys::SpaceBar, &ThisClass::HandleConfirmPressed);
-	BindKey(EKeys::Enter, &ThisClass::HandleConfirmPressed);
+	BindKey(Settings ? Settings->HudToggleKey : EKeys::Hyphen, &ThisClass::HandleToggleHudPressed, false);
+	BindKey(Settings ? Settings->HudSecondaryToggleKey : EKeys::Subtract, &ThisClass::HandleToggleHudPressed, false);
+	BindKey(EKeys::Up, &ThisClass::HandleNavigateUpPressed, true);
+	BindKey(EKeys::Down, &ThisClass::HandleNavigateDownPressed, true);
+	BindKey(EKeys::Left, &ThisClass::HandleNavigateLeftPressed, true);
+	BindKey(EKeys::Right, &ThisClass::HandleNavigateRightPressed, true);
+	BindKey(EKeys::SpaceBar, &ThisClass::HandleConfirmPressed, true);
+	BindKey(EKeys::Enter, &ThisClass::HandleConfirmPressed, true);
 
 	TrackedPlayerController->PushInputComponent(IntimacyInputComponent);
 }
@@ -1624,6 +1779,28 @@ void UProjectIntimacySubsystem::UnbindInputFromTrackedPlayerController()
 		IntimacyInputComponent->DestroyComponent();
 	}
 	IntimacyInputComponent = nullptr;
+}
+
+void UProjectIntimacySubsystem::SetSessionNavigationInputCaptureEnabled(const bool bEnabled)
+{
+	if (!IntimacyInputComponent)
+	{
+		return;
+	}
+
+	for (FInputKeyBinding& Binding : IntimacyInputComponent->KeyBindings)
+	{
+		const FKey& Key = Binding.Chord.Key;
+		if (Key == EKeys::Up
+			|| Key == EKeys::Down
+			|| Key == EKeys::Left
+			|| Key == EKeys::Right
+			|| Key == EKeys::SpaceBar
+			|| Key == EKeys::Enter)
+		{
+			Binding.bConsumeInput = bEnabled;
+		}
+	}
 }
 
 bool UProjectIntimacySubsystem::ResolveActiveIntimacyPartner(
@@ -1654,10 +1831,11 @@ bool UProjectIntimacySubsystem::ResolveActiveIntimacyPartner(
 		return false;
 	}
 
-	OutPartnerComponent = OutPartnerActor->FindComponentByClass<UProjectIntimacyPartnerComponent>();
+	OutPartnerComponent = ResolveOrCreateTargetParticipant(OutPartnerActor);
 	return OutPartnerComponent
-		&& OutPartnerComponent->bSocialCompanion
-		&& OutPartnerComponent->bOffersPlayerInitiatedConsent;
+		&& ((OutPartnerComponent->bSocialCompanion
+				&& OutPartnerComponent->bOffersPlayerInitiatedConsent)
+			|| IsCharismaMasteryTargetRoute(OutPartnerActor, OutPartnerComponent));
 }
 
 void UProjectIntimacySubsystem::StartSession(AActor* PartnerActor, UProjectIntimacyPartnerComponent* PartnerComponent)
@@ -1728,21 +1906,26 @@ void UProjectIntimacySubsystem::StartSession(AActor* PartnerActor, UProjectIntim
 	}
 
 	ActiveSession = FProjectIntimacyRuntimeSession();
+	ActiveSession.PlayerActor = TrackedPlayerPawn.Get();
 	ActiveSession.PartnerActor = PartnerActor;
 	ActiveSession.PartnerComponent = PartnerComponent;
 	ActiveSession.PartnerId = PartnerComponent->GetResolvedPartnerId();
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-	ActiveSession.SessionProgress = 0.0f;
-	ActiveSession.SessionProgressPerSecond = Settings
-		? FMath::Max(0.0f, Settings->PassiveSessionProgressPerSecond)
+	ActiveSession.PlayerClimax = 0.0f;
+	ActiveSession.PartnerClimax = 0.0f;
+	ActiveSession.ClimaxMaximum = Settings
+		? FMath::Clamp(Settings->ClimaxMaximum, 1.0f, 100.0f)
+		: 100.0f;
+	ActiveSession.PlayerClimaxPerSecond = Settings
+		? FMath::Max(0.0f, Settings->PassivePlayerClimaxPerSecond)
 		: 1.0f;
-	ActiveSession.SessionPeakThreshold = Settings
-		? FMath::Clamp(Settings->SessionPeakThreshold, 1.0f, 100.0f)
-		: 25.0f;
-	ActiveSession.SessionPeak = 0.0f;
-	ActiveSession.SessionPeakMultiplier = 1.0f;
-	ActiveSession.SessionPeakRecoveryRemaining = 0.0f;
-	ActiveSession.StatusText = FText::FromString(TEXT("Session started."));
+	ActiveSession.PartnerClimaxPerSecond = Settings
+		? FMath::Max(0.0f, Settings->PassivePartnerClimaxPerSecond)
+		: 1.0f;
+	ActiveSession.ClimaxIntensityMultiplier = 1.0f;
+	ActiveSession.SessionState = EProjectIntimacySessionState::BuildingClimax;
+	ActiveSession.bHudVisible = true;
+	ActiveSession.StatusText = FText::FromString(TEXT("Intimacy started. Climax now repeats until you cancel."));
 
 	FProjectIntimacyPartnerProfile& Profile = GetMutableProfile(PartnerComponent);
 	Profile.Encounters += 1;
@@ -1770,6 +1953,21 @@ void UProjectIntimacySubsystem::StartSession(AActor* PartnerActor, UProjectIntim
 	}
 
 	bSessionActive = true;
+	SetSessionNavigationInputCaptureEnabled(true);
+	UProjectInnerDoctrineComponent* DoctrineComponent = TrackedPlayerPawn
+		? TrackedPlayerPawn->FindComponentByClass<UProjectInnerDoctrineComponent>()
+		: nullptr;
+	if (!DoctrineComponent && TrackedPlayerController)
+	{
+		DoctrineComponent = TrackedPlayerController->FindComponentByClass<UProjectInnerDoctrineComponent>();
+	}
+	ActiveSession.CurseDoctrineComponent = DoctrineComponent;
+	if (DoctrineComponent)
+	{
+		DoctrineComponent->SetPassiveCurseDecaySuppressed(
+			ProjectIntimacySubsystemPrivate::IntimacyCurseDecaySuppressionId,
+			true);
+	}
 	ApplyAnimationRate(ActiveSession.AnimationRate);
 	RefreshResolvedOptions();
 	EnsureHudWidget();
@@ -1809,8 +2007,16 @@ void UProjectIntimacySubsystem::UpdateActiveSession(const float DeltaTime)
 		Profile->TotalIntimateTimeSeconds += DeltaTime;
 	}
 
-	ApplySessionProgress(ActiveSession.SessionProgressPerSecond * DeltaTime, FText());
-	UpdateSessionPeakIntensity(DeltaTime);
+	ApplyClimaxGain(
+		EProjectIntimacyClimaxTarget::Player,
+		ActiveSession.PlayerClimaxPerSecond * DeltaTime,
+		FText());
+	ApplyClimaxGain(
+		EProjectIntimacyClimaxTarget::Partner,
+		ActiveSession.PartnerClimaxPerSecond * DeltaTime,
+		FText());
+	UpdateOrgasmRushState(DeltaTime);
+	UpdateCurseRecovery(DeltaTime);
 
 	if (ActiveSession.bPleaseActive)
 	{
@@ -1822,21 +2028,21 @@ void UProjectIntimacySubsystem::UpdateActiveSession(const float DeltaTime)
 	ApplyAnimationRate(ActiveSession.AnimationRate);
 
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-	const float ProgressMaximum = Settings
-		? FMath::Clamp(Settings->SessionProgressMaximum, 1.0f, 100.0f)
-		: 100.0f;
-	if (ActiveSession.SessionProgress >= ProgressMaximum && !ActiveSession.bSatisfied)
+	ActiveSession.HudRefreshAccumulator += DeltaTime;
+	const float HudRefreshInterval = Settings
+		? FMath::Clamp(Settings->HudRefreshIntervalSeconds, 0.02f, 1.0f)
+		: 0.10f;
+	if (ActiveSession.HudRefreshAccumulator >= HudRefreshInterval)
 	{
-		FinishSatisfiedSession();
-		return;
+		ActiveSession.HudRefreshAccumulator = FMath::Fmod(
+			ActiveSession.HudRefreshAccumulator,
+			HudRefreshInterval);
+		RefreshHudWidget();
 	}
-
-	RefreshHudWidget();
 }
 
 void UProjectIntimacySubsystem::EndSession(const bool bCancelled)
 {
-	(void)bCancelled;
 	if (!bSessionActive)
 	{
 		return;
@@ -1847,46 +2053,32 @@ void UProjectIntimacySubsystem::EndSession(const bool bCancelled)
 		RefreshRelationshipTags(*Profile);
 	}
 	RestoreAnimationRates();
+	if (UProjectInnerDoctrineComponent* DoctrineComponent = ActiveSession.CurseDoctrineComponent.Get())
+	{
+		DoctrineComponent->SetPassiveCurseDecaySuppressed(
+			ProjectIntimacySubsystemPrivate::IntimacyCurseDecaySuppressionId,
+			false);
+	}
+	UE_LOG(
+		LogProjectIntimacy,
+		Display,
+		TEXT("[ProjectIntimacy] session_end cancelled=%s player_orgasms=%d partner_orgasms=%d time=%.2f"),
+		bCancelled ? TEXT("true") : TEXT("false"),
+		ActiveSession.PlayerSessionOrgasmCount,
+		ActiveSession.PartnerSessionOrgasmCount,
+		ActiveSession.SessionTimeSeconds);
 	SavePersistentState();
-	ClearActiveSessionConsent();
+	// Detach the presentation authority before consent restoration broadcasts.
+	// This prevents those synchronous delegates from re-entering cancellation
+	// while the session is already unwinding.
 	EndMaturePresentationRegistration(true);
+	ClearActiveSessionConsent();
+	SetSessionNavigationInputCaptureEnabled(false);
 	bSessionActive = false;
 	ActiveSession = FProjectIntimacyRuntimeSession();
 	ResolvedOptions.Reset();
 	RefreshHudWidget();
 }
-
-void UProjectIntimacySubsystem::FinishSatisfiedSession()
-{
-	if (!bSessionActive || ActiveSession.bSatisfied)
-	{
-		return;
-	}
-
-	ActiveSession.bSatisfied = true;
-	if (FProjectIntimacyPartnerProfile* Profile = IntimacySaveGame ? IntimacySaveGame->PartnerProfiles.Find(ActiveSession.PartnerId) : nullptr)
-	{
-		const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-		Profile->SatisfiedWins += 1;
-		Profile->Affect = FMath::Min(
-			Settings ? FMath::Max(1, Settings->AffectMax) : 100,
-			Profile->Affect + (Settings ? Settings->SatisfiedWinAffectGain : 10));
-		RefreshRelationshipTags(*Profile);
-	}
-
-	bSuppressStartUntilSceneEnds = true;
-
-	if (UWorld* World = GetWorld())
-	{
-		if (UProjectEmoteSubsystem* EmoteSubsystem = World->GetSubsystem<UProjectEmoteSubsystem>())
-		{
-			EmoteSubsystem->RequestCancelActiveEmote();
-		}
-	}
-
-	EndSession(false);
-}
-
 void UProjectIntimacySubsystem::CancelActiveSession()
 {
 	if (!bSessionActive)
@@ -1960,7 +2152,8 @@ void UProjectIntimacySubsystem::RefreshResolvedOptions()
 
 	if (ActiveSession.HudMode == EProjectIntimacyHudMode::Main)
 	{
-		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Please"), TEXT("Please")));
+		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Please"), TEXT("Please Partner")));
+		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Focus"), TEXT("Focus Yourself")));
 		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Talk"), TEXT("Talk")));
 		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Items"), TEXT("Items")));
 		ResolvedOptions.Add(ProjectIntimacySubsystemPrivate::MakeOption(TEXT("Main.Cancel"), TEXT("Cancel")));
@@ -2022,7 +2215,10 @@ void UProjectIntimacySubsystem::RefreshResolvedOptions()
 				Option.TalkAction = Row.Action;
 				Option.CategoryId = Row.CategoryId;
 				Option.TalkTags = Row.TalkTags;
-				Option.SessionProgressGain = Row.SessionProgressGain;
+				Option.ClimaxGain = Row.ClimaxGain > 0.0f
+					? Row.ClimaxGain
+					: Row.SessionProgressGain;
+				Option.ClimaxTarget = Row.ClimaxTarget;
 				Option.AffectDelta = Row.AffectDelta;
 				Option.AnimationRate = Row.AnimationRate;
 				Option.bCanBeCorrectTalkOption = Row.bCanBeCorrectTalkOption;
@@ -2052,7 +2248,10 @@ void UProjectIntimacySubsystem::RefreshResolvedOptions()
 					Option.TalkAction = Row.Action;
 					Option.CategoryId = Row.CategoryId;
 					Option.TalkTags = Row.TalkTags;
-					Option.SessionProgressGain = Row.SessionProgressGain;
+					Option.ClimaxGain = Row.ClimaxGain > 0.0f
+						? Row.ClimaxGain
+						: Row.SessionProgressGain;
+					Option.ClimaxTarget = Row.ClimaxTarget;
 					Option.AffectDelta = Row.AffectDelta;
 					Option.AnimationRate = Row.AnimationRate;
 					Option.bCanBeCorrectTalkOption = Row.bCanBeCorrectTalkOption;
@@ -2202,6 +2401,12 @@ void UProjectIntimacySubsystem::HandleMainOption(const FName OptionId)
 {
 	if (OptionId == TEXT("Main.Please"))
 	{
+		ActiveSession.PleaseClimaxTarget = EProjectIntimacyClimaxTarget::Partner;
+		StartPlease();
+	}
+	else if (OptionId == TEXT("Main.Focus"))
+	{
+		ActiveSession.PleaseClimaxTarget = EProjectIntimacyClimaxTarget::Player;
 		StartPlease();
 	}
 	else if (OptionId == TEXT("Main.Talk"))
@@ -2346,10 +2551,10 @@ void UProjectIntimacySubsystem::ExecuteTalkOption(const FProjectIntimacyResolved
 	}
 
 	const float CorrectOptionBonus = Option.OptionId == ActiveSession.CorrectTalkOptionId
-		? (Settings ? FMath::Max(0.0f, Settings->CorrectTalkProgressBonus) : 5.0f)
+		? (Settings ? FMath::Max(0.0f, Settings->CorrectTalkClimaxBonus) : 5.0f)
 		: 0.0f;
-	const float ProgressGain = FMath::Max(0.0f, Option.SessionProgressGain) + CorrectOptionBonus;
-	ApplySessionProgress(ProgressGain, FText::FromString(TEXT("Talk")));
+	const float ClimaxGain = FMath::Max(0.0f, Option.ClimaxGain) + CorrectOptionBonus;
+	ApplyClimaxGain(Option.ClimaxTarget, ClimaxGain, FText::FromString(TEXT("Talk")));
 
 	if (Option.AffectDelta != 0)
 	{
@@ -2514,7 +2719,10 @@ void UProjectIntimacySubsystem::StartPlease()
 	ActiveSession.bPleaseActive = true;
 	ActiveSession.PleaseAttemptIndex = 0;
 	ActiveSession.PleaseSuccessCount = 0;
-	ActiveSession.StatusText = FText::FromString(TEXT("Press Space on the sweet spot."));
+	ActiveSession.StatusText = FText::FromString(
+		ActiveSession.PleaseClimaxTarget == EProjectIntimacyClimaxTarget::Player
+			? TEXT("Press Space on the sweet spot to build Player Climax.")
+			: TEXT("Press Space on the sweet spot to build Partner Climax."));
 	StartNextPleaseAttempt();
 	RefreshResolvedOptions();
 	RefreshHudWidget();
@@ -2550,8 +2758,11 @@ void UProjectIntimacySubsystem::ResolvePleasePress()
 	const int32 AttemptCount = UProjectIntimacySettings::Get() ? UProjectIntimacySettings::Get()->PleaseAttemptCount : 5;
 	if (ActiveSession.PleaseAttemptIndex >= FMath::Max(1, AttemptCount))
 	{
-		const float ProgressGain = UProjectIntimacySettings::ComputePleaseProgressGain(ActiveSession.PleaseSuccessCount);
-		ApplySessionProgress(ProgressGain, FText::FromString(TEXT("Please")));
+		const float ClimaxGain = UProjectIntimacySettings::ComputePleaseClimaxGain(ActiveSession.PleaseSuccessCount);
+		ApplyClimaxGain(
+			ActiveSession.PleaseClimaxTarget,
+			ClimaxGain,
+			FText::FromString(TEXT("Please")));
 		ActiveSession.bPleaseActive = false;
 		SetHudMode(EProjectIntimacyHudMode::Main);
 		return;
@@ -2561,49 +2772,45 @@ void UProjectIntimacySubsystem::ResolvePleasePress()
 	RefreshHudWidget();
 }
 
-void UProjectIntimacySubsystem::ApplySessionProgress(const float Amount, const FText& ReasonText)
+void UProjectIntimacySubsystem::ApplyClimaxGain(
+	const EProjectIntimacyClimaxTarget Target,
+	const float Amount,
+	const FText& ReasonText)
 {
 	if (!bSessionActive || Amount <= 0.0f)
 	{
 		return;
 	}
 
-	const float PreviousProgress = ActiveSession.SessionProgress;
-	ActiveSession.SessionProgress = UProjectIntimacySettings::ClampSessionProgress(
-		ActiveSession.SessionProgress + Amount);
-	const float ActualGain = FMath::Max(0.0f, ActiveSession.SessionProgress - PreviousProgress);
-	if (ActualGain > 0.0f)
-	{
-		if (ActiveSession.SessionPeakThreshold <= 0.0f)
-		{
-			const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-			ActiveSession.SessionPeakThreshold = Settings
-				? FMath::Clamp(Settings->SessionPeakThreshold, 1.0f, 100.0f)
-				: 25.0f;
-		}
+	float& CurrentClimax = Target == EProjectIntimacyClimaxTarget::Player
+		? ActiveSession.PlayerClimax
+		: ActiveSession.PartnerClimax;
+	float RemainingClimax = CurrentClimax;
+	const int32 OrgasmCount = UProjectIntimacySettings::ConsumeClimax(
+		CurrentClimax,
+		Amount,
+		ActiveSession.ClimaxMaximum,
+		RemainingClimax);
+	CurrentClimax = RemainingClimax;
 
-		float RemainingPeak = ActiveSession.SessionPeak;
-		const int32 PeakCount = UProjectIntimacySettings::ConsumeSessionPeak(
-			ActiveSession.SessionPeak,
-			ActualGain,
-			ActiveSession.SessionPeakThreshold,
-			RemainingPeak);
-		ActiveSession.SessionPeak = RemainingPeak;
-		if (PeakCount > 0)
-		{
-			TriggerSessionPeak(PeakCount);
-		}
-	}
-	if (!ReasonText.IsEmpty())
+	if (OrgasmCount > 0)
 	{
+		TriggerOrgasm(Target, OrgasmCount);
+	}
+	else if (!ReasonText.IsEmpty())
+	{
+		const TCHAR* TargetLabel = Target == EProjectIntimacyClimaxTarget::Player
+			? TEXT("player")
+			: TEXT("partner");
 		ActiveSession.StatusText = FText::FromString(FString::Printf(
-			TEXT("%s added %.0f session progress."),
+			TEXT("%s added %.0f %s Climax."),
 			*ReasonText.ToString(),
-			ActualGain));
+			Amount,
+			TargetLabel));
 	}
 }
 
-void UProjectIntimacySubsystem::UpdateSessionPeakIntensity(const float DeltaTime)
+void UProjectIntimacySubsystem::UpdateOrgasmRushState(const float DeltaTime)
 {
 	if (!bSessionActive)
 	{
@@ -2611,57 +2818,164 @@ void UProjectIntimacySubsystem::UpdateSessionPeakIntensity(const float DeltaTime
 	}
 
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-	const float TargetMultiplier = Settings ? FMath::Max(1.0f, Settings->SessionPeakIntensityMultiplier) : 1.25f;
-	const float RecoverySeconds = Settings ? FMath::Max(0.0f, Settings->SessionPeakRecoverySeconds) : 2.0f;
-
-	float RecoveryMultiplier = 1.0f;
-	if (ActiveSession.SessionPeakRecoveryRemaining > 0.0f && RecoverySeconds > 0.0f)
+	if (ActiveSession.SessionState == EProjectIntimacySessionState::OrgasmRush)
 	{
-		ActiveSession.SessionPeakRecoveryRemaining = FMath::Max(
+		ActiveSession.OrgasmRushRemaining = FMath::Max(
 			0.0f,
-			ActiveSession.SessionPeakRecoveryRemaining - FMath::Max(0.0f, DeltaTime));
-		const float Alpha = FMath::Clamp(ActiveSession.SessionPeakRecoveryRemaining / RecoverySeconds, 0.0f, 1.0f);
-		RecoveryMultiplier = FMath::Lerp(1.0f, TargetMultiplier, Alpha);
-	}
-	else
-	{
-		ActiveSession.SessionPeakRecoveryRemaining = 0.0f;
+			ActiveSession.OrgasmRushRemaining - FMath::Max(0.0f, DeltaTime));
+		if (ActiveSession.OrgasmRushRemaining > 0.0f)
+		{
+			ActiveSession.ClimaxIntensityMultiplier = Settings
+				? FMath::Max(1.0f, Settings->OrgasmRushIntensityMultiplier)
+				: 1.25f;
+			return;
+		}
+
+		ActiveSession.SessionState = EProjectIntimacySessionState::BuildingClimax;
+		ActiveSession.bPlayerOrgasmRush = false;
+		ActiveSession.bPartnerOrgasmRush = false;
 	}
 
-	const float AnticipationMultiplier = UProjectIntimacySettings::ComputeSessionPeakAnticipationMultiplier(
-		ActiveSession.SessionPeak,
-		ActiveSession.SessionPeakThreshold,
+	const float PlayerAnticipation = UProjectIntimacySettings::ComputeClimaxAnticipationMultiplier(
+		ActiveSession.PlayerClimax,
+		ActiveSession.ClimaxMaximum,
 		Settings);
-	ActiveSession.SessionPeakMultiplier = FMath::Max(1.0f, FMath::Max(RecoveryMultiplier, AnticipationMultiplier));
+	const float PartnerAnticipation = UProjectIntimacySettings::ComputeClimaxAnticipationMultiplier(
+		ActiveSession.PartnerClimax,
+		ActiveSession.ClimaxMaximum,
+		Settings);
+	ActiveSession.ClimaxIntensityMultiplier = FMath::Max(
+		1.0f,
+		FMath::Max(PlayerAnticipation, PartnerAnticipation));
 }
 
-void UProjectIntimacySubsystem::TriggerSessionPeak(const int32 PeakCount)
+void UProjectIntimacySubsystem::TriggerOrgasm(
+	const EProjectIntimacyClimaxTarget Target,
+	const int32 OrgasmCount)
 {
-	if (!bSessionActive || PeakCount <= 0)
+	if (!bSessionActive || OrgasmCount <= 0)
 	{
 		return;
 	}
 
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
-	ActiveSession.SessionPeakRecoveryRemaining = Settings
-		? FMath::Max(0.0f, Settings->SessionPeakRecoverySeconds)
-		: 2.0f;
-	ActiveSession.SessionPeakMultiplier = Settings
-		? FMath::Max(1.0f, Settings->SessionPeakIntensityMultiplier)
-		: 1.25f;
-	if (FProjectIntimacyPartnerProfile* Profile = IntimacySaveGame ? IntimacySaveGame->PartnerProfiles.Find(ActiveSession.PartnerId) : nullptr)
+	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	const bool bSameOrgasmBurst =
+		ActiveSession.SessionState == EProjectIntimacySessionState::OrgasmRush
+		&& FMath::IsNearlyEqual(ActiveSession.LastOrgasmEventTimeSeconds, Now, KINDA_SMALL_NUMBER);
+	if (!bSameOrgasmBurst)
 	{
-		Profile->SessionPeakCount += PeakCount;
-		SavePersistentState();
+		ActiveSession.bPlayerOrgasmRush = false;
+		ActiveSession.bPartnerOrgasmRush = false;
 	}
-	TriggerMediaCueForEvent(Settings ? Settings->SessionPeakMediaEventId : FName(TEXT("SessionPeak")));
-	ActiveSession.StatusText = FText::FromString(TEXT("Session peak"));
-	if (TrackedEmoteComponent
+	ActiveSession.SessionState = EProjectIntimacySessionState::OrgasmRush;
+	ActiveSession.OrgasmRushTarget = Target;
+	ActiveSession.OrgasmRushRemaining = FMath::Max(
+		ActiveSession.OrgasmRushRemaining,
+		Settings
+		? FMath::Max(0.0f, Settings->OrgasmRushDurationSeconds)
+		: 2.0f);
+	ActiveSession.LastOrgasmEventTimeSeconds = Now;
+	ActiveSession.ClimaxIntensityMultiplier = Settings
+		? FMath::Max(1.0f, Settings->OrgasmRushIntensityMultiplier)
+		: 1.25f;
+
+	if (Target == EProjectIntimacyClimaxTarget::Player)
+	{
+		ActiveSession.bPlayerOrgasmRush = true;
+		ActiveSession.PlayerSessionOrgasmCount += OrgasmCount;
+	}
+	else
+	{
+		ActiveSession.bPartnerOrgasmRush = true;
+		ActiveSession.PartnerSessionOrgasmCount += OrgasmCount;
+	}
+
+	if (FProjectIntimacyPartnerProfile* Profile = IntimacySaveGame
+		? IntimacySaveGame->PartnerProfiles.Find(ActiveSession.PartnerId)
+		: nullptr)
+	{
+		if (Target == EProjectIntimacyClimaxTarget::Player)
+		{
+			Profile->PlayerOrgasmCount += OrgasmCount;
+		}
+		else
+		{
+			Profile->PartnerOrgasmCount += OrgasmCount;
+			Profile->SessionPeakCount = Profile->PartnerOrgasmCount;
+		}
+	}
+
+	if (!bSameOrgasmBurst)
+	{
+		TriggerMediaCueForEvent(Settings ? Settings->OrgasmMediaEventId : FName(TEXT("Climax")));
+	}
+	const TCHAR* TargetLabel = Target == EProjectIntimacyClimaxTarget::Player
+		? TEXT("Player")
+		: TEXT("Partner");
+	if (ActiveSession.bPlayerOrgasmRush && ActiveSession.bPartnerOrgasmRush)
+	{
+		ActiveSession.StatusText = FText::FromString(TEXT(
+			"Player and Partner orgasm. Orgasm Rush; the session continues."));
+	}
+	else
+	{
+		const int32 SessionOrgasmCount = Target == EProjectIntimacyClimaxTarget::Player
+			? ActiveSession.PlayerSessionOrgasmCount
+			: ActiveSession.PartnerSessionOrgasmCount;
+		ActiveSession.StatusText = FText::FromString(FString::Printf(
+			TEXT("%s orgasm x%d. Orgasm Rush; the session continues."),
+			TargetLabel,
+			SessionOrgasmCount));
+	}
+	if (!bSameOrgasmBurst
+		&& TrackedEmoteComponent
 		&& TrackedEmoteComponent->GetActiveInteractionId() == ProjectIntimacySubsystemPrivate::IntimacySceneId)
 	{
+		// The existing scene cue remains the presentation bridge; gameplay semantics are now Climax.
 		TrackedEmoteComponent->TriggerBlueprintSceneVisualSessionPeakCue();
 	}
 	ApplyAnimationRate(ActiveSession.AnimationRate);
+	UE_LOG(
+		LogProjectIntimacy,
+		Display,
+		TEXT("[ProjectIntimacy] orgasm target=%s count=%d session_continues=true"),
+		TargetLabel,
+		OrgasmCount);
+}
+
+void UProjectIntimacySubsystem::UpdateCurseRecovery(const float DeltaTime)
+{
+	if (!bSessionActive || DeltaTime <= 0.0f)
+	{
+		return;
+	}
+
+	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
+	const float UpdateInterval = Settings
+		? FMath::Clamp(Settings->CurseUpdateIntervalSeconds, 0.02f, 1.0f)
+		: 0.10f;
+	ActiveSession.CurseUpdateAccumulator += DeltaTime;
+	if (ActiveSession.CurseUpdateAccumulator < UpdateInterval)
+	{
+		return;
+	}
+
+	const float Elapsed = ActiveSession.CurseUpdateAccumulator;
+	ActiveSession.CurseUpdateAccumulator = 0.0f;
+	UProjectInnerDoctrineComponent* DoctrineComponent = ActiveSession.CurseDoctrineComponent.Get();
+	if (!DoctrineComponent)
+	{
+		return;
+	}
+
+	const float PercentPerSecond = Settings
+		? FMath::Max(0.0f, Settings->CurseReductionPercentPerSecond)
+		: 1.0f;
+	const float Amount = DoctrineComponent->GetCurseMax()
+		* (PercentPerSecond / 100.0f)
+		* Elapsed;
+	DoctrineComponent->CleanseCurse(Amount, false);
 }
 
 void UProjectIntimacySubsystem::ApplyAnimationRate(const float NewRate)
@@ -2678,7 +2992,7 @@ void UProjectIntimacySubsystem::ApplyAnimationRate(const float NewRate)
 
 float UProjectIntimacySubsystem::ComputeEffectiveAnimationRate() const
 {
-	return FMath::Max(0.05f, ActiveSession.AnimationRate * FMath::Max(1.0f, ActiveSession.SessionPeakMultiplier));
+	return FMath::Max(0.05f, ActiveSession.AnimationRate * FMath::Max(1.0f, ActiveSession.ClimaxIntensityMultiplier));
 }
 
 void UProjectIntimacySubsystem::RestoreAnimationRates()
@@ -2779,6 +3093,16 @@ void UProjectIntimacySubsystem::NormalizeProfile(
 	{
 		Profile.GenderTag = ProjectIntimacySubsystemPrivate::Tag(TEXT("Project.Gender.Male"));
 	}
+
+	// Migrate neutralized SessionPeak history into the explicit Climax model once,
+	// while retaining the old serialized field as a compatibility mirror.
+	if (Profile.PartnerOrgasmCount <= 0 && Profile.SessionPeakCount > 0)
+	{
+		Profile.PartnerOrgasmCount = Profile.SessionPeakCount;
+	}
+	Profile.PlayerOrgasmCount = FMath::Max(0, Profile.PlayerOrgasmCount);
+	Profile.PartnerOrgasmCount = FMath::Max(0, Profile.PartnerOrgasmCount);
+	Profile.SessionPeakCount = Profile.PartnerOrgasmCount;
 
 	if (Profile.RelationshipTags.Num() <= 0)
 	{
@@ -2962,14 +3286,27 @@ FProjectIntimacyEligibilityContext UProjectIntimacySubsystem::BuildEligibilityCo
 	Context.bPartnerConscious = IsConscious(PartnerActor)
 		&& PartnerComponent
 		&& PartnerComponent->bConscious;
-	Context.bPartnerNonHostile = PartnerComponent
-		&& PartnerComponent->bNonHostileVerified
-		&& !PartnerActor->ActorHasTag(ProjectIntimacySubsystemPrivate::HostileActorTag);
+	const bool bPartnerExplicitlyHostile = IsValid(PartnerActor)
+		&& PartnerActor->ActorHasTag(ProjectIntimacySubsystemPrivate::HostileActorTag);
+	const bool bCharismaTargetRoute = IsCharismaMasteryTargetRoute(PartnerActor, PartnerComponent);
+	// Charisma mastery is the explicit exception requested by the player: an
+	// allowlisted enemy can be hostile and still be seduced. Hostility does not
+	// waive adult, alive, conscious, consent, or live combat validation below.
+	Context.bPartnerNonHostile = bCharismaTargetRoute
+		|| (PartnerComponent
+			&& PartnerComponent->bNonHostileVerified
+			&& !bPartnerExplicitlyHostile);
 	const bool bCombatLockout = TrackedEmoteComponent
 		&& TrackedEmoteComponent->IsCombatLockoutActive(Settings ? Settings->CombatLockoutSeconds : 8.0f);
+	const UProjectEmoteSubsystem* EmoteSubsystem = World
+		? World->GetSubsystem<UProjectEmoteSubsystem>()
+		: nullptr;
+	const bool bACFBattleActive = EmoteSubsystem && EmoteSubsystem->IsACFBattleActive();
 	Context.bOutsideCombat = PartnerComponent
 		&& PartnerComponent->bOutsideCombat
 		&& !bCombatLockout
+		&& !bACFBattleActive
+		&& !ProjectIntimacySubsystemPrivate::IsActorInACFBattle(PartnerActor)
 		&& IsValid(TrackedPlayerPawn.Get())
 		&& IsValid(PartnerActor)
 		&& !TrackedPlayerPawn->ActorHasTag(ProjectIntimacySubsystemPrivate::InCombatActorTag)
@@ -2978,7 +3315,128 @@ FProjectIntimacyEligibilityContext UProjectIntimacySubsystem::BuildEligibilityCo
 		this,
 		TrackedPlayerPawn.Get(),
 		PartnerActor);
+	if (bCharismaTargetRoute)
+	{
+		// T + Intimacy is an explicit Charisma-mastery request. Its adapter is
+		// session-scoped and replaces missing map-authored social/zone metadata.
+		// Hostility is intentionally overridden for the explicit companion/enemy
+		// class allowlist; content, adult, alive, conscious, bilateral consent,
+		// combat lockout/tags, and live ACF battle gates remain real.
+		Context.bZoneAllowed = true;
+	}
 	return Context;
+}
+
+bool UProjectIntimacySubsystem::IsCharismaMasteryTargetRoute(
+	AActor* PartnerActor,
+	const UProjectIntimacyPartnerComponent* PartnerComponent) const
+{
+	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
+	return Settings
+		&& Settings->bAllowCharismaMasteryTargetedPartners
+		&& IsValid(TrackedPlayerPawn.Get())
+		&& IsValid(PartnerActor)
+		&& PartnerActor != TrackedPlayerPawn.Get()
+		&& IsCharismaTargetedPartnerClass(PartnerActor)
+		&& PartnerComponent
+		&& PartnerComponent->bAdultVerified
+		&& HasRequiredCharismaForActor(TrackedPlayerPawn.Get());
+}
+
+bool UProjectIntimacySubsystem::IsCharismaTargetedPartnerClass(const AActor* PartnerActor) const
+{
+	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
+	if (!Settings || !IsValid(PartnerActor))
+	{
+		return false;
+	}
+
+	for (const UClass* ActorClass = PartnerActor->GetClass(); ActorClass; ActorClass = ActorClass->GetSuperClass())
+	{
+		const FString ActorClassPath = ActorClass->GetPathName();
+		if (Settings->CharismaTargetedPartnerClasses.ContainsByPredicate(
+			[&ActorClassPath](const FSoftClassPath& ApprovedClass)
+			{
+				return ApprovedClass.ToString().Equals(ActorClassPath, ESearchCase::CaseSensitive);
+			}))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+UProjectIntimacyPartnerComponent* UProjectIntimacySubsystem::ResolveOrCreateTargetParticipant(
+	AActor* PartnerActor) const
+{
+	if (!IsValid(PartnerActor))
+	{
+		return nullptr;
+	}
+
+	const UEFProjectEnemySettings* EnemySettings = UEFProjectEnemySettings::Get();
+	auto MatchesRegisteredClass = [PartnerActor](const TArray<FSoftClassPath>& RegisteredClasses)
+	{
+		for (const UClass* ActorClass = PartnerActor->GetClass(); ActorClass; ActorClass = ActorClass->GetSuperClass())
+		{
+			const FString ActorClassPath = ActorClass->GetPathName();
+			if (RegisteredClasses.ContainsByPredicate([&ActorClassPath](const FSoftClassPath& RegisteredClass)
+			{
+				return RegisteredClass.ToString().Equals(ActorClassPath, ESearchCase::CaseSensitive);
+			}))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	const bool bRegisteredMale = EnemySettings
+		&& MatchesRegisteredClass(EnemySettings->MaleCharacterClasses);
+	const bool bRegisteredFemale = EnemySettings
+		&& MatchesRegisteredClass(EnemySettings->FemaleCharacterClasses);
+	const bool bApprovedCharismaPartnerClass = IsCharismaTargetedPartnerClass(PartnerActor);
+	UProjectIntimacyPartnerComponent* PartnerComponent =
+		PartnerActor->FindComponentByClass<UProjectIntimacyPartnerComponent>();
+	// The current scene still requires a compatible Male role. Do not attach
+	// persistent project state to arbitrary actors merely because the player
+	// looked at them; approved Charisma enemy classes are explicit exceptions.
+	if (!PartnerComponent && !bApprovedCharismaPartnerClass)
+	{
+		return nullptr;
+	}
+	if (!PartnerComponent)
+	{
+		PartnerComponent = UProjectIntimacyPartnerComponent::FindOrCreateForActor(PartnerActor);
+	}
+	if (!PartnerComponent)
+	{
+		return nullptr;
+	}
+
+	if (bRegisteredMale != bRegisteredFemale)
+	{
+		PartnerComponent->GenderTag = FGameplayTag::RequestGameplayTag(
+			bRegisteredMale ? TEXT("Project.Gender.Male") : TEXT("Project.Gender.Female"),
+			false);
+		PartnerComponent->bAdultVerified = true;
+	}
+	if (bApprovedCharismaPartnerClass)
+	{
+		// The explicit allowlist is the project-owned Charisma authority, including
+		// components pre-created by the identity audit. Hostility is overridden by
+		// this route; ACF battle state remains a live gate on every session tick.
+		PartnerComponent->bNonHostileVerified = true;
+		const UWorld* World = GetWorld();
+		const UProjectEmoteSubsystem* EmoteSubsystem = World
+			? World->GetSubsystem<UProjectEmoteSubsystem>()
+			: nullptr;
+		PartnerComponent->bOutsideCombat =
+			!ProjectIntimacySubsystemPrivate::IsActorInACFBattle(PartnerActor)
+			&& (!EmoteSubsystem || !EmoteSubsystem->IsACFBattleActive());
+	}
+
+	return PartnerComponent;
 }
 
 bool UProjectIntimacySubsystem::EnsureMaturePresentationRegistered(
@@ -3102,8 +3560,47 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
 	const FProjectIntimacyEligibilityContext Context = BuildEligibilityContext(PartnerActor, PartnerComponent);
-	FProjectSocialParticipantState PlayerState;
-	SocialSubsystem->TryGetParticipantState(TrackedPlayerPawn.Get(), PlayerState);
+	const bool bCharismaTargetRoute = IsCharismaMasteryTargetRoute(PartnerActor, PartnerComponent);
+	// Charisma-targeted participants are an interaction-scoped adapter. Merely
+	// discovering a HUB route or opening the Y menu must not change social state.
+	if (bCharismaTargetRoute && !bEstablishConsent)
+	{
+		return;
+	}
+
+	if (bCharismaTargetRoute
+		&& CharismaSocialOverride.bActive
+		&& (CharismaSocialOverride.PlayerActor.Get() != TrackedPlayerPawn.Get()
+			|| CharismaSocialOverride.PartnerActor.Get() != PartnerActor))
+	{
+		RestoreCharismaSocialOverride();
+	}
+
+	FProjectSocialParticipantState OriginalPlayerState;
+	const bool bPlayerAlreadyRegistered = SocialSubsystem->TryGetParticipantState(
+		TrackedPlayerPawn.Get(),
+		OriginalPlayerState);
+	FProjectSocialParticipantState OriginalPartnerState;
+	const bool bPartnerAlreadyRegistered = SocialSubsystem->TryGetParticipantState(
+		PartnerActor,
+		OriginalPartnerState);
+
+	if (bCharismaTargetRoute && !CharismaSocialOverride.bActive)
+	{
+		CharismaSocialOverride.PlayerActor = TrackedPlayerPawn.Get();
+		CharismaSocialOverride.PartnerActor = PartnerActor;
+		CharismaSocialOverride.PlayerState = OriginalPlayerState;
+		CharismaSocialOverride.PartnerState = OriginalPartnerState;
+		CharismaSocialOverride.bPlayerWasRegistered = bPlayerAlreadyRegistered;
+		CharismaSocialOverride.bPartnerWasRegistered = bPartnerAlreadyRegistered;
+		CharismaSocialOverride.bPlayerOriginallyConsented =
+			SocialSubsystem->HasExplicitIntimacyConsent(TrackedPlayerPawn.Get(), PartnerActor);
+		CharismaSocialOverride.bPartnerOriginallyConsented =
+			SocialSubsystem->HasExplicitIntimacyConsent(PartnerActor, TrackedPlayerPawn.Get());
+		CharismaSocialOverride.bActive = true;
+	}
+
+	FProjectSocialParticipantState PlayerState = OriginalPlayerState;
 	PlayerState.ParticipantId = TEXT("Player.Local");
 	PlayerState.bVerifiedAdult = Context.bPlayerAdultVerified;
 	PlayerState.bAlive = Context.bPlayerAlive;
@@ -3112,9 +3609,7 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 	PlayerState.bInCombat = !Context.bOutsideCombat;
 	PlayerState.bInSafeLocation = Context.bZoneAllowed;
 
-	FProjectSocialParticipantState PartnerState;
-	const bool bPartnerAlreadyRegistered =
-		SocialSubsystem->TryGetParticipantState(PartnerActor, PartnerState);
+	FProjectSocialParticipantState PartnerState = OriginalPartnerState;
 	PartnerState.ParticipantId = FName(*PartnerComponent->GetResolvedPartnerId());
 	PartnerState.bVerifiedAdult = Context.bPartnerAdultVerified;
 	PartnerState.bAlive = Context.bPartnerAlive;
@@ -3122,17 +3617,30 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 	PartnerState.bHostile = !Context.bPartnerNonHostile;
 	PartnerState.bInCombat = !Context.bOutsideCombat;
 	PartnerState.bInSafeLocation = Context.bZoneAllowed;
-	PartnerState.bRecruitable = PartnerComponent->bSocialCompanion;
-	PartnerState.bRecruitedCompanion = PartnerComponent->bSocialCompanion;
+	PartnerState.bRecruitable = PartnerComponent->bSocialCompanion || bCharismaTargetRoute;
+	PartnerState.bRecruitedCompanion = PartnerComponent->bSocialCompanion || bCharismaTargetRoute;
 	PartnerState.bOffersPlayerInitiatedIntimacy =
-		PartnerComponent->bSocialCompanion
-		&& PartnerComponent->bOffersPlayerInitiatedConsent;
-	PartnerState.MinimumIntimacyAffinity = Settings
+		bCharismaTargetRoute
+		|| (PartnerComponent->bSocialCompanion
+			&& PartnerComponent->bOffersPlayerInitiatedConsent);
+	PartnerState.MinimumIntimacyAffinity = bCharismaTargetRoute
+		? 0
+		: (Settings
 		? FProjectSocialRules::ClampAffinity(Settings->MinimumAffinityForIntimacyConsent)
-		: 25;
+		: 25);
 	if (!bPartnerAlreadyRegistered)
 	{
 		PartnerState.Affinity = FProjectSocialRules::ClampAffinity(PartnerComponent->InitialAffect);
+	}
+	if (bCharismaTargetRoute)
+	{
+		PlayerState.bHostile = false;
+		PlayerState.bInCombat = false;
+		PlayerState.bInSafeLocation = true;
+		PartnerState.bHostile = false;
+		PartnerState.bInCombat = false;
+		PartnerState.bInSafeLocation = true;
+		PartnerState.Affinity = FMath::Max(0, PartnerState.Affinity);
 	}
 
 	if (!SocialSubsystem->RegisterOrUpdateParticipant(TrackedPlayerPawn.Get(), PlayerState)
@@ -3144,8 +3652,20 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 
 	if (!Context.bContentAllowed
 		|| !Context.bCharismaMasteryUnlocked
-		|| !PartnerComponent->bSocialCompanion
-		|| !PartnerComponent->bOffersPlayerInitiatedConsent)
+		|| (!bCharismaTargetRoute
+			&& (!PartnerComponent->bSocialCompanion
+				|| !PartnerComponent->bOffersPlayerInitiatedConsent)))
+	{
+		return;
+	}
+
+	// StartSession revalidates the same request after the Blueprint scene roles
+	// become observable. Bilateral consent is already active for the quick-start
+	// path at that point. TryEstablishBilateralIntimacyConsent deliberately clears
+	// both directions before recording them; repeating it would emit a transient
+	// revocation that lets Content Policy synchronously cancel the valid scene.
+	if (SocialSubsystem->HasExplicitIntimacyConsent(TrackedPlayerPawn.Get(), PartnerActor)
+		&& SocialSubsystem->HasExplicitIntimacyConsent(PartnerActor, TrackedPlayerPawn.Get()))
 	{
 		return;
 	}
@@ -3157,7 +3677,9 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 		SocialSubsystem->TryEstablishBilateralIntimacyConsent(
 			TrackedPlayerPawn.Get(),
 			PartnerActor,
-			Settings ? Settings->MinimumAffinityForIntimacyConsent : 25);
+			bCharismaTargetRoute
+				? 0
+				: (Settings ? Settings->MinimumAffinityForIntimacyConsent : 25));
 	if (!ConsentResult.bEligible)
 	{
 		UE_LOG(
@@ -3169,24 +3691,94 @@ void UProjectIntimacySubsystem::RegisterSocialParticipants(
 	}
 }
 
-void UProjectIntimacySubsystem::ClearConsentForPartner(AActor* PartnerActor)
+void UProjectIntimacySubsystem::RestoreCharismaSocialOverride()
+{
+	if (!CharismaSocialOverride.bActive)
+	{
+		return;
+	}
+	// Clear the member before social delegates are broadcast so restoration is
+	// idempotent even if a listener synchronously re-enters this subsystem.
+	const FProjectIntimacySocialOverrideState OverrideToRestore = CharismaSocialOverride;
+	CharismaSocialOverride = FProjectIntimacySocialOverrideState();
+
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UProjectSocialSubsystem* SocialSubsystem = GameInstance
+		? GameInstance->GetSubsystem<UProjectSocialSubsystem>()
+		: nullptr;
+	AActor* PlayerActor = OverrideToRestore.PlayerActor.Get();
+	AActor* PartnerActor = OverrideToRestore.PartnerActor.Get();
+	if (SocialSubsystem)
+	{
+		if (IsValid(PlayerActor))
+		{
+			if (OverrideToRestore.bPlayerWasRegistered)
+			{
+				SocialSubsystem->RegisterOrUpdateParticipant(
+					PlayerActor,
+					OverrideToRestore.PlayerState);
+			}
+			else
+			{
+				SocialSubsystem->UnregisterParticipant(PlayerActor);
+			}
+		}
+
+		if (IsValid(PartnerActor))
+		{
+			if (OverrideToRestore.bPartnerWasRegistered)
+			{
+				SocialSubsystem->RegisterOrUpdateParticipant(
+					PartnerActor,
+					OverrideToRestore.PartnerState);
+			}
+			else
+			{
+				SocialSubsystem->UnregisterParticipant(PartnerActor);
+			}
+		}
+
+		if (IsValid(PlayerActor) && IsValid(PartnerActor))
+		{
+			SocialSubsystem->SetExplicitIntimacyConsent(
+				PlayerActor,
+				PartnerActor,
+				OverrideToRestore.bPlayerOriginallyConsented);
+			SocialSubsystem->SetExplicitIntimacyConsent(
+				PartnerActor,
+				PlayerActor,
+				OverrideToRestore.bPartnerOriginallyConsented);
+		}
+	}
+}
+
+void UProjectIntimacySubsystem::ClearConsentForPartner(
+	AActor* PartnerActor,
+	AActor* PlayerActorOverride)
 {
 	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	UProjectSocialSubsystem* SocialSubsystem = GameInstance
 		? GameInstance->GetSubsystem<UProjectSocialSubsystem>()
 		: nullptr;
-	if (!SocialSubsystem || !IsValid(TrackedPlayerPawn.Get()) || !IsValid(PartnerActor))
+	AActor* ConsentPlayerActor = IsValid(PlayerActorOverride)
+		? PlayerActorOverride
+		: TrackedPlayerPawn.Get();
+	if (!SocialSubsystem || !IsValid(ConsentPlayerActor) || !IsValid(PartnerActor))
 	{
+		RestoreCharismaSocialOverride();
 		return;
 	}
 
-	SocialSubsystem->SetExplicitIntimacyConsent(TrackedPlayerPawn.Get(), PartnerActor, false);
-	SocialSubsystem->SetExplicitIntimacyConsent(PartnerActor, TrackedPlayerPawn.Get(), false);
+	SocialSubsystem->SetExplicitIntimacyConsent(ConsentPlayerActor, PartnerActor, false);
+	SocialSubsystem->SetExplicitIntimacyConsent(PartnerActor, ConsentPlayerActor, false);
+	RestoreCharismaSocialOverride();
 }
 
 void UProjectIntimacySubsystem::ClearActiveSessionConsent()
 {
-	ClearConsentForPartner(ActiveSession.PartnerActor.Get());
+	ClearConsentForPartner(
+		ActiveSession.PartnerActor.Get(),
+		ActiveSession.PlayerActor.Get());
 }
 
 void UProjectIntimacySubsystem::HandleToggleHudPressed()

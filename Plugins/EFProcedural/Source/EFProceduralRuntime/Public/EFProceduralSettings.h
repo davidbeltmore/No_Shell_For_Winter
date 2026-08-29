@@ -34,6 +34,10 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Bootstrap")
 	float DungeonBootstrapRetrySeconds = 0.1f;
 
+	/** Assets whose first-use compilation or resource creation must finish before PCG materializes the dungeon. */
+	UPROPERTY(EditAnywhere, Config, Category = "Bootstrap")
+	TArray<FSoftObjectPath> DungeonBootstrapPreloadAssets;
+
 	UPROPERTY(EditAnywhere, Config, Category = "Spawn")
 	int32 MaxControllerFixAttempts = 80;
 
@@ -45,15 +49,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Spawn")
 	float SpawnSanitizationRetrySeconds = 0.15f;
-
-	UPROPERTY(EditAnywhere, Config, Category = "PCG")
-	int32 DefaultPCGSeed = 42;
-
-	UPROPERTY(EditAnywhere, Config, Category = "PCG")
-	TArray<FName> DungeonRandomizeFunctionNames;
-
-	UPROPERTY(EditAnywhere, Config, Category = "PCG")
-	TArray<FName> DungeonRefreshFunctionNames;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Navigation")
 	float NavigationBoundsXYPadding = 1200.0f;

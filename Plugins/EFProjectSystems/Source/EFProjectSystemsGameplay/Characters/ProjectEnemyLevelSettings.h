@@ -74,4 +74,11 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Runtime", meta = (ClampMin = "0", UIMin = "0"))
 	int32 InitializationRetryCount = 4;
+
+	/**
+	 * Bounds project-owned level/scaling initialization work after a dungeon
+	 * spawns a large cohort. This does not change enemy, AI or animation ticks.
+	 */
+	UPROPERTY(EditAnywhere, Config, Category = "Runtime", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MaxEnemyInitializationsPerFrame = 1;
 };

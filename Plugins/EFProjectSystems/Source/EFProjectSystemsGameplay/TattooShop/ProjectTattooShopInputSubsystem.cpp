@@ -1,9 +1,12 @@
 #include "TattooShop/ProjectTattooShopInputSubsystem.h"
 
+#include "AssetRegistry/AssetData.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Button.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
 #include "Components/Image.h"
@@ -20,16 +23,25 @@
 #include "Engine/Texture.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "Engine/GameInstance.h"
+#include "HAL/FileManager.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "Modules/ModuleManager.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "Misc/Paths.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "TattooShop/ProjectDefaultTattooSkinnedDecalSubsystem.h"
+#include "TattooShop/ProjectTattooShopSettings.h"
+#include "TattooShop/UI/ProjectTattooShopEditorWidget.h"
+#include "TattooShop/UI/ProjectTattooShopLibraryWidget.h"
+#include "UI/ProjectWidgetClassResolver.h"
+#include "TimerManager.h"
 #include "UObject/SoftObjectPath.h"
 #include "UObject/UnrealType.h"
 
@@ -55,16 +67,56 @@ namespace ProjectTattooShopInputPrivate
 	const FName TattooBaseComponentsPropertyName(TEXT("TatBaseComp"));
 	const FName NewDynamicMaterialPropertyName(TEXT("NewDynamicMaterialInst"));
 	const FName SelectedMIDPropertyName(TEXT("SelectedMID"));
+	const FName TargetTatIndexPropertyName(TEXT("TargetTatIndex"));
 	const FName TargetMIDPropertyName(TEXT("TargetMID"));
 	const FName PreEditMIDPropertyName(TEXT("PreEditMID"));
 	const FName SelectedAssetTexturePropertyName(TEXT("SelectedAssetTexture"));
+	const FName EditModePropertyName(TEXT("EditMode"));
+	const FName AcceptButtonName(TEXT("Accept"));
+	const FName CancelButtonName(TEXT("Cancel"));
+	const FName GrabAndUpdateUIEventName(TEXT("GrabAndUpdateUIValueFromSelectedMaterial"));
+	const FName ApplyParamsEventName(TEXT("ApplyParamsOnTargetTatMaterial"));
 	const TCHAR* TattooCardPathToken = TEXT("/Game/TattooShop/Blueprints/Widget/WBP_TattooCard");
+	// The original TattooShop master is the canonical material contract.  A
+	// native layer owns one MID from this master; no new layer inherits a MID
+	// (or parameters) from the legacy widget pipeline.
 	const TCHAR* TattooShopMaterialPath = TEXT("/Game/TattooShop/Materials/M_TattooShop.M_TattooShop");
+	const TCHAR* TattooTransparentBaseMaterialPath = TEXT("/Game/TattooShop/Materials/M_Translucent.M_Translucent");
 	const TCHAR* HeartTexturePath = TEXT("/Game/TattooShop/Texture/T_Heart.T_Heart");
+	const TCHAR* TattooTexturePackageRoot = TEXT("/Game/TattooShop/Texture/");
+	const TCHAR* ProjectTattooLibraryWidgetPath = TEXT("/Game/_Game/Widgets/TattooShop/Main/WBP_ProjectTattooLibrary.WBP_ProjectTattooLibrary_C");
+	const TCHAR* ProjectTattooEditorWidgetPath = TEXT("/Game/_Game/Widgets/TattooShop/Main/WBP_ProjectTattooEditor.WBP_ProjectTattooEditor_C");
 	const FName TextureParameterName(TEXT("Texture"));
 	const FName ColorParameterName(TEXT("Color"));
 	const FName EmissiveColorParameterName(TEXT("EmissiveColor"));
 	const FName OffsetParameterName(TEXT("Offset"));
+	const FName ManualTattooComponentTag(TEXT("ProjectManualTattoo"));
+	const FName OpacityParameterName(TEXT("Opacity"));
+	const FName ScaleParameterName(TEXT("Scale"));
+	const FName ScaleYParameterName(TEXT("ScaleY"));
+	const FName RotationParameterName(TEXT("Rotation"));
+
+	const TArray<FName>& PersistedScalarParameterNames()
+	{
+		static const TArray<FName> Names = {
+			TEXT("Scale"), TEXT("ScaleY"), TEXT("WorldPositionOffset"), TEXT("Rotation"),
+			TEXT("EmissionStrength"), TEXT("UseBaseColorForEmissive"), TEXT("DepthMin"),
+			TEXT("DepthMax"), TEXT("UseTexcoord"), TEXT("UseNormalMap"), TEXT("TintBaseColor"),
+			TEXT("WarpStrength"), TEXT("OffsetU"), TEXT("OffsetV"), TEXT("PiFactor"),
+			TEXT("RotationTimeRate"), TEXT("Metallic"), TEXT("Roughness"), TEXT("Specular"),
+			TEXT("Opacity"), TEXT("UseT2T")
+		};
+		return Names;
+	}
+
+	const TArray<FName>& PersistedVectorParameterNames()
+	{
+		static const TArray<FName> Names = {
+			TEXT("Color"), TEXT("EmissiveColor"), TEXT("ProjectionDirection"),
+			TEXT("Offset"), TEXT("WarpDirection")
+		};
+		return Names;
+	}
 
 	FString NormalizeReflectionName(FString Name)
 	{
@@ -134,6 +186,23 @@ namespace ProjectTattooShopInputPrivate
 		}
 
 		ObjectProperty->SetObjectPropertyValue_InContainer(Owner, Value);
+		return true;
+	}
+
+	bool ClearObjectPropertyWhenCompatible(UObject* Owner, const FName PropertyName)
+	{
+		if (!Owner)
+		{
+			return false;
+		}
+
+		FObjectPropertyBase* ObjectProperty = FindObjectPropertyByCompatibleName(Owner->GetClass(), PropertyName);
+		if (!ObjectProperty)
+		{
+			return false;
+		}
+
+		ObjectProperty->SetObjectPropertyValue_InContainer(Owner, nullptr);
 		return true;
 	}
 
@@ -226,25 +295,6 @@ namespace ProjectTattooShopInputPrivate
 		return FCString::Atof(*RawValue);
 	}
 
-	bool IsSkinnedDecalOverlayMaterial(UMaterialInterface* Material)
-	{
-		if (!Material)
-		{
-			return false;
-		}
-
-		if (Material->GetPathName().Contains(TEXT("SkinnedDecalOverlay"))
-			|| Material->GetPathName().Contains(TEXT("/SkinnedDecalComponent/")))
-		{
-			return true;
-		}
-
-		UMaterial* BaseMaterial = Material->GetBaseMaterial();
-		return BaseMaterial
-			&& (BaseMaterial->GetPathName().Contains(TEXT("SkinnedDecalOverlay"))
-				|| BaseMaterial->GetPathName().Contains(TEXT("/SkinnedDecalComponent/")));
-	}
-
 	APlayerController* ResolveLocalPlayerController(UWorld* World)
 	{
 		if (!World)
@@ -278,7 +328,13 @@ void UProjectTattooShopInputSubsystem::Initialize(FSubsystemCollectionBase& Coll
 	TattooAssetPreviewHostPanel = nullptr;
 	TattooShopWidgetClass = nullptr;
 	TattooAssetPreviewWidgetClass = nullptr;
+	TattooViewerCardWidgetClass = nullptr;
+	RuntimeTattooTextureCache.Reset();
+	ActiveDeleteMenuSlateWidget.Reset();
 	TrackedAssetPreviewWidget = nullptr;
+	TrackedProjectTattooLibraryWidget = nullptr;
+	TrackedProjectTattooCatalogWidget = nullptr;
+	TrackedProjectTattooEditorWidget = nullptr;
 	MirroredOverlayTarget = nullptr;
 	LastMirroredOverlayMaterial = nullptr;
 	AutomationTattooBaseComponent = nullptr;
@@ -286,12 +342,30 @@ void UProjectTattooShopInputSubsystem::Initialize(FSubsystemCollectionBase& Coll
 	RuntimeTattooMID = nullptr;
 	LastRuntimeTattooTexture = nullptr;
 	RuntimeTattooBaseComponent = nullptr;
+	ManualTattooMIDs.Reset();
+	ManualTattooComponents.Reset();
+	ManualTattooEditSnapshots.Reset();
+	ManualTattooPreviewParameters.Reset();
+	ManualTattooLayerOrders.Reset();
+	LastManualTattooTargetSkin = nullptr;
+	ActiveManualTattooId.Invalidate();
+	ActiveManualTattooSourceEntryId = NAME_None;
+	LastSkinnedTattooSynchronizedPawn.Reset();
+	bManualTattooPreviewPending = false;
 	InputSnapshot = FProjectTattooShopInputSnapshot();
 	bTattooShopOpen = false;
+	bRuntimeTattooCardsInitialized = false;
 }
 
 void UProjectTattooShopInputSubsystem::Deinitialize()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ManualTattooPreviewTimerHandle);
+	}
+	DismissDeleteTattooTextureMenu();
+	ResetManualTattooRuntime();
+	RuntimeTattooTextureCache.Reset();
 	DetachFromTrackedPlayerController();
 	Super::Deinitialize();
 }
@@ -299,10 +373,34 @@ void UProjectTattooShopInputSubsystem::Deinitialize()
 void UProjectTattooShopInputSubsystem::Tick(float DeltaTime)
 {
 	TryResolveRuntimeContext();
+	if (UsesSkinnedDecalTattooShop())
+	{
+		RemoveLegacyTattooRuntimeArtifacts(TrackedPlayerPawn.Get());
+		if (LastSkinnedTattooSynchronizedPawn.Get() != TrackedPlayerPawn.Get())
+		{
+			RequestManualTattooSynchronization(true);
+		}
+		return;
+	}
 	CaptureAssetPreviewWidget();
 	NormalizeTattooCardGrid(TrackedTattooShopWidget.Get());
 	NormalizeTattooCardGrid(TrackedAssetPreviewWidget.Get());
+	RehydrateManualTattoos();
 	SynchronizeTattooOverlayToVisibleSkin();
+
+	if (bTattooShopOpen && IsValid(TrackedTattooShopWidget))
+	{
+		BindTattooCustomizationRuntimeButtons(TrackedAssetPreviewWidget.Get());
+		RepairTattooCustomizationRuntime();
+		BindTattooShopRuntimeButtons(TrackedTattooShopWidget.Get());
+		if (!bRuntimeTattooCardsInitialized)
+		{
+			if (UUserWidget* PreviewWidget = ResolveTrackedAssetPreviewWidget())
+			{
+				bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(PreviewWidget);
+			}
+		}
+	}
 }
 
 TStatId UProjectTattooShopInputSubsystem::GetStatId() const
@@ -354,6 +452,937 @@ void UProjectTattooShopInputSubsystem::RequestCloseTattooShop()
 bool UProjectTattooShopInputSubsystem::IsTattooShopOpen() const
 {
 	return bTattooShopOpen;
+}
+
+bool UProjectTattooShopInputSubsystem::UsesSkinnedDecalTattooShop() const
+{
+	const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+	return Settings && Settings->bUseSkinnedDecalTattooShop;
+}
+
+UProjectTattooShopStateSubsystem* UProjectTattooShopInputSubsystem::ResolveTattooState() const
+{
+	const UWorld* World = GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UProjectTattooShopStateSubsystem>() : nullptr;
+}
+
+FGuid UProjectTattooShopInputSubsystem::BeginCreateTattoo(const FProjectTattooParameters& InitialParameters)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+	const int32 MaximumManualTattoos = Settings ? FMath::Clamp(Settings->MaxManualTattoos, 1, 32) : 32;
+	if (!State || State->GetRecords().Num() >= MaximumManualTattoos)
+	{
+		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("[TattooShop] Manual tattoo limit reached (%d)."), MaximumManualTattoos);
+		return FGuid();
+	}
+
+	const FGuid TattooId = State->BeginCreate(InitialParameters);
+	if (TattooId.IsValid())
+	{
+		ActiveManualTattooId = TattooId;
+		RequestManualTattooSynchronization(true);
+	}
+	return TattooId;
+}
+
+bool UProjectTattooShopInputSubsystem::BeginEditTattoo(const FGuid& TattooId)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || !State->BeginEdit(TattooId))
+	{
+		return false;
+	}
+	ActiveManualTattooId = TattooId;
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::PreviewTattoo(
+	const FGuid& TattooId,
+	const FProjectTattooParameters& Parameters)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || !State->Preview(TattooId, Parameters))
+	{
+		return false;
+	}
+	ActiveManualTattooId = TattooId;
+	RequestManualTattooSynchronization(false);
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::CommitTattoo(const FGuid& TattooId)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || !State->Commit(TattooId))
+	{
+		return false;
+	}
+	if (ActiveManualTattooId == TattooId)
+	{
+		ActiveManualTattooId.Invalidate();
+		ActiveManualTattooSourceEntryId = NAME_None;
+	}
+	RequestManualTattooSynchronization(true);
+	RefreshProjectTattooShopUI();
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::CancelTattoo(const FGuid& TattooId)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || !State->Cancel(TattooId))
+	{
+		return false;
+	}
+	if (ActiveManualTattooId == TattooId)
+	{
+		ActiveManualTattooId.Invalidate();
+		ActiveManualTattooSourceEntryId = NAME_None;
+	}
+	RequestManualTattooSynchronization(true);
+	RefreshProjectTattooShopUI();
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::DeleteTattoo(const FGuid& TattooId)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || !State->Delete(TattooId))
+	{
+		return false;
+	}
+	if (ActiveManualTattooId == TattooId)
+	{
+		ActiveManualTattooId.Invalidate();
+		ActiveManualTattooSourceEntryId = NAME_None;
+	}
+	RequestManualTattooSynchronization(true);
+	RefreshProjectTattooShopUI();
+	return true;
+}
+
+TArray<FProjectTattooShopCardData> UProjectTattooShopInputSubsystem::GetTattooCatalog()
+{
+	TArray<FProjectTattooShopCardData> Result;
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	AssetRegistry.ScanPathsSynchronous({ ProjectTattooShopInputPrivate::TattooTexturePackageRoot }, true);
+	FARFilter Filter;
+	Filter.PackagePaths.Add(FName(ProjectTattooShopInputPrivate::TattooTexturePackageRoot));
+	Filter.ClassPaths.Add(UTexture2D::StaticClass()->GetClassPathName());
+	Filter.bRecursivePaths = true;
+	TArray<FAssetData> TextureAssets;
+	AssetRegistry.GetAssets(Filter, TextureAssets);
+	for (const FAssetData& AssetData : TextureAssets)
+	{
+		FProjectTattooShopCardData& Card = Result.AddDefaulted_GetRef();
+		Card.EntryId = AssetData.AssetName;
+		Card.DisplayName = FText::FromName(AssetData.AssetName);
+		Card.Subtitle = FText::FromString(TEXT("LIBRARY"));
+		Card.ThumbnailTexture = TSoftObjectPtr<UTexture2D>(AssetData.ToSoftObjectPath());
+		Card.Kind = EProjectTattooShopCardKind::Catalog;
+	}
+
+	const FString RuntimeDirectory = GetRuntimeTattooTextureDirectory();
+	IFileManager::Get().MakeDirectory(*RuntimeDirectory, true);
+	TArray<FString> RuntimePngFiles;
+	IFileManager::Get().FindFilesRecursive(RuntimePngFiles, *RuntimeDirectory, TEXT("*.png"), true, false);
+	RuntimePngFiles.Sort();
+	for (const FString& RuntimePngFile : RuntimePngFiles)
+	{
+		const FString NormalizedPath = NormalizeTattooFilePath(RuntimePngFile);
+		UTexture2D* Texture = RuntimeTattooTextureCache.FindRef(NormalizedPath);
+		if (!IsValid(Texture))
+		{
+			Texture = LoadPngTextureFromFile(NormalizedPath, MakeRuntimeTattooDisplayName(NormalizedPath));
+			if (Texture)
+			{
+				RuntimeTattooTextureCache.Add(NormalizedPath, Texture);
+			}
+		}
+		if (!Texture)
+		{
+			continue;
+		}
+		FProjectTattooShopCardData& Card = Result.AddDefaulted_GetRef();
+		Card.EntryId = FName(*FPaths::GetCleanFilename(NormalizedPath));
+		Card.DisplayName = FText::FromString(MakeRuntimeTattooDisplayName(NormalizedPath));
+		Card.Subtitle = FText::FromString(TEXT("UPLOADED PNG"));
+		Card.RuntimeTexture = Texture;
+		Card.Kind = EProjectTattooShopCardKind::Catalog;
+	}
+
+	Result.Sort([](const FProjectTattooShopCardData& Left, const FProjectTattooShopCardData& Right)
+	{
+		return Left.DisplayName.ToString() < Right.DisplayName.ToString();
+	});
+	return Result;
+}
+
+TArray<FProjectTattooShopCardData> UProjectTattooShopInputSubsystem::GetManualTattooLayers()
+{
+	TArray<FProjectTattooShopCardData> Result;
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State)
+	{
+		return Result;
+	}
+	for (const FProjectTattooRecord& Record : State->GetRecords())
+	{
+		FProjectTattooShopCardData& Card = Result.AddDefaulted_GetRef();
+		Card.TattooId = Record.TattooId;
+		Card.EntryId = FName(*Record.TattooId.ToString(EGuidFormats::Digits));
+		Card.DisplayName = Record.Parameters.RuntimeTextureId.IsEmpty()
+			? FText::FromString(Record.Parameters.TextureAssetPath.GetAssetName())
+			: FText::FromString(FPaths::GetBaseFilename(Record.Parameters.RuntimeTextureId));
+		Card.Kind = EProjectTattooShopCardKind::Manual;
+		Card.bEnabled = Record.Parameters.bEnabled;
+		Card.AccentColor = Record.Parameters.Color;
+		bool bMissingRuntimeTexture = false;
+		UTexture* Texture = ResolvePersistedTattooTexture(Record.Parameters, bMissingRuntimeTexture);
+		Card.RuntimeTexture = Cast<UTexture2D>(Texture);
+		if (Record.Parameters.TextureAssetPath.IsValid())
+		{
+			Card.ThumbnailTexture = TSoftObjectPtr<UTexture2D>(Record.Parameters.TextureAssetPath);
+		}
+		Card.Subtitle = (bMissingRuntimeTexture || !Texture)
+			? FText::FromString(TEXT("MISSING RESOURCE"))
+			: FText::FromString(FString::Printf(TEXT("LAYER %d"), Record.Parameters.LayerOrder));
+	}
+	return Result;
+}
+
+TArray<FProjectTattooShopCardData> UProjectTattooShopInputSubsystem::GetActiveAutomaticTattooLayers()
+{
+	TArray<FProjectTattooShopCardData> Result;
+	UWorld* World = GetWorld();
+	UProjectDefaultTattooSkinnedDecalSubsystem* TattooSubsystem =
+		World ? World->GetSubsystem<UProjectDefaultTattooSkinnedDecalSubsystem>() : nullptr;
+	if (!TattooSubsystem)
+	{
+		return Result;
+	}
+	TArray<FProjectAutomaticTattooRuntimeDebugSnapshot> Snapshots;
+	TattooSubsystem->GetAutomaticTattooRuntimeDebugSnapshots(Snapshots);
+	for (const FProjectAutomaticTattooRuntimeDebugSnapshot& Snapshot : Snapshots)
+	{
+		if (!Snapshot.bActive)
+		{
+			continue;
+		}
+		FProjectTattooShopCardData& Card = Result.AddDefaulted_GetRef();
+		Card.EntryId = Snapshot.RowName;
+		Card.DisplayName = FText::FromName(Snapshot.RowName);
+		Card.Subtitle = FText::FromString(TEXT("AUTO / LOCKED"));
+		Card.ThumbnailTexture = Snapshot.EffectiveRow.TattooTexture;
+		Card.Kind = EProjectTattooShopCardKind::Automatic;
+		Card.bReadOnly = true;
+		Card.AccentColor = FLinearColor::White;
+	}
+	return Result;
+}
+
+void UProjectTattooShopInputSubsystem::BindProjectTattooShopUI()
+{
+	for (UProjectTattooShopLibraryWidget* LibraryWidget : {
+		TrackedProjectTattooLibraryWidget.Get(),
+		TrackedProjectTattooCatalogWidget.Get() })
+	{
+		if (!IsValid(LibraryWidget))
+		{
+			continue;
+		}
+		LibraryWidget->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooSelectionChanged);
+		LibraryWidget->OnAddRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooAddRequested);
+		LibraryWidget->OnEditRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooEditRequested);
+		LibraryWidget->OnRemoveRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooRemoveRequested);
+		LibraryWidget->OnUploadRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooUploadRequested);
+		LibraryWidget->OnDeleteSourceRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooDeleteSourceRequested);
+	}
+
+	if (UProjectTattooShopEditorWidget* Editor = TrackedProjectTattooEditorWidget.Get())
+	{
+		Editor->OnPreviewChanged.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooPreviewChanged);
+		Editor->OnAcceptRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooAcceptRequested);
+		Editor->OnCancelRequested.AddUniqueDynamic(this, &ThisClass::HandleProjectTattooCancelRequested);
+	}
+}
+
+void UProjectTattooShopInputSubsystem::RefreshProjectTattooShopUI()
+{
+	const TArray<FProjectTattooShopCardData> Catalog = GetTattooCatalog();
+	const TArray<FProjectTattooShopCardData> Manual = GetManualTattooLayers();
+	const TArray<FProjectTattooShopCardData> Automatic = GetActiveAutomaticTattooLayers();
+	for (UProjectTattooShopLibraryWidget* LibraryWidget : {
+		TrackedProjectTattooLibraryWidget.Get(),
+		TrackedProjectTattooCatalogWidget.Get() })
+	{
+		if (IsValid(LibraryWidget))
+		{
+			LibraryWidget->SetLibraryEntries(Catalog);
+			LibraryWidget->SetManualTattoos(Manual);
+			LibraryWidget->SetAutomaticTattoos(Automatic);
+		}
+	}
+}
+
+FProjectTattooShopEditorModel UProjectTattooShopInputSubsystem::MakeEditorModel(
+	const FProjectTattooRecord& Record,
+	const FName SourceEntryId) const
+{
+	FProjectTattooShopEditorModel Model;
+	Model.TattooId = Record.TattooId;
+	Model.SourceEntryId = SourceEntryId;
+	Model.DisplayName = Record.Parameters.RuntimeTextureId.IsEmpty()
+		? FText::FromString(Record.Parameters.TextureAssetPath.GetAssetName())
+		: FText::FromString(FPaths::GetBaseFilename(Record.Parameters.RuntimeTextureId));
+	Model.Kind = EProjectTattooShopCardKind::Manual;
+	Model.PlacementPreset = Record.Parameters.PlacementPreset;
+	Model.AnchorBone = Record.Parameters.AnchorBone;
+	Model.OffsetX = Record.Parameters.OffsetX;
+	Model.OffsetY = Record.Parameters.OffsetY;
+	Model.Size = Record.Parameters.Size;
+	Model.RotationDegrees = Record.Parameters.RotationDegrees;
+	Model.ProjectionDistance = Record.Parameters.ProjectionDistance;
+	Model.Color = Record.Parameters.Color;
+	Model.bTintEnabled = Record.Parameters.bUseTint;
+	Model.Opacity = Record.Parameters.Opacity;
+	Model.bEnabled = Record.Parameters.bEnabled;
+	Model.bReadOnly = false;
+	return Model;
+}
+
+FProjectTattooParameters UProjectTattooShopInputSubsystem::ApplyEditorModelToParameters(
+	const FProjectTattooShopEditorModel& Model,
+	const FProjectTattooParameters& Existing) const
+{
+	FProjectTattooParameters Result = Existing;
+	Result.PlacementPreset = Model.PlacementPreset;
+	Result.AnchorBone = Model.AnchorBone;
+	Result.OffsetX = FMath::Clamp(Model.OffsetX, -30.0f, 30.0f);
+	Result.OffsetY = FMath::Clamp(Model.OffsetY, -30.0f, 30.0f);
+	Result.Size = FMath::Clamp(Model.Size, 1.0f, 50.0f);
+	Result.RotationDegrees = FMath::Clamp(Model.RotationDegrees, -180.0f, 180.0f);
+	Result.ProjectionDistance = FMath::Clamp(Model.ProjectionDistance, 0.0f, 50.0f);
+	Result.Color = Model.Color;
+	Result.bUseTint = Model.bTintEnabled;
+	Result.Opacity = FMath::Clamp(Model.Opacity, 0.0f, 1.0f);
+	Result.bEnabled = Model.bEnabled && !Result.bRuntimeTextureMissing;
+	return Result;
+}
+
+bool UProjectTattooShopInputSubsystem::PopulateTextureIdentityFromCard(
+	const FProjectTattooShopCardData& Card,
+	FProjectTattooParameters& InOutParameters) const
+{
+	if (IsValid(Card.RuntimeTexture))
+	{
+		FString RuntimeFilePath;
+		if (!FindRuntimeTattooFileForTexture(Card.RuntimeTexture, RuntimeFilePath))
+		{
+			return false;
+		}
+		InOutParameters.TextureAssetPath.Reset();
+		InOutParameters.RuntimeTextureId = FPaths::GetCleanFilename(RuntimeFilePath);
+		InOutParameters.bRuntimeTextureMissing = false;
+		return true;
+	}
+	if (!Card.ThumbnailTexture.IsNull())
+	{
+		const FSoftObjectPath TexturePath = Card.ThumbnailTexture.ToSoftObjectPath();
+		if (!TexturePath.IsValid() || !TexturePath.ToString().StartsWith(TEXT("/Game/")))
+		{
+			return false;
+		}
+		InOutParameters.TextureAssetPath = TexturePath;
+		InOutParameters.RuntimeTextureId.Reset();
+		InOutParameters.bRuntimeTextureMissing = false;
+		return true;
+	}
+	return false;
+}
+
+void UProjectTattooShopInputSubsystem::ShowProjectTattooEditor(
+	const FGuid& TattooId,
+	const FName SourceEntryId)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	APlayerController* PlayerController = TrackedPlayerController.Get();
+	if (!State || !PlayerController || !TattooId.IsValid())
+	{
+		return;
+	}
+	if (!State->IsTransactionActive(TattooId) && !BeginEditTattoo(TattooId))
+	{
+		return;
+	}
+	const FProjectTattooRecord* Record = State->FindRecord(TattooId);
+	UProjectTattooShopEditorWidget* Editor = EnsureProjectTattooEditorWidget(PlayerController);
+	if (!Record || !Editor)
+	{
+		CancelTattoo(TattooId);
+		return;
+	}
+	ActiveManualTattooId = TattooId;
+	ActiveManualTattooSourceEntryId = SourceEntryId;
+	BindProjectTattooShopUI();
+	Editor->ApplyEditorModel(MakeEditorModel(*Record, SourceEntryId));
+	Editor->SetVisibility(ESlateVisibility::Visible);
+	if (IsValid(TattooAssetPreviewHostPanel))
+	{
+		MountWidgetInHostedPanel(Editor, TattooAssetPreviewHostPanel, true);
+		TrackedAssetPreviewWidget = Editor;
+	}
+	else
+	{
+		Editor->AddToViewport(ProjectTattooShopInputPrivate::WidgetZOrder + 2);
+		TrackedAssetPreviewWidget = Editor;
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HideProjectTattooEditor()
+{
+	if (IsValid(TrackedProjectTattooEditorWidget))
+	{
+		TrackedProjectTattooEditorWidget->SetVisibility(ESlateVisibility::Collapsed);
+		TrackedProjectTattooEditorWidget->RemoveFromParent();
+	}
+	if (UProjectTattooShopLibraryWidget* Catalog = TrackedProjectTattooCatalogWidget.Get())
+	{
+		Catalog->SetVisibility(ESlateVisibility::Visible);
+		if (IsValid(TattooAssetPreviewHostPanel))
+		{
+			MountWidgetInHostedPanel(Catalog, TattooAssetPreviewHostPanel, true);
+		}
+		else if (!bTattooShopHostedInPanel)
+		{
+			Catalog->AddToViewport(ProjectTattooShopInputPrivate::WidgetZOrder + 1);
+		}
+		TrackedAssetPreviewWidget = Catalog;
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooSelectionChanged(
+	FProjectTattooShopCardData CardData)
+{
+	if (UProjectTattooShopLibraryWidget* Management = TrackedProjectTattooLibraryWidget.Get())
+	{
+		const FProjectTattooShopCardData Current = Management->GetSelectedEntry();
+		const bool bSameSelection = Management->HasSelection()
+			&& Current.EntryId == CardData.EntryId
+			&& Current.TattooId == CardData.TattooId
+			&& Current.Kind == CardData.Kind;
+		if (!bSameSelection)
+		{
+			Management->SetSelectedEntry(CardData);
+		}
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooAddRequested(
+	FProjectTattooShopCardData CardData)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State || CardData.Kind != EProjectTattooShopCardKind::Catalog)
+	{
+		return;
+	}
+	FProjectTattooParameters Parameters = State->GetDefaultTattooParameters();
+	if (!PopulateTextureIdentityFromCard(CardData, Parameters))
+	{
+		return;
+	}
+	const FGuid TattooId = BeginCreateTattoo(Parameters);
+	if (TattooId.IsValid())
+	{
+		ShowProjectTattooEditor(TattooId, CardData.EntryId);
+		RefreshProjectTattooShopUI();
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooEditRequested(const FGuid TattooId)
+{
+	ShowProjectTattooEditor(TattooId);
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooRemoveRequested(const FGuid TattooId)
+{
+	DeleteTattoo(TattooId);
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooUploadRequested()
+{
+	RequestUploadRuntimeTattooTexture();
+	RefreshProjectTattooShopUI();
+}
+
+bool UProjectTattooShopInputSubsystem::IsRuntimeTextureInUse(
+	const FProjectTattooShopCardData& Card) const
+{
+	if (!IsValid(Card.RuntimeTexture))
+	{
+		return false;
+	}
+	FString RuntimeFilePath;
+	if (!FindRuntimeTattooFileForTexture(Card.RuntimeTexture, RuntimeFilePath))
+	{
+		return false;
+	}
+	const FString RuntimeTextureId = FPaths::GetCleanFilename(RuntimeFilePath);
+	const UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	if (!State)
+	{
+		return false;
+	}
+	return State->GetRecords().ContainsByPredicate([&RuntimeTextureId](const FProjectTattooRecord& Record)
+	{
+		return Record.Parameters.RuntimeTextureId.Equals(RuntimeTextureId, ESearchCase::IgnoreCase);
+	});
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooDeleteSourceRequested(
+	FProjectTattooShopCardData CardData)
+{
+	UProjectTattooShopLibraryWidget* Management = TrackedProjectTattooLibraryWidget.Get();
+	if (!IsValid(CardData.RuntimeTexture))
+	{
+		if (Management) Management->SetStatusText(FText::FromString(TEXT("Only uploaded PNG files can be deleted.")));
+		return;
+	}
+	if (IsRuntimeTextureInUse(CardData))
+	{
+		if (Management) Management->SetStatusText(FText::FromString(TEXT("This PNG is used by an applied tattoo and cannot be deleted.")));
+		return;
+	}
+	if (DeleteTattooTexture(CardData.RuntimeTexture, CardData.DisplayName.ToString()))
+	{
+		if (Management) Management->SetStatusText(FText::FromString(TEXT("Uploaded PNG deleted.")));
+		RefreshProjectTattooShopUI();
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooPreviewChanged(
+	FProjectTattooShopEditorModel EditorModel)
+{
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	FProjectTattooRecord Record;
+	if (!State || !State->GetTattooRecord(EditorModel.TattooId, Record))
+	{
+		return;
+	}
+	PreviewTattoo(EditorModel.TattooId, ApplyEditorModelToParameters(EditorModel, Record.Parameters));
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooAcceptRequested(const FGuid TattooId)
+{
+	if (CommitTattoo(TattooId))
+	{
+		HideProjectTattooEditor();
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleProjectTattooCancelRequested(const FGuid TattooId)
+{
+	if (CancelTattoo(TattooId))
+	{
+		HideProjectTattooEditor();
+	}
+}
+
+void UProjectTattooShopInputSubsystem::RequestManualTattooSynchronization(const bool bImmediate)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	if (!bImmediate)
+	{
+		bManualTattooPreviewPending = true;
+		const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+		const float Delay = Settings ? FMath::Clamp(Settings->PreviewDebounceSeconds, 0.0f, 0.25f) : 0.05f;
+		if (Delay > KINDA_SMALL_NUMBER)
+		{
+			World->GetTimerManager().SetTimer(
+				ManualTattooPreviewTimerHandle,
+				this,
+				&ThisClass::FlushManualTattooPreview,
+				Delay,
+				false);
+			return;
+		}
+	}
+	World->GetTimerManager().ClearTimer(ManualTattooPreviewTimerHandle);
+	FlushManualTattooPreview();
+}
+
+void UProjectTattooShopInputSubsystem::FlushManualTattooPreview()
+{
+	bManualTattooPreviewPending = false;
+	APawn* Pawn = TrackedPlayerPawn.Get();
+	UProjectTattooShopStateSubsystem* State = ResolveTattooState();
+	UWorld* World = GetWorld();
+	UProjectDefaultTattooSkinnedDecalSubsystem* TattooSubsystem =
+		World ? World->GetSubsystem<UProjectDefaultTattooSkinnedDecalSubsystem>() : nullptr;
+	if (!CanUseTattooShopPawn(Pawn) || !State || !TattooSubsystem)
+	{
+		return;
+	}
+
+	TArray<FProjectTattooRecord> EffectiveRecords = State->GetRecords();
+	TMap<FGuid, UTexture2D*> TextureByTattooId;
+	for (FProjectTattooRecord& Record : EffectiveRecords)
+	{
+		bool bMissingRuntimeTexture = false;
+		UTexture2D* Texture = Cast<UTexture2D>(ResolvePersistedTattooTexture(Record.Parameters, bMissingRuntimeTexture));
+		if (bMissingRuntimeTexture || !Texture)
+		{
+			Record.Parameters.bEnabled = false;
+			Record.Parameters.bRuntimeTextureMissing = !Record.Parameters.RuntimeTextureId.IsEmpty();
+			continue;
+		}
+		TextureByTattooId.Add(Record.TattooId, Texture);
+	}
+	TattooSubsystem->SynchronizeManualTattoos(Pawn, EffectiveRecords, TextureByTattooId);
+	LastSkinnedTattooSynchronizedPawn = Pawn;
+}
+
+void UProjectTattooShopInputSubsystem::RemoveLegacyTattooRuntimeArtifacts(APawn* Pawn)
+{
+	if (!Pawn)
+	{
+		return;
+	}
+	ClearMirroredTattooOverlay();
+	const bool bHasTrackedLegacyRuntime = !ManualTattooComponents.IsEmpty()
+		|| !ManualTattooMIDs.IsEmpty()
+		|| IsValid(RuntimeTattooBaseComponent)
+		|| IsValid(RuntimeTattooMID)
+		|| IsValid(RuntimeTattooCustomizationWidget);
+	bool bHasLegacyPawnArrayEntries = false;
+	if (FArrayProperty* ExistingArrayProperty = FindFProperty<FArrayProperty>(
+		Pawn->GetClass(), ProjectTattooShopInputPrivate::TattooBaseComponentsPropertyName))
+	{
+		if (FObjectPropertyBase* ExistingInnerProperty = CastField<FObjectPropertyBase>(ExistingArrayProperty->Inner))
+		{
+			void* ExistingArrayAddress = ExistingArrayProperty->ContainerPtrToValuePtr<void>(Pawn);
+			FScriptArrayHelper ExistingArrayHelper(ExistingArrayProperty, ExistingArrayAddress);
+			for (int32 Index = 0; Index < ExistingArrayHelper.Num(); ++Index)
+			{
+				USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>(
+					ExistingInnerProperty->GetObjectPropertyValue(ExistingArrayHelper.GetRawPtr(Index)));
+				if (IsValid(Component)
+					&& (Component->GetName().Contains(TEXT("TattooBase"), ESearchCase::IgnoreCase)
+						|| Component->GetName().StartsWith(TEXT("ProjectManualTattoo_"))
+						|| Component->ComponentTags.Contains(ProjectTattooShopInputPrivate::ManualTattooComponentTag)))
+				{
+					bHasLegacyPawnArrayEntries = true;
+					break;
+				}
+			}
+		}
+	}
+	if (!bHasTrackedLegacyRuntime && !bHasLegacyPawnArrayEntries)
+	{
+		return;
+	}
+	TSet<USkeletalMeshComponent*> EmptyTattooSet;
+	USkeletalMeshComponent* TargetSkin = ResolveVisibleSkinComponent(Pawn, EmptyTattooSet);
+	if (FArrayProperty* ArrayProperty = FindFProperty<FArrayProperty>(
+		Pawn->GetClass(), ProjectTattooShopInputPrivate::TattooBaseComponentsPropertyName))
+	{
+		if (FObjectPropertyBase* InnerProperty = CastField<FObjectPropertyBase>(ArrayProperty->Inner))
+		{
+			void* ArrayAddress = ArrayProperty->ContainerPtrToValuePtr<void>(Pawn);
+			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddress);
+			for (int32 Index = ArrayHelper.Num() - 1; Index >= 0; --Index)
+			{
+				USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>(
+					InnerProperty->GetObjectPropertyValue(ArrayHelper.GetRawPtr(Index)));
+				const bool bLegacyTattooFollower = IsValid(Component)
+					&& (Component->GetName().Contains(TEXT("TattooBase"), ESearchCase::IgnoreCase)
+						|| Component->GetName().StartsWith(TEXT("ProjectManualTattoo_"))
+						|| Component->ComponentTags.Contains(ProjectTattooShopInputPrivate::ManualTattooComponentTag));
+				if (bLegacyTattooFollower && Component != TargetSkin)
+				{
+					Component->SetOverlayMaterial(nullptr);
+					Component->SetHiddenInGame(true, true);
+					Component->SetVisibility(false, true);
+					Component->DestroyComponent();
+					ArrayHelper.RemoveValues(Index, 1);
+				}
+			}
+		}
+	}
+
+	TInlineComponentArray<USkeletalMeshComponent*> Components(Pawn);
+	for (USkeletalMeshComponent* Component : Components)
+	{
+		if (!IsValid(Component) || Component == TargetSkin)
+		{
+			continue;
+		}
+		const bool bLegacyTattooFollower =
+			Component->ComponentTags.Contains(ProjectTattooShopInputPrivate::ManualTattooComponentTag)
+			|| Component->GetName().StartsWith(TEXT("ProjectManualTattoo_"))
+			|| Component->GetName().Contains(TEXT("TattooBase"), ESearchCase::IgnoreCase);
+		if (bLegacyTattooFollower)
+		{
+			Component->SetOverlayMaterial(nullptr);
+			Component->SetHiddenInGame(true, true);
+			Component->SetVisibility(false, true);
+			Component->DestroyComponent();
+		}
+	}
+	ManualTattooComponents.Reset();
+	ManualTattooMIDs.Reset();
+	ManualTattooEditSnapshots.Reset();
+	ManualTattooPreviewParameters.Reset();
+	ManualTattooLayerOrders.Reset();
+	RuntimeTattooMID = nullptr;
+	RuntimeTattooBaseComponent = nullptr;
+	RuntimeTattooCustomizationWidget = nullptr;
+
+	if (FObjectPropertyBase* MaterialProperty = FindFProperty<FObjectPropertyBase>(
+		Pawn->GetClass(), ProjectTattooShopInputPrivate::NewDynamicMaterialPropertyName))
+	{
+		if (UMaterialInterface* Material = Cast<UMaterialInterface>(MaterialProperty->GetObjectPropertyValue_InContainer(Pawn)))
+		{
+			if (Material->GetPathName().Contains(TEXT("/Game/TattooShop/Materials/")))
+			{
+				MaterialProperty->SetObjectPropertyValue_InContainer(Pawn, nullptr);
+			}
+		}
+	}
+}
+
+UMaterialInstanceDynamic* UProjectTattooShopInputSubsystem::BeginEdit(
+	UMaterialInstanceDynamic* CandidateMID,
+	const int32 LegacyTattooIndex,
+	FGuid& OutTattooId)
+{
+	OutTattooId.Invalidate();
+	if (UsesSkinnedDecalTattooShop())
+	{
+		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("[TattooShop] Legacy MID BeginEdit is disabled while SkinnedDecal TattooShop is active."));
+		return nullptr;
+	}
+	TryResolveRuntimeContext();
+	APawn* Pawn = TrackedPlayerPawn.Get();
+	if (!CanUseTattooShopPawn(Pawn))
+	{
+		return nullptr;
+	}
+
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UProjectTattooShopStateSubsystem* State = GameInstance ? GameInstance->GetSubsystem<UProjectTattooShopStateSubsystem>() : nullptr;
+	FGuid TattooId;
+	// A valid persisted index is an explicit edit request.  A new tattoo must
+	// never fall back to ActiveManualTattooId: that would turn its Add action
+	// into an edit of the previous tattoo and make the previous layer disappear.
+	// While a new session is open, the widget is rebound to its native MID below,
+	// so FindTattooIdForMID is the only valid way to retain that in-progress
+	// session across ticks.
+	if (State && State->GetRecords().IsValidIndex(LegacyTattooIndex))
+	{
+		TattooId = State->GetRecords()[LegacyTattooIndex].TattooId;
+	}
+	if (!TattooId.IsValid())
+	{
+		TattooId = FindTattooIdForMID(CandidateMID);
+	}
+
+	if (!TattooId.IsValid())
+	{
+		TattooId = FGuid::NewGuid();
+	}
+
+	// Never construct one GUID from another MID.  Besides retaining stale
+	// preview parameters, a MID cannot safely be used as another MID's parent.
+	// Every tattoo starts at the canonical master and then receives only its own
+	// saved/default parameters.
+	UMaterialInterface* SourceMaterial = LoadObject<UMaterialInterface>(
+		nullptr,
+		ProjectTattooShopInputPrivate::TattooShopMaterialPath);
+	if (!SourceMaterial)
+	{
+		UE_LOG(LogProjectTattooShopInput, Error, TEXT("[TattooShop] Missing canonical tattoo material %s."), ProjectTattooShopInputPrivate::TattooShopMaterialPath);
+		return nullptr;
+	}
+	UMaterialInstanceDynamic* IsolatedMID = ManualTattooMIDs.FindRef(TattooId);
+	if (!IsolatedMID)
+	{
+		IsolatedMID = CreateIsolatedTattooMID(Pawn, SourceMaterial);
+		if (!IsolatedMID)
+		{
+			return nullptr;
+		}
+		bool bLoadedExistingRecord = false;
+		if (State)
+		{
+			if (const FProjectTattooRecord* ExistingRecord = State->FindRecord(TattooId))
+			{
+				bool bMissingRuntimeFile = false;
+				UTexture* ExistingTexture = ResolvePersistedTattooTexture(ExistingRecord->Parameters, bMissingRuntimeFile);
+				ApplyTattooParameters(IsolatedMID, ExistingRecord->Parameters, ExistingTexture);
+				ManualTattooLayerOrders.Add(TattooId, ExistingRecord->Parameters.LayerOrder);
+				bLoadedExistingRecord = true;
+			}
+		}
+		if (!bLoadedExistingRecord)
+		{
+			// BP_TSChar used to initialize these through its interface. Composition-
+			// based pawns do not implement that legacy event, so establish useful
+			// per-tattoo defaults natively before the widget reads its controls.
+			// Match WBP_TattooCustomization::ReceiveAssetForCustomization exactly.
+			// These are shader-space values; changing them to decal-space tuning made
+			// the same tattoo move and resize when Character Creation changed maps.
+			IsolatedMID->SetScalarParameterValue(ProjectTattooShopInputPrivate::ScaleParameterName, 0.1f);
+			IsolatedMID->SetScalarParameterValue(ProjectTattooShopInputPrivate::ScaleYParameterName, 0.1f);
+			IsolatedMID->SetScalarParameterValue(ProjectTattooShopInputPrivate::RotationParameterName, 0.0f);
+			IsolatedMID->SetScalarParameterValue(FName(TEXT("WorldPositionOffset")), 0.1f);
+			IsolatedMID->SetScalarParameterValue(FName(TEXT("DepthMin")), -200.0f);
+			IsolatedMID->SetScalarParameterValue(FName(TEXT("DepthMax")), 200.0f);
+			// M_TattooShop's disabled TintBaseColor branch returns the source RGB.
+			// Mask-style tattoo textures therefore render as their original black
+			// silhouette even when the color picker contains a non-black value. The
+			// enabled branch multiplies the tattoo mask by this MID's own Color, which
+			// both honours the picker and keeps every GUID isolated from its siblings.
+			IsolatedMID->SetScalarParameterValue(FName(TEXT("TintBaseColor")), 1.0f);
+			IsolatedMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::ColorParameterName, FLinearColor(1.0f, 0.539349f, 0.0f, 1.0f));
+			IsolatedMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::EmissiveColorParameterName, FLinearColor::White);
+			IsolatedMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::OffsetParameterName, FLinearColor(0.0f, 0.5f, 0.0f, 1.0f));
+			IsolatedMID->SetVectorParameterValue(FName(TEXT("ProjectionDirection")), FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
+
+			int32 NextLayerOrder = 0;
+			if (State)
+			{
+				for (const FProjectTattooRecord& ExistingRecord : State->GetRecords())
+				{
+					NextLayerOrder = FMath::Max(NextLayerOrder, ExistingRecord.Parameters.LayerOrder + 1);
+				}
+			}
+			ManualTattooLayerOrders.Add(TattooId, NextLayerOrder);
+		}
+		ManualTattooMIDs.Add(TattooId, IsolatedMID);
+	}
+	const bool bStartingEditSession = !ManualTattooEditSnapshots.Contains(TattooId);
+	if (bStartingEditSession)
+	{
+		const int32 LayerOrder = ManualTattooLayerOrders.FindRef(TattooId);
+		ManualTattooEditSnapshots.Add(TattooId, CaptureTattooParameters(IsolatedMID, LayerOrder));
+	}
+	ActiveManualTattooId = TattooId;
+	OutTattooId = TattooId;
+
+	if (UUserWidget* Widget = FindLiveTattooCustomizationWidget())
+	{
+		BindCustomizationWidgetToMID(Widget, IsolatedMID, bStartingEditSession);
+	}
+	return IsolatedMID;
+}
+
+bool UProjectTattooShopInputSubsystem::Preview(const FGuid& TattooId, const FProjectTattooParameters& Parameters)
+{
+	if (UsesSkinnedDecalTattooShop())
+	{
+		return PreviewTattoo(TattooId, Parameters);
+	}
+	UMaterialInstanceDynamic* MID = ManualTattooMIDs.FindRef(TattooId);
+	if (!MID)
+	{
+		return false;
+	}
+	bool bMissingRuntimeFile = false;
+	UTexture* Texture = ResolvePersistedTattooTexture(Parameters, bMissingRuntimeFile);
+	ApplyTattooParameters(MID, Parameters, Texture);
+	FProjectTattooParameters PreviewParameters = Parameters;
+	PreviewParameters.bEnabled = PreviewParameters.bEnabled && !bMissingRuntimeFile;
+	ManualTattooPreviewParameters.Add(TattooId, PreviewParameters);
+	ManualTattooLayerOrders.Add(TattooId, Parameters.LayerOrder);
+	RehydrateManualTattoos();
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::Commit(const FGuid& TattooId)
+{
+	if (UsesSkinnedDecalTattooShop())
+	{
+		return CommitTattoo(TattooId);
+	}
+	UMaterialInstanceDynamic* MID = ManualTattooMIDs.FindRef(TattooId);
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UProjectTattooShopStateSubsystem* State = GameInstance ? GameInstance->GetSubsystem<UProjectTattooShopStateSubsystem>() : nullptr;
+	if (!MID || !State)
+	{
+		return false;
+	}
+
+	FProjectTattooRecord Record;
+	Record.TattooId = TattooId;
+	Record.Parameters = CaptureTattooParameters(MID, ManualTattooLayerOrders.FindRef(TattooId));
+	Record.Parameters.bEnabled = Record.Parameters.TextureAssetPath.IsValid()
+		|| !Record.Parameters.RuntimeTextureId.IsEmpty();
+	if (!Record.Parameters.bEnabled)
+	{
+		return false;
+	}
+	State->UpsertRecord(Record, true);
+	ManualTattooPreviewParameters.Remove(TattooId);
+	ManualTattooEditSnapshots.Remove(TattooId);
+	RehydrateManualTattoos();
+	return true;
+}
+
+bool UProjectTattooShopInputSubsystem::Cancel(const FGuid& TattooId)
+{
+	if (UsesSkinnedDecalTattooShop())
+	{
+		return CancelTattoo(TattooId);
+	}
+	const FProjectTattooParameters* Snapshot = ManualTattooEditSnapshots.Find(TattooId);
+	if (!Snapshot)
+	{
+		return false;
+	}
+	const FProjectTattooParameters Restored = *Snapshot;
+	UMaterialInstanceDynamic* MID = ManualTattooMIDs.FindRef(TattooId);
+	bool bMissingRuntimeFile = false;
+	UTexture* Texture = ResolvePersistedTattooTexture(Restored, bMissingRuntimeFile);
+	ApplyTattooParameters(MID, Restored, Texture);
+	ManualTattooPreviewParameters.Remove(TattooId);
+	ManualTattooEditSnapshots.Remove(TattooId);
+	RehydrateManualTattoos();
+	return MID != nullptr;
+}
+
+bool UProjectTattooShopInputSubsystem::Delete(const FGuid& TattooId)
+{
+	if (UsesSkinnedDecalTattooShop())
+	{
+		return DeleteTattoo(TattooId);
+	}
+	if (USkeletalMeshComponent* Component = ManualTattooComponents.FindRef(TattooId))
+	{
+		Component->SetVisibility(false, true);
+		Component->DestroyComponent();
+	}
+	ManualTattooComponents.Remove(TattooId);
+	ManualTattooMIDs.Remove(TattooId);
+	ManualTattooEditSnapshots.Remove(TattooId);
+	ManualTattooPreviewParameters.Remove(TattooId);
+	ManualTattooLayerOrders.Remove(TattooId);
+	if (ActiveManualTattooId == TattooId)
+	{
+		ActiveManualTattooId.Invalidate();
+	}
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UProjectTattooShopStateSubsystem* State = GameInstance ? GameInstance->GetSubsystem<UProjectTattooShopStateSubsystem>() : nullptr;
+	const bool bRemoved = State ? State->RemoveRecord(TattooId, true) : false;
+	RehydrateManualTattoos();
+	return bRemoved;
 }
 
 UUserWidget* UProjectTattooShopInputSubsystem::GetTattooShopWidgetForAutomation() const
@@ -443,13 +1472,6 @@ bool UProjectTattooShopInputSubsystem::ApplyTattooTextureForAutomation(UTexture2
 		return false;
 	}
 
-	UMaterialInstanceDynamic* DynamicTattooMaterial = UMaterialInstanceDynamic::Create(TattooMaterial, Pawn);
-	if (!DynamicTattooMaterial)
-	{
-		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("ApplyTattooTextureForAutomation failed: could not create dynamic material."));
-		return false;
-	}
-
 	const float ManualScale = ProjectTattooShopInputPrivate::ReadFloatEnvironmentVariable(TEXT("PROJECT_MANUAL_TATTOO_SCALE"), 0.58f);
 	const float ManualScaleY = ProjectTattooShopInputPrivate::ReadFloatEnvironmentVariable(TEXT("PROJECT_MANUAL_TATTOO_SCALE_Y"), ManualScale);
 	const float ManualOffsetX = ProjectTattooShopInputPrivate::ReadFloatEnvironmentVariable(TEXT("PROJECT_MANUAL_TATTOO_OFFSET_X"), 0.0f);
@@ -459,115 +1481,41 @@ bool UProjectTattooShopInputSubsystem::ApplyTattooTextureForAutomation(UTexture2
 	const float ManualDepthMin = ProjectTattooShopInputPrivate::ReadFloatEnvironmentVariable(TEXT("PROJECT_MANUAL_TATTOO_DEPTH_MIN"), -4.0f);
 	const float ManualDepthMax = ProjectTattooShopInputPrivate::ReadFloatEnvironmentVariable(TEXT("PROJECT_MANUAL_TATTOO_DEPTH_MAX"), 4.0f);
 
-	DynamicTattooMaterial->SetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName, TattooTexture);
-	DynamicTattooMaterial->SetVectorParameterValue(ProjectTattooShopInputPrivate::ColorParameterName, FLinearColor::Black);
-	DynamicTattooMaterial->SetVectorParameterValue(ProjectTattooShopInputPrivate::EmissiveColorParameterName, FLinearColor::Black);
-	DynamicTattooMaterial->SetVectorParameterValue(ProjectTattooShopInputPrivate::OffsetParameterName, FLinearColor(ManualOffsetX, ManualOffsetY, ManualOffsetZ, 1.0f));
-	DynamicTattooMaterial->SetVectorParameterValue(FName(TEXT("ProjectionDirection")), FLinearColor(0.0f, 1.0f, 0.0f, -1.0f));
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("DepthMin")), ManualDepthMin);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("DepthMax")), ManualDepthMax);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("Scale")), ManualScale);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("ScaleY")), ManualScaleY);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("Rotation")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("EmissionStrength")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("Metallic")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("Roughness")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("Specular")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("UseT2T")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("TintBaseColor")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("UseBaseColorForEmissive")), 1.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("UseTexCoord")), 0.0f);
-	ProjectTattooShopInputPrivate::SetScalarIfPresent(DynamicTattooMaterial, FName(TEXT("WorldPositionOffset")), ManualWorldOffset);
-
-	if (FObjectPropertyBase* MaterialProperty = FindFProperty<FObjectPropertyBase>(
-		Pawn->GetClass(),
-		ProjectTattooShopInputPrivate::NewDynamicMaterialPropertyName))
+	FGuid AutomationTattooId;
+	UMaterialInstanceDynamic* IsolatedAutomationMID = BeginEdit(nullptr, INDEX_NONE, AutomationTattooId);
+	if (!IsolatedAutomationMID || !AutomationTattooId.IsValid())
 	{
-		if (!MaterialProperty->PropertyClass || DynamicTattooMaterial->IsA(MaterialProperty->PropertyClass))
-		{
-			MaterialProperty->SetObjectPropertyValue_InContainer(Pawn, DynamicTattooMaterial);
-		}
-	}
-
-	TArray<USkeletalMeshComponent*> TattooBaseComponents;
-	CollectTattooBaseComponents(Pawn, TattooBaseComponents);
-	TSet<USkeletalMeshComponent*> TattooBaseSet;
-	for (USkeletalMeshComponent* Component : TattooBaseComponents)
-	{
-		if (Component)
-		{
-			TattooBaseSet.Add(Component);
-		}
-	}
-	USkeletalMeshComponent* TargetSkin = ResolveVisibleSkinComponent(Pawn, TattooBaseSet);
-	if (TattooBaseComponents.IsEmpty() && !TargetSkin)
-	{
-		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("ApplyTattooTextureForAutomation failed: no tattoo base component or visible skin component was found on %s."), *GetNameSafe(Pawn));
+		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("ApplyTattooTextureForAutomation failed: isolated tattoo instance could not be created."));
 		return false;
 	}
-
-	if (TattooBaseComponents.IsEmpty() && TargetSkin)
-	{
-		USkeletalMeshComponent* TattooBaseComponent = AutomationTattooBaseComponent.Get();
-		if (!IsValid(TattooBaseComponent))
-		{
-			TattooBaseComponent = NewObject<USkeletalMeshComponent>(
-				Pawn,
-				USkeletalMeshComponent::StaticClass(),
-				TEXT("ProjectTattooShopAutomationTattooBase"));
-			if (TattooBaseComponent)
-			{
-				Pawn->AddInstanceComponent(TattooBaseComponent);
-				TattooBaseComponent->RegisterComponent();
-				AutomationTattooBaseComponent = TattooBaseComponent;
-			}
-		}
-
-		if (TattooBaseComponent)
-		{
-			TattooBaseComponent->SetSkeletalMeshAsset(TargetSkin->GetSkeletalMeshAsset());
-			TattooBaseComponent->AttachToComponent(TargetSkin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			TattooBaseComponent->SetRelativeLocation(FVector::ZeroVector);
-			TattooBaseComponent->SetRelativeRotation(FRotator::ZeroRotator);
-			TattooBaseComponent->SetRelativeScale3D(FVector(1.003f));
-			TattooBaseComponent->SetLeaderPoseComponent(TargetSkin);
-			TattooBaseComponent->TranslucencySortPriority = 10;
-			TattooBaseComponent->SetBoundsScale(1.1f);
-			TattooBaseComponents.Add(TattooBaseComponent);
-		}
-	}
-
-	int32 AppliedComponentCount = 0;
-	for (USkeletalMeshComponent* Component : TattooBaseComponents)
-	{
-		if (!Component)
-		{
-			continue;
-		}
-
-		Component->SetOverlayMaterial(DynamicTattooMaterial);
-		for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
-		{
-			Component->SetMaterial(MaterialIndex, DynamicTattooMaterial);
-		}
-		Component->SetHiddenInGame(false, true);
-		Component->SetVisibility(true, true);
-		Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		Component->SetGenerateOverlapEvents(false);
-		Component->SetCastShadow(false);
-		Component->MarkRenderStateDirty();
-		++AppliedComponentCount;
-	}
-
+	IsolatedAutomationMID->SetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName, TattooTexture);
+	IsolatedAutomationMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::ColorParameterName, FLinearColor(1.0f, 0.539349f, 0.0f, 1.0f));
+	IsolatedAutomationMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::EmissiveColorParameterName, FLinearColor::White);
+	IsolatedAutomationMID->SetVectorParameterValue(ProjectTattooShopInputPrivate::OffsetParameterName, FLinearColor(ManualOffsetX, ManualOffsetY, ManualOffsetZ, 1.0f));
+	IsolatedAutomationMID->SetVectorParameterValue(FName(TEXT("ProjectionDirection")), FLinearColor(0.0f, 1.0f, 0.0f, -1.0f));
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("DepthMin")), ManualDepthMin);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("DepthMax")), ManualDepthMax);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("Scale")), ManualScale);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("ScaleY")), ManualScaleY);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("Rotation")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("EmissionStrength")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("Metallic")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("Roughness")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("Specular")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("UseT2T")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("TintBaseColor")), 1.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("UseBaseColorForEmissive")), 1.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("UseTexCoord")), 0.0f);
+	ProjectTattooShopInputPrivate::SetScalarIfPresent(IsolatedAutomationMID, FName(TEXT("WorldPositionOffset")), ManualWorldOffset);
+	Commit(AutomationTattooId);
 	SynchronizeTattooOverlayToVisibleSkin();
 	UE_LOG(
 		LogProjectTattooShopInput,
 		Display,
-		TEXT("ApplyTattooTextureForAutomation applied %s to %d tattoo base component(s), target skin=%s."),
-		*TattooTexture->GetPathName(),
-		AppliedComponentCount,
-		*GetNameSafe(TargetSkin));
-	return AppliedComponentCount > 0 || TargetSkin != nullptr;
+		TEXT("ApplyTattooTextureForAutomation applied isolated tattoo %s (%s)."),
+		*AutomationTattooId.ToString(EGuidFormats::DigitsWithHyphens),
+		*TattooTexture->GetPathName());
+	return true;
 }
 
 bool UProjectTattooShopInputSubsystem::ApplyDefaultHeartTattooForAutomation()
@@ -689,10 +1637,12 @@ void UProjectTattooShopInputSubsystem::DetachFromTrackedPlayerController()
 	}
 
 	UnbindInputFromTrackedPlayerController();
+	ResetManualTattooRuntime();
 	TrackedPlayerController = nullptr;
 	TrackedPlayerPawn = nullptr;
 	TrackedTattooShopWidget = nullptr;
 	TrackedAssetPreviewWidget = nullptr;
+	bRuntimeTattooCardsInitialized = false;
 	TattooShopHostPanel = nullptr;
 	TattooAssetPreviewHostPanel = nullptr;
 	RuntimeTattooCustomizationWidget = nullptr;
@@ -737,14 +1687,25 @@ void UProjectTattooShopInputSubsystem::HandleTrackedPawnChanged(APawn* OldPawn, 
 		CloseTattooShop();
 	}
 
+	ResetManualTattooRuntime();
 	TrackedPlayerPawn = NewPawn;
-	TrackedTattooShopWidget = nullptr;
-	TrackedAssetPreviewWidget = nullptr;
+	if (!UsesSkinnedDecalTattooShop())
+	{
+		TrackedTattooShopWidget = nullptr;
+		TrackedAssetPreviewWidget = nullptr;
+	}
+	bRuntimeTattooCardsInitialized = false;
 	RuntimeTattooCustomizationWidget = nullptr;
 	RuntimeTattooMID = nullptr;
 	LastRuntimeTattooTexture = nullptr;
 	RuntimeTattooBaseComponent = nullptr;
 	ClearMirroredTattooOverlay();
+	if (UsesSkinnedDecalTattooShop())
+	{
+		LastSkinnedTattooSynchronizedPawn.Reset();
+		RemoveLegacyTattooRuntimeArtifacts(NewPawn);
+		RequestManualTattooSynchronization(true);
+	}
 }
 
 void UProjectTattooShopInputSubsystem::HandleTogglePressed()
@@ -786,6 +1747,10 @@ UUserWidget* UProjectTattooShopInputSubsystem::EnsureTattooShopWidget(APlayerCon
 	{
 		return nullptr;
 	}
+	if (UsesSkinnedDecalTattooShop())
+	{
+		return EnsureProjectTattooLibraryWidget(PlayerController);
+	}
 
 	if (TrackedTattooShopWidget && IsValid(TrackedTattooShopWidget))
 	{
@@ -826,6 +1791,103 @@ UUserWidget* UProjectTattooShopInputSubsystem::EnsureTattooShopWidget(APlayerCon
 	SetTattooShopWidgetOnPawn(Pawn, NewWidget);
 	TrackedTattooShopWidget = NewWidget;
 	return NewWidget;
+}
+
+UProjectTattooShopLibraryWidget* UProjectTattooShopInputSubsystem::EnsureProjectTattooLibraryWidget(
+	APlayerController* PlayerController)
+{
+	if (!PlayerController)
+	{
+		return nullptr;
+	}
+	if (IsValid(TrackedProjectTattooLibraryWidget))
+	{
+		return TrackedProjectTattooLibraryWidget;
+	}
+
+	const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+	FSoftClassPath ConfiguredClass;
+	if (Settings && !Settings->LibraryWidgetClass.IsNull())
+	{
+		ConfiguredClass = FSoftClassPath(Settings->LibraryWidgetClass.ToSoftObjectPath().ToString());
+	}
+	else
+	{
+		ConfiguredClass = FSoftClassPath(ProjectTattooShopInputPrivate::ProjectTattooLibraryWidgetPath);
+	}
+	const TSubclassOf<UProjectTattooShopLibraryWidget> WidgetClass =
+		ProjectWidgetClassResolver::ResolveWidgetClassWithPriority<UProjectTattooShopLibraryWidget>(
+			ConfiguredClass,
+			TEXT("ProjectTattooShopLibrary"),
+			TEXT("TattooShop"));
+	TrackedProjectTattooLibraryWidget = CreateWidget<UProjectTattooShopLibraryWidget>(
+		PlayerController,
+		WidgetClass ? WidgetClass.Get() : UProjectTattooShopLibraryWidget::StaticClass(),
+		TEXT("ProjectTattooLibraryManagement"));
+	if (TrackedProjectTattooLibraryWidget)
+	{
+		TrackedProjectTattooLibraryWidget->SetPresentationMode(EProjectTattooShopLibraryPresentationMode::Management);
+		TrackedTattooShopWidget = TrackedProjectTattooLibraryWidget;
+	}
+	return TrackedProjectTattooLibraryWidget;
+}
+
+UProjectTattooShopLibraryWidget* UProjectTattooShopInputSubsystem::EnsureProjectTattooCatalogWidget(
+	APlayerController* PlayerController)
+{
+	if (!PlayerController)
+	{
+		return nullptr;
+	}
+	if (IsValid(TrackedProjectTattooCatalogWidget))
+	{
+		return TrackedProjectTattooCatalogWidget;
+	}
+	UProjectTattooShopLibraryWidget* ManagementWidget = EnsureProjectTattooLibraryWidget(PlayerController);
+	UClass* WidgetClass = ManagementWidget ? ManagementWidget->GetClass() : UProjectTattooShopLibraryWidget::StaticClass();
+	TrackedProjectTattooCatalogWidget = CreateWidget<UProjectTattooShopLibraryWidget>(
+		PlayerController,
+		WidgetClass,
+		TEXT("ProjectTattooLibraryCatalog"));
+	if (TrackedProjectTattooCatalogWidget)
+	{
+		TrackedProjectTattooCatalogWidget->SetPresentationMode(EProjectTattooShopLibraryPresentationMode::Catalog);
+	}
+	return TrackedProjectTattooCatalogWidget;
+}
+
+UProjectTattooShopEditorWidget* UProjectTattooShopInputSubsystem::EnsureProjectTattooEditorWidget(
+	APlayerController* PlayerController)
+{
+	if (!PlayerController)
+	{
+		return nullptr;
+	}
+	if (IsValid(TrackedProjectTattooEditorWidget))
+	{
+		return TrackedProjectTattooEditorWidget;
+	}
+
+	const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+	FSoftClassPath ConfiguredClass;
+	if (Settings && !Settings->EditorWidgetClass.IsNull())
+	{
+		ConfiguredClass = FSoftClassPath(Settings->EditorWidgetClass.ToSoftObjectPath().ToString());
+	}
+	else
+	{
+		ConfiguredClass = FSoftClassPath(ProjectTattooShopInputPrivate::ProjectTattooEditorWidgetPath);
+	}
+	const TSubclassOf<UProjectTattooShopEditorWidget> WidgetClass =
+		ProjectWidgetClassResolver::ResolveWidgetClassWithPriority<UProjectTattooShopEditorWidget>(
+			ConfiguredClass,
+			TEXT("ProjectTattooEditor"),
+			TEXT("TattooShop"));
+	TrackedProjectTattooEditorWidget = CreateWidget<UProjectTattooShopEditorWidget>(
+		PlayerController,
+		WidgetClass ? WidgetClass.Get() : UProjectTattooShopEditorWidget::StaticClass(),
+		TEXT("ProjectTattooEditor"));
+	return TrackedProjectTattooEditorWidget;
 }
 
 UUserWidget* UProjectTattooShopInputSubsystem::GetTattooShopWidgetFromPawn(APawn* Pawn) const
@@ -990,6 +2052,7 @@ void UProjectTattooShopInputSubsystem::CaptureAssetPreviewWidget()
 	TrackedAssetPreviewWidget = PreviewWidget;
 	MountWidgetInHostedPanel(PreviewWidget, TattooAssetPreviewHostPanel, true);
 	NormalizeTattooCardGrid(PreviewWidget);
+	bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(PreviewWidget);
 	UE_LOG(
 		LogProjectTattooShopInput,
 		Log,
@@ -1093,6 +2156,605 @@ void UProjectTattooShopInputSubsystem::AddTattooBaseComponentToPawnArray(
 	InnerObjectProperty->SetObjectPropertyValue(ArrayHelper.GetRawPtr(NewIndex), Component);
 }
 
+void UProjectTattooShopInputSubsystem::ResetManualTattooRuntime()
+{
+	for (const TPair<FGuid, TObjectPtr<USkeletalMeshComponent>>& Pair : ManualTattooComponents)
+	{
+		if (USkeletalMeshComponent* Component = Pair.Value.Get())
+		{
+			Component->DestroyComponent();
+		}
+	}
+	ManualTattooComponents.Reset();
+	ManualTattooMIDs.Reset();
+	ManualTattooEditSnapshots.Reset();
+	ManualTattooPreviewParameters.Reset();
+	ManualTattooLayerOrders.Reset();
+	LastManualTattooTargetSkin = nullptr;
+	ActiveManualTattooId.Invalidate();
+}
+
+void UProjectTattooShopInputSubsystem::DisableLegacyTattooMeshComponents(APawn* Pawn)
+{
+	if (!Pawn)
+	{
+		return;
+	}
+
+	TInlineComponentArray<USkeletalMeshComponent*> Components(Pawn);
+	for (USkeletalMeshComponent* Component : Components)
+	{
+		if (!Component)
+		{
+			continue;
+		}
+
+		const bool bProjectManual = Component->ComponentTags.Contains(ProjectTattooShopInputPrivate::ManualTattooComponentTag)
+			|| Component->GetName().StartsWith(TEXT("ProjectManualTattoo_"));
+		if (bProjectManual)
+		{
+			Component->SetOverlayMaterial(nullptr);
+			Component->SetHiddenInGame(true, true);
+			Component->SetVisibility(false, true);
+			Component->DestroyComponent();
+		}
+	}
+	ManualTattooComponents.Reset();
+}
+
+UMaterialInstanceDynamic* UProjectTattooShopInputSubsystem::CreateIsolatedTattooMID(
+	APawn* Pawn,
+	UMaterialInterface* SourceMaterial) const
+{
+	if (!Pawn || !SourceMaterial)
+	{
+		return nullptr;
+	}
+
+	// UE does not permit a MID to be the parent of another MID.  The legacy
+	// TattooShop passes its current dynamic instance here, so unwrap only the
+	// dynamic part of the chain and copy its overrides after creation.
+	while (const UMaterialInstanceDynamic* DynamicSource = Cast<UMaterialInstanceDynamic>(SourceMaterial))
+	{
+		UMaterialInterface* StableParent = DynamicSource->Parent;
+		if (!StableParent || StableParent == SourceMaterial)
+		{
+			return nullptr;
+		}
+		SourceMaterial = StableParent;
+	}
+	return UMaterialInstanceDynamic::Create(SourceMaterial, Pawn);
+}
+
+USkeletalMeshComponent* UProjectTattooShopInputSubsystem::CreateManualTattooComponent(
+	APawn* Pawn,
+	USkeletalMeshComponent* TargetSkin,
+	const FGuid& TattooId)
+{
+	if (!Pawn || !TargetSkin || !TattooId.IsValid())
+	{
+		return nullptr;
+	}
+
+	const FName ComponentName(*FString::Printf(TEXT("ProjectManualTattoo_%s"), *TattooId.ToString(EGuidFormats::Digits)));
+	USkeletalMeshComponent* Component = NewObject<USkeletalMeshComponent>(Pawn, USkeletalMeshComponent::StaticClass(), ComponentName);
+	if (!Component)
+	{
+		return nullptr;
+	}
+
+	Pawn->AddInstanceComponent(Component);
+	Component->ComponentTags.AddUnique(ProjectTattooShopInputPrivate::ManualTattooComponentTag);
+	Component->SetSkeletalMeshAsset(TargetSkin->GetSkeletalMeshAsset());
+	Component->SetupAttachment(TargetSkin);
+	Component->RegisterComponent();
+	Component->AttachToComponent(TargetSkin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	Component->SetRelativeTransform(FTransform::Identity);
+	// Match BP_TSChar's SnapToTarget follower transform exactly. The tattoo
+	// material already supplies its own small world-position offset.
+	Component->SetRelativeScale3D(FVector::OneVector);
+	if (Component->GetSkeletalMeshAsset()
+		&& TargetSkin->GetSkeletalMeshAsset()
+		&& Component->GetSkeletalMeshAsset()->GetSkeleton() == TargetSkin->GetSkeletalMeshAsset()->GetSkeleton())
+	{
+		Component->SetLeaderPoseComponent(TargetSkin);
+	}
+	Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Component->SetGenerateOverlapEvents(false);
+	Component->SetCastShadow(false);
+	Component->SetBoundsScale(1.1f);
+	Component->TranslucencySortPriority = ManualTattooComponents.Num();
+	// TatBaseComp belongs to the vendor Blueprint pipeline.  Adding native
+	// layers to it lets its BPI events repaint every layer with the newest MID.
+	// Native GUID layers are deliberately kept outside that collection.
+	return Component;
+}
+
+bool UProjectTattooShopInputSubsystem::ConfigureManualTattooMaterials(
+	USkeletalMeshComponent* Component,
+	UMaterialInstanceDynamic* TattooMID) const
+{
+	if (!Component || !TattooMID)
+	{
+		return false;
+	}
+
+	// BP_TSChar's ForceUseOverlaySlot contract keeps the full duplicate mesh
+	// invisible with M_Translucent and renders the tattoo MID only through the
+	// overlay pass. Assigning M_TattooShop to every skin/eye/mouth slot paints
+	// every UV island and produces the large coloured body patches.
+	UMaterialInterface* TransparentBase = LoadObject<UMaterialInterface>(
+		nullptr,
+		ProjectTattooShopInputPrivate::TattooTransparentBaseMaterialPath);
+	if (!TransparentBase)
+	{
+		UE_LOG(
+			LogProjectTattooShopInput,
+			Error,
+			TEXT("[TattooShop] Cannot configure isolated tattoo component %s: missing transparent base %s."),
+			*GetNameSafe(Component),
+			ProjectTattooShopInputPrivate::TattooTransparentBaseMaterialPath);
+		Component->SetOverlayMaterial(nullptr);
+		Component->SetVisibility(false, true);
+		Component->SetHiddenInGame(true, true);
+		return false;
+	}
+
+	for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
+	{
+		Component->SetMaterial(MaterialIndex, TransparentBase);
+	}
+	Component->SetOverlayMaterial(TattooMID);
+	Component->MarkRenderStateDirty();
+	return true;
+}
+
+FGuid UProjectTattooShopInputSubsystem::FindTattooIdForMID(const UMaterialInstanceDynamic* MID) const
+{
+	if (!MID)
+	{
+		return FGuid();
+	}
+	for (const TPair<FGuid, TObjectPtr<UMaterialInstanceDynamic>>& Pair : ManualTattooMIDs)
+	{
+		if (Pair.Value == MID)
+		{
+			return Pair.Key;
+		}
+	}
+	return FGuid();
+}
+
+FGuid UProjectTattooShopInputSubsystem::FindTattooIdForComponent(const USkeletalMeshComponent* Component) const
+{
+	if (!Component)
+	{
+		return FGuid();
+	}
+	for (const TPair<FGuid, TObjectPtr<USkeletalMeshComponent>>& Pair : ManualTattooComponents)
+	{
+		if (Pair.Value == Component)
+		{
+			return Pair.Key;
+		}
+	}
+	return FGuid();
+}
+
+FProjectTattooParameters UProjectTattooShopInputSubsystem::CaptureTattooParameters(
+	UMaterialInstanceDynamic* MID,
+	const int32 LayerOrder) const
+{
+	FProjectTattooParameters Parameters;
+	Parameters.LayerOrder = LayerOrder;
+	if (!MID)
+	{
+		return Parameters;
+	}
+
+	for (const FName ParameterName : ProjectTattooShopInputPrivate::PersistedScalarParameterNames())
+	{
+		float Value = 0.0f;
+		if (MID->GetScalarParameterValue(FHashedMaterialParameterInfo(ParameterName), Value))
+		{
+			Parameters.ScalarParameters.Add(ParameterName, Value);
+		}
+	}
+	for (const FName ParameterName : ProjectTattooShopInputPrivate::PersistedVectorParameterNames())
+	{
+		FLinearColor Value = FLinearColor::White;
+		if (MID->GetVectorParameterValue(FHashedMaterialParameterInfo(ParameterName), Value))
+		{
+			Parameters.VectorParameters.Add(ParameterName, Value);
+		}
+	}
+
+	Parameters.Color = Parameters.VectorParameters.FindRef(ProjectTattooShopInputPrivate::ColorParameterName);
+	if (!Parameters.VectorParameters.Contains(ProjectTattooShopInputPrivate::ColorParameterName))
+	{
+		Parameters.Color = FLinearColor::White;
+	}
+	Parameters.Opacity = Parameters.ScalarParameters.Contains(ProjectTattooShopInputPrivate::OpacityParameterName)
+		? FMath::Clamp(Parameters.ScalarParameters.FindRef(ProjectTattooShopInputPrivate::OpacityParameterName), 0.0f, 1.0f)
+		: 1.0f;
+	const float CapturedScaleX = Parameters.ScalarParameters.Contains(ProjectTattooShopInputPrivate::ScaleParameterName)
+		? Parameters.ScalarParameters.FindRef(ProjectTattooShopInputPrivate::ScaleParameterName)
+		: 1.0f;
+	const float CapturedScaleY = Parameters.ScalarParameters.Contains(ProjectTattooShopInputPrivate::ScaleYParameterName)
+		? Parameters.ScalarParameters.FindRef(ProjectTattooShopInputPrivate::ScaleYParameterName)
+		: CapturedScaleX;
+	Parameters.Scale = FVector2D(
+		FMath::IsNearlyZero(CapturedScaleX) ? 1.0f : CapturedScaleX,
+		FMath::IsNearlyZero(CapturedScaleY) ? 1.0f : CapturedScaleY);
+	Parameters.Offset = Parameters.VectorParameters.Contains(ProjectTattooShopInputPrivate::OffsetParameterName)
+		? Parameters.VectorParameters.FindRef(ProjectTattooShopInputPrivate::OffsetParameterName)
+		: FLinearColor(0.0f, 0.5f, 0.0f, 1.0f);
+	Parameters.Rotation = Parameters.ScalarParameters.Contains(ProjectTattooShopInputPrivate::RotationParameterName)
+		? Parameters.ScalarParameters.FindRef(ProjectTattooShopInputPrivate::RotationParameterName)
+		: 0.0f;
+
+	if (UTexture* Texture = MID->K2_GetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName))
+	{
+		const FString TexturePath = Texture->GetPathName();
+		if (TexturePath.StartsWith(TEXT("/Game/")))
+		{
+			Parameters.TextureAssetPath = FSoftObjectPath(TexturePath);
+		}
+		else
+		{
+			FString RuntimeFile;
+			if (FindRuntimeTattooFileForTexture(Cast<UTexture2D>(Texture), RuntimeFile))
+			{
+				Parameters.RuntimeTextureId = FPaths::GetCleanFilename(RuntimeFile);
+			}
+		}
+	}
+	return Parameters;
+}
+
+void UProjectTattooShopInputSubsystem::ApplyTattooParameters(
+	UMaterialInstanceDynamic* MID,
+	const FProjectTattooParameters& Parameters,
+	UTexture* ResolvedTexture) const
+{
+	if (!MID)
+	{
+		return;
+	}
+	if (ResolvedTexture)
+	{
+		MID->SetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName, ResolvedTexture);
+	}
+	for (const TPair<FName, float>& Pair : Parameters.ScalarParameters)
+	{
+		MID->SetScalarParameterValue(Pair.Key, Pair.Value);
+	}
+	for (const TPair<FName, FLinearColor>& Pair : Parameters.VectorParameters)
+	{
+		MID->SetVectorParameterValue(Pair.Key, Pair.Value);
+	}
+	MID->SetVectorParameterValue(ProjectTattooShopInputPrivate::ColorParameterName, Parameters.Color);
+	MID->SetScalarParameterValue(ProjectTattooShopInputPrivate::OpacityParameterName, Parameters.Opacity);
+	MID->SetScalarParameterValue(ProjectTattooShopInputPrivate::ScaleParameterName, Parameters.Scale.X);
+	MID->SetScalarParameterValue(ProjectTattooShopInputPrivate::ScaleYParameterName, Parameters.Scale.Y);
+	MID->SetVectorParameterValue(ProjectTattooShopInputPrivate::OffsetParameterName, Parameters.Offset);
+	MID->SetScalarParameterValue(ProjectTattooShopInputPrivate::RotationParameterName, Parameters.Rotation);
+}
+
+UTexture* UProjectTattooShopInputSubsystem::ResolvePersistedTattooTexture(
+	const FProjectTattooParameters& Parameters,
+	bool& bOutMissingRuntimeFile)
+{
+	bOutMissingRuntimeFile = false;
+	if (Parameters.TextureAssetPath.IsValid())
+	{
+		return Cast<UTexture>(Parameters.TextureAssetPath.TryLoad());
+	}
+	if (Parameters.RuntimeTextureId.IsEmpty())
+	{
+		return nullptr;
+	}
+
+	// Never accept a persisted directory traversal or absolute path.
+	const FString SafeId = FPaths::GetCleanFilename(Parameters.RuntimeTextureId);
+	if (SafeId != Parameters.RuntimeTextureId)
+	{
+		bOutMissingRuntimeFile = true;
+		return nullptr;
+	}
+	const FString FilePath = FPaths::Combine(GetRuntimeTattooTextureDirectory(), SafeId);
+	if (!IFileManager::Get().FileExists(*FilePath))
+	{
+		bOutMissingRuntimeFile = true;
+		UE_LOG(LogProjectTattooShopInput, Warning, TEXT("[TattooShop] Disabled only tattoo with missing runtime texture %s."), *SafeId);
+		return nullptr;
+	}
+	if (TObjectPtr<UTexture2D>* Cached = RuntimeTattooTextureCache.Find(NormalizeTattooFilePath(FilePath)))
+	{
+		return Cached->Get();
+	}
+	UTexture2D* Loaded = LoadPngTextureFromFile(FilePath, FString::Printf(TEXT("RuntimeTattoo_%s"), *FPaths::GetBaseFilename(SafeId)));
+	if (Loaded)
+	{
+		RuntimeTattooTextureCache.Add(NormalizeTattooFilePath(FilePath), Loaded);
+	}
+	else
+	{
+		bOutMissingRuntimeFile = true;
+	}
+	return Loaded;
+}
+
+void UProjectTattooShopInputSubsystem::BindCustomizationWidgetToMID(
+	UUserWidget* Widget,
+	UMaterialInstanceDynamic* MID,
+	const bool bSetPreEditSnapshot)
+{
+	if (!Widget || !MID)
+	{
+		return;
+	}
+	ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(Widget, ProjectTattooShopInputPrivate::SelectedMIDPropertyName, MID, false);
+	ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(Widget, ProjectTattooShopInputPrivate::TargetMIDPropertyName, MID, false);
+	// WBP_TattooCustomization was authored to call BP_TSChar BPI events.  The
+	// project adapter captures selection and control values directly, so leaving
+	// this child bound to the pawn would create a second legacy MID in parallel.
+	// The parent previewer is also cleared by CaptureAssetPreviewWidget.
+	ProjectTattooShopInputPrivate::ClearObjectPropertyWhenCompatible(Widget, ProjectTattooShopInputPrivate::ActorRefPropertyName);
+	if (bSetPreEditSnapshot)
+	{
+		UMaterialInstanceDynamic* SnapshotMID = CreateIsolatedTattooMID(TrackedPlayerPawn.Get(), MID);
+		if (SnapshotMID)
+		{
+			SnapshotMID->CopyInterpParameters(MID);
+			ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(Widget, ProjectTattooShopInputPrivate::PreEditMIDPropertyName, SnapshotMID, false);
+		}
+	}
+}
+
+bool UProjectTattooShopInputSubsystem::InvokeCustomizationMaterialEvent(
+	UUserWidget* Widget,
+	const FName EventName,
+	UMaterialInstanceDynamic* MID) const
+{
+	if (!IsValid(Widget) || !IsValid(MID))
+	{
+		return false;
+	}
+
+	UFunction* Function = Widget->FindFunction(EventName);
+	if (!Function || Function->ParmsSize <= 0)
+	{
+		return false;
+	}
+
+	TArray<uint8> Parameters;
+	Parameters.SetNumZeroed(Function->ParmsSize);
+	bool bAssignedMaterial = false;
+	for (TFieldIterator<FObjectPropertyBase> It(Function); It; ++It)
+	{
+		FObjectPropertyBase* Property = *It;
+		if (!Property || !Property->HasAnyPropertyFlags(CPF_Parm) || Property->HasAnyPropertyFlags(CPF_ReturnParm))
+		{
+			continue;
+		}
+		if (!Property->PropertyClass || MID->IsA(Property->PropertyClass))
+		{
+			Property->SetObjectPropertyValue_InContainer(Parameters.GetData(), MID);
+			bAssignedMaterial = true;
+			break;
+		}
+	}
+	if (!bAssignedMaterial)
+	{
+		return false;
+	}
+
+	Widget->ProcessEvent(Function, Parameters.GetData());
+	return true;
+}
+
+void UProjectTattooShopInputSubsystem::BindTattooCustomizationRuntimeButtons(UUserWidget* AssetPreviewWidget)
+{
+	// Accept/Cancel are owned by WBP_AssetPreviewer, not by its nested
+	// WBP_TattooCustomization controls. Binding the child silently missed the
+	// actual click, leaving ActiveManualTattooId alive after Accept. The next
+	// Add then reused the first tattoo's MID. Bind the preview owner first and
+	// retain the child fallback for older TattooShop layouts.
+	UUserWidget* ButtonOwner = IsValid(AssetPreviewWidget)
+		? AssetPreviewWidget
+		: FindLiveTattooCustomizationWidget();
+	if (!IsValid(ButtonOwner) || !ButtonOwner->WidgetTree)
+	{
+		return;
+	}
+
+	auto BindButton = [ButtonOwner, this](const FName ButtonName, const bool bAccept)
+	{
+		UButton* Button = Cast<UButton>(ButtonOwner->WidgetTree->FindWidget(ButtonName));
+		if (!Button)
+		{
+			return;
+		}
+		if (bAccept)
+		{
+			Button->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleTattooCustomizationAcceptClicked);
+		}
+		else
+		{
+			Button->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleTattooCustomizationCancelClicked);
+		}
+	};
+	BindButton(ProjectTattooShopInputPrivate::AcceptButtonName, true);
+	BindButton(ProjectTattooShopInputPrivate::CancelButtonName, false);
+}
+
+void UProjectTattooShopInputSubsystem::HandleTattooCustomizationAcceptClicked()
+{
+	if (ActiveManualTattooId.IsValid())
+	{
+		const FGuid TattooId = ActiveManualTattooId;
+		if (Commit(TattooId))
+		{
+			ActiveManualTattooId.Invalidate();
+			RuntimeTattooMID = nullptr;
+		}
+	}
+}
+
+void UProjectTattooShopInputSubsystem::HandleTattooCustomizationCancelClicked()
+{
+	if (ActiveManualTattooId.IsValid())
+	{
+		const FGuid TattooId = ActiveManualTattooId;
+		if (Cancel(TattooId))
+		{
+			ActiveManualTattooId.Invalidate();
+			RuntimeTattooMID = nullptr;
+		}
+	}
+}
+
+void UProjectTattooShopInputSubsystem::RehydrateManualTattoos()
+{
+	APawn* Pawn = TrackedPlayerPawn.Get();
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	UProjectTattooShopStateSubsystem* State = GameInstance ? GameInstance->GetSubsystem<UProjectTattooShopStateSubsystem>() : nullptr;
+	if (!CanUseTattooShopPawn(Pawn) || !State)
+	{
+		return;
+	}
+	if (UsesSkinnedDecalTattooShop())
+	{
+		RequestManualTattooSynchronization(true);
+		return;
+	}
+
+	TArray<FProjectTattooRecord> EffectiveRecords = State->GetRecords();
+	for (const TPair<FGuid, FProjectTattooParameters>& PreviewPair : ManualTattooPreviewParameters)
+	{
+		FProjectTattooRecord* Existing = EffectiveRecords.FindByPredicate([&PreviewPair](const FProjectTattooRecord& Record)
+		{
+			return Record.TattooId == PreviewPair.Key;
+		});
+		if (!Existing)
+		{
+			Existing = &EffectiveRecords.AddDefaulted_GetRef();
+			Existing->TattooId = PreviewPair.Key;
+		}
+		Existing->Parameters = PreviewPair.Value;
+	}
+
+	TSet<USkeletalMeshComponent*> TattooBaseSet;
+	for (const TPair<FGuid, TObjectPtr<USkeletalMeshComponent>>& Pair : ManualTattooComponents)
+	{
+		if (IsValid(Pair.Value))
+		{
+			TattooBaseSet.Add(Pair.Value);
+		}
+	}
+	USkeletalMeshComponent* TargetSkin = ResolveVisibleSkinComponent(Pawn, TattooBaseSet);
+	if (!IsValid(TargetSkin))
+	{
+		return;
+	}
+	if (!EffectiveRecords.IsEmpty() || !ManualTattooPreviewParameters.IsEmpty())
+	{
+		// Do this before native layers are refreshed.  It removes only legacy
+		// tattoo followers, never the visible body or automatic SkinnedDecal.
+		SuppressLegacyTattooBaseComponents(Pawn, TargetSkin);
+	}
+
+	// Manual TattooShop tattoos use their original tri-planar material on one
+	// transparent leader-pose mesh per GUID. This keeps the shader's position,
+	// scale and rotation identical on HUB, StorySelection and every other map.
+	// SkinnedDecal remains exclusively responsible for the automatic tattoo.
+	TSet<FGuid> DesiredTattooIds;
+	for (FProjectTattooRecord& Record : EffectiveRecords)
+	{
+		if (!Record.TattooId.IsValid())
+		{
+			continue;
+		}
+		bool bMissingRuntimeFile = false;
+		UTexture* Texture = ResolvePersistedTattooTexture(Record.Parameters, bMissingRuntimeFile);
+		if (bMissingRuntimeFile || !Texture)
+		{
+			Record.Parameters.bEnabled = false;
+			continue;
+		}
+		if (!Record.Parameters.bEnabled)
+		{
+			continue;
+		}
+
+		UMaterialInstanceDynamic* MID = ManualTattooMIDs.FindRef(Record.TattooId);
+		if (!IsValid(MID))
+		{
+			UMaterialInterface* MasterMaterial = LoadObject<UMaterialInterface>(
+				nullptr,
+				ProjectTattooShopInputPrivate::TattooShopMaterialPath);
+			MID = CreateIsolatedTattooMID(Pawn, MasterMaterial);
+			if (!IsValid(MID))
+			{
+				continue;
+			}
+			ManualTattooMIDs.Add(Record.TattooId, MID);
+		}
+		ApplyTattooParameters(MID, Record.Parameters, Texture);
+		ManualTattooLayerOrders.Add(Record.TattooId, Record.Parameters.LayerOrder);
+
+		USkeletalMeshComponent* Component = ManualTattooComponents.FindRef(Record.TattooId);
+		if (!IsValid(Component)
+			|| Component->GetOwner() != Pawn
+			|| Component->GetSkeletalMeshAsset() != TargetSkin->GetSkeletalMeshAsset())
+		{
+			if (IsValid(Component))
+			{
+				Component->DestroyComponent();
+			}
+			Component = CreateManualTattooComponent(Pawn, TargetSkin, Record.TattooId);
+			ManualTattooComponents.Add(Record.TattooId, Component);
+		}
+	if (ConfigureManualTattooMaterials(Component, MID))
+	{
+		Component->TranslucencySortPriority = Record.Parameters.LayerOrder;
+		Component->SetHiddenInGame(false, true);
+		Component->SetVisibility(true, true);
+		DesiredTattooIds.Add(Record.TattooId);
+		UE_LOG(
+			LogProjectTattooShopInput,
+			Verbose,
+			TEXT("[TattooShop] Rehydrated manual layer %s on %s using original material space scale=(%.3f,%.3f) offset=(%.3f,%.3f)."),
+			*Record.TattooId.ToString(EGuidFormats::Digits),
+			*GetNameSafe(TargetSkin),
+			Record.Parameters.Scale.X,
+			Record.Parameters.Scale.Y,
+			Record.Parameters.Offset.R,
+			Record.Parameters.Offset.G);
+	}
+	}
+
+	for (auto It = ManualTattooComponents.CreateIterator(); It; ++It)
+	{
+		if (!DesiredTattooIds.Contains(It.Key()))
+		{
+			if (USkeletalMeshComponent* Component = It.Value().Get())
+			{
+				Component->SetOverlayMaterial(nullptr);
+				Component->DestroyComponent();
+			}
+			It.RemoveCurrent();
+		}
+	}
+	LastManualTattooTargetSkin = TargetSkin;
+
+	if (UProjectDefaultTattooSkinnedDecalSubsystem* SkinnedDecalSubsystem = GetWorld()->GetSubsystem<UProjectDefaultTattooSkinnedDecalSubsystem>())
+	{
+		SkinnedDecalSubsystem->SynchronizeManualTattoos(Pawn, TArray<FProjectTattooRecord>(), TMap<FGuid, UTexture2D*>());
+	}
+}
+
 USkeletalMeshComponent* UProjectTattooShopInputSubsystem::EnsureRuntimeTattooBaseComponent(
 	APawn* Pawn,
 	UMaterialInstanceDynamic* DynamicMaterial,
@@ -1183,17 +2845,23 @@ void UProjectTattooShopInputSubsystem::RepairTattooCustomizationRuntime()
 		return;
 	}
 
+	UUserWidget* AssetPreviewWidget = TrackedAssetPreviewWidget.Get();
+	if (!IsValid(AssetPreviewWidget) || !AssetPreviewWidget->IsVisible())
+	{
+		return;
+	}
+
 	UUserWidget* CustomizationWidget = FindLiveTattooCustomizationWidget();
 	if (!CustomizationWidget)
 	{
 		return;
 	}
-
-	if (RuntimeTattooCustomizationWidget.Get() != CustomizationWidget)
+	// WBP_TattooCustomization exists in the nested preview tree even while the
+	// selection panel is collapsed. Do not manufacture an edit session until the
+	// user actually pressed Add/Edit and the panel became visible.
+	if (!CustomizationWidget->IsVisible())
 	{
-		RuntimeTattooCustomizationWidget = CustomizationWidget;
-		RuntimeTattooMID = nullptr;
-		LastRuntimeTattooTexture = nullptr;
+		return;
 	}
 
 	FObjectPropertyBase* SelectedMIDProperty = ProjectTattooShopInputPrivate::FindObjectPropertyByCompatibleName(
@@ -1204,30 +2872,51 @@ void UProjectTattooShopInputSubsystem::RepairTattooCustomizationRuntime()
 		return;
 	}
 
-	UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(
+	UMaterialInstanceDynamic* CandidateMID = Cast<UMaterialInstanceDynamic>(
 		SelectedMIDProperty->GetObjectPropertyValue_InContainer(CustomizationWidget));
-	bool bCreatedMID = false;
+	bool bEditMode = false;
+	if (FBoolProperty* EditModeProperty = CastField<FBoolProperty>(
+		ProjectTattooShopInputPrivate::FindPropertyByCompatibleName(
+			CustomizationWidget->GetClass(),
+			ProjectTattooShopInputPrivate::EditModePropertyName)))
+	{
+		bEditMode = EditModeProperty->GetPropertyValue_InContainer(CustomizationWidget);
+	}
+	int32 TargetTattooIndex = INDEX_NONE;
+	if (bEditMode)
+	{
+		if (FIntProperty* TargetIndexProperty = CastField<FIntProperty>(
+			ProjectTattooShopInputPrivate::FindPropertyByCompatibleName(
+				CustomizationWidget->GetClass(),
+				ProjectTattooShopInputPrivate::TargetTatIndexPropertyName)))
+		{
+			TargetTattooIndex = TargetIndexProperty->GetPropertyValue_InContainer(CustomizationWidget);
+		}
+	}
+	else if (!ActiveManualTattooId.IsValid())
+	{
+		// The reusable widget retains SelectedMID after Accept/Cancel. A fresh Add
+		// must create a fresh GUID/MID instead of editing the last accepted tattoo.
+		CandidateMID = nullptr;
+	}
+	const bool bWidgetChanged = RuntimeTattooCustomizationWidget.Get() != CustomizationWidget;
+	FGuid TattooId;
+	UMaterialInstanceDynamic* DynamicMaterial = BeginEdit(CandidateMID, TargetTattooIndex, TattooId);
 	if (!DynamicMaterial)
 	{
-		UMaterialInterface* MasterMaterial = LoadObject<UMaterialInterface>(
-			nullptr,
-			ProjectTattooShopInputPrivate::TattooShopMaterialPath);
-		DynamicMaterial = MasterMaterial ? UMaterialInstanceDynamic::Create(MasterMaterial, Pawn) : nullptr;
-		if (!DynamicMaterial)
-		{
-			return;
-		}
-		SelectedMIDProperty->SetObjectPropertyValue_InContainer(CustomizationWidget, DynamicMaterial);
-		bCreatedMID = true;
+		return;
 	}
+	const bool bMIDChanged = RuntimeTattooMID.Get() != DynamicMaterial;
+	RuntimeTattooCustomizationWidget = CustomizationWidget;
 	RuntimeTattooMID = DynamicMaterial;
-
-	ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(
-		CustomizationWidget, ProjectTattooShopInputPrivate::TargetMIDPropertyName, DynamicMaterial, true);
-	ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(
-		CustomizationWidget, ProjectTattooShopInputPrivate::PreEditMIDPropertyName, DynamicMaterial, true);
-	ProjectTattooShopInputPrivate::SetObjectPropertyWhenCompatible(
-		Pawn, ProjectTattooShopInputPrivate::NewDynamicMaterialPropertyName, DynamicMaterial, false);
+	if (bWidgetChanged || bMIDChanged)
+	{
+		BindCustomizationWidgetToMID(CustomizationWidget, DynamicMaterial, true);
+		InvokeCustomizationMaterialEvent(
+			CustomizationWidget,
+			ProjectTattooShopInputPrivate::GrabAndUpdateUIEventName,
+			DynamicMaterial);
+	}
 
 	UTexture* SelectedTexture = nullptr;
 	if (FObjectPropertyBase* TextureProperty = ProjectTattooShopInputPrivate::FindObjectPropertyByCompatibleName(
@@ -1236,58 +2925,37 @@ void UProjectTattooShopInputSubsystem::RepairTattooCustomizationRuntime()
 	{
 		SelectedTexture = Cast<UTexture>(TextureProperty->GetObjectPropertyValue_InContainer(CustomizationWidget));
 	}
-	const bool bTextureChanged = SelectedTexture && LastRuntimeTattooTexture.Get() != SelectedTexture;
-	if (bTextureChanged || (bCreatedMID && SelectedTexture))
+	// This write is intentionally per-MID.  A global "last selected texture"
+	// cache caused a second use of T_Bunny to skip the write entirely, leaving
+	// the new layer with the master's default (black) texture.
+	if (SelectedTexture
+		&& DynamicMaterial->K2_GetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName) != SelectedTexture)
 	{
 		DynamicMaterial->SetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName, SelectedTexture);
-		LastRuntimeTattooTexture = SelectedTexture;
 	}
-
-	bool bCreatedComponent = false;
-	USkeletalMeshComponent* TattooBaseComponent = EnsureRuntimeTattooBaseComponent(
-		Pawn,
+	LastRuntimeTattooTexture = SelectedTexture;
+	// On composition-based Player pawns the legacy BPI_UpdateParent call has no
+	// BP_TSChar implementation. Pull the live controls into this tattoo's MID so
+	// every slider/color picker still previews through the native GUID layer.
+	InvokeCustomizationMaterialEvent(
+		CustomizationWidget,
+		ProjectTattooShopInputPrivate::ApplyParamsEventName,
+		DynamicMaterial);
+	FProjectTattooParameters PreviewParameters = CaptureTattooParameters(
 		DynamicMaterial,
-		bCreatedComponent);
-	if (TattooBaseComponent)
+		ManualTattooLayerOrders.FindRef(TattooId));
+	PreviewParameters.bEnabled = SelectedTexture != nullptr
+		|| DynamicMaterial->K2_GetTextureParameterValue(ProjectTattooShopInputPrivate::TextureParameterName) != nullptr;
+	if (SelectedTexture)
 	{
-		const bool bHasSelectedTexture = SelectedTexture != nullptr;
-		TArray<USkeletalMeshComponent*> AllTattooBases;
-		CollectTattooBaseComponents(Pawn, AllTattooBases);
-		AllTattooBases.AddUnique(TattooBaseComponent);
-		for (USkeletalMeshComponent* Component : AllTattooBases)
+		const FString TexturePath = SelectedTexture->GetPathName();
+		if (TexturePath.StartsWith(TEXT("/Game/")))
 		{
-			if (!IsValid(Component))
-			{
-				continue;
-			}
-
-			if (bHasSelectedTexture)
-			{
-				Component->SetOverlayMaterial(DynamicMaterial);
-				for (int32 MaterialIndex = 0; MaterialIndex < Component->GetNumMaterials(); ++MaterialIndex)
-				{
-					Component->SetMaterial(MaterialIndex, DynamicMaterial);
-				}
-			}
-			Component->SetHiddenInGame(!bHasSelectedTexture, true);
-			Component->SetVisibility(bHasSelectedTexture, true);
-			Component->MarkRenderStateDirty();
+			PreviewParameters.TextureAssetPath = FSoftObjectPath(TexturePath);
 		}
 	}
-	if (bCreatedMID || bCreatedComponent || bTextureChanged)
-	{
-		UE_LOG(
-			LogProjectTattooShopInput,
-			Display,
-			TEXT("[TattooShop][RuntimeMID] Repaired=%s BaseCreated=%s Widget=%s MID=%s Base=%s Texture=%s Applied=%s"),
-			bCreatedMID ? TEXT("true") : TEXT("false"),
-			bCreatedComponent ? TEXT("true") : TEXT("false"),
-			*CustomizationWidget->GetPathName(),
-			*GetNameSafe(DynamicMaterial),
-			*GetNameSafe(TattooBaseComponent),
-			*GetPathNameSafe(SelectedTexture),
-			bTextureChanged ? TEXT("true") : TEXT("false"));
-	}
+	ManualTattooPreviewParameters.Add(TattooId, PreviewParameters);
+	RehydrateManualTattoos();
 }
 
 void UProjectTattooShopInputSubsystem::CollectTattooCardPanels(UUserWidget* Widget, TArray<UPanelWidget*>& OutPanels) const
@@ -1601,6 +3269,102 @@ FString UProjectTattooShopInputSubsystem::BuildTattooCardGridReport(UUserWidget*
 	return ReportString;
 }
 
+void UProjectTattooShopInputSubsystem::OpenSkinnedDecalTattooShop(
+	APlayerController* PlayerController,
+	APawn* Pawn)
+{
+	UProjectTattooShopLibraryWidget* ManagementWidget = EnsureProjectTattooLibraryWidget(PlayerController);
+	UProjectTattooShopLibraryWidget* CatalogWidget = EnsureProjectTattooCatalogWidget(PlayerController);
+	if (!ManagementWidget || !CatalogWidget)
+	{
+		UE_LOG(LogProjectTattooShopInput, Error, TEXT("[TattooShop] Project-owned Tattoo UI could not be created."));
+		return;
+	}
+
+	RemoveLegacyTattooRuntimeArtifacts(Pawn);
+	ManagementWidget->SetPresentationMode(EProjectTattooShopLibraryPresentationMode::Management);
+	CatalogWidget->SetPresentationMode(EProjectTattooShopLibraryPresentationMode::Catalog);
+	ManagementWidget->SetVisibility(ESlateVisibility::Visible);
+	CatalogWidget->SetVisibility(ESlateVisibility::Visible);
+	if (IsValid(TattooShopHostPanel))
+	{
+		MountWidgetInHostedPanel(ManagementWidget, TattooShopHostPanel, true);
+		bTattooShopHostedInPanel = true;
+	}
+	else
+	{
+		ManagementWidget->AddToViewport(ProjectTattooShopInputPrivate::WidgetZOrder);
+		bTattooShopHostedInPanel = false;
+	}
+	if (IsValid(TattooAssetPreviewHostPanel))
+	{
+		MountWidgetInHostedPanel(CatalogWidget, TattooAssetPreviewHostPanel, true);
+		TrackedAssetPreviewWidget = CatalogWidget;
+	}
+	else if (!bTattooShopHostedInPanel)
+	{
+		CatalogWidget->AddToViewport(ProjectTattooShopInputPrivate::WidgetZOrder + 1);
+		TrackedAssetPreviewWidget = CatalogWidget;
+	}
+
+	bTattooShopOpen = true;
+	BindProjectTattooShopUI();
+	RefreshProjectTattooShopUI();
+	RequestManualTattooSynchronization(true);
+	if (!bTattooShopHostedInPanel)
+	{
+		ApplyTattooShopInputMode(ManagementWidget);
+	}
+
+	UE_LOG(
+		LogProjectTattooShopInput,
+		Display,
+		TEXT("[TattooShop] SkinnedDecal Character Creation UI opened for %s. No BP_TSChar, M_TattooShop MID, or follower mesh was instantiated."),
+		*GetNameSafe(Pawn));
+}
+
+void UProjectTattooShopInputSubsystem::CloseSkinnedDecalTattooShop()
+{
+	if (ActiveManualTattooId.IsValid())
+	{
+		CancelTattoo(ActiveManualTattooId);
+	}
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ManualTattooPreviewTimerHandle);
+	}
+	bManualTattooPreviewPending = false;
+	DismissDeleteTattooTextureMenu();
+
+	for (UUserWidget* Widget : {
+		static_cast<UUserWidget*>(TrackedProjectTattooLibraryWidget.Get()),
+		static_cast<UUserWidget*>(TrackedProjectTattooCatalogWidget.Get()),
+		static_cast<UUserWidget*>(TrackedProjectTattooEditorWidget.Get()) })
+	{
+		if (IsValid(Widget))
+		{
+			Widget->SetVisibility(ESlateVisibility::Collapsed);
+			Widget->RemoveFromParent();
+		}
+	}
+	if (IsValid(TattooShopHostPanel))
+	{
+		TattooShopHostPanel->ClearChildren();
+	}
+	if (IsValid(TattooAssetPreviewHostPanel))
+	{
+		TattooAssetPreviewHostPanel->ClearChildren();
+	}
+	if (!bTattooShopHostedInPanel)
+	{
+		RestoreTattooShopInputMode();
+	}
+	TrackedAssetPreviewWidget = nullptr;
+	bTattooShopOpen = false;
+	bTattooShopHostedInPanel = false;
+	UE_LOG(LogProjectTattooShopInput, Log, TEXT("[TattooShop] SkinnedDecal Character Creation UI closed; active draft cancelled."));
+}
+
 void UProjectTattooShopInputSubsystem::OpenTattooShop()
 {
 	APlayerController* PlayerController = TrackedPlayerController.Get();
@@ -1639,6 +3403,12 @@ void UProjectTattooShopInputSubsystem::OpenTattooShop()
 		return;
 	}
 
+	if (UsesSkinnedDecalTattooShop())
+	{
+		OpenSkinnedDecalTattooShop(PlayerController, Pawn);
+		return;
+	}
+
 	Widget->RemoveFromParent();
 	UPanelWidget* HostPanel = TattooShopHostPanel.Get();
 	if (IsValid(HostPanel))
@@ -1658,18 +3428,43 @@ void UProjectTattooShopInputSubsystem::OpenTattooShop()
 	}
 
 	Widget->SetVisibility(ESlateVisibility::Visible);
+	bTattooShopOpen = true;
+	CaptureAssetPreviewWidget();
+	BindTattooShopRuntimeButtons(Widget);
 	NormalizeTattooCardGrid(Widget);
 	if (!bTattooShopHostedInPanel)
 	{
 		ApplyTattooShopInputMode(Widget);
 	}
+	bRuntimeTattooCardsInitialized = RefreshRuntimeTattooCards(ResolveTrackedAssetPreviewWidget());
 
-	bTattooShopOpen = true;
-	UE_LOG(LogProjectTattooShopInput, Log, TEXT("[TattooShop] Opened for pawn %s with widget %s."), *GetNameSafe(Pawn), *GetNameSafe(Widget));
+	UE_LOG(
+		LogProjectTattooShopInput,
+		Log,
+		TEXT("[TattooShop] Restored original WBP_TattooShop/WBP_AssetPreviewer presentation for pawn %s. Hosted=%d ShopHost=%s PreviewHost=%s."),
+		*GetNameSafe(Pawn),
+		bTattooShopHostedInPanel ? 1 : 0,
+		*GetNameSafe(TattooShopHostPanel.Get()),
+		*GetNameSafe(TattooAssetPreviewHostPanel.Get()));
 }
 
 void UProjectTattooShopInputSubsystem::CloseTattooShop()
 {
+	if (UsesSkinnedDecalTattooShop())
+	{
+		CloseSkinnedDecalTattooShop();
+		return;
+	}
+	if (ActiveManualTattooId.IsValid())
+	{
+		// Closing Character Creation is a cancel operation for an edit that has
+		// not reached the previewer's Accept button.  Auto-committing here made
+		// an accidental tab/Period close persist an incomplete or textureless
+		// tattoo.
+		Cancel(ActiveManualTattooId);
+		ActiveManualTattooId.Invalidate();
+	}
+	DismissDeleteTattooTextureMenu();
 	UUserWidget* Widget = TrackedTattooShopWidget.Get();
 	if (!Widget && TrackedPlayerPawn)
 	{
@@ -1690,7 +3485,6 @@ void UProjectTattooShopInputSubsystem::CloseTattooShop()
 		TrackedAssetPreviewWidget->RemoveFromParent();
 		TrackedAssetPreviewWidget = nullptr;
 	}
-
 	if (TattooAssetPreviewHostPanel)
 	{
 		TattooAssetPreviewHostPanel->ClearChildren();
@@ -1703,6 +3497,7 @@ void UProjectTattooShopInputSubsystem::CloseTattooShop()
 
 	bTattooShopOpen = false;
 	bTattooShopHostedInPanel = false;
+	bRuntimeTattooCardsInitialized = false;
 	UE_LOG(LogProjectTattooShopInput, Log, TEXT("[TattooShop] Closed."));
 }
 
@@ -1770,15 +3565,15 @@ void UProjectTattooShopInputSubsystem::SynchronizeTattooOverlayToVisibleSkin()
 
 	USkeletalMeshComponent* TargetSkin = ResolveVisibleSkinComponent(Pawn, TattooBaseSet);
 	UMaterialInterface* ActiveTattooMaterial = ResolveActiveTattooOverlayMaterial(Pawn, TattooBaseComponents);
-	bool bAutomaticSkinnedTattooActive = false;
-	if (UWorld* World = GetWorld())
+	// Native manual layers always take precedence over the legacy shared
+	// follower/overlay path.  This must happen before the "no active material"
+	// fallback below, otherwise it can re-enable a just-suppressed legacy mesh.
+	if (!ManualTattooComponents.IsEmpty())
 	{
-		if (const UProjectDefaultTattooSkinnedDecalSubsystem* SkinnedDecalSubsystem = World->GetSubsystem<UProjectDefaultTattooSkinnedDecalSubsystem>())
-		{
-			bAutomaticSkinnedTattooActive = SkinnedDecalSubsystem->HasActiveAutomaticTattoo(Pawn);
-		}
+		ClearMirroredTattooOverlay();
+		SuppressLegacyTattooBaseComponents(Pawn, TargetSkin);
+		return;
 	}
-
 	if (!TargetSkin || !ActiveTattooMaterial)
 	{
 		ClearMirroredTattooOverlay();
@@ -1797,21 +3592,6 @@ void UProjectTattooShopInputSubsystem::SynchronizeTattooOverlayToVisibleSkin()
 		PrepareTattooBaseComponentsForVisibleSkin(Pawn, TattooBaseComponents, TargetSkin);
 		MirroredOverlayTarget = nullptr;
 		LastMirroredOverlayMaterial = nullptr;
-		return;
-	}
-
-	const bool bActiveMaterialIsSkinnedDecal = ProjectTattooShopInputPrivate::IsSkinnedDecalOverlayMaterial(ActiveTattooMaterial);
-	if (bAutomaticSkinnedTattooActive && !bActiveMaterialIsSkinnedDecal)
-	{
-		PrepareTattooBaseComponentsForVisibleSkin(Pawn, TattooBaseComponents, TargetSkin);
-		MirroredOverlayTarget = nullptr;
-		LastMirroredOverlayMaterial = nullptr;
-		UE_LOG(
-			LogProjectTattooShopInput,
-			Verbose,
-			TEXT("[TattooShop] Preserved SkinnedDecal skin overlay while TattooShop material stays on tattoo base components. Pawn=%s Material=%s."),
-			*GetNameSafe(Pawn),
-			*GetNameSafe(ActiveTattooMaterial));
 		return;
 	}
 
@@ -1851,6 +3631,91 @@ void UProjectTattooShopInputSubsystem::CollectTattooBaseComponents(APawn* Pawn, 
 	if (USkeletalMeshComponent* RuntimeComponent = RuntimeTattooBaseComponent.Get())
 	{
 		OutComponents.AddUnique(RuntimeComponent);
+	}
+	for (const TPair<FGuid, TObjectPtr<USkeletalMeshComponent>>& Pair : ManualTattooComponents)
+	{
+		if (USkeletalMeshComponent* Component = Pair.Value.Get(); Component && Component->GetOwner() == Pawn)
+		{
+			OutComponents.AddUnique(Component);
+		}
+	}
+}
+
+void UProjectTattooShopInputSubsystem::IsolateLegacyTattooShopWidgets(UUserWidget* RootWidget) const
+{
+	if (!IsValid(RootWidget))
+	{
+		return;
+	}
+
+	// These widgets are retained as a selector/editor surface.  Do not allow a
+	// click inside them to invoke BP_TSChar's BPI add/register/remove flow; the
+	// native subsystem supplies the selected texture and owns Commit/Cancel.
+	ProjectTattooShopInputPrivate::ClearObjectPropertyWhenCompatible(
+		RootWidget,
+		ProjectTattooShopInputPrivate::ActorRefPropertyName);
+	if (UWidgetTree* Tree = RootWidget->WidgetTree)
+	{
+		// ForEachWidget already traverses the full nested tree.  Keep this a
+		// single pass; recursing into each UUserWidget could revisit the root.
+		Tree->ForEachWidget([](UWidget* ChildWidget)
+		{
+			if (UUserWidget* ChildUserWidget = Cast<UUserWidget>(ChildWidget))
+			{
+				ProjectTattooShopInputPrivate::ClearObjectPropertyWhenCompatible(
+					ChildUserWidget,
+					ProjectTattooShopInputPrivate::ActorRefPropertyName);
+			}
+		});
+	}
+}
+
+void UProjectTattooShopInputSubsystem::SuppressLegacyTattooBaseComponents(
+	APawn* Pawn,
+	USkeletalMeshComponent* TargetSkin) const
+{
+	if (!Pawn)
+	{
+		return;
+	}
+
+	const FArrayProperty* ArrayProperty = FindFProperty<FArrayProperty>(
+		Pawn->GetClass(),
+		ProjectTattooShopInputPrivate::TattooBaseComponentsPropertyName);
+	const FObjectPropertyBase* InnerObjectProperty = ArrayProperty
+		? CastField<FObjectPropertyBase>(ArrayProperty->Inner)
+		: nullptr;
+	if (!ArrayProperty || !InnerObjectProperty)
+	{
+		return;
+	}
+
+	void* ArrayAddress = ArrayProperty->ContainerPtrToValuePtr<void>(Pawn);
+	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddress);
+	for (int32 Index = ArrayHelper.Num() - 1; Index >= 0; --Index)
+	{
+		USkeletalMeshComponent* Component = Cast<USkeletalMeshComponent>(
+			InnerObjectProperty->GetObjectPropertyValue(ArrayHelper.GetRawPtr(Index)));
+		const bool bNativeManual = IsValid(Component)
+			&& Component->ComponentTags.Contains(ProjectTattooShopInputPrivate::ManualTattooComponentTag);
+		if (bNativeManual || Component == TargetSkin)
+		{
+			// A prior build registered native layers in TatBaseComp.  Remove that
+			// stale reference so future vendor BPI calls cannot reach their MIDs.
+			if (bNativeManual)
+			{
+				ArrayHelper.RemoveValues(Index, 1);
+			}
+			continue;
+		}
+
+		if (IsValid(Component))
+		{
+			Component->SetOverlayMaterial(nullptr);
+			Component->SetHiddenInGame(true, true);
+			Component->SetVisibility(false, true);
+			Component->MarkRenderStateDirty();
+		}
 	}
 }
 
