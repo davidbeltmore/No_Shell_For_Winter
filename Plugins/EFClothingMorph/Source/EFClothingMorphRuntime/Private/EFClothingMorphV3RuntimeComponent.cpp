@@ -1275,7 +1275,10 @@ void UEFClothingMorphV3RuntimeComponent::AcquireBodyCoverage(
 		return;
 	}
 
-	for (const FName SlotName : CatalogRow.GetEffectiveBodySectionsToExclude())
+	// Geometry exclusions belong only to the compiler/binding.  Runtime section
+	// visibility is controlled exclusively by the author-facing Body Hiding
+	// list, so an excluded auxiliary surface can remain visible in gameplay.
+	for (const FName SlotName : CatalogRow.GetBodySectionsToHideInGameplay())
 	{
 		if (SlotName.IsNone())
 		{

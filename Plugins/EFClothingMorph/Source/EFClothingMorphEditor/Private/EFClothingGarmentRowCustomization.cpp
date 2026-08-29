@@ -290,6 +290,15 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, AdditionalClearanceCm)));
 	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, ShellThicknessCm)));
 
+	IDetailGroup& FitSurfaceGroup = StructBuilder.AddGroup(
+		TEXT("FitSurface"),
+		LOCTEXT("FitSurfaceGroup", "Fit Surface"));
+	AddPropertyIfValid(
+		FitSurfaceGroup,
+		Child(GET_MEMBER_NAME_CHECKED(
+			FEFClothingGarmentRow,
+			ExcludedBodySurfaceMaterialSlots)));
+
 	IDetailGroup& AdvancedMeshEditGroup = StructBuilder.AddGroup(
 		TEXT("AdvancedMeshEdit"),
 		LOCTEXT("AdvancedMeshEditGroup", "Advanced Mesh Edit"));

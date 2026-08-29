@@ -90,29 +90,6 @@ namespace
 			|| Backend == EEFClothingSurfaceBackend::SurfaceWrapGPU;
 	}
 
-	bool HasCompleteHiddenSurfaceCoverage(
-		const FEFClothingGarmentRow& Row,
-		FName* OutMissingSlot = nullptr)
-	{
-		if (OutMissingSlot)
-		{
-			*OutMissingSlot = NAME_None;
-		}
-		const TArray<FName> HiddenSlots = CanonicalMaterialSlots(Row.HiddenBodyMaterialSlots);
-		for (const FName ExcludedSlot : CanonicalMaterialSlots(Row.ExcludedBodySurfaceMaterialSlots))
-		{
-			if (!HiddenSlots.Contains(ExcludedSlot))
-			{
-				if (OutMissingSlot)
-				{
-					*OutMissingSlot = ExcludedSlot;
-				}
-				return false;
-			}
-		}
-		return true;
-	}
-
 	bool HasCertifiedCatalogClearance(const FEFClothingGarmentRow& Row)
 	{
 		return FMath::IsFinite(Row.MinimumClearanceMultiplier)
@@ -1335,7 +1312,6 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 			GuardedSourcePaths.Add(Row->SourceGarment.ToSoftObjectPath());
 		}
 		const FName GarmentId = Row->GarmentId;
-		FName MissingHiddenSurfaceSlot = NAME_None;
 		if (GarmentId.IsNone() || GarmentIdIndex.Contains(GarmentId))
 		{
 			UE_LOG(
@@ -1351,7 +1327,6 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 		if (!Row->bEnabled || !IsImplementedBackend(Row->Backend)
 			|| !HasCertifiedCatalogClearance(*Row)
 			|| !HasValidSurfaceCatalogContract(*Row)
-			|| !HasCompleteHiddenSurfaceCoverage(*Row, &MissingHiddenSurfaceSlot)
 			|| Row->SourceGarment.IsNull() || Row->BodySurface.IsNull())
 		{
 			if (Row && Row->bEnabled && !IsImplementedBackend(Row->Backend))
@@ -1373,15 +1348,6 @@ void UEFClothingFitRuntimeComponent::BuildCatalogIndex()
 					Row->MinimumClearanceMultiplier,
 					EFClothingMorphV25::ClearanceTierMin,
 					EFClothingMorphV25::ClearanceTierMax);
-			}
-			else if (Row && Row->bEnabled && !MissingHiddenSurfaceSlot.IsNone())
-			{
-				UE_LOG(
-					LogEFClothingMorphV2,
-					Error,
-					TEXT("EFClothingMorphV2 Director garment %s excludes body surface slot %s without hiding it; entry rejected fail-closed."),
-					*GarmentId.ToString(),
-					*MissingHiddenSurfaceSlot.ToString());
 			}
 			else if (Row && Row->bEnabled && !HasValidSurfaceCatalogContract(*Row))
 			{
@@ -1457,8 +1423,7 @@ const FEFClothingGarmentRow* UEFClothingFitRuntimeComponent::FindCatalogRow(
 	const FEFClothingGarmentRow* Row = FindCatalogRowById(*GarmentId);
 	if (!Row || !Row->bEnabled || !IsImplementedBackend(Row->Backend)
 		|| !HasCertifiedCatalogClearance(*Row)
-		|| !HasValidSurfaceCatalogContract(*Row)
-		|| !HasCompleteHiddenSurfaceCoverage(*Row))
+		|| !HasValidSurfaceCatalogContract(*Row))
 	{
 		return nullptr;
 	}
@@ -1537,7 +1502,7 @@ void UEFClothingFitRuntimeComponent::AcquireBodyCoverage(
 		return;
 	}
 
-	for (FName SlotName : CatalogRow->HiddenBodyMaterialSlots)
+	for (FName SlotName : CatalogRow->GetBodySectionsToHideInGameplay())
 	{
 		if (SlotName.IsNone())
 		{
@@ -2237,20 +2202,10 @@ bool UEFClothingFitRuntimeComponent::TryApplyProfile(
 		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
 		return false;
 	}
-	FName MissingHiddenSurfaceSlot = NAME_None;
-	if (!HasCompleteHiddenSurfaceCoverage(*CatalogRow, &MissingHiddenSurfaceSlot))
-	{
-		LastStatus = FString::Printf(
-			TEXT("Rejected %s: excluded body surface slot %s is not hidden by the catalog row"),
-			*GetNameSafe(SourceMesh),
-			*MissingHiddenSurfaceSlot.ToString());
-		UE_LOG(LogEFClothingMorphV2, Warning, TEXT("%s"), *LastStatus);
-		return false;
-	}
 	if (IsValid(BodyComponent) && IsValid(BodyComponent->GetSkeletalMeshAsset()))
 	{
 		const TArray<FSkeletalMaterial>& BodyMaterials = BodyComponent->GetSkeletalMeshAsset()->GetMaterials();
-		for (const FName HiddenSlot : CanonicalMaterialSlots(CatalogRow->HiddenBodyMaterialSlots))
+		for (const FName HiddenSlot : CatalogRow->GetBodySectionsToHideInGameplay())
 		{
 			int32 MatchCount = 0;
 			for (const FSkeletalMaterial& Material : BodyMaterials)

@@ -63,6 +63,7 @@ foreach ($requiredToken in @(
         'SMOKE_EQUIP_UNEQUIP_CYCLES = 3',
         'MIN_SIMULTANEOUS_CLOTHES = 2',
         'retained_clothes',
+        'body_visibility_contract_snapshot',
         'PASS_ALL_ENABLED_VALID_CLOTHES_SIMULTANEOUS_READY',
         'PASS_EXACT_SOURCE_GARMENT_READY_NO_FITTED_NO_EF_AUTOFIT',
         'FAIL_WITH_DEBUG_SUMMARY',
@@ -453,6 +454,40 @@ try {
             ) {
                 throw "Certified V4 runtime checkpoint is not visible source-first Ready: $($runtimeRow.row_name)/$($checkpoint.checkpoint)"
             }
+        }
+
+        $bodyVisibilityChecks = @($runtimeRow.body_visibility_checks)
+        if ($bodyVisibilityChecks.Count -eq 0 -or @($bodyVisibilityChecks | Where-Object { [string]$_.status -ne 'PASS' }).Count -gt 0) {
+            throw "V4 body visibility contract did not pass for $($runtimeRow.row_name)."
+        }
+        foreach ($visibilityCheck in $bodyVisibilityChecks) {
+            foreach ($slot in @($visibilityCheck.slots)) {
+                $shownByEveryLod = @($slot.shown_by_lod | Where-Object { -not [bool]$_ }).Count -eq 0
+                if ([bool]$slot.expected_hidden) {
+                    if (@($slot.shown_by_lod | Where-Object { [bool]$_ }).Count -gt 0) {
+                        throw "Requested gameplay-hidden body slot remained visible for $($runtimeRow.row_name): $($slot.slot_name)"
+                    }
+                }
+                elseif (-not $shownByEveryLod) {
+                    throw "Body slot was hidden without a gameplay-hiding clothing owner for $($runtimeRow.row_name): $($slot.slot_name)"
+                }
+            }
+        }
+        $geometryOnlySlots = @(
+            $bodyVisibilityChecks |
+                ForEach-Object { @($_.slots) } |
+                Where-Object {
+                    -not [bool]$_.expected_hidden -and
+                    @($_.fit_exclusion_owners | Where-Object {
+                        [string]$_.clothing_name -eq [string]$runtimeRow.row_name
+                    }).Count -gt 0 -and
+                    @($_.shown_by_lod | Where-Object { -not [bool]$_ }).Count -eq 0
+                }
+        )
+        if (@($runtimeRow.body_sections_excluded_from_fit).Count -gt 0 -and
+            @($runtimeRow.body_sections_to_hide_in_gameplay).Count -eq 0 -and
+            $geometryOnlySlots.Count -eq 0) {
+            throw "Geometry-only fit exclusions were not proven visible for $($runtimeRow.row_name)."
         }
 
         $initial = $runtimeRow.offset_runtime_sequence.initial_before_overrides

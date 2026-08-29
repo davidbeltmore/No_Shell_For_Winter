@@ -452,19 +452,10 @@ namespace EFClothingFitCompilerPrivate
 		CanonicalizeMaterialSlotNames(OutExcludedBodySurfaceMaterialSlots);
 		CanonicalizeBoneBranchNames(OutExcludedBodyBoneBranches);
 		CanonicalizeMorphPrefixes(OutExcludedBodyMorphPrefixes);
-		TArray<FName> CanonicalHiddenBodyMaterialSlots = MatchedRow->HiddenBodyMaterialSlots;
-		CanonicalizeMaterialSlotNames(CanonicalHiddenBodyMaterialSlots);
-		for (const FName ExcludedSurfaceSlot : OutExcludedBodySurfaceMaterialSlots)
-		{
-			if (!CanonicalHiddenBodyMaterialSlots.Contains(ExcludedSurfaceSlot))
-			{
-				OutError = FString::Printf(
-					TEXT("Clothing Director garment %s excludes body surface slot %s from geometry fitting but does not hide that slot at runtime."),
-					*OutCatalogRowName.ToString(),
-					*ExcludedSurfaceSlot.ToString());
-				return false;
-			}
-		}
+		// Fit-surface exclusions and gameplay visibility are deliberately
+		// independent. A clothing row may keep a body section visible while
+		// omitting it from the solver's correspondence candidates; this avoids
+		// ambiguous anatomy affecting the fit without imposing a visual hide.
 		return true;
 	}
 
@@ -11847,15 +11838,43 @@ bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema4(
 	}
 
 	Director->Modify();
+	auto AppendUniqueValid = [](TArray<FName>& Destination, const TArray<FName>& Source)
+	{
+		for (const FName SlotName : Source)
+		{
+			if (!SlotName.IsNone())
+			{
+				Destination.AddUnique(SlotName);
+			}
+		}
+	};
 	for (FEFClothingGarmentRow& Garment : Director->Garments)
 	{
 		// Backend is an internal implementation detail in the V3 Director UI.
 		// Every enabled V3 row therefore selects the native-source surface guard
 		// explicitly instead of inheriting a serialized V2 fallback value.
 		Garment.Backend = EEFClothingSurfaceBackend::SurfaceWrapGPU;
-		Garment.BodySectionsToExclude = Garment.GetEffectiveBodySectionsToExclude();
+		// Older assets used one combined list for both runtime body hiding and
+		// compiler surface exclusion.  Preserve that old intent once while
+		// splitting it into the two independent V4 controls.
+		if (Garment.BodySectionsToExclude.IsEmpty())
+		{
+			AppendUniqueValid(Garment.BodySectionsToExclude, Garment.HiddenBodyMaterialSlots);
+		}
 		EFClothingFitCompilerPrivate::CanonicalizeMaterialSlotNames(
 			Garment.BodySectionsToExclude);
+
+		if (Garment.ExcludedBodySurfaceMaterialSlots.IsEmpty())
+		{
+			AppendUniqueValid(
+				Garment.ExcludedBodySurfaceMaterialSlots,
+				Garment.BodySectionsToExclude);
+			AppendUniqueValid(
+				Garment.ExcludedBodySurfaceMaterialSlots,
+				Garment.HiddenBodyMaterialSlots);
+		}
+		EFClothingFitCompilerPrivate::CanonicalizeMaterialSlotNames(
+			Garment.ExcludedBodySurfaceMaterialSlots);
 
 		// Schema <= 3 used this legacy switch as the authority for the runtime
 		// clearance. Preserve that explicit opt-out during the one-time migration.
@@ -11904,9 +11923,14 @@ bool UEFClothingFitCompilerLibrary::UpgradeDirectorIdentityToSchema5(
 	for (FEFClothingGarmentRow& Clothing : Director->Garments)
 	{
 		Clothing.Backend = EEFClothingSurfaceBackend::SurfaceWrapGPU;
-		Clothing.BodySectionsToExclude = Clothing.GetEffectiveBodySectionsToExclude();
+		// Schema-5 rows already expose BodySectionsToExclude as the author-facing
+		// runtime visibility list.  Do not repopulate it from legacy geometry or
+		// hide arrays here: doing so made a user's empty list appear to be ignored
+		// after Update This Clothing.
 		EFClothingFitCompilerPrivate::CanonicalizeMaterialSlotNames(
 			Clothing.BodySectionsToExclude);
+		EFClothingFitCompilerPrivate::CanonicalizeMaterialSlotNames(
+			Clothing.ExcludedBodySurfaceMaterialSlots);
 		Clothing.bCreateThicknessShell = false;
 		Clothing.bFailClosedOnMissingLOD = false;
 	}

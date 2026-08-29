@@ -102,7 +102,12 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Native Offset Settings", ShowOnlyInnerProperties, ToolTip = "Settings for an explicit Unreal mesh edit. Changing these values alone does nothing. Use Skin Gap or Surface Volume for immediate, non-destructive tuning."))
 	FEFClothingNativeUEOffsetSettings NativeUEOffset;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding", meta = (DisplayName = "Body Sections to Hide", ToolTip = "Body material-slot names hidden while this clothing is equipped. Use this for covered auxiliary anatomy. The body asset itself is not changed."))
+	/**
+	 * Visual-only coverage.  This field deliberately does not contribute to the
+	 * surface binding: an empty list means every body material section remains
+	 * visible while this clothing is equipped.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding", meta = (DisplayName = "Body Sections to Hide in Gameplay", ToolTip = "Only these body material slots are hidden while this clothing is equipped. Leave this list empty to show every body section. This does not change the fit geometry."))
 	TArray<FName> BodySectionsToExclude;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding", meta = (DisplayName = "Covered Body Areas", ToolTip = "Optional gameplay tags that describe which body areas this clothing covers. These tags do not change its shape."))
@@ -111,10 +116,19 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Notes", meta = (MultiLine = "true", DisplayName = "Notes", ToolTip = "Optional notes for this clothing. Notes do not affect fitting or gameplay."))
 	FText Notes;
 
+	/**
+	 * Geometry-only exclusion.  These slots are omitted from the body surface
+	 * used by the binding/compiler, but remain visible unless the separate
+	 * Body Sections to Hide in Gameplay list contains them.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fit Surface", meta = (DisplayName = "Body Sections Excluded from Fit", ToolTip = "Body material slots ignored by the fitting surface. This keeps difficult or auxiliary geometry out of the solver without hiding it in gameplay. Update This Clothing after changing this list."))
+	TArray<FName> ExcludedBodySurfaceMaterialSlots;
+
 	// ---------------------------------------------------------------------
 	// Legacy/internal serialized compatibility. These fields intentionally
-	// remain reflected for existing assets and current runtime/compiler code,
-	// but are not exposed in the V3 Director Details panel.
+	// remain reflected so old assets deserialize, but V4 visual coverage uses
+	// BodySectionsToExclude and geometry coverage uses
+	// ExcludedBodySurfaceMaterialSlots exclusively.
 	// ---------------------------------------------------------------------
 
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use GarmentId as the stable visible identity."))
@@ -125,9 +139,6 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 
 	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use BodySectionsToExclude."))
 	TArray<FName> HiddenBodyMaterialSlots;
-
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use BodySectionsToExclude."))
-	TArray<FName> ExcludedBodySurfaceMaterialSlots;
 
 	UPROPERTY()
 	TArray<FName> ExcludedBodyBoneBranches;
@@ -168,7 +179,25 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY()
 	bool bFailClosedOnMissingLOD = true;
 
-	/** Returns the V3 exclusion list plus any values serialized by older schemas. */
+	/** Returns the visual-only body sections that this clothing hides in gameplay. */
+	TArray<FName> GetBodySectionsToHideInGameplay() const
+	{
+		TArray<FName> Result;
+		for (const FName Value : BodySectionsToExclude)
+		{
+			if (!Value.IsNone())
+			{
+				Result.AddUnique(Value);
+			}
+		}
+		return Result;
+	}
+
+	/**
+	 * Returns the geometry-only body sections excluded from the fitting surface.
+	 * Visual hiding never participates here, so removing a slot from the Body
+	 * Hiding group cannot invalidate or alter a certified binding.
+	 */
 	TArray<FName> GetEffectiveBodySectionsToExclude() const
 	{
 		TArray<FName> Result;
@@ -182,8 +211,6 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 				}
 			}
 		};
-		AppendUniqueValid(BodySectionsToExclude);
-		AppendUniqueValid(HiddenBodyMaterialSlots);
 		AppendUniqueValid(ExcludedBodySurfaceMaterialSlots);
 		return Result;
 	}

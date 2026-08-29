@@ -22,7 +22,7 @@ public:
 	/** Internal generated registry path. Deliberately hidden from Project Settings. */
 	UPROPERTY(Config)
 	TSoftObjectPtr<UEFClothingFitRegistry> Registry = TSoftObjectPtr<UEFClothingFitRegistry>(
-		FSoftObjectPath(TEXT("/EFClothingMorph/_Internal/Compiled/V3/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
+		FSoftObjectPath(TEXT("/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry")));
 
 	/** Fixed public Director path. Hidden so the project cannot accidentally split its catalog. */
 	UPROPERTY(Config)

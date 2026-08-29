@@ -13,6 +13,7 @@ namespace EFClothingMorphDirectorPrivate
 		return FText::FromString(TEXT(
 			"Add one entry to Clothes for each clothing mesh and body mesh pair. Clothing Name is created automatically when both meshes are assigned and remains editable. "
 			"Skin Gap and Surface Volume update only that clothing at runtime. Several clothes can be active together, and an unfinished draft cannot disable ready clothes. "
+			"Body Sections to Hide in Gameplay controls visibility only; leave it empty to show every body section. Body Sections Excluded from Fit controls solver geometry only. "
 			"Advanced mesh edits are explicit Unreal Engine operations. Fit-data updates never edit the body, its skin weights, or the shared skeleton."));
 	}
 

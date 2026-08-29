@@ -177,6 +177,18 @@ def normalize_guid(value):
     return normalized if len(normalized) == 32 else ""
 
 
+def normalized_name_list(values):
+    """Return stable, non-empty reflected FName values without changing assets."""
+    names = []
+    for value in values or []:
+        name = str(value).strip()
+        if not name or name.lower() in {"none", "null"}:
+            continue
+        if name not in names:
+            names.append(name)
+    return sorted(names)
+
+
 def vector_length(value):
     return math.sqrt(float(value.x) ** 2 + float(value.y) ** 2 + float(value.z) ** 2)
 
@@ -439,6 +451,19 @@ def load_catalog_contract():
                 "authored_shell_thickness_cm": float(
                     get_property(row, "shell_thickness_cm", default=0.0) or 0.0
                 ),
+                # These are intentionally independent authoring controls:
+                # gameplay hiding changes body material visibility, while fit
+                # exclusion is compiler/binding geometry only.
+                "body_sections_to_hide_in_gameplay": normalized_name_list(
+                    get_property(row, "body_sections_to_exclude", default=[])
+                ),
+                "body_sections_excluded_from_fit": normalized_name_list(
+                    get_property(
+                        row,
+                        "excluded_body_surface_material_slots",
+                        default=[],
+                    )
+                ),
             }
         )
         seen_ids.add(garment_id)
@@ -453,6 +478,25 @@ def load_catalog_contract():
     require(
         len(bindings) == len(rows),
         f"V4 registry/valid-clothes count mismatch: valid={len(rows)} bindings={len(bindings)}",
+    )
+    # Exercise a geometry-only fit exclusion first, then a normal visual hider.
+    # This proves the former remains visible on its own and that a later
+    # independently equipped clothing row can claim the same slot. Plain rows
+    # follow; their position cannot mask either body-visibility contract.
+    def body_visibility_test_priority(row):
+        has_visual_hiding = bool(row["body_sections_to_hide_in_gameplay"])
+        has_fit_exclusions = bool(row["body_sections_excluded_from_fit"])
+        if has_fit_exclusions and not has_visual_hiding:
+            return 0
+        if has_visual_hiding:
+            return 1
+        return 2
+
+    rows.sort(
+        key=lambda row: (
+            body_visibility_test_priority(row),
+            row["row_name"].lower(),
+        )
     )
     STATE.rows = rows
     STATE.director = director
@@ -719,6 +763,9 @@ def validate_terminal_visible(checkpoint, expected_clearance=None, expected_infl
     snapshot["world_seconds"] = float(unreal.GameplayStatics.get_time_seconds(STATE.world))
     STATE.active_test["runtime_checks"].append(snapshot)
     validate_retained_clothes(checkpoint)
+    STATE.active_test["body_visibility_checks"].append(
+        body_visibility_contract_snapshot(checkpoint)
+    )
     return snapshot
 
 
@@ -1286,6 +1333,114 @@ def exact_visible_body(row):
     return candidates[0]
 
 
+def body_visibility_contract_snapshot(checkpoint):
+    """Verify the per-clothing body-visibility contract on every body LOD.
+
+    A row's Body Sections to Hide in Gameplay is the only visual owner. Its
+    Body Sections Excluded from Fit must never hide a material slot by itself.
+    Multiple equipped clothes compose as a per-body union of visual owners.
+    """
+    active_row = STATE.active_row
+    require(active_row is not None, f"No active clothing row for body visibility at {checkpoint}")
+    body = exact_visible_body(active_row)
+    body_path = mesh_path(body)
+
+    owners = []
+    if STATE.garment and object_is_valid(STATE.garment) and component_is_visible(STATE.garment):
+        owners.append(("active", active_row, STATE.garment))
+    for retained in STATE.retained_clothes:
+        component = retained["component"]
+        row = retained["row"]
+        if (
+            object_is_valid(component)
+            and component_is_visible(component)
+            and row["body"] == body_path
+        ):
+            owners.append(("retained", row, component))
+
+    require(owners, f"No visible clothing owners were available at {checkpoint}")
+    slot_names = normalized_name_list(call(body, "get_material_slot_names"))
+    require(slot_names, f"Body exposes no material slots at {checkpoint}: {body_path}")
+    lod_count = int(call(body, "get_num_lods"))
+    require(lod_count > 0, f"Body exposes no LODs at {checkpoint}: {body_path}")
+
+    visual_owners = {}
+    geometry_owners = {}
+    for owner_kind, row, component in owners:
+        owner = {
+            "kind": owner_kind,
+            "clothing_name": row["row_name"],
+            "component": object_path(component),
+        }
+        for slot_name in row["body_sections_to_hide_in_gameplay"]:
+            visual_owners.setdefault(slot_name, []).append(owner)
+        for slot_name in row["body_sections_excluded_from_fit"]:
+            geometry_owners.setdefault(slot_name, []).append(owner)
+
+    unknown_visual = sorted(set(visual_owners) - set(slot_names))
+    require(
+        not unknown_visual,
+        f"Body Sections to Hide in Gameplay does not exist on {body_path} at {checkpoint}: {unknown_visual}",
+    )
+    unknown_geometry = sorted(set(geometry_owners) - set(slot_names))
+    require(
+        not unknown_geometry,
+        f"Body Sections Excluded from Fit does not exist on {body_path} at {checkpoint}: {unknown_geometry}",
+    )
+
+    slots = []
+    for slot_name in slot_names:
+        material_index = int(call(body, "get_material_index", slot_name))
+        require(material_index >= 0, f"Unable to resolve material slot {slot_name} at {checkpoint}")
+        shown_by_lod = [
+            bool(call(body, "is_material_section_shown", material_index, lod_index))
+            for lod_index in range(lod_count)
+        ]
+        expected_hidden = slot_name in visual_owners
+        all_shown = all(shown_by_lod)
+        all_hidden = not any(shown_by_lod)
+        if expected_hidden:
+            require(
+                all_hidden,
+                f"Requested gameplay-hidden body slot remained visible at {checkpoint}: "
+                f"slot={slot_name} owners={visual_owners[slot_name]} shown={shown_by_lod}",
+            )
+        else:
+            require(
+                all_shown,
+                f"Body slot was hidden without a visible clothing owner at {checkpoint}: "
+                f"slot={slot_name} geometry_owners={geometry_owners.get(slot_name, [])} shown={shown_by_lod}",
+            )
+        slots.append(
+            {
+                "slot_name": slot_name,
+                "material_index": material_index,
+                "shown_by_lod": shown_by_lod,
+                "expected_hidden": expected_hidden,
+                "visual_owners": visual_owners.get(slot_name, []),
+                "fit_exclusion_owners": geometry_owners.get(slot_name, []),
+            }
+        )
+
+    return {
+        "status": "PASS",
+        "checkpoint": checkpoint,
+        "body": body_path,
+        "lod_count": lod_count,
+        "visible_clothing_owners": [
+            {
+                "kind": owner_kind,
+                "clothing_name": row["row_name"],
+                "component": object_path(component),
+                "body_sections_to_hide_in_gameplay": row["body_sections_to_hide_in_gameplay"],
+                "body_sections_excluded_from_fit": row["body_sections_excluded_from_fit"],
+            }
+            for owner_kind, row, component in owners
+        ],
+        "slots": slots,
+    }
+
+
 def resolve_runtime_context():
     STATE.world = EDITOR_LEVEL_LIBRARY.get_game_world()
     if not STATE.world:
@@ -1309,10 +1464,13 @@ def make_active_test(row):
         "binding": row["binding"],
         "authored_additional_clearance_cm": row["authored_additional_clearance_cm"],
         "authored_shell_thickness_cm": row["authored_shell_thickness_cm"],
+        "body_sections_to_hide_in_gameplay": row["body_sections_to_hide_in_gameplay"],
+        "body_sections_excluded_from_fit": row["body_sections_excluded_from_fit"],
         "status": "IN_PROGRESS",
         "acf_candidates": [],
         "acf_real_equip": {},
         "body_resolver": {},
+        "body_visibility_checks": [],
         "source_mesh_gate": {},
         "runtime_checks": [],
         "offset_runtime_sequence": {

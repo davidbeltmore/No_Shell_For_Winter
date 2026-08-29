@@ -24,6 +24,15 @@ An unfinished element is a draft. It cannot disable, remove or invalidate clothe
 
 Both values are per clothing entry and update at runtime. They do not require recompilation and cannot alter another equipped clothing component.
 
+## Body Visibility and Fit Surface
+
+These two controls are intentionally independent for every clothing entry:
+
+- **Body Sections to Hide in Gameplay** controls only the visible material slots on the body while that clothing is equipped. Leave it empty to show every body section for that clothing.
+- **Body Sections Excluded from Fit** removes difficult or auxiliary body surface from the fitting solver only. It does not hide the corresponding body material in gameplay. Press **Update This Clothing** after changing this list.
+
+When several clothes are equipped, gameplay hiding is reference-counted by visible clothing entries. A section stays hidden only while at least one equipped entry explicitly requests it. Removing a section from every equipped entry restores it normally.
+
 ## Advanced Mesh Edit
 
 The Native Offset and Create Shell controls are explicit Unreal Engine mesh edits. Changing their settings alone does nothing. These actions are optional and are not required for the V4 runtime constraint. After a deliberate topology edit, press **Update This Clothing** to rebuild only that entry's fit data.
@@ -40,8 +49,9 @@ The Native Offset and Create Shell controls are explicit Unreal Engine mesh edit
 
 - `UnderWearBra_Female`
 - `UnderWearPanty_Female`
+- `UnderWearBikini_Female`
 
-Both are certified against Female LOD0 and have been tested simultaneously through the real ACF pickup/equipment path. See `Docs/Migration/Evidence/EFClothingMorphV4_MultiClothing_20260828.md`.
+All three have independent compiler-28/schema-8 bindings against Female LOD0. Bikini is configured with `Genesis9_GP_Torso` excluded from fitting while leaving its gameplay body-visibility list empty.
 
 ## Tools
 
