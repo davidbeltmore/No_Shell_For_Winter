@@ -4,17 +4,47 @@ param(
     [string]$ToolName = 'list_toolsets',
     [string]$ArgumentsJson = '{}',
     [string]$Uri = 'http://127.0.0.1:8000/mcp',
+    [ValidateRange(1, 300)]
     [int]$TimeoutSec = 30,
     [switch]$Raw
 )
 
 $ErrorActionPreference = 'Stop'
+$deadlineClock = [Diagnostics.Stopwatch]::StartNew()
 Add-Type -AssemblyName System.Net.Http
 
 $handler = New-Object System.Net.Http.HttpClientHandler
 $handler.UseProxy = $false
 $client = New-Object System.Net.Http.HttpClient($handler)
-$client.Timeout = [TimeSpan]::FromSeconds($TimeoutSec)
+$client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+$deadlineCancellation = New-Object System.Threading.CancellationTokenSource
+$deadlineCancellation.CancelAfter([Math]::Max(
+    1, [int](($TimeoutSec * 1000.0) - $deadlineClock.Elapsed.TotalMilliseconds)
+))
+
+function Get-McpRemainingMilliseconds {
+    $remaining = ($TimeoutSec * 1000.0) - $deadlineClock.Elapsed.TotalMilliseconds
+    if ($remaining -le 0) {
+        $deadlineCancellation.Cancel()
+        throw "Unreal MCP exceeded its ${TimeoutSec}s end-to-end deadline."
+    }
+    return [Math]::Max(1, [int][Math]::Ceiling($remaining))
+}
+
+function Wait-McpTask {
+    param(
+        [Parameter(Mandatory)] [System.Threading.Tasks.Task]$Task,
+        [Parameter(Mandatory)] [string]$Operation
+    )
+    $remainingMs = Get-McpRemainingMilliseconds
+    if (-not $Task.Wait($remainingMs)) {
+        $deadlineCancellation.Cancel()
+        throw "Unreal MCP timed out during $Operation within its ${TimeoutSec}s end-to-end deadline."
+    }
+    # Recheck after completion: a late result cannot extend the shared deadline.
+    $null = Get-McpRemainingMilliseconds
+    return $Task.GetAwaiter().GetResult()
+}
 
 function Invoke-McpPost {
     param(
@@ -43,29 +73,24 @@ function Invoke-McpPost {
             'application/json'
         )
 
-        $response = $client.SendAsync(
+        $null = Get-McpRemainingMilliseconds
+        $sendTask = $client.SendAsync(
             $request,
-            [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead
-        ).GetAwaiter().GetResult()
+            [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead,
+            $deadlineCancellation.Token
+        )
+        $response = Wait-McpTask -Task $sendTask -Operation 'response headers'
         try {
             $mediaType = [string]$response.Content.Headers.ContentType.MediaType
             if ($mediaType -eq 'text/event-stream') {
-                $stream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+                $stream = Wait-McpTask -Task $response.Content.ReadAsStreamAsync() -Operation 'SSE stream'
                 $reader = New-Object System.IO.StreamReader($stream)
                 try {
                     $lines = New-Object System.Collections.Generic.List[string]
                     $receivedData = $false
-                    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-                    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSec) {
-                        $remainingMs = [Math]::Max(
-                            1,
-                            [int](($TimeoutSec - $stopwatch.Elapsed.TotalSeconds) * 1000)
-                        )
+                    while ($true) {
                         $readTask = $reader.ReadLineAsync()
-                        if (-not $readTask.Wait($remainingMs)) {
-                            throw 'Timed out waiting for the Unreal MCP SSE result.'
-                        }
-                        $line = $readTask.Result
+                        $line = Wait-McpTask -Task $readTask -Operation 'SSE event body'
                         if ($null -eq $line) {
                             break
                         }
@@ -88,7 +113,7 @@ function Invoke-McpPost {
                 }
             }
             else {
-                $responseBody = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+                $responseBody = Wait-McpTask -Task $response.Content.ReadAsStringAsync() -Operation 'JSON response body'
             }
             if (-not $response.IsSuccessStatusCode) {
                 throw "MCP HTTP $([int]$response.StatusCode): $responseBody"
@@ -164,13 +189,19 @@ try {
 
     $call = Invoke-McpPost -Body $callBody -SessionId $sessionId
     $payload = ConvertFrom-McpPayload -Content $call.Content
+    $null = Get-McpRemainingMilliseconds
     if ($Raw) {
         $payload | ConvertTo-Json -Depth 100
-        exit 0
     }
 
     if ($payload.error) {
         throw ($payload.error | ConvertTo-Json -Depth 20 -Compress)
+    }
+    if ($payload.result.isError -eq $true) {
+        throw ('Unreal MCP tool reported isError: ' + ($payload.result | ConvertTo-Json -Depth 20 -Compress))
+    }
+    if ($Raw) {
+        exit 0
     }
     $content = @($payload.result.content)
     foreach ($item in $content) {
@@ -183,6 +214,8 @@ try {
     }
 }
 finally {
+    $deadlineCancellation.Cancel()
     $client.Dispose()
     $handler.Dispose()
+    $deadlineCancellation.Dispose()
 }

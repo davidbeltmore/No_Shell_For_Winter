@@ -1,99 +1,130 @@
-# Calysto Dungeon Director V3 runtime contracts
+# Calysto authoring and runtime contracts
 
-V3 is the sole active authority. Phase 1 and Phase 2 receipts remain immutable
-historical evidence, but no pre-V3 DataTable, row struct, preset, alias, or
-fallback may participate in runtime generation.
+The complete V7 contract is the
+[master plan](../../../../Docs/Migration/Calysto_Dungeon_Director_V7.md).
+Read it in full for implementation. It describes required behavior, not a
+completion receipt. Use [operator-control.md](operator-control.md) for actual
+current controls and [validation-gates.md](validation-gates.md) for timed proof.
 
-## Protected vendor baseline
+## Authority
 
-- Brain: `/Game/Calysto/Dungeon/Blueprint/BP_MassiveDungeon`
-- Runtime graph: `/Game/Calysto/Dungeon/PCG/PCG_MassiveDungeonMaster`
-- Mesh source: `/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMesh`
-- Spawner source: `/Game/Calysto/Dungeon/Data/DataAsset/Spawner/DA_DemoSpawner`
-- Theme source: `/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_RoomTheme`
-- Map: `/Game/Procedural/Maps/DungeonGeneration`
-- Door: `/Script/EFProceduralACFURuntime.EFCalystoFloorDoor`
-- Population anchor: `/Script/EFProceduralPCGRuntime.EFCalystoPopulationAnchor`
+V7: `UEFCalystoDungeonDirectorAsset`, internal schema 7, asset
+`/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector`.
+Separate authored data, immutable compiled configuration, floor request, attempt,
+room/surface context, reserved manifest and realized result/diagnostics.
+Public runtime interfaces are stable and unversioned.
 
-The protected actor baseline is `DungeonSize=(30,30,1)`, candidate density
-`0.30`, side paths `0.50`, room sizes `4..8`, and one non-editor
-`GenerateOnDemand` PCG component using `PCG_MassiveDungeonMaster`. The editor
-PCG component is never seeded or generated at runtime.
+The 2026-09-05 preflight found the current V6 input:
+`/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV6Asset` and
+`/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy`.
+Check actual Config/loaded class again. Preserve it read-only for migration;
+never compile V7 through V6 or provide a runtime fallback. Existing native test
+success does not establish gameplay.
 
-## Policy authority
+EFProceduralRuntime owns policy, decisions, run/floor transactions and leases;
+EFProceduralPCGRuntime owns the native adapter and structural/navigation/
+reservation/materialization checks. EFProceduralACFURuntime owns progression
+door identity. EFLevelFlow consumes the verified entry transform.
+EFProjectSystems supplies thin gameplay, outcome, companion and Harness bridges.
 
-The only active policy asset is:
+## Authoring and probabilities
 
-`/Game/_Game/Data/CalystoDungeon/V3/DA_CalystoDungeonDirectorPolicy`
+Clean native Details: Dungeon, Dungeon Styles, Room Themes, Advanced. Style and
+Theme settings are inline. Keep named arrays, percentages, conditional fields,
+Undo/Redo, asset pickers and exact-field validation. Put technical IDs, hashes,
+schema and diagnostics in the on-demand inspector. Every exposed functional
+control requires a runtime behavioral test.
 
-It must be exactly `UEFCalystoDungeonDirectorPolicy`, with SchemaVersion 3,
-GeneratorVersion 3, a stable PolicyId, unique stable catalog/style IDs, valid
-soft references, canonical ordering, valid distributions, and a non-empty
-`ValidatedDungeonSizes`. Missing, invalid, or drifted policy fails closed.
+One Style per floor. For N eligible rooms, independently rank one guaranteed
+room and roll Bernoulli(0.25) on each remaining room:
+`1 + Binomial(N - 1, 0.25)`. N=0 rejects before content commitment; N=1 has
+exactly one Theme. Start/End/Critical/Progression rooms are excluded.
+Conditional Theme weights do not change presence.
 
-The authoring script is create-only. Its first success reports exactly the V3
-package in measured mutations/saves and zero `/Game/Calysto` mutations. Later
-runs validate read-only and report zero measured mutations/saves.
+Shared decision library: finite eligibility -> feasible placements/budgets for
+supported amounts -> Chance -> conditional Amount -> optional populated-tier
+rarity -> entry Weight -> frozen reservations -> strict realization.
+Limits add no hidden probability. Only intentional native decoration may author
+Empty. Fixed/uniform/triangular distributions use their actual named mathematics;
+inline depth curves have exact endpoints and default linear interpolation.
+Filter depth, roles, cooldowns, surfaces, footprints, spacing and remaining
+capacity before commitment. Do not sample impossible amounts then truncate.
+Include Winter in populated-tier normalization without implicit Nothing.
 
-## Immutable generation records
+Stable identities persist independently of labels/order and are regenerated
+appropriately for new entries/duplicates without changing unrelated entries.
+Typed roles/budget membership/gender/archetype/lifecycle never derive from names.
+Theme modes: Inherit uses Style; Extend edits entries while preserving inherited
+probabilities/limits; Replace owns locally; Block disables locally. Separate
+explicit probability/count overrides. Floor-wide limits always apply.
+Adaptation off means exactly zero influence from every adaptive input.
 
-Before travel, the subsystem freezes `FEFCalystoResolvedFloorIntent`, including
-identity, policy/ecology hashes, domain seeds, style, traits, exact safe Calysto
-scalars, presence rolls, budgets, target counts, and selected catalog IDs.
+## Native construction, entry and placement
 
-After PCG/navigation, the PCG owner freezes
-`FEFCalystoRealizedFloorManifest`, including canonical anchor topology,
-spawn directives, realized counts/budgets, and topology/population/resource/
-manifest hashes. `NotifyFloorReady` rejects readiness until the manifest has
-been accepted through `NotifyPopulationRealized`.
+Protect BP_MassiveDungeon, PCG_MassiveDungeonMaster and native DataAssets/graphs
+under /Game/Calysto. Localize vendor classes/properties/pins in one adapter,
+validate capabilities, strongly retain transient schemas and issue one root
+GenerateLocal per attempt. Preserve UE 5.8 SoftObjectPath metadata. Required
+structural pieces never disappear via random Empty.
 
-Replay requires the same intent, manifest, layout, and initial population.
-Reroll and advance increment GenerationSerial once. PolicyHash identifies
-canonical validated policy content; EcologyHash identifies committed run
-memory; IntentHash identifies the pre-PCG decision; ManifestHash identifies
-the realized floor.
+Inspect actual mesh instances/transforms, collision profile/body/navigation
+relevance, structural bounds and room ownership. Verify unique Start/End, floor
+contact under entry, capsule clearance, nav bounds covering settled geometry,
+relevant usable nav data/tiles and complete Start-to-End approach route. Idle
+build queue is insufficient. Delayed geometry/nav remains Pending under bounded
+observation; no repeated full rebuilds or expanding projection search. EFLevelFlow
+uses the Director's one entry transform without searching another room.
 
-## Run ecology and intent
+Use bounded native room/surface candidates with footprint/spacing, doorway
+protection, clearance and appropriate nav constraints; cover valid floor space.
+All world entries expose Floor, Wall Bottom/Middle/Top, Corner Bottom/Middle/Top
+or Roof placement. Pickups/chests default Floor; torches Wall Middle with 2 cm
+variation. Avoid array-order favoritism. Custom PCG declares input/output pins,
+footprint, surfaces, dependencies and deterministic seed; reject unsupported
+contracts, untracked spawning, topology/progression edits or regeneration.
 
-Run state is GameInstance-only. Ecology contains five persistent traits
-(Scale, Branching, Threat, Abundance, Mystery), recent style/theme history,
-pity/cooldowns, performance EMA, last committed floor, revision, and hash.
+## Materials, decals and loading
 
-`FEFCalystoDirectorIntent` contains PreferredStyle plus Scale, Branching,
-Threat, Resource, Theme, and Volatility biases. Biases are normalized and
-clamped; they never bypass hard caps or validated sizes. Outcome adaptation is
-normalized, frozen into the next intent, EMA-smoothed, and capped at ±15%.
+Theme override > selected Style separately on Floor/Wall/Roof. Empty explicit
+override fails; no silent native fallback or per-room MID. Verify actual
+generated slots, including shared boundaries. Initial general grey, Forge
+instancing/Nanite-compatible orange and Shrine display blue.
 
-## Generation and population
+One blood decal owner/pool, capacity 24, active 8, maximum one/room, initial
+Floor 3 / Wall 4 / Roof 1 caps. Style 10%, Forge replacement 25%, Shrine blocked.
+Protect Start/End/progression, doors and main route. Keep intended RealisticBlood
+T_Splat_04/T_Splat_N_04 dependency closure; confirm exact paths with Asset Registry.
+No Demo/Blueprint/Niagara creep; preserve native Calysto torch effects.
+Real distance culling is distinct from honestly named screen-size fading.
+Unselected absence is legal; selected/reserved failure rejects the attempt.
 
-The adapter may alter only allowlisted properties on transient duplicates. The
-transient spawner clone contains only the lightweight project anchor. After the
-single PCG pass, anchors receive stable IDs from quantized transforms and are
-sorted before allocation. Entrance, exit, door-clearance, collision, and
-navigation-invalid candidates are excluded. Deterministic grid projection may
-complete a shortage; global random navigation points are forbidden.
+Async phases: shared session dependencies, reachable structural/Theme visuals,
+frozen gameplay payloads, selected decal/extensions. Deduplicate across phases,
+make equal requests idempotent, reject stale callbacks, retain proper leases.
+Prewarm supported material PSOs/native torches; measure geometry, navigation,
+shader preparation and gameplay spawning separately.
 
-Maximums are 30×30×1, 25 enemies, 8 loose food actors, 3 chests, 4 loot actors,
-4 special events, and 36 initial Director actors. The active policy selects the special-event cap within that
-ceiling (default: 2). Zero enemies is valid; zero candidate density is not. The door
-remains disabled until:
+## Transaction and recovery
 
-`PCGComplete && NavigationPathReady && ManifestReady && PopulationReady`.
+Preflight -> Native Generation -> Structural Verification ->
+Navigation/Reservations -> Realization Verification -> Commit -> Player Release.
+Independent preparation may overlap but every selection must verify before commit.
 
-## Player-outcome bridge
+At most four total attempts share one 30-second request deadline. Deterministic
+seeds derive from immutable run/floor/attempt identity, never callback request
+IDs. Only one attempt active. Pending waits without consuming another attempt.
+Settled recoverable spatial failure rejects, cleans up and reseeds.
+Configuration/resources/infrastructure failures do not retry another seed.
+Cancellation releases ownership without outcomes or recovery.
 
-`UProjectCalystoFloorOutcomeSubsystem` is the project-owned, GameInstance-scoped
-adapter for player telemetry. It binds synchronously to the Director's
-before-Advance delegate, submits exactly one normalized outcome sample, and is
-therefore shared by the real ACF floor door and the Development Harness.
-Combat compares the realized manifest's initial enemy count against living
-actors tagged `EF.Calysto.Enemy`. Survival uses a finite player-health ratio
-when the typed project bridge can resolve it. Resources average the available
-Hunger and Thirst ratios. Pace starts at Floor Ready and uses a bounded expected
-time derived from validated size plus initial enemy count. Missing or invalid
-signals are `0.5` neutral; every value is finite and clamped to `0..1`.
+Before next attempt remove actors/instances/decals/reservations/nav registrations,
+callbacks and transient references. Keep selected Style, run/floor/rules/budgets,
+pre-floor companions/outcomes unchanged. Never silently drop or substitute,
+advance progression or commit inventory to make recovery succeed. Exhaustion
+protects player with concise English error and Retry / Return to HUB.
+Report requested, feasible, rejected and accepted distributions separately.
 
-## Historical boundary
-
-Do not rewrite Phase 1, Phase 2, Spawner Expansion, or Tattoo/Calysto repair
-evidence. New V3 evidence supersedes them only for the active runtime contract.
+Retire only after candidate acceptance and exact registry/config/code/tool/package
+audit; editor-only exact asset deletion, then cold rebuild/fresh package and
+final-tree traversal. Remove old classes/wrappers/redirects after consumers
+migrate. Archive evidence outside cook, preserving useful unversioned payloads.

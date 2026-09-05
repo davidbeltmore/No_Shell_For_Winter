@@ -1,130 +1,126 @@
 ---
 name: calysto-dungeon-master
-description: Inspect, tune, extend, debug, and validate Dungeon Director V3 through the project-owned EFProcedural master plugin without editing Calysto core assets or BP_MassiveDungeon. Use for seeded runs, probabilistic intents, run ecology, population manifests, PCG anchors, replay/reroll/advance, End_Point doors, and the Dungeon Harness menu.
+description: Implement, author, operate, debug, and validate Calysto Dungeon Director through project-owned EFProcedural and live UE 5.8 tools. Use for V7 migration, Styles, room Themes, probability, placement, native PCG, materials, navigation, travel, content, and bounded gameplay tests.
 ---
 
-# Calysto Dungeon Director V3
+# Calysto Dungeon Master
 
-Control Calysto only through `EFProcedural`, transient vendor-data clones, and
-the single project-owned V3 policy. Treat `/Game/Calysto` and
-`BP_MassiveDungeon` as protected vendor core: inspect deeply, never patch or
-save them.
+Enhance native Calysto through `Plugins/EFProcedural`. This skill supports V7
+implementation and operation; its existence does not prove V7 is implemented.
+Establish actual authority and gate status before each task. All editor text,
+APIs, tooltips, logs, and documentation are English.
 
-## Preflight
+## Evidence preflight
 
-1. Work only in `D:/Projects UE5/NoShellForWinter`; the UE 5.7 source is read-only.
-2. Invoke `$noshellforwinter-unreal-mcp`, list toolsets once, describe only the relevant toolsets, and keep the first pass read-only.
-3. Record the disk SHA-256 and live dirty state of `/Game/Calysto/Dungeon/Blueprint/BP_MassiveDungeon` and all protected Calysto sources.
-4. Run `scripts/Test-CalystoProtectedAssets.ps1` with an explicit baseline under `Saved` before and after mutations.
-5. Read [calysto-contracts.md](references/calysto-contracts.md) and [validation-gates.md](references/validation-gates.md) before changing generation, population, policy, or floor travel.
+1. Invoke `$noshellforwinter-unreal-mcp`. Confirm writable target
+   `D:/Projects UE5/NoShellForWinter` and UE 5.8. Discover/describe MCP and inspect
+   loaded map, PIE state, dirty packages and exact asset/class read-only.
+   Re-discover after restart.
+2. Read [calysto-contracts.md](references/calysto-contracts.md) and relevant
+   [operator-control.md](references/operator-control.md) sections. For migration
+   or implementation read the full
+   [master plan](../../../Docs/Migration/Calysto_Dungeon_Director_V7.md).
+3. Record Git HEAD/status, dirty packages, exact configuration/asset hashes and a
+   snapshot of files about to change. Preserve unrelated dirty work. Use unique
+   `Saved/Migration/CalystoDungeonDirectorV7/` evidence directories and durable
+   receipts in `Docs/Migration/Evidence/`, outside runtime/cook.
+4. Before/after runtime or asset changes run
+   `scripts/Test-CalystoProtectedAssets.ps1` and
+   `Tools/Migration/Test-ProtectedInvariants.ps1`. Compare historical baseline
+   and task pre-change snapshot separately. Never silently rebaseline existing
+   drift. The Calysto helper alone does not cover ACFU, Daz or characters; a hash
+   capture without comparison is not proof of parity.
+5. Choose the smallest applicable [validation gate](references/validation-gates.md).
+   Missing V7 tooling is work to implement, not permission to call a V6 test V7.
 
-If Unreal MCP is unavailable while the Editor is open, use
-`scripts/Invoke-UnrealMcpMetaTool.ps1`. If no live Editor exists, use the
-protected launcher and keep live conclusions `PENDING`.
+V7 target: `UEFCalystoDungeonDirectorAsset` at
+`/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector`, internal schema 7.
+Use unversioned public APIs. Inspect Config and loaded class to distinguish
+active V6, V7 candidate and accepted V7-only authority. Never compile V7 through
+V6 structures or fall back to V6 assets. Preserve V6 as an immutable migration
+source until proven cutover.
 
-## Ownership
+## Workflows
 
-- `EFProceduralRuntime`: GameInstance run ecology, deterministic intent/manifest resolution, V3 policy, travel, replay, reroll, and recovery.
-- `EFProceduralPCGRuntime`: Calysto reflection, transient clones, exactly one runtime PCG request, navigation readiness, population anchors, and materialization.
-- `EFProceduralACFURuntime`: the generated ACF floor door.
-- `EFProjectSystems`: thin `L > Dungeon Harness` commands plus the GameInstance-scoped, bounded player-outcome bridge; it must not own Director state or rolls.
-- Policy authority: `/Game/_Game/Data/CalystoDungeon/V3/DA_CalystoDungeonDirectorPolicy`.
+- **Implement/migrate:** follow the nine master-plan milestones. Freeze/reproduce
+  first; prove native traversal before population; migrate field by field;
+  accept the candidate before retirement; rebuild/repackage the final tree.
+  Resume the first incomplete gate.
+- **Author:** inspect actual properties, use native transactions and exact asset
+  edits, validate exact field errors, save only intended project packages.
+  Behavior-test each changed functional control. Diagnostics belong in the
+  on-demand inspector; keep native Details clean.
+- **Operate/test:** use discovered APIs or the grounded cookbook. Check ownership,
+  issue one action, observe its postcondition within the deadline, capture proof.
+  Do not repeat an interaction while its request is Pending.
+- **Debug entry/nav:** inspect settled structural instances, collision, bounds,
+  Start/End room ownership, floor contact/capsule clearance, registered nav
+  bounds, relevant tiles and complete route. Idle build queue is not ready.
+- **Release:** short gates first, then bounded release matrix, cook and fresh
+  Development/Shipping packages, exact referencer retirement and final-tree
+  validation. Keep entitlement and protected discrepancies visible.
 
-Do not create a second dungeon bootstrap, fork `BP_MassiveDungeon`, reuse
-`/Game/_Game/TheDungeon`, or add an editor-only Marketplace runtime dependency.
+The implementing agent performs technical tests, real PIE, screenshots and
+visual inspection, cook and packaged tests. Existing task authorization covers
+requested implementation and routine reversible QA; do not repeatedly ask for
+confirmation or delegate QA back to the user. Preserve unsaved work before an
+authorized restart. External facts remain gates; installed files do not prove
+distribution entitlement.
 
-## Run and determinism contract
+## Operational invariants
 
-- A run exists only in the current `UGameInstance`; V3 has no SaveGame persistence.
-- New run: Floor 1 / GenerationSerial 1 and fresh ecology.
-- Replay: same floor, serial, resolved intent, realized manifest, seeds, ecology, and initial population.
-- Reroll: same floor, serial +1, unchanged committed ecology, newly resolved intent/manifest.
-- Advance: commit the previous eligible floor once, then floor +1 and serial +1.
-- Retry: reuse the frozen intent/manifest without committing ecology twice.
-- Debug jump: positive target floor, serial +1, neutral synthetic history, Development only.
-- `GenerationSerial` is `1..2147483647`; exhaustion fails closed and requires a new run.
+- One Style per floor. Exclude Start/End/Critical/Progression from Themes;
+  guarantee one eligible room, then theme each remaining room independently at
+  25%. Theme weights cannot change presence for unchanged topology.
+- Chance, conditional Amount, Weight and Limits are distinct. Filter eligibility
+  and reserve feasible placement/budgets before random commitment. No hidden
+  rarity Nothing; normalize populated eligible tiers including Winter.
+  Every selected reservation materializes or the whole attempt is rejected.
+- Persist stable identities; labels, array order, global RNG and request-routing
+  IDs never define gameplay identity. Use independent deterministic domains.
+- Native Calysto owns topology/construction. One adapter holds vendor knowledge,
+  retains transient clones and issues one root GenerateLocal per attempt.
+  Validated custom PCG only proposes bounded content.
+- One transaction owns Preflight -> Native Generation -> Structural Verification
+  -> Navigation/Reservations -> Realization Verification -> Commit -> Player
+  Release. EFLevelFlow consumes the Director's sole verified entry transform.
+- One 30-second request deadline covers at most four attempts and cleanup.
+  Pending consumes time, not attempts. Reseed recoverable spatial failure;
+  preserve Style/run/floor/rules/budgets/outcomes. Exhaustion protects the player
+  and offers Retry and Return to HUB, without a silent HUB bounce.
+- Per-surface material precedence is Theme override > Style; empty explicit
+  override fails. Verify actual instances and shared boundaries, with no
+  per-room MID. Initial appearance: grey general, orange Forge, blue Shrine.
+- Preserve all catalog/gameplay bridges, inputs, native torch effects and exact
+  decal pool/dependency rules. Adaptation off has mathematically zero influence.
 
-Every draw is derived from RunSeed, FloorNumber, GenerationSerial,
-GeneratorVersion, PolicyHash, EcologyHash, DomainId, StableEntityId, and
-DrawIndex. Candidate collections must have stable IDs and canonical sorting.
-Never use global RNG, container iteration order, or navigation random-point APIs
-for authoritative choices.
+## Bounded testing
 
-Use only the typed production APIs: `RequestStartNewRun`,
-`RequestStartNewRunWithSeed`, `RequestReplayCurrentFloor`,
-`RequestRerollCurrentFloor`, `RequestAdvanceFloor`, and the Development-only
-`RequestTravelToFloor`. Pre-V3 aliases, forced presets, exact scalar overrides,
-and weight getters are retired.
+Use [validation-gates.md](references/validation-gates.md) for timing and proof.
+Poll external progress at 1-2 seconds, yield control within 10-30 seconds and
+communicate within 60 seconds. No unbounded wait or unattended retry loop.
 
-## V3 policy and safe surface
+The rapid traversal gate is three consecutive real-door floors in one run;
+three Floor-1 samples do not count. Probability gates use at least 100,000
+**in-memory decisions**, not world generations. The 25-consecutive-floor
+retention soak runs for release after the short smoke. Never schedule 1,000
+world floors for this plan.
 
-The sole authority is a `UEFCalystoDungeonDirectorPolicy` Primary Data Asset.
-Create it with `Tools/Migration/Create-CalystoDungeonDirectorPolicyV3.py`. The
-script creates exactly one asset when absent; when present it validates without
-editing or saving it. Normal inspection and PIE must report their measured
-`asset_mutations=[]` and `asset_saves=[]`.
+`scripts/calysto_test_plan.py plan --mode quick|release` emits a schedule only.
+PLANNED is not evidence. Inspect runner bindings and implement missing V7
+bindings before execution. Run the helper's behavioral tests after edits.
 
-Hard runtime limits:
+Require exact current test inventory/assertions, clean logs, process exit 0 and
+protected invariants together. PASS JSON followed by a crash fails. Unrun claims
+are PENDING; observed failures are FAIL. Authoring Valid, native tests, gameplay
+verification and release acceptance are separate states.
 
-- dungeon X/Y `18..30`, Z exactly `1`, but only sizes in `ValidatedDungeonSizes` may generate;
-- candidate anchor density `0.20..0.50`, never zero;
-- side-path chance `0.30..0.70`;
-- at most 25 enemies, 8 loose food actors, 3 chests, 4 loot actors, 4 special events, and 36 Director actors initially; the active policy selects the special-event cap within that ceiling (default: 2);
-- Forge and Shrine are the initial approved Calysto theme topology.
+## Protected boundary
 
-Inputs are probabilities, PERT distributions, budgets, traits, and normalized
-intent biases. Never expose exact enemy counts, dungeon sizes, densities, or
-theme quotas as gameplay controls. The active floor is immutable; queue intent
-for the next replay/reroll/advance boundary.
-
-## Protected integration
-
-Allowed vendor interaction is restricted to transient clones and allowlisted
-properties: deterministic runtime PCG seed, validated `DungeonSize`, candidate
-anchor density, side-path chance, existing Forge/Shrine weights, the project
-population-anchor class in the transient spawner clone, and the project floor
-door class in the transient dungeon-mesh clone.
-
-Never mutate or save:
-
-- meshes, materials, structural arrays, tile dimensions, offsets, collision, grammar, room data, or PCG graphs;
-- `BP_MassiveDungeon`, `DA_DungeonMesh`, `DA_DemoSpawner`, `DA_RoomTheme`, or another `/Game/Calysto` package;
-- Marketplace, Engine, ACFU, DazToUnreal, Player, Female, Male, Multiple, or Frederick assets.
-
-Require zero or one pre-existing dungeon actor, exactly one non-editor runtime
-PCG component, the expected graph, and `GenerateOnDemand`. Issue exactly one
-`GenerateLocal`; never combine Calysto Randomize and Refresh paths.
-
-After PCG, collect and canonicalize project anchors, validate navigation and
-safety exclusions, materialize the frozen manifest, remove anchors, and enable
-the door only when PCG, navigation, manifest, and population are all ready.
-Failure, timeout, duplicate callbacks, insufficient candidates, or schema drift
-must fail closed and use the bounded recovery path.
-
-## Workflow
-
-1. Inspect live CDOs, active policy, protected DataAssets, PCG graph, map, and dirty states.
-2. Compare against [calysto-contracts.md](references/calysto-contracts.md); stop on drift.
-3. Resolve one immutable `FEFCalystoResolvedFloorIntent` before travel.
-4. Generate once through transient Calysto clones.
-5. Resolve one immutable `FEFCalystoRealizedFloorManifest` and materialize it deterministically.
-6. Enable the ACF door only after the complete readiness conjunction succeeds.
-7. Validate fixed seed, exact replay, changed reroll, restart reproduction, and real-door Floors 1–10.
-8. Run [validation-gates.md](references/validation-gates.md), re-hash protected invariants, and mark unexecuted gates `PENDING`.
-
-## Debug menu
-
-Keep `L > Dungeon Harness` Development-only and after Appearance. It may queue
-Preferred Style plus Scale, Branching, Threat, Resource, Theme, and Volatility
-intent. It reports run ecology, budgets, realized counts, and hashes without
-per-frame polling. Intent controls keep the menu open; travel closes it. Exact
-test scenarios and statistical sampling belong to Development automation, not
-the public Harness. Shipping rejects debug jumps, sampling, and intent/debug
-overrides while production run operations and the generated door remain active.
-
-## Porting
-
-Port the V3 runtime policy/types/subsystem and PCG adapter first, then supply a
-project-specific door bridge and content catalogs. Re-audit all asset paths,
-protected hashes, Calysto property names, theme topology, and validated sizes;
-never assume this project's assets exist elsewhere.
+Never write the read-only LustAsDeadlySin source, Marketplace/Engine plugins,
+`/Game/Calysto`, BP_MassiveDungeon or protected ACFU/Daz/Player/character assets.
+Use protected build/launch wrappers preserving both Daz plugins in receipts and
+launch. No bulk copy/cleanup, raw asset deletion or broad incompatible redirects.
+Retire exact audited legacy assets through Unreal Editor after their gates pass.
+Keep useful unversioned internal materials, runtime Blueprints and cooked PCG
+compatibility assets.
