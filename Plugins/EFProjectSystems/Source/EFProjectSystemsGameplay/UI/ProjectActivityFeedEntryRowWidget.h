@@ -36,11 +36,11 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectActivityFeedRowDisplayData
 		, RowWidth(520.0f)
 		, RowHeight(60.0f)
 		, TextWrapWidth(390.0f)
-		, InlinePrimaryWidthRatio(0.38f)
-		, LineHeightPercentage(1.18f)
-		, BodyFontSize(14)
-		, BadgeFontSize(12)
-		, PrimaryFontSize(18)
+		, InlinePrimaryWidthRatio(0.30f)
+		, LineHeightPercentage(1.08f)
+		, BodyFontSize(10)
+		, BadgeFontSize(9)
+		, PrimaryFontSize(8)
 		, bExpanded(false)
 	{
 	}

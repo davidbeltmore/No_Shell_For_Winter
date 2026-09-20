@@ -404,6 +404,13 @@ void UProjectChroniclePanelWidget::InitializeVisualTree()
 
 void UProjectChroniclePanelWidget::RefreshPanelVisuals()
 {
+	if (TitleText)
+	{
+		FSlateFontInfo Font = TitleText->GetFont();
+		Font.Size = bExpanded ? 20 : 18;
+		TitleText->SetFont(Font);
+	}
+
 	if (RootSizeBox)
 	{
 		RootSizeBox->SetWidthOverride(CurrentPanelSize.X);

@@ -23,6 +23,7 @@ EXPANDED_SCREENSHOT = RUN_DIR / "Chronicle_Expanded.png"
 TARGET_MAP = os.environ.get("CODEX_CHRONICLE_QA_MAP", "/Game/_Game/Hub/HUB")
 TARGET_MAP_NAME = TARGET_MAP.rsplit("/", 1)[-1].split(".")[0].lower()
 TIMEOUT_SECONDS = float(os.environ.get("CODEX_CHRONICLE_QA_TIMEOUT", "240"))
+CAPTURE_HOLD_SECONDS = float(os.environ.get("CODEX_CHRONICLE_QA_CAPTURE_HOLD", "25"))
 
 LEVEL_EDITOR = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 UNREAL_EDITOR = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
@@ -313,7 +314,7 @@ def tick(delta_time):
             return
 
         if STATE.phase == "wait_compact_capture":
-            if STATE.phase_elapsed < 25.0:
+            if STATE.phase_elapsed < CAPTURE_HOLD_SECONDS:
                 return
             call_method(STATE.activity, "request_toggle_expanded")
             STATE.phase = "wait_expanded"
@@ -340,7 +341,7 @@ def tick(delta_time):
             return
 
         if STATE.phase == "wait_expanded_capture":
-            if STATE.phase_elapsed < 25.0:
+            if STATE.phase_elapsed < CAPTURE_HOLD_SECONDS:
                 return
             compact = STATE.result["compact"]
             expanded = STATE.result["expanded"]

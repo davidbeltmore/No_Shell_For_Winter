@@ -898,7 +898,9 @@ void UProjectActivityFeedSubsystem::AddDialogueEntry(const FText& Message)
 	Entry.Message = Message;
 	Entry.RenderStyle = EProjectActivityFeedRenderStyle::DialogueQuote;
 	Entry.BadgeLabelOverride = TEXT("PARTNER");
-	Entry.PrimaryText = Message;
+	// A dialogue without a speaker should use the message column once, rather
+	// than duplicating the entire sentence in the speaker and message columns.
+	Entry.SecondaryText = Message;
 	AddFeedEntry(Entry);
 }
 

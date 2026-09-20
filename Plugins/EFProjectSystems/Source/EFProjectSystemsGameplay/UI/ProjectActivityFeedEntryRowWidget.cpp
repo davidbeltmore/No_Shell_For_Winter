@@ -13,6 +13,9 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Rendering/SlateRenderer.h"
 #include "Styling/CoreStyle.h"
 
 namespace ProjectActivityFeedEntryRowWidgetPrivate
@@ -62,6 +65,22 @@ namespace ProjectActivityFeedEntryRowWidgetPrivate
 			: nullptr;
 	}
 
+	void UpdateMessageJustification(UTextBlock* TextBlock, const float AvailableWidth)
+	{
+		if (!TextBlock)
+		{
+			return;
+		}
+		const FString Text = TextBlock->GetText().ToString();
+		// Measure the configured font, not character count: names, localization,
+		// punctuation and explicit paragraphs all have different space requirements.
+		const bool bSingleLine = !Text.Contains(TEXT("\n")) && !Text.Contains(TEXT("\r"))
+			&& FSlateApplication::IsInitialized()
+			&& FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(
+				Text, TextBlock->GetFont()).X <= AvailableWidth - 1.0f;
+		TextBlock->SetJustification(bSingleLine ? ETextJustify::Center : ETextJustify::Left);
+	}
+
 	FProjectActivityFeedRowDisplayData MakePreviewData(
 		const bool bExpanded,
 		const EProjectActivityFeedRenderStyle RenderStyle,
@@ -79,11 +98,11 @@ namespace ProjectActivityFeedEntryRowWidgetPrivate
 		Data.RowWidth = bExpanded ? 580.0f : 520.0f;
 		Data.RowHeight = bExpanded ? 32.0f : 22.0f;
 		Data.TextWrapWidth = bExpanded ? 450.0f : 390.0f;
-		Data.InlinePrimaryWidthRatio = 0.38f;
-		Data.LineHeightPercentage = bExpanded ? 1.18f : 1.22f;
-		Data.BodyFontSize = bExpanded ? 15 : 13;
-		Data.BadgeFontSize = bExpanded ? 15 : 13;
-		Data.PrimaryFontSize = bExpanded ? 15 : 13;
+		Data.InlinePrimaryWidthRatio = 0.30f;
+		Data.LineHeightPercentage = bExpanded ? 1.10f : 1.08f;
+		Data.BodyFontSize = bExpanded ? 11 : 10;
+		Data.BadgeFontSize = bExpanded ? 10 : 9;
+		Data.PrimaryFontSize = bExpanded ? 9 : 8;
 		Data.bExpanded = bExpanded;
 		return Data;
 	}
@@ -381,7 +400,29 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 	const bool bExpandedLayout = CurrentDisplayData.bExpanded;
 	const float RowWidth = FMath::Max(CurrentDisplayData.RowWidth, 320.0f);
 	const float MinimumRowHeight = FMath::Max(CurrentDisplayData.RowHeight, bExpandedLayout ? 18.0f : 12.0f);
-	const float TextWrapWidth = FMath::Clamp(CurrentDisplayData.TextWrapWidth, 64.0f, RowWidth);
+	if (ContentBorder)
+	{
+		ContentBorder->SetPadding(FMargin(6.0f, 4.0f));
+		ContentBorder->SetHorizontalAlignment(HAlign_Fill);
+		ContentBorder->SetVerticalAlignment(VAlign_Fill);
+	}
+	// Measure the space reserved by the actual designer tree, including slot padding.
+	float ReservedWidth = ContentBorder ? ContentBorder->GetPadding().GetTotalSpaceAlong<Orient_Horizontal>() : 0.0f;
+	for (USizeBox* Decoration : { BadgeSizeBox.Get(), DividerSizeBox.Get(), GlyphSizeBox.Get() })
+	{
+		if (Decoration && Decoration->GetVisibility() != ESlateVisibility::Collapsed)
+		{
+			ReservedWidth += Decoration->GetWidthOverride();
+			if (const UHorizontalBoxSlot* DecorationSlot = Cast<UHorizontalBoxSlot>(Decoration->Slot))
+			{
+				ReservedWidth += DecorationSlot->GetPadding().GetTotalSpaceAlong<Orient_Horizontal>();
+			}
+		}
+	}
+	const float TextWrapWidth = FMath::Max(32.0f, FMath::Min(CurrentDisplayData.TextWrapWidth, RowWidth - ReservedWidth));
+	const UHorizontalBoxSlot* PrimaryTextSlot = PrimaryTextBlock ? Cast<UHorizontalBoxSlot>(PrimaryTextBlock->Slot) : nullptr;
+	const float InlinePadding = PrimaryTextSlot ? PrimaryTextSlot->GetPadding().GetTotalSpaceAlong<Orient_Horizontal>() : 0.0f;
+	const float InlineWrapWidth = FMath::Max(32.0f, TextWrapWidth - InlinePadding);
 	const float InlinePrimaryWidthRatio = FMath::Clamp(CurrentDisplayData.InlinePrimaryWidthRatio, 0.1f, 0.9f);
 	const float LineHeightPercentage = FMath::Clamp(CurrentDisplayData.LineHeightPercentage, 1.0f, 2.0f);
 	const float BadgeHeight = FMath::Max(MinimumRowHeight - 6.0f, bExpandedLayout ? 22.0f : 16.0f);
@@ -395,10 +436,10 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 	const FLinearColor AccentTint = CurrentDisplayData.AccentTint.GetClamped(0.0f, 1.0f);
 	const FLinearColor BadgeFillTint = CurrentDisplayData.BadgeFillTint.GetClamped(0.0f, 1.0f);
 	const FLinearColor BadgeTextTint = CurrentDisplayData.BadgeTextTint.GetClamped(0.0f, 1.0f);
-	const bool bUseInlineLayout =
+	const bool bUseInlineLayout = !CurrentDisplayData.PrimaryText.IsEmpty() && (
 		CurrentDisplayData.RenderStyle == EProjectActivityFeedRenderStyle::Gain
 		|| CurrentDisplayData.RenderStyle == EProjectActivityFeedRenderStyle::DialogueQuote
-		|| (!CurrentDisplayData.PrimaryText.IsEmpty() && !CurrentDisplayData.SecondaryText.IsEmpty());
+		|| !CurrentDisplayData.SecondaryText.IsEmpty());
 
 	if (RootSizeBox)
 	{
@@ -436,16 +477,12 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 		}
 	}
 
-	if (ContentBorder)
-	{
-		if (bUsingNativeFallbackTree)
-		{
-			ContentBorder->SetPadding(FMargin(0.0f));
-		}
-	}
-
 	if (BadgeSizeBox)
 	{
+		if (UHorizontalBoxSlot* BadgeSlot = Cast<UHorizontalBoxSlot>(BadgeSizeBox->Slot))
+		{
+			BadgeSlot->SetVerticalAlignment(VAlign_Center);
+		}
 		if (bUsingNativeFallbackTree)
 		{
 			BadgeSizeBox->SetWidthOverride(BadgeWidth);
@@ -480,6 +517,14 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 	if (BadgeText)
 	{
 		BadgeText->SetText(FText::FromString(CurrentDisplayData.BadgeLabel));
+		BadgeText->SetJustification(ETextJustify::Center);
+		FSlateFontInfo Font = BadgeText->GetFont();
+		Font.Size = BadgeFontSize;
+		BadgeText->SetFont(Font);
+		if (BadgeScaleBox)
+		{
+			BadgeScaleBox->SetStretchDirection(EStretchDirection::DownOnly);
+		}
 		if (bUsingNativeFallbackTree)
 		{
 			BadgeText->SetColorAndOpacity(FSlateColor(BadgeTextTint));
@@ -512,40 +557,55 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 	if (MessageText)
 	{
 		MessageText->SetVisibility(bUseInlineLayout ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
-		MessageText->SetText(CurrentDisplayData.Message);
+		MessageText->SetText(!CurrentDisplayData.SecondaryText.IsEmpty()
+			? CurrentDisplayData.SecondaryText : CurrentDisplayData.Message);
+		FSlateFontInfo Font = MessageText->GetFont();
+		Font.Size = BodyFontSize;
+		MessageText->SetFont(Font);
 		MessageText->SetAutoWrapText(true);
 		MessageText->SetWrapTextAt(TextWrapWidth);
-		MessageText->SetWrappingPolicy(ETextWrappingPolicy::DefaultWrapping);
+		MessageText->SetWrappingPolicy(ETextWrappingPolicy::AllowPerCharacterWrapping);
 		MessageText->SetLineHeightPercentage(LineHeightPercentage);
-		MessageText->SetApplyLineHeightToBottomLine(true);
+		MessageText->SetApplyLineHeightToBottomLine(false);
 		MessageText->SetTextOverflowPolicy(ETextOverflowPolicy::Clip);
 		MessageText->SetClipping(EWidgetClipping::ClipToBounds);
 		MessageText->SetMinDesiredWidth(0.0f);
 		if (UHorizontalBoxSlot* MessageSlot = Cast<UHorizontalBoxSlot>(MessageText->Slot))
 		{
 			MessageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			MessageSlot->SetVerticalAlignment(VAlign_Top);
+			MessageSlot->SetHorizontalAlignment(HAlign_Fill);
+			MessageSlot->SetVerticalAlignment(VAlign_Center);
 		}
 		if (bUsingNativeFallbackTree)
 		{
 			MessageText->SetFont(MakeBodyFont(BodyFontSize, 0));
 			MessageText->SetColorAndOpacity(FSlateColor(ProjectActivityFeedEntryRowWidgetPrivate::MessageTint()));
 		}
+		ProjectActivityFeedEntryRowWidgetPrivate::UpdateMessageJustification(MessageText, TextWrapWidth);
 	}
 
 	if (InlineTextBox)
 	{
 		InlineTextBox->SetVisibility(bUseInlineLayout ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		if (UHorizontalBoxSlot* InlineSlot = Cast<UHorizontalBoxSlot>(InlineTextBox->Slot))
+		{
+			InlineSlot->SetHorizontalAlignment(HAlign_Fill);
+			InlineSlot->SetVerticalAlignment(VAlign_Fill);
+		}
 	}
 
 	if (PrimaryTextBlock)
 	{
 		PrimaryTextBlock->SetText(CurrentDisplayData.PrimaryText);
+		PrimaryTextBlock->SetJustification(ETextJustify::Center);
+		FSlateFontInfo Font = PrimaryTextBlock->GetFont();
+		Font.Size = PrimaryFontSize;
+		PrimaryTextBlock->SetFont(Font);
 		PrimaryTextBlock->SetAutoWrapText(true);
-		PrimaryTextBlock->SetWrapTextAt(TextWrapWidth * InlinePrimaryWidthRatio);
-		PrimaryTextBlock->SetWrappingPolicy(ETextWrappingPolicy::DefaultWrapping);
+		PrimaryTextBlock->SetWrapTextAt(InlineWrapWidth * InlinePrimaryWidthRatio);
+		PrimaryTextBlock->SetWrappingPolicy(ETextWrappingPolicy::AllowPerCharacterWrapping);
 		PrimaryTextBlock->SetLineHeightPercentage(LineHeightPercentage);
-		PrimaryTextBlock->SetApplyLineHeightToBottomLine(true);
+		PrimaryTextBlock->SetApplyLineHeightToBottomLine(false);
 		PrimaryTextBlock->SetTextOverflowPolicy(ETextOverflowPolicy::Clip);
 		PrimaryTextBlock->SetClipping(EWidgetClipping::ClipToBounds);
 		PrimaryTextBlock->SetMinDesiredWidth(0.0f);
@@ -554,7 +614,8 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 			FSlateChildSize PrimarySize(ESlateSizeRule::Fill);
 			PrimarySize.Value = InlinePrimaryWidthRatio;
 			PrimarySlot->SetSize(PrimarySize);
-			PrimarySlot->SetVerticalAlignment(VAlign_Top);
+			PrimarySlot->SetHorizontalAlignment(HAlign_Fill);
+			PrimarySlot->SetVerticalAlignment(VAlign_Center);
 		}
 		if (bUsingNativeFallbackTree)
 		{
@@ -566,11 +627,14 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 	if (SecondaryTextBlock)
 	{
 		SecondaryTextBlock->SetText(!CurrentDisplayData.SecondaryText.IsEmpty() ? CurrentDisplayData.SecondaryText : CurrentDisplayData.Message);
+		FSlateFontInfo Font = SecondaryTextBlock->GetFont();
+		Font.Size = BodyFontSize;
+		SecondaryTextBlock->SetFont(Font);
 		SecondaryTextBlock->SetAutoWrapText(true);
-		SecondaryTextBlock->SetWrapTextAt(TextWrapWidth * (1.0f - InlinePrimaryWidthRatio));
-		SecondaryTextBlock->SetWrappingPolicy(ETextWrappingPolicy::DefaultWrapping);
+		SecondaryTextBlock->SetWrapTextAt(InlineWrapWidth * (1.0f - InlinePrimaryWidthRatio));
+		SecondaryTextBlock->SetWrappingPolicy(ETextWrappingPolicy::AllowPerCharacterWrapping);
 		SecondaryTextBlock->SetLineHeightPercentage(LineHeightPercentage);
-		SecondaryTextBlock->SetApplyLineHeightToBottomLine(true);
+		SecondaryTextBlock->SetApplyLineHeightToBottomLine(false);
 		SecondaryTextBlock->SetTextOverflowPolicy(ETextOverflowPolicy::Clip);
 		SecondaryTextBlock->SetClipping(EWidgetClipping::ClipToBounds);
 		SecondaryTextBlock->SetMinDesiredWidth(0.0f);
@@ -579,7 +643,8 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 			FSlateChildSize SecondarySize(ESlateSizeRule::Fill);
 			SecondarySize.Value = 1.0f - InlinePrimaryWidthRatio;
 			SecondarySlot->SetSize(SecondarySize);
-			SecondarySlot->SetVerticalAlignment(VAlign_Top);
+			SecondarySlot->SetHorizontalAlignment(HAlign_Fill);
+			SecondarySlot->SetVerticalAlignment(VAlign_Center);
 		}
 		if (bUsingNativeFallbackTree)
 		{
@@ -592,6 +657,8 @@ void UProjectActivityFeedEntryRowWidget::RefreshVisuals()
 				0,
 				CurrentDisplayData.RenderStyle == EProjectActivityFeedRenderStyle::DialogueQuote));
 		}
+		ProjectActivityFeedEntryRowWidgetPrivate::UpdateMessageJustification(
+			SecondaryTextBlock, InlineWrapWidth * (1.0f - InlinePrimaryWidthRatio));
 	}
 
 	if (GlyphSizeBox)

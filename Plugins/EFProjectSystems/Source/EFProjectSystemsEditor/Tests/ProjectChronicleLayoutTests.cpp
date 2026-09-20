@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -9,10 +10,17 @@
 #include "UI/ProjectActivityFeedEntryRowWidget.h"
 #include "UI/ProjectActivityFeedSubsystem.h"
 #include "UObject/SoftObjectPath.h"
+#include "UObject/UnrealType.h"
 #include "Widgets/SWidget.h"
 
 namespace ProjectChronicleLayoutTests
 {
+	ETextJustify::Type GetJustification(const UTextBlock* TextBlock)
+	{
+		const FByteProperty* Property = FindFProperty<FByteProperty>(TextBlock->GetClass(), TEXT("Justification"));
+		return Property ? static_cast<ETextJustify::Type>(Property->GetPropertyValue_InContainer(TextBlock)) : ETextJustify::Right;
+	}
+
 	UProjectActivityFeedEntryRowWidget* BuildRow(UWidgetTree*& OutWidgetTree)
 	{
 		UProjectActivityFeedEntryRowWidget* Row = NewObject<UProjectActivityFeedEntryRowWidget>(GetTransientPackage());
@@ -75,9 +83,9 @@ bool FProjectChronicleLayoutPolicyTest::RunTest(const FString& Parameters)
 	const FProjectChronicleLayoutPolicy Expanded = Subsystem->GetChronicleLayoutPolicy(true);
 	TestEqual(TEXT("Compact text width"), Compact.MaximumTextWidth, 390.0f);
 	TestEqual(TEXT("Expanded text width"), Expanded.MaximumTextWidth, 450.0f);
-	TestEqual(TEXT("Inline primary ratio"), Compact.InlinePrimaryWidthRatio, 0.38f);
-	TestEqual(TEXT("Compact line height"), Compact.LineHeightPercentage, 1.22f);
-	TestEqual(TEXT("Expanded line height"), Expanded.LineHeightPercentage, 1.18f);
+	TestEqual(TEXT("Inline primary ratio"), Compact.InlinePrimaryWidthRatio, 0.30f);
+	TestEqual(TEXT("Compact line height"), Compact.LineHeightPercentage, 1.08f);
+	TestEqual(TEXT("Expanded line height"), Expanded.LineHeightPercentage, 1.10f);
 	TestTrue(TEXT("Compact minimum height is positive"), Compact.MinimumRowHeight >= 12.0f);
 	TestTrue(TEXT("Expanded minimum height is positive"), Expanded.MinimumRowHeight >= 18.0f);
 	TestTrue(TEXT("Row gap is non-negative"), Compact.RowGap >= 0.0f);
@@ -145,8 +153,8 @@ bool FProjectChronicleDynamicRowTest::RunTest(const FString& Parameters)
 		"https://chronicle.example.test/an-indivisible-token-that-is-deliberately-wider-than-the-configured-wrap-width")));
 	LongRow->ApplyDisplayData(UrlData);
 	TestTrue(
-		TEXT("An indivisible URL remains constrained to a valid row"),
-		ProjectChronicleLayoutTests::PrepassAndGetHeight(LongRow) >= UrlData.RowHeight);
+		TEXT("An indivisible URL wraps into a taller row"),
+		ProjectChronicleLayoutTests::PrepassAndGetHeight(LongRow) > ShortHeight);
 
 	FProjectActivityFeedRowDisplayData InlineData = ProjectChronicleLayoutTests::MakeRowData(FText::GetEmpty());
 	InlineData.RenderStyle = EProjectActivityFeedRenderStyle::DialogueQuote;
@@ -201,6 +209,8 @@ bool FProjectChronicleDesignerDynamicRowTest::RunTest(const FString& Parameters)
 		ShortData.TextWrapWidth = LongData.TextWrapWidth = bExpandedRow ? 450.0f : 390.0f;
 		ShortData.RowHeight = LongData.RowHeight = bExpandedRow ? 32.0f : 22.0f;
 		ShortData.bExpanded = LongData.bExpanded = bExpandedRow;
+		ShortData.PrimaryFontSize = LongData.PrimaryFontSize = bExpandedRow ? 9 : 8;
+		ShortData.BodyFontSize = LongData.BodyFontSize = bExpandedRow ? 11 : 10;
 
 		if (bDialogueRow || bGainRow)
 		{
@@ -219,6 +229,36 @@ bool FProjectChronicleDesignerDynamicRowTest::RunTest(const FString& Parameters)
 
 		const float ShortHeight = ProjectChronicleLayoutTests::PrepassAndGetHeight(ShortRow);
 		const float LongHeight = ProjectChronicleLayoutTests::PrepassAndGetHeight(LongRow);
+		UTextBlock* ShortMessage = Cast<UTextBlock>(ShortRow->GetWidgetFromName(
+			(bDialogueRow || bGainRow) ? TEXT("SecondaryTextBlock") : TEXT("MessageText")));
+		UTextBlock* LongMessage = Cast<UTextBlock>(LongRow->GetWidgetFromName(
+			(bDialogueRow || bGainRow) ? TEXT("SecondaryTextBlock") : TEXT("MessageText")));
+		if (TestNotNull(TEXT("Short message is bound"), ShortMessage)
+			&& TestNotNull(TEXT("Long message is bound"), LongMessage))
+		{
+			TestEqual(TEXT("One-line message is centered"), ProjectChronicleLayoutTests::GetJustification(ShortMessage), ETextJustify::Center);
+			TestEqual(TEXT("Multiline message is left aligned"), ProjectChronicleLayoutTests::GetJustification(LongMessage), ETextJustify::Left);
+			UHorizontalBoxSlot* MessageSlot = Cast<UHorizontalBoxSlot>(ShortMessage->Slot);
+			if (TestNotNull(TEXT("Message column is bound"), MessageSlot))
+			{
+				TestEqual(TEXT("Short message is vertically centered"), MessageSlot->GetVerticalAlignment(), VAlign_Center);
+			}
+		}
+		if (bDialogueRow || bGainRow)
+		{
+			UTextBlock* NameText = Cast<UTextBlock>(LongRow->GetWidgetFromName(TEXT("PrimaryTextBlock")));
+			if (TestNotNull(TEXT("Name text is bound"), NameText))
+			{
+				TestEqual(TEXT("Name uses the smaller configured size"), NameText->GetFont().Size, static_cast<float>(ShortData.PrimaryFontSize));
+				TestEqual(TEXT("Name stays centered for multiline messages"), ProjectChronicleLayoutTests::GetJustification(NameText), ETextJustify::Center);
+				UHorizontalBoxSlot* NameSlot = Cast<UHorizontalBoxSlot>(NameText->Slot);
+				if (TestNotNull(TEXT("Name column is bound"), NameSlot))
+				{
+					TestEqual(TEXT("Name is vertically centered"), NameSlot->GetVerticalAlignment(), VAlign_Center);
+					TestEqual(TEXT("Name uses its full column for centering"), NameSlot->GetHorizontalAlignment(), HAlign_Fill);
+				}
+			}
+		}
 		TestTrue(
 			FString::Printf(TEXT("Designer long row grows vertically: %s"), ClassPath),
 			LongHeight > ShortHeight);
@@ -249,6 +289,10 @@ bool FProjectChronicleDesignerDynamicRowTest::RunTest(const FString& Parameters)
 		TestTrue(
 			FString::Printf(TEXT("Designer stack reserves dynamic heights: %s"), ClassPath),
 			StackHeight + KINDA_SMALL_NUMBER >= LongHeight + ShortHeight + 3.0f);
+
+		LongRow->ApplyDisplayData(ShortData);
+		TestTrue(TEXT("Reused row returns to short height"), FMath::IsNearlyEqual(
+			ProjectChronicleLayoutTests::PrepassAndGetHeight(LongRow), ShortHeight, 0.1f));
 	}
 
 	return true;
