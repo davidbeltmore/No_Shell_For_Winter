@@ -5,6 +5,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EFCharacterCreationGameplayHooks.h"
 #include "EFCharacterCreationSettings.h"
+#include "EFMorphPresentation.h"
 #include "EFCharacterCustomizationSaveGame.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
@@ -21,90 +22,6 @@ namespace CharacterCustomizationComponentPrivate
 	static FString NormalizeForMatching(const FString& Value)
 	{
 		return Value.ToLower();
-	}
-
-	static bool IsHeadMorphName(const FString& Value)
-	{
-		const FString NormalizedValue = NormalizeForMatching(Value);
-		static const TArray<FString> HeadTokens = {
-			TEXT("head"),
-			TEXT("face"),
-			TEXT("eye"),
-			TEXT("brow"),
-			TEXT("cheek"),
-			TEXT("chin"),
-			TEXT("jaw"),
-			TEXT("nose"),
-			TEXT("mouth"),
-			TEXT("lip"),
-			TEXT("forehead"),
-			TEXT("ear"),
-			TEXT("eyelid"),
-			TEXT("beard"),
-			TEXT("lash"),
-			TEXT("tongue"),
-			TEXT("teeth")
-		};
-
-		for (const FString& Token : HeadTokens)
-		{
-			if (NormalizedValue.Contains(Token))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	static FString InferBodySectionName(const FString& Value)
-	{
-		const FString NormalizedValue = NormalizeForMatching(Value);
-
-		static const TArray<FString> UpperTokens = {
-			TEXT("breast"),
-			TEXT("chest"),
-			TEXT("pect"),
-			TEXT("shoulder"),
-			TEXT("arm"),
-			TEXT("neck"),
-			TEXT("collar"),
-			TEXT("clavicle"),
-			TEXT("back"),
-			TEXT("trap")
-		};
-
-		for (const FString& Token : UpperTokens)
-		{
-			if (NormalizedValue.Contains(Token))
-			{
-				return TEXT("Upper");
-			}
-		}
-
-		static const TArray<FString> LowerTokens = {
-			TEXT("hip"),
-			TEXT("glute"),
-			TEXT("butt"),
-			TEXT("thigh"),
-			TEXT("leg"),
-			TEXT("knee"),
-			TEXT("calf"),
-			TEXT("foot"),
-			TEXT("toe"),
-			TEXT("pelvis"),
-			TEXT("groin")
-		};
-
-		for (const FString& Token : LowerTokens)
-		{
-			if (NormalizedValue.Contains(Token))
-			{
-				return TEXT("Lower");
-			}
-		}
-
-		return TEXT("Middle");
 	}
 
 	static FString TargetToString(ECharacterCustomizationTarget Target)
@@ -219,7 +136,9 @@ TArray<FMorphSliderEntry> UEFCharacterCustomizationComponent::GetAvailableMorphE
 		if (!SearchFilterLower.IsEmpty())
 		{
 			const FString DisplayName = Entry.DisplayName.IsEmpty() ? Entry.MorphName.ToString() : Entry.DisplayName;
-			if (!CharacterCustomizationComponentPrivate::NormalizeForMatching(DisplayName).Contains(SearchFilterLower))
+			if (!DisplayName.Contains(SearchFilter, ESearchCase::IgnoreCase)
+				&& !Entry.MorphName.ToString().Contains(SearchFilter, ESearchCase::IgnoreCase)
+				&& !Entry.Section.Contains(SearchFilter, ESearchCase::IgnoreCase))
 			{
 				continue;
 			}
@@ -1141,14 +1060,12 @@ void UEFCharacterCustomizationComponent::BuildMorphEntries()
 			Entry.Category = InferCategoryForMorphName(Entry.DisplayName);
 		}
 
-		if (Entry.Category == TEXT("Body"))
+		if (Entry.Section.IsEmpty() || Entry.Section == TEXT("Upper") || Entry.Section == TEXT("Middle") || Entry.Section == TEXT("Lower"))
 		{
-			Entry.Section = InferSectionForMorphName(Entry.DisplayName);
+			Entry.Section = InferSectionForMorphName(Entry.MorphName.ToString());
 		}
-		else if (Entry.Section.IsEmpty())
-		{
-			Entry.Section = InferSectionForMorphName(Entry.DisplayName);
-		}
+		Entry.Section = EFMorphPresentation::NormalizeSection(Entry.Section);
+		Entry.DisplayName = EFMorphPresentation::CleanLabel(Entry.DisplayName, Entry.Section);
 
 		Entry.MinValue = -3.0f;
 		Entry.MaxValue = 3.0f;
@@ -1226,16 +1143,13 @@ void UEFCharacterCustomizationComponent::SortMorphEntries()
 {
 	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
 	TMap<FName, int32> CategorySortOrder;
-	TMap<FString, int32> BodySectionSortOrder;
+
 	for (const FCharacterCreationCategoryDefinition& CategoryDefinition : Settings->Categories)
 	{
 		CategorySortOrder.Add(CategoryDefinition.Category, CategoryDefinition.SortOrder);
 	}
-	BodySectionSortOrder.Add(TEXT("Upper"), 0);
-	BodySectionSortOrder.Add(TEXT("Middle"), 1);
-	BodySectionSortOrder.Add(TEXT("Lower"), 2);
 
-	AvailableMorphEntries.Sort([&CategorySortOrder, &BodySectionSortOrder](const FMorphSliderEntry& Left, const FMorphSliderEntry& Right)
+	AvailableMorphEntries.Sort([&CategorySortOrder](const FMorphSliderEntry& Left, const FMorphSliderEntry& Right)
 	{
 		const int32 LeftOrder = CategorySortOrder.FindRef(Left.Category);
 		const int32 RightOrder = CategorySortOrder.FindRef(Right.Category);
@@ -1246,15 +1160,12 @@ void UEFCharacterCustomizationComponent::SortMorphEntries()
 
 		if (Left.Section != Right.Section)
 		{
-			if (Left.Category == TEXT("Body") && Right.Category == TEXT("Body"))
-			{
-				const int32 LeftSectionOrder = BodySectionSortOrder.FindRef(Left.Section);
-				const int32 RightSectionOrder = BodySectionSortOrder.FindRef(Right.Section);
-				if (LeftSectionOrder != RightSectionOrder)
-				{
-					return LeftSectionOrder < RightSectionOrder;
-				}
-			}
+			const TArray<FString>& Order = EFMorphPresentation::Sections(Left.Category);
+			const int32 LeftIndex = Order.IndexOfByKey(Left.Section);
+			const int32 RightIndex = Order.IndexOfByKey(Right.Section);
+			const int32 LeftRank = LeftIndex == INDEX_NONE ? MAX_int32 : LeftIndex;
+			const int32 RightRank = RightIndex == INDEX_NONE ? MAX_int32 : RightIndex;
+			if (LeftRank != RightRank) return LeftRank < RightRank;
 
 			return Left.Section < Right.Section;
 		}
@@ -1427,29 +1338,12 @@ void UEFCharacterCustomizationComponent::GatherMorphNamesFromAssetRegistry(USkel
 
 FName UEFCharacterCustomizationComponent::InferCategoryForMorphName(const FString& MorphName) const
 {
-	if (CharacterCustomizationComponentPrivate::IsHeadMorphName(MorphName))
-	{
-		return TEXT("Head");
-	}
-
-	return TEXT("Body");
+	return EFMorphPresentation::Classify(MorphName).Category;
 }
 
 FString UEFCharacterCustomizationComponent::InferSectionForMorphName(const FString& MorphName) const
 {
-	if (InferCategoryForMorphName(MorphName) == TEXT("Body"))
-	{
-		return CharacterCustomizationComponentPrivate::InferBodySectionName(MorphName);
-	}
-
-	FString LeftSide;
-	FString RightSide;
-	if (MorphName.Split(TEXT(" "), &LeftSide, &RightSide))
-	{
-		return LeftSide;
-	}
-
-	return TEXT("General");
+	return EFMorphPresentation::Classify(MorphName).Section;
 }
 
 bool UEFCharacterCustomizationComponent::MatchesAnyHint(const FString& SourceString, const TArray<FString>& Hints) const
