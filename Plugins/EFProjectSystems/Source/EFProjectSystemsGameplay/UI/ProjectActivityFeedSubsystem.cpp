@@ -863,12 +863,75 @@ void UProjectActivityFeedSubsystem::RequestToggleExpanded()
 
 void UProjectActivityFeedSubsystem::RequestScrollHistory(const int32 Direction)
 {
-	if (!TrackedFeedWidget || !TrackedFeedWidget->IsHudVisible() || !bExpanded)
+	if (!CanScrollHistory())
 	{
 		return;
 	}
 
 	TrackedFeedWidget->ScrollHistoryByEntries(Direction);
+}
+
+bool UProjectActivityFeedSubsystem::CanScrollHistory() const
+{
+	const UWorld* World = GetWorld();
+	const UProjectSurvivalNeedsSubsystem* Needs = World ? World->GetSubsystem<UProjectSurvivalNeedsSubsystem>() : nullptr;
+	return Needs && Needs->IsNeedsHudVisible() && bExpanded
+		&& TrackedFeedWidget && TrackedFeedWidget->IsHudVisible() && TrackedFeedWidget->IsExpanded();
+}
+
+void UProjectActivityFeedSubsystem::RefreshHudVisibility()
+{
+	RefreshFeedWidget();
+}
+
+void UProjectActivityFeedSubsystem::HandleHistoryUp()
+{
+	RequestScrollHistory(-1);
+}
+
+void UProjectActivityFeedSubsystem::HandleHistoryDown()
+{
+	RequestScrollHistory(1);
+}
+
+void UProjectActivityFeedSubsystem::UpdateHistoryInput()
+{
+	if (!TrackedPlayerController || !CanScrollHistory())
+	{
+		UnbindHistoryInput();
+		return;
+	}
+	if (HistoryInputComponent)
+	{
+		return;
+	}
+	HistoryInputComponent = NewObject<UInputComponent>(TrackedPlayerController, TEXT("ProjectChronicleHistoryInput"));
+	HistoryInputComponent->Priority = ProjectActivityFeedPrivate::ActivityFeedInputPriority + 1;
+	HistoryInputComponent->bBlockInput = false;
+	HistoryInputComponent->RegisterComponent();
+	for (const EInputEvent Event : { IE_Pressed, IE_Repeat })
+	{
+		FInputKeyBinding& Up = HistoryInputComponent->BindKey(EKeys::Up, Event, this, &ThisClass::HandleHistoryUp);
+		Up.bConsumeInput = true;
+		Up.bExecuteWhenPaused = true;
+		FInputKeyBinding& Down = HistoryInputComponent->BindKey(EKeys::Down, Event, this, &ThisClass::HandleHistoryDown);
+		Down.bConsumeInput = true;
+		Down.bExecuteWhenPaused = true;
+	}
+	TrackedPlayerController->PushInputComponent(HistoryInputComponent);
+}
+
+void UProjectActivityFeedSubsystem::UnbindHistoryInput()
+{
+	if (HistoryInputComponent)
+	{
+		if (TrackedPlayerController)
+		{
+			TrackedPlayerController->PopInputComponent(HistoryInputComponent);
+		}
+		HistoryInputComponent->DestroyComponent();
+		HistoryInputComponent = nullptr;
+	}
 }
 
 void UProjectActivityFeedSubsystem::DebugAddSystemEntry(const FText& Message)
@@ -1119,6 +1182,7 @@ void UProjectActivityFeedSubsystem::BindInputToTrackedPlayerController()
 
 void UProjectActivityFeedSubsystem::UnbindInputFromTrackedPlayerController()
 {
+	UnbindHistoryInput();
 	if (!TrackedInputComponent)
 	{
 		return;
@@ -1258,6 +1322,7 @@ void UProjectActivityFeedSubsystem::RefreshFeedWidget()
 {
 	if (!TrackedFeedWidget)
 	{
+		UnbindHistoryInput();
 		return;
 	}
 
@@ -1281,6 +1346,7 @@ void UProjectActivityFeedSubsystem::RefreshFeedWidget()
 	TrackedFeedWidget->SetHudVisible(bHudVisible);
 	TrackedFeedWidget->SetExpanded(bExpanded);
 	TrackedFeedWidget->SetFeedEntries(StoredEntries);
+	UpdateHistoryInput();
 }
 
 void UProjectActivityFeedSubsystem::AddFeedEntry(const EProjectActivityFeedChannel Channel, const FText& Message)

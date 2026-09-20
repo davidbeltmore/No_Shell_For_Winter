@@ -90,6 +90,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Project|ActivityFeed")
 	void RequestScrollHistory(int32 Direction);
 
+	UFUNCTION(BlueprintPure, Category = "Project|ActivityFeed")
+	bool CanScrollHistory() const;
+
+	// Called synchronously when the comma HUD changes, including during input dispatch.
+	void RefreshHudVisibility();
+
 	UFUNCTION(BlueprintCallable, Category = "Project|ActivityFeed")
 	void DebugAddSystemEntry(const FText& Message);
 
@@ -129,6 +135,10 @@ private:
 	void BindInputToTrackedPlayerController();
 	void UnbindInputFromTrackedPlayerController();
 	void HandleToggleExpandedPressed();
+	void UpdateHistoryInput();
+	void UnbindHistoryInput();
+	void HandleHistoryUp();
+	void HandleHistoryDown();
 	void HandleTrackedPawnUpdated(APawn* NewPawn);
 	void ResolveTrackedPawnDependencies();
 	void BindToTrackedComponents();
@@ -170,6 +180,8 @@ private:
 
 private:
 	FDelegateHandle ActorSpawnedHandle;
+	UPROPERTY(Transient)
+	TObjectPtr<UInputComponent> HistoryInputComponent;
 	TArray<TSubclassOf<APawn>> TargetEnemyBaseClasses;
 	TMap<TObjectKey<APawn>, FProjectActivityFeedTrackedEnemyState> TrackedEnemies;
 	TArray<FProjectActivityFeedEntry> StoredEntries;

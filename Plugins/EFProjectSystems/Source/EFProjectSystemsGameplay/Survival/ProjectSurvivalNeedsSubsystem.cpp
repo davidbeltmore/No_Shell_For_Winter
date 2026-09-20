@@ -16,6 +16,7 @@
 #include "Survival/ProjectSurvivalStatusComponent.h"
 #include "Survival/ProjectSurvivalStatusWidget.h"
 #include "UI/ProjectWidgetClassResolver.h"
+#include "UI/ProjectActivityFeedSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
@@ -150,6 +151,13 @@ bool UProjectSurvivalNeedsSubsystem::SetNeedsHudVisible(const bool bVisible)
 		RefreshInnerDoctrineWidget(true);
 	}
 
+	if (UWorld* World = GetWorld())
+	{
+		if (UProjectActivityFeedSubsystem* Chronicle = World->GetSubsystem<UProjectActivityFeedSubsystem>())
+		{
+			Chronicle->RefreshHudVisibility();
+		}
+	}
 	return TrackedNeedsWidget != nullptr;
 }
 

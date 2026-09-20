@@ -392,6 +392,7 @@ void UProjectActivityFeedWidget::SetExpanded(const bool bInExpanded)
 	}
 
 	bExpanded = bInExpanded;
+	bFollowNewestEntry = true;
 	ApplyCachedState();
 	OnChronicleExpandedChanged(bExpanded);
 }
@@ -439,20 +440,14 @@ void UProjectActivityFeedWidget::ScrollHistoryByEntries(const int32 Direction)
 		return;
 	}
 
-	if (!VisibleRowWidgets.IsValidIndex(ScrollTargetRowIndex))
-	{
-		ScrollTargetRowIndex = VisibleRowWidgets.Num() - 1;
-	}
-
-	ScrollTargetRowIndex = FMath::Clamp(
-		ScrollTargetRowIndex + (Direction > 0 ? 1 : -1),
-		0,
-		VisibleRowWidgets.Num() - 1);
-	EntriesScrollBox->ScrollWidgetIntoView(
-		VisibleRowWidgets[ScrollTargetRowIndex].Get(),
-		true,
-		EDescendantScrollDestination::IntoView,
-		CurrentLayoutPolicy.RowGap);
+	// A pixel step moves on the first press and lets the reader traverse rows
+	// taller than the viewport, rather than jumping over their middle lines.
+	const float EndOffset = EntriesScrollBox->GetScrollOffsetOfEnd();
+	const float Step = FMath::Max(48.0f, CurrentLayoutPolicy.MinimumRowHeight + CurrentLayoutPolicy.RowGap);
+	const float Offset = FMath::Clamp(EntriesScrollBox->GetScrollOffset() + (Direction > 0 ? Step : -Step), 0.0f, EndOffset);
+	EntriesScrollBox->EndInertialScrolling();
+	EntriesScrollBox->SetScrollOffset(Offset);
+	bFollowNewestEntry = Offset >= EndOffset - 1.0f;
 }
 
 void UProjectActivityFeedWidget::BuildWidgetTree()
@@ -929,8 +924,28 @@ void UProjectActivityFeedWidget::RebuildVisibleRows()
 		return;
 	}
 
+	const bool bPreserveReadingPosition = bExpanded && !bFollowNewestEntry && !VisibleRowWidgets.IsEmpty();
+	int32 AnchorSequence = INDEX_NONE;
+	float OffsetWithinRow = 0.0f;
+	if (bPreserveReadingPosition)
+	{
+		float RowTop = 0.0f;
+		const float OldOffset = EntriesScrollBox->GetScrollOffset();
+		for (int32 Index = 0; Index < VisibleRowWidgets.Num(); ++Index)
+		{
+			const float Height = VisibleRowWidgets[Index]->GetDesiredSize().Y + CurrentLayoutPolicy.RowGap;
+			if (RowTop + Height > OldOffset || Index == VisibleRowWidgets.Num() - 1)
+			{
+				AnchorSequence = VisibleRowSequences.IsValidIndex(Index) ? VisibleRowSequences[Index] : INDEX_NONE;
+				OffsetWithinRow = FMath::Max(0.0f, OldOffset - RowTop);
+				break;
+			}
+			RowTop += Height;
+		}
+	}
 	EntriesBox->ClearChildren();
 	VisibleRowWidgets.Reset();
+	VisibleRowSequences.Reset();
 	VisibleEmptyStateWidget = nullptr;
 
 	const TArray<FProjectActivityFeedRowDisplayData> ResolvedRows = BuildResolvedRowData();
@@ -967,6 +982,8 @@ void UProjectActivityFeedWidget::RebuildVisibleRows()
 
 			RowWidget->ApplyDisplayData(RowData);
 			VisibleRowWidgets.Add(RowWidget);
+			const int32 EntryIndex = CachedEntries.Num() - ResolvedRows.Num() + RowIndex;
+			VisibleRowSequences.Add(CachedEntries[EntryIndex].Sequence);
 
 			if (UVerticalBoxSlot* RowSlot = EntriesBox->AddChildToVerticalBox(RowWidget))
 			{
@@ -982,8 +999,24 @@ void UProjectActivityFeedWidget::RebuildVisibleRows()
 
 	EntriesBox->InvalidateLayoutAndVolatility();
 	ForceLayoutPrepass();
-	ScrollTargetRowIndex = VisibleRowWidgets.IsEmpty() ? INDEX_NONE : VisibleRowWidgets.Num() - 1;
-	EntriesScrollBox->ScrollToEnd();
+	if (bPreserveReadingPosition)
+	{
+		float RestoredOffset = 0.0f;
+		const int32 AnchorIndex = VisibleRowSequences.Find(AnchorSequence);
+		if (AnchorIndex != INDEX_NONE)
+		{
+			RestoredOffset = OffsetWithinRow;
+			for (int32 Index = 0; Index < AnchorIndex; ++Index)
+			{
+				RestoredOffset += VisibleRowWidgets[Index]->GetDesiredSize().Y + CurrentLayoutPolicy.RowGap;
+			}
+		}
+		EntriesScrollBox->SetScrollOffset(RestoredOffset);
+	}
+	else
+	{
+		EntriesScrollBox->ScrollToEnd();
+	}
 	OnChronicleRowsRebuilt(bExpanded, VisibleRowWidgets.Num());
 }
 
@@ -993,9 +1026,9 @@ TArray<FProjectActivityFeedRowDisplayData> UProjectActivityFeedWidget::BuildReso
 
 	const UProjectActivityFeedSettings* Settings = UProjectActivityFeedSettings::Get();
 	const int32 VisibleEntryLimit = Settings
-		? FMath::Max(bExpanded ? Settings->ExpandedVisibleEntries : Settings->CompactVisibleEntries, 1)
-		: (bExpanded ? 4 : 2);
-	const int32 StartIndex = FMath::Max(CachedEntries.Num() - VisibleEntryLimit, 0);
+		? FMath::Max(Settings->CompactVisibleEntries, 1)
+		: 2;
+	const int32 StartIndex = bExpanded ? 0 : FMath::Max(CachedEntries.Num() - VisibleEntryLimit, 0);
 	const float RowWidth = CurrentPanelSize.X - 40.0f;
 	const float RowHeight = CurrentLayoutPolicy.MinimumRowHeight;
 	const float TextWrapWidth = FMath::Min(CurrentLayoutPolicy.MaximumTextWidth, RowWidth);

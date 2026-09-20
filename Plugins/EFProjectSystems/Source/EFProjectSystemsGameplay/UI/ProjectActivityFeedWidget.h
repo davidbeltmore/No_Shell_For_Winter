@@ -168,13 +168,14 @@ private:
 	UCanvasPanelSlot* FrameCanvasSlot = nullptr;
 	TArray<FProjectActivityFeedEntry> CachedEntries;
 	TArray<TObjectPtr<UProjectActivityFeedEntryRowWidget>> VisibleRowWidgets;
+	TArray<int32> VisibleRowSequences;
 	TObjectPtr<UProjectChronicleEmptyStateWidget> VisibleEmptyStateWidget;
 	TObjectPtr<UProjectChroniclePanelWidget> NormalPanelWidget;
 	TObjectPtr<UProjectChroniclePanelWidget> ExpandedPanelWidget;
 	TObjectPtr<UProjectChroniclePanelWidget> ActivePanelWidget;
 	FProjectChronicleLayoutPolicy CurrentLayoutPolicy;
 	FVector2D CurrentPanelSize = FVector2D(560.0f, 220.0f);
-	int32 ScrollTargetRowIndex = INDEX_NONE;
+	bool bFollowNewestEntry = true;
 	bool bExpanded = false;
 	bool bHudVisible = false;
 	bool bVisualTreeInitialized = false;

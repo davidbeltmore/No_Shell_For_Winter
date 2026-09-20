@@ -23,7 +23,8 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "History", meta = (ClampMin = "1", UIMin = "1"))
 	int32 CompactVisibleEntries;
 
-	UPROPERTY(EditAnywhere, Config, Category = "History", meta = (ClampMin = "1", UIMin = "1"))
+	/** Legacy config retained for compatibility. Expanded Chronicle displays all MaxStoredEntries. */
+	UPROPERTY(Config)
 	int32 ExpandedVisibleEntries;
 
 	UPROPERTY(EditAnywhere, Config, Category = "History", meta = (ClampMin = "1", UIMin = "1"))

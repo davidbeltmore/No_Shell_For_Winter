@@ -46,6 +46,7 @@ public class EFProjectSystemsEditor : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"InputCore",
 			"BlueprintGraph",
 			"AnimGraph",
 			"AnimationBlueprintLibrary"
