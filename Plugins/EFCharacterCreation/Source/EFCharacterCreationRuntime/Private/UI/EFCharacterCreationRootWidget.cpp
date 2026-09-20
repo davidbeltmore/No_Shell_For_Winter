@@ -1,11 +1,22 @@
 #include "UI/EFCharacterCreationRootWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 #include "EFCharacterCreationGameplayHooks.h"
 #include "EFCharacterCreationSettings.h"
 #include "EFCharacterCreationSubsystem.h"
 #include "EFCharacterCustomizationComponent.h"
 #include "UI/EFMorphSliderWidget.h"
+#include "UI/EFCharacterCreationSectionButton.h"
+#include "EFMorphPresentation.h"
+#include "Components/ExpandableArea.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/Image.h"
+#include "Engine/Texture2D.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -101,6 +112,23 @@ bool UEFCharacterCreationRootWidget::TryGetThemeTabState(
 	const UWidget* Widget,
 	bool& bOutIsActive) const
 {
+	for (const UEFCharacterCreationSectionButton* Button : SectionButtons)
+	{
+		if (Button && (Widget == Button || Widget == Button->GetContent()))
+		{
+			const FString Selected = SelectedSections.FindRef(ActiveCategory);
+			bOutIsActive = Button->Section == (Selected.IsEmpty() ? TEXT("All") : Selected);
+			return true;
+		}
+	}
+	if (Widget && (Widget == GenderMaleButton || Widget == GenderMaleLabel || Widget == GenderFemaleButton || Widget == GenderFemaleLabel))
+	{
+		bOutIsActive = CustomizationComponent.IsValid() &&
+			((CustomizationComponent->GetGender() == ECharacterCreationGender::Male && (Widget == GenderMaleButton || Widget == GenderMaleLabel)) ||
+			 (CustomizationComponent->GetGender() == ECharacterCreationGender::Female && (Widget == GenderFemaleButton || Widget == GenderFemaleLabel)));
+		return true;
+	}
+
 	const auto MatchTab =
 		[this, Widget, &bOutIsActive](
 			const UWidget* Button,
@@ -135,6 +163,24 @@ void UEFCharacterCreationRootWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	EFCharacterCreationGameplayHooks::OnWidgetReady().Broadcast(this);
+}
+
+void UEFCharacterCreationRootWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	const APlayerController* Player = GetOwningPlayer();
+	if (!EditorPanelSlot || !Player || !Player->PlayerCameraManager) return;
+	int32 Width = 0, Height = 0;
+	Player->GetViewportSize(Width, Height);
+	const FMinimalViewInfo& View = Player->PlayerCameraManager->GetCameraCacheView();
+	const float LetterboxPixels = View.bConstrainAspectRatio && View.AspectRatio > 0.0f
+		? FMath::Max(0.0f, (Height - Width / View.AspectRatio) * 0.5f) : 0.0f;
+	const float Scale = FMath::Max(0.01f, UWidgetLayoutLibrary::GetViewportScale(this));
+	const float Inset = FMath::Max(48.0f, LetterboxPixels / Scale + 16.0f);
+	if (!FMath::IsNearlyEqual(EditorPanelSlot->GetPadding().Top, Inset, 0.5f))
+	{
+		EditorPanelSlot->SetPadding(FMargin(0.0f, Inset, 24.0f, Inset));
+	}
 }
 
 FReply UEFCharacterCreationRootWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
@@ -262,13 +308,19 @@ void UEFCharacterCreationRootWidget::StopCameraInteraction()
 UButton* UEFCharacterCreationRootWidget::CreateTextButton(const FString& Label, FLinearColor BackgroundColor, UTextBlock*& OutLabel) const
 {
 	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-	Button->SetBackgroundColor(BackgroundColor);
+	Button->SetBackgroundColor(FLinearColor::White);
+	FButtonStyle Style = Button->GetStyle();
+	Style.Normal = FSlateRoundedBoxBrush(FLinearColor(0.06f, 0.065f, 0.08f, 0.96f), 6.0f, FLinearColor(0.6f, 0.62f, 0.65f, 0.6f), 1.0f);
+	Style.Hovered = Style.Normal; Style.Pressed = Style.Normal; Style.Disabled = Style.Normal;
+	Style.NormalPadding = FMargin(10, 7); Style.PressedPadding = FMargin(10, 7);
+	Button->SetStyle(Style);
 
 	OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	OutLabel->SetText(FText::FromString(Label));
 	OutLabel->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 	OutLabel->SetJustification(ETextJustify::Center);
-	CharacterCreationRootWidgetPrivate::SetTextSize(OutLabel, 14);
+	CharacterCreationRootWidgetPrivate::SetTextSize(OutLabel, 13);
+	OutLabel->SetAutoWrapText(false);
 	Button->SetContent(OutLabel);
 	return Button;
 }
@@ -345,7 +397,7 @@ UBorder* UEFCharacterCreationRootWidget::CreateColorPreviewSwatch(UVerticalBox* 
 	SwatchSize->SetWidthOverride(52.0f);
 	SwatchSize->SetHeightOverride(52.0f);
 
-	UBorder* SwatchBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	UBorder* SwatchBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), MakeUniqueObjectName(WidgetTree, UBorder::StaticClass(), TEXT("AppearanceSwatchNoTheme")));
 	SwatchBorder->SetPadding(FMargin(0.0f));
 	SwatchBorder->SetBrushColor(FLinearColor::White);
 	SwatchSize->SetContent(SwatchBorder);
@@ -363,7 +415,7 @@ UTextBlock* UEFCharacterCreationRootWidget::CreateSectionHeader(const FString& S
 {
 	UTextBlock* Header = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	Header->SetText(FText::FromString(SectionLabel));
-	Header->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.82f, 0.1f, 1.0f)));
+	Header->SetColorAndOpacity(FSlateColor(FLinearColor(0.9f, 0.92f, 0.96f, 1.0f)));
 	FSlateFontInfo HeaderFont = Header->GetFont();
 	HeaderFont.Size = 15;
 	Header->SetFont(HeaderFont);
@@ -383,7 +435,9 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 	UVerticalBox* LeftPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LeftPanel"));
 	if (UHorizontalBoxSlot* LeftSlot = RootLayout->AddChildToHorizontalBox(LeftPanel))
 	{
-		LeftSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		FSlateChildSize LeftSize(ESlateSizeRule::Fill);
+		LeftSize.Value = 0.55f;
+		LeftSlot->SetSize(LeftSize);
 		LeftSlot->SetPadding(FMargin(32.0f));
 	}
 
@@ -396,40 +450,54 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 		SpacerSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	}
 
-	UVerticalBox* LeftActions = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LeftActions"));
-	if (UVerticalBoxSlot* ActionsSlot = LeftPanel->AddChildToVerticalBox(LeftActions))
-	{
-		ActionsSlot->SetHorizontalAlignment(HAlign_Center);
-		ActionsSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 24.0f));
-	}
-
-	UTextBlock* StartGameLabel = nullptr;
-	StartGameButton = CreateTextButton(TEXT("Apply"), FLinearColor(0.25f, 0.19f, 0.14f, 0.92f), StartGameLabel);
-	StartGameButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleStartGameClicked);
-	if (UVerticalBoxSlot* ButtonSlot = LeftActions->AddChildToVerticalBox(StartGameButton))
-	{
-		ButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 8.0f));
-	}
-
-	UTextBlock* BackLabel = nullptr;
-	BackButton = CreateTextButton(TEXT("Cancel"), FLinearColor(0.18f, 0.14f, 0.12f, 0.92f), BackLabel);
-	BackButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleBackClicked);
-	LeftActions->AddChildToVerticalBox(BackButton);
 
 	USizeBox* RightPanelSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("RightPanelSize"));
-	RightPanelSize->SetWidthOverride(790.0f);
+
 	if (UHorizontalBoxSlot* RightSlot = RootLayout->AddChildToHorizontalBox(RightPanelSize))
 	{
-		RightSlot->SetPadding(FMargin(0.0f, 24.0f, 24.0f, 24.0f));
+		EditorPanelSlot = RightSlot;
+		RightSlot->SetPadding(FMargin(0.0f, 48.0f, 24.0f, 48.0f));
+		FSlateChildSize RightSize(ESlateSizeRule::Fill);
+		RightSize.Value = 0.45f;
+		RightSlot->SetSize(RightSize);
 	}
 
 	UBorder* RightPanelBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("RightPanelBorder"));
-	RightPanelBorder->SetBrushColor(FLinearColor(0.06f, 0.05f, 0.04f, 0.9f));
-	RightPanelBorder->SetPadding(FMargin(16.0f));
-	RightPanelSize->SetContent(RightPanelBorder);
+	RightPanelBorder->SetBrush(FSlateRoundedBoxBrush(FLinearColor(0.025f, 0.03f, 0.04f, 0.96f), 16.0f, FLinearColor(0.6f, 0.62f, 0.66f, 0.8f), 1.0f));
+	RightPanelBorder->SetBrushColor(FLinearColor::White);
+	RightPanelBorder->SetPadding(FMargin(24.0f));
+	UOverlay* PanelOverlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CreationPanelOverlay"));
+	RightPanelSize->SetContent(PanelOverlay);
+	UOverlaySlot* PanelSlot = PanelOverlay->AddChildToOverlay(RightPanelBorder);
+	PanelSlot->SetHorizontalAlignment(HAlign_Fill);
+	PanelSlot->SetVerticalAlignment(VAlign_Fill);
+	// A vector outline keeps a constant stroke and corner radius at every aspect
+	// ratio. Stretching the landscape Chronicle frame caused doubled, jagged arcs.
+	UImage* Frame = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CreationFrameOutlineImage"));
+	Frame->SetVisibility(ESlateVisibility::HitTestInvisible);
+	Frame->SetBrush(FSlateRoundedBoxBrush(FLinearColor::Transparent, 11.0f,
+		FLinearColor(0.6f, 0.62f, 0.66f, 0.38f), 1.0f));
+	UOverlaySlot* FrameSlot = PanelOverlay->AddChildToOverlay(Frame);
+	FrameSlot->SetHorizontalAlignment(HAlign_Fill);
+	FrameSlot->SetVerticalAlignment(VAlign_Fill);
+	FrameSlot->SetPadding(FMargin(7.0f));
 
 	UVerticalBox* RightPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RightPanel"));
 	RightPanelBorder->SetContent(RightPanel);
+	UTextBlock* Title = CreateSectionHeader(TEXT("CHARACTER CREATION"));
+	Title->Rename(TEXT("CreationTitle"), WidgetTree);
+	FSlateFontInfo TitleFont = Title->GetFont();
+	TitleFont.Size = 26;
+	TitleFont.TypefaceFontName = TEXT("Regular");
+	Title->SetFont(TitleFont);
+	RightPanel->AddChildToVerticalBox(Title)->SetPadding(FMargin(0, 0, 0, 8));
+	USizeBox* DividerSize = WidgetTree->ConstructWidget<USizeBox>();
+	DividerSize->SetHeightOverride(8);
+	UImage* Divider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CreationDivider"));
+	Divider->SetVisibility(ESlateVisibility::HitTestInvisible);
+	Divider->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/_Game/Widgets/Chronicle/Assets/Textures/T_Chronicle_Divider.T_Chronicle_Divider")));
+	DividerSize->SetContent(Divider);
+	RightPanel->AddChildToVerticalBox(DividerSize)->SetPadding(FMargin(0, 0, 0, 12));
 
 	UHorizontalBox* ToggleRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ToggleRow"));
 	RightPanel->AddChildToVerticalBox(ToggleRow);
@@ -449,7 +517,7 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 	PauseAnimationCheckBox->OnCheckStateChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandlePauseAnimationChanged);
 	ToggleRow->AddChildToHorizontalBox(PauseAnimationCheckBox);
 	UTextBlock* PauseAnimationLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	PauseAnimationLabel->SetText(FText::FromString(TEXT("Pause anim")));
+	PauseAnimationLabel->SetText(FText::FromString(TEXT("Pause animation")));
 	CharacterCreationRootWidgetPrivate::SetTextSize(PauseAnimationLabel, 13);
 	if (UHorizontalBoxSlot* LabelSlot = ToggleRow->AddChildToHorizontalBox(PauseAnimationLabel))
 	{
@@ -512,9 +580,17 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 	TattooTabLabel = TattooTabLabelRaw;
 	TattooTabButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleTattooTabClicked);
 	TabRow->AddChildToHorizontalBox(TattooTabButton);
+	for (UWidget* Tab : TabRow->GetAllChildren())
+	{
+		if (UHorizontalBoxSlot* TabSlot = Cast<UHorizontalBoxSlot>(Tab->Slot))
+		{
+			TabSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			TabSlot->SetPadding(FMargin(0, 0, 4, 0));
+		}
+	}
 
 	SearchTextBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass(), TEXT("SearchTextBox"));
-	SearchTextBox->SetHintText(FText::FromString(TEXT("Search morph")));
+	SearchTextBox->SetHintText(FText::FromString(TEXT("Search this tab...")));
 	SearchTextBox->OnTextChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleSearchTextChanged);
 	if (UVerticalBoxSlot* SearchSlot = RightPanel->AddChildToVerticalBox(SearchTextBox))
 	{
@@ -530,35 +606,52 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 		ErrorSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 8.0f));
 	}
 
+	MorphWorkspace = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("MorphWorkspace"));
+	RightPanel->AddChildToVerticalBox(MorphWorkspace)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	SectionScrollBox = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("SectionNavigation"));
+	SectionScrollBox->SetScrollBarVisibility(ESlateVisibility::Collapsed);
+	UHorizontalBoxSlot* NavigationSlot = MorphWorkspace->AddChildToHorizontalBox(SectionScrollBox);
+	FSlateChildSize NavigationSize(ESlateSizeRule::Fill); NavigationSize.Value = 0.28f;
+	NavigationSlot->SetSize(NavigationSize);
+	NavigationSlot->SetPadding(FMargin(0, 0, 12, 0));
 	MorphScrollBox = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("MorphScrollBox"));
-	if (UVerticalBoxSlot* ScrollSlot = RightPanel->AddChildToVerticalBox(MorphScrollBox))
-	{
-		ScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-		ScrollSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
-	}
+	MorphScrollBox->OnUserScrolled.AddDynamic(this, &ThisClass::HandleMorphScrolled);
+	UHorizontalBoxSlot* ControlsSlot = MorphWorkspace->AddChildToHorizontalBox(MorphScrollBox);
+	FSlateChildSize ControlsSize(ESlateSizeRule::Fill); ControlsSize.Value = 0.72f;
+	ControlsSlot->SetSize(ControlsSize);
+	MorphScrollBox->SetClipping(EWidgetClipping::ClipToBoundsAlways);
 
 	TattooHostFrame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("TattooHostFrame"));
 	TattooHostFrame->SetVisibility(ESlateVisibility::Collapsed);
-	if (UVerticalBoxSlot* TattooSlot = RightPanel->AddChildToVerticalBox(TattooHostFrame))
+	RightPanel->AddChildToVerticalBox(TattooHostFrame)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	// The management and workspace widgets retain their internal behavior. Each
+	// has an independent vertical scroll; a shared horizontal scroll keeps legacy
+	// fixed-width children reachable without covering the character or footer.
+	UScrollBox* TattooHorizontalScroll = WidgetTree->ConstructWidget<UScrollBox>();
+	TattooHorizontalScroll->SetOrientation(Orient_Horizontal);
+	TattooHostFrame->SetContent(TattooHorizontalScroll);
+	UHorizontalBox* TattooColumns = WidgetTree->ConstructWidget<UHorizontalBox>();
+	TattooHorizontalScroll->AddChild(TattooColumns);
+	auto MakeTattooColumn = [this, TattooColumns](const TCHAR* Name, float Width)
 	{
-		TattooSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-	}
-
-	TattooHostCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("TattooHostCanvas"));
-	TattooHostFrame->SetContent(TattooHostCanvas);
-
-	TattooShopHostBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("TattooShopHostBox"));
-	TattooHostCanvas->AddChild(TattooShopHostBox);
-
-	TattooAssetPreviewerHostBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("TattooAssetPreviewerHostBox"));
-	TattooHostCanvas->AddChild(TattooAssetPreviewerHostBox);
+		USizeBox* ColumnSize = WidgetTree->ConstructWidget<USizeBox>();
+		ColumnSize->SetWidthOverride(Width);
+		TattooColumns->AddChildToHorizontalBox(ColumnSize)->SetPadding(FMargin(0, 0, 10, 0));
+		UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
+		ColumnSize->SetContent(Scroll);
+		UVerticalBox* Host = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), Name);
+		Scroll->AddChild(Host);
+		return Host;
+	};
+	TattooShopHostBox = MakeTattooColumn(TEXT("TattooShopHostBox"), 320);
+	TattooAssetPreviewerHostBox = MakeTattooColumn(TEXT("TattooAssetPreviewerHostBox"), 400);
 	ApplyTattooLayoutSettings();
 
 	RandomDefaultsRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("RandomDefaultsRow"));
 	RightPanel->AddChildToVerticalBox(RandomDefaultsRow);
 
 	UTextBlock* RandomLabel = nullptr;
-	RandomButton = CreateTextButton(TEXT("Random"), FLinearColor(0.20f, 0.17f, 0.12f, 1.0f), RandomLabel);
+	RandomButton = CreateTextButton(TEXT("Randomize All"), FLinearColor(0.20f, 0.17f, 0.12f, 1.0f), RandomLabel);
 	RandomButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleRandomClicked);
 	if (UHorizontalBoxSlot* ButtonSlot = RandomDefaultsRow->AddChildToHorizontalBox(RandomButton))
 	{
@@ -567,22 +660,29 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 	}
 
 	UTextBlock* DefaultsLabel = nullptr;
-	DefaultsButton = CreateTextButton(TEXT("Defaults"), FLinearColor(0.20f, 0.17f, 0.12f, 1.0f), DefaultsLabel);
+	DefaultsButton = CreateTextButton(TEXT("Reset All"), FLinearColor(0.20f, 0.17f, 0.12f, 1.0f), DefaultsLabel);
 	DefaultsButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleDefaultsClicked);
 	if (UHorizontalBoxSlot* ButtonSlot = RandomDefaultsRow->AddChildToHorizontalBox(DefaultsButton))
 	{
 		ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	}
 
+	PresetsArea = WidgetTree->ConstructWidget<UExpandableArea>(UExpandableArea::StaticClass(), TEXT("PresetsArea"));
+	PresetsArea->SetContentForSlot(TEXT("Header"), CreateSectionHeader(TEXT("PRESETS")));
+	UVerticalBox* PresetsBody = WidgetTree->ConstructWidget<UVerticalBox>();
+	PresetsArea->SetContentForSlot(TEXT("Body"), PresetsBody);
+	PresetsArea->SetIsExpanded(false);
+	PresetsArea->SetHeaderPadding(FMargin(0, 8));
+	RightPanel->AddChildToVerticalBox(PresetsArea);
 	PresetNameTextBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass(), TEXT("PresetNameTextBox"));
 	PresetNameTextBox->SetHintText(FText::FromString(TEXT("Enter preset name")));
-	if (UVerticalBoxSlot* PresetNameSlot = RightPanel->AddChildToVerticalBox(PresetNameTextBox))
+	if (UVerticalBoxSlot* PresetNameSlot = PresetsBody->AddChildToVerticalBox(PresetNameTextBox))
 	{
 		PresetNameSlot->SetPadding(FMargin(0.0f, 12.0f, 0.0f, 8.0f));
 	}
 
 	PresetActionsRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("PresetActionsRow"));
-	RightPanel->AddChildToVerticalBox(PresetActionsRow);
+	PresetsBody->AddChildToVerticalBox(PresetActionsRow);
 
 	UTextBlock* SavePresetLabel = nullptr;
 	SavePresetButton = CreateTextButton(TEXT("Save as preset"), FLinearColor(0.20f, 0.17f, 0.12f, 1.0f), SavePresetLabel);
@@ -603,10 +703,31 @@ void UEFCharacterCreationRootWidget::BuildWidgetTree()
 
 	PresetComboBox = WidgetTree->ConstructWidget<UComboBoxString>(UComboBoxString::StaticClass(), TEXT("PresetComboBox"));
 	PresetComboBox->OnSelectionChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandlePresetSelectionChanged);
-	if (UVerticalBoxSlot* PresetComboSlot = RightPanel->AddChildToVerticalBox(PresetComboBox))
+	if (UVerticalBoxSlot* PresetComboSlot = PresetsBody->AddChildToVerticalBox(PresetComboBox))
 	{
 		PresetComboSlot->SetPadding(FMargin(0.0f, 8.0f, 0.0f, 0.0f));
 	}
+	UHorizontalBox* LeftActions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CreationFooterActions"));
+	if (UVerticalBoxSlot* ActionsSlot = RightPanel->AddChildToVerticalBox(LeftActions))
+	{
+		ActionsSlot->SetHorizontalAlignment(HAlign_Fill);
+		ActionsSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+	}
+
+	UTextBlock* StartGameLabel = nullptr;
+	StartGameButton = CreateTextButton(TEXT("Apply"), FLinearColor(0.25f, 0.19f, 0.14f, 0.92f), StartGameLabel);
+	StartGameButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleStartGameClicked);
+	if (UHorizontalBoxSlot* ButtonSlot = LeftActions->AddChildToHorizontalBox(StartGameButton))
+	{
+		ButtonSlot->SetPadding(FMargin(0, 0, 8, 0));
+		ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+
+	UTextBlock* BackLabel = nullptr;
+	BackButton = CreateTextButton(TEXT("Cancel"), FLinearColor(0.18f, 0.14f, 0.12f, 0.92f), BackLabel);
+	BackButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleBackClicked);
+	LeftActions->AddChildToHorizontalBox(BackButton)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+
 }
 
 void UEFCharacterCreationRootWidget::RefreshPresetList()
@@ -719,6 +840,91 @@ void UEFCharacterCreationRootWidget::BuildInfoPanel()
 	}
 }
 
+FString UEFCharacterCreationRootWidget::NavigationKey() const
+{
+	const FString Section = SelectedSections.FindRef(ActiveCategory);
+	const FString Search = SearchTextBox ? SearchTextBox->GetText().ToString() : FString();
+	return ActiveCategory.ToString() + TEXT("/") + (Search.IsEmpty() ? Section : TEXT("Search"));
+}
+
+void UEFCharacterCreationRootWidget::HandleMorphScrolled(float Offset)
+{
+	if (!bChangingNavigation) SectionScrollOffsets.Add(NavigationKey(), Offset);
+}
+
+void UEFCharacterCreationRootWidget::SelectPresentationCategory(FName Category)
+{
+	if (Category == TEXT("Info") || Category == TEXT("Head") || Category == TEXT("Body") || Category == TEXT("Skin") || Category == TEXT("Hair") || Category == TEXT("Tattoo"))
+	{
+		if (Category == TEXT("Tattoo")) HandleTattooTabClicked();
+		else SetActiveCategory(Category);
+	}
+}
+
+void UEFCharacterCreationRootWidget::SelectPresentationSection(const FString& Section)
+{
+	if (Section != TEXT("All") && !SectionButtons.ContainsByPredicate([&](const UEFCharacterCreationSectionButton* Button) { return Button && Button->Section == Section; })) return;
+	SectionScrollOffsets.Add(NavigationKey(), MorphScrollBox->GetScrollOffset());
+	SelectedSections.Add(ActiveCategory, Section);
+	{
+		TGuardValue<bool> Guard(bChangingNavigation, true);
+		SearchTextBox->SetText(FText::GetEmpty());
+	}
+	RefreshMorphList();
+}
+
+TArray<FMorphSliderEntry> UEFCharacterCreationRootWidget::GetDisplayedMorphEntries() const
+{
+	if (!CustomizationComponent.IsValid() || (ActiveCategory != TEXT("Head") && ActiveCategory != TEXT("Body"))) return {};
+	const FString Search = SearchTextBox ? SearchTextBox->GetText().ToString().TrimStartAndEnd() : FString();
+	TArray<FMorphSliderEntry> Entries = CustomizationComponent->GetAvailableMorphEntriesForCategory(ActiveCategory, Search);
+	const FString Selected = SelectedSections.FindRef(ActiveCategory);
+	if (Search.IsEmpty() && !Selected.IsEmpty() && Selected != TEXT("All"))
+	{
+		Entries.RemoveAll([&](const FMorphSliderEntry& Entry) { return Entry.Section != Selected; });
+	}
+	return Entries;
+}
+
+void UEFCharacterCreationRootWidget::BuildSectionNavigation()
+{
+	if (!SectionScrollBox) return;
+	const bool bAnatomical = ActiveCategory == TEXT("Head") || ActiveCategory == TEXT("Body");
+	SectionScrollBox->SetVisibility(bAnatomical ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	SectionButtons.Reset();
+	SectionScrollBox->ClearChildren();
+	if (!bAnatomical || !CustomizationComponent.IsValid()) return;
+	TMap<FString, int32> Counts;
+	const TArray<FMorphSliderEntry> Entries = CustomizationComponent->GetAvailableMorphEntriesForCategory(ActiveCategory, FString());
+	for (const FMorphSliderEntry& Entry : Entries) ++Counts.FindOrAdd(Entry.Section);
+	FString& Selected = SelectedSections.FindOrAdd(ActiveCategory);
+	if (Selected.IsEmpty() || (Selected != TEXT("All") && !Counts.Contains(Selected))) Selected = TEXT("All");
+	TArray<FString> Ordered = {TEXT("All")};
+	for (const FString& Section : EFMorphPresentation::Sections(ActiveCategory)) if (Counts.Contains(Section)) Ordered.Add(Section);
+	TArray<FString> Extra;
+	for (const auto& Pair : Counts) if (!Ordered.Contains(Pair.Key)) Extra.Add(Pair.Key);
+	Extra.Sort(); Ordered.Append(Extra);
+	for (const FString& Section : Ordered)
+	{
+		UEFCharacterCreationSectionButton* Button = WidgetTree->ConstructWidget<UEFCharacterCreationSectionButton>();
+		Button->InitializeSection(Section);
+		Button->OnSectionSelected.BindUObject(this, &ThisClass::SelectPresentationSection);
+		Button->SetBackgroundColor(FLinearColor::White);
+		FButtonStyle Style = Button->GetStyle();
+		Style.Normal = FSlateRoundedBoxBrush(FLinearColor(0.04f, 0.045f, 0.06f, 0.98f), 6.0f, FLinearColor(0.4f, 0.42f, 0.46f, 0.5f), 1.0f);
+		Style.Hovered = Style.Normal; Style.Pressed = Style.Normal;
+		Style.NormalPadding = FMargin(10, 9); Style.PressedPadding = FMargin(10, 9);
+		Button->SetStyle(Style);
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
+		Label->SetText(FText::FromString(Section)); Label->SetAutoWrapText(true);
+		CharacterCreationRootWidgetPrivate::SetTextSize(Label, 13);
+		Button->SetContent(Label);
+		Button->SetToolTipText(FText::FromString(FString::Printf(TEXT("%s - %d morphs"), *Section, Section == TEXT("All") ? Entries.Num() : Counts.FindRef(Section))));
+		Cast<UScrollBoxSlot>(SectionScrollBox->AddChild(Button))->SetPadding(FMargin(0, 0, 4, 5));
+		SectionButtons.Add(Button);
+	}
+}
+
 void UEFCharacterCreationRootWidget::RefreshMorphList()
 {
 	if (!IsValid(MorphScrollBox))
@@ -732,10 +938,12 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		// session. Notify project-owned presentation adapters only after the
 		// complete tree is stable so the selected native palette remains
 		// authoritative without a polling/tint overlay.
+		MorphScrollBox->SetScrollOffset(SectionScrollOffsets.FindRef(NavigationKey()));
 		EFCharacterCreationGameplayHooks::OnWidgetReady().Broadcast(this);
 	};
 
 	MorphScrollBox->ClearChildren();
+	BuildSectionNavigation();
 
 	UEFCharacterCustomizationComponent* Customization = CustomizationComponent.Get();
 	if (!Customization)
@@ -752,6 +960,8 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 	if (IsValid(MorphScrollBox))
 	{
 		MorphScrollBox->SetVisibility(bIsTattooCategory ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		MorphWorkspace->SetVisibility(bIsTattooCategory ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		PresetsArea->SetVisibility(bIsTattooCategory ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 	}
 	if (IsValid(RandomDefaultsRow))
 	{
@@ -850,8 +1060,15 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		NextHairButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairNextClicked);
 		SelectorRow->AddChildToHorizontalBox(NextHairButton);
 
+		UExpandableArea* AdvancedArea = WidgetTree->ConstructWidget<UExpandableArea>(UExpandableArea::StaticClass(), TEXT("HairAdvancedArea"));
+		AdvancedArea->SetContentForSlot(TEXT("Header"), CreateSectionHeader(TEXT("Advanced")));
+		AdvancedArea->SetHeaderPadding(FMargin(0, 12));
+		AdvancedArea->SetIsExpanded(bHairEditRequested || bHairEditUnlocked);
+		HairBox->AddChildToVerticalBox(AdvancedArea);
+		UVerticalBox* AdvancedBox = WidgetTree->ConstructWidget<UVerticalBox>();
+		AdvancedArea->SetContentForSlot(TEXT("Body"), AdvancedBox);
 		UHorizontalBox* EditRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		if (UVerticalBoxSlot* EditRowSlot = HairBox->AddChildToVerticalBox(EditRow))
+		if (UVerticalBoxSlot* EditRowSlot = AdvancedBox->AddChildToVerticalBox(EditRow))
 		{
 			EditRowSlot->SetPadding(FMargin(0.0f, 12.0f, 0.0f, 8.0f));
 		}
@@ -864,7 +1081,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		EditRow->AddChildToHorizontalBox(HairEditCheckBox);
 
 		UTextBlock* EditLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		EditLabel->SetText(FText::FromString(TEXT("Edit")));
+		EditLabel->SetText(FText::FromString(TEXT("Advanced transform")));
 		CharacterCreationRootWidgetPrivate::SetTextSize(EditLabel, 13);
 		if (UHorizontalBoxSlot* EditLabelSlot = EditRow->AddChildToHorizontalBox(EditLabel))
 		{
@@ -877,7 +1094,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 			UBorder* WarningBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
 			WarningBorder->SetPadding(FMargin(10.0f));
 			WarningBorder->SetBrushColor(FLinearColor(0.22f, 0.12f, 0.08f, 0.95f));
-			if (UVerticalBoxSlot* WarningSlot = HairBox->AddChildToVerticalBox(WarningBorder))
+			if (UVerticalBoxSlot* WarningSlot = AdvancedBox->AddChildToVerticalBox(WarningBorder))
 			{
 				WarningSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
 			}
@@ -910,53 +1127,53 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 			WarningButtons->AddChildToHorizontalBox(WarningCancelButton);
 		}
 
-		HairBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Location")));
+		AdvancedBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Location")));
 		UHorizontalBox* LocationXRow = CreateValueSliderRow(TEXT("X"), HairLocationXSlider, HairLocationXTextBox, HairLocationXMinValue, HairLocationXMaxValue, 0.0f);
 		HairLocationXSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationXChanged);
 		HairLocationXTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationXTextCommitted);
-		HairBox->AddChildToVerticalBox(LocationXRow);
+		AdvancedBox->AddChildToVerticalBox(LocationXRow);
 
 		UHorizontalBox* LocationYRow = CreateValueSliderRow(TEXT("Y"), HairLocationYSlider, HairLocationYTextBox, HairLocationYMinValue, HairLocationYMaxValue, 0.0f);
 		HairLocationYSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationYChanged);
 		HairLocationYTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationYTextCommitted);
-		HairBox->AddChildToVerticalBox(LocationYRow);
+		AdvancedBox->AddChildToVerticalBox(LocationYRow);
 
 		UHorizontalBox* LocationZRow = CreateValueSliderRow(TEXT("Z"), HairLocationZSlider, HairLocationZTextBox, HairLocationZMinValue, HairLocationZMaxValue, 0.0f);
 		HairLocationZSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationZChanged);
 		HairLocationZTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairLocationZTextCommitted);
-		HairBox->AddChildToVerticalBox(LocationZRow);
+		AdvancedBox->AddChildToVerticalBox(LocationZRow);
 
-		HairBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Rotation")));
+		AdvancedBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Rotation")));
 		UHorizontalBox* PitchRow = CreateValueSliderRow(TEXT("Pitch"), HairPitchSlider, HairPitchTextBox, HairPitchMinValue, HairPitchMaxValue, 0.0f);
 		HairPitchSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairPitchChanged);
 		HairPitchTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairPitchTextCommitted);
-		HairBox->AddChildToVerticalBox(PitchRow);
+		AdvancedBox->AddChildToVerticalBox(PitchRow);
 
 		UHorizontalBox* YawRow = CreateValueSliderRow(TEXT("Yaw"), HairYawSlider, HairYawTextBox, HairYawMinValue, HairYawMaxValue, 0.0f);
 		HairYawSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairYawChanged);
 		HairYawTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairYawTextCommitted);
-		HairBox->AddChildToVerticalBox(YawRow);
+		AdvancedBox->AddChildToVerticalBox(YawRow);
 
 		UHorizontalBox* RollRow = CreateValueSliderRow(TEXT("Roll"), HairRollSlider, HairRollTextBox, HairRollMinValue, HairRollMaxValue, 0.0f);
 		HairRollSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairRollChanged);
 		HairRollTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairRollTextCommitted);
-		HairBox->AddChildToVerticalBox(RollRow);
+		AdvancedBox->AddChildToVerticalBox(RollRow);
 
-		HairBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Scale")));
+		AdvancedBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Scale")));
 		UHorizontalBox* ScaleXRow = CreateValueSliderRow(TEXT("X"), HairScaleXSlider, HairScaleXTextBox, HairScaleXMinValue, HairScaleXMaxValue, 1.0f);
 		HairScaleXSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleXChanged);
 		HairScaleXTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleXTextCommitted);
-		HairBox->AddChildToVerticalBox(ScaleXRow);
+		AdvancedBox->AddChildToVerticalBox(ScaleXRow);
 
 		UHorizontalBox* ScaleYRow = CreateValueSliderRow(TEXT("Y"), HairScaleYSlider, HairScaleYTextBox, HairScaleYMinValue, HairScaleYMaxValue, 1.0f);
 		HairScaleYSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleYChanged);
 		HairScaleYTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleYTextCommitted);
-		HairBox->AddChildToVerticalBox(ScaleYRow);
+		AdvancedBox->AddChildToVerticalBox(ScaleYRow);
 
 		UHorizontalBox* ScaleZRow = CreateValueSliderRow(TEXT("Z"), HairScaleZSlider, HairScaleZTextBox, HairScaleZMinValue, HairScaleZMaxValue, 1.0f);
 		HairScaleZSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleZChanged);
 		HairScaleZTextBox->OnTextCommitted.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleHairScaleZTextCommitted);
-		HairBox->AddChildToVerticalBox(ScaleZRow);
+		AdvancedBox->AddChildToVerticalBox(ScaleZRow);
 
 		UpdateHairTransformControls();
 		return;
@@ -965,7 +1182,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 	if (ActiveCategory == TEXT("Skin"))
 	{
 		UBorder* SkinControlsBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		SkinControlsBorder->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 12.0f));
+		SkinControlsBorder->SetPadding(FMargin(14.0f));
 		SkinControlsBorder->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.08f, 0.82f));
 		MorphScrollBox->AddChild(SkinControlsBorder);
 
@@ -1014,8 +1231,14 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		SkinValueSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleSkinValueChanged);
 		SkinBox->AddChildToVerticalBox(SkinValueRow);
 
+		UBorder* IrisBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("IrisSectionBorder"));
+		IrisBorder->SetPadding(FMargin(14.0f));
+		IrisBorder->SetBrushColor(FLinearColor(0.1f, 0.1f, 0.12f, 0.9f));
+		Cast<UScrollBoxSlot>(MorphScrollBox->AddChild(IrisBorder))->SetPadding(FMargin(0, 12, 0, 0));
+		UVerticalBox* IrisBox = WidgetTree->ConstructWidget<UVerticalBox>();
+		IrisBorder->SetContent(IrisBox);
 		UHorizontalBox* IrisHeaderRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		if (UVerticalBoxSlot* HeaderSlot = SkinBox->AddChildToVerticalBox(IrisHeaderRow))
+		if (UVerticalBoxSlot* HeaderSlot = IrisBox->AddChildToVerticalBox(IrisHeaderRow))
 		{
 			HeaderSlot->SetPadding(FMargin(0.0f, 12.0f, 0.0f, 4.0f));
 		}
@@ -1036,25 +1259,25 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 			ResetButtonSlot->SetVerticalAlignment(VAlign_Center);
 		}
 
-		IrisPreviewBorder = CreateColorPreviewSwatch(SkinBox);
+		IrisPreviewBorder = CreateColorPreviewSwatch(IrisBox);
 
 		USlider* IrisHueSliderRaw = nullptr;
 		UHorizontalBox* IrisHueRow = CreateColorSliderRow(TEXT("Hue"), IrisHueSliderRaw, 0.0f);
 		IrisHueSlider = IrisHueSliderRaw;
 		IrisHueSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleIrisHueChanged);
-		SkinBox->AddChildToVerticalBox(IrisHueRow);
+		IrisBox->AddChildToVerticalBox(IrisHueRow);
 
 		USlider* IrisSaturationSliderRaw = nullptr;
 		UHorizontalBox* IrisSaturationRow = CreateColorSliderRow(TEXT("Saturation"), IrisSaturationSliderRaw, 0.0f);
 		IrisSaturationSlider = IrisSaturationSliderRaw;
 		IrisSaturationSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleIrisSaturationChanged);
-		SkinBox->AddChildToVerticalBox(IrisSaturationRow);
+		IrisBox->AddChildToVerticalBox(IrisSaturationRow);
 
 		USlider* IrisValueSliderRaw = nullptr;
 		UHorizontalBox* IrisValueRow = CreateColorSliderRow(TEXT("Value"), IrisValueSliderRaw, 0.0f);
 		IrisValueSlider = IrisValueSliderRaw;
 		IrisValueSlider->OnValueChanged.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleIrisValueChanged);
-		SkinBox->AddChildToVerticalBox(IrisValueRow);
+		IrisBox->AddChildToVerticalBox(IrisValueRow);
 
 		UpdateColorControls();
 	}
@@ -1071,7 +1294,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 
 		UVerticalBox* GenderBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		GenderBorder->SetContent(GenderBox);
-		GenderBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Genero")));
+		GenderBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Body mesh")));
 
 		UHorizontalBox* GenderRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		GenderBox->AddChildToVerticalBox(GenderRow);
@@ -1101,7 +1324,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 	}
 
 	const FString SearchFilter = IsValid(SearchTextBox) ? SearchTextBox->GetText().ToString() : FString();
-	TArray<FMorphSliderEntry> Entries = Customization->GetAvailableMorphEntriesForCategory(ActiveCategory, SearchFilter);
+	TArray<FMorphSliderEntry> Entries = GetDisplayedMorphEntries();
 	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
 	TSubclassOf<UEFMorphSliderWidget> MorphSliderClass = UEFMorphSliderWidget::StaticClass();
 	if (Settings->MorphSliderWidgetClass.IsValid() || !Settings->MorphSliderWidgetClass.ToSoftObjectPath().IsNull())
@@ -1112,12 +1335,19 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		}
 	}
 
+	if (Entries.IsEmpty() && (ActiveCategory == TEXT("Head") || ActiveCategory == TEXT("Body")))
+	{
+		UTextBlock* Empty = CreateSectionHeader(TEXT("No matching morphs. Try another search."));
+		Empty->SetAutoWrapText(true); MorphScrollBox->AddChild(Empty);
+	}
 	FString LastSection;
 	for (const FMorphSliderEntry& Entry : Entries)
 	{
 		if (!Entry.Section.IsEmpty() && Entry.Section != LastSection)
 		{
-			MorphScrollBox->AddChild(CreateSectionHeader(Entry.Section));
+			UTextBlock* SectionHeader = CreateSectionHeader(ActiveCategory.ToString() + TEXT(" / ") + Entry.Section);
+			SectionHeader->SetAutoWrapText(true);
+			Cast<UScrollBoxSlot>(MorphScrollBox->AddChild(SectionHeader))->SetPadding(FMargin(0, 8, 0, 8));
 			LastSection = Entry.Section;
 		}
 
@@ -1125,7 +1355,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 		SliderWidget->InitializeFromEntry(Entry, Customization->GetCurrentMorphValue(Entry));
 		SliderWidget->OnMorphValueChanged.AddUObject(this, &UEFCharacterCreationRootWidget::HandleMorphValueChanged);
 		SliderWidget->OnMorphResetRequested.AddUObject(this, &UEFCharacterCreationRootWidget::HandleMorphResetRequested);
-		MorphScrollBox->AddChild(SliderWidget);
+		Cast<UScrollBoxSlot>(MorphScrollBox->AddChild(SliderWidget))->SetPadding(FMargin(0, 0, 6, 8));
 	}
 }
 
@@ -1380,12 +1610,17 @@ bool UEFCharacterCreationRootWidget::TryParseNumericText(const FText& InText, fl
 
 void UEFCharacterCreationRootWidget::SetActiveCategory(FName NewCategory)
 {
+	if (MorphScrollBox) SectionScrollOffsets.Add(NavigationKey(), MorphScrollBox->GetScrollOffset());
 	if (ActiveCategory == TEXT("Tattoo") && NewCategory != TEXT("Tattoo"))
 	{
 		CloseTattooShopInCharacterCreation();
 	}
 
 	ActiveCategory = NewCategory;
+	{
+		TGuardValue<bool> Guard(bChangingNavigation, true);
+		if (SearchTextBox) SearchTextBox->SetText(FText::GetEmpty());
+	}
 	RefreshTabVisuals();
 	RefreshMorphList();
 }
@@ -1489,109 +1724,16 @@ void UEFCharacterCreationRootWidget::OpenTattooShopInCharacterCreation()
 
 void UEFCharacterCreationRootWidget::ApplyTattooLayoutSettings()
 {
-	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
-	if (!Settings)
+	if (TattooHostFrame)
 	{
-		return;
+		TattooHostFrame->ClearWidthOverride();
+		TattooHostFrame->ClearHeightOverride();
+		TattooHostFrame->SetClipping(EWidgetClipping::ClipToBoundsAlways);
 	}
-
-	const bool bUseCompactSkinnedDecalLayout = CharacterCreationRootWidgetPrivate::UsesSkinnedDecalTattooShopLayout();
-
-	if (IsValid(TattooHostFrame))
+	for (UWidget* Host : {static_cast<UWidget*>(TattooShopHostBox.Get()), static_cast<UWidget*>(TattooAssetPreviewerHostBox.Get())})
 	{
-		const FVector2D HostSize = Settings->TattooHostSize;
-		if (HostSize.X > 0.0f)
-		{
-			TattooHostFrame->SetWidthOverride(HostSize.X);
-		}
-		else
-		{
-			TattooHostFrame->ClearWidthOverride();
-		}
-
-		if (HostSize.Y > 0.0f)
-		{
-			TattooHostFrame->SetHeightOverride(HostSize.Y);
-		}
-		else
-		{
-			TattooHostFrame->ClearHeightOverride();
-		}
-
-		TattooHostFrame->SetClipping(
-			bUseCompactSkinnedDecalLayout || Settings->bClipTattooWidgetToHost
-				? EWidgetClipping::ClipToBoundsAlways
-				: EWidgetClipping::Inherit);
+		if (Host) { Host->SetRenderScale(FVector2D::UnitVector); Host->SetRenderTranslation(FVector2D::ZeroVector); }
 	}
-
-	if (UWidget* HostFrameWidget = TattooHostFrame.Get())
-	{
-		if (UPanelSlot* HostPanelSlot = HostFrameWidget->Slot)
-		{
-			if (UVerticalBoxSlot* HostVerticalSlot = Cast<UVerticalBoxSlot>(HostPanelSlot))
-			{
-				HostVerticalSlot->SetPadding(Settings->TattooHostPadding);
-			}
-		}
-	}
-
-	if (bUseCompactSkinnedDecalLayout)
-	{
-		// The Marketplace widgets use large render translations and scales. The
-		// project-owned SkinnedDecal UI is already authored at its final size, so
-		// give each host a stable column and never inherit the legacy transforms.
-		const FVector2D HostSize = Settings->TattooHostSize;
-		const float HorizontalMargin = 10.0f;
-		const float VerticalMargin = 20.0f;
-		const float ColumnGap = 10.0f;
-		const float ContentCenterY = -48.0f;
-		const float ManagementWidth = FMath::Clamp(HostSize.X * 0.42f, 300.0f, 340.0f);
-		const float WorkspaceWidth = FMath::Max(
-			360.0f,
-			HostSize.X - (HorizontalMargin * 2.0f) - ColumnGap - ManagementWidth);
-		const float ContentHeight = FMath::Max(480.0f, HostSize.Y - (VerticalMargin * 2.0f));
-		const float HostHalfWidth = HostSize.X * 0.5f;
-		const float ManagementCenterX = -HostHalfWidth + HorizontalMargin + (ManagementWidth * 0.5f);
-		const float WorkspaceCenterX = ManagementCenterX + (ManagementWidth * 0.5f) + ColumnGap + (WorkspaceWidth * 0.5f);
-
-		ApplyCenteredTattooWidgetLayout(
-			TattooShopHostBox,
-			FVector2D(ManagementCenterX, ContentCenterY),
-			FVector2D(ManagementWidth, ContentHeight),
-			FVector2D::UnitVector,
-			FVector2D::ZeroVector);
-
-		ApplyCenteredTattooWidgetLayout(
-			TattooAssetPreviewerHostBox,
-			FVector2D(WorkspaceCenterX, ContentCenterY),
-			FVector2D(WorkspaceWidth, ContentHeight),
-			FVector2D::UnitVector,
-			FVector2D::ZeroVector);
-		return;
-	}
-
-	ApplyCenteredTattooWidgetLayout(
-		TattooShopHostBox,
-		Settings->TattooShopOffsetFromCenter,
-		Settings->TattooShopSize,
-		Settings->TattooShopRenderScale,
-		Settings->TattooShopRenderTranslation);
-
-	FVector2D AssetPreviewerOffset = Settings->TattooAssetPreviewerOffsetFromCenter;
-	if (Settings->bStackAssetPreviewerBelowTattooShop)
-	{
-		const float TattooVisualHalfHeight = Settings->TattooShopSize.Y * FMath::Abs(Settings->TattooShopRenderScale.Y) * 0.5f;
-		const float PreviewVisualHalfHeight = Settings->TattooAssetPreviewerSize.Y * FMath::Abs(Settings->TattooAssetPreviewerRenderScale.Y) * 0.5f;
-		AssetPreviewerOffset.X = Settings->TattooShopOffsetFromCenter.X;
-		AssetPreviewerOffset.Y = Settings->TattooShopOffsetFromCenter.Y + TattooVisualHalfHeight + Settings->TattooAssetPreviewerGapBelowTattooShop + PreviewVisualHalfHeight;
-	}
-
-	ApplyCenteredTattooWidgetLayout(
-		TattooAssetPreviewerHostBox,
-		AssetPreviewerOffset,
-		Settings->TattooAssetPreviewerSize,
-		Settings->TattooAssetPreviewerRenderScale,
-		Settings->TattooAssetPreviewerRenderTranslation);
 }
 
 void UEFCharacterCreationRootWidget::ApplyCenteredTattooWidgetLayout(
@@ -1735,6 +1877,7 @@ void UEFCharacterCreationRootWidget::HandlePresetSelectionChanged(FString Select
 
 void UEFCharacterCreationRootWidget::HandleSearchTextChanged(const FText& NewText)
 {
+	if (bChangingNavigation) return;
 	RefreshMorphList();
 }
 

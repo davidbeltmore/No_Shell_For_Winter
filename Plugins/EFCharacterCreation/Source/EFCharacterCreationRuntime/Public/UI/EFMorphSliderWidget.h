@@ -51,6 +51,7 @@ private:
 	FMorphSliderEntry Entry;
 
 	float CurrentValue = 0.0f;
+	bool bPresentationLayoutBuilt = false;
 
 	UPROPERTY(Transient)
 	bool bIsRefreshingVisuals = false;

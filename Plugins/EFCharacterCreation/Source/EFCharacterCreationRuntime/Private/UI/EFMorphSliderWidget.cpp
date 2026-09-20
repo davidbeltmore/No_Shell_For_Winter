@@ -1,6 +1,8 @@
 #include "UI/EFMorphSliderWidget.h"
 
 #include "EFCharacterCreationGameplayHooks.h"
+#include "Components/Border.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -97,7 +99,7 @@ void UEFMorphSliderWidget::BuildWidgetTree()
 	ResetButton->SetBackgroundColor(FLinearColor(0.2f, 0.16f, 0.13f, 1.0f));
 	ResetButton->OnClicked.AddDynamic(this, &UEFMorphSliderWidget::HandleResetClicked);
 	ResetButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ResetButtonText"));
-	ResetButtonText->SetText(FText::FromString(TEXT("X")));
+	ResetButtonText->SetText(FText::FromString(TEXT("Reset")));
 	ResetButtonText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 	ResetButton->SetContent(ResetButtonText);
 	if (UHorizontalBoxSlot* ResetSlot = RootRow->AddChildToHorizontalBox(ResetButton))
@@ -246,7 +248,7 @@ void UEFMorphSliderWidget::BindDesignerWidgets()
 				continue;
 			}
 
-			if (!IsValid(ResetButtonText) && MatchesAnyToken(WidgetName, { TEXT("Reset"), TEXT("Clear"), TEXT("Button"), TEXT("X") }))
+			if (!IsValid(ResetButtonText) && MatchesAnyToken(WidgetName, { TEXT("Reset"), TEXT("Clear"), TEXT("Button"), TEXT("Reset") }))
 			{
 				ResetButtonText = TextBlock;
 			}
@@ -306,6 +308,32 @@ void UEFMorphSliderWidget::BindCallbacks()
 
 void UEFMorphSliderWidget::ApplyLayoutStyling()
 {
+	if (!bPresentationLayoutBuilt && MorphNameText && ValueSlider && ValueText && ResetButton && WarningText)
+	{
+		bPresentationLayoutBuilt = true;
+		for (UWidget* Control : {static_cast<UWidget*>(MorphNameText.Get()), static_cast<UWidget*>(ValueSlider.Get()), static_cast<UWidget*>(ValueText.Get()), static_cast<UWidget*>(ResetButton.Get()), static_cast<UWidget*>(WarningText.Get())}) Control->RemoveFromParent();
+		UBorder* Card = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("MorphCardBorder"));
+		Card->SetBrush(FSlateRoundedBoxBrush(FLinearColor(0.045f, 0.05f, 0.065f, 0.96f), 7.0f, FLinearColor(0.3f, 0.32f, 0.37f, 0.5f), 1.0f));
+		Card->SetBrushColor(FLinearColor::White);
+		Card->SetPadding(FMargin(12, 8));
+		WidgetTree->RootWidget = Card;
+		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>();
+		Card->SetContent(Column);
+		Column->AddChildToVerticalBox(MorphNameText)->SetPadding(FMargin(0, 0, 0, 5));
+		UHorizontalBox* Controls = WidgetTree->ConstructWidget<UHorizontalBox>();
+		Column->AddChildToVerticalBox(Controls);
+		Controls->AddChildToHorizontalBox(ValueSlider)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		Controls->AddChildToHorizontalBox(ValueText);
+		Controls->AddChildToHorizontalBox(ResetButton);
+		Column->AddChildToVerticalBox(WarningText);
+		FButtonStyle Style = ResetButton->GetStyle();
+		Style.Normal = FSlateRoundedBoxBrush(FLinearColor(0.06f, 0.07f, 0.085f, 1), 4.0f, FLinearColor(0.4f, 0.42f, 0.48f, 0.6f), 1.0f);
+		Style.Hovered = Style.Normal; Style.Pressed = Style.Normal;
+		Style.NormalPadding = FMargin(6, 3); Style.PressedPadding = FMargin(6, 3);
+		ResetButton->SetStyle(Style); ResetButton->SetBackgroundColor(FLinearColor::White);
+		ResetButton->SetToolTipText(FText::FromString(TEXT("Restore this morph to its default value")));
+	}
+
 	auto SetTextSize = [](UTextBlock* TextBlock, int32 FontSize)
 	{
 		if (!IsValid(TextBlock))
@@ -357,14 +385,15 @@ void UEFMorphSliderWidget::ApplyLayoutStyling()
 		}
 	};
 
-	SetTextSize(MorphNameText, 12);
+	SetTextSize(MorphNameText, 14);
 	SetTextSize(ValueText, 12);
 	SetTextSize(WarningText, 10);
 	SetTextSize(ResetButtonText, 12);
 
 	if (IsValid(MorphNameText))
 	{
-		MorphNameText->SetMinDesiredWidth(272.0f);
+		MorphNameText->SetMinDesiredWidth(0.0f);
+		MorphNameText->SetAutoWrapText(true);
 	}
 
 	if (IsValid(ValueText))
@@ -387,6 +416,7 @@ void UEFMorphSliderWidget::RefreshVisuals()
 	{
 		const FString DisplayName = Entry.DisplayName.IsEmpty() ? Entry.MorphName.ToString() : Entry.DisplayName;
 		MorphNameText->SetText(FText::FromString(DisplayName));
+		MorphNameText->SetToolTipText(FText::FromString(Entry.MorphName.ToString()));
 	}
 
 	if (IsValid(ValueSlider))
@@ -408,9 +438,9 @@ void UEFMorphSliderWidget::RefreshVisuals()
 
 	RefreshDeformationWarning();
 
-	if (IsValid(ResetButtonText) && ResetButtonText->GetText().IsEmpty())
+	if (IsValid(ResetButtonText))
 	{
-		ResetButtonText->SetText(FText::FromString(TEXT("X")));
+		ResetButtonText->SetText(FText::FromString(TEXT("Reset")));
 	}
 
 	bIsRefreshingVisuals = false;

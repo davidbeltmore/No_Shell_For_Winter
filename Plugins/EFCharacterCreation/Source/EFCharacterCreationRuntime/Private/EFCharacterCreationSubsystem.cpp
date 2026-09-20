@@ -444,7 +444,11 @@ void UEFCharacterCreationSubsystem::ZoomPreviewCamera(float WheelDelta)
 {
 	if (USpringArmComponent* PreviewSpringArm = ActivePreviewSpringArmComponent.Get())
 	{
+		const float PreviousDistance = PreviewSpringArm->TargetArmLength;
 		PreviewSpringArm->TargetArmLength = FMath::Clamp(PreviewSpringArm->TargetArmLength - WheelDelta * 26.0f, 80.0f, 800.0f);
+		// Keep the subject in the left preview area while preserving manual pan.
+		const float HalfFOV = FMath::DegreesToRadians(UEFCharacterCreationSettings::Get()->FullBodyCamera.FieldOfView * 0.5f);
+		PreviewSpringArm->SocketOffset.Y += (PreviewSpringArm->TargetArmLength - PreviousDistance) * FMath::Tan(HalfFOV) * 0.45f;
 		return;
 	}
 
@@ -765,7 +769,8 @@ void UEFCharacterCreationSubsystem::ActivatePreviewCameraRig(APawn* Pawn, UCamer
 	{
 		SpringArmComponent->SetRelativeLocation(CharacterCreationSubsystemPrivate::CalculatePreviewFocusRelativeLocation(Pawn, CameraSettings));
 		SpringArmComponent->SetRelativeRotation(FRotator(CameraSettings.PitchOffset, 180.0f + CameraSettings.YawOffset, 0.0f));
-		SpringArmComponent->SocketOffset = FVector::ZeroVector;
+		SpringArmComponent->SocketOffset = FVector(0.0f,
+			PreviewDistance * FMath::Tan(FMath::DegreesToRadians(CameraSettings.FieldOfView * 0.5f)) * 0.45f, 0.0f);
 		SpringArmComponent->TargetOffset = FVector::ZeroVector;
 		SpringArmComponent->TargetArmLength = PreviewDistance;
 		SpringArmComponent->bDoCollisionTest = false;
@@ -799,7 +804,9 @@ void UEFCharacterCreationSubsystem::UpdateDirectPreviewCameraTransform()
 	if (ACameraActor* PreviewCameraActor = ActivePreviewCameraActor.Get())
 	{
 		const FRotator CameraRotation = PreviewCameraActor->GetActorRotation();
-		PreviewCameraActor->SetActorLocation(DirectPreviewFocusWorldLocation - CameraRotation.Vector() * DirectPreviewCameraDistance);
+		const float LateralOffset = DirectPreviewCameraDistance * FMath::Tan(FMath::DegreesToRadians(PreviewCameraActor->GetCameraComponent()->FieldOfView * 0.5f)) * 0.45f;
+		PreviewCameraActor->SetActorLocation(DirectPreviewFocusWorldLocation - CameraRotation.Vector() * DirectPreviewCameraDistance
+			+ FRotationMatrix(CameraRotation).GetUnitAxis(EAxis::Y) * LateralOffset);
 		return;
 	}
 
@@ -810,7 +817,9 @@ void UEFCharacterCreationSubsystem::UpdateDirectPreviewCameraTransform()
 	}
 
 	const FRotator CameraRotation = PreviewCamera->GetComponentRotation();
-	PreviewCamera->SetWorldLocation(DirectPreviewFocusWorldLocation - CameraRotation.Vector() * DirectPreviewCameraDistance);
+	const float LateralOffset = DirectPreviewCameraDistance * FMath::Tan(FMath::DegreesToRadians(PreviewCamera->FieldOfView * 0.5f)) * 0.45f;
+	PreviewCamera->SetWorldLocation(DirectPreviewFocusWorldLocation - CameraRotation.Vector() * DirectPreviewCameraDistance
+		+ FRotationMatrix(CameraRotation).GetUnitAxis(EAxis::Y) * LateralOffset);
 }
 
 void UEFCharacterCreationSubsystem::RestorePreviewCameraRig()

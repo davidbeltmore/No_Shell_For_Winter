@@ -14,11 +14,14 @@ class UCheckBox;
 class UComboBoxString;
 class UEditableTextBox;
 class UHorizontalBox;
+class UHorizontalBoxSlot;
 class UScrollBox;
 class USizeBox;
 class USlider;
 class UTextBlock;
 class UVerticalBox;
+class UExpandableArea;
+class UEFCharacterCreationSectionButton;
 class UWidget;
 class UEFCharacterCreationSubsystem;
 class UEFCharacterCustomizationComponent;
@@ -37,9 +40,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|Automation")
 	bool OpenTattooTabForAutomation();
 
+	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|Presentation")
+	void SelectPresentationCategory(FName Category);
+	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|Presentation")
+	void SelectPresentationSection(const FString& Section);
+	UFUNCTION(BlueprintPure, Category = "EF Character Creation|Presentation")
+	TArray<FMorphSliderEntry> GetDisplayedMorphEntries() const;
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
@@ -49,6 +60,9 @@ protected:
 
 private:
 	void BuildWidgetTree();
+	void BuildSectionNavigation();
+	FString NavigationKey() const;
+	UFUNCTION() void HandleMorphScrolled(float Offset);
 	void RefreshMorphList();
 	void RefreshPresetList();
 	void RefreshTabVisuals();
@@ -251,6 +265,14 @@ private:
 	TWeakObjectPtr<UEFCharacterCustomizationComponent> CustomizationComponent;
 
 	FName ActiveCategory = TEXT("Info");
+	TMap<FName, FString> SelectedSections;
+	TMap<FString, float> SectionScrollOffsets;
+	bool bChangingNavigation = false;
+	UPROPERTY(Transient) TObjectPtr<UHorizontalBoxSlot> EditorPanelSlot;
+	UPROPERTY(Transient) TObjectPtr<UScrollBox> SectionScrollBox;
+	UPROPERTY(Transient) TObjectPtr<UHorizontalBox> MorphWorkspace;
+	UPROPERTY(Transient) TObjectPtr<UExpandableArea> PresetsArea;
+	UPROPERTY(Transient) TArray<TObjectPtr<UEFCharacterCreationSectionButton>> SectionButtons;
 	FString SelectedPresetName;
 
 	UPROPERTY(Transient)
