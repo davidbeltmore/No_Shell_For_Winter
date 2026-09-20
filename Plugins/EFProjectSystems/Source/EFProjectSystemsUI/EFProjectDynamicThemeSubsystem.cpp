@@ -12,6 +12,10 @@
 #include "Components/TextBlock.h"
 #include "EFCharacterCreationGameplayHooks.h"
 #include "UI/EFCharacterCreationRootWidget.h"
+#include "Components/EditableTextBox.h"
+#include "Components/ComboBoxString.h"
+#include "Components/ExpandableArea.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "EFProjectThemedUserWidget.h"
 #include "EFProjectUISettings.h"
 #include "Engine/GameInstance.h"
@@ -487,12 +491,22 @@ void UEFProjectDynamicThemeSubsystem::RefreshAllThemedWidgets()
 
 	CompactRegisteredWidgets();
 	const FProjectHUDThemeColors& Theme = EFProjectUITheme::GetTheme();
+	// Explicit registrations (including plugin WBP subclasses registered through
+	// OnWidgetReady) are authoritative even outside auto-discovery path prefixes.
+	for (const TWeakObjectPtr<UUserWidget>& Registered : RegisteredWidgets)
+	{
+		if (UUserWidget* Widget = Registered.Get(); IsValid(Widget) && Widget->GetWorld() == World)
+		{
+			ApplyThemeToWidget(Widget, Theme, ResolvedPreset);
+		}
+	}
 	for (TObjectIterator<UUserWidget> It; It; ++It)
 	{
 		UUserWidget* UserWidget = *It;
 		if (!IsValid(UserWidget)
 			|| UserWidget->IsTemplate()
 			|| UserWidget->GetWorld() != World
+			|| RegisteredWidgets.Contains(UserWidget)
 			|| !IsWidgetClassPathInScope(
 				UserWidget->GetClass()->GetPathName(),
 				Settings->DynamicThemeWidgetClassPathPrefixes))
@@ -870,6 +884,58 @@ void UEFProjectDynamicThemeSubsystem::ApplyThemeToWidget(
 						FLinearColor::White,
 						Button->GetBackgroundColor().A));
 				return;
+			}
+
+			// Native creator controls must follow the same palette as its frame.
+			// Limit this extension to the creator so other designer widgets retain
+			// their current text-entry and dropdown styling.
+			if (bIsCharacterCreationWidget)
+			{
+				if (UEditableTextBox* Field = Cast<UEditableTextBox>(Widget))
+				{
+					FEditableTextBoxStyle Style = Field->GetWidgetStyle();
+					Style.BackgroundImageNormal = FSlateRoundedBoxBrush(Theme.PanelFillDeep, 5.0f, Theme.OutlineDim, 1.0f);
+					Style.BackgroundImageHovered = FSlateRoundedBoxBrush(Theme.PanelFillDeep, 5.0f, Theme.AccentMuted, 1.0f);
+					Style.BackgroundImageFocused = FSlateRoundedBoxBrush(Theme.PanelFillDeep, 5.0f, Theme.Accent, 1.0f);
+					Style.BackgroundImageReadOnly = Style.BackgroundImageNormal;
+					Style.ForegroundColor = Theme.PrimaryText;
+					Style.FocusedForegroundColor = Theme.PrimaryText;
+					Style.ReadOnlyForegroundColor = Theme.SecondaryText;
+					Style.BackgroundColor = FLinearColor::White;
+					Style.Padding = FMargin(10, 7);
+					Style.TextStyle.Font.Size = 14;
+					Field->SetWidgetStyle(Style);
+					// UE 5.8 passes the setter argument's address to Slate. Rebind
+					// to the persistent UMG member before this local copy expires.
+					Field->SetWidgetStyle(Field->GetWidgetStyle());
+					Field->SetForegroundColor(Theme.PrimaryText);
+					return;
+				}
+				if (UComboBoxString* Combo = Cast<UComboBoxString>(Widget))
+				{
+					FComboBoxStyle Style = Combo->GetWidgetStyle();
+					TintButtonBrushes(Style.ComboButtonStyle.ButtonStyle, Theme.SectionFill, Theme.AccentMuted, Theme.Accent, Theme.PanelFill);
+					Style.ComboButtonStyle.MenuBorderBrush = FSlateRoundedBoxBrush(Theme.PanelFillDeep, 5.0f, Theme.Outline, 1.0f);
+					Style.ComboButtonStyle.DownArrowImage.TintColor = Theme.PrimaryText;
+					Combo->SetWidgetStyle(Style);
+					FTableRowStyle Item = Combo->GetItemStyle();
+					Item.TextColor = Theme.PrimaryText; Item.SelectedTextColor = Theme.TitleText;
+					Item.ActiveBrush.TintColor = Theme.AccentMuted;
+					Item.ActiveHoveredBrush.TintColor = Theme.Accent;
+					Item.InactiveBrush.TintColor = Theme.SectionFill;
+					Item.InactiveHoveredBrush.TintColor = Theme.AccentMuted;
+					Combo->SetItemStyle(Item);
+					return;
+				}
+				if (UExpandableArea* Area = Cast<UExpandableArea>(Widget))
+				{
+					FExpandableAreaStyle Style = Area->GetStyle();
+					Style.CollapsedImage.TintColor = Theme.AccentSoft;
+					Style.ExpandedImage.TintColor = Theme.AccentSoft;
+					Area->SetStyle(Style);
+					Area->SetBorderColor(FLinearColor::Transparent);
+					return;
+				}
 			}
 
 			if (UProgressBar* ProgressBar = Cast<UProgressBar>(Widget))
