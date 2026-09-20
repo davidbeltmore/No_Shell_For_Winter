@@ -1,0 +1,7 @@
+{
+  "id": "cameraorbit",
+  "result": {
+    "position": "<Struct 'Vector' (0x000002DC77FA9050) {x: 197.421529, y: 82.095958, z: 184.593141}>",
+    "rotation": "<Struct 'Rotator' (0x000002DC77FA9050) {pitch: -7.800000, yaw: -150.000000, roll: -0.000000}>"
+  }
+}

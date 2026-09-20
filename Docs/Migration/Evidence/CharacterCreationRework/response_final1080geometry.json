@@ -1,0 +1,7 @@
+{
+  "id": "final1080geometry",
+  "result": {
+    "padding": "<Struct 'Margin' (0x000002DCE94E31C0) {left: 0.000000, top: 48.000000, right: 24.000000, bottom: 48.000000}>",
+    "viewport": "<Struct 'Vector2D' (0x000002DC77F97AE0) {x: 1920.000000, y: 1080.000000}>"
+  }
+}

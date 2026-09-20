@@ -1,0 +1,4 @@
+{
+  "id": "reopentheme",
+  "error": "Traceback (most recent call last):\n  File \"D:/Projects UE5/NoShellForWinter/Tools/Migration/Validate-CharacterCreationRework58.py\", line 98, in tick\n    response = {'id': command['id'], 'result': run(command)}\n                                               ^^^^^^^^^^^^\n  File \"D:/Projects UE5/NoShellForWinter/Tools/Migration/Validate-CharacterCreationRework58.py\", line 78, in run\n    exec(command['code'], scope)\n  File \"<string>\", line 1, in <module>\nStopIteration\n"
+}

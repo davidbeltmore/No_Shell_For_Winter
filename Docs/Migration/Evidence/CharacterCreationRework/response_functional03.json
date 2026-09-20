@@ -1,0 +1,93 @@
+{
+  "id": "functional03",
+  "result": {
+    "live_mesh_coverage": {
+      "status": "PASS",
+      "details": {
+        "Female": {
+          "count": 446,
+          "sections": {
+            "Head/Brow": 10,
+            "Head/Cheeks": 16,
+            "Head/Ears": 10,
+            "Head/Expressions": 79,
+            "Head/Eyelashes": 26,
+            "Head/Eyelids": 13,
+            "Head/Eyes": 34,
+            "Head/Forehead": 5,
+            "Head/General": 10,
+            "Head/Jaw & Chin": 19,
+            "Head/Mouth & Lips": 29,
+            "Head/Nose": 42,
+            "Head/Skull": 5,
+            "Body/Abdomen & Waist": 17,
+            "Body/Arms": 7,
+            "Body/Back": 3,
+            "Body/Breasts & Nipples": 29,
+            "Body/Chest": 18,
+            "Body/Feet": 3,
+            "Body/General & Proportions": 17,
+            "Body/Genitals": 21,
+            "Body/Hands & Nails": 3,
+            "Body/Hips & Glutes": 12,
+            "Body/Legs": 11,
+            "Body/Neck": 4,
+            "Body/Shoulders": 3
+          }
+        },
+        "Male": {
+          "count": 415,
+          "sections": {
+            "Head/Brow": 10,
+            "Head/Cheeks": 14,
+            "Head/Ears": 10,
+            "Head/Expressions": 80,
+            "Head/Eyelashes": 26,
+            "Head/Eyelids": 13,
+            "Head/Eyes": 34,
+            "Head/Forehead": 5,
+            "Head/General": 10,
+            "Head/Jaw & Chin": 18,
+            "Head/Mouth & Lips": 28,
+            "Head/Nose": 42,
+            "Head/Skull": 6,
+            "Body/Abdomen & Waist": 16,
+            "Body/Arms": 7,
+            "Body/Back": 3,
+            "Body/Chest": 19,
+            "Body/Feet": 3,
+            "Body/General & Proportions": 15,
+            "Body/Genitals": 23,
+            "Body/Hands & Nails": 3,
+            "Body/Hips & Glutes": 12,
+            "Body/Legs": 11,
+            "Body/Neck": 4,
+            "Body/Shoulders": 3
+          }
+        }
+      }
+    },
+    "cross_category_search": {
+      "status": "PASS",
+      "details": "Search crosses subcategories and restores selected section"
+    },
+    "morph_callback_and_reset": {
+      "status": "PASS",
+      "details": {
+        "name": "Eye Almond Inner",
+        "changed": [
+          0.25,
+          0.25
+        ],
+        "reset": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "preset_round_trip": {
+      "status": "FAIL",
+      "error": "[]"
+    }
+  }
+}

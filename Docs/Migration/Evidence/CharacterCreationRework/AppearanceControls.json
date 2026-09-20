@@ -1,0 +1,6 @@
+{
+  "HandleSkinHueChanged": "PASS",
+  "HandleIrisHueChanged": "PASS",
+  "pause_animation": "PASS",
+  "hair_conditional_hidden": true
+}

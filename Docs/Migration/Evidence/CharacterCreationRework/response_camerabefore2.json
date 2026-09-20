@@ -1,0 +1,7 @@
+{
+  "id": "camerabefore2",
+  "result": {
+    "position": "<Struct 'Vector' (0x000002DC77FA9190) {x: 236.572960, y: 44.305008, z: 180.636839}>",
+    "rotation": "<Struct 'Rotator' (0x000002DC77FA9190) {pitch: -6.000000, yaw: -162.000000, roll: -0.000000}>"
+  }
+}

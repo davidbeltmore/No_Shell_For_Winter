@@ -1,0 +1,7 @@
+{
+  "id": "cameraafter2",
+  "result": {
+    "position": "<Struct 'Vector' (0x000002DC77FA9230) {x: 210.944223, y: 39.505298, z: 177.919099}>",
+    "rotation": "<Struct 'Rotator' (0x000002DC77FA9230) {pitch: -6.000000, yaw: -162.000000, roll: -0.000000}>"
+  }
+}

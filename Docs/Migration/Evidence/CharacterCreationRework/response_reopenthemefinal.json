@@ -1,0 +1,7 @@
+{
+  "id": "reopenthemefinal",
+  "result": {
+    "tint": "<Struct 'SlateColor' (0x000002DCC6B93F28) {specified_color: {r: 0.003000, g: 0.007000, b: 0.022000, a: 0.960000}, color_use_rule: UseColor_Specified}>",
+    "controls": 74
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "preset04",
+  "result": {
+    "preset_round_trip": {
+      "status": "PASS",
+      "details": {
+        "round_trip": "PASS",
+        "previous_presets": [],
+        "legacy_load": "PENDING"
+      }
+    }
+  }
+}

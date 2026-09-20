@@ -1,0 +1,172 @@
+{
+  "source": "D:/Projects UE5/LustAsDeadlySin (read-only)",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "code_commits": [
+    "87cf813",
+    "c1b6b71",
+    "0875e73"
+  ],
+  "hash_basis": "Original file bytes in Saved/Migration/CharacterCreationRework; Git may normalize copied text line endings. PNG bytes are unchanged.",
+  "frederick_asset_resolution": "PENDING_RUNTIME_INSPECTION (inherited baseline)",
+  "files": {
+    "before.json": {
+      "sha256": "df47a7090db794010a19e124cb8b501a21a4597fe5ef78ae34faee5b148ea5f2",
+      "bytes": 1379360
+    },
+    "final.json": {
+      "sha256": "80ff874921647e6340fcabf14c6662fbbeb147f6de97cd3308a50c673a60cfa6",
+      "bytes": 1342426
+    },
+    "Build06.log": {
+      "sha256": "496aa0e59605fd2e462f24d1b7d8d4b68ab49934e8617ebaefae286a3cf25406",
+      "bytes": 23160
+    },
+    "BuildGame.log": {
+      "sha256": "2c1a844268eeb633a2e5c130461142771c05733b2d51b3666e4b7da4080056a7",
+      "bytes": 22130
+    },
+    "PackageAttempt.log": {
+      "sha256": "fc792eee7ea2b023c7ac592d81510709e6abe4492c782c09e8516692f8e8bd98",
+      "bytes": 1838
+    },
+    "MorphClassification.tsv": {
+      "sha256": "433e5ba850b3c3a6c8e0792d28d4787a784ffe005879aa4e9db25ac3b5e5f3cf",
+      "bytes": 51385
+    },
+    "response_functional03.json": {
+      "sha256": "a44b10f171fb7ee10c473e809601b21ec30fc2645e530617403a1e0ced6265b2",
+      "bytes": 2532
+    },
+    "response_preset04.json": {
+      "sha256": "befaf3b1be247916b837c1b2729a54ea292b0ed375d953792626079f5d2a9da1",
+      "bytes": 232
+    },
+    "response_finalstatic.json": {
+      "sha256": "d5255affbc9ca10c3640594d0e155d9278335bc0818b886cc7fa2d557e84a4dc",
+      "bytes": 185
+    },
+    "ConfirmCancel.json": {
+      "sha256": "946fddefeaa142c99ab17432f6937b9576496e982a45a52effd2c2ce13f34de7",
+      "bytes": 44
+    },
+    "AppearanceControls.json": {
+      "sha256": "e06badceea156545e3c4635f40396f684bcf9e5478edb79cc68c41a2db8e4c5f",
+      "bytes": 139
+    },
+    "ThemeProfiles.json": {
+      "sha256": "50480fd67ee513daac5e37b2a9efeb05c85b9e131626a57b558c92f5c712a03b",
+      "bytes": 2274
+    },
+    "response_scroll04.json": {
+      "sha256": "adcce64f967a708c6362842a8c4d1f5a42494af5551477f25515118431330519",
+      "bytes": 44
+    },
+    "response_tattoocancel01.json": {
+      "sha256": "fd2c7d320d7e4a524611d7d1d1fe6635ff84fd39092e106e2407adaec11f18ac",
+      "bytes": 144
+    },
+    "response_periodopen02.json": {
+      "sha256": "e7777ea43782f00f5d2d411b746b88010ddab6c1460cd053b3455b4867bf8aa2",
+      "bytes": 252
+    },
+    "response_reopentheme.json": {
+      "sha256": "dee251ec54b0ca870317c5f95031c16fd67011f87d3390f8ff67a3c07cbcd517",
+      "bytes": 526
+    },
+    "response_reopenthemefinal.json": {
+      "sha256": "8e541e4e778ba6519d4c69a58418f0c083575a16745c7a4d633f937341d68702",
+      "bytes": 240
+    },
+    "response_camerabefore2.json": {
+      "sha256": "ccf99be97d0595124d9596f404538bbc2e086c96700c803aae7fc7f9192920af",
+      "bytes": 267
+    },
+    "response_cameraafter2.json": {
+      "sha256": "be057257732c56f703912f6a33dfc9c8a6d0050bb47cb3a7f7400d31b50ac839",
+      "bytes": 266
+    },
+    "response_cameraorbit.json": {
+      "sha256": "c21768a199c96fc8f94a333b532b0e255d47fd248dd40223bc43c2b50427f6f4",
+      "bytes": 265
+    },
+    "response_camerapan.json": {
+      "sha256": "4a5ae107706ca23ba5fcd76c68adeeb8365b06283cc80f90761e52a0083fdf44",
+      "bytes": 263
+    },
+    "camera_input.py": {
+      "sha256": "c40a019764712fcbd5cf05cfd083a6d0faafe73d5b5ec53c1aa157f0335a038e",
+      "bytes": 930
+    },
+    "response_letterboxgeometry.json": {
+      "sha256": "423eb29d15de16c18e2b06058e79f274d126b6c98caca140950df58d648f51fa",
+      "bytes": 275
+    },
+    "response_final1080geometry.json": {
+      "sha256": "5e5b37e0f44bd0d01170938e67825241ea96c5f926d62f8b78ef323a4b44e098",
+      "bytes": 275
+    },
+    "response_dim720verified.json": {
+      "sha256": "12fdd0d93c21105587af9cf2ea3de549076474833460ed7d9753e326061bd908",
+      "bytes": 119
+    },
+    "response_dim1440nosend.json": {
+      "sha256": "942a462e982ea87f86eaa573a164cd3a9b548c0e7f8677eda8f072e26370d75e",
+      "bytes": 119
+    },
+    "response_setupultra.json": {
+      "sha256": "7e0855cb8595f9648543131cebba155b9957ce6a1b256ffe3a87f3879b063dd9",
+      "bytes": 116
+    },
+    "Head720Verified.png": {
+      "sha256": "06b6a4940c2d046013ff787ab91df53bf40ebbae311c11f68335fa3bcd4e5669",
+      "bytes": 771843
+    },
+    "Final1920x1080.png": {
+      "sha256": "c051a41615d6657fadb75b26be66669b00c2eaf8c09e8008f0aa74aefd26a2a7",
+      "bytes": 1579909
+    },
+    "Body2560x1440.png": {
+      "sha256": "b2d3b38ff476c207410ffe5debd55701432e21de56000cdfa982b20557a3e0ff",
+      "bytes": 2766704
+    },
+    "HeadUltrawide.png": {
+      "sha256": "91e61fa50c008a48adfe8f21d733a5a693bedc6c855caa92908531ea696b696f",
+      "bytes": 2888321
+    },
+    "Letterbox1920x1200.png": {
+      "sha256": "a22a4682217766e60811666500d574a146f08bc45460e29a3156944e1aac133b",
+      "bytes": 1559262
+    },
+    "Tattoo720.png": {
+      "sha256": "47b3fb52619e214b41341dfccd6f4ffbac8aa74879e77cf206bc79b8180f54b1",
+      "bytes": 755357
+    },
+    "TattooEditor1080.png": {
+      "sha256": "04cfa51c24f475717ec0b92dd096418068a5b2af70311f56280baa85e9acd3f7",
+      "bytes": 1619923
+    },
+    "theme_checks.py": {
+      "sha256": "466e23de3107001d1ee4f839c3b354767ec9e3c6046697ef20b71c807d2f9a7e",
+      "bytes": 1073
+    },
+    "confirm_checks.py": {
+      "sha256": "8bb74545bed1727fa583f6cd29895f1a193e14a249453daceea075e8d21ac3b0",
+      "bytes": 1409
+    },
+    "appearance_checks.py": {
+      "sha256": "1cd4e1906870c081bf92a62778acb15cb04d4978d5ada7fe111e4357ecc5677f",
+      "bytes": 1701
+    },
+    "resize_pie.py": {
+      "sha256": "75f8ef1f4223cd580eb45650d0f0b10c65aaf0e746db72740d69b46634bc4929",
+      "bytes": 780
+    },
+    "key_pie.py": {
+      "sha256": "45678841010a9f46cdce3b60ca6edfd6b7c29bae207c13db9146e4e1a5e9005e",
+      "bytes": 577
+    },
+    "NativeAutomation.log": {
+      "sha256": "dd474cd8b0bfcaf01abefa678065adf6c49a73e95cebc86df289562ec3344172"
+    }
+  }
+}

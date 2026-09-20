@@ -1,0 +1,7 @@
+{
+  "id": "camerapan",
+  "result": {
+    "position": "<Struct 'Vector' (0x000002DC77FA9190) {x: 193.756983, y: 88.063134, z: 185.980188}>",
+    "rotation": "<Struct 'Rotator' (0x000002DC77FA9190) {pitch: -7.800000, yaw: -150.000000, roll: -0.000000}>"
+  }
+}

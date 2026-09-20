@@ -1,0 +1,862 @@
+Mesh	Morph	Category	Section	Label	Recognized
+Female	Eyeball Position Side-Side Right	Head	Eyes	Eyeball Position Side-Side Right	true
+Female	Eyeball Position Side-Side Left	Head	Eyes	Eyeball Position Side-Side Left	true
+Female	Eyeball Position Height	Head	Eyes	Eyeball Position Height	true
+Female	Eyeball Position Depth	Head	Eyes	Eyeball Position Depth	true
+Female	Eye Pupil Slit	Head	Eyes	Eye Pupil Slit	true
+Female	Eye Iris Size Smaller	Head	Eyes	Eye Iris Size Smaller	true
+Female	Eye Iris Size Larger	Head	Eyes	Eye Iris Size Larger	true
+Female	Wink	Head	Expressions	Wink	true
+Female	Triumph	Head	Expressions	Triumph	true
+Female	Tired	Head	Expressions	Tired	true
+Female	Suspicious	Head	Expressions	Suspicious	true
+Female	Surprised	Head	Expressions	Surprised	true
+Female	Snarl	Head	Expressions	Snarl	true
+Female	Smile Open Full Face	Head	Expressions	Smile Open Full Face	true
+Female	Smile Full Face	Head	Expressions	Smile Full Face	true
+Female	Silly	Head	Expressions	Silly	true
+Female	Shock	Head	Expressions	Shock	true
+Female	Serious	Head	Expressions	Serious	true
+Female	Scream	Head	Expressions	Scream	true
+Female	Sarcastic	Head	Expressions	Sarcastic	true
+Female	Sad	Head	Expressions	Sad	true
+Female	Rage	Head	Expressions	Rage	true
+Female	Pleased	Head	Expressions	Pleased	true
+Female	Pain	Head	Expressions	Pain	true
+Female	Irritated	Head	Expressions	Irritated	true
+Female	Incredulous	Head	Expressions	Incredulous	true
+Female	Ill	Head	Expressions	Ill	true
+Female	Ignore	Head	Expressions	Ignore	true
+Female	Happy	Head	Expressions	Happy	true
+Female	Glare	Head	Expressions	Glare	true
+Female	Frown	Head	Expressions	Frown	true
+Female	Flirting	Head	Expressions	Flirting	true
+Female	Fierce	Head	Expressions	Fierce	true
+Female	Fear	Head	Expressions	Fear	true
+Female	Excitement	Head	Expressions	Excitement	true
+Female	Drunk	Head	Expressions	Drunk	true
+Female	Disgust	Head	Expressions	Disgust	true
+Female	Desire	Head	Expressions	Desire	true
+Female	Contempt	Head	Expressions	Contempt	true
+Female	Confused	Head	Expressions	Confused	true
+Female	Confident	Head	Expressions	Confident	true
+Female	Concentrate	Head	Expressions	Concentrate	true
+Female	Bored	Head	Expressions	Bored	true
+Female	Bereft	Head	Expressions	Bereft	true
+Female	Angry	Head	Expressions	Angry	true
+Female	Afraid	Head	Expressions	Afraid	true
+Female	Jaw Open No Jaw Strength	Head	Jaw & Chin	Jaw Open No Jaw Strength	true
+Female	Breasts Tip Up-Down	Body	Breasts & Nipples	Breasts Tip Up-Down	true
+Female	Breasts Tip In-Out	Body	Breasts & Nipples	Breasts Tip In-Out	true
+Female	body_ctrl_pecmovement_r	Body	Chest	body ctrl pecmovement r	true
+Female	body_ctrl_pecmovement_l	Body	Chest	body ctrl pecmovement l	true
+Female	Base Anime Worried	Head	Expressions	Worried	true
+Female	Base Anime Upset	Head	Expressions	Upset	true
+Female	Base Anime Tongue Out Side	Head	Expressions	Tongue Out Side	true
+Female	Base Anime Tongue Out Front	Head	Expressions	Tongue Out Front	true
+Female	Base Anime Sweet	Head	Expressions	Sweet	true
+Female	Base Anime Surprised	Head	Expressions	Surprised	true
+Female	Base Anime Surprised Worried	Head	Expressions	Surprised Worried	true
+Female	Base Anime Surprised Happy	Head	Expressions	Surprised Happy	true
+Female	Base Anime Surprised Angry	Head	Expressions	Surprised Angry	true
+Female	Base Anime Smile Strong	Head	Expressions	Smile Strong	true
+Female	Base Anime Smile Simple	Head	Expressions	Smile Simple	true
+Female	Base Anime Smile Show Teeth	Head	Expressions	Smile Show Teeth	true
+Female	Base Anime Sleep	Head	Expressions	Sleep	true
+Female	Base Anime Sleep Open Mouth	Head	Expressions	Sleep Open Mouth	true
+Female	Base Anime Shock	Head	Expressions	Shock	true
+Female	Base Anime Serious	Head	Expressions	Serious	true
+Female	Base Anime Scolded	Head	Expressions	Scolded	true
+Female	Base Anime Sadness	Head	Expressions	Sadness	true
+Female	Base Anime Sad	Head	Expressions	Sad	true
+Female	Base Anime Resilience	Head	Expressions	Resilience	true
+Female	Base Anime No Words	Head	Expressions	No Words	true
+Female	Base Anime Nightmare	Head	Expressions	Nightmare	true
+Female	Base Anime Mad	Head	Expressions	Mad	true
+Female	Base Anime Laugh Open Eyes	Head	Expressions	Laugh Open Eyes	true
+Female	Base Anime Laugh Closed Eyes	Head	Expressions	Laugh Closed Eyes	true
+Female	Base Anime Innocent	Head	Expressions	Innocent	true
+Female	Base Anime Happy	Head	Expressions	Happy	true
+Female	Base Anime Happiness	Head	Expressions	Happiness	true
+Female	Base Anime Furious	Head	Expressions	Furious	true
+Female	Base Anime Friendly	Head	Expressions	Friendly	true
+Female	Base Anime Disgusted	Head	Expressions	Disgusted	true
+Female	Base Anime Crying	Head	Expressions	Crying	true
+Female	Base Anime Crazy	Head	Expressions	Crazy	true
+Female	Base Anime Confused	Head	Expressions	Confused	true
+Female	Base Anime Confused Toon	Head	Expressions	Confused Toon	true
+Female	Base Anime Complicated	Head	Expressions	Complicated	true
+Female	Base Anime Bored	Head	Expressions	Bored	true
+Female	Base Anime Angry	Head	Expressions	Angry	true
+Female	Base Anime Almost Crying	Head	Expressions	Almost Crying	true
+Female	Base Anime Afraid	Head	Expressions	Afraid	true
+Female	Eyelashes Skew Irregular Upper	Head	Eyelashes	Eyelashes Skew Irregular Upper	true
+Female	Eyelashes Skew Irregular Lower	Head	Eyelashes	Eyelashes Skew Irregular Lower	true
+Female	Eyelashes Root Spread Irregular Upper	Head	Eyelashes	Eyelashes Root Spread Irregular Upper	true
+Female	Eyelashes Root Spread Irregular Lower	Head	Eyelashes	Eyelashes Root Spread Irregular Lower	true
+Female	Eyelashes Root Skew Irregular	Head	Eyelashes	Eyelashes Root Skew Irregular	true
+Female	Eyelashes Outer Height Upper	Head	Eyelashes	Eyelashes Outer Height Upper	true
+Female	Eyelashes Length Uniform Upper	Head	Eyelashes	Eyelashes Length Uniform Upper	true
+Female	Eyelashes Length Uniform Lower	Head	Eyelashes	Eyelashes Length Uniform Lower	true
+Female	Eyelashes Length Irregular Upper	Head	Eyelashes	Eyelashes Length Irregular Upper	true
+Female	Eyelashes Length Irregular Lower	Head	Eyelashes	Eyelashes Length Irregular Lower	true
+Female	Eyelashes Layer Seperation Upper	Head	Eyelashes	Eyelashes Layer Seperation Upper	true
+Female	Eyelashes Large Uniform Upper	Head	Eyelashes	Eyelashes Large Uniform Upper	true
+Female	Eyelashes Large Uniform Lower	Head	Eyelashes	Eyelashes Large Uniform Lower	true
+Female	Eyelashes Height Uniform Upper	Head	Eyelashes	Eyelashes Height Uniform Upper	true
+Female	Eyelashes Height Uniform Lower	Head	Eyelashes	Eyelashes Height Uniform Lower	true
+Female	Eyelashes Gone Upper	Head	Eyelashes	Eyelashes Gone Upper	true
+Female	Eyelashes Gone Lower	Head	Eyelashes	Eyelashes Gone Lower	true
+Female	Eyelashes Curvature	Head	Eyelashes	Eyelashes Curvature	true
+Female	Eyelashes Curl Uniform Upper	Head	Eyelashes	Eyelashes Curl Uniform Upper	true
+Female	Eyelashes Curl Uniform Lower	Head	Eyelashes	Eyelashes Curl Uniform Lower	true
+Female	Eyelashes Curl Irregular Upper Point	Head	Eyelashes	Eyelashes Curl Irregular Upper Point	true
+Female	Eyelashes Curl Irregular Upper	Head	Eyelashes	Eyelashes Curl Irregular Upper	true
+Female	Eyelashes Curl Irregular Lower Point	Head	Eyelashes	Eyelashes Curl Irregular Lower Point	true
+Female	Eyelashes Curl Irregular Lower	Head	Eyelashes	Eyelashes Curl Irregular Lower	true
+Female	GPL_Majora_Blow Up_More 1_Both	Body	Genitals	Majora Blow Up More 1 Both	true
+Female	GPL_Majora_Blow Up_Both	Body	Genitals	Majora Blow Up Both	true
+Female	GPL_Majora_Pinch 1_Both	Body	Genitals	Majora Pinch 1 Both	true
+Female	GPL_Majora_Pinch 2_Both	Body	Genitals	Majora Pinch 2 Both	true
+Female	GPL_Minora_Pinch 1_Both	Body	Genitals	Minora Pinch 1 Both	true
+Female	GPL_Minora_Pinch 2_Both	Body	Genitals	Minora Pinch 2 Both	true
+Female	GPC_Hood_Pinch 1	Body	Genitals	Hood Pinch 1	true
+Female	GPC_Hood_Pinch 2	Body	Genitals	Hood Pinch 2	true
+Female	GPC_Hood_Pinch 5	Body	Genitals	Hood Pinch 5	true
+Female	GPC_Hood Tip_Upper	Body	Genitals	Hood Tip Upper	true
+Female	GPC_Hood_Enlarge	Body	Genitals	Hood Enlarge	true
+Female	GPL_Minora_Inflate Inside	Body	Genitals	Minora Inflate Inside	true
+Female	GPV_Hymen_Edge 05	Body	Genitals	Hymen Edge 05	true
+Female	GPV_Vagina_Open 5	Body	Genitals	Vagina Open 5	true
+Female	GPV_Vagina Prolapse 1	Body	Genitals	Vagina Prolapse 1	true
+Female	GPV_Vagina Prolapse 2	Body	Genitals	Vagina Prolapse 2	true
+Female	GPV_Vagina Prolapse_Cervix Opening 1	Body	Genitals	Vagina Prolapse Cervix Opening 1	true
+Female	GPL_Pinch 2	Body	Genitals	Pinch 2	true
+Female	GPL_Pinch 1	Body	Genitals	Pinch 1	true
+Female	GPV_Vagina_Open_Labia Front Widen_Right	Body	Genitals	Vagina Open Labia Front Widen Right	true
+Female	GPV_Vagina_Open_Labia Front Widen_Left	Body	Genitals	Vagina Open Labia Front Widen Left	true
+Female	Eye Upper Curve Height	Head	Eyes	Eye Upper Curve Height	true
+Female	Eye Lower Curve Height	Head	Eyes	Eye Lower Curve Height	true
+Female	Eye Upper Peak	Head	Eyes	Eye Upper Peak	true
+Female	Eye Upper Curve Balance	Head	Eyes	Eye Upper Curve Balance	true
+Female	Eye Swoop Up	Head	Eyes	Eye Swoop Up	true
+Female	Eye Outer Arc Down	Head	Eyes	Eye Outer Arc Down	true
+Female	Eye Lower Curve Balance	Head	Eyes	Eye Lower Curve Balance	true
+Female	Eye Inner Height Size	Head	Eyes	Eye Inner Height Size	true
+Female	Ear Elf Long Outward	Head	Ears	Ear Elf Long Outward	true
+Female	Skull Width	Head	Skull	Skull Width	true
+Female	Skull Above Ear Width	Head	Skull	Skull Above Ear Width	true
+Female	Nose Wing Width	Head	Nose	Wing Width	true
+Female	Nose Wing Size Vertical	Head	Nose	Wing Size Vertical	true
+Female	Nose Wing Size	Head	Nose	Wing Size	true
+Female	Nose Wing Lower Width	Head	Nose	Wing Lower Width	true
+Female	Nose Wing Lower Height	Head	Nose	Wing Lower Height	true
+Female	Nose Wing Height	Head	Nose	Wing Height	true
+Female	Nose Wing Depth	Head	Nose	Wing Depth	true
+Female	Nose Whole Width	Head	Nose	Whole Width	true
+Female	Nose Whole Size	Head	Nose	Whole Size	true
+Female	Nose Whole Depth	Head	Nose	Whole Depth	true
+Female	Nose Tip Width	Head	Nose	Tip Width	true
+Female	Nose Tip Upturn	Head	Nose	Tip Upturn	true
+Female	Nose Tip Size	Head	Nose	Tip Size	true
+Female	Nose Tip Septum Contour	Head	Nose	Tip Septum Contour	true
+Female	Nose Tip Height	Head	Nose	Tip Height	true
+Female	Nose Tip Depth	Head	Nose	Tip Depth	true
+Female	Nose Septum Width	Head	Nose	Septum Width	true
+Female	Nose Septum Height	Head	Nose	Septum Height	true
+Female	Nose Septum Depth	Head	Nose	Septum Depth	true
+Female	Nose Philtrum Width	Head	Nose	Philtrum Width	true
+Female	Nose Philtrum Outer Depth	Head	Nose	Philtrum Outer Depth	true
+Female	Nose Philtrum Center Depth	Head	Nose	Philtrum Center Depth	true
+Female	Nose Philtrum Angle	Head	Nose	Philtrum Angle	true
+Female	Nose Bridge Width	Head	Nose	Bridge Width	true
+Female	Nose Bridge Upper Width	Head	Nose	Bridge Upper Width	true
+Female	Nose Bridge Upper Size	Head	Nose	Bridge Upper Size	true
+Female	Nose Bridge Upper Hollow	Head	Nose	Bridge Upper Hollow	true
+Female	Nose Bridge Upper Height	Head	Nose	Bridge Upper Height	true
+Female	Nose Bridge Upper Depth	Head	Nose	Bridge Upper Depth	true
+Female	Nose Bridge To Cheek Depth	Head	Nose	Bridge To Cheek Depth	true
+Female	Nose Bridge Slope	Head	Nose	Bridge Slope	true
+Female	Nose Bridge Size	Head	Nose	Bridge Size	true
+Female	Nose Bridge Lower Width	Head	Nose	Bridge Lower Width	true
+Female	Nose Bridge Lower Slope	Head	Nose	Bridge Lower Slope	true
+Female	Nose Bridge Depth	Head	Nose	Bridge Depth	true
+Female	Nose Bridge Definition	Head	Nose	Bridge Definition	true
+Female	Nose Bridge Bump	Head	Nose	Bridge Bump	true
+Female	Nose Base Size	Head	Nose	Base Size	true
+Female	Nose Base Pinched	Head	Nose	Base Pinched	true
+Female	Nose Base Height	Head	Nose	Base Height	true
+Female	Nose Base Flesh Size	Head	Nose	Base Flesh Size	true
+Female	Nose Base Angle	Head	Nose	Base Angle	true
+Female	Mouth Width	Head	Mouth & Lips	Mouth Width	true
+Female	Mouth Size	Head	Mouth & Lips	Mouth Size	true
+Female	Mouth Height	Head	Mouth & Lips	Mouth Height	true
+Female	Mouth Depth	Head	Mouth & Lips	Mouth Depth	true
+Female	Mouth Below Size Outer	Head	Mouth & Lips	Mouth Below Size Outer	true
+Female	Mouth Below Size Inner	Head	Mouth & Lips	Mouth Below Size Inner	true
+Female	Mouth Below Hollow	Head	Mouth & Lips	Mouth Below Hollow	true
+Female	Mouth Aperture Curve Upper	Head	Mouth & Lips	Mouth Aperture Curve Upper	true
+Female	Mouth Aperture Curve	Head	Mouth & Lips	Mouth Aperture Curve	true
+Female	Mouth Above Size Outer	Head	Mouth & Lips	Mouth Above Size Outer	true
+Female	Mouth Above Size Inner	Head	Mouth & Lips	Mouth Above Size Inner	true
+Female	Lip Width Upper	Head	Mouth & Lips	Lip Width Upper	true
+Female	Lip Width Lower	Head	Mouth & Lips	Lip Width Lower	true
+Female	Lip Top Peak	Head	Mouth & Lips	Lip Top Peak	true
+Female	Lip Thin Upper Outer	Head	Mouth & Lips	Lip Thin Upper Outer	true
+Female	Lip Thin Upper Inner	Head	Mouth & Lips	Lip Thin Upper Inner	true
+Female	Lip Thin Lower Outer	Head	Mouth & Lips	Lip Thin Lower Outer	true
+Female	Lip Thin Lower Inner	Head	Mouth & Lips	Lip Thin Lower Inner	true
+Female	Lip Thin	Head	Mouth & Lips	Lip Thin	true
+Female	Lip Square	Head	Mouth & Lips	Lip Square	true
+Female	Lip Size Upper	Head	Mouth & Lips	Lip Size Upper	true
+Female	Lip Size Lower	Head	Mouth & Lips	Lip Size Lower	true
+Female	Lip Heart	Head	Mouth & Lips	Lip Heart	true
+Female	Lip Depth Upper	Head	Mouth & Lips	Lip Depth Upper	true
+Female	Lip Depth Lower	Head	Mouth & Lips	Lip Depth Lower	true
+Female	Lip Border Curve Upper	Head	Mouth & Lips	Lip Border Curve Upper	true
+Female	Jaw Whole Width	Head	Jaw & Chin	Jaw Whole Width	true
+Female	Jaw Whole Size	Head	Jaw & Chin	Jaw Whole Size	true
+Female	Jaw Whole Sharpen	Head	Jaw & Chin	Jaw Whole Sharpen	true
+Female	Jaw Whole Height	Head	Jaw & Chin	Jaw Whole Height	true
+Female	Jaw to Neck Slack	Head	Jaw & Chin	Jaw to Neck Slack	true
+Female	Jaw Slack	Head	Jaw & Chin	Jaw Slack	true
+Female	Jaw Rear Width	Head	Jaw & Chin	Jaw Rear Width	true
+Female	Jaw Rear Height	Head	Jaw & Chin	Jaw Rear Height	true
+Female	Jaw Rear Define	Head	Jaw & Chin	Jaw Rear Define	true
+Female	Jaw Middle Curve	Head	Jaw & Chin	Jaw Middle Curve	true
+Female	Forehead Whole Width	Head	Forehead	Forehead Whole Width	true
+Female	Forehead Whole Thin	Head	Forehead	Forehead Whole Thin	true
+Female	Forehead Whole Round	Head	Forehead	Forehead Whole Round	true
+Female	Forehead Whole Flat	Head	Forehead	Forehead Whole Flat	true
+Female	Forehead Upper Thin	Head	Forehead	Forehead Upper Thin	true
+Female	Face Young	Head	General	Face Young	true
+Female	Face Square	Head	General	Face Square	true
+Female	Face Size	Head	General	Face Size	true
+Female	Face Round	Head	General	Face Round	true
+Female	Face Older	Head	General	Face Older	true
+Female	Face Heart	Head	General	Face Heart	true
+Female	Face Flat	Head	General	Face Flat	true
+Female	Face Depth	Head	General	Face Depth	true
+Female	Face Center Depth	Head	General	Face Center Depth	true
+Female	Face Angle	Head	General	Face Angle	true
+Female	Eye Whole Width	Head	Eyes	Eye Whole Width	true
+Female	Eye Whole Size	Head	Eyes	Eye Whole Size	true
+Female	Eye Whole Height	Head	Eyes	Eye Whole Height	true
+Female	Eye Whole Depth	Head	Eyes	Eye Whole Depth	true
+Female	Eye Whole Angle	Head	Eyes	Eye Whole Angle	true
+Female	Eye Socket Whole Depth	Head	Eyes	Eye Socket Whole Depth	true
+Female	Eye Socket Puffy Upper	Head	Eyes	Eye Socket Puffy Upper	true
+Female	Eye Socket Puffy Lower	Head	Eyes	Eye Socket Puffy Lower	true
+Female	Eye Socket Lower Depth	Head	Eyes	Eye Socket Lower Depth	true
+Female	Eye Socket Inner Depth	Head	Eyes	Eye Socket Inner Depth	true
+Female	Eyelid Thickness	Head	Eyelids	Thickness	true
+Female	Eyelid Fold Toward	Head	Eyelids	Fold Toward	true
+Female	Eyelid Fold Thickness	Head	Eyelids	Fold Thickness	true
+Female	Eyelid Fold Inner Toward	Head	Eyelids	Fold Inner Toward	true
+Female	Eyelid Crease Upper Smooth	Head	Eyelids	Crease Upper Smooth	true
+Female	Eyelid Crease Upper Outer Height	Head	Eyelids	Crease Upper Outer Height	true
+Female	Eyelid Crease Upper Inner Height	Head	Eyelids	Crease Upper Inner Height	true
+Female	Eyelid Crease Upper Height	Head	Eyelids	Crease Upper Height	true
+Female	Eyelid Crease Upper Deepen	Head	Eyelids	Crease Upper Deepen	true
+Female	Eyelid Crease Lower Height	Head	Eyelids	Crease Lower Height	true
+Female	Eyelid Crease Lower Deepen	Head	Eyelids	Crease Lower Deepen	true
+Female	Eyelid Angle Upper Outer	Head	Eyelids	Angle Upper Outer	true
+Female	Eyelid Angle Lower Outer	Head	Eyelids	Angle Lower Outer	true
+Female	Eye Lacrimal Size	Head	Eyes	Eye Lacrimal Size	true
+Female	Eye Lacrimal Pinch	Head	Eyes	Eye Lacrimal Pinch	true
+Female	Eye Lacrimal Inner Height	Head	Eyes	Eye Lacrimal Inner Height	true
+Female	Eye Angle Outer	Head	Eyes	Eye Angle Outer	true
+Female	Eye Angle Inner	Head	Eyes	Eye Angle Inner	true
+Female	Eye Almond Outer	Head	Eyes	Eye Almond Outer	true
+Female	Eye Almond Inner	Head	Eyes	Eye Almond Inner	true
+Female	Ear Size Upper	Head	Ears	Ear Size Upper	true
+Female	Ear Size Lower	Head	Ears	Ear Size Lower	true
+Female	Earlobe Size	Head	Ears	Earlobe Size	true
+Female	Earlobe Length	Head	Ears	Earlobe Length	true
+Female	Earlobe Attached	Head	Ears	Earlobe Attached	true
+Female	Ear Height	Head	Ears	Ear Height	true
+Female	Ear Elf Long	Head	Ears	Ear Elf Long	true
+Female	Ear Elf	Head	Ears	Ear Elf	true
+Female	Ear Depth	Head	Ears	Ear Depth	true
+Female	Cranium Slope	Head	Skull	Cranium Slope	true
+Female	Cranium Size	Head	Skull	Cranium Size	true
+Female	Cranium Height	Head	Skull	Cranium Height	true
+Female	Chin Width	Head	Jaw & Chin	Chin Width	true
+Female	Chin to Lip Sharpen	Head	Jaw & Chin	Chin to Lip Sharpen	true
+Female	Chin to Lip Depth	Head	Jaw & Chin	Chin to Lip Depth	true
+Female	Chin Height	Head	Jaw & Chin	Chin Height	true
+Female	Chin Depth	Head	Jaw & Chin	Chin Depth	true
+Female	Chin Cleft	Head	Jaw & Chin	Chin Cleft	true
+Female	Cheek to Lip Depth	Head	Cheeks	Cheek to Lip Depth	true
+Female	Cheek to Jaw Size	Head	Cheeks	Cheek to Jaw Size	true
+Female	Cheek Tear Trough	Head	Cheeks	Cheek Tear Trough	true
+Female	Cheek Slack	Head	Cheeks	Cheek Slack	true
+Female	Cheek Size	Head	Cheeks	Cheek Size	true
+Female	Cheek Sink	Head	Cheeks	Cheek Sink	true
+Female	Cheek Nasolabial Size Upper	Head	Cheeks	Cheek Nasolabial Size Upper	true
+Female	Cheek Nasolabial Size Lower	Head	Cheeks	Cheek Nasolabial Size Lower	true
+Female	Cheek Middle Size	Head	Cheeks	Cheek Middle Size	true
+Female	Cheek Middle Round	Head	Cheeks	Cheek Middle Round	true
+Female	Cheek Middle Diagonal Bisect	Head	Cheeks	Cheek Middle Diagonal Bisect	true
+Female	Cheek Lower Size	Head	Cheeks	Cheek Lower Size	true
+Female	Cheek Crease Depth	Head	Cheeks	Cheek Crease Depth	true
+Female	Cheekbone Upper Arch Size	Head	Cheeks	Cheekbone Upper Arch Size	true
+Female	Cheekbone Thin	Head	Cheeks	Cheekbone Thin	true
+Female	Cheekbone Size	Head	Cheeks	Cheekbone Size	true
+Female	Brow Whole Width	Head	Brow	Whole Width	true
+Female	Brow Whole Size	Head	Brow	Whole Size	true
+Female	Brow Whole Height	Head	Brow	Whole Height	true
+Female	Brow Temple Narrow	Head	Brow	Temple Narrow	true
+Female	Brow Skin Slack	Head	Brow	Skin Slack	true
+Female	Brow Sharpen	Head	Brow	Sharpen	true
+Female	Brow Arch Size Outer	Head	Brow	Arch Size Outer	true
+Female	Brow Arch Size Inner	Head	Brow	Arch Size Inner	true
+Female	Brow Above Depth Outer	Head	Brow	Above Depth Outer	true
+Female	Brow Above Depth Inner	Head	Brow	Above Depth Inner	true
+Female	Jaw Open Wide	Head	Jaw & Chin	Jaw Open Wide	true
+Female	Jaw Open	Head	Jaw & Chin	Jaw Open	true
+Female	Eye Blink Right	Head	Eyes	Eye Blink Right	true
+Female	Eye Blink Left	Head	Eyes	Eye Blink Left	true
+Female	Pectorals Width	Body	Chest	Pectorals Width	true
+Female	Pectorals Under Curve	Body	Chest	Pectorals Under Curve	true
+Female	Pectorals Size	Body	Chest	Pectorals Size	true
+Female	Pectorals Sag	Body	Chest	Pectorals Sag	true
+Female	Pectorals Height Outer	Body	Chest	Pectorals Height Outer	true
+Female	Pectorals Height	Body	Chest	Pectorals Height	true
+Female	Pectorals Diameter	Body	Chest	Pectorals Diameter	true
+Female	Pectorals Cleavage	Body	Chest	Pectorals Cleavage	true
+Female	Body Stocky	Body	General & Proportions	Body Stocky	true
+Female	Body Portly	Body	General & Proportions	Body Portly	true
+Female	Nipples Diameter Feminine	Body	Breasts & Nipples	Nipples Diameter Feminine	true
+Female	Nipples Areolae Diameter Feminine	Body	Breasts & Nipples	Nipples Areolae Diameter Feminine	true
+Female	Nipples Areolae Depth Feminine	Body	Breasts & Nipples	Nipples Areolae Depth Feminine	true
+Female	Breasts Small	Body	Breasts & Nipples	Breasts Small	true
+Female	Breasts Sides Depth	Body	Breasts & Nipples	Breasts Sides Depth	true
+Female	Breasts Shape 06	Body	Breasts & Nipples	Breasts Shape 06	true
+Female	Breasts Shape 05	Body	Breasts & Nipples	Breasts Shape 05	true
+Female	Breasts Shape 04	Body	Breasts & Nipples	Breasts Shape 04	true
+Female	Breasts Shape 03	Body	Breasts & Nipples	Breasts Shape 03	true
+Female	Breasts Shape 02	Body	Breasts & Nipples	Breasts Shape 02	true
+Female	Breasts Shape 01	Body	Breasts & Nipples	Breasts Shape 01	true
+Female	Breasts Perk Side	Body	Breasts & Nipples	Breasts Perk Side	true
+Female	Breasts Natural	Body	Breasts & Nipples	Breasts Natural	true
+Female	Breasts Large High	Body	Breasts & Nipples	Breasts Large High	true
+Female	Breasts Large	Body	Breasts & Nipples	Breasts Large	true
+Female	Breasts Heavy	Body	Breasts & Nipples	Breasts Heavy	true
+Female	Breasts Gone	Body	Breasts & Nipples	Breasts Gone	true
+Female	Breasts Fullness Upper	Body	Breasts & Nipples	Breasts Fullness Upper	true
+Female	Breasts Fullness Lower	Body	Breasts & Nipples	Breasts Fullness Lower	true
+Female	Breasts Downward Slope	Body	Breasts & Nipples	Breasts Downward Slope	true
+Female	Breasts Diameter	Body	Breasts & Nipples	Breasts Diameter	true
+Female	Breasts Cleavage	Body	Breasts & Nipples	Breasts Cleavage	true
+Female	Body Voluptuous	Body	General & Proportions	Body Voluptuous	true
+Female	Body Pear Figure	Body	General & Proportions	Body Pear Figure	true
+Female	Breasts Width	Body	Breasts & Nipples	Breasts Width	true
+Female	Breasts Point	Body	Breasts & Nipples	Breasts Point	true
+Female	Breasts Large Extra	Body	Breasts & Nipples	Breasts Large Extra	true
+Female	Waist Width Upper	Body	Abdomen & Waist	Waist Width Upper	true
+Female	Waist Width	Body	Abdomen & Waist	Waist Width	true
+Female	Waist Depth	Body	Abdomen & Waist	Waist Depth	true
+Female	Upper Arm Taper Width	Body	Arms	Upper Arm Taper Width	true
+Female	Traps Size	Body	Shoulders	Traps Size	true
+Female	Thigh Tone	Body	Legs	Thigh Tone	true
+Female	Thigh Depth	Body	Legs	Thigh Depth	true
+Female	Taper UpperArm B	Body	Arms	Taper UpperArm B	true
+Female	Taper UpperArm A	Body	Arms	Taper UpperArm A	true
+Female	Taper Thigh B	Body	Legs	Taper Thigh B	true
+Female	Taper Thigh A	Body	Legs	Taper Thigh A	true
+Female	Taper Shin B	Body	Legs	Taper Shin B	true
+Female	Taper Shin A	Body	Legs	Taper Shin A	true
+Female	Taper Neck B	Body	Neck	Taper Neck B	true
+Female	Taper Neck A	Body	Neck	Taper Neck A	true
+Female	Taper Forearm B	Body	Arms	Taper Forearm B	true
+Female	Taper Forearm A	Body	Arms	Taper Forearm A	true
+Female	Stomach Soften	Body	Abdomen & Waist	Stomach Soften	true
+Female	Stomach Depth Lower	Body	Abdomen & Waist	Stomach Depth Lower	true
+Female	Stomach Depth	Body	Abdomen & Waist	Stomach Depth	true
+Female	Sternum Width	Body	Chest	Sternum Width	true
+Female	Sternum Height	Body	Chest	Sternum Height	true
+Female	Sternum Depth	Body	Chest	Sternum Depth	true
+Female	Scapula Size	Body	Back	Scapula Size	true
+Female	Scapula Depth	Body	Back	Scapula Depth	true
+Female	Ribcage Size	Body	Chest	Ribcage Size	true
+Female	Ribcage Pointed	Body	Chest	Ribcage Pointed	true
+Female	Ribcage Arched	Body	Chest	Ribcage Arched	true
+Female	Pregnant	Body	Abdomen & Waist	Pregnant	true
+Female	Navel Vertical HD	Body	Abdomen & Waist	Navel Vertical HD	true
+Female	Navel Size HD	Body	Abdomen & Waist	Navel Size HD	true
+Female	Navel Out HD	Body	Abdomen & Waist	Navel Out HD	true
+Female	Navel Horizontal HD	Body	Abdomen & Waist	Navel Horizontal HD	true
+Female	Navel Hollow HD	Body	Abdomen & Waist	Navel Hollow HD	true
+Female	Navel Depth HD	Body	Abdomen & Waist	Navel Depth HD	true
+Female	Nails Length Square	Body	Hands & Nails	Nails Length Square	true
+Female	Nails Length Sharp	Body	Hands & Nails	Nails Length Sharp	true
+Female	Nails Length Round	Body	Hands & Nails	Nails Length Round	true
+Female	Mass Upper Torso	Body	General & Proportions	Mass Upper Torso	true
+Female	Mass Upper Arms	Body	Arms	Mass Upper Arms	true
+Female	Mass Thighs	Body	Legs	Mass Thighs	true
+Female	Mass Shoulders	Body	Shoulders	Mass Shoulders	true
+Female	Mass Shins	Body	Legs	Mass Shins	true
+Female	Mass Neck	Body	Neck	Mass Neck	true
+Female	Mass Lower Torso	Body	General & Proportions	Mass Lower Torso	true
+Female	Mass Knees	Body	Legs	Mass Knees	true
+Female	Mass Forearms	Body	Arms	Mass Forearms	true
+Female	Mass Feet	Body	Feet	Mass Feet	true
+Female	Mass Ankles	Body	Feet	Mass Ankles	true
+Female	Lats Size	Body	Back	Lats Size	true
+Female	Knee Bones Size	Body	Legs	Knee Bones Size	true
+Female	Hip V Define	Body	Hips & Glutes	Hip V Define	true
+Female	Hip Size	Body	Hips & Glutes	Hip Size	true
+Female	Hip Pelvic Tilt	Body	Hips & Glutes	Hip Pelvic Tilt	true
+Female	Hip Genital Bulge	Body	Hips & Glutes	Hip Genital Bulge	true
+Female	Hip Bone Size	Body	Hips & Glutes	Hip Bone Size	true
+Female	Hip Bone Crest	Body	Hips & Glutes	Hip Bone Crest	true
+Female	Hip Back Dimples	Body	Hips & Glutes	Hip Back Dimples	true
+Female	Glute Width	Body	Hips & Glutes	Glute Width	true
+Female	Glute Size	Body	Hips & Glutes	Glute Size	true
+Female	Glute Depth Upper	Body	Hips & Glutes	Glute Depth Upper	true
+Female	Glute Depth Lower	Body	Hips & Glutes	Glute Depth Lower	true
+Female	Glute Crease	Body	Hips & Glutes	Glute Crease	true
+Female	Foot Arch Depth	Body	Feet	Foot Arch Depth	true
+Female	Collarbone Detail	Body	Shoulders	Collarbone Detail	true
+Female	Calves Size	Body	Legs	Calves Size	true
+Female	Body Tone	Body	General & Proportions	Body Tone	true
+Female	Body Thin	Body	General & Proportions	Body Thin	true
+Female	Body Older	Body	General & Proportions	Body Older	true
+Female	Body Muscular Mass	Body	General & Proportions	Body Muscular Mass	true
+Female	Body Muscular Details	Body	General & Proportions	Body Muscular Details	true
+Female	Body Lithe	Body	General & Proportions	Body Lithe	true
+Female	Body Heavy	Body	General & Proportions	Body Heavy	true
+Female	Body Fitness Mass	Body	General & Proportions	Body Fitness Mass	true
+Female	Body Fitness Details	Body	General & Proportions	Body Fitness Details	true
+Female	Body Emaciated	Body	General & Proportions	Body Emaciated	true
+Female	Abdominals Width	Body	Abdomen & Waist	Abdominals Width	true
+Female	Abdominals Outer Define	Body	Abdomen & Waist	Abdominals Outer Define	true
+Female	Abdominals Center Define	Body	Abdomen & Waist	Abdominals Center Define	true
+Female	Proportion Neck Length	Body	Neck	Proportion Neck Length	true
+Female	Proportion Height	Body	General & Proportions	Proportion Height	true
+Female	Proportion Chest Width	Body	Chest	Proportion Chest Width	true
+Female	Proportion Chest Depth	Body	Chest	Proportion Chest Depth	true
+Female	Mouth Cavity Fit Front	Head	Mouth & Lips	Mouth Cavity Fit Front	true
+Female	Mouth Cavity Fit Back	Head	Mouth & Lips	Mouth Cavity Fit Back	true
+Female	Eyelashes Root Zag	Head	Eyelashes	Eyelashes Root Zag	true
+Female	Eyelashes Irregular Twist	Head	Eyelashes	Eyelashes Irregular Twist	true
+Female	Nipples Tips Feminine Large HD	Body	Breasts & Nipples	Nipples Tips Feminine Large HD	true
+Female	Nipples Feminine HD	Body	Breasts & Nipples	Nipples Feminine HD	true
+Female	Navel HD	Body	Abdomen & Waist	Navel HD	true
+Female	Mouth Realism	Head	Mouth & Lips	Mouth Realism	true
+Male	Eyeball Position Side-Side Right	Head	Eyes	Eyeball Position Side-Side Right	true
+Male	Eyeball Position Side-Side Left	Head	Eyes	Eyeball Position Side-Side Left	true
+Male	Eyeball Position Height	Head	Eyes	Eyeball Position Height	true
+Male	Eyeball Position Depth	Head	Eyes	Eyeball Position Depth	true
+Male	Eye Pupil Slit	Head	Eyes	Eye Pupil Slit	true
+Male	Eye Iris Size Smaller	Head	Eyes	Eye Iris Size Smaller	true
+Male	Eye Iris Size Larger	Head	Eyes	Eye Iris Size Larger	true
+Male	Wink	Head	Expressions	Wink	true
+Male	Triumph	Head	Expressions	Triumph	true
+Male	Tired	Head	Expressions	Tired	true
+Male	Suspicious	Head	Expressions	Suspicious	true
+Male	Surprised	Head	Expressions	Surprised	true
+Male	Snarl	Head	Expressions	Snarl	true
+Male	Smile Open Full Face	Head	Expressions	Smile Open Full Face	true
+Male	Smile Full Face	Head	Expressions	Smile Full Face	true
+Male	Silly	Head	Expressions	Silly	true
+Male	Shock	Head	Expressions	Shock	true
+Male	Serious	Head	Expressions	Serious	true
+Male	Scream	Head	Expressions	Scream	true
+Male	Sarcastic	Head	Expressions	Sarcastic	true
+Male	Sad	Head	Expressions	Sad	true
+Male	Rage	Head	Expressions	Rage	true
+Male	Pouty	Head	Expressions	Pouty	true
+Male	Pleased	Head	Expressions	Pleased	true
+Male	Pain	Head	Expressions	Pain	true
+Male	Irritated	Head	Expressions	Irritated	true
+Male	Incredulous	Head	Expressions	Incredulous	true
+Male	Ill	Head	Expressions	Ill	true
+Male	Ignore	Head	Expressions	Ignore	true
+Male	Happy	Head	Expressions	Happy	true
+Male	Glare	Head	Expressions	Glare	true
+Male	Frown	Head	Expressions	Frown	true
+Male	Flirting	Head	Expressions	Flirting	true
+Male	Fierce	Head	Expressions	Fierce	true
+Male	Fear	Head	Expressions	Fear	true
+Male	Excitement	Head	Expressions	Excitement	true
+Male	Drunk	Head	Expressions	Drunk	true
+Male	Disgust	Head	Expressions	Disgust	true
+Male	Desire	Head	Expressions	Desire	true
+Male	Contempt	Head	Expressions	Contempt	true
+Male	Confused	Head	Expressions	Confused	true
+Male	Confident	Head	Expressions	Confident	true
+Male	Concentrate	Head	Expressions	Concentrate	true
+Male	Bored	Head	Expressions	Bored	true
+Male	Bereft	Head	Expressions	Bereft	true
+Male	Angry	Head	Expressions	Angry	true
+Male	Afraid	Head	Expressions	Afraid	true
+Male	Proportion Chest Size	Body	Chest	Proportion Chest Size	true
+Male	body_ctrl_pecmovement_r	Body	Chest	body ctrl pecmovement r	true
+Male	body_ctrl_pecmovement_l	Body	Chest	body ctrl pecmovement l	true
+Male	Base Anime Worried	Head	Expressions	Worried	true
+Male	Base Anime Upset	Head	Expressions	Upset	true
+Male	Base Anime Tongue Out Side	Head	Expressions	Tongue Out Side	true
+Male	Base Anime Tongue Out Front	Head	Expressions	Tongue Out Front	true
+Male	Base Anime Sweet	Head	Expressions	Sweet	true
+Male	Base Anime Surprised	Head	Expressions	Surprised	true
+Male	Base Anime Surprised Worried	Head	Expressions	Surprised Worried	true
+Male	Base Anime Surprised Happy	Head	Expressions	Surprised Happy	true
+Male	Base Anime Surprised Angry	Head	Expressions	Surprised Angry	true
+Male	Base Anime Smile Strong	Head	Expressions	Smile Strong	true
+Male	Base Anime Smile Simple	Head	Expressions	Smile Simple	true
+Male	Base Anime Smile Show Teeth	Head	Expressions	Smile Show Teeth	true
+Male	Base Anime Sleep	Head	Expressions	Sleep	true
+Male	Base Anime Sleep Open Mouth	Head	Expressions	Sleep Open Mouth	true
+Male	Base Anime Shock	Head	Expressions	Shock	true
+Male	Base Anime Serious	Head	Expressions	Serious	true
+Male	Base Anime Scolded	Head	Expressions	Scolded	true
+Male	Base Anime Sadness	Head	Expressions	Sadness	true
+Male	Base Anime Sad	Head	Expressions	Sad	true
+Male	Base Anime Resilience	Head	Expressions	Resilience	true
+Male	Base Anime No Words	Head	Expressions	No Words	true
+Male	Base Anime Nightmare	Head	Expressions	Nightmare	true
+Male	Base Anime Mad	Head	Expressions	Mad	true
+Male	Base Anime Laugh Open Eyes	Head	Expressions	Laugh Open Eyes	true
+Male	Base Anime Laugh Closed Eyes	Head	Expressions	Laugh Closed Eyes	true
+Male	Base Anime Innocent	Head	Expressions	Innocent	true
+Male	Base Anime Happy	Head	Expressions	Happy	true
+Male	Base Anime Happiness	Head	Expressions	Happiness	true
+Male	Base Anime Furious	Head	Expressions	Furious	true
+Male	Base Anime Friendly	Head	Expressions	Friendly	true
+Male	Base Anime Disgusted	Head	Expressions	Disgusted	true
+Male	Base Anime Crying	Head	Expressions	Crying	true
+Male	Base Anime Crazy	Head	Expressions	Crazy	true
+Male	Base Anime Confused	Head	Expressions	Confused	true
+Male	Base Anime Confused Toon	Head	Expressions	Confused Toon	true
+Male	Base Anime Complicated	Head	Expressions	Complicated	true
+Male	Base Anime Bored	Head	Expressions	Bored	true
+Male	Base Anime Angry	Head	Expressions	Angry	true
+Male	Base Anime Almost Crying	Head	Expressions	Almost Crying	true
+Male	Base Anime Afraid	Head	Expressions	Afraid	true
+Male	Eyelashes Skew Irregular Upper	Head	Eyelashes	Eyelashes Skew Irregular Upper	true
+Male	Eyelashes Skew Irregular Lower	Head	Eyelashes	Eyelashes Skew Irregular Lower	true
+Male	Eyelashes Root Spread Irregular Upper	Head	Eyelashes	Eyelashes Root Spread Irregular Upper	true
+Male	Eyelashes Root Spread Irregular Lower	Head	Eyelashes	Eyelashes Root Spread Irregular Lower	true
+Male	Eyelashes Root Skew Irregular	Head	Eyelashes	Eyelashes Root Skew Irregular	true
+Male	Eyelashes Outer Height Upper	Head	Eyelashes	Eyelashes Outer Height Upper	true
+Male	Eyelashes Length Uniform Upper	Head	Eyelashes	Eyelashes Length Uniform Upper	true
+Male	Eyelashes Length Uniform Lower	Head	Eyelashes	Eyelashes Length Uniform Lower	true
+Male	Eyelashes Length Irregular Upper	Head	Eyelashes	Eyelashes Length Irregular Upper	true
+Male	Eyelashes Length Irregular Lower	Head	Eyelashes	Eyelashes Length Irregular Lower	true
+Male	Eyelashes Layer Seperation Upper	Head	Eyelashes	Eyelashes Layer Seperation Upper	true
+Male	Eyelashes Large Uniform Upper	Head	Eyelashes	Eyelashes Large Uniform Upper	true
+Male	Eyelashes Large Uniform Lower	Head	Eyelashes	Eyelashes Large Uniform Lower	true
+Male	Eyelashes Height Uniform Upper	Head	Eyelashes	Eyelashes Height Uniform Upper	true
+Male	Eyelashes Height Uniform Lower	Head	Eyelashes	Eyelashes Height Uniform Lower	true
+Male	Eyelashes Gone Upper	Head	Eyelashes	Eyelashes Gone Upper	true
+Male	Eyelashes Gone Lower	Head	Eyelashes	Eyelashes Gone Lower	true
+Male	Eyelashes Curvature	Head	Eyelashes	Eyelashes Curvature	true
+Male	Eyelashes Curl Uniform Upper	Head	Eyelashes	Eyelashes Curl Uniform Upper	true
+Male	Eyelashes Curl Uniform Lower	Head	Eyelashes	Eyelashes Curl Uniform Lower	true
+Male	Eyelashes Curl Irregular Upper Point	Head	Eyelashes	Eyelashes Curl Irregular Upper Point	true
+Male	Eyelashes Curl Irregular Upper	Head	Eyelashes	Eyelashes Curl Irregular Upper	true
+Male	Eyelashes Curl Irregular Lower Point	Head	Eyelashes	Eyelashes Curl Irregular Lower Point	true
+Male	Eyelashes Curl Irregular Lower	Head	Eyelashes	Eyelashes Curl Irregular Lower	true
+Male	DK_Shaft Root_Bend	Body	Genitals	Shaft Root Bend	true
+Male	DK_Shaft Root_Side-Side	Body	Genitals	Shaft Root Side-Side	true
+Male	DK_Shaft_Bend All	Body	Genitals	Shaft Bend All	true
+Male	DK_Shaft_Side-Side All	Body	Genitals	Shaft Side-Side All	true
+Male	DK_Flacid 04	Body	Genitals	Flacid 04	true
+Male	DK_Flacid 03	Body	Genitals	Flacid 03	true
+Male	DK_Erection	Body	Genitals	Erection	true
+Male	DK_29-Cornelius	Body	Genitals	29-Cornelius	true
+Male	DK_32-Caligula	Body	Genitals	32-Caligula	true
+Male	DK_40-Magna Mater	Body	Genitals	40-Magna Mater	true
+Male	DK_Glans_Inflate1	Body	Genitals	Glans Inflate1	true
+Male	DK_Glans_Inflate2	Body	Genitals	Glans Inflate2	true
+Male	DK_Glans_Mushroomy	Body	Genitals	Glans Mushroomy	true
+Male	DK_Shaft_Conical 2	Body	Genitals	Shaft Conical 2	true
+Male	DK_Shaft_Inflate 2	Body	Genitals	Shaft Inflate 2	true
+Male	DK_Shaft_Inflate 3	Body	Genitals	Shaft Inflate 3	true
+Male	DK_Urethra_Crease	Body	Genitals	Urethra Crease	true
+Male	DK_Urethra_Inflate 1	Body	Genitals	Urethra Inflate 1	true
+Male	DK_Scrotum_Inflate	Body	Genitals	Scrotum Inflate	true
+Male	DK_Scrotum_Scale	Body	Genitals	Scrotum Scale	true
+Male	DK_Scrotum_Down 1	Body	Genitals	Scrotum Down 1	true
+Male	DK_Scrotum_Stretch	Body	Genitals	Scrotum Stretch	true
+Male	DK_Serial Killers	Body	Genitals	Serial Killers	true
+Male	Eye Upper Curve Height	Head	Eyes	Eye Upper Curve Height	true
+Male	Eye Lower Curve Height	Head	Eyes	Eye Lower Curve Height	true
+Male	Eye Upper Peak	Head	Eyes	Eye Upper Peak	true
+Male	Eye Upper Curve Balance	Head	Eyes	Eye Upper Curve Balance	true
+Male	Eye Swoop Up	Head	Eyes	Eye Swoop Up	true
+Male	Eye Outer Arc Down	Head	Eyes	Eye Outer Arc Down	true
+Male	Eye Lower Curve Balance	Head	Eyes	Eye Lower Curve Balance	true
+Male	Eye Inner Height Size	Head	Eyes	Eye Inner Height Size	true
+Male	Ear Elf Long Outward	Head	Ears	Ear Elf Long Outward	true
+Male	Skull Width	Head	Skull	Skull Width	true
+Male	Skull Size	Head	Skull	Skull Size	true
+Male	Skull Above Ear Width	Head	Skull	Skull Above Ear Width	true
+Male	Nose Wing Width	Head	Nose	Wing Width	true
+Male	Nose Wing Size Vertical	Head	Nose	Wing Size Vertical	true
+Male	Nose Wing Size	Head	Nose	Wing Size	true
+Male	Nose Wing Lower Width	Head	Nose	Wing Lower Width	true
+Male	Nose Wing Lower Height	Head	Nose	Wing Lower Height	true
+Male	Nose Wing Height	Head	Nose	Wing Height	true
+Male	Nose Wing Depth	Head	Nose	Wing Depth	true
+Male	Nose Whole Width	Head	Nose	Whole Width	true
+Male	Nose Whole Size	Head	Nose	Whole Size	true
+Male	Nose Whole Depth	Head	Nose	Whole Depth	true
+Male	Nose Tip Width	Head	Nose	Tip Width	true
+Male	Nose Tip Upturn	Head	Nose	Tip Upturn	true
+Male	Nose Tip Size	Head	Nose	Tip Size	true
+Male	Nose Tip Septum Contour	Head	Nose	Tip Septum Contour	true
+Male	Nose Tip Height	Head	Nose	Tip Height	true
+Male	Nose Tip Depth	Head	Nose	Tip Depth	true
+Male	Nose Septum Width	Head	Nose	Septum Width	true
+Male	Nose Septum Height	Head	Nose	Septum Height	true
+Male	Nose Septum Depth	Head	Nose	Septum Depth	true
+Male	Nose Philtrum Width	Head	Nose	Philtrum Width	true
+Male	Nose Philtrum Outer Depth	Head	Nose	Philtrum Outer Depth	true
+Male	Nose Philtrum Center Depth	Head	Nose	Philtrum Center Depth	true
+Male	Nose Philtrum Angle	Head	Nose	Philtrum Angle	true
+Male	Nose Bridge Width	Head	Nose	Bridge Width	true
+Male	Nose Bridge Upper Width	Head	Nose	Bridge Upper Width	true
+Male	Nose Bridge Upper Size	Head	Nose	Bridge Upper Size	true
+Male	Nose Bridge Upper Hollow	Head	Nose	Bridge Upper Hollow	true
+Male	Nose Bridge Upper Height	Head	Nose	Bridge Upper Height	true
+Male	Nose Bridge Upper Depth	Head	Nose	Bridge Upper Depth	true
+Male	Nose Bridge To Cheek Depth	Head	Nose	Bridge To Cheek Depth	true
+Male	Nose Bridge Slope	Head	Nose	Bridge Slope	true
+Male	Nose Bridge Size	Head	Nose	Bridge Size	true
+Male	Nose Bridge Lower Width	Head	Nose	Bridge Lower Width	true
+Male	Nose Bridge Lower Slope	Head	Nose	Bridge Lower Slope	true
+Male	Nose Bridge Depth	Head	Nose	Bridge Depth	true
+Male	Nose Bridge Definition	Head	Nose	Bridge Definition	true
+Male	Nose Bridge Bump	Head	Nose	Bridge Bump	true
+Male	Nose Base Size	Head	Nose	Base Size	true
+Male	Nose Base Pinched	Head	Nose	Base Pinched	true
+Male	Nose Base Height	Head	Nose	Base Height	true
+Male	Nose Base Flesh Size	Head	Nose	Base Flesh Size	true
+Male	Nose Base Angle	Head	Nose	Base Angle	true
+Male	Mouth Width	Head	Mouth & Lips	Mouth Width	true
+Male	Mouth Size	Head	Mouth & Lips	Mouth Size	true
+Male	Mouth Height	Head	Mouth & Lips	Mouth Height	true
+Male	Mouth Depth	Head	Mouth & Lips	Mouth Depth	true
+Male	Mouth Below Size Outer	Head	Mouth & Lips	Mouth Below Size Outer	true
+Male	Mouth Below Size Inner	Head	Mouth & Lips	Mouth Below Size Inner	true
+Male	Mouth Below Hollow	Head	Mouth & Lips	Mouth Below Hollow	true
+Male	Mouth Aperture Curve Upper	Head	Mouth & Lips	Mouth Aperture Curve Upper	true
+Male	Mouth Aperture Curve	Head	Mouth & Lips	Mouth Aperture Curve	true
+Male	Mouth Above Size Outer	Head	Mouth & Lips	Mouth Above Size Outer	true
+Male	Mouth Above Size Inner	Head	Mouth & Lips	Mouth Above Size Inner	true
+Male	Lip Width Upper	Head	Mouth & Lips	Lip Width Upper	true
+Male	Lip Width Lower	Head	Mouth & Lips	Lip Width Lower	true
+Male	Lip Top Peak	Head	Mouth & Lips	Lip Top Peak	true
+Male	Lip Thin Upper Outer	Head	Mouth & Lips	Lip Thin Upper Outer	true
+Male	Lip Thin Upper Inner	Head	Mouth & Lips	Lip Thin Upper Inner	true
+Male	Lip Thin Lower Outer	Head	Mouth & Lips	Lip Thin Lower Outer	true
+Male	Lip Thin Lower Inner	Head	Mouth & Lips	Lip Thin Lower Inner	true
+Male	Lip Thin	Head	Mouth & Lips	Lip Thin	true
+Male	Lip Square	Head	Mouth & Lips	Lip Square	true
+Male	Lip Size Upper	Head	Mouth & Lips	Lip Size Upper	true
+Male	Lip Size Lower	Head	Mouth & Lips	Lip Size Lower	true
+Male	Lip Heart	Head	Mouth & Lips	Lip Heart	true
+Male	Lip Depth Upper	Head	Mouth & Lips	Lip Depth Upper	true
+Male	Lip Depth Lower	Head	Mouth & Lips	Lip Depth Lower	true
+Male	Lip Border Curve Upper	Head	Mouth & Lips	Lip Border Curve Upper	true
+Male	Jaw Whole Width	Head	Jaw & Chin	Jaw Whole Width	true
+Male	Jaw Whole Size	Head	Jaw & Chin	Jaw Whole Size	true
+Male	Jaw Whole Sharpen	Head	Jaw & Chin	Jaw Whole Sharpen	true
+Male	Jaw Whole Height	Head	Jaw & Chin	Jaw Whole Height	true
+Male	Jaw to Neck Slack	Head	Jaw & Chin	Jaw to Neck Slack	true
+Male	Jaw Slack	Head	Jaw & Chin	Jaw Slack	true
+Male	Jaw Rear Width	Head	Jaw & Chin	Jaw Rear Width	true
+Male	Jaw Rear Height	Head	Jaw & Chin	Jaw Rear Height	true
+Male	Jaw Rear Define	Head	Jaw & Chin	Jaw Rear Define	true
+Male	Jaw Middle Curve	Head	Jaw & Chin	Jaw Middle Curve	true
+Male	Forehead Whole Width	Head	Forehead	Forehead Whole Width	true
+Male	Forehead Whole Thin	Head	Forehead	Forehead Whole Thin	true
+Male	Forehead Whole Round	Head	Forehead	Forehead Whole Round	true
+Male	Forehead Whole Flat	Head	Forehead	Forehead Whole Flat	true
+Male	Forehead Upper Thin	Head	Forehead	Forehead Upper Thin	true
+Male	Face Young	Head	General	Face Young	true
+Male	Face Square	Head	General	Face Square	true
+Male	Face Size	Head	General	Face Size	true
+Male	Face Round	Head	General	Face Round	true
+Male	Face Older	Head	General	Face Older	true
+Male	Face Heart	Head	General	Face Heart	true
+Male	Face Flat	Head	General	Face Flat	true
+Male	Face Depth	Head	General	Face Depth	true
+Male	Face Center Depth	Head	General	Face Center Depth	true
+Male	Face Angle	Head	General	Face Angle	true
+Male	Eye Whole Width	Head	Eyes	Eye Whole Width	true
+Male	Eye Whole Size	Head	Eyes	Eye Whole Size	true
+Male	Eye Whole Height	Head	Eyes	Eye Whole Height	true
+Male	Eye Whole Depth	Head	Eyes	Eye Whole Depth	true
+Male	Eye Whole Angle	Head	Eyes	Eye Whole Angle	true
+Male	Eye Socket Whole Depth	Head	Eyes	Eye Socket Whole Depth	true
+Male	Eye Socket Puffy Upper	Head	Eyes	Eye Socket Puffy Upper	true
+Male	Eye Socket Puffy Lower	Head	Eyes	Eye Socket Puffy Lower	true
+Male	Eye Socket Lower Depth	Head	Eyes	Eye Socket Lower Depth	true
+Male	Eye Socket Inner Depth	Head	Eyes	Eye Socket Inner Depth	true
+Male	Eyelid Thickness	Head	Eyelids	Thickness	true
+Male	Eyelid Fold Toward	Head	Eyelids	Fold Toward	true
+Male	Eyelid Fold Thickness	Head	Eyelids	Fold Thickness	true
+Male	Eyelid Fold Inner Toward	Head	Eyelids	Fold Inner Toward	true
+Male	Eyelid Crease Upper Smooth	Head	Eyelids	Crease Upper Smooth	true
+Male	Eyelid Crease Upper Outer Height	Head	Eyelids	Crease Upper Outer Height	true
+Male	Eyelid Crease Upper Inner Height	Head	Eyelids	Crease Upper Inner Height	true
+Male	Eyelid Crease Upper Height	Head	Eyelids	Crease Upper Height	true
+Male	Eyelid Crease Upper Deepen	Head	Eyelids	Crease Upper Deepen	true
+Male	Eyelid Crease Lower Height	Head	Eyelids	Crease Lower Height	true
+Male	Eyelid Crease Lower Deepen	Head	Eyelids	Crease Lower Deepen	true
+Male	Eyelid Angle Upper Outer	Head	Eyelids	Angle Upper Outer	true
+Male	Eyelid Angle Lower Outer	Head	Eyelids	Angle Lower Outer	true
+Male	Eye Lacrimal Size	Head	Eyes	Eye Lacrimal Size	true
+Male	Eye Lacrimal Pinch	Head	Eyes	Eye Lacrimal Pinch	true
+Male	Eye Lacrimal Inner Height	Head	Eyes	Eye Lacrimal Inner Height	true
+Male	Eye Angle Outer	Head	Eyes	Eye Angle Outer	true
+Male	Eye Angle Inner	Head	Eyes	Eye Angle Inner	true
+Male	Eye Almond Outer	Head	Eyes	Eye Almond Outer	true
+Male	Eye Almond Inner	Head	Eyes	Eye Almond Inner	true
+Male	Ear Size Upper	Head	Ears	Ear Size Upper	true
+Male	Ear Size Lower	Head	Ears	Ear Size Lower	true
+Male	Earlobe Size	Head	Ears	Earlobe Size	true
+Male	Earlobe Length	Head	Ears	Earlobe Length	true
+Male	Earlobe Attached	Head	Ears	Earlobe Attached	true
+Male	Ear Height	Head	Ears	Ear Height	true
+Male	Ear Elf Long	Head	Ears	Ear Elf Long	true
+Male	Ear Elf	Head	Ears	Ear Elf	true
+Male	Ear Depth	Head	Ears	Ear Depth	true
+Male	Cranium Slope	Head	Skull	Cranium Slope	true
+Male	Cranium Size	Head	Skull	Cranium Size	true
+Male	Cranium Height	Head	Skull	Cranium Height	true
+Male	Chin Width	Head	Jaw & Chin	Chin Width	true
+Male	Chin to Lip Sharpen	Head	Jaw & Chin	Chin to Lip Sharpen	true
+Male	Chin to Lip Depth	Head	Jaw & Chin	Chin to Lip Depth	true
+Male	Chin Height	Head	Jaw & Chin	Chin Height	true
+Male	Chin Depth	Head	Jaw & Chin	Chin Depth	true
+Male	Chin Cleft	Head	Jaw & Chin	Chin Cleft	true
+Male	Cheek to Lip Depth	Head	Cheeks	Cheek to Lip Depth	true
+Male	Cheek to Jaw Size	Head	Cheeks	Cheek to Jaw Size	true
+Male	Cheek Tear Trough	Head	Cheeks	Cheek Tear Trough	true
+Male	Cheek Slack	Head	Cheeks	Cheek Slack	true
+Male	Cheek Size	Head	Cheeks	Cheek Size	true
+Male	Cheek Sink	Head	Cheeks	Cheek Sink	true
+Male	Cheek Middle Size	Head	Cheeks	Cheek Middle Size	true
+Male	Cheek Middle Round	Head	Cheeks	Cheek Middle Round	true
+Male	Cheek Middle Diagonal Bisect	Head	Cheeks	Cheek Middle Diagonal Bisect	true
+Male	Cheek Lower Size	Head	Cheeks	Cheek Lower Size	true
+Male	Cheek Crease Depth	Head	Cheeks	Cheek Crease Depth	true
+Male	Cheekbone Upper Arch Size	Head	Cheeks	Cheekbone Upper Arch Size	true
+Male	Cheekbone Thin	Head	Cheeks	Cheekbone Thin	true
+Male	Cheekbone Size	Head	Cheeks	Cheekbone Size	true
+Male	Brow Whole Width	Head	Brow	Whole Width	true
+Male	Brow Whole Size	Head	Brow	Whole Size	true
+Male	Brow Whole Height	Head	Brow	Whole Height	true
+Male	Brow Temple Narrow	Head	Brow	Temple Narrow	true
+Male	Brow Skin Slack	Head	Brow	Skin Slack	true
+Male	Brow Sharpen	Head	Brow	Sharpen	true
+Male	Brow Arch Size Outer	Head	Brow	Arch Size Outer	true
+Male	Brow Arch Size Inner	Head	Brow	Arch Size Inner	true
+Male	Brow Above Depth Outer	Head	Brow	Above Depth Outer	true
+Male	Brow Above Depth Inner	Head	Brow	Above Depth Inner	true
+Male	Jaw Open Wide	Head	Jaw & Chin	Jaw Open Wide	true
+Male	Jaw Open	Head	Jaw & Chin	Jaw Open	true
+Male	Eye Blink Right	Head	Eyes	Eye Blink Right	true
+Male	Eye Blink Left	Head	Eyes	Eye Blink Left	true
+Male	Pectorals Width	Body	Chest	Pectorals Width	true
+Male	Pectorals Under Curve	Body	Chest	Pectorals Under Curve	true
+Male	Pectorals Size	Body	Chest	Pectorals Size	true
+Male	Pectorals Sag	Body	Chest	Pectorals Sag	true
+Male	Pectorals Height Outer	Body	Chest	Pectorals Height Outer	true
+Male	Pectorals Height	Body	Chest	Pectorals Height	true
+Male	Pectorals Diameter	Body	Chest	Pectorals Diameter	true
+Male	Pectorals Cleavage	Body	Chest	Pectorals Cleavage	true
+Male	Body Stocky	Body	General & Proportions	Body Stocky	true
+Male	Body Portly	Body	General & Proportions	Body Portly	true
+Male	Waist Width Upper	Body	Abdomen & Waist	Waist Width Upper	true
+Male	Waist Width	Body	Abdomen & Waist	Waist Width	true
+Male	Waist Depth	Body	Abdomen & Waist	Waist Depth	true
+Male	Upper Arm Taper Width	Body	Arms	Upper Arm Taper Width	true
+Male	Traps Size	Body	Shoulders	Traps Size	true
+Male	Thigh Tone	Body	Legs	Thigh Tone	true
+Male	Thigh Depth	Body	Legs	Thigh Depth	true
+Male	Taper UpperArm B	Body	Arms	Taper UpperArm B	true
+Male	Taper UpperArm A	Body	Arms	Taper UpperArm A	true
+Male	Taper Thigh B	Body	Legs	Taper Thigh B	true
+Male	Taper Thigh A	Body	Legs	Taper Thigh A	true
+Male	Taper Shin B	Body	Legs	Taper Shin B	true
+Male	Taper Shin A	Body	Legs	Taper Shin A	true
+Male	Taper Neck B	Body	Neck	Taper Neck B	true
+Male	Taper Neck A	Body	Neck	Taper Neck A	true
+Male	Taper Forearm B	Body	Arms	Taper Forearm B	true
+Male	Taper Forearm A	Body	Arms	Taper Forearm A	true
+Male	Stomach Soften	Body	Abdomen & Waist	Stomach Soften	true
+Male	Stomach Depth Lower	Body	Abdomen & Waist	Stomach Depth Lower	true
+Male	Stomach Depth	Body	Abdomen & Waist	Stomach Depth	true
+Male	Sternum Width	Body	Chest	Sternum Width	true
+Male	Sternum Height	Body	Chest	Sternum Height	true
+Male	Sternum Depth	Body	Chest	Sternum Depth	true
+Male	Scapula Size	Body	Back	Scapula Size	true
+Male	Scapula Depth	Body	Back	Scapula Depth	true
+Male	Ribcage Size	Body	Chest	Ribcage Size	true
+Male	Ribcage Pointed	Body	Chest	Ribcage Pointed	true
+Male	Ribcage Arched	Body	Chest	Ribcage Arched	true
+Male	Navel Vertical HD	Body	Abdomen & Waist	Navel Vertical HD	true
+Male	Navel Size HD	Body	Abdomen & Waist	Navel Size HD	true
+Male	Navel Out HD	Body	Abdomen & Waist	Navel Out HD	true
+Male	Navel Horizontal HD	Body	Abdomen & Waist	Navel Horizontal HD	true
+Male	Navel Hollow HD	Body	Abdomen & Waist	Navel Hollow HD	true
+Male	Navel Depth HD	Body	Abdomen & Waist	Navel Depth HD	true
+Male	Nails Length Square	Body	Hands & Nails	Nails Length Square	true
+Male	Nails Length Sharp	Body	Hands & Nails	Nails Length Sharp	true
+Male	Nails Length Round	Body	Hands & Nails	Nails Length Round	true
+Male	Mass Upper Torso	Body	General & Proportions	Mass Upper Torso	true
+Male	Mass Upper Arms	Body	Arms	Mass Upper Arms	true
+Male	Mass Thighs	Body	Legs	Mass Thighs	true
+Male	Mass Shoulders	Body	Shoulders	Mass Shoulders	true
+Male	Mass Shins	Body	Legs	Mass Shins	true
+Male	Mass Neck	Body	Neck	Mass Neck	true
+Male	Mass Lower Torso	Body	General & Proportions	Mass Lower Torso	true
+Male	Mass Knees	Body	Legs	Mass Knees	true
+Male	Mass Forearms	Body	Arms	Mass Forearms	true
+Male	Mass Feet	Body	Feet	Mass Feet	true
+Male	Mass Ankles	Body	Feet	Mass Ankles	true
+Male	Lats Size	Body	Back	Lats Size	true
+Male	Knee Bones Size	Body	Legs	Knee Bones Size	true
+Male	Hip V Define	Body	Hips & Glutes	Hip V Define	true
+Male	Hip Size	Body	Hips & Glutes	Hip Size	true
+Male	Hip Pelvic Tilt	Body	Hips & Glutes	Hip Pelvic Tilt	true
+Male	Hip Genital Bulge	Body	Hips & Glutes	Hip Genital Bulge	true
+Male	Hip Bone Size	Body	Hips & Glutes	Hip Bone Size	true
+Male	Hip Bone Crest	Body	Hips & Glutes	Hip Bone Crest	true
+Male	Hip Back Dimples	Body	Hips & Glutes	Hip Back Dimples	true
+Male	Glute Width	Body	Hips & Glutes	Glute Width	true
+Male	Glute Size	Body	Hips & Glutes	Glute Size	true
+Male	Glute Depth Upper	Body	Hips & Glutes	Glute Depth Upper	true
+Male	Glute Depth Lower	Body	Hips & Glutes	Glute Depth Lower	true
+Male	Glute Crease	Body	Hips & Glutes	Glute Crease	true
+Male	Foot Arch Depth	Body	Feet	Foot Arch Depth	true
+Male	Collarbone Detail	Body	Shoulders	Collarbone Detail	true
+Male	Calves Size	Body	Legs	Calves Size	true
+Male	Body Tone	Body	General & Proportions	Body Tone	true
+Male	Body Thin	Body	General & Proportions	Body Thin	true
+Male	Body Older	Body	General & Proportions	Body Older	true
+Male	Body Muscular Mass	Body	General & Proportions	Body Muscular Mass	true
+Male	Body Muscular Details	Body	General & Proportions	Body Muscular Details	true
+Male	Body Lithe	Body	General & Proportions	Body Lithe	true
+Male	Body Heavy	Body	General & Proportions	Body Heavy	true
+Male	Body Fitness Mass	Body	General & Proportions	Body Fitness Mass	true
+Male	Body Fitness Details	Body	General & Proportions	Body Fitness Details	true
+Male	Body Emaciated	Body	General & Proportions	Body Emaciated	true
+Male	Abdominals Width	Body	Abdomen & Waist	Abdominals Width	true
+Male	Abdominals Outer Define	Body	Abdomen & Waist	Abdominals Outer Define	true
+Male	Abdominals Center Define	Body	Abdomen & Waist	Abdominals Center Define	true
+Male	Proportion Neck Length	Body	Neck	Proportion Neck Length	true
+Male	Proportion Height	Body	General & Proportions	Proportion Height	true
+Male	Proportion Chest Width	Body	Chest	Proportion Chest Width	true
+Male	Proportion Chest Depth	Body	Chest	Proportion Chest Depth	true
+Male	Mouth Cavity Fit Front	Head	Mouth & Lips	Mouth Cavity Fit Front	true
+Male	Mouth Cavity Fit Back	Head	Mouth & Lips	Mouth Cavity Fit Back	true
+Male	Eyelashes Root Zag	Head	Eyelashes	Eyelashes Root Zag	true
+Male	Eyelashes Irregular Twist	Head	Eyelashes	Eyelashes Irregular Twist	true
+Male	Navel HD	Body	Abdomen & Waist	Navel HD	true

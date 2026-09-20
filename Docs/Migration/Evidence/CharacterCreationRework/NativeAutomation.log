@@ -1,0 +1,13 @@
+[2026.09.20-22.20.15:887][ 92]Cmd: Automation RunTests EF.CharacterCreation.Rework
+[2026.09.20-22.20.15:888][ 92]Automation: RunTests='EF.CharacterCreation.Rework' Queued.
+[2026.09.20-22.20.42:607][485]LogAutomationCommandLine: Display: Found 2 automation tests based on 'EF.CharacterCreation.Rework'
+[2026.09.20-22.20.42:608][485]LogAutomationCommandLine: Display: 	EF.CharacterCreation.Rework.Anatomy
+[2026.09.20-22.20.42:608][485]LogAutomationCommandLine: Display: 	EF.CharacterCreation.Rework.MeshCoverage
+[2026.09.20-22.20.42:621][485]LogAutomationController: Display: Test Started. Name={Anatomy} Path={EF.CharacterCreation.Rework.Anatomy}
+[2026.09.20-22.20.43:100][487]LogAutomationController: Display: Test Completed. Result={Success} Name={Anatomy} Path={EF.CharacterCreation.Rework.Anatomy}
+[2026.09.20-22.20.43:100][487]LogAutomationController: BeginEvents: EF.CharacterCreation.Rework.Anatomy
+[2026.09.20-22.20.43:100][487]LogAutomationController: EndEvents: EF.CharacterCreation.Rework.Anatomy
+[2026.09.20-22.20.43:101][487]LogAutomationController: Display: Test Started. Name={MeshCoverage} Path={EF.CharacterCreation.Rework.MeshCoverage}
+[2026.09.20-22.20.43:430][489]LogAutomationController: Display: Test Completed. Result={Success} Name={MeshCoverage} Path={EF.CharacterCreation.Rework.MeshCoverage}
+[2026.09.20-22.20.43:430][489]LogAutomationController: BeginEvents: EF.CharacterCreation.Rework.MeshCoverage
+[2026.09.20-22.20.43:430][489]LogAutomationController: EndEvents: EF.CharacterCreation.Rework.MeshCoverage
