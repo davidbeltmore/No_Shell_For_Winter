@@ -130,3 +130,10 @@ ends PIE and closes its editor. It times out after six minutes if unreviewed.
 
 Editor/Blueprint tests do not imply Game build, cook or packaged acceptance.
 Current evidence and remaining gates belong in `Docs/Migration/EFEquipment.md`.
+
+Run `Audit-Integration.py` through the protected launch wrapper's `-PythonScript`
+option before extending save/load, trade or storage adapters. It uses `rg` only to
+find candidate packages, then reads their real Blueprint call graphs through the
+project editor helper. Evidence goes to `Saved/EquipmentQA/IntegrationAudit`.
+The audit does not compile or save packages. Include native C++ consumers in the
+review as well; a Blueprint-only result is not an exhaustive runtime call graph.

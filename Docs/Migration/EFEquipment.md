@@ -208,3 +208,19 @@ PENDING until explicitly checked in the real menu.
   packages were backed up and deleted through the editor after reference checks.
   Receipt and hashes: `Saved/EquipmentQA/RejectedUIRetirement01/receipt.json`.
   Original native widgets and user HUB changes are retained.
+
+### Container load isolation and consumer audit
+
+- BuildEditor39 and NativeEquipment10 PASS. Deserialization now stages contents
+  before replacing live entries. A valid-checksum payload containing an equipped
+  child is rejected while preserving the original live item object, GUID and count.
+  Unsupported container schema versions cannot overwrite saved bytes or bypass
+  validation through the runtime cache. Envelope size includes its 12-byte header.
+- Evidence: `Saved/EquipmentQA/NativeAutomation_NativeEquipment10/Report/index.json`.
+  World drop/Blueprint integration is checkpoint `61c80c9`.
+- Read-only integration audit PASS: 16 project Blueprint candidates, exact native
+  call owners/pins and node GUIDs in `Saved/EquipmentQA/IntegrationAudit/blueprint_calls.txt`.
+  Save/load consumers include the shared save/load pages, ACFSaveGameActorBP,
+  the Ultimate controller's test slot and the ATS traveled-player state. Storage
+  widgets still call native movement and need aggregate admission adapters.
+  This audit identifies integration work; it does not certify those paths yet.

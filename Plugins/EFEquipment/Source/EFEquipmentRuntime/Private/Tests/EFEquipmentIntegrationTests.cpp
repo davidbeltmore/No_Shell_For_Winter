@@ -13,6 +13,9 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Misc/Crc.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -99,6 +102,32 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestFalse(TEXT("Corrupt container envelope is rejected"), Rehydrated->ReadPayload(Corrupt, Error));
     TestTrue(TEXT("Rejected payload preserves the prior live contents"), Rehydrated->GetInventory().Num() == 1
         && Rehydrated->GetInventory()[0].GetItemGuid() == Bra.GetItemGuid());
+    auto* InvalidContainer = NewObject<UEFContainerInventoryComponent>(Pawn);
+    InvalidContainer->InitializeContainer(Bag.GetItemGuid(), 20);
+    FInventoryItem InvalidChild = Bra; InvalidChild.bIsEquipped = true;
+    EFEquipmentACF::Inventory(InvalidContainer)->AddEntry(InvalidChild);
+    TArray<uint8> InvalidPayload;
+    {
+        FMemoryWriter Writer(InvalidPayload); FObjectAndNameAsStringProxyArchive Ar(Writer, false);
+        Ar.ArIsSaveGame = true; Ar.ArNoDelta = true; InvalidContainer->Serialize(Ar);
+    }
+    TArray<uint8> SemanticCorrupt;
+    {
+        FMemoryWriter Envelope(SemanticCorrupt); int32 Version = 1, Length = InvalidPayload.Num();
+        uint32 CRC = FCrc::MemCrc32(InvalidPayload.GetData(), Length);
+        Envelope << Version << Length << CRC; Envelope.Serialize(InvalidPayload.GetData(), Length);
+    }
+    const auto* PreservedItem = Rehydrated->GetInventory()[0].Item;
+    TestFalse(TEXT("Valid-checksum payload with equipped contents is rejected"), Rehydrated->ReadPayload(SemanticCorrupt, Error));
+    TestTrue(TEXT("Late deserialization rejection retains the original live object"), Rehydrated->GetInventory().Num() == 1
+        && Rehydrated->GetInventory()[0].Item == PreservedItem && Rehydrated->GetInventory()[0].GetItemGuid() == Bra.GetItemGuid());
+    InvalidContainer->DestroyComponent();
+    auto* BagRules = UEFEquipmentRulesFragment::Find(Bag.Item);
+    const auto PreservedPayload = BagRules->ContainerPayload; BagRules->ContainerSchema = 99;
+    TestNull(TEXT("Future container schema cannot resolve through an existing cache"), Coordinator->ResolveContainer(Bag.GetItemGuid(), Error));
+    TestFalse(TEXT("Future container schema cannot be overwritten"), BagRules->FlushContainer(Error));
+    TestTrue(TEXT("Unsupported container version retains its bytes"), BagRules->ContainerPayload == PreservedPayload);
+    BagRules->ContainerSchema = 1;
 
     Coordinator->SetBaseCarryCapacity(180.125);
     auto Stack = Add(TEXT("/Script/InventorySystem.ACFItem"), 8);

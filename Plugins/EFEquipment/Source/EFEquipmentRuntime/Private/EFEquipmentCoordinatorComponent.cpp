@@ -332,6 +332,7 @@ UEFContainerInventoryComponent* UEFEquipmentCoordinatorComponent::ResolveContain
     auto* Rules = UEFEquipmentRulesFragment::Find(Item.Item);
     if (!Rules || !Rules->Profile || !Rules->Profile->bContainer || !Rules->Profile->Validate(Error))
     { if (Error.IsEmpty()) Error = TEXT("This item is not a valid container."); return nullptr; }
+    if (Rules->ContainerSchema != 1) { Error = TEXT("This container uses an unsupported saved version. Its data was preserved."); return nullptr; }
     if (auto* Existing = Containers.Find(Guid)) return Existing->Get();
     if (!IsValid(Rules->RuntimeInventory)) Rules->RuntimeInventory = nullptr;
     if (Rules->RuntimeInventory && Rules->RuntimeInventory->GetOwner() != GetOwner())

@@ -147,6 +147,34 @@ FString UEFEquipmentAuthoringLibrary::AuditConsumers()
     return Result;
 }
 
+FString UEFEquipmentAuthoringLibrary::AuditBlueprintCalls(const TArray<FString>& AssetPaths)
+{
+    FString Result;
+    const TSet<FName> Names = {TEXT("SaveGameWorld"), TEXT("SaveGameWorldInCurrentSlot"), TEXT("SaveLocalPlayer"), TEXT("LoadGameWorld"),
+        TEXT("TravelLocalPlayer"), TEXT("LoadTraveledPlayer"), TEXT("LoadLevelFromSaveGame"), TEXT("LoadCurrentLevel"), TEXT("LoadLocalPlayer"),
+        TEXT("MoveItemsFromInventory"), TEXT("SellItemsToVendor"), TEXT("BuyItems"), TEXT("EquipItemFromInventory"),
+        TEXT("EquipItemFromInventoryInSlot"), TEXT("UseInventoryItem"), TEXT("DropItem"), TEXT("GetCurrentInventoryTotalWeight"), TEXT("GetMaxInventoryWeight")};
+    for (const auto& Path : AssetPaths)
+    {
+        if (!Path.StartsWith(TEXT("/Game/"))) { Result += TEXT("SKIP non-project: ") + Path + TEXT("\n"); continue; }
+        auto* BP = LoadObject<UBlueprint>(nullptr, *Path);
+        if (!BP) { Result += TEXT("NOT BLUEPRINT: ") + Path + TEXT("\n"); continue; }
+        Result += TEXT("ASSET ") + Path + TEXT(" parent=") + GetPathNameSafe(BP->ParentClass) + TEXT("\n");
+        TArray<UEdGraph*> Graphs; BP->GetAllGraphs(Graphs);
+        for (auto* Graph : Graphs) for (const auto& Node : Graph->Nodes)
+            if (auto* Call = Cast<UK2Node_CallFunction>(Node); Call && Names.Contains(Call->FunctionReference.GetMemberName()))
+            {
+                Result += FString::Printf(TEXT("  %s | %s | owner=%s | node=%s\n"), *Graph->GetName(),
+                    *Call->FunctionReference.GetMemberName().ToString(), *GetPathNameSafe(Call->FunctionReference.GetMemberParentClass()), *Call->NodeGuid.ToString());
+                for (auto* Pin : Call->Pins)
+                    if (Pin->Direction == EGPD_Input)
+                        Result += FString::Printf(TEXT("    %s: links=%d default=%s object=%s\n"), *Pin->PinName.ToString(),
+                            Pin->LinkedTo.Num(), *Pin->DefaultValue, *GetPathNameSafe(Pin->DefaultObject));
+            }
+    }
+    return Result;
+}
+
 FString UEFEquipmentAuthoringLibrary::InspectInventoryUI()
 {
     FString Result;

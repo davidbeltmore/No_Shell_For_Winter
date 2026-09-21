@@ -11,7 +11,10 @@ UEFEquipmentRulesFragment* UEFEquipmentRulesFragment::Find(const UACFItem* Item)
 }
 
 bool UEFEquipmentRulesFragment::FlushContainer(FString& Error)
-{ return !IsValid(RuntimeInventory) || RuntimeInventory->WritePayload(ContainerPayload, Error); }
+{
+    if (ContainerSchema != 1) { Error = TEXT("This container uses an unsupported saved version. Its data was preserved."); return false; }
+    return !IsValid(RuntimeInventory) || RuntimeInventory->WritePayload(ContainerPayload, Error);
+}
 
 void UEFEquipmentRulesFragment::Serialize(FArchive& Ar)
 {

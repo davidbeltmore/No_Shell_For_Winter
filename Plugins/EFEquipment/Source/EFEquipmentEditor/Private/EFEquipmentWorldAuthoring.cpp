@@ -99,5 +99,5 @@ FString UEFEquipmentAuthoringLibrary::BuildWorldActors()
     }
     if (!Pickup->GeneratedClass || !Pickup->GeneratedClass->IsChildOf(AEFEquipmentWorldItem::StaticClass()) || !Save(Pickup))
         return TEXT("FAIL: Project world pickup compile/save failed.");
-    return TEXT("PASS: Prototype visuals assigned and native pickup duplicated with aggregate admission. Activate BP_EquipmentWorldItem in the project item-system setting.");
+    return TEXT("PASS: Prototype visuals assigned and native pickup duplicated with aggregate admission. Game-world integration resolves EFEquipmentSettings.WorldPickupClass.");
 }

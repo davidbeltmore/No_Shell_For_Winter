@@ -14,6 +14,8 @@ public:
     /** Exact project-owned asset batch. Does not save Player, bodies or vendor assets. */
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildFoundation();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString AuditConsumers();
+    /** Read-only graph audit of explicit project candidates discovered by file search. */
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString AuditBlueprintCalls(const TArray<FString>& AssetPaths);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString InspectInventoryUI();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildInventoryUI();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildWorldActors();
