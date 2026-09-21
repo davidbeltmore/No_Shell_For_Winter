@@ -1,5 +1,39 @@
 # Layered equipment and satchels
 
+## Saved pickup name reuse: reproduced and corrected
+
+Snapshot after `54a8b6c`, BuildEditor69. PIE_24 diagnostics showed two full-bag
+pickups after one logged death transfer. Native `UALSLoadAndSaveComponent`
+auto-reloads an actor during BeginPlay when ALS is idle with a current save;
+`LoadActor` matches saved class/name. After a collected pickup's name is reused
+by new loot, this replays old storage into the new actor.
+
+`ProbePickupNameReuse` forces that exact collision against a temporary in-memory
+copy of the QA save, restoring the original current-save pointer before returning.
+It never publishes that candidate or changes a user slot. PIE_25 deterministically
+failed: a fresh empty pickup automatically acquired one saved entry. BuildEditor67
+had a fixture-only enum qualification error, corrected in BuildEditor68.
+
+`AEFEquipmentWorldItem::PostInitializeComponents` now disables the native
+per-actor `bAutoReload` flag before component BeginPlay, through a validated bool
+property. This applies only to the project pickup subclass. Native explicit
+world/actor deserialization, the saved StorageComponent, Blueprint load callbacks,
+ordinary pickup behavior and vendor classes remain intact. Name reuse can no
+longer replay previous loot implicitly.
+
+PIE_26: **PASS, 231 checks and 20 consecutive native death/revive/drop/pickup
+cycles**. The same collision probe now observes zero automatic entries, then
+confirms an explicit ALS LoadActor still restores the saved record. Actual
+SaveGameWorld/LoadGameWorld, legacy conversion, full-bag UI sale/buy, wheel and
+drag/drop also pass. Reviewed screenshot: `Saved/EquipmentQA/PIE_26/native_inventory.png`.
+All seven user saves verified after exit. Protected comparison PASS, 5,260 files:
+`Saved/EquipmentQA/protected_pickup_reuse_result.json`.
+
+This reproduces and corrects PIE_24's duplicate-loot cause. PIE_21 had insufficient
+diagnostics to establish that its identical high-level assertion had the same
+cause; retain that historical limit rather than rewriting its receipt. Final-tree
+release checks are still required.
+
 ## Player-facing legacy migration summary
 
 Snapshot after `090fcf9`: `EFEquipmentPersistence::DescribeMigration` derives an
@@ -114,7 +148,7 @@ remain in the log. It is not final-tree release certification.
 | Native inventory layout | `305299b`, PIE_23: wider frontal renderer, narrower item card, wheel and drag/drop | Final packaged visual check |
 | Equipment, containers, commerce | NativeEquipment15, PIE_23 | Final-tree rerun/package |
 | Save migration and native world reload | NativeEquipment15, PIE_23 | Player-facing migration notice and original save-page interaction |
-| Death | `87abead`, PIE_23: 20 native death/revive/drop/pickup cycles | Historical PIE_21 intermittent failure remains unexplained |
+| Death and loaded pickup name reuse | BuildEditor69, PIE_25 reproduced / PIE_26 fixed; 231 checks, 20 cycles | Final packaged lifecycle check |
 | Travel | EquipmentTravel04: source-world destruction and GC | Actual floor traversal |
 | Clothing layers and bodies | BuildEditor64, EquipmentLayers01/Bodies01/Transitions01 | Packaged cold-load check |
 | Game prerequisites | `17b854b`, Game03 and NativeGameCompatibility03 PASS | Rebuild final tree and cooked identity parity |

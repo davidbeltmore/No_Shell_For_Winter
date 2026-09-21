@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "9"
+  version: "10"
 ---
 
 # EF Equipment workbench
@@ -117,6 +117,12 @@ Managed equipment entries are retired after native effect/visual teardown. Test
 keep/drop/zero chance/protected child and original GUID recovery after pickup.
 `TriggerDeathFixture` is editor-only and PIE-only: it explicitly enables bag drops
 and invokes the native zero-health callback. Never use it as runtime gameplay logic.
+
+Project pickups disable ALS per-actor `bAutoReload` before component BeginPlay.
+ALS full-world/explicit actor load still restores their storage. Do not re-enable
+implicit loading by actor name: a fresh loot actor can reuse a collected actor's
+name and replay its saved items. `ProbePickupNameReuse` deterministically tests
+this collision using a temporary in-memory save, without relying on GC timing.
 
 Use `PreviewPurchase`/`ConfirmPurchase` for vendor admissions and the corresponding
 sale APIs for outgoing sets. Quotes are single-use and revalidate contents, price,

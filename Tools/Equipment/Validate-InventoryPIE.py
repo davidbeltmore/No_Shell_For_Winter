@@ -203,6 +203,8 @@ def tick(dt):
             check(coordinator.move_from_container(bag_guid, child_guid, 1).get_editor_property('success'), 'World-loaded content remains extractable')
             check(coordinator.request_equip(bag_guid, unreal.GameplayTag()).get_editor_property('success'), 'World-loaded satchel equips')
             check(any(view.get_editor_property('reserved') for view in coordinator.get_slot_views()), 'World load rebuilds Bikini reservation')
+            R['pickup_name_reuse'] = unreal.EFEquipmentAuthoringLibrary.probe_pickup_name_reuse(world)
+            check(R['pickup_name_reuse'].startswith('PASS:'), R['pickup_name_reuse'])
             advance('open_menu', 1)
         elif phase == 'open_menu':
             controller = unreal.GameplayStatics.get_player_controller(S['world'], 0)

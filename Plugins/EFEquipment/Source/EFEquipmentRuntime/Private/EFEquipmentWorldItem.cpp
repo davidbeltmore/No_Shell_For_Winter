@@ -4,6 +4,21 @@
 #include "GameFramework/Pawn.h"
 #include "EFEquipmentPrototypeActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "ALSLoadAndSaveComponent.h"
+#include "UObject/UnrealType.h"
+
+void AEFEquipmentWorldItem::PostInitializeComponents()
+{
+    Super::PostInitializeComponents();
+    // ALS world restoration explicitly deserializes this actor and its storage.
+    // Per-actor BeginPlay auto-reload uses only the actor name; a newly dropped
+    // bag/currency pickup can reuse a collected actor's name and replay old loot.
+    // Disable that second loader before component BeginPlay, for this subclass only.
+    auto* AutoReload = FindFProperty<FBoolProperty>(UALSLoadAndSaveComponent::StaticClass(), TEXT("bAutoReload"));
+    if (!ensureAlwaysMsgf(AutoReload, TEXT("The native ALS auto-reload contract changed."))) return;
+    TArray<UALSLoadAndSaveComponent*> SaveComponents; GetComponents(SaveComponents);
+    for (auto* Component : SaveComponents) AutoReload->SetPropertyValue_InContainer(Component, false);
+}
 
 TArray<UActorComponent*> AEFEquipmentWorldItem::GetComponentsToSave_Implementation() const
 {

@@ -14,6 +14,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Misc/ScopeExit.h"
+#include "EFEquipmentWorldItem.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace EFEquipmentSaveQA
 {
@@ -125,4 +127,37 @@ bool UEFEquipmentAuthoringLibrary::IsSaveFixtureBusy(UObject* WorldContextObject
 {
     auto* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
     return !World || World->WorldType != EWorldType::PIE || World->GetGameInstance()->GetSubsystem<UEFEquipmentSaveSubsystem>()->IsBusy();
+}
+
+FString UEFEquipmentAuthoringLibrary::ProbePickupNameReuse(UObject* WorldContextObject)
+{
+    auto* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
+    if (!World || World->WorldType != EWorldType::PIE || EFEquipmentSaveQA::Prefix.IsEmpty()) return TEXT("FAIL: PIE save fixture required.");
+    auto* Native = World->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>();
+    auto* Property = FindFProperty<FObjectPropertyBase>(UALSLoadAndSaveSubsystem::StaticClass(), TEXT("currentSavegame"));
+    if (!Native || Native->GetSystemState() != ELoadingState::EIdle || !Property || Property->PropertyClass != UALSSaveGame::StaticClass())
+        return TEXT("FAIL: Native save subsystem is not idle.");
+    TStrongObjectPtr<UALSSaveGame> Original(Native->GetCurrentSaveGame());
+    FALSLevelData Level;
+    const FString LevelName = UGameplayStatics::GetCurrentLevelName(World, true);
+    if (!Original || !Original->TryGetLevelData(LevelName, Level)) return TEXT("FAIL: Saved world record is missing.");
+    auto Records = Level.GetActorsCopy();
+    auto* Record = Records.FindByPredicate([](const auto& Entry) { return Entry.Class && Entry.Class->IsChildOf(AEFEquipmentWorldItem::StaticClass()); });
+    if (!Record) return TEXT("FAIL: Saved world pickup record is missing.");
+    Record->alsName = FName(*(TEXT("EquipmentQA_NameReuse_") + FGuid::NewGuid().ToString(EGuidFormats::Digits)));
+    Level.CleanActors(); Level.AddActorRecord(*Record);
+    TStrongObjectPtr<UALSSaveGame> Candidate(DuplicateObject<UALSSaveGame>(Original.Get(), GetTransientPackage()));
+    Candidate->AddLevel(LevelName, Level);
+    Property->SetObjectPropertyValue_InContainer(Native, Candidate.Get());
+    ON_SCOPE_EXIT { Property->SetObjectPropertyValue_InContainer(Native, Original.Get()); };
+    FActorSpawnParameters Parameters; Parameters.ObjectFlags |= RF_Transient; Parameters.Name = Record->alsName;
+    Parameters.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Required_ErrorAndReturnNull;
+    auto* Pickup = World->SpawnActor<AEFEquipmentWorldItem>(Record->Class, FTransform::Identity, Parameters);
+    if (!Pickup) return TEXT("FAIL: Exact-name pickup spawn failed.");
+    ON_SCOPE_EXIT { Pickup->Destroy(); };
+    const int32 AutomaticItems = Pickup->GetItems().Num();
+    const bool ExplicitLoad = Native->LoadActor(Pickup);
+    if (!ExplicitLoad || Pickup->GetItems().IsEmpty()) return TEXT("FAIL: Name collision fixture did not match the saved native record.");
+    return AutomaticItems == 0 ? TEXT("PASS: Fresh pickup stayed empty; explicit ALS load still restores the exact saved record.")
+        : FString::Printf(TEXT("FAIL: Fresh pickup automatically replayed %d saved entries by actor name."), AutomaticItems);
 }
