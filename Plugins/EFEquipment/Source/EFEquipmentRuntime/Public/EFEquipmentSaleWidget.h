@@ -27,4 +27,5 @@ protected:
 private:
     UPROPERTY(Transient) TObjectPtr<UEFEquipmentCoordinatorComponent> Coordinator;
     FGuid QuoteId;
+    bool bPurchase = false;
 };

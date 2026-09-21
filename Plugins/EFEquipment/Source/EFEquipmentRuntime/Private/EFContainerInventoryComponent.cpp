@@ -2,13 +2,16 @@
 #include "EFEquipmentACFAdapter.h"
 #include "EFEquipmentItems.h"
 #include "EFEquipmentData.h"
+#include "EFEquipmentSaveArchive.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 #include "Misc/Crc.h"
 #include "UObject/StrongObjectPtr.h"
+#include "UObject/UnrealType.h"
 
 namespace EFContainerEnvelope { constexpr int32 MaximumBytes = 16 * 1024 * 1024; constexpr int32 HeaderBytes = 12; }
+
 
 UEFContainerInventoryComponent::UEFContainerInventoryComponent()
 { PrimaryComponentTick.bCanEverTick = false; }
@@ -30,12 +33,12 @@ bool UEFContainerInventoryComponent::WritePayload(TArray<uint8>& Bytes, FString&
         if (const auto* Rules = UEFEquipmentRulesFragment::Find(Entry.Item); Entry.bIsEquipped || (Rules && Rules->Profile && Rules->Profile->bContainer))
         { Error = TEXT("Containers cannot contain equipped items or other containers."); return false; }
     TArray<uint8> Candidate; FMemoryWriter Writer(Candidate);
-    FObjectAndNameAsStringProxyArchive Ar(Writer, false); Ar.ArIsSaveGame = true; Ar.ArNoDelta = true;
+    FEFEquipmentSaveArchive Ar(Writer, false, true);
     Serialize(Ar);
     if (Ar.IsError() || Candidate.Num() > EFContainerEnvelope::MaximumBytes - EFContainerEnvelope::HeaderBytes)
     { Error = TEXT("Container serialization failed or exceeded the 16 MiB envelope limit."); return false; }
     TArray<uint8> Envelope; FMemoryWriter Header(Envelope);
-    int32 Version = 1, Length = Candidate.Num(); uint32 Checksum = FCrc::MemCrc32(Candidate.GetData(), Candidate.Num());
+    int32 Version = 2, Length = Candidate.Num(); uint32 Checksum = FCrc::MemCrc32(Candidate.GetData(), Candidate.Num());
     Header << Version << Length << Checksum; Header.Serialize(Candidate.GetData(), Candidate.Num());
     Bytes = MoveTemp(Envelope); return true;
 }
@@ -47,7 +50,7 @@ bool UEFContainerInventoryComponent::ReadPayload(const TArray<uint8>& Bytes, FSt
     if (Bytes.Num() < EFContainerEnvelope::HeaderBytes) { Error = TEXT("Container envelope is truncated."); return false; }
     FMemoryReader Header(Bytes); int32 Version = 0, Length = 0; uint32 Checksum = 0;
     Header << Version << Length << Checksum;
-    if (Version != 1 || Length != Bytes.Num() - Header.Tell() || Length < 0
+    if ((Version != 1 && Version != 2) || Length != Bytes.Num() - Header.Tell() || Length < 0
         || FCrc::MemCrc32(Bytes.GetData() + Header.Tell(), Length) != Checksum)
     { Error = TEXT("Container envelope version, length or checksum is invalid."); return false; }
     TArray<uint8> Payload; Payload.Append(Bytes.GetData() + Header.Tell(), Length);
@@ -56,7 +59,7 @@ bool UEFContainerInventoryComponent::ReadPayload(const TArray<uint8>& Bytes, FSt
     // discard an already populated live container.
     TStrongObjectPtr<UEFContainerInventoryComponent> Candidate(NewObject<UEFContainerInventoryComponent>(GetOwner()));
     Candidate->InitializeContainer(ContainerGuid, ContentCapacity);
-    FMemoryReader Reader(Payload); FObjectAndNameAsStringProxyArchive Ar(Reader, true); Ar.ArIsSaveGame = true; Ar.ArNoDelta = true;
+    FMemoryReader Reader(Payload); FEFEquipmentSaveArchive Ar(Reader, true, true);
     Candidate->Serialize(Ar);
     if (Ar.IsError() || Reader.Tell() != Payload.Num() || !EFEquipmentACF::ValidateInventory(Candidate.Get(), Error))
     { if (Error.IsEmpty()) Error = TEXT("Container payload is invalid."); Candidate->DestroyComponent(); return false; }

@@ -20,6 +20,7 @@ public:
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildInventoryUI();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildWorldActors();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildSaveIntegration();
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildStorageTradeIntegration();
     /** Isolates native save-list metadata in PIE; never saves DeveloperSettings config. */
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static FString BeginSaveFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool EndSaveFixture();

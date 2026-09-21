@@ -12,10 +12,10 @@ void UEFEquipmentSaleWidget::NativeConstruct()
 }
 void UEFEquipmentSaleWidget::SetQuote(UEFEquipmentCoordinatorComponent* Owner, const FEFEquipmentSaleQuote& Quote)
 {
-    Coordinator = Owner; QuoteId = Quote.QuoteId;
+    Coordinator = Owner; QuoteId = Quote.QuoteId; bPurchase = Quote.bPurchase;
     FString Breakdown;
     for (const FText& Line : Quote.Lines) Breakdown += Line.ToString() + TEXT("\n");
-    Breakdown += FString::Printf(TEXT("\nTotal: %.2f\n\nSell this item and everything inside it?"), Quote.TotalPrice);
+    Breakdown += FString::Printf(TEXT("\nTotal: %.2f\n\n%s this item and everything inside it?"), Quote.TotalPrice, bPurchase ? TEXT("Buy") : TEXT("Sell"));
     if (BreakdownLabel) BreakdownLabel->SetText(Quote.bValid ? FText::FromString(Breakdown) : Quote.Message);
     if (ConfirmButton) ConfirmButton->SetIsEnabled(Quote.bValid);
 }
@@ -24,7 +24,7 @@ UWidget* UEFEquipmentSaleWidget::NativeGetDesiredFocusTarget() const
 void UEFEquipmentSaleWidget::Confirm()
 {
     if (!Coordinator) return;
-    const auto Result = Coordinator->ConfirmSale(QuoteId);
+    const auto Result = bPurchase ? Coordinator->ConfirmPurchase(QuoteId) : Coordinator->ConfirmSale(QuoteId);
     if (Result.bSuccess) DeactivateWidget();
     else
     {

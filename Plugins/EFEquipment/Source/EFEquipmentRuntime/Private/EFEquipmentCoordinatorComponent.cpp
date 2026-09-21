@@ -15,6 +15,7 @@
 #include "Engine/GameInstance.h"
 #include "Components/ACFStorageComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "ANSUIPlayerSubsystem.h"
 
 UEFEquipmentCoordinatorComponent::UEFEquipmentCoordinatorComponent()
 { PrimaryComponentTick.bCanEverTick = false; }
@@ -258,7 +259,13 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::RequestUnequip(FGuid Guid)
 }
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::Publish(FEFEquipmentResult Result)
-{ LastMessage = Result.Message; Result.Revision = Revision; OnStateChanged.Broadcast(); return Result; }
+{
+    LastMessage = Result.Message; Result.Revision = Revision; OnStateChanged.Broadcast();
+    if (!Result.bSuccess && !Result.Message.IsEmpty())
+        if (auto* Game = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+            if (auto* UI = Game->GetSubsystem<UANSUIPlayerSubsystem>()) UI->BroadcastNotification(Result.Message, 6.f);
+    return Result;
+}
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::RequestDrop(FGuid Guid, int32 Count)
 {
@@ -541,11 +548,14 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::RestoreEquippedIntent(const
         for (const auto& Item : Equipment->GetInventory())
             EFEquipmentACF::Inventory(Equipment)->MarkItemAsEquipped(Item.GetItemGuid(), false, FGameplayTag());
     }
-    Ordered.Sort([this](const auto& A, const auto& B)
+    Ordered.StableSort([this](const auto& A, const auto& B)
     {
         const bool ReservationsA = Occupancy(A.Item, A.EquipmentSlot).Num() > 1, ReservationsB = Occupancy(B.Item, B.EquipmentSlot).Num() > 1;
         if (ReservationsA != ReservationsB) return ReservationsA > ReservationsB;
         const auto* SlotA = Registry->Find(A.EquipmentSlot); const auto* SlotB = Registry->Find(B.EquipmentSlot);
+        // Preserve caller-supplied native weapon/projectile order. Managed clothes
+        // still use deterministic reservation priority and the registry order.
+        if (!SlotA && !SlotB) return false;
         const int32 OrderA = SlotA ? SlotA->Order : MAX_int32, OrderB = SlotB ? SlotB->Order : MAX_int32;
         if (OrderA != OrderB) return OrderA < OrderB;
         return A.GetItemGuid().ToString() < B.GetItemGuid().ToString();

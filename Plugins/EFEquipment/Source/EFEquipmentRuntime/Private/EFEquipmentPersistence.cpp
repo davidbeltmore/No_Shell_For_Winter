@@ -4,6 +4,7 @@
 #include "EFEquipmentData.h"
 #include "EFEquipmentItems.h"
 #include "EFContainerInventoryComponent.h"
+#include "EFEquipmentSaveArchive.h"
 #include "Engine/World.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
@@ -103,7 +104,7 @@ bool EFEquipmentPersistence::SerializeInventory(UACFEquipmentComponent* Inventor
     Error.Reset();
     if (!IsInGameThread() || !ValidateContents(Inventory, Error)) return false;
     TArray<uint8> Candidate; FMemoryWriter Writer(Candidate);
-    FObjectAndNameAsStringProxyArchive Ar(Writer, false); Ar.ArIsSaveGame = true;
+    FEFEquipmentSaveArchive Ar(Writer, false);
     Inventory->Serialize(Ar);
     if (Ar.IsError() || Candidate.Num() > EFEquipmentPersistencePrivate::MaximumInventoryBytes)
     { Error = TEXT("The native inventory could not be serialized within its size limit."); return false; }
@@ -116,7 +117,7 @@ bool EFEquipmentPersistence::DeserializeInventory(UACFEquipmentComponent* Invent
     if (!IsInGameThread() || !Inventory || Bytes.IsEmpty() || Bytes.Num() > EFEquipmentPersistencePrivate::MaximumInventoryBytes)
     { Error = TEXT("The native inventory record is missing or too large."); return false; }
     EFEquipmentACF::Inventory(Inventory)->Init(Inventory->GetOwner());
-    FMemoryReader Reader(Bytes); FObjectAndNameAsStringProxyArchive Ar(Reader, true); Ar.ArIsSaveGame = true;
+    FMemoryReader Reader(Bytes); FEFEquipmentSaveArchive Ar(Reader, true);
     Inventory->Serialize(Ar); Inventory->RefreshTotalWeight();
     if (Ar.IsError() || Reader.Tell() != Bytes.Num()) { Error = TEXT("The native inventory record is truncated or incompatible."); return false; }
     return ValidateContents(Inventory, Error);
@@ -168,7 +169,7 @@ bool EFEquipmentPersistence::ValidateActorInventories(AActor* Actor, FALSActorDa
     {
         // An inventory omitted by a native actor's save contract cannot retain a
         // filled satchel. Reject that save instead of publishing silent item loss.
-        const auto* Part = Records->FindByPredicate([&](const auto& Entry) { return Entry.alsName == Inventory->GetFName() && Entry.Class == Inventory->GetClass(); });
+        auto* Part = Records->FindByPredicate([&](const auto& Entry) { return Entry.alsName == Inventory->GetFName() && Entry.Class == Inventory->GetClass(); });
         if (!Part)
         {
             if (Inventory->GetInventory().ContainsByPredicate([](const auto& Entry) {
@@ -178,11 +179,18 @@ bool EFEquipmentPersistence::ValidateActorInventories(AActor* Actor, FALSActorDa
         }
         if (Part->Data.IsEmpty() || Part->Data.Num() > MaximumInventoryBytes)
         { Error = TEXT("A world inventory record is missing or too large."); return false; }
+        // Normalize only the candidate's native inventory record. ALS still loads
+        // this tagged ACF format, without resolving obsolete cached world pointers.
+        TArray<uint8> PortableBytes; FMemoryWriter Writer(PortableBytes); FEFEquipmentSaveArchive SaveAr(Writer, false);
+        Inventory->Serialize(SaveAr);
+        if (SaveAr.IsError() || PortableBytes.Num() > MaximumInventoryBytes)
+        { Error = TEXT("A world inventory could not be serialized within its size limit."); return false; }
+        Part->Data = MoveTemp(PortableBytes);
         FScratch Scratch(Actor->GetWorld());
         if (!Scratch.Owner) { Error = TEXT("Could not validate a world inventory record."); return false; }
         auto* Verify = NewObject<UACFInventoryComponent>(Scratch.Owner, Inventory->GetClass());
         EFEquipmentACF::Inventory(Verify)->Init(Scratch.Owner);
-        FMemoryReader Reader(Part->Data); FObjectAndNameAsStringProxyArchive Ar(Reader, true); Ar.ArIsSaveGame = true;
+        FMemoryReader Reader(Part->Data); FEFEquipmentSaveArchive Ar(Reader, true);
         Verify->Serialize(Ar); Verify->RefreshTotalWeight();
         if (Ar.IsError() || Reader.Tell() != Part->Data.Num() || !ValidateContents(Verify, Error) || !SameIdentity(Inventory, Verify, Error))
         { if (Error.IsEmpty()) Error = TEXT("A world inventory failed its serialization round trip."); return false; }
@@ -269,6 +277,8 @@ bool EFEquipmentPersistence::CapturePlayer(UEFEquipmentSaveGame* Candidate, UEFE
     TArray<uint8> Bytes;
     if (!SerializeInventory(Native, Bytes, Error) || !DeserializeInventory(Scratch.Inventory, Bytes, Error) || !SameIdentity(Native, Scratch.Inventory, Error)) return false;
     auto& State = Candidate->EquipmentPlayer; State.Version = 1; State.BaseCarryCapacity = Coordinator->GetWeightSummary().BaseCapacity;
+    State.EquipmentOrder.Reset();
+    for (const auto& Entry : Native->GetCurrentEquipment().GetEquippedItems()) State.EquipmentOrder.Add(Entry.ItemGuid);
     State.InventoryComponent = Native->GetFName();
     if (!FMath::IsFinite(State.BaseCarryCapacity) || State.BaseCarryCapacity < 0)
     { Error = TEXT("Base carry capacity is invalid."); return false; }
@@ -295,8 +305,13 @@ bool EFEquipmentPersistence::RestorePlayer(UEFEquipmentCoordinatorComponent* Coo
     for (const auto& Pair : Saved.EquippedSlots)
         if (!Intent.ContainsByPredicate([&](const auto& Entry) { return Entry.GetItemGuid() == Pair.Key; }))
         { Error = TEXT("Saved equipped item identity is missing from the native inventory."); return false; }
+    if (!Saved.EquipmentOrder.IsEmpty()) Intent.StableSort([&](const auto& A, const auto& B)
+    {
+        const int32 AIndex = Saved.EquipmentOrder.IndexOfByKey(A.GetItemGuid()), BIndex = Saved.EquipmentOrder.IndexOfByKey(B.GetItemGuid());
+        return (AIndex == INDEX_NONE ? MAX_int32 : AIndex) < (BIndex == INDEX_NONE ? MAX_int32 : BIndex);
+    });
     Coordinator->SetBaseCarryCapacity(Saved.BaseCarryCapacity);
     const auto Result = Coordinator->RestoreEquippedIntent(Intent);
-    if (!Result.bSuccess) { Error = Result.Message.ToString(); return false; }
+    if (!Result.bSuccess || !Result.DisplacedItems.IsEmpty()) { Error = TEXT("Saved equipment could not restore its selected items. ") + Result.Message.ToString(); return false; }
     Coordinator->RefreshState(); return true;
 }

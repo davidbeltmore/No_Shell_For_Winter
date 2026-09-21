@@ -71,7 +71,7 @@ void UEFEquipmentCoordinatorComponent::CancelSale()
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::ConfirmSale(FGuid QuoteId)
 {
-    if (bOperation || !GetOwner()->HasAuthority() || !PendingSale.bValid || PendingSale.QuoteId != QuoteId)
+    if (bOperation || !GetOwner()->HasAuthority() || !PendingSale.bValid || PendingSale.bPurchase || PendingSale.QuoteId != QuoteId)
         return Publish(FEFEquipmentResult::Failure(TEXT("This sale confirmation is no longer valid.")));
     FEFEquipmentSaleQuote Current; FString Signature, Error; auto* Vendor = SaleVendor.Get();
     if (!BuildSale(Vendor, PendingSale.ItemGuid, PendingSale.Count, Current, Signature, Error) || Signature != SaleSignature || Current.TotalPrice != PendingSale.TotalPrice)

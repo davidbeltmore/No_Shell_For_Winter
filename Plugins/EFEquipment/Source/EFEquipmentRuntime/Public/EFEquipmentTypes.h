@@ -9,6 +9,7 @@ struct EFEQUIPMENTRUNTIME_API FEFEquipmentSaleQuote
 {
     GENERATED_BODY()
     UPROPERTY(BlueprintReadOnly, Category="Equipment") bool bValid = false;
+    UPROPERTY(BlueprintReadOnly, Category="Equipment") bool bPurchase = false;
     UPROPERTY(BlueprintReadOnly, Category="Equipment") FGuid QuoteId;
     UPROPERTY(BlueprintReadOnly, Category="Equipment") FGuid ItemGuid;
     UPROPERTY(BlueprintReadOnly, Category="Equipment") int32 Count = 0;

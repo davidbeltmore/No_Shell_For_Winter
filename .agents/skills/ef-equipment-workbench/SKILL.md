@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "4"
+  version: "5"
 ---
 
 # EF Equipment workbench
@@ -89,6 +89,26 @@ the native float through the validated adapter, not the truncating integer sette
 Do not use the projected native limit as the UI's total carry capacity.
 
 ## Persistence, trade and failure handling
+
+Use `PreviewPurchase`/`ConfirmPurchase` for vendor admissions and the corresponding
+sale APIs for outgoing sets. Quotes are single-use and revalidate contents, price,
+wallets and aggregate weight. Storage widgets route through `MoveItemsFromInventory`
+in the project function library: incoming player transfers use `TakeFromInventory`,
+outgoing transfers use `GiveToInventory`. Filled bags are refused for pawn recipients;
+ordinary world storage keeps the bag and all contained identities together.
+
+The native travel snapshot preserves BaseCarryCapacity separately from projected
+ACF capacity and restores actual equipment order through the coordinator. Do not
+reintroduce raw-weight rejection for a legitimately overloaded player. Companion
+capacity checks retain their native behavior. Test source-world destruction and GC,
+not only a save/load within the same world.
+
+Container envelope v2 omits ACF's redundant cached `FInventoryItem.Item` pointer;
+native composition and item/fragment serialization remain authoritative. Read v1
+through the same tagged-property skip, retaining GUID/count/state. Root and world
+inventory candidate records use `FEFEquipmentSaveArchive` for the same reason.
+Never remove arbitrary object references or bypass canonical equality to make a
+travel test pass. Keep the 16 MiB aggregate container/travel limits.
 
 The five existing project ALS consumers now route through `UEFEquipmentSaveLibrary`.
 Use `UEFEquipmentSaveSubsystem` for current-slot identity and verified publication;

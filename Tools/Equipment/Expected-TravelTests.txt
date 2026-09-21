@@ -1,0 +1,3 @@
+NoShellForWinter.CalystoDungeon.Director.GameplaySnapshot.SameWorldIdentityAndRollback
+NoShellForWinter.CalystoDungeon.Director.GameplaySnapshot.PortableWorldReconstruction
+NoShellForWinter.CalystoDungeon.Director.GameplaySnapshot.EquipmentSatchelOverburdenedTravel

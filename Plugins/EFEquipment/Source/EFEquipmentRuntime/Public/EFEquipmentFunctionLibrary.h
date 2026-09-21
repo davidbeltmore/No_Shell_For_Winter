@@ -28,4 +28,6 @@ public:
     UFUNCTION(BlueprintCallable, Category="Equipment") static void UnequipItemBySlot(UACFEquipmentComponent* Target, FGameplayTag itemSlot);
     UFUNCTION(BlueprintPure, Category="Equipment") static bool GetEquippedItemSlot(UACFEquipmentComponent* Target, FGameplayTag itemSlot, FEquippedItem& outSlot);
     UFUNCTION(BlueprintCallable, Category="Equipment|Trade") static void SellItemsToVendor(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, APawn* instigator, int32 count = 1);
+    UFUNCTION(BlueprintCallable, Category="Equipment|Trade") static void BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator);
+    UFUNCTION(BlueprintCallable, Category="Equipment") static void MoveItemsFromInventory(UACFInventoryComponent* Target, const TArray<FInventoryItem>& inItems, UACFInventoryComponent* sourceInventory);
 };

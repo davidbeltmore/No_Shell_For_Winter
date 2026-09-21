@@ -220,8 +220,50 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestEqual(TEXT("Sale credits player exactly once"), Native->GetCurrentCurrencyAmount(), 100.f + static_cast<float>(Sale.TotalPrice));
     TestEqual(TEXT("Sale debits vendor exactly once"), Vendor->GetCurrentCurrencyAmount(), 1000.f - static_cast<float>(Sale.TotalPrice));
     TestFalse(TEXT("Repeated confirmation cannot duplicate the sale"), Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
-    TestTrue(TEXT("Reacquiring the bag preserves its payload"), Coordinator->TakeFromInventory(Vendor, Bag.GetItemGuid(), 1, false).bSuccess);
+    const auto CancelPurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
+    TestTrue(TEXT("Filled bag purchase quotes every contained entry"), CancelPurchase.bValid && CancelPurchase.bPurchase
+        && CancelPurchase.Lines.Num() == SaleContents.Num() + 1);
+    Coordinator->CancelSale();
+    TestFalse(TEXT("Cancelled purchase cannot move inventory or money"), Coordinator->ConfirmPurchase(CancelPurchase.QuoteId).bSuccess);
+    const auto StalePurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
+    PriceBag.CurrencyValue = 21; RestoreBagPrice.Item->SetItemDescriptor(PriceBag);
+    TestFalse(TEXT("Changed vendor price invalidates purchase confirmation"), Coordinator->ConfirmPurchase(StalePurchase.QuoteId).bSuccess);
+    PriceBag.CurrencyValue = 20; RestoreBagPrice.Item->SetItemDescriptor(PriceBag);
+    Coordinator->SetBaseCarryCapacity(Coordinator->GetWeightSummary().EffectiveWeight);
+    TestFalse(TEXT("Buying a full bag checks total content weight"), Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid()).bValid);
+    Coordinator->SetBaseCarryCapacity(180.125);
+    const float PlayerBeforePurchase = Native->GetCurrentCurrencyAmount(), VendorBeforePurchase = Vendor->GetCurrentCurrencyAmount();
+    const auto FaultPurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
+    Coordinator->TestFailurePoint = 4;
+    TestFalse(TEXT("Purchase settlement fault rejects the operation"), Coordinator->ConfirmPurchase(FaultPurchase.QuoteId).bSuccess);
+    TestTrue(TEXT("Purchase fault restores original vendor ownership"), Vendor->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+    TestEqual(TEXT("Purchase fault restores player money"), Native->GetCurrentCurrencyAmount(), PlayerBeforePurchase);
+    TestEqual(TEXT("Purchase fault restores vendor money"), Vendor->GetCurrentCurrencyAmount(), VendorBeforePurchase);
+    const auto Purchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
+    const auto Purchased = Coordinator->ConfirmPurchase(Purchase.QuoteId);
+    TestTrue(TEXT("Reacquiring the bag preserves its payload: ") + Purchased.Message.ToString(), Purchased.bSuccess);
+    TestTrue(TEXT("Purchase retains original satchel GUID and object"), Native->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+    TestEqual(TEXT("Purchase charges the aggregated price once"), Native->GetCurrentCurrencyAmount(), PlayerBeforePurchase - static_cast<float>(Purchase.TotalPrice));
+    TestEqual(TEXT("Purchase credits the vendor once"), Vendor->GetCurrentCurrencyAmount(), VendorBeforePurchase + static_cast<float>(Purchase.TotalPrice));
+    TestFalse(TEXT("Repeated purchase confirmation cannot charge twice"), Coordinator->ConfirmPurchase(Purchase.QuoteId).bSuccess);
     TestEqual(TEXT("Rehosted satchel restores both content GUIDs"), Coordinator->GetContainerItems(Bag.GetItemGuid()).Num(), SaleContents.Num());
+
+    auto* CompanionPawn = World->SpawnActor<APawn>();
+    auto* CompanionInventory = NewObject<UACFEquipmentComponent>(CompanionPawn);
+    CompanionPawn->AddInstanceComponent(CompanionInventory); CompanionInventory->RegisterComponent();
+    EFEquipmentACF::Inventory(CompanionInventory)->Init(CompanionPawn); CompanionInventory->SetIsInitialized(true);
+    TestFalse(TEXT("Filled bag cannot be transferred to an unextended companion"), Coordinator->GiveToInventory(CompanionInventory, Bag.GetItemGuid(), 1).bSuccess);
+    auto* StorageOwner = World->SpawnActor<AActor>(); auto* Storage = NewObject<UACFStorageComponent>(StorageOwner);
+    StorageOwner->AddInstanceComponent(Storage); Storage->RegisterComponent(); EFEquipmentACF::Inventory(Storage)->Init(StorageOwner); Storage->SetIsInitialized(true);
+    TestTrue(TEXT("Full bag moves intact into non-pawn storage"), Coordinator->GiveToInventory(Storage, Bag.GetItemGuid(), 1).bSuccess);
+    TestTrue(TEXT("Storage owns one original bag and no duplicate children"), Storage->GetInventory().Num() == 1 && Storage->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+    Coordinator->SetBaseCarryCapacity(Coordinator->GetWeightSummary().EffectiveWeight);
+    TestFalse(TEXT("Storage retrieval checks bag contents against player weight"), Coordinator->TakeFromInventory(Storage, Bag.GetItemGuid(), 1, false).bSuccess);
+    TestEqual(TEXT("Rejected retrieval preserves stored bag"), Storage->GetInventory().Num(), 1);
+    Coordinator->SetBaseCarryCapacity(180.125);
+    TestTrue(TEXT("Storage retrieval succeeds with capacity"), Coordinator->TakeFromInventory(Storage, Bag.GetItemGuid(), 1, false).bSuccess);
+    for (const auto& Child : SaleContents) TestTrue(TEXT("Storage round trip preserves child identity and quantity"), Coordinator->GetContainerItems(Bag.GetItemGuid()).ContainsByPredicate(
+        [&](const auto& Current) { return Current.GetItemGuid() == Child.GetItemGuid() && Current.Count == Child.Count; }));
 
     auto* Controller = World->SpawnActor<APlayerController>();
     // This minimal world has no level/game-mode initialization. Register its

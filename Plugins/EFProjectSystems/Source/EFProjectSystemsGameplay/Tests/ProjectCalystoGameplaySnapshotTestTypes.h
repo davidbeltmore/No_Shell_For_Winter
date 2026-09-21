@@ -5,6 +5,16 @@
 #include "Components/ACFEquipmentComponent.h"
 #include "ProjectCalystoGameplaySnapshotTestTypes.generated.h"
 
+UCLASS(Transient, NotBlueprintable)
+class UProjectEquipmentTravelFixtureItem final : public UACFItem
+{
+	GENERATED_BODY()
+public:
+	UProjectEquipmentTravelFixtureItem()
+	{ auto Info = GetItemInfo(); Info.ItemWeight = 0.25f; Info.MaxInventoryStack = 1; SetItemDescriptor(Info); }
+	UPROPERTY(SaveGame) FString SavedPayload = FString::ChrN(1024, TEXT('x'));
+};
+
 /** Transient component-test data; never selected by runtime content. */
 UCLASS(Transient, NotBlueprintable)
 class UProjectCalystoSnapshotFixtureFragment final : public UACFItemFragment

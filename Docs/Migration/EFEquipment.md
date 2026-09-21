@@ -286,3 +286,42 @@ PENDING until explicitly checked in the real menu.
   ACFU/Daz, Player and bodies; `protected_save_integration_result.json`.
 - Actual save-button interaction, legacy UI migration explanation, existing floor
   travel/death, vendor/companion paths, Game/cook/package gates remain PENDING.
+
+### Container travel, storage and vendor purchase
+
+- Save integration checkpoint: `8fdfa28`. BuildEditor48/49/50/51 PASS during travel
+  integration. The new portable test initially failed on fixture capacity and
+  class-default equipment requirements, then on native fragment ownership. The
+  fixture now uses authored Satchel 3/Bikini classes and the native admission
+  fragment lifecycle. Failures remain recorded in EquipmentTravel01/02/03.
+- Native travel EquipmentTravel04 PASS, all three exact tests, zero warnings or
+  errors. Source world and items are destroyed and garbage-collected; destination
+  restores eight unique items with saved instance data inside a full bag, all GUIDs,
+  Bikini reservations, fractional base capacity and legitimate overload. Existing
+  same-world rollback and portable companion regressions also PASS. Evidence:
+  `Saved/Migration/CalystoDungeonDirectorV7/Native_EquipmentTravel04/Report/index.json`.
+- `ProjectCalystoGameplaySnapshot` and `ProjectRunCompanionSubsystem` adapt the
+  existing player inventory transport; dungeon generation is not changed. Profiles
+  are SaveGame state, realized native equipment order is retained, and bounded byte
+  payloads are distinct from general reflected-array limits. Player overload is
+  valid; unextended companion capacity checks remain native.
+- Container envelope v2 excludes only the native redundant world-local Item cache
+  from tagged properties. The native ACF composition/item serializers remain in
+  use, and v1 envelopes remain readable. This prevents obsolete object lookups and
+  byte drift after world reconstruction without weakening canonical equality.
+  Player/world save candidate records use the same archive adapter.
+- BuildEditor52 FAIL identified a missing editor CraftingSystem link dependency;
+  BuildEditor53 PASS after adding that explicit dependency. NativeEquipment14 PASS
+  for both exact suites, including full-bag purchase cancellation, stale price,
+  aggregate weight, injected settlement recovery, one-time currency transfer,
+  storage round trips and filled-bag companion refusal. Evidence:
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment14/Report/index.json`.
+- Storage/trade Blueprint authoring PASS: seven calls in five existing widgets,
+  retaining layout and pins; `author_storage_trade_01.log` and
+  `author_storage_trade.json`. Actual UI confirmation remains PENDING. Task
+  protected comparison PASS for all 5,260 baseline files in
+  `protected_travel_storage_result.json`; separate Calysto asset comparison is
+  recorded in `calysto_protected_posttravel.json`. Historical Phase0 invariants
+  already differed before this work (`historical_protected_pretravel.json`);
+  those pre-existing changes were not reverted or rebaselined.
+- Real floor traversal, death, final Game/cook/package remain PENDING.

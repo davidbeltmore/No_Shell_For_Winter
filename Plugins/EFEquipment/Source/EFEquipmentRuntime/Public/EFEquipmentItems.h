@@ -15,7 +15,7 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentRulesFragment : public UACFItemFragment
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Equipment") TObjectPtr<UEFEquipmentRuleProfile> Profile;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category="Equipment") TObjectPtr<UEFEquipmentRuleProfile> Profile;
     UPROPERTY(SaveGame) int32 ContainerSchema = 1;
     UPROPERTY(SaveGame) TArray<uint8> ContainerPayload;
     UPROPERTY(Transient) TObjectPtr<UEFContainerInventoryComponent> RuntimeInventory;

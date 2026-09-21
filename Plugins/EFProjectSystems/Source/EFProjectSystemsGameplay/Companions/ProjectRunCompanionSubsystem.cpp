@@ -1,4 +1,5 @@
 #include "Companions/ProjectRunCompanionSubsystem.h"
+#include "EFEquipmentCoordinatorComponent.h"
 
 #include "ALSSaveTypes.h"
 #include "Actors/ACFCharacter.h"
@@ -1851,7 +1852,8 @@ FString UProjectRunCompanionSubsystem::ComputeInventoryHash(const UACFInventoryC
 	}
 	const int32 MaxSlots = Equipment->GetMaxInventorySlots();
 	const int32 MaxWeight = Equipment->GetMaxInventoryWeight();
-	if (MaxSlots < 0 || MaxWeight < 0)
+	auto* EquipmentCoordinator = Equipment->GetOwner()->FindComponentByClass<UEFEquipmentCoordinatorComponent>();
+	if (MaxSlots < 0 || (!EquipmentCoordinator && MaxWeight < 0))
 	{
 		return FString();
 	}
@@ -1861,6 +1863,15 @@ FString UProjectRunCompanionSubsystem::ComputeInventoryHash(const UACFInventoryC
 		ProjectRunCompanionPrivate::FloatBits(Weight),
 		MaxSlots,
 		MaxWeight);
+	if (EquipmentCoordinator)
+	{
+		const auto* CapacityProperty = FindFProperty<FFloatProperty>(UACFInventoryComponent::StaticClass(), TEXT("MaxInventoryWeight"));
+		const double BaseCapacity = EquipmentCoordinator->GetWeightSummary().BaseCapacity;
+		if (!CapacityProperty || !FMath::IsFinite(BaseCapacity) || BaseCapacity < 0) return FString();
+		const float ProjectedCapacity = CapacityProperty->GetPropertyValue_InContainer(Equipment);
+		if (!FMath::IsFinite(ProjectedCapacity)) return FString();
+		Canonical += FString::Printf(TEXT("playerBase=%.17g|projected=%08X|"), BaseCapacity, ProjectRunCompanionPrivate::FloatBits(ProjectedCapacity));
+	}
 	for (const FInventoryItem& Entry : Items)
 	{
 		Canonical += FString::Printf(TEXT("%s|%s|%d|%d|%s|%d|%08X|"),
@@ -2020,7 +2031,15 @@ bool UProjectRunCompanionSubsystem::RestoreTypedEquipmentCapsule(
 	}
 
 	Equipment->RefreshTotalWeight();
-	for (const FInventoryItem& Item : RestoredItems)
+	if (auto* Coordinator = Equipment->GetOwner()->FindComponentByClass<UEFEquipmentCoordinatorComponent>())
+	{
+		Coordinator->ResetDerivedContainers();
+		const auto Restored = Coordinator->RestoreEquippedIntent(RestoredItems);
+		if (!Restored.bSuccess || !Restored.DisplacedItems.IsEmpty())
+		{ OutError = TEXT("The player equipment selection could not be restored. ") + Restored.Message.ToString(); return false; }
+		Coordinator->RefreshState();
+	}
+	else for (const FInventoryItem& Item : RestoredItems)
 	{
 		if (Item.bIsEquipped)
 		{

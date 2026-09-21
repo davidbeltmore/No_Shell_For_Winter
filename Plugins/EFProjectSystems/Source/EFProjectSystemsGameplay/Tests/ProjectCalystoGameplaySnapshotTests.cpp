@@ -16,6 +16,9 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 #include "UObject/GarbageCollection.h"
+#include "EFEquipmentCoordinatorComponent.h"
+#include "EFEquipmentItems.h"
+#include "EFEquipmentData.h"
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_CalystoSnapshotFixtureSlot, "Tests.Calysto.SnapshotSlot");
 
@@ -104,10 +107,76 @@ void FProjectCalystoGameplaySnapshotTest::GetTests(TArray<FString>& Names, TArra
 {
 	Names.Add(TEXT("SameWorldIdentityAndRollback")); Commands.Add(TEXT("SameWorld"));
 	Names.Add(TEXT("PortableWorldReconstruction")); Commands.Add(TEXT("Portable"));
+	Names.Add(TEXT("EquipmentSatchelOverburdenedTravel")); Commands.Add(TEXT("Equipment"));
 }
 bool FProjectCalystoGameplaySnapshotTest::RunTest(const FString& Parameters)
 {
 	using namespace ProjectCalystoSnapshotTests;
+	if (Parameters == TEXT("Equipment"))
+	{
+		FFixture F; if (!F.World) return false;
+		auto* Player = F.World->SpawnActor<APawn>(); auto* Equipment = F.Inventory(Player, 0);
+		auto Compose = [](APawn* Pawn)
+		{
+			auto* Coordinator = NewObject<UEFEquipmentCoordinatorComponent>(Pawn);
+			Pawn->AddInstanceComponent(Coordinator); Coordinator->RegisterComponent(); Coordinator->InitializeEquipment(); return Coordinator;
+		};
+		auto* Coordinator = Compose(Player);
+		auto Add = [&](UClass* Class, uint32 IdValue, FGameplayTag Slot, const TCHAR* ProfilePath)
+		{
+			FInventoryItem Entry; Entry.ItemClass = Class; Entry.Item = NewObject<UACFItem>(Player, Class); Entry.Item->SetItemOwner(Player);
+			Entry.Count = 1; Entry.LastObservedCount = 1; Entry.ForceGuid(Id(IdValue));
+			if (Slot.IsValid()) { auto Info = Entry.Item->GetItemInfo(); Info.ItemSlots = {Slot}; Entry.Item->SetItemDescriptor(Info); }
+			if (ProfilePath)
+			{
+				auto* Fragment = NewObject<UEFEquipmentRulesFragment>(Player);
+				Fragment->Profile = LoadObject<UEFEquipmentRuleProfile>(nullptr, ProfilePath); Entry.Item->Fragments.Add(Fragment);
+			}
+            // Match ACF's native admission lifecycle for CDO-instanced fragments.
+            for (auto* Fragment : Entry.Item->Fragments) Fragment->Rename(nullptr, Player, REN_DontCreateRedirectors | REN_NonTransactional);
+            List(Equipment).AddEntry(Entry); Equipment->RegisterFragmentsForItem(Entry.Item); return Entry.GetItemGuid();
+		};
+        UClass* BagClass = LoadClass<UACFItem>(nullptr, TEXT("/Game/_Game/Items/Equipment/BP_Satchel3.BP_Satchel3_C"));
+        UClass* BikiniClass = LoadClass<UACFItem>(nullptr, TEXT("/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C"));
+        if (!TestNotNull(TEXT("Authored bag class"), BagClass) || !TestNotNull(TEXT("Authored Bikini class"), BikiniClass)) return false;
+        const FGuid Bag = Add(BagClass, 101, FGameplayTag(), nullptr);
+        const FGuid Bikini = Add(BikiniClass, 102, FGameplayTag(), nullptr);
+		TArray<FGuid> Children;
+		for (uint32 Index = 0; Index < 8; ++Index)
+		{
+			const FGuid Child = Add(UProjectEquipmentTravelFixtureItem::StaticClass(), 200 + Index, FGameplayTag(), nullptr); Children.Add(Child);
+			const auto Transfer = Coordinator->MoveToContainer(Child, Bag, 1);
+			if (!TestTrue(TEXT("Fill satchel using actual ACF transfers: ") + Transfer.Message.ToString(), Transfer.bSuccess)) return false;
+		}
+        const auto EquipBag = Coordinator->RequestEquip(Bag, FGameplayTag());
+        const auto EquipBikini = Coordinator->RequestEquip(Bikini, FGameplayTag());
+        if (!TestTrue(TEXT("Equip managed bag: ") + EquipBag.Message.ToString(), EquipBag.bSuccess)
+            || !TestTrue(TEXT("Equip reservation owner: ") + EquipBikini.Message.ToString(), EquipBikini.bSuccess)) return false;
+		Coordinator->SetBaseCarryCapacity(3.125); FString Error; Coordinator->FlushContainers(Error);
+		FInventoryItem BagEntry; Equipment->GetItemByGuid(Bag, BagEntry);
+		TestTrue(TEXT("Container byte envelope exceeds legacy 4096-element graph limit"), UEFEquipmentRulesFragment::Find(BagEntry.Item)->ContainerPayload.Num() > 4096);
+		TestTrue(TEXT("Travel fixture is legitimately overburdened"), Coordinator->GetWeightSummary().bOverburdened);
+		auto Snapshot = FProjectCalystoGameplaySnapshot::Capture(Id(105), F.World, Player, F.Roster.Get(), F.Outcomes.Get(), Error);
+		if (!TestTrue(TEXT("Capture managed player: ") + Error, Snapshot.IsValid())) return false;
+		const FString Hash = Snapshot->GetCanonicalHash();
+		if (!TestTrue(TEXT("Prepare full bag: ") + Error, Snapshot->PrepareForTravel(Id(105), Error))
+			|| !TestTrue(TEXT("Detach full bag: ") + Error, Snapshot->DetachForTravel(Id(105), Error))) return false;
+		TWeakObjectPtr<UWorld> Source = F.World;
+		F.DestroyWorld(); Player = nullptr; Equipment = nullptr; Coordinator = nullptr; BagEntry.Item = nullptr;
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true); TestFalse(TEXT("Satchel payload retains no source world"), Source.IsValid());
+		F.CreateWorld(); Player = F.World->SpawnActor<APawn>(); Equipment = F.Inventory(Player, 0); Coordinator = Compose(Player);
+		if (!TestTrue(TEXT("Reconstruct overloaded bag: ") + Error, Snapshot->ReconstructInWorld(Id(105), F.World, {{FGuid(), false, Player}}, Error))) return false;
+		TestEqual(TEXT("Travel preserves the complete canonical graph"), Snapshot->GetCanonicalHash(), Hash);
+		TestEqual(TEXT("Travel preserves fractional base capacity"), Coordinator->GetWeightSummary().BaseCapacity, 3.125);
+		TestTrue(TEXT("Travel preserves overburden"), Coordinator->GetWeightSummary().bOverburdened);
+		const auto Restored = Coordinator->GetContainerItems(Bag); TestEqual(TEXT("All contained entries survive travel"), Restored.Num(), Children.Num());
+		for (const FGuid Child : Children) TestTrue(TEXT("Contained GUID survives travel"), Restored.ContainsByPredicate([&](const auto& Entry) { return Entry.GetItemGuid() == Child; }));
+		for (const auto& Entry : Restored) TestTrue(TEXT("Contained saved instance state survives travel"), Cast<UProjectEquipmentTravelFixtureItem>(Entry.Item)
+			&& Cast<UProjectEquipmentTravelFixtureItem>(Entry.Item)->SavedPayload == FString::ChrN(1024, TEXT('x')));
+		TestTrue(TEXT("Travel restores actual reservation owner"), Coordinator->GetSlotViews().ContainsByPredicate([&](const auto& View) { return View.bReserved && View.OwnerGuid == Bikini; }));
+		TestTrue(TEXT("Reconstructed snapshot releases cleanly: ") + Error, Snapshot->Release(Id(105), Error));
+		return !HasAnyErrors();
+	}
 	if (Parameters == TEXT("Portable"))
 	{
 		FFixture F; if (!F.World) return false;

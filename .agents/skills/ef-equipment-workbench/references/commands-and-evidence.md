@@ -148,3 +148,15 @@ ALS actor-loaded fires before component-loaded; do not restore effects there
 while the adapter is busy. Restore them after all native component callbacks.
 World pickups must expose their native storage through GetComponentsToSave.
 The actual level-reload fixture preserves a dropped full bag through native ALS.
+
+Storage/trade authoring and the bounded native travel regression:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Migration/Launch-NoShellForWinterEditor58.ps1 -PythonScript 'D:/Projects UE5/NoShellForWinter/Tools/Equipment/Author-StorageTrade.py'
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Migration/Run-CalystoDirectorNative58.ps1 -ExpectedTestsFile Tools/Equipment/Expected-TravelTests.txt -TimeoutSeconds 180 -TestPrefix NoShellForWinter.CalystoDungeon.Director.GameplaySnapshot -Stamp EquipmentTravel_NEW
+```
+Use a fresh stamp and wait for each owned editor to exit before launching the next.
+The storage receipt is `Saved/EquipmentQA/author_storage_trade.json`. The exact
+travel list contains three tests; its native-only PASS does not certify real map
+travel or packaged behavior. Test fixtures must perform ACF's normal fragment
+reparenting to the actor before registration. Changing only a live ItemInfo slot
+does not change native CanBeEquipped, which reads the class default descriptor.

@@ -37,8 +37,11 @@ public:
     UFUNCTION(BlueprintCallable, Category="Equipment|Containers") FEFEquipmentResult MoveToContainer(FGuid ItemGuid, FGuid ContainerGuid, int32 Count);
     UFUNCTION(BlueprintCallable, Category="Equipment|Containers") FEFEquipmentResult MoveFromContainer(FGuid ContainerGuid, FGuid ItemGuid, int32 Count);
     UFUNCTION(BlueprintCallable, Category="Equipment") FEFEquipmentResult TakeFromInventory(UACFInventoryComponent* Source, FGuid ItemGuid, int32 Count, bool bAutoEquip = true);
+    UFUNCTION(BlueprintCallable, Category="Equipment") FEFEquipmentResult GiveToInventory(UACFInventoryComponent* Destination, FGuid ItemGuid, int32 Count);
     UFUNCTION(BlueprintCallable, Category="Equipment|Trade") FEFEquipmentSaleQuote PreviewSale(UACFVendorComponent* Vendor, FGuid ItemGuid, int32 Count = 1);
     UFUNCTION(BlueprintCallable, Category="Equipment|Trade") FEFEquipmentResult ConfirmSale(FGuid QuoteId);
+    UFUNCTION(BlueprintCallable, Category="Equipment|Trade") FEFEquipmentSaleQuote PreviewPurchase(UACFVendorComponent* Vendor, FGuid ItemGuid, int32 Count = 1);
+    UFUNCTION(BlueprintCallable, Category="Equipment|Trade") FEFEquipmentResult ConfirmPurchase(FGuid QuoteId);
     UFUNCTION(BlueprintCallable, Category="Equipment|Trade") void CancelSale();
     UFUNCTION(BlueprintCallable, Category="Equipment|Migration") FEFEquipmentResult RestoreEquippedIntent(const TArray<FInventoryItem>& Intent);
     UFUNCTION(BlueprintCallable, Category="Equipment") void RefreshState();
@@ -88,4 +91,5 @@ private:
     bool VerifyEquipped(FGuid Guid, FGameplayTag Slot) const;
     FEFEquipmentResult Publish(FEFEquipmentResult Result);
     bool BuildSale(UACFVendorComponent* Vendor, FGuid Guid, int32 Count, FEFEquipmentSaleQuote& Quote, FString& Signature, FString& Error);
+    bool BuildPurchase(UACFVendorComponent* Vendor, FGuid Guid, int32 Count, FEFEquipmentSaleQuote& Quote, FString& Signature, FString& Error);
 };

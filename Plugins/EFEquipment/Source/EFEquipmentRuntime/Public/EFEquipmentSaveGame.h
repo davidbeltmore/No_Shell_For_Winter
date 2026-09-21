@@ -13,6 +13,8 @@ struct EFEQUIPMENTRUNTIME_API FEFEquipmentSavedPlayer
     UPROPERTY(SaveGame) double BaseCarryCapacity = -1;
     UPROPERTY(SaveGame) FName InventoryComponent;
     UPROPERTY(SaveGame) TMap<FGuid, FGameplayTag> EquippedSlots;
+    /** Native weapon/projectile order matters because ranged equip may reload. */
+    UPROPERTY(SaveGame) TArray<FGuid> EquipmentOrder;
     UPROPERTY(SaveGame) TArray<FGuid> DisplacedItems;
 };
 

@@ -8,7 +8,7 @@ root = pathlib.Path(unreal.Paths.project_dir()).resolve()
 assert (root / 'NoShellForWinter.uproject').is_file()
 names = ('SaveGameWorld|SaveLocalPlayer|LoadGameWorld|TravelLocalPlayer|LoadTraveledPlayer|'
          'LoadLevelFromSaveGame|LoadCurrentLevel|LoadLocalPlayer|MoveItemsFromInventory|'
-         'SellItemsToVendor|EquipItemFromInventory|UseInventoryItem|DropItem|'
+         'SellItemsToVendor|BuyItems|EquipItemFromInventory|UseInventoryItem|DropItem|'
          'GetCurrentInventoryTotalWeight|GetMaxInventoryWeight')
 scan = subprocess.run(['rg', '-a', '-l', '--glob', '*.uasset', names,
                        'Content/FullSample', 'Content/_Game'], cwd=root, capture_output=True, text=True)

@@ -16,6 +16,8 @@
 #include "Serialization/StructuredArchiveAdapters.h"
 #include "UObject/UnrealType.h"
 #include "UObject/StrongObjectPtr.h"
+#include "EFEquipmentCoordinatorComponent.h"
+#include "EFEquipmentPersistence.h"
 
 namespace ProjectCalystoSnapshot
 {
@@ -58,12 +60,16 @@ namespace ProjectCalystoSnapshot
 		using FArchiveProxy::operator<<;
 	};
 
-	bool Bounded(const FProperty* Property, const void* Value, int64& Work, int32 Depth = 0)
+	struct FWorkBudget { int64 Nodes = 0; int64 ByteArrays = 0; };
+	bool Bounded(const FProperty* Property, const void* Value, FWorkBudget& Work, int32 Depth = 0)
 	{
-		if (++Work > 131072 || Depth > 16) return false;
+		if (++Work.Nodes > 131072 || Depth > 16) return false;
 		if (const auto* Array = CastField<FArrayProperty>(Property))
 		{
-			FScriptArrayHelper H(Array, Value); if (H.Num() > 4096) return false;
+			FScriptArrayHelper H(Array, Value);
+			if (CastField<FByteProperty>(Array->Inner))
+			{ Work.ByteArrays += H.Num(); return Work.ByteArrays <= MaximumBytes; }
+			if (H.Num() > 4096) return false;
 			for (int32 I = 0; I < H.Num(); ++I) if (!Bounded(Array->Inner, H.GetRawPtr(I), Work, Depth + 1)) return false;
 		}
 		else if (const auto* Map = CastField<FMapProperty>(Property))
@@ -86,9 +92,9 @@ namespace ProjectCalystoSnapshot
 		else if (const auto* String = CastField<FStrProperty>(Property))
 		{
 			const int32 Length = String->GetPropertyValue(Value).Len(); if (Length > 65536) return false;
-			Work += Length; // Bound aggregate dynamic text before copying any reflected value.
+			Work.Nodes += Length; // Bound aggregate dynamic text before copying any reflected value.
 		}
-		return Work <= 131072;
+		return Work.Nodes <= 131072;
 	}
 
 	struct FValue
@@ -167,6 +173,7 @@ namespace ProjectCalystoSnapshot
 	};
 	struct FInventoryState
 	{
+		double BaseCarryCapacity = -1;
 		UACFEquipmentComponent* Equipment = nullptr; AActor* Owner = nullptr;
 		TArray<FInventoryItem> Items;
 		TArray<FEquippedItem> Equipped;
@@ -188,6 +195,7 @@ namespace ProjectCalystoSnapshot
 	 */
 	struct FPortableInventory
 	{
+		double BaseCarryCapacity = -1;
 		FString Key;
 		TArray<TArray<uint8>> Items;
 		TArray<TArray<uint8>> Equipped;
@@ -431,7 +439,7 @@ struct FProjectCalystoGameplaySnapshot::FState
 	TArray<ProjectCalystoSnapshot::FPortableInventory> PortableInventories;
 	TMap<FString, UObject*> PortableAssets;
 	TMap<FGuid, TPair<FString, FString>> PortableRosterActors;
-	int64 Work = 0;
+	ProjectCalystoSnapshot::FWorkBudget Work;
 
 	bool CaptureObject(UObject* Object, bool Equipment, FString& Error)
 	{
@@ -468,6 +476,13 @@ struct FProjectCalystoGameplaySnapshot::FState
 			return Fail(Error, TEXT("Actual initialized ACF equipment and exact reflected inventory contract are required."));
 		if (Keys.Contains(Equipment)) return Fail(Error, TEXT("Two roster identities cannot own the same equipment."));
 		FInventoryState I; I.Equipment = Equipment; I.Owner = Actor; I.Key = Key;
+		if (Key == TEXT("Player")) if (auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(Actor))
+		{
+			if (!Coordinator->InitializeEquipment() || Coordinator->IsBusy() || !Coordinator->FlushContainers(Error)
+				|| !EFEquipmentPersistence::ValidateContents(Equipment, Error)) return false;
+			I.BaseCarryCapacity = Coordinator->GetWeightSummary().BaseCapacity;
+			if (!FMath::IsFinite(I.BaseCarryCapacity) || I.BaseCarryCapacity < 0) return Fail(Error, TEXT("Player base carry capacity is invalid."));
+		}
 		if (NativeItems(Equipment)->Num() > MaximumItems || NativeEquipped(Equipment)->Num() > MaximumItems
 			|| NativeFragments(Equipment)->Num() > MaximumFragments) return Fail(Error, TEXT("Native inventory graph exceeds snapshot bounds."));
 		CopyIdentities(*NativeItems(Equipment), I.Items); CopyIdentities(*NativeEquipped(Equipment), I.Equipped);
@@ -587,6 +602,14 @@ struct FProjectCalystoGameplaySnapshot::FState
 		for (const auto& I : Inventories)
 		{
 			FString Key = I.Key; Ar << Key;
+			double Capacity = I.BaseCarryCapacity;
+			if (!Frozen && Capacity >= 0)
+			{
+				auto* Coordinator = I.Owner->FindComponentByClass<UEFEquipmentCoordinatorComponent>();
+				if (!Coordinator || !Coordinator->FlushContainers(Error)) return {};
+				Capacity = Coordinator->GetWeightSummary().BaseCapacity;
+			}
+			Ar << Capacity;
 			auto Items = Frozen ? I.Items : *NativeItems(I.Equipment);
 			if (Items.Num() > MaximumItems) { Fail(Error, TEXT("Current inventory exceeds snapshot bound.")); return {}; }
 			Items.Sort([](const auto& A, const auto& B) { return A.GetItemGuid().ToString() < B.GetItemGuid().ToString(); });
@@ -603,7 +626,7 @@ struct FProjectCalystoGameplaySnapshot::FState
 			}
 			FragmentKeys.Sort(); Ar << FragmentKeys;
 		}
-		int64 CurrentWork = 0;
+		FWorkBudget CurrentWork;
 		for (const auto& O : Objects)
 		{
 			FString Key = Keys.FindChecked(O.Object), ClassPath = O.Class->GetPathName(); Ar << Key << ClassPath;
@@ -755,6 +778,12 @@ bool FProjectCalystoGameplaySnapshot::Restore(FGuid RequestId, FString& Error)
 		for (auto& Item : *NativeItems(I.Equipment)) if (Item.ReplicationID != INDEX_NONE) List->MarkItemDirty(Item);
 		for (auto* Fragment : I.Fragments) if (!I.Equipment->RegisterFragment(Fragment))
 			return Fail(Error, TEXT("Unrecoverable native fragment register failure during rollback."));
+		if (I.BaseCarryCapacity >= 0)
+		{
+			auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(I.Owner);
+			if (!Coordinator) return Fail(Error, TEXT("Player equipment coordinator is unavailable during rollback."));
+			Coordinator->ResetDerivedContainers(); Coordinator->SetBaseCarryCapacity(I.BaseCarryCapacity); Coordinator->RefreshState();
+		}
 	}
 	auto* R = State->RosterOwner; auto* O = State->OutcomeOwner;
 	R->Roster = State->Roster; R->RetainedCompanionClasses = State->RetainedClasses;
@@ -849,7 +878,7 @@ bool FProjectCalystoGameplaySnapshot::PrepareForTravel(FGuid RequestId, FString&
 	}
 	for (const auto& I : State->Inventories)
 	{
-		FPortableInventory Record; Record.Key = I.Key;
+		FPortableInventory Record; Record.Key = I.Key; Record.BaseCarryCapacity = I.BaseCarryCapacity;
 		for (const auto& Item : I.Items)
 		{
 			auto Copy = Item; TArray<uint8> Bytes; FMemoryWriter Writer(Bytes); FTransportArchive Ar(Writer, Assets, State->Keys);
@@ -971,6 +1000,7 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 	TMap<FString, UACFEquipmentComponent*> Equipment;
 	struct FDestinationEquipmentBaseline
 	{
+		double BaseCarryCapacity = -1;
 		FString Key;
 		TWeakObjectPtr<AActor> Actor;
 		TWeakObjectPtr<UACFEquipmentComponent> Component;
@@ -1019,6 +1049,8 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 		Baseline.Component = Component;
 		Baseline.ComponentClass = Component->GetClass();
 		Baseline.ComponentName = Component->GetFName();
+		if (Pair.Key == TEXT("Player")) if (auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(Actor))
+		{ if (!Coordinator->FlushContainers(Error)) return false; Baseline.BaseCarryCapacity = Coordinator->GetWeightSummary().BaseCapacity; }
 		Baseline.CanonicalHash = State->RosterOwner->ComputeInventoryHash(Component);
 		FString BaselineError;
 		if (Baseline.CanonicalHash.IsEmpty()
@@ -1059,7 +1091,7 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 		TUniquePtr<FValue> After;
 	};
 	TArray<FEquipmentValue> EquipmentValues;
-	int64 DecodeWork = 0, TotalBytes = 0;
+	FWorkBudget DecodeWork; int64 TotalBytes = 0;
 	for (const auto& O : State->PortableObjects)
 	{
 		UObject* Object = Bindings.FindRef(O.Key);
@@ -1166,7 +1198,9 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 			Item.bIsEquipped = false; Item.EquipmentSlot = FGameplayTag(); Item.LastObservedCount = Item.Count;
 			Items.Add(MoveTemp(Item));
 		}
-		if (!FMath::IsFinite(Capacity) || Capacity < 0 || !FMath::IsFinite(Weight) || Weight > Capacity)
+		const bool bManagedPlayer = I.Key == TEXT("Player") && I.BaseCarryCapacity >= 0;
+		if (!FMath::IsFinite(Capacity) || !FMath::IsFinite(Weight) || !FMath::IsFinite(I.BaseCarryCapacity)
+			|| (!bManagedPlayer && (Capacity < 0 || Weight > Capacity)))
 			return Fail(Error, TEXT("Destination native inventory weight capacity is unavailable."));
 		Inventories.Add(I.Key, MoveTemp(Items)); EquipIntents.Add(I.Key, MoveTemp(Intents));
 	}
@@ -1201,6 +1235,9 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 			AActor* const ExpectedActor = Actors.FindRef(Baseline.Key);
 			UACFEquipmentComponent* const ExpectedComponent = Equipment.FindRef(Baseline.Key);
 			FString CleanupError;
+			if (Baseline.BaseCarryCapacity >= 0 && IsValid(ExpectedActor))
+				if (auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(ExpectedActor))
+				{ Coordinator->ResetDerivedContainers(); Coordinator->SetBaseCarryCapacity(Baseline.BaseCarryCapacity); }
 			if (!Baseline.Actor.IsValid() || !Baseline.Component.IsValid()
 				|| !IsValid(ExpectedActor) || !IsValid(ExpectedComponent)
 				|| Baseline.Actor.Get() != ExpectedActor || Baseline.Component.Get() != ExpectedComponent
@@ -1314,6 +1351,13 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 			OrderedIntents.Add(*Intent);
 		}
 		Intents = MoveTemp(OrderedIntents);
+		UEFEquipmentCoordinatorComponent* Coordinator = nullptr;
+		if (I.Key == TEXT("Player") && I.BaseCarryCapacity >= 0)
+		{
+			Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(Component->GetOwner());
+			if (!Coordinator || !Coordinator->InitializeEquipment() || !EFEquipmentPersistence::ValidateContents(Component, Error)) return Undo();
+			Coordinator->ResetDerivedContainers(); Coordinator->SetBaseCarryCapacity(I.BaseCarryCapacity);
+		}
 		TArray<FString> IntentRows;
 		IntentRows.Reserve(Intents.Num());
 		for (const FInventoryItem& Intent : Intents)
@@ -1336,7 +1380,13 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 				Error = TEXT("Native destination inventory cannot stage the frozen equipment selection.");
 				return Undo();
 			}
-			Component->EquipItemFromInventoryInSlot(*Item, Intent.EquipmentSlot);
+			if (Coordinator)
+			{
+				const auto Result = Coordinator->RequestEquip(Item->GetItemGuid(), Intent.EquipmentSlot);
+				if (!Result.bSuccess || !Result.DisplacedItems.IsEmpty())
+				{ Error = TEXT("Player travel equipment could not restore its frozen selection. ") + Result.Message.ToString(); return Undo(); }
+			}
+			else Component->EquipItemFromInventoryInSlot(*Item, Intent.EquipmentSlot);
 		}
 		ImmediateNativeEquipTrace.Add(I.Key, DescribeEquipmentProjection(NativeEquipped(Component)));
 	}

@@ -121,3 +121,16 @@ void UEFEquipmentFunctionLibrary::SellItemsToVendor(UACFVendorComponent* Target,
     }
     Coordinator->CancelSale();
 }
+
+void UEFEquipmentFunctionLibrary::BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator)
+{
+    if (!Target || !instigator) return;
+    if (!UEFEquipmentCoordinatorComponent::IsManagedPlayer(instigator)) { Target->BuyItems(item, instigator); return; }
+    auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(instigator); if (!Coordinator) return;
+    const auto Quote = Coordinator->PreviewPurchase(Target, item.GetItemGuid(), item.Count);
+    auto* Game = instigator->GetGameInstance(); auto* UI = Game ? Game->GetSubsystem<UANSUIPlayerSubsystem>() : nullptr;
+    UClass* Class = LoadClass<UEFEquipmentSaleWidget>(nullptr, TEXT("/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentSaleConfirmation.WBP_EquipmentSaleConfirmation_C"));
+    if (UI && Class) if (auto* Widget = Cast<UEFEquipmentSaleWidget>(UI->SpawnInGameWidget(Class, false, true)))
+    { Widget->SetQuote(Coordinator, Quote); return; }
+    Coordinator->CancelSale();
+}

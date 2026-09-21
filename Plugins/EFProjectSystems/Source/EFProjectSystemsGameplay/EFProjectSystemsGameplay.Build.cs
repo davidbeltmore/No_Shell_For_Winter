@@ -66,6 +66,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 				"ApplicationCore",
+				"EFEquipmentRuntime",
 				"NetCore",
 				"Json"
 		});
