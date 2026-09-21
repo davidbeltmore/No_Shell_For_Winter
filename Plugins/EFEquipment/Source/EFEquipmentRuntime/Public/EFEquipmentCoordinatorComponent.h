@@ -58,7 +58,7 @@ public:
     double GetEffectiveContainerWeight() const;
     bool IsBusy() const { return bOperation; }
 #if WITH_DEV_AUTOMATION_TESTS
-    // One-shot fault injection: 1 after displacement, 2 after native effects.
+    // One-shot fault injection: 1 after displacement, 2 after native effects, 3 after sale settlement.
     int32 TestFailurePoint = 0;
 #endif
 

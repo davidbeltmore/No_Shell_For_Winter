@@ -160,3 +160,17 @@ PENDING until explicitly checked in the real menu.
 - Game build 01 FAIL in the two historical editor-only API consumers, with
   `Module.EFEquipmentRuntime.cpp` compiled successfully. Evidence:
   `Saved/EquipmentQA/build_game_01.log`. Game/cook/package acceptance stays FAIL/PENDING.
+
+### Aggregate sale checks
+
+- BuildEditor30 and NativeEquipment05 PASS. The native fixture exercises an actual
+  ACF vendor, aggregate price/breakdown, cancellation, changed contents, an unsellable
+  child, a non-droppable child, injected currency-settlement failure, restored
+  balances/ownership, one-time confirmation, and rehosting the bag after transfer.
+- Money settlement now participates in adapter verification before inventory
+  notifications. Failure restores item lists and attempts verified wallet recovery;
+  incomplete recovery is reported explicitly.
+- Evidence: `Saved/EquipmentQA/BuildEditor30/build.log` and
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment05/Report/index.json`.
+  Actual vendor UI confirmation, world drop/pickup, save migration, travel/death
+  and packaged checks remain PENDING.

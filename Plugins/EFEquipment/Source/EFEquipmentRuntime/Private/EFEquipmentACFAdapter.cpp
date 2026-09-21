@@ -45,6 +45,7 @@ bool EFEquipmentACF::Transfer(UACFInventoryComponent* Source, UACFInventoryCompo
     FGuid Guid, int32 Count, bool bIgnoreDestinationWeight, FString& Error,
     FEFEquipmentResult* Receipt, TFunction<bool(FString&)> ValidateCommit)
 {
+    Error.Reset();
     FInventoryItem Entry;
     if (!IsInGameThread() || !Source || !Destination || Source == Destination || !Source->GetOwner()->HasAuthority() || !Destination->GetOwner()->HasAuthority()
         || !Inventory(Source) || !Inventory(Destination) || !Source->GetItemByGuid(Guid, Entry) || !Entry.Item
@@ -129,8 +130,11 @@ bool EFEquipmentACF::Transfer(UACFInventoryComponent* Source, UACFInventoryCompo
         }
         else Inventory(Source)->ChangeEntry(Entry);
         Source->RefreshTotalWeight(); Destination->RefreshTotalWeight();
+        const FString Cause = Error;
         Error = bOwnershipRestored ? TEXT("Transfer verification failed. The original inventory entry was restored.")
-            : TEXT("Transfer failed. Item quantities were retained, but object ownership needs recovery."); return false;
+            : TEXT("Transfer failed. Item quantities were retained, but object ownership needs recovery.");
+        if (!Cause.IsEmpty()) Error += TEXT(" ") + Cause;
+        return false;
     }
     if (Receipt)
     {

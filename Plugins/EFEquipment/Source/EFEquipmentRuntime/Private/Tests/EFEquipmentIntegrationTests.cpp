@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Misc/AutomationTest.h"
+#include "ACFVendorComponent.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -134,6 +135,56 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestFalse(TEXT("External alternative-slot change cannot apply unauthorized equipment"), IsEquipped(Bra));
     BraInfo.ItemSlots = OriginalSlots; Bra.Item->SetItemDescriptor(BraInfo);
     TestTrue(TEXT("Coordinator can recover after the external native removal"), Equip(Bra).bSuccess);
+
+    // Price authoring is scoped to this transient test and restored without saving.
+    struct FRestoreDescriptor
+    {
+        UACFItem* Item; FItemDescriptor Info;
+        explicit FRestoreDescriptor(UACFItem* In) : Item(In), Info(In->GetItemInfo()) {}
+        ~FRestoreDescriptor() { Item->SetItemDescriptor(Info); }
+    } RestoreBagPrice(Bag.ItemClass->GetDefaultObject<UACFItem>()), RestoreStackPrice(Stack.ItemClass->GetDefaultObject<UACFItem>());
+    auto PriceBag = RestoreBagPrice.Info; PriceBag.CurrencyValue = 20; PriceBag.bSellable = true;
+    RestoreBagPrice.Item->SetItemDescriptor(PriceBag);
+    auto PriceStack = RestoreStackPrice.Info; PriceStack.CurrencyValue = 10; PriceStack.bSellable = true;
+    RestoreStackPrice.Item->SetItemDescriptor(PriceStack);
+    AActor* VendorOwner = World->SpawnActor<AActor>();
+    auto* Vendor = NewObject<UACFVendorComponent>(VendorOwner);
+    VendorOwner->AddInstanceComponent(Vendor); Vendor->RegisterComponent();
+    VendorOwner->DispatchBeginPlay(); Vendor->SetCurrency(1000); Native->SetCurrency(100);
+    const auto Cancelled = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
+    TestTrue(TEXT("Full satchel sale has native aggregate price and breakdown"), Cancelled.bValid && Cancelled.Lines.Num() == 2
+        && FMath::IsNearlyEqual(Cancelled.TotalPrice, 30.0 * Vendor->GetVendorPriceMultiplierOnBuy()));
+    Coordinator->CancelSale();
+    TestFalse(TEXT("Cancelled quote cannot sell"), Coordinator->ConfirmSale(Cancelled.QuoteId).bSuccess);
+    TestEqual(TEXT("Cancellation preserves player money"), Native->GetCurrentCurrencyAmount(), 100.f);
+    TestEqual(TEXT("Cancellation preserves vendor money"), Vendor->GetCurrentCurrencyAmount(), 1000.f);
+    const auto StaleSale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
+    TestTrue(TEXT("Contents may change while confirmation is open"), Coordinator->MoveToContainer(Stack.GetItemGuid(), Bag.GetItemGuid(), 1).bSuccess);
+    TestFalse(TEXT("Changed contents invalidate the quoted sale"), Coordinator->ConfirmSale(StaleSale.QuoteId).bSuccess);
+    auto SaleContents = Coordinator->GetContainerItems(Bag.GetItemGuid());
+    TestEqual(TEXT("Satchel now owns two separate stack identities"), SaleContents.Num(), 2);
+    auto ChildInfo = SaleContents[0].Item->GetItemInfo();
+    ChildInfo.bSellable = false; SaleContents[0].Item->SetItemDescriptor(ChildInfo);
+    TestFalse(TEXT("An unsellable child rejects the whole set"), Coordinator->PreviewSale(Vendor, Bag.GetItemGuid()).bValid);
+    ChildInfo.bSellable = true; ChildInfo.bDroppable = false; SaleContents[0].Item->SetItemDescriptor(ChildInfo);
+    TestFalse(TEXT("A non-droppable child rejects the whole drop"), Coordinator->RequestDrop(Bag.GetItemGuid()).bSuccess);
+    ChildInfo.bDroppable = true; SaleContents[0].Item->SetItemDescriptor(ChildInfo);
+    const auto FaultSale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
+    Coordinator->TestFailurePoint = 3;
+    TestFalse(TEXT("Settlement fault rejects the sale"), Coordinator->ConfirmSale(FaultSale.QuoteId).bSuccess);
+    TestTrue(TEXT("Settlement failure restores original bag ownership"), Native->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+    TestEqual(TEXT("Settlement failure restores player money"), Native->GetCurrentCurrencyAmount(), 100.f);
+    TestEqual(TEXT("Settlement failure restores vendor money"), Vendor->GetCurrentCurrencyAmount(), 1000.f);
+    const auto Sale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
+    TestTrue(TEXT("Full bag can be sold after revalidation"), Sale.bValid && Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
+    TestFalse(TEXT("Sold bag is absent from player"), Native->GetItemByGuid(Bag.GetItemGuid(), Live));
+    TestTrue(TEXT("Vendor owns the original bag GUID and item instance"), Vendor->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+    TestEqual(TEXT("Vendor receives no duplicate loose content loot"), Vendor->GetInventory().Num(), 1);
+    TestEqual(TEXT("Sale credits player exactly once"), Native->GetCurrentCurrencyAmount(), 100.f + static_cast<float>(Sale.TotalPrice));
+    TestEqual(TEXT("Sale debits vendor exactly once"), Vendor->GetCurrentCurrencyAmount(), 1000.f - static_cast<float>(Sale.TotalPrice));
+    TestFalse(TEXT("Repeated confirmation cannot duplicate the sale"), Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
+    TestTrue(TEXT("Reacquiring the bag preserves its payload"), Coordinator->TakeFromInventory(Vendor, Bag.GetItemGuid(), 1, false).bSuccess);
+    TestEqual(TEXT("Rehosted satchel restores both content GUIDs"), Coordinator->GetContainerItems(Bag.GetItemGuid()).Num(), SaleContents.Num());
     return !HasAnyErrors();
 }
 #endif
