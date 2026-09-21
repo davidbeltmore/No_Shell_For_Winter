@@ -116,8 +116,7 @@ void UEFEquipmentCoordinatorComponent::HandleActorLoaded()
     double LoadedRootLimit = 0;
     if (!EFEquipmentACF::Capacity(Equipment, LoadedRootLimit)) { LastMessage = FText::FromString(TEXT("The saved carry capacity is invalid.")); return; }
     // Drop stale transient container components. New item fragments own the saved bytes.
-    for (const auto& Pair : Containers) if (IsValid(Pair.Value)) Pair.Value->DestroyComponent();
-    Containers.Empty();
+    ResetDerivedContainers();
     double SavedContentWeight = 0;
     for (const auto& Item : Intent)
     {
@@ -391,6 +390,18 @@ bool UEFEquipmentCoordinatorComponent::FlushContainers(FString& Error)
     return true;
 }
 
+void UEFEquipmentCoordinatorComponent::ResetDerivedContainers()
+{
+    for (const auto& Pair : Containers) if (IsValid(Pair.Value)) Pair.Value->DestroyComponent();
+    Containers.Empty();
+    if (Equipment) for (const auto& Entry : Equipment->GetInventory())
+        if (auto* Rules = UEFEquipmentRulesFragment::Find(Entry.Item))
+        {
+            if (IsValid(Rules->RuntimeInventory)) Rules->RuntimeInventory->DestroyComponent();
+            Rules->RuntimeInventory = nullptr;
+        }
+}
+
 void UEFEquipmentCoordinatorComponent::RefreshState()
 {
     if (bOperation || bRefreshing || !bInitialized) return;
@@ -511,6 +522,7 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::MoveFromContainer(FGuid Con
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::RestoreEquippedIntent(const TArray<FInventoryItem>& Intent)
 {
     if (bOperation || !InitializeEquipment()) return Publish(FEFEquipmentResult::Failure(TEXT("Equipment is not ready for restoration.")));
+    bInitialItemsHandled = true;
     TArray<FInventoryItem> Ordered = Intent;
     for (auto& Item : Ordered)
         for (const auto& Rule : Registry->MigrationRules)
@@ -524,7 +536,7 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::RestoreEquippedIntent(const
     }
     Ordered.Sort([this](const auto& A, const auto& B)
     {
-        const int32 ReservationsA = Occupancy(A.Item, A.EquipmentSlot).Num(), ReservationsB = Occupancy(B.Item, B.EquipmentSlot).Num();
+        const bool ReservationsA = Occupancy(A.Item, A.EquipmentSlot).Num() > 1, ReservationsB = Occupancy(B.Item, B.EquipmentSlot).Num() > 1;
         if (ReservationsA != ReservationsB) return ReservationsA > ReservationsB;
         const auto* SlotA = Registry->Find(A.EquipmentSlot); const auto* SlotB = Registry->Find(B.EquipmentSlot);
         const int32 OrderA = SlotA ? SlotA->Order : MAX_int32, OrderB = SlotB ? SlotB->Order : MAX_int32;

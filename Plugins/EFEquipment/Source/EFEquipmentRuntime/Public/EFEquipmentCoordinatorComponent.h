@@ -55,6 +55,8 @@ public:
     bool IsAuthorized(const UACFItem* Item) const;
     UEFContainerInventoryComponent* ResolveContainer(FGuid Guid, FString& Error);
     bool FlushContainers(FString& Error);
+    /** Discard derived runtime containers after verified native inventory replacement. */
+    void ResetDerivedContainers();
     double GetEffectiveContainerWeight() const;
     bool IsBusy() const { return bOperation; }
 #if WITH_DEV_AUTOMATION_TESTS

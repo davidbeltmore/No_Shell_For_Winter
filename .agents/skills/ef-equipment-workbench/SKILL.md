@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # EF Equipment workbench

@@ -224,3 +224,27 @@ PENDING until explicitly checked in the real menu.
   the Ultimate controller's test slot and the ATS traveled-player state. Storage
   widgets still call native movement and need aggregate admission adapters.
   This audit identifies integration work; it does not certify those paths yet.
+
+### Versioned ALS record and file-publication foundation
+
+- Container isolation/audit checkpoint: `1120016`.
+- BuildEditor41/NativeEquipment11 PASS for a separate fractional BaseCarryCapacity,
+  explicit saved equip intent, staged native root records, deterministic old-slot
+  migration, conflict displacement, idempotent conversion and unsupported-version
+  rejection. Overburdened root load reconstructs the actual equipped bag, Bikini
+  reservations, and each contained GUID/count/class.
+- BuildEditor40 first exposed a non-exported native FALSObjectData value constructor;
+  the adapter uses its public fields and default constructor without patching ACF.
+- BuildEditor42/NativeEquipment12 PASS also exercises a real isolated `.sav` fixture:
+  exact original-byte backup, failure after staging without altering the original,
+  validated publication, disk reload as UEFEquipmentSaveGame, stale-backup rejection,
+  and verified recovery of the original native file. Test primary slots are removed;
+  their immutable backups remain under `Saved/SaveGames/EFEquipmentBackups/EquipmentQA_*`.
+- File publication verifies the active backend maps to the expected local path.
+  Windows replacement uses ReplaceFileW; generic IFileManager replacement deletes
+  the old target first and is unsuitable for this operation. Other save backends
+  require a dedicated adapter. No universal atomicity claim is made.
+- These are tested persistence building blocks. Menu save/load, native ALS callbacks,
+  travel/death and packaged integration remain PENDING; the new slot format is not
+  activated in the user-facing save flow yet. Evidence:
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment12/Report/index.json`.

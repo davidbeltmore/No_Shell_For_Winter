@@ -76,6 +76,25 @@ Container serialization belongs to the bag's GUID and fragment payload, independ
 of the visual actor. Upgrade versioned payloads only after integrity validation;
 publish converted saves only after an exact backup and conservation checks.
 
+`EFEquipmentPersistence` stages native ALS inventory records and preserves native
+object/fragment serialization. `UEFEquipmentSaveGame` adds versioned base capacity
+and equipment intent; reservations are rebuilt from actual equipment. Native item
+flags in its persisted record are cleared so effects wait for coordinator restore.
+Validate the saved GUID-to-slot intent before effects are applied.
+
+`EFEquipmentSaveFiles::Backup` must run before converting an existing slot. It
+retains exact bytes under `Saved/SaveGames/EFEquipmentBackups/<slot>/` with a receipt.
+`Publish` reopens and validates the staged native save, rejects a changed original,
+and uses Windows local-file replacement only after verifying the backend/path.
+`Recover` verifies the original backup before restoring it. Keep these operations
+on the game thread and keep conversion isolated from the live inventory.
+Restoring an older game build also requires restoring its original `.sav` backup.
+Do not delete old backups as part of routine authoring or tests.
+
+The native FALSObjectData value constructor is not exported by this installed ACF
+binary. Use its default constructor/public fields or the native serialization
+library. Do not modify vendor exports or duplicate private object layouts.
+
 Consult Docs/Migration/EFEquipment.md for what is implemented and verified.
 These extension contracts do not certify pending save migration, commerce,
 travel/death or packaged-game gates.

@@ -16,6 +16,9 @@
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 #include "Misc/Crc.h"
+#include "EFEquipmentPersistence.h"
+#include "EFEquipmentSaveFiles.h"
+#include "Misc/FileHelper.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -266,6 +269,87 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
         TestEqual(TEXT("World round trips conserve all original stack units"), Quantity(Native) + Quantity(Coordinator->ResolveContainer(Bag.GetItemGuid(), Error)), 8);
     }
     else AddError(TEXT("Partial stack drop did not create a world pickup."));
+
+    Equip(Bikini); Equip(Shirt); Equip(Bag);
+    Coordinator->SetBaseCarryCapacity(4.125);
+    TestTrue(TEXT("Persistence fixture is legitimately overburdened"), Coordinator->GetWeightSummary().bOverburdened);
+    FALSPlayerData PlayerData; PlayerData.Pawn.Class = Pawn->GetClass(); PlayerData.Pawn.alsName = Pawn->GetFName();
+    FALSComponentData InventoryRecord; InventoryRecord.Class = Native->GetClass(); InventoryRecord.alsName = Native->GetFName();
+    TestTrue(TEXT("Serialize native root inventory for ALS"), EFEquipmentPersistence::SerializeInventory(Native, InventoryRecord.Data, Error));
+    PlayerData.Pawn.AddComponentData(InventoryRecord);
+    auto* Saved = NewObject<UEFEquipmentSaveGame>();
+    TestTrue(TEXT("Capture separate fractional base capacity and safe restoration intent: ") + Error,
+        EFEquipmentPersistence::CapturePlayer(Saved, Coordinator, PlayerData, Error));
+    TestEqual(TEXT("Saved base capacity is independent of the native projection"), Saved->EquipmentPlayer.BaseCarryCapacity, 4.125);
+    TestTrue(TEXT("Saved snapshot includes the equipped bag and Bikini"), Saved->EquipmentPlayer.EquippedSlots.Contains(Bag.GetItemGuid())
+        && Saved->EquipmentPlayer.EquippedSlots.Contains(Bikini.GetItemGuid()));
+    TestTrue(TEXT("Validate a legitimately overloaded versioned slot: ") + Error, EFEquipmentPersistence::ValidateSlot(World, Saved, Error));
+    auto* Registry = GetDefault<UEFEquipmentSettings>()->SlotRegistry.LoadSynchronous();
+    auto* Repeated = EFEquipmentPersistence::ConvertSlot(World, Saved, Registry, Error);
+    TestTrue(TEXT("Versioned conversion is idempotent"), Repeated && Repeated->EquipmentPlayer.BaseCarryCapacity == Saved->EquipmentPlayer.BaseCarryCapacity
+        && Repeated->EquipmentPlayer.EquippedSlots.OrderIndependentCompareEqual(Saved->EquipmentPlayer.EquippedSlots));
+    const auto ChildrenBeforeLoad = Coordinator->GetContainerItems(Bag.GetItemGuid());
+    Saved->GetLocalPlayer(PlayerData);
+    const auto* SavedRecord = PlayerData.Pawn.GetComponentData(Native);
+    if (TestNotNull(TEXT("ALS record retains native component identity"), SavedRecord))
+    {
+        TestTrue(TEXT("Restore the native equipment bytes"), EFEquipmentPersistence::DeserializeInventory(Native, SavedRecord->Data, Error));
+        TestFalse(TEXT("Native restored entries cannot apply effects before conflict resolution"), Native->GetInventory().ContainsByPredicate([](const auto& Entry) { return Entry.bIsEquipped; }));
+        Native->OnComponentLoaded_Implementation();
+        TestTrue(TEXT("Restore equipment only after native component loading: ") + Error, EFEquipmentPersistence::RestorePlayer(Coordinator, Saved->EquipmentPlayer, Error));
+        TestTrue(TEXT("Restore reconstructs equipped bag and reservations"), IsEquipped(Bag) && IsEquipped(Bikini)
+            && Coordinator->GetSlotViews().ContainsByPredicate([](const auto& View) { return View.bReserved; }));
+        TestEqual(TEXT("Overburdened load retains exact fractional base capacity"), Coordinator->GetWeightSummary().BaseCapacity, 4.125);
+        const auto ChildrenAfterLoad = Coordinator->GetContainerItems(Bag.GetItemGuid());
+        for (const auto& Child : ChildrenBeforeLoad)
+            TestTrue(TEXT("Nested ACF payload preserves each child across root save/load"), ChildrenAfterLoad.ContainsByPredicate([&](const auto& Restored)
+                { return Restored.GetItemGuid() == Child.GetItemGuid() && Restored.Count == Child.Count && Restored.ItemClass == Child.ItemClass; }));
+    }
+
+    auto* LegacyInventory = NewObject<UACFEquipmentComponent>(Pawn);
+    EFEquipmentACF::Inventory(LegacyInventory)->Init(Pawn); LegacyInventory->SetIsInitialized(true);
+    for (const auto& Item : {Bra, Bikini, Shirt})
+    {
+        FInventoryItem Entry = Item; Entry.bIsEquipped = true; Entry.EquipmentSlot = Item.Item->GetPossibleItemSlots()[0];
+        for (const auto& Rule : Registry->MigrationRules) if (Rule.ItemClass.ToSoftObjectPath() == FSoftObjectPath(Item.ItemClass.Get()))
+        { Entry.EquipmentSlot = Rule.OldSlot; break; }
+        EFEquipmentACF::Inventory(LegacyInventory)->AddEntry(Entry);
+    }
+    FALSPlayerData LegacyPlayer; LegacyPlayer.Pawn.Class = Pawn->GetClass(); LegacyPlayer.Pawn.alsName = Pawn->GetFName();
+    FALSComponentData LegacyRecord; LegacyRecord.Class = Native->GetClass(); LegacyRecord.alsName = Native->GetFName();
+    EFEquipmentPersistence::SerializeInventory(LegacyInventory, LegacyRecord.Data, Error);
+    const auto OriginalLegacyBytes = LegacyRecord.Data;
+    LegacyPlayer.Pawn.AddComponentData(LegacyRecord);
+    auto* Legacy = NewObject<UALSSaveGame>(); Legacy->StoreLocalPlayer(LegacyPlayer);
+    auto* Converted = EFEquipmentPersistence::ConvertSlot(World, Legacy, Registry, Error);
+    if (TestNotNull(TEXT("Legacy native slot converts without applying effects: ") + Error, Converted))
+    {
+        TestTrue(TEXT("Migration prioritizes Bikini reserves and keeps compatible outerwear"), Converted->EquipmentPlayer.EquippedSlots.Contains(Bikini.GetItemGuid())
+            && Converted->EquipmentPlayer.EquippedSlots.Contains(Shirt.GetItemGuid()) && Converted->EquipmentPlayer.DisplacedItems.Contains(Bra.GetItemGuid()));
+        Legacy->GetLocalPlayer(LegacyPlayer);
+        TestTrue(TEXT("Candidate conversion leaves all original native bytes untouched"), LegacyPlayer.Pawn.GetComponentData(Native)->Data == OriginalLegacyBytes);
+        const FString SlotName = TEXT("EquipmentQA_") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+        struct FTestSlotCleanup { FString Slot; ~FTestSlotCleanup() { UGameplayStatics::DeleteGameInSlot(Slot, 0); } } CleanupSlot{SlotName};
+        TestTrue(TEXT("Create isolated native legacy save-file fixture"), UGameplayStatics::SaveGameToSlot(Legacy, SlotName, 0));
+        FEFEquipmentSlotBackup Backup;
+        TestTrue(TEXT("Back up original slot before conversion publication: ") + Error, EFEquipmentSaveFiles::Backup(SlotName, Backup, Error));
+        TArray<uint8> BackedUp;
+        TestTrue(TEXT("Backup preserves the original slot byte for byte"), FFileHelper::LoadFileToArray(BackedUp, *Backup.BackupPath) && BackedUp == Backup.OriginalBytes);
+        auto Validate = [&](USaveGame* Object, FString& Failure) { return EFEquipmentPersistence::ValidateSlot(World, Cast<UEFEquipmentSaveGame>(Object), Failure); };
+        EFEquipmentSaveFiles::FailBeforePublication = true;
+        TestFalse(TEXT("Failure after staging cannot publish the converted slot"), EFEquipmentSaveFiles::Publish(Converted, Backup, Validate, Error));
+        TArray<uint8> Retained;
+        TestTrue(TEXT("Publication failure retains the original native file exactly"), UGameplayStatics::LoadDataFromSlot(Retained, SlotName, 0) && Retained == Backup.OriginalBytes);
+        TestTrue(TEXT("Validated converted slot publishes successfully: ") + Error, EFEquipmentSaveFiles::Publish(Converted, Backup, Validate, Error));
+        auto* DiskSave = Cast<UEFEquipmentSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+        TestTrue(TEXT("Published file loads as the versioned ALS subclass"), DiskSave && EFEquipmentPersistence::ValidateSlot(World, DiskSave, Error));
+        TestFalse(TEXT("A stale backup cannot overwrite a newly published slot"), EFEquipmentSaveFiles::Publish(Converted, Backup, Validate, Error));
+        TestTrue(TEXT("Rollback restores the retained original native save"), EFEquipmentSaveFiles::Recover(Backup, Error)
+            && UGameplayStatics::LoadDataFromSlot(Retained, SlotName, 0) && Retained == Backup.OriginalBytes);
+        Converted->EquipmentVersion = 99;
+        TestNull(TEXT("A future save version is preserved and rejected"), EFEquipmentPersistence::ConvertSlot(World, Converted, Registry, Error));
+    }
+    LegacyInventory->DestroyComponent();
     return !HasAnyErrors();
 }
 #endif
