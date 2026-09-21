@@ -61,6 +61,25 @@ bool FEFClothingV51ContractsTest::RunTest(const FString& Parameters)
 	UEFClothingMorphDirectorPolicy* Director = NewObject<UEFClothingMorphDirectorPolicy>();
 	TestEqual(TEXT("Stable Director schema is preserved"), Director->SchemaVersion, 5);
 	TestEqual(TEXT("Stable Director identity is preserved"), Director->DirectorId, FName(TEXT("EFClothingMorphV4")));
+	{
+		FEFClothingGarmentRow RegionRow;
+		RegionRow.GarmentId = TEXT("RegionFixture");
+		RegionRow.SourceGarment = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Test/Garment.Garment")));
+		RegionRow.BodySurface = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Test/Body.Body")));
+		FEFClothingRegionOccupancyRule Occupancy; Occupancy.RegionId = TEXT("Torso");
+		RegionRow.LayerRule.OccupiedRegions.Add(Occupancy);
+		Director->Garments = {RegionRow};
+		FString RegionError;
+		TestFalse(TEXT("Single authoring table rejects an undeclared occupied region"), Director->ValidatePolicy(RegionError));
+		FEFClothingBodyRegionDefinition Region; Region.RegionId = TEXT("Torso");
+		Director->Regions = {Region};
+		TestTrue(TEXT("Declared occupancy validates without loading a mesh"), Director->ValidatePolicy(RegionError));
+		Director->Regions.Add(Region);
+		TestFalse(TEXT("Duplicate region identifiers cannot publish"), Director->ValidatePolicy(RegionError));
+		Director->Regions = {Region}; Director->Garments[0].CoveredBodyRegionIds = {TEXT("Missing")};
+		TestFalse(TEXT("Coverage cannot refer to an undeclared region"), Director->ValidatePolicy(RegionError));
+		Director->Regions.Reset(); Director->Garments.Reset();
+	}
 	const FEFClothingGarmentRow DefaultRow;
 	TestEqual(
 		TEXT("Opaque is automatic for every new single-table row"),

@@ -10,15 +10,15 @@ spec = importlib.util.spec_from_file_location('clothing_latency_support', pathli
 h = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(h)
 S, R = h.S, h.R
-# FootWrap currently uses the generic parent ItemSlot.Armor. ACF equipment
-# lookups match parent tags, so place that existing item before child slots.
-GROUPS = ((2,0,1), (2,3,4), (2,3,5))
+# FootWrap uses the explicit Feet leaf. Bikini reserves both inner slots;
+# outerwear remains compatible and every operation uses the player coordinator.
+GROUPS = ((2,0,1), (2,3,4), (2,0,1,3,4), (2,0,1,5))
 TASKS = []
 for gender in ('Female','Male'):
-    for group in range(3):
+    for group in range(len(GROUPS)):
         TASKS += [('outfit',gender,group), ('swap','Male' if gender == 'Female' else 'Female',group), ('swap',gender,group)]
 h.TRIALS = TASKS
-R.update(scenario='three-garment outfits and in-place body swaps', expected_trials=len(TASKS))
+R.update(scenario='layered outfits and in-place body swaps', expected_trials=len(TASKS))
 
 
 def garments():
@@ -56,10 +56,11 @@ def tick(dt):
             return
         if phase == 'cleanup':
             # Each ACF removal refreshes/reloads the remaining slots. Allow its
-            # async completion before removing the next child slot; parent last.
+            # async completion before removing the next slot.
             items = list(S['equipment'].get_current_equipment().get_editor_property('equipped_items'))
             if items:
-                S['equipment'].unequip_item_by_guid(items[-1].get_editor_property('item_guid'))
+                result = S['coordinator'].request_unequip(items[-1].get_editor_property('item_guid'))
+                assert result.get_editor_property('success'), str(result.get_editor_property('message'))
                 h.transition('cleanup',.3)
             else:
                 h.transition('prepare',.3)
@@ -96,7 +97,7 @@ def tick(dt):
             if kind == 'outfit':
                 for klass in S['classes']:
                     assert klass
-                    S['equipment'].add_item_to_inventory_by_class(klass, 1, True)
+                    h.equip_class(klass)
             else:
                 assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, gender.upper()))
                 S['gender'] = gender
@@ -118,7 +119,7 @@ def tick(dt):
             if key != S['last_key']:
                 tr['events'].append(dict(wall_s=t, frames=S['frame']-S['frame0'], states=states, summary=summary))
                 S['last_key'] = key
-            if len(meshes) == 3:
+            if len(meshes) == len(GROUPS[TASKS[S['index']][2]]):
                 tr.setdefault('component_s',t)
             if h.MODE == 'notify':
                 fresh = set(meshes)-S['notified']
@@ -126,9 +127,10 @@ def tick(dt):
                     S['runtime'].notify_equipment_changed()
                     S['notified'].update(fresh)
                     tr.setdefault('notification_s',time.perf_counter()-S['t0'])
-            if 'managed=3 ' in summary:
+            expected_count = len(GROUPS[TASKS[S['index']][2]])
+            if f'managed={expected_count} ' in summary:
                 tr.setdefault('managed_s',t)
-            if len(states) == 3 and all('READY' in state.upper() for state in states.values()):
+            if len(states) == expected_count and all('READY' in state.upper() for state in states.values()):
                 tr.update(ready_s=t, frames=S['frame']-S['frame0'])
                 body_path = f'/Game/DazToUnreal/{tr["gender"]}/{tr["gender"]}.{tr["gender"]}'
                 body = next(c for c in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
@@ -143,7 +145,7 @@ def tick(dt):
                 tr['coverage'] = 'PASS'
                 R['trials'].append(tr)
                 h.write()
-                if S['index'] in (0,1,6,7):
+                if S['index'] in (0,1,6,7,9,10):
                     h.transition('capture',.4)
                 else:
                     next_trial()

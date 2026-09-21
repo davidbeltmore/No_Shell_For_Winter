@@ -1,5 +1,6 @@
 [CmdletBinding()]
-param([ValidateRange(60, 480)][int]$TimeoutSeconds = 440, [switch]$ExtendedOnly, [switch]$LatencyRegression)
+param([ValidateRange(60, 480)][int]$TimeoutSeconds = 440, [switch]$ExtendedOnly, [switch]$LatencyRegression,
+    [ValidatePattern('^[A-Za-z0-9_-]*$')][string]$RunName = '')
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $project = Join-Path $root 'NoShellForWinter.uproject'
@@ -8,11 +9,14 @@ $existing = @(Get-CimInstance Win32_Process | Where-Object {
 })
 if ($existing.Count) { throw 'Close the target editor before the isolated clothing PIE test.' }
 $output = Join-Path $root $(if ($LatencyRegression) { 'Saved\ClothingLatencyQA\UnisexRegression' } else { 'Saved\ClothingUnisexQA' })
+if ($RunName) { $output = Join-Path $root "Saved/ClothingUnisexQA/$RunName" }
 [void][IO.Directory]::CreateDirectory($output)
 $oldGate = $env:CODEX_RUN_MIGRATION_BASELINE_PIE
 $oldScript = $env:CODEX_MIGRATION_PIE_SCRIPT
 $oldExtended = $env:EF_UNISEX_EXTENDED_ONLY
 $oldOutput = $env:EF_UNISEX_OUTPUT_DIR
+. (Join-Path $root 'Tools/Migration/QAUserSaveGuard.ps1')
+$saveSnapshot = @(Backup-UnrealQAUserSaves -ProjectRoot $root -OutputDirectory $output)
 try {
     $env:CODEX_RUN_MIGRATION_BASELINE_PIE = '1'
     $env:EF_UNISEX_OUTPUT_DIR = Join-Path $output 'PIE'
@@ -40,4 +44,5 @@ try {
     $env:CODEX_MIGRATION_PIE_SCRIPT = $oldScript
     $env:EF_UNISEX_EXTENDED_ONLY = $oldExtended
     $env:EF_UNISEX_OUTPUT_DIR = $oldOutput
+    Restore-UnrealQAUserSaves -Snapshot $saveSnapshot -OutputDirectory $output
 }

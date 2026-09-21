@@ -510,6 +510,8 @@ private:
 			UEFClothingMorphDirectorPolicy,
 			Garments);
 		if (PropertyName == ClothesPropertyName
+			|| MemberPropertyName == GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, Regions)
+			|| PropertyName == GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, Regions)
 			|| MemberPropertyName == GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, Bodies)
 			|| PropertyName == GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, Bodies))
 		{

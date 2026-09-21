@@ -59,7 +59,18 @@ def component(fragment):
 
 def unequip():
     for item in list(S['equipment'].get_current_equipment().get_editor_property('equipped_items')):
-        S['equipment'].unequip_item_by_guid(item.get_editor_property('item_guid'))
+        result = S['coordinator'].request_unequip(item.get_editor_property('item_guid'))
+        assert result.get_editor_property('success'), str(result.get_editor_property('message'))
+
+
+def equip_class(klass):
+    entries = S['equipment'].get_all_items_of_class_in_inventory(klass)
+    if not entries:
+        S['equipment'].add_item_to_inventory_by_class(klass, 1, False)
+        entries = S['equipment'].get_all_items_of_class_in_inventory(klass)
+    assert entries, 'Inventory fixture could not add ' + klass.get_path_name()
+    result = S['coordinator'].request_equip(entries[0].get_editor_property('item_guid'), unreal.GameplayTag())
+    assert result.get_editor_property('success'), str(result.get_editor_property('message'))
 
 
 def find_garment():
@@ -115,11 +126,12 @@ def tick(dt):
             if not player:
                 return
             S.update(world=world, player=player)
+            S['coordinator'] = unreal.EFEquipmentFunctionLibrary.get_equipment_coordinator(player)
             S['custom'] = component('EFCharacterCustomizationComponent')
             S['runtime'] = component('EFClothingRuntimeComponent') or component('EFClothingMorphV3RuntimeComponent')
             S['equipment'] = component('ACFEquipmentComponent')
             S['bridge'] = component('EFClothingEquipmentBridgeComponent')
-            if not all(S[x] for x in ('custom', 'runtime', 'equipment')):
+            if not all(S[x] for x in ('custom', 'runtime', 'equipment', 'coordinator')):
                 return
             runtime = S['runtime']
             R['original_watchdog_s'] = runtime.get_editor_property('reconcile_watchdog_interval_seconds')
@@ -173,7 +185,7 @@ def tick(dt):
             S['game0'] = unreal.GameplayStatics.get_time_seconds(S['world'])
             S['last_sample'] = S['t0']
             S['frame0'] = S['frame']
-            S['equipment'].add_item_to_inventory_by_class(S['klass'], 1, True)
+            equip_class(S['klass'])
             S['trial']['equip_call_s'] = time.perf_counter()-S['t0']
             S['notified'] = False
             S['last_key'] = None

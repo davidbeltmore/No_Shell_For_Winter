@@ -37,6 +37,21 @@ def component(fragment):
                  if fragment in c.get_class().get_name()), None)
 
 
+def equip(klass):
+    entries = S['equipment'].get_all_items_of_class_in_inventory(klass)
+    if not entries:
+        S['equipment'].add_item_to_inventory_by_class(klass, 1, False)
+        entries = S['equipment'].get_all_items_of_class_in_inventory(klass)
+    assert entries, klass.get_path_name()
+    result = S['coordinator'].request_equip(prop(entries[0], 'item_guid'), unreal.GameplayTag())
+    assert prop(result, 'success'), str(prop(result, 'message'))
+
+
+def unequip(guid):
+    result = S['coordinator'].request_unequip(guid)
+    assert prop(result, 'success'), str(prop(result, 'message'))
+
+
 def current_body():
     expected = f'/Game/DazToUnreal/{S["gender"]}/{S["gender"]}.{S["gender"]}'
     candidates = [c for c in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
@@ -78,7 +93,6 @@ def set_gender():
     name = ('Female', 'Male', 'Female')[S['gender_index']]
     assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, name.upper()))
     S['gender'] = name
-    S['runtime'].force_reconcile()
     transition('ready', 3)
 
 
@@ -109,6 +123,7 @@ def tick(dt):
             if unreal.GameplayStatics.get_time_seconds(world) < 2:
                 return
             S.update(world=world, player=player)
+            S['coordinator'] = unreal.EFEquipmentFunctionLibrary.get_equipment_coordinator(player)
             S['controller'] = unreal.GameplayStatics.get_player_controller(world, 0)
             S['custom'] = component('EFCharacterCustomizationComponent')
             S['runtime'] = component('EFClothingRuntimeComponent') or component('EFClothingMorphV3RuntimeComponent')
@@ -130,7 +145,7 @@ def tick(dt):
                 light.set_actor_rotation(unreal.Rotator(pitch=-35, yaw=player.get_actor_rotation().yaw+180, roll=0), False)
             # Remove all equipped items only in this transient test session.
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
-                S['equipment'].unequip_item_by_guid(prop(item, 'item_guid'))
+                unequip(prop(item, 'item_guid'))
             if os.environ.get('EF_UNISEX_EXTENDED_ONLY') == '1':
                 S['index'] = len(ITEMS)
             transition('equip', 2)
@@ -143,7 +158,7 @@ def tick(dt):
             S['name'], S['row'] = name, S['rows'][name]
             klass = unreal.load_class(None, path+'.'+path.rsplit('/',1)[1]+'_C')
             assert klass, path
-            S['equipment'].add_item_to_inventory_by_class(klass, 1, True)
+            equip(klass)
             S['gender_index'] = 0
             set_gender()
         elif phase == 'ready':
@@ -224,8 +239,7 @@ def tick(dt):
                 set_gender()
             else:
                 for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
-                    S['equipment'].unequip_item_by_guid(prop(item, 'item_guid'))
-                S['runtime'].force_reconcile()
+                    unequip(prop(item, 'item_guid'))
                 transition('uncovered', 1)
         elif phase == 'uncovered':
             body = current_body()
@@ -236,50 +250,35 @@ def tick(dt):
         elif phase == 'overlap_equip':
             S['gender'] = ('Male', 'Female')[S['overlap_gender']]
             assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, S['gender'].upper()))
-            for path in (ITEMS[0][1], ITEMS[1][1]):
+            for path in (ITEMS[1][1], ITEMS[4][1]):
                 klass = unreal.load_class(None, path+'.'+path.rsplit('/',1)[1]+'_C')
-                S['equipment'].add_item_to_inventory_by_class(klass, 1, True)
+                equip(klass)
             transition('overlap_prepare', 2)
         elif phase == 'overlap_prepare':
-            # Reuse the real ACF chest component as a transient second lower
-            # garment. Both lower items normally compete for the same slot.
-            # This changes only this PIE component, never an asset or slot rule.
-            # The equipment bridge correctly rejects meshes that disagree with
-            # real inventory. Suspend only that adapter for this synthetic
-            # two-owner fixture; all real equipment/morph cases keep it active.
-            S['equipment_bridge'] = component('EFClothingEquipmentBridgeComponent')
-            if S['equipment_bridge']:
-                S['equipment_bridge'].set_component_tick_enabled(False)
-                S['report']['synthetic_overlap_adapter_suspended'] = True
-            source = prop(S['rows'][ITEMS[0][0]], 'source_garment')
-            extra = next(c for c in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
-                         if c.is_visible() and c.get_skeletal_mesh_asset() == source)
-            extra.set_skeletal_mesh_asset(prop(S['rows'][ITEMS[4][0]], 'source_garment'))
-            S['overlap_component'] = extra
-            S['runtime'].force_reconcile()
+            # Real Pants + Panty now provide two compatible coverage owners.
+            # Keep the production bridge active throughout every observation.
+            source = prop(S['rows'][ITEMS[4][0]], 'source_garment')
+            S['overlap_component'] = next(c for c in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
+                                         if c.is_visible() and c.get_skeletal_mesh_asset() == source)
             transition('overlap_two', 3)
         elif phase == 'overlap_two':
             items = list(prop(S['equipment'].get_current_equipment(), 'equipped_items'))
-            assert len(items) == 2, 'Expected real ACF chest and lower-body items'
+            assert len(items) == 2, 'Expected real outer and inner lower-body items'
             assert 'READY' in str(S['runtime'].get_garment_runtime_state(S['overlap_component'])).upper()
             assert_coverage(True)
             S['report']['checks'].append({'gender': S['gender'], 'coverage_owners': 2, 'status': 'PASS'})
-            S['equipment'].unequip_item_by_guid(prop(items[0], 'item_guid'))
-            S['runtime'].force_reconcile()
+            unequip(prop(items[0], 'item_guid'))
             transition('overlap_one', 2)
         elif phase == 'overlap_one':
             assert_coverage(True)
             S['report']['checks'].append({'gender': S['gender'], 'coverage_owners': 1, 'status': 'PASS'})
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
-                S['equipment'].unequip_item_by_guid(prop(item, 'item_guid'))
-            S['runtime'].force_reconcile()
+                unequip(prop(item, 'item_guid'))
             transition('overlap_zero', 2)
         elif phase == 'overlap_zero':
             assert_coverage(False)
             assert not prop(current_body(), 'mesh_deformer'), 'Body deformer override leaked after final unequip'
             S['report']['checks'].append({'gender': S['gender'], 'coverage_owners': 0, 'status': 'PASS'})
-            if S.get('equipment_bridge'):
-                S['equipment_bridge'].set_component_tick_enabled(True)
             S['overlap_gender'] += 1
             if S['overlap_gender'] < 2:
                 transition('overlap_equip', .1)
@@ -289,9 +288,9 @@ def tick(dt):
         elif phase == 'morph_equip':
             S['gender'] = ('Female', 'Male')[S['morph_gender']]
             assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, S['gender'].upper()))
-            for path in (ITEMS[0][1], ITEMS[1][1]):
+            for path in (ITEMS[0][1], ITEMS[1][1], ITEMS[3][1], ITEMS[4][1]):
                 klass = unreal.load_class(None, path+'.'+path.rsplit('/',1)[1]+'_C')
-                S['equipment'].add_item_to_inventory_by_class(klass, 1, True)
+                equip(klass)
             body = current_body()
             asset = body.get_skeletal_mesh_asset()
             data = unreal.AssetRegistryHelpers.get_asset_registry().get_asset_by_object_path(asset.get_path_name())
@@ -303,12 +302,11 @@ def tick(dt):
                 if mesh.get_skeletal_mesh_asset() == asset:
                     for name, value in weights.items():
                         mesh.set_morph_target(name, value, False)
-            S['runtime'].force_reconcile()
             transition('morph_ready', 4)
         elif phase == 'morph_ready':
             body = current_body()
             assert all(abs(body.get_morph_target(name)-value) < .001 for name,value in S['morph_weights'].items())
-            for name in ('RagShirt', 'RagPants'):
+            for name in ('RagShirt', 'RagPants', 'UnderWearBra_Female', 'UnderWearPanty_Female'):
                 source = prop(S['rows'][name], 'source_garment')
                 meshes = [m for m in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
                           if m.is_visible() and m.get_skeletal_mesh_asset() == source]
@@ -345,7 +343,7 @@ def tick(dt):
         elif phase == 'morph_done':
             assert S['capture_path'].exists()
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
-                S['equipment'].unequip_item_by_guid(prop(item, 'item_guid'))
+                unequip(prop(item, 'item_guid'))
             S['morph_gender'] += 1
             if S['morph_gender'] < 2:
                 transition('morph_equip', .5)

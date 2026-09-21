@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "7"
+  version: "8"
 ---
 
 # EF Equipment workbench
@@ -193,6 +193,9 @@ Validate both bodies, extreme morphs, movement, genital coverage, rapid changes
 and late callbacks using the existing bridge without ForceReconcile. Measure
 Ready latency at ordinary frequency and 30 FPS; compare against 0.5 seconds only
 for comparable warmed scenarios. Record packaged cold loads separately.
+Use [clothing-and-body-qa.md](references/clothing-and-body-qa.md) for the current
+layer authoring and real two-owner coverage recipes. They supersede older
+parent-slot and synthetic-overlap instructions in the shared clothing skill.
 
 After each subsystem, compile, run relevant tests, compare protected hashes and
 make a small commit. Complete Editor/Game, Blueprint, PIE, visual, cook and packaged

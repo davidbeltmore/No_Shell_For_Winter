@@ -10,7 +10,7 @@ spec = importlib.util.spec_from_file_location('clothing_latency_support', pathli
 h = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(h)
 S,R = h.S,h.R
-CASES = [(g,c) for g in ('Female','Male') for c in ('replace_chest','replace_lower','cancel','bulk_unequip','stale_callback')]
+CASES = [(g,c) for g in ('Female','Male','Female') for c in ('layered_torso','layered_lower','cancel','bulk_unequip','stale_callback')]
 h.TRIALS = CASES
 R.update(scenario='native equipment bridge correctness', checks=[])
 
@@ -21,12 +21,7 @@ def meshes():
 
 
 def equip(index):
-    entries = S['equipment'].get_all_items_of_class_in_inventory(S['classes'][index])
-    if not entries:
-        S['equipment'].add_item_to_inventory_by_class(S['classes'][index],1,False)
-        entries = S['equipment'].get_all_items_of_class_in_inventory(S['classes'][index])
-    assert entries, 'Inventory fixture could not add '+h.ITEMS[index][0]
-    S['equipment'].equip_item_from_inventory(entries[0])
+    h.equip_class(S['classes'][index])
 
 
 def coverage(expected):
@@ -76,9 +71,9 @@ def tick(dt):
             if 'classes' not in S:
                 S['classes'] = [unreal.load_class(None,i[1]+'.'+i[1].rsplit('/',1)[1]+'_C') for i in h.ITEMS]
             S['case'] = case
-            if case == 'replace_chest':
+            if case == 'layered_torso':
                 equip(0)
-            elif case in ('replace_lower','cancel','stale_callback'):
+            elif case in ('layered_lower','cancel','stale_callback'):
                 equip(1)
             else:
                 for i in (2,0,1): equip(i)
@@ -92,16 +87,16 @@ def tick(dt):
                 return
             S['t0'] = time.perf_counter()
             S['expected'] = set()
-            if S['case'] == 'replace_chest':
+            if S['case'] == 'layered_torso':
                 equip(3)
                 equip(0)
                 equip(3)
-                S['expected'] = {h.ITEMS[3][2]}
-            elif S['case'] == 'replace_lower':
+                S['expected'] = {h.ITEMS[0][2], h.ITEMS[3][2]}
+            elif S['case'] == 'layered_lower':
                 equip(4)
                 equip(5)
                 equip(1)
-                S['expected'] = {h.ITEMS[1][2]}
+                S['expected'] = {h.ITEMS[1][2], h.ITEMS[5][2]}
             elif S['case'] == 'cancel':
                 equip(4)
                 h.unequip() # Same-frame cancellation with source loads pending.
@@ -116,7 +111,7 @@ def tick(dt):
             paths = {c.get_skeletal_mesh_asset().get_path_name() for c in visible}
             assert paths == S['expected'], f'{S["case"]} expected={S["expected"]} visible={paths}'
             assert all('READY' in str(S['runtime'].get_garment_runtime_state(c)).upper() for c in visible)
-            coverage(S['case'] == 'replace_lower')
+            coverage(S['case'] == 'layered_lower')
             R['checks'].append(dict(gender=S['gender'],case=S['case'],status='PASS', elapsed_s=now-S['t0'],
                                     bridge=S['bridge'].get_debug_summary(),visible=sorted(paths)))
             if S['case'] == 'stale_callback' and not S.get('injected'):

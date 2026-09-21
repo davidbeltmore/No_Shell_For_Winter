@@ -20,6 +20,8 @@ $output = Join-Path $root "Saved\ClothingLatencyQA\$RunName"
 $names = @('CODEX_RUN_MIGRATION_BASELINE_PIE','CODEX_MIGRATION_PIE_SCRIPT','EF_CLOTHING_LATENCY_MODE','EF_CLOTHING_LATENCY_RUN','EF_CLOTHING_LATENCY_REPEATS','EF_CLOTHING_LATENCY_FPS')
 $previous = @{}
 foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name,'Process') }
+. (Join-Path $root 'Tools/Migration/QAUserSaveGuard.ps1')
+$saveSnapshot = @(Backup-UnrealQAUserSaves -ProjectRoot $root -OutputDirectory $output)
 try {
     $env:CODEX_RUN_MIGRATION_BASELINE_PIE = '1'
     $env:CODEX_MIGRATION_PIE_SCRIPT = Join-Path $PSScriptRoot $(if ($EquipmentQA) { 'Validate-ClothingEquipment58.py' } elseif ($Transitions) { 'Measure-ClothingTransitions58.py' } else { 'Measure-ClothingLatency58.py' })
@@ -43,4 +45,5 @@ try {
     Write-Host "Latency $Mode PASS: $(@($report.trials).Count) samples. $receipt"
 } finally {
     foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name,$previous[$name],'Process') }
+    Restore-UnrealQAUserSaves -Snapshot $saveSnapshot -OutputDirectory $output
 }

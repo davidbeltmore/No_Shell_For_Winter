@@ -39,6 +39,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bodies", meta = (TitleProperty = "BodySurface"))
 	TArray<FEFClothingBodyTarget> Bodies;
 
+	/** Shared semantic regions. Skin slots use the reference body and each body's aliases. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layering", meta = (TitleProperty = "RegionId"))
+	TArray<FEFClothingBodyRegionDefinition> Regions;
+
 	/** Internal expansion; stable authored clothing rows and paths are unchanged. */
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph|Bodies")
 	TArray<FEFClothingGarmentRow> BuildBodyVariants() const;

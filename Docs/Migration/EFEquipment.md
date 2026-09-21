@@ -1,5 +1,52 @@
 # Layered equipment and satchels
 
+## Clothing layers, real body transitions and reusable QA
+
+Snapshot: clothing subsystem following `17b854b`, built as BuildEditor64; see
+the commit containing this section. Source: EFClothingMorph Director policy,
+runtime validation, V5 compiler bridge and contract tests. Authoring stays at
+`/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector`; generated profiles
+and garment definitions remain derived output.
+
+The Director now declares Torso/Legs/Feet regions. The six catalog rows specify
+their occupied/covered regions, Underwear/Base layers and modest thickness/gap
+values. These partial garments do not hide entire skin material sections.
+Existing genital-coverage flags are preserved. Layer exclusivity is not equip
+authority. The compiler copies regions to both body profiles, resolves material
+aliases and rejects duplicate or undeclared region IDs before publishing.
+
+- BuildEditor63/64: PASS (`Saved/EquipmentQA/build_editor_64.log`).
+- Authoring: PASS, two body profiles and twelve garment definitions;
+  `Saved/EquipmentQA/clothing_layer_authoring.json` and
+  `author_clothing_layers_01.log`. No source body/garment mesh writes.
+- `EF.ClothingMorph.V51.Contracts`: PASS, report under
+  `Saved/Migration/EFClothingMorphV51/NativeAutomation_EquipmentLayers01/Report`.
+- EquipmentLayers01: PASS, 19 checks including Female/Male/Female, layered
+  coexistence, reservation displacement, bulk/rapid change and stale callbacks.
+- EquipmentBodies01: PASS, 10 checks plus Blueprint compile. Real Pants/Panty
+  coverage owners go 2/1/0, extreme Female/Male morphs with four layers reach
+  Ready, and movement retains fitting. Both `morph_extreme_*.png` were inspected
+  under `Saved/ClothingUnisexQA/EquipmentBodies01/PIE`.
+- EquipmentTransitions01: PASS, 24 outfit/body-change trials with three to five
+  garments, maximum Ready 0.296 s. Six captured Female/Male views inspected:
+  complete silhouettes and intended rag openings remain visible. These poses
+  do not certify every animation or final garment artwork.
+- EquipmentTiming01: PASS 36/36, maximum 0.185 s; EquipmentTiming30_01: PASS
+  12/12 at 30 FPS, maximum 0.345 s. Both are warmed comparable scenarios, not
+  packaged cold-load measurements. Receipts/screenshots are under
+  `Saved/ClothingLatencyQA/<run>/`; combined statistics in `summary.json`.
+- Fresh MCP list/describe/IsPIERunning confirmed the real editor for the layer,
+  body, 30 FPS and transition runs. No ForceReconcile or bridge suspension.
+- Protected comparison: PASS, all 5,260 baseline hashes unchanged in
+  `Saved/EquipmentQA/protected_clothing_layers_result.json`.
+
+The QA runners now share `Tools/Migration/QAUserSaveGuard.ps1`: back up existing
+top-level saves before launching, retain changed QA bytes separately, restore
+original bytes after editor exit and verify hashes. All five above PIE runs
+verified seven original saves. An isolated ALS slot alone does not isolate
+independent subsystem saves. Skill v8 documents the exact authoring and QA
+commands in `references/clothing-and-body-qa.md`.
+
 ## Execution baseline
 
 Target: `D:/Projects UE5/NoShellForWinter`, UE 5.8.2, ACF Ultimate 4.3.5.
@@ -33,7 +80,23 @@ EFProjectSystems integrates lifecycle, travel, persistence and existing UI.
 EFClothingMorph's Director remains the only garment-fit authoring database.
 Reservations are derived GUID references, never synthetic ACF inventory entries.
 
-## Gates
+## Current gate index
+
+This index summarizes the latest subsystem evidence below; older dated failures
+remain in the log. It is not final-tree release certification.
+
+| Subsystem | Latest evidence | Remaining acceptance |
+|---|---|---|
+| Native inventory layout | `305299b`, PIE_23: wider frontal renderer, narrower item card, wheel and drag/drop | Final packaged visual check |
+| Equipment, containers, commerce | NativeEquipment15, PIE_23 | Final-tree rerun/package |
+| Save migration and native world reload | NativeEquipment15, PIE_23 | Player-facing migration notice and original save-page interaction |
+| Death | `87abead`, PIE_23: 20 native death/revive/drop/pickup cycles | Historical PIE_21 intermittent failure remains unexplained |
+| Travel | EquipmentTravel04: source-world destruction and GC | Actual floor traversal |
+| Clothing layers and bodies | BuildEditor64, EquipmentLayers01/Bodies01/Transitions01 | Packaged cold-load check |
+| Game prerequisites | `17b854b`, Game03 and NativeGameCompatibility03 PASS | Rebuild final tree and cooked identity parity |
+| Release | PENDING | Cook, packaged execution, final protected hashes |
+
+## Initial gates (historical baseline)
 
 | Phase | Status | Required evidence |
 |---|---|---|
@@ -44,11 +107,12 @@ Reservations are derived GUID references, never synthetic ACF inventory entries.
 | Editable UI and maintenance | PENDING | WBP compile, actual UI screenshots, skill recipes |
 | Release validation | PENDING | Editor/Game builds, cook, packaged execution |
 
-The previous Game build failed in Calysto metadata/ClassGeneratedBy consumers.
+The baseline Game build failed in Calysto metadata/ClassGeneratedBy consumers;
+the separate repair and Game03 PASS are recorded in `EFEquipment_GamePrerequisites.md`.
 Do not promote historical Editor/PIE evidence to current-tree release acceptance.
 Each phase must record its source snapshot, artifacts and protected comparison.
 
-## Current evidence (2026-09-21, uncommitted work snapshot)
+## Foundation evidence (2026-09-21, historical work snapshot)
 
 - Editor build, runtime and authoring modules: PASS in `Saved/EquipmentQA/build_editor_09.log`.
 - Authored registry, six garment destinations, armor parent, reusable rules and

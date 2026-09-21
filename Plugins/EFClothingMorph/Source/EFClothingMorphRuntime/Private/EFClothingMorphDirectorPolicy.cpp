@@ -202,6 +202,16 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 	}
 
 	TSet<FName> ClothingNames;
+	TSet<FName> RegionNames;
+	for (const auto& Region : Regions)
+	{
+		if (Region.RegionId.IsNone() || RegionNames.Contains(Region.RegionId))
+		{
+			OutError = TEXT("Clothing regions require unique nonempty identifiers.");
+			return false;
+		}
+		RegionNames.Add(Region.RegionId);
+	}
 	TSet<FString> SourceBodyPairs;
 	int32 ReadyClothingCount = 0;
 	for (const FEFClothingGarmentRow& Clothing : Garments)
@@ -217,6 +227,22 @@ bool UEFClothingMorphDirectorPolicy::ValidatePolicy(FString& OutError) const
 		if (!Clothing.ValidateClothingForUse(ClothingError))
 		{
 			continue;
+		}
+		for (const auto& Occupancy : Clothing.LayerRule.OccupiedRegions)
+		{
+			if (!RegionNames.Contains(Occupancy.RegionId))
+			{
+				OutError = FString::Printf(TEXT("Clothing '%s' occupies undeclared region '%s'."), *Clothing.GarmentId.ToString(), *Occupancy.RegionId.ToString());
+				return false;
+			}
+		}
+		for (const FName Covered : Clothing.CoveredBodyRegionIds)
+		{
+			if (!RegionNames.Contains(Covered))
+			{
+				OutError = FString::Printf(TEXT("Clothing '%s' covers undeclared region '%s'."), *Clothing.GarmentId.ToString(), *Covered.ToString());
+				return false;
+			}
 		}
 		if (ClothingNames.Contains(Clothing.GarmentId))
 		{

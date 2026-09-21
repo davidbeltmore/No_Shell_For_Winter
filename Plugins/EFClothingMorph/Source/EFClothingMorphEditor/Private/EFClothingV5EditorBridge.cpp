@@ -709,9 +709,9 @@ FEFClothingV5EditorSyncResult FEFClothingV5EditorBridge::SyncFromV4(
 	}
 
 	FString IdentityError;
-	if (!Director->ValidateIdentity(IdentityError))
+	if (!Director->ValidatePolicy(IdentityError))
 	{
-		Result.Report = FString::Printf(TEXT("V4 Director identity is invalid: %s"), *IdentityError);
+		Result.Report = FString::Printf(TEXT("Clothing Director policy is invalid: %s"), *IdentityError);
 		return Result;
 	}
 	const FEFClothingV5DirectorPreparationResult Preparation =
@@ -768,6 +768,24 @@ FEFClothingV5EditorSyncResult FEFClothingV5EditorBridge::SyncFromV4(
 			Profile->BodySurface = DesiredBody;
 		}
 		AssignIfDifferent(Profile, Profile->SkinMaterialSlots, Plan.SkinMaterialSlots, bChanged);
+		TArray<FEFClothingBodyRegionDefinition> DesiredRegions = Director->Regions;
+		if (const auto* Target = Director->Bodies.FindByPredicate([&](const auto& Body) { return Body.BodySurface.ToSoftObjectPath() == Plan.BodyPath; }))
+		{
+			for (auto& Region : DesiredRegions)
+			{
+				for (FName& Slot : Region.SkinMaterialSlots)
+					if (const FName* Alias = Target->MaterialSlotAliases.Find(Slot)) Slot = *Alias;
+				Region.SkinMaterialSlots.Remove(NAME_None);
+			}
+		}
+		bool bRegionsEqual = Profile->Regions.Num() == DesiredRegions.Num();
+		for (int32 Index = 0; bRegionsEqual && Index < DesiredRegions.Num(); ++Index)
+			bRegionsEqual = FEFClothingBodyRegionDefinition::StaticStruct()->CompareScriptStruct(&Profile->Regions[Index], &DesiredRegions[Index], 0);
+		if (!bRegionsEqual)
+		{
+			BeginChange(Profile, bChanged);
+			Profile->Regions = MoveTemp(DesiredRegions);
+		}
 
 		FString ValidationError;
 		if (!Profile->ValidateProfile(ValidationError))
