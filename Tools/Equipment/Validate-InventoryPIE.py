@@ -1,4 +1,4 @@
-"""Bounded real-player inventory integration fixture. Never saves packages or slots."""
+"""Real-player inventory fixture. No package writes; QA save slots use isolated metadata."""
 import json
 import os
 import pathlib
@@ -9,7 +9,7 @@ import unreal
 OUT = pathlib.Path(unreal.Paths.project_dir()) / 'Saved/EquipmentQA' / os.environ.get('EF_EQUIPMENT_QA_RUN', 'PIE_01')
 OUT.mkdir(parents=True, exist_ok=True)
 S = {'phase': 'load', 'due': 0, 'start': time.perf_counter(), 'busy': False}
-R = {'status': 'PENDING', 'scope': 'Real HUB player, existing ACF menu, no asset or save-game writes', 'checks': []}
+R = {'status': 'PENDING', 'scope': 'Real HUB player, native menu, no asset writes; dedicated QA slots with isolated native save metadata', 'checks': []}
 LE = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 ED = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 
@@ -28,6 +28,8 @@ def check(condition, name):
     assert condition, name
 
 def finish(error=None):
+    if not unreal.EFEquipmentAuthoringLibrary.end_save_fixture():
+        error = (error or '') + '\nQA save cleanup failed.'
     R['status'] = 'FAIL' if error else 'PASS'
     if error:
         R['error'] = error
@@ -114,7 +116,61 @@ def tick(dt):
             check(any(i.get_editor_property('item_guid').to_string() == child_guid.to_string() for i in coordinator.get_container_items(bag_guid)), 'Contained item GUID survives the real world round trip')
             check(coordinator.move_from_container(bag_guid, child_guid, 1).get_editor_property('success'), 'Clothing can be extracted after the world round trip')
             check(coordinator.request_equip(bag_guid, unreal.GameplayTag()).get_editor_property('success'), 'Recovered bag equips again')
-            advance('open_menu', 0.5)
+            advance('save_round_trip', 0.5)
+        elif phase == 'save_round_trip':
+            prefix = unreal.EFEquipmentAuthoringLibrary.begin_save_fixture(S['world'])
+            check(bool(prefix), 'Save fixture isolates native metadata without writing settings')
+            R['qa_save_prefix'] = prefix
+            instance = unreal.GameplayStatics.get_game_instance(S['world'])
+            native_save = next(obj for obj in unreal.ObjectIterator(unreal.ALSLoadAndSaveSubsystem) if obj.get_outer() == instance)
+            coordinator = S['coordinator']
+            bag_guid = S['items']['Satchel'].get_editor_property('item_guid')
+            child_guid = S['items']['Panty'].get_editor_property('item_guid')
+            check(coordinator.move_to_container(child_guid, bag_guid, 1).get_editor_property('success'), 'Save fixture contains a real item in the equipped bag')
+            saved_capacity = coordinator.get_weight_summary().get_editor_property('effective_weight') - 0.125
+            coordinator.set_base_carry_capacity(saved_capacity)
+            check(coordinator.get_weight_summary().get_editor_property('overburdened'), 'Real player is overburdened before saving')
+            saved = unreal.EFEquipmentSaveLibrary.save_local_player(native_save, prefix + 'Player')
+            check(saved, 'Verified local-player save: ' + str(unreal.EFEquipmentSaveLibrary.get_last_save_error(native_save)))
+            check(coordinator.move_from_container(bag_guid, child_guid, 1).get_editor_property('success'), 'Live inventory changes after the saved snapshot')
+            coordinator.request_unequip(S['items']['Shirt'].get_editor_property('item_guid'))
+            coordinator.set_base_carry_capacity(180.0)
+            loaded = unreal.EFEquipmentSaveLibrary.load_local_player(native_save, prefix + 'Player', False)
+            check(loaded, 'Real ALS player components load through the verified adapter: ' + str(unreal.EFEquipmentSaveLibrary.get_last_save_error(native_save)))
+            check(abs(coordinator.get_weight_summary().get_editor_property('base_capacity') - saved_capacity) < 0.000001, 'Load restores separate fractional base capacity')
+            check(coordinator.get_weight_summary().get_editor_property('overburdened'), 'Legitimate overburden survives player load')
+            check(any(i.get_editor_property('item_guid').to_string() == child_guid.to_string() for i in coordinator.get_container_items(bag_guid)), 'Loaded full bag restores its contained GUID')
+            check(any(v.get_editor_property('reserved') for v in coordinator.get_slot_views()), 'Load rebuilds actual Bikini reservation')
+            check(coordinator.request_drop(bag_guid, 1).get_editor_property('success'), 'Loaded full satchel can be dropped before world saving')
+            S['world_saved_capacity'] = coordinator.get_weight_summary().get_editor_property('effective_weight') - 0.125
+            coordinator.set_base_carry_capacity(S['world_saved_capacity'])
+            check(unreal.EFEquipmentAuthoringLibrary.save_world_fixture(S['world']), 'Native world records publish with a full dropped bag: ' + str(unreal.EFEquipmentSaveLibrary.get_last_save_error(native_save)))
+            coordinator.set_base_carry_capacity(180.0)
+            check(unreal.EFEquipmentAuthoringLibrary.load_world_fixture(S['world']), 'Verified world load starts a real level reopen')
+            advance('world_loaded', 4)
+        elif phase == 'world_loaded':
+            world = ED.get_game_world()
+            pawn = unreal.GameplayStatics.get_player_pawn(world, 0) if world else None
+            if not pawn or pawn == S['pawn'] or unreal.EFEquipmentAuthoringLibrary.is_save_fixture_busy(world):
+                return
+            S['world'], S['pawn'] = world, pawn
+            coordinator = unreal.EFEquipmentFunctionLibrary.get_equipment_coordinator(pawn)
+            S['coordinator'], S['native'] = coordinator, coordinator.get_native_equipment()
+            bag_guid = S['items']['Satchel'].get_editor_property('item_guid')
+            child_guid = S['items']['Panty'].get_editor_property('item_guid')
+            check(abs(coordinator.get_weight_summary().get_editor_property('base_capacity') - S['world_saved_capacity']) < 0.000001, 'Level reopen restores fractional base capacity')
+            check(coordinator.get_weight_summary().get_editor_property('overburdened'), 'Level reopen accepts an overburdened player')
+            pickups = [actor for actor in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.EFEquipmentWorldItem)
+                       if any(item.get_editor_property('item_guid').to_string() == bag_guid.to_string() for item in actor.get_items())]
+            check(len(pickups) == 1, 'Exactly one saved world pickup restores the original satchel GUID')
+            check(not any(item.get_editor_property('item_guid').to_string() == bag_guid.to_string() for item in S['native'].get_inventory()), 'Dropped bag is absent from the loaded player inventory')
+            coordinator.set_base_carry_capacity(180.0)
+            pickups[0].on_interacted_by_pawn(pawn, '')
+            check(any(item.get_editor_property('item_guid').to_string() == child_guid.to_string() for item in coordinator.get_container_items(bag_guid)), 'Contained GUID survives native world serialization and pickup')
+            check(coordinator.move_from_container(bag_guid, child_guid, 1).get_editor_property('success'), 'World-loaded content remains extractable')
+            check(coordinator.request_equip(bag_guid, unreal.GameplayTag()).get_editor_property('success'), 'World-loaded satchel equips')
+            check(any(view.get_editor_property('reserved') for view in coordinator.get_slot_views()), 'World load rebuilds Bikini reservation')
+            advance('open_menu', 1)
         elif phase == 'open_menu':
             controller = unreal.GameplayStatics.get_player_controller(S['world'], 0)
             instance = unreal.GameplayStatics.get_game_instance(S['world'])

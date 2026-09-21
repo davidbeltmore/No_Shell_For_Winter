@@ -248,3 +248,41 @@ PENDING until explicitly checked in the real menu.
   travel/death and packaged integration remain PENDING; the new slot format is not
   activated in the user-facing save flow yet. Evidence:
   `Saved/EquipmentQA/NativeAutomation_NativeEquipment12/Report/index.json`.
+
+### ALS gameplay integration and actual level reload
+
+- Foundation checkpoint: `947bf15`. BuildEditor45 and PIE_17 PASS for real local
+  player save/load while overburdened, fractional capacity, full satchel contents
+  and derived reservations. BuildEditor43/44 exposed and corrected TObjectPtr
+  deduction and the editor module's explicit AscentSaveSystem link dependency.
+- BuildEditor47 PASS. BuildEditor46 first rejected a TObjectPtr graph-node loop;
+  corrected without modifying native plugins. `author_save_01.log` and
+  `author_save_integration.json` PASS: seven native calls routed in five exact
+  project Blueprints; two existing save/load UI callbacks now guard failed results.
+  Save-page failures no longer run the original unconditional success popup.
+- `UEFEquipmentSaveSubsystem` snapshots native ALS records on the game thread,
+  verifies every saved inventory with satchels, publishes player/world slots and
+  native metadata with backups and recovery, then acknowledges success. Native ALS
+  still reloads the level and its actor/component records. The adapter restores
+  equipment once native component callbacks finish. It keeps current-slot identity
+  in its own subsystem because the native currentSaveSlot has no public setter.
+- `AEFEquipmentWorldItem::GetComponentsToSave_Implementation` explicitly includes
+  native storage. World inventory round trips verify GUID/count/class and saved
+  fragment state before publication; missing container inventory contracts reject
+  the save. Native NPC behavior and protected Player asset remain unchanged.
+- PIE_18 PASS: 68 checks, actual HUB reopen with a full dropped satchel, exactly one
+  restored pickup and identical bag/child GUIDs, player overload and fractional
+  capacity, restored Bikini reservation, mouse-wheel/drag/drop/Store/Extract
+  regression. Evidence: `Saved/EquipmentQA/PIE_18/result.json`, `editor.log`,
+  `satchel_after_world_reload.png`. Main layout width evidence remains PIE_12.
+- QA isolation finding: PIE_17's existing ProjectIntimacy subsystem changed
+  `ProjectIntimacy.sav` on shutdown; its hash-only preflight cannot restore earlier
+  bytes. ALS test slots and metadata were isolated. The launcher now copies the
+  seven exact existing user save files before starting, waits for editor exit,
+  preserves changed QA outputs, restores originals and verifies hashes. PIE_18
+  recovery PASS in `user_save_after.json`. No claim that PIE_17 left every auxiliary
+  save unchanged is made.
+- Protected task comparison PASS: all 5,260 files unchanged, including native
+  ACFU/Daz, Player and bodies; `protected_save_integration_result.json`.
+- Actual save-button interaction, legacy UI migration explanation, existing floor
+  travel/death, vendor/companion paths, Game/cook/package gates remain PENDING.

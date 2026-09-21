@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "3"
+  version: "4"
 ---
 
 # EF Equipment workbench
@@ -89,6 +89,19 @@ the native float through the validated adapter, not the truncating integer sette
 Do not use the projected native limit as the UI's total carry capacity.
 
 ## Persistence, trade and failure handling
+
+The five existing project ALS consumers now route through `UEFEquipmentSaveLibrary`.
+Use `UEFEquipmentSaveSubsystem` for current-slot identity and verified publication;
+the native private current-slot string has no setter. `Author-SaveIntegration.py`
+routes exact native call nodes without replacing the existing save pages. Re-run
+it after intentional changes to those consumers; it is idempotent. Failure callbacks
+must retain the page, report the actual error and never show the success popup.
+
+`Launch-InventoryPIE.ps1` now waits for its editor, backs up each existing top-level
+user `.sav`, preserves changed QA output and restores the exact pre-run bytes after
+exit. This also covers independent game subsystems that save during PIE teardown.
+Do not infer that an isolated ALS metadata slot isolates those other subsystems.
+On interrupted QA, retain `UserSaveBackup` and verify its recovery receipt.
 
 Keep ACF object/fragment serialization inside a versioned envelope. Validate before
 publishing converted data and retain an exact old-save backup. Preserve GUIDs,

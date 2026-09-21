@@ -6,6 +6,6 @@ public class EFEquipmentEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "EFEquipmentRuntime", "InventorySystem", "GameplayTags" });
-        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "AssetRegistry", "AssetTools", "Kismet", "KismetCompiler", "BlueprintGraph", "BlueprintEditorLibrary", "UMG", "UMGEditor", "Slate", "SlateCore", "InputCore" });
+        PrivateDependencyModuleNames.AddRange(new[] { "UnrealEd", "AssetRegistry", "AssetTools", "Kismet", "KismetCompiler", "BlueprintGraph", "BlueprintEditorLibrary", "UMG", "UMGEditor", "Slate", "SlateCore", "InputCore", "AscentSaveSystem" });
     }
 }

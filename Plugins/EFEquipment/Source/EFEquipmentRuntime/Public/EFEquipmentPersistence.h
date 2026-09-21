@@ -3,6 +3,7 @@
 #include "EFEquipmentSaveGame.h"
 
 class UACFEquipmentComponent;
+class UACFInventoryComponent;
 class UEFEquipmentCoordinatorComponent;
 class UEFEquipmentSlotRegistry;
 
@@ -11,7 +12,8 @@ namespace EFEquipmentPersistence
 {
     EFEQUIPMENTRUNTIME_API bool SerializeInventory(UACFEquipmentComponent* Inventory, TArray<uint8>& Bytes, FString& Error);
     EFEQUIPMENTRUNTIME_API bool DeserializeInventory(UACFEquipmentComponent* Inventory, const TArray<uint8>& Bytes, FString& Error);
-    EFEQUIPMENTRUNTIME_API bool ValidateContents(UACFEquipmentComponent* Inventory, FString& Error);
+    EFEQUIPMENTRUNTIME_API bool ValidateContents(UACFInventoryComponent* Inventory, FString& Error);
+    EFEQUIPMENTRUNTIME_API bool ValidateActorInventories(AActor* Actor, FALSActorData& Record, FString& Error);
     EFEQUIPMENTRUNTIME_API TArray<FALSComponentData>* ComponentRecords(FALSActorData& Actor, FString& Error);
     /** Convert on isolated objects; only publish the candidate after validation succeeds. */
     EFEQUIPMENTRUNTIME_API UEFEquipmentSaveGame* ConvertSlot(UWorld* World, UALSSaveGame* Original, UEFEquipmentSlotRegistry* Registry, FString& Error);

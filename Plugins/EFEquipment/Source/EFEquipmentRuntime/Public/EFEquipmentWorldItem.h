@@ -9,6 +9,7 @@ class EFEQUIPMENTRUNTIME_API AEFEquipmentWorldItem : public AACFWorldItem
 {
     GENERATED_BODY()
 public:
+    virtual TArray<UActorComponent*> GetComponentsToSave_Implementation() const override;
     virtual void OnInteractedByPawn_Implementation(APawn* Pawn, const FString& InteractionType) override;
     UFUNCTION(BlueprintPure, Category="Equipment|Pickup") bool WasPickupCompleted() const { return bPickupCompleted; }
 protected:

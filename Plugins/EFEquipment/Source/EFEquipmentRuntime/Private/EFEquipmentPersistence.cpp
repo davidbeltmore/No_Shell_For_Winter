@@ -70,7 +70,7 @@ namespace EFEquipmentPersistencePrivate
         return true;
     }
 
-    bool SameIdentity(UACFEquipmentComponent* A, UACFEquipmentComponent* B, FString& Error)
+    bool SameIdentity(UACFInventoryComponent* A, UACFInventoryComponent* B, FString& Error)
     {
         const auto Left = A->GetInventory(), Right = B->GetInventory();
         if (Left.Num() != Right.Num()) { Error = TEXT("Inventory entry count changed during serialization."); return false; }
@@ -122,7 +122,7 @@ bool EFEquipmentPersistence::DeserializeInventory(UACFEquipmentComponent* Invent
     return ValidateContents(Inventory, Error);
 }
 
-bool EFEquipmentPersistence::ValidateContents(UACFEquipmentComponent* Inventory, FString& Error)
+bool EFEquipmentPersistence::ValidateContents(UACFInventoryComponent* Inventory, FString& Error)
 {
     if (!EFEquipmentACF::ValidateInventory(Inventory, Error)) return false;
     TSet<FGuid> Ids;
@@ -156,6 +156,38 @@ TArray<FALSComponentData>* EFEquipmentPersistence::ComponentRecords(FALSActorDat
     if (!Inner || Inner->Struct != FALSComponentData::StaticStruct())
     { Error = TEXT("The native ALS component-record contract changed."); return nullptr; }
     return Property->ContainerPtrToValuePtr<TArray<FALSComponentData>>(&Actor);
+}
+
+bool EFEquipmentPersistence::ValidateActorInventories(AActor* Actor, FALSActorData& Record, FString& Error)
+{
+    using namespace EFEquipmentPersistencePrivate;
+    auto* Records = ComponentRecords(Record, Error);
+    if (!Actor || !Records) return false;
+    TArray<UACFInventoryComponent*> Inventories; Actor->GetComponents(Inventories);
+    for (auto* Inventory : Inventories)
+    {
+        // An inventory omitted by a native actor's save contract cannot retain a
+        // filled satchel. Reject that save instead of publishing silent item loss.
+        const auto* Part = Records->FindByPredicate([&](const auto& Entry) { return Entry.alsName == Inventory->GetFName() && Entry.Class == Inventory->GetClass(); });
+        if (!Part)
+        {
+            if (Inventory->GetInventory().ContainsByPredicate([](const auto& Entry) {
+                const auto* Rules = UEFEquipmentRulesFragment::Find(Entry.Item); return Rules && Rules->Profile && Rules->Profile->bContainer;
+            })) { Error = TEXT("A world satchel's native inventory is missing from its actor's save contract."); return false; }
+            continue;
+        }
+        if (Part->Data.IsEmpty() || Part->Data.Num() > MaximumInventoryBytes)
+        { Error = TEXT("A world inventory record is missing or too large."); return false; }
+        FScratch Scratch(Actor->GetWorld());
+        if (!Scratch.Owner) { Error = TEXT("Could not validate a world inventory record."); return false; }
+        auto* Verify = NewObject<UACFInventoryComponent>(Scratch.Owner, Inventory->GetClass());
+        EFEquipmentACF::Inventory(Verify)->Init(Scratch.Owner);
+        FMemoryReader Reader(Part->Data); FObjectAndNameAsStringProxyArchive Ar(Reader, true); Ar.ArIsSaveGame = true;
+        Verify->Serialize(Ar); Verify->RefreshTotalWeight();
+        if (Ar.IsError() || Reader.Tell() != Part->Data.Num() || !ValidateContents(Verify, Error) || !SameIdentity(Inventory, Verify, Error))
+        { if (Error.IsEmpty()) Error = TEXT("A world inventory failed its serialization round trip."); return false; }
+    }
+    return true;
 }
 
 UEFEquipmentSaveGame* EFEquipmentPersistence::ConvertSlot(UWorld* World, UALSSaveGame* Original, UEFEquipmentSlotRegistry* Registry, FString& Error)

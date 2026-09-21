@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "ALSLoadAndSaveComponent.h"
 #include "ALSLoadAndSaveSubsystem.h"
+#include "EFEquipmentSaveSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Components/ACFStorageComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -85,6 +86,8 @@ bool UEFEquipmentCoordinatorComponent::InitializeEquipment(UEFEquipmentSlotRegis
 void UEFEquipmentCoordinatorComponent::PollEquipment()
 {
     if (!InitializeEquipment() || bOperation) return;
+    if (auto* Game = GetWorld()->GetGameInstance())
+        if (auto* Save = Game->GetSubsystem<UEFEquipmentSaveSubsystem>(); Save && Save->IsBusy()) return;
     if (!bInitialItemsHandled && Equipment->GetIsInitialized())
     {
         auto* Save = GetWorld()->GetGameInstance() ? GetWorld()->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>() : nullptr;
@@ -111,6 +114,10 @@ void UEFEquipmentCoordinatorComponent::PollEquipment()
 void UEFEquipmentCoordinatorComponent::HandleActorLoaded()
 {
     if (bOperation || !InitializeEquipment()) return;
+    // ALS emits actor-loaded before component callbacks. The verified adapter
+    // restores equipment once all native components have finished deserializing.
+    if (auto* Game = GetWorld()->GetGameInstance())
+        if (auto* Save = Game->GetSubsystem<UEFEquipmentSaveSubsystem>(); Save && Save->IsBusy()) return;
     bInitialItemsHandled = true;
     const auto Intent = Equipment->GetInventory();
     double LoadedRootLimit = 0;

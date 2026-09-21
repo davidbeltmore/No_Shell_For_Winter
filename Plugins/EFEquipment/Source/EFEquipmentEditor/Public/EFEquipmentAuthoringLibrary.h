@@ -19,6 +19,13 @@ public:
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString InspectInventoryUI();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildInventoryUI();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildWorldActors();
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildSaveIntegration();
+    /** Isolates native save-list metadata in PIE; never saves DeveloperSettings config. */
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static FString BeginSaveFixture(UObject* WorldContextObject);
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool EndSaveFixture();
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool SaveWorldFixture(UObject* WorldContextObject);
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool LoadWorldFixture(UObject* WorldContextObject);
+    UFUNCTION(BlueprintPure, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool IsSaveFixtureBusy(UObject* WorldContextObject);
     /** PIE-only Slate input fixtures. No OS input injection or asset writes. */
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static UWidget* FindInventoryWidget(UUserWidget* Root, FName Name);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendInventoryPointer(UWidget* Target, FName Action, float WheelDelta = 0, FVector2D LocalOffset = FVector2D::ZeroVector);

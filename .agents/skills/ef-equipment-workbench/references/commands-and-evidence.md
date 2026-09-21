@@ -137,3 +137,14 @@ find candidate packages, then reads their real Blueprint call graphs through the
 project editor helper. Evidence goes to `Saved/EquipmentQA/IntegrationAudit`.
 The audit does not compile or save packages. Include native C++ consumers in the
 review as well; a Blueprint-only result is not an exhaustive runtime call graph.
+
+Save integration authoring:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Migration/Launch-NoShellForWinterEditor58.ps1 -PythonScript 'D:/Projects UE5/NoShellForWinter/Tools/Equipment/Author-SaveIntegration.py'
+```
+The receipt is `Saved/EquipmentQA/author_save_integration.json`. SaveLocalPlayer,
+LoadLocalPlayer, SaveGameWorld and LoadGameWorld must use the verified adapter.
+ALS actor-loaded fires before component-loaded; do not restore effects there
+while the adapter is busy. Restore them after all native component callbacks.
+World pickups must expose their native storage through GetComponentsToSave.
+The actual level-reload fixture preserves a dropped full bag through native ALS.

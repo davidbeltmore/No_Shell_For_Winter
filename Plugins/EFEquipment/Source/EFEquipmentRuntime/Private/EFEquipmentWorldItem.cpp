@@ -5,6 +5,13 @@
 #include "EFEquipmentPrototypeActor.h"
 #include "Components/StaticMeshComponent.h"
 
+TArray<UActorComponent*> AEFEquipmentWorldItem::GetComponentsToSave_Implementation() const
+{
+    auto Result = Super::GetComponentsToSave_Implementation();
+    if (StorageComponent) Result.AddUnique(StorageComponent);
+    return Result;
+}
+
 void AEFEquipmentWorldItem::BeginPlay()
 {
     Super::BeginPlay();
