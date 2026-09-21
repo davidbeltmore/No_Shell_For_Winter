@@ -21,4 +21,6 @@ namespace EFEquipmentPersistence
     /** Replace just the native equipment record and versioned player metadata in a candidate slot. */
     EFEQUIPMENTRUNTIME_API bool CapturePlayer(UEFEquipmentSaveGame* Candidate, UEFEquipmentCoordinatorComponent* Coordinator, FALSPlayerData& Player, FString& Error);
     EFEQUIPMENTRUNTIME_API bool RestorePlayer(UEFEquipmentCoordinatorComponent* Coordinator, const FEFEquipmentSavedPlayer& Saved, FString& Error);
+    /** Presentation only; call after successful restoration. Never changes ownership or effects. */
+    EFEQUIPMENTRUNTIME_API FText DescribeMigration(UACFEquipmentComponent* Inventory, const FEFEquipmentSavedPlayer& Saved, bool bConverted);
 }

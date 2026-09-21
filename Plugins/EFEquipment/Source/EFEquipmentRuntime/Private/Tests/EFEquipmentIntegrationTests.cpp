@@ -370,6 +370,12 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     {
         TestTrue(TEXT("Migration prioritizes Bikini reserves and keeps compatible outerwear"), Converted->EquipmentPlayer.EquippedSlots.Contains(Bikini.GetItemGuid())
             && Converted->EquipmentPlayer.EquippedSlots.Contains(Shirt.GetItemGuid()) && Converted->EquipmentPlayer.DisplacedItems.Contains(Bra.GetItemGuid()));
+        const auto BeforeSummary = LegacyInventory->GetInventory();
+        const FString MigrationSummary = EFEquipmentPersistence::DescribeMigration(LegacyInventory, Converted->EquipmentPlayer, true).ToString();
+        TestTrue(TEXT("Migration summary identifies displaced clothing and its retained ownership"),
+            MigrationSummary.Contains(Bra.Item->GetItemName().ToString()) && MigrationSummary.Contains(TEXT("remain in your inventory")));
+        TestEqual(TEXT("Migration summary does not mutate inventory"), LegacyInventory->GetInventory().Num(), BeforeSummary.Num());
+        TestTrue(TEXT("Ordinary versioned load does not claim a migration"), EFEquipmentPersistence::DescribeMigration(LegacyInventory, FEFEquipmentSavedPlayer(), false).IsEmpty());
         Legacy->GetLocalPlayer(LegacyPlayer);
         TestTrue(TEXT("Candidate conversion leaves all original native bytes untouched"), LegacyPlayer.Pawn.GetComponentData(Native)->Data == OriginalLegacyBytes);
         const FString SlotName = TEXT("EquipmentQA_") + FGuid::NewGuid().ToString(EGuidFormats::Digits);

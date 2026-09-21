@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "8"
+  version: "9"
 ---
 
 # EF Equipment workbench
@@ -144,6 +144,10 @@ the native private current-slot string has no setter. `Author-SaveIntegration.py
 routes exact native call nodes without replacing the existing save pages. Re-run
 it after intentional changes to those consumers; it is idempotent. Failure callbacks
 must retain the page, report the actual error and never show the success popup.
+`GetLastMigrationSummary` exposes the successful legacy-conversion notice. Resolve
+displaced GUIDs after inventory restoration; retain the original file backup and
+clear this presentation state on an ordinary versioned load. `CreateLegacySaveFixture`
+is PIE-only and writes only its unique QA slot, using scratch inventory objects.
 
 `Launch-InventoryPIE.ps1` now waits for its editor, backs up each existing top-level
 user `.sav`, preserves changed QA output and restores the exact pre-run bytes after

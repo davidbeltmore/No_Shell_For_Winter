@@ -1,5 +1,29 @@
 # Layered equipment and satchels
 
+## Player-facing legacy migration summary
+
+Snapshot after `090fcf9`: `EFEquipmentPersistence::DescribeMigration` derives an
+English summary from displaced GUIDs; `UEFEquipmentSaveSubsystem` publishes it
+through the native notification subsystem only after successful restoration.
+Ordinary versioned loads clear the summary. No effects or inventory ownership
+are changed by presentation. The PIE-only legacy fixture uses scratch objects
+and a unique QA slot, without changing live inventory to create invalid states.
+
+BuildEditor65 failed on a test-helper `TObjectPtr` deduction; explicit `APawn*`
+fixed it and BuildEditor66 passed. NativeEquipment16 passed the two exact runtime
+tests. PIE_24 passed all migration assertions: actual legacy disk load, exact
+original-file backup, whole Bikini reservation, displaced Bra GUID retained,
+English summary and versioned full-bag restoration. Screenshot:
+`Saved/EquipmentQA/PIE_24/native_inventory.png`. All seven user saves verified
+after teardown in `user_save_after.json`.
+
+The overall PIE_24 result is **FAIL**, not PASS: its later death check found two
+world pickups with the same bag GUID. Unlike the earlier intermittent failure,
+the immediate/delayed diagnostics identify an old saved pickup name and a new
+pickup, while the coordinator logged only one successful death bag transfer.
+Investigation of native ALS per-actor auto-reload/name reuse is in progress.
+Do not promote the migration subsection's PASS to full lifecycle acceptance.
+
 ## Clothing layers, real body transitions and reusable QA
 
 Snapshot: clothing subsystem following `17b854b`, built as BuildEditor64; see

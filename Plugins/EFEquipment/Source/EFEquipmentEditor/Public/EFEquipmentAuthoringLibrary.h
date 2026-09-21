@@ -26,6 +26,8 @@ public:
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static FString BeginSaveFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool EndSaveFixture();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool SaveWorldFixture(UObject* WorldContextObject);
+    /** PIE-only legacy candidate, isolated from the live inventory and existing user slots. */
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static FString CreateLegacySaveFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool LoadWorldFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintPure, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool IsSaveFixtureBusy(UObject* WorldContextObject);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static UACFVendorComponent* CreateVendorFixture(UObject* WorldContextObject);

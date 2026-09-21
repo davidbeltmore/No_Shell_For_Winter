@@ -315,3 +315,18 @@ bool EFEquipmentPersistence::RestorePlayer(UEFEquipmentCoordinatorComponent* Coo
     if (!Result.bSuccess || !Result.DisplacedItems.IsEmpty()) { Error = TEXT("Saved equipment could not restore its selected items. ") + Result.Message.ToString(); return false; }
     Coordinator->RefreshState(); return true;
 }
+
+FText EFEquipmentPersistence::DescribeMigration(UACFEquipmentComponent* Inventory, const FEFEquipmentSavedPlayer& Saved, bool bConverted)
+{
+    if (Saved.DisplacedItems.IsEmpty()) return bConverted
+        ? FText::FromString(TEXT("Equipment save upgraded. All items were preserved.")) : FText::GetEmpty();
+    TArray<FString> Names;
+    for (const FGuid Guid : Saved.DisplacedItems)
+    {
+        FInventoryItem Entry;
+        Names.Add(Inventory && Inventory->GetItemByGuid(Guid, Entry) && Entry.Item
+            ? Entry.Item->GetItemName().ToString() : TEXT("Item ") + Guid.ToString(EGuidFormats::Digits).Left(8));
+    }
+    return FText::FromString(TEXT("Equipment save upgraded. Unequipped incompatible items: ") + FString::Join(Names, TEXT(", "))
+        + TEXT(". They remain in your inventory."));
+}

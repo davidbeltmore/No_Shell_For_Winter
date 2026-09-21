@@ -155,6 +155,25 @@ def tick(dt):
             check(coordinator.get_weight_summary().get_editor_property('overburdened'), 'Legitimate overburden survives player load')
             check(any(i.get_editor_property('item_guid').to_string() == child_guid.to_string() for i in coordinator.get_container_items(bag_guid)), 'Loaded full bag restores its contained GUID')
             check(any(v.get_editor_property('reserved') for v in coordinator.get_slot_views()), 'Load rebuilds actual Bikini reservation')
+            legacy_slot = unreal.EFEquipmentAuthoringLibrary.create_legacy_save_fixture(S['world'])
+            check(bool(legacy_slot), 'Create isolated pre-equipment legacy file with incompatible Bra and Bikini')
+            legacy_path = pathlib.Path(unreal.Paths.project_saved_dir()) / 'SaveGames' / (legacy_slot + '.sav')
+            S['legacy_original'] = legacy_path.read_bytes()
+            check(unreal.EFEquipmentSaveLibrary.load_local_player(native_save, legacy_slot, False),
+                  'Actual legacy file converts and loads: ' + str(unreal.EFEquipmentSaveLibrary.get_last_save_error(native_save)))
+            save_adapter = next(obj for obj in unreal.ObjectIterator(unreal.EFEquipmentSaveSubsystem) if obj.get_outer() == instance)
+            R['migration_summary'] = str(save_adapter.get_last_migration_summary())
+            check('Unequipped incompatible items:' in R['migration_summary'] and 'remain in your inventory' in R['migration_summary'],
+                  'Successful legacy load publishes the English displacement summary')
+            bra_guid = S['items']['Bra'].get_editor_property('item_guid').to_string()
+            check(any(i.get_editor_property('item_guid').to_string() == bra_guid and not i.get_editor_property('is_equipped') for i in S['native'].get_inventory()),
+                  'Displaced Bra retains its GUID and remains unequipped in the real player inventory')
+            check(any(v.get_editor_property('reserved') for v in coordinator.get_slot_views()), 'Legacy migration applies Bikini reservations before conflicting effects')
+            check(legacy_path.read_bytes() != S['legacy_original'], 'Validated legacy slot publishes its converted format')
+            backups = legacy_path.parent / 'EFEquipmentBackups' / legacy_slot
+            check(any(p.read_bytes() == S['legacy_original'] for p in backups.glob('*.sav')), 'Migration retains an exact original-file backup')
+            check(unreal.EFEquipmentSaveLibrary.load_local_player(native_save, prefix + 'Player', False), 'Restore versioned full-bag fixture after legacy check')
+            check(not str(save_adapter.get_last_migration_summary()), 'Ordinary versioned load clears the previous migration notice')
             check(coordinator.request_drop(bag_guid, 1).get_editor_property('success'), 'Loaded full satchel can be dropped before world saving')
             S['world_saved_capacity'] = coordinator.get_weight_summary().get_editor_property('effective_weight') - 0.125
             coordinator.set_base_carry_capacity(S['world_saved_capacity'])

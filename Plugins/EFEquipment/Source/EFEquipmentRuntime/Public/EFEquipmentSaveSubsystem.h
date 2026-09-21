@@ -20,6 +20,7 @@ public:
     bool RestoreTravel();
     FString GetActiveSlot() const;
     FText GetLastError() const { return FText::FromString(LastError); }
+    UFUNCTION(BlueprintPure, Category="Equipment|Save") FText GetLastMigrationSummary() const { return LastMigrationSummary; }
     bool IsBusy() const { return bBusy; }
 private:
     UPROPERTY(Transient) TObjectPtr<UEFEquipmentSaveGame> TravelingPlayer;
@@ -27,10 +28,13 @@ private:
     FString ActiveSlot;
     FString PendingSlot;
     FString LastError;
+    FText LastMigrationSummary;
+    bool bConvertedOnLoad = false;
     bool bBusy = false;
     bool bReloadPlayer = true;
     UALSLoadAndSaveSubsystem* Native() const;
     UEFEquipmentSaveGame* PrepareLoad(const FString& Slot);
     bool RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform);
+    void PublishMigrationSummary(UEFEquipmentSaveGame* Loaded);
     UFUNCTION() void CompleteNativeLoad(bool bSuccess);
 };

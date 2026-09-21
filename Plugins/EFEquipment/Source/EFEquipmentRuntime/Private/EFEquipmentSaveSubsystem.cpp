@@ -7,6 +7,7 @@
 #include "ALSFunctionLibrary.h"
 #include "ALSSaveGameSettings.h"
 #include "ALSSaveInfo.h"
+#include "ANSUIPlayerSubsystem.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
@@ -146,6 +147,7 @@ bool UEFEquipmentSaveSubsystem::Save(const FString& Slot, bool bWorld, bool bLoc
 
 UEFEquipmentSaveGame* UEFEquipmentSaveSubsystem::PrepareLoad(const FString& Slot)
 {
+    LastMigrationSummary = FText::GetEmpty(); bConvertedOnLoad = false;
     FEFEquipmentSlotBackup Before;
     if (!EFEquipmentSaveFiles::Backup(Slot, Before, LastError)) return nullptr;
     if (!Before.bExisted) { LastError = TEXT("The selected save slot does not exist."); return nullptr; }
@@ -157,8 +159,24 @@ UEFEquipmentSaveGame* UEFEquipmentSaveSubsystem::PrepareLoad(const FString& Slot
     {
         auto Validate = [&](USaveGame* Object, FString& Error) { return EFEquipmentPersistence::ValidateSlot(GetWorld(), Cast<UEFEquipmentSaveGame>(Object), Error); };
         if (!EFEquipmentSaveFiles::Publish(Candidate, Before, Validate, LastError)) return nullptr;
+        bConvertedOnLoad = true;
     }
     return Candidate;
+}
+
+void UEFEquipmentSaveSubsystem::PublishMigrationSummary(UEFEquipmentSaveGame* Loaded)
+{
+    if (!Loaded) return;
+    auto* Pawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    auto* Equipment = Pawn ? Pawn->FindComponentByClass<UEFEquipmentCoordinatorComponent>() : nullptr;
+    LastMigrationSummary = EFEquipmentPersistence::DescribeMigration(Equipment ? Equipment->GetNativeEquipment() : nullptr,
+        Loaded->EquipmentPlayer, bConvertedOnLoad);
+    bConvertedOnLoad = false;
+    if (!LastMigrationSummary.IsEmpty())
+    {
+        if (auto* UI = GetGameInstance()->GetSubsystem<UANSUIPlayerSubsystem>()) UI->BroadcastNotification(LastMigrationSummary, 12.f);
+        UE_LOG(LogTemp, Display, TEXT("EFEquipment migration: %s"), *LastMigrationSummary.ToString());
+    }
 }
 
 bool UEFEquipmentSaveSubsystem::RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform)
@@ -193,7 +211,7 @@ bool UEFEquipmentSaveSubsystem::LoadLocal(const FString& Slot, bool bTransform)
     if (!Loaded || !EFEquipmentSaveIntegration::SetCurrent(Native(), Loaded.Get(), LastError)) return false;
     if (!RestoreLocalState(Loaded.Get(), bTransform))
     { FString Error; EFEquipmentSaveIntegration::SetCurrent(Native(), Previous.Get(), Error); return false; }
-    ActiveSlot = Slot; return true;
+    ActiveSlot = Slot; PublishMigrationSummary(Loaded.Get()); return true;
 }
 
 void UEFEquipmentSaveSubsystem::LoadWorld(const FString& Slot, const FOnLoadFinished& Callback, bool bPlayer)
@@ -217,6 +235,7 @@ void UEFEquipmentSaveSubsystem::CompleteNativeLoad(bool bSuccess)
         bSuccess = Loaded && EFEquipmentPersistence::RestorePlayer(Equipment, Loaded->EquipmentPlayer, LastError);
     }
     if (bSuccess) ActiveSlot = PendingSlot;
+    if (bSuccess && bReloadPlayer) PublishMigrationSummary(Cast<UEFEquipmentSaveGame>(Native()->GetCurrentSaveGame()));
     bBusy = false; const auto Callback = PendingLoadCallback; PendingLoadCallback.Unbind(); PendingSlot.Reset();
     Callback.ExecuteIfBound(bSuccess);
 }
