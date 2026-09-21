@@ -1,5 +1,30 @@
 # Layered equipment and satchels
 
+## Original save/load page interaction
+
+Snapshot after `44e60e4`, Editor build 69. `Validate-SaveUI.py` opens the original
+`ACF_SavePage_WB` and `ACF_LoadPage_WB`, selects only its uniquely prefixed existing
+QA slot, and routes actual Slate hover/press/release events into the native row,
+Yes/No and success buttons. It never presses New Slot, whose native Slot_N naming
+could overlap an existing user file when QA metadata is isolated.
+
+SaveUI_01: PASS, 30 successful save/load checks. SaveUI_02: fixture FAIL because
+a non-editor SaveGame property is not exposed to Python; no file corruption was
+attempted. The final failure fixture changes only the transient row's requested
+name to the isolated metadata name. The adapter correctly rejects that reserved
+name, leaves the original world save byte-identical, retains the page, reports
+the actual English error and never opens a success popup. The row is then restored
+and the real save/load buttons succeed.
+
+SaveUI_03: **PASS, 41 checks**, including a full bag, exact child GUID, fractional
+base capacity and legitimate overburden after an actual level reopen. Artifacts:
+`Saved/EquipmentQA/SaveUI_03/result.json`, `editor.log`, `user_save_after.json`.
+All three runs verified seven original user saves after exit. Existing HUB quest
+startup errors are recorded in the logs; no new Blueprint Accessed None, save
+callback or CommonUI empty-action binding error was reported by this fixture.
+MCP connection attempted after completion had already closed; this subsection
+claims executable PIE evidence, not a live MCP inspection of the completed run.
+
 ## Saved pickup name reuse: reproduced and corrected
 
 Snapshot after `54a8b6c`, BuildEditor69. PIE_24 diagnostics showed two full-bag
@@ -147,7 +172,7 @@ remain in the log. It is not final-tree release certification.
 |---|---|---|
 | Native inventory layout | `305299b`, PIE_23: wider frontal renderer, narrower item card, wheel and drag/drop | Final packaged visual check |
 | Equipment, containers, commerce | NativeEquipment15, PIE_23 | Final-tree rerun/package |
-| Save migration and native world reload | NativeEquipment15, PIE_23 | Player-facing migration notice and original save-page interaction |
+| Save migration and native world reload | NativeEquipment16, PIE_26, SaveUI_03 (41 UI checks) | Final packaged persistence check |
 | Death and loaded pickup name reuse | BuildEditor69, PIE_25 reproduced / PIE_26 fixed; 231 checks, 20 cycles | Final packaged lifecycle check |
 | Travel | EquipmentTravel04: source-world destruction and GC | Actual floor traversal |
 | Clothing layers and bodies | BuildEditor64, EquipmentLayers01/Bodies01/Transitions01 | Packaged cold-load check |

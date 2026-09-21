@@ -150,6 +150,17 @@ while the adapter is busy. Restore them after all native component callbacks.
 World pickups must expose their native storage through GetComponentsToSave.
 The actual level-reload fixture preserves a dropped full bag through native ALS.
 
+Original save/load page pointer regression (fresh name required):
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Equipment/Launch-InventoryPIE.ps1 -SaveUIQA -RunName SaveUI_NEW
+```
+This uses only an existing, unique QA slot. Do not click New Slot in an isolated
+metadata fixture: native Slot_N naming can overlap user files. The error-path
+fixture edits only the transient row's requested name to the reserved QA metadata
+name, verifies rejection and unchanged save bytes, restores the row and exercises
+the successful Save and Load buttons. No non-editor SaveGame property is writable
+through Python merely because it is marked SaveGame.
+
 For a focused intermittent death regression, set `EF_EQUIPMENT_QA_DEATH_REPEATS`
 to 2..32 before launching PIE (default 1). After the actual menu review, each
 cycle invokes the real native zero-health callback, verifies one original bag
