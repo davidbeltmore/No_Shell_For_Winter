@@ -1,4 +1,5 @@
 #include "Calysto/EFCalystoContentCollisionContract.h"
+#include "Calysto/EFCalystoDeferredMeshBoundsProvider.h"
 
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
@@ -50,21 +51,41 @@ namespace EFCalystoContentCollisionPrivate
 	 * Project actors may assign a mesh to an existing default scene component
 	 * while deferred materialization is in progress. That mesh has no CDO
 	 * primitive bounds yet, so it must opt into this finite, exact contract with
-	 * EFCalystoDeferredMeshBounds and name its pre-existing attachment component.
+	 * a runtime provider and name its pre-existing attachment component.
 	 */
 	bool AddDeferredMeshBounds(AActor* CDO, USceneComponent* RootScene,
 		FEFCalystoContentCollisionContract& OutContract, FString& OutError)
 	{
-		int32 DeclaredMeshCount = 0;
+		TArray<FEFCalystoDeferredMeshBinding> Bindings;
+		if (const auto* Provider = Cast<IEFCalystoDeferredMeshBoundsProvider>(CDO))
+			Provider->GetDeferredMeshBoundsBindings(Bindings);
+#if WITH_EDITOR
+		// Reject obsolete metadata-only declarations while authoring. Runtime uses
+		// the same explicit bindings and all of the same bounds checks below.
 		for (TFieldIterator<FProperty> It(CDO->GetClass()); It; ++It)
 		{
-			FProperty* const Property = *It;
-			if (!Property->GetBoolMetaData(TEXT("EFCalystoDeferredMeshBounds"))) continue;
-			if (++DeclaredMeshCount > 16 || Property->ArrayDim != 1)
+			if (It->GetBoolMetaData(TEXT("EFCalystoDeferredMeshBounds")))
 			{
-				OutError = TEXT("Deferred visual bounds exceed the finite property contract.");
+				OutError = TEXT("Deferred mesh metadata must be migrated to the runtime bounds provider.");
 				return false;
 			}
+		}
+#endif
+		if (Bindings.Num() > 16)
+		{
+			OutError = TEXT("Deferred visual bounds exceed the finite property contract.");
+			return false;
+		}
+		TSet<FName> SeenProperties;
+		for (const auto& Binding : Bindings)
+		{
+			FProperty* const Property = FindFProperty<FProperty>(CDO->GetClass(), Binding.MeshProperty);
+			if (!Property || Property->ArrayDim != 1 || SeenProperties.Contains(Binding.MeshProperty))
+			{
+				OutError = TEXT("Deferred visual bounds require unique existing scalar properties.");
+				return false;
+			}
+			SeenProperties.Add(Binding.MeshProperty);
 			const FSoftObjectProperty* const SoftMeshProperty = CastField<FSoftObjectProperty>(Property);
 			if (!SoftMeshProperty || !SoftMeshProperty->PropertyClass
 				|| (!SoftMeshProperty->PropertyClass->IsChildOf(USkeletalMesh::StaticClass())
@@ -96,9 +117,8 @@ namespace EFCalystoContentCollisionPrivate
 				OutError = TEXT("Deferred visual mesh property resolved an unsupported resource type.");
 				return false;
 			}
-			const FString ComponentName = Property->GetMetaData(TEXT("EFCalystoDeferredMeshComponent"));
-			USceneComponent* const MeshComponent = ComponentName.IsEmpty() ? nullptr
-				: Cast<USceneComponent>(CDO->GetDefaultSubobjectByName(FName(*ComponentName)));
+			USceneComponent* const MeshComponent = Binding.AttachmentComponent.IsNone() ? nullptr
+				: Cast<USceneComponent>(CDO->GetDefaultSubobjectByName(Binding.AttachmentComponent));
 			FTransform ToRoot;
 			if (!MeshComponent || !RootScene || !ComponentToRoot(MeshComponent, RootScene, ToRoot))
 			{

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Calysto/ProjectCalystoDormantController.h"
+#include "Calysto/ProjectCalystoScriptFingerprint.h"
 #include "AIController.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -187,6 +188,21 @@ bool FProjectCalystoDormantAuditedNpcProfileTest::RunTest(const FString&)
 	if (!TestNotNull(TEXT("The exact installed ACF NPC controller class is resident"),ControllerClass)) return false;
 	TestTrue(TEXT("The exact audited NPC BeginPlay profile is admitted"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
 	TestTrue(TEXT("Preflight retains the exact audited NPC controller dependency"),Dependencies.Contains(FSoftObjectPath(ControllerClass)));
+	UFunction* Script=ControllerClass->FindFunctionByName(TEXT("ReceiveBeginPlay"));
+	if (!TestNotNull(TEXT("Audited direct BeginPlay exists"),Script)) return false;
+	const auto Before=Script->Script;
+	const FString Fingerprint=ProjectCalystoScriptFingerprint::Compute(ControllerClass);
+	TestFalse(TEXT("Runtime fingerprint is nonempty"),Fingerprint.IsEmpty());
+	TestTrue(TEXT("Fingerprint inspection does not mutate loaded bytecode"),Before==Script->Script);
+	{
+		TGuardValue<TArray<uint8>> RestoreScript(Script->Script,Before);
+		Script->Script.Add(EX_Nothing);
+		TestTrue(TEXT("Changed bytecode has a different canonical identity"),Fingerprint!=ProjectCalystoScriptFingerprint::Compute(ControllerClass));
+		AddExpectedMessagePlain(TEXT("Calysto audited controller script mismatch:"), ELogVerbosity::Warning,
+			EAutomationExpectedMessageFlags::Contains, 1);
+		TestFalse(TEXT("Same class path and Blueprint GUID cannot admit modified bytecode"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
+	}
+	TestTrue(TEXT("Restored original bytecode is admitted again"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
 	return true;
 }
 

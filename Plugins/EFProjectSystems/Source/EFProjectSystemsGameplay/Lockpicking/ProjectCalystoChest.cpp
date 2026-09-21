@@ -33,6 +33,11 @@ FSoftObjectPath AProjectCalystoChest::GetDefaultVisualMeshPath()
 	return FSoftObjectPath(TEXT("/Game/FullSample/Assets/Infinity_Blade_Assets/Chest.Chest"));
 }
 
+void AProjectCalystoChest::GetDeferredMeshBoundsBindings(TArray<FEFCalystoDeferredMeshBinding>& OutBindings) const
+{
+	OutBindings.Add({GET_MEMBER_NAME_CHECKED(AProjectCalystoChest, ChestVisualMesh), TEXT("ProjectCalystoChestVisual")});
+}
+
 bool AProjectCalystoChest::ConfigureResolvedLoot(
 	const TConstArrayView<FProjectCalystoResolvedChestEntry> Entries,
 	FString& OutError)

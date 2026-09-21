@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "6"
+  version: "7"
 ---
 
 # EF Equipment workbench
@@ -12,6 +12,12 @@ Use the target project `D:/Projects UE5/NoShellForWinter`. Invoke
 Read `Docs/Migration/EFEquipment.md` for current gates; this skill's presence
 does not certify that pending migration, commerce or release gates have passed.
 Keep player, meshes, ACFU and Daz protected as required by root `AGENTS.md`.
+
+For the separately repaired Game prerequisites, consult
+`Docs/Migration/EFEquipment_GamePrerequisites.md`. Do not restore editor metadata
+or ClassGeneratedBy as runtime authority, or accept changed controller bytecode
+by refreshing its frozen fingerprint without review. Those prerequisites do not
+move inventory ownership into Calysto.
 
 ## Ownership and entry points
 

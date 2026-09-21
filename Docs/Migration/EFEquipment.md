@@ -375,3 +375,16 @@ PENDING until explicitly checked in the real menu.
   item card and five visible scrolling native slots. Both runs restored/verified
   all seven pre-existing user saves. Updated protected comparison:
   `Saved/EquipmentQA/protected_death_modal_result.json`.
+
+### Separate Game compatibility prerequisite
+
+- Equipment/death/modal checkpoint: `87abead`. Game Development now PASS in
+  `Saved/EquipmentQA/build_game_03.log`, including Daz receipt verification.
+  The prior editor-only metadata and ClassGeneratedBy errors were repaired with
+  explicit runtime mesh declarations and audited canonical controller bytecode
+  fingerprints. Native checks remain active in Game; no vendor code was edited.
+- Seven focused contract regressions PASS in `Native_EquipmentGameCompatibility03`.
+  See [EFEquipment_GamePrerequisites.md](EFEquipment_GamePrerequisites.md) for
+  exact symbols, frozen identities, failed attempts, commands and evidence.
+  Cooked fingerprint parity remains PENDING. This build does not certify the
+  outstanding equipment body/coverage/latency, cook or packaged gates.

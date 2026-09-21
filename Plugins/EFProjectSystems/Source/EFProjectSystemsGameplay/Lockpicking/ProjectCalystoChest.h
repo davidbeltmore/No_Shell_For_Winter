@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Lockpicking/ProjectLockedWorldItem.h"
+#include "Calysto/EFCalystoDeferredMeshBoundsProvider.h"
 #include "ProjectCalystoChest.generated.h"
 
 class UACFItem;
@@ -32,13 +33,14 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectCalystoResolvedChestEntry
  * under Calysto/PCG; only the Director's already-resolved content is injected.
  */
 UCLASS(BlueprintType, Blueprintable)
-class EFPROJECTSYSTEMSGAMEPLAY_API AProjectCalystoChest : public AProjectLockedWorldItem
+class EFPROJECTSYSTEMSGAMEPLAY_API AProjectCalystoChest : public AProjectLockedWorldItem, public IEFCalystoDeferredMeshBoundsProvider
 {
 	GENERATED_BODY()
 
 public:
 	AProjectCalystoChest();
 	static FSoftObjectPath GetDefaultVisualMeshPath();
+	virtual void GetDeferredMeshBoundsBindings(TArray<FEFCalystoDeferredMeshBinding>& OutBindings) const override;
 
 	/** Called exclusively while the actor is deferred, before BeginPlay. */
 	bool ConfigureResolvedLoot(
@@ -53,8 +55,7 @@ public:
 
 	/** Loaded only if this concrete chest class was selected for the floor. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Project|Calysto",
-		meta = (DisplayName = "Chest Appearance", ToolTip = "Project-owned soft reference; does not modify the vendor chest.",
-			EFCalystoDeferredMeshBounds = "true", EFCalystoDeferredMeshComponent = "ProjectCalystoChestVisual"))
+		meta = (DisplayName = "Chest Appearance", ToolTip = "Project-owned soft reference; does not modify the vendor chest."))
 	TSoftObjectPtr<USkeletalMesh> ChestVisualMesh;
 
 private:

@@ -1,4 +1,5 @@
 #include "Calysto/ProjectCalystoDormantController.h"
+#include "Calysto/ProjectCalystoScriptFingerprint.h"
 
 #include "ACFAIController.h"
 #include "AIController.h"
@@ -27,23 +28,36 @@ namespace ProjectCalystoDormantPrivate
 		const UFunction* Function=Class?Class->FindFunctionByName(FunctionName):nullptr;
 		return Function && Function->GetOuterUClass()==Class ? Function : nullptr;
 	}
-	bool MatchesAuditedBlueprint(const UClass* Class,const TCHAR* ExpectedPath,const FGuid& ExpectedGuid)
+	bool MatchesAuditedBlueprint(const UClass* Class,const TCHAR* ExpectedPath,const FGuid& ExpectedGuid,const TCHAR* ExpectedScript)
 	{
+		if (!Class || Class->GetPathName()!=ExpectedPath) return false;
+#if WITH_EDITORONLY_DATA
 		const UBlueprint* Blueprint=Class?Cast<UBlueprint>(Class->ClassGeneratedBy):nullptr;
-		return Class && Class->GetPathName()==ExpectedPath && Blueprint && Blueprint->GetBlueprintGuid()==ExpectedGuid;
+		if (!Blueprint || Blueprint->GetBlueprintGuid()!=ExpectedGuid) return false;
+#endif
+		const FString Actual=ProjectCalystoScriptFingerprint::Compute(Class);
+		if (Actual!=ExpectedScript)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Calysto audited controller script mismatch: %s fingerprint=%s"), ExpectedPath, *Actual);
+			return false;
+		}
+		return !Actual.IsEmpty();
 	}
 	bool IsAuditedNpcBeginPlayProfile(UClass* Class,FString& Error)
 	{
 		// The only Blueprint BeginPlay admitted by the dormant contract is the
 		// installed ACF NPC controller pair.  Its package identities are frozen
-		// here, while FinishSpawning below still audits all observable side effects.
+		// here. Stable VM fingerprints also enforce the audit in cooked builds,
+		// where the source UBlueprint and its editor GUID no longer exist.
+		// FinishSpawning below still audits all observable side effects.
 		static const FGuid NpcBlueprintGuid(0x7EB252BC,0x4F7157B1,0xC52D0690,0xDB902687);
 		static const FGuid ParentBlueprintGuid(0x043B1BD3,0x4FF32FAA,0x105CC095,0x2AAD1E75);
 		static const TCHAR* NpcPath=TEXT("/AscentCombatFramework/Blueprints/AI/Controllers/ACF_NPCController_BP.ACF_NPCController_BP_C");
 		static const TCHAR* ParentPath=TEXT("/AscentCombatFramework/Blueprints/AI/Controllers/ACFAIControllerBP.ACFAIControllerBP_C");
 		UClass* Parent=Class?Class->GetSuperClass():nullptr;
-		if (!MatchesAuditedBlueprint(Class,NpcPath,NpcBlueprintGuid)
-			|| !MatchesAuditedBlueprint(Parent,ParentPath,ParentBlueprintGuid)
+		const bool NpcMatches=MatchesAuditedBlueprint(Class,NpcPath,NpcBlueprintGuid,TEXT("17FF44E72BB1D1510003BAA3A62673440322EED6"));
+		const bool ParentMatches=MatchesAuditedBlueprint(Parent,ParentPath,ParentBlueprintGuid,TEXT("C173DC40FA2886C07128355F3E0664F35E0FBE4C"));
+		if (!NpcMatches || !ParentMatches
 			|| !Class->IsChildOf(AACFAIController::StaticClass()))
 		{
 			Error=FString::Printf(TEXT("Controller class %s has a Blueprint BeginPlay outside the audited ACF NPC profile."),*GetNameSafe(Class));
