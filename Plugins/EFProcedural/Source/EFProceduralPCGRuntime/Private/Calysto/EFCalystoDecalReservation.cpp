@@ -186,7 +186,7 @@ bool FEFCalystoDecalReservationPlanner::Build(const FEFCalystoCompiledDirector& 
 		{ OutReport.FailureCode = TEXT("DecalResolutionInvalid"); OutReport.Message = Error; return false; }
 		Report.RequestedChancePercent = Effective.Mode == EEFCalystoDecalMode::Replace ? Effective.ChancePercent : 0.0;
 		if (Effective.Mode != EEFCalystoDecalMode::Replace || Effective.MaximumPerRoom == 0 || Effective.ActiveFloorBudget == 0
-			|| SurfaceLimit(Effective, Opportunity.Surface) == 0 || MaximumSize(Effective) > Opportunity.MaximumSizeCm)
+			|| EFCalystoDecalReservationPrivate::SurfaceLimit(Effective, Opportunity.Surface) == 0 || MaximumSize(Effective) > Opportunity.MaximumSizeCm)
 			continue;
 		FRoomCandidate Candidate; Candidate.Opportunity = &Opportunity; Candidate.Effective = Effective;
 		for (const FEFCalystoDecalVariant& Variant : Effective.Variants)
@@ -224,9 +224,9 @@ bool FEFCalystoDecalReservationPlanner::Build(const FEFCalystoCompiledDirector& 
 		{
 			const int32 Surface = int32(Candidate.Opportunity->Surface);
 			auto& ScopedSurfaces = ThemeSurfaceCounts.FindOrAdd(Candidate.Opportunity->ThemeId); if (ScopedSurfaces.IsEmpty()) ScopedSurfaces.Init(0, 3);
-			if (GlobalCount >= Style->Decals.ActiveFloorBudget || GlobalSurfaceCounts[Surface] >= SurfaceLimit(Style->Decals, Candidate.Opportunity->Surface)
+			if (GlobalCount >= Style->Decals.ActiveFloorBudget || GlobalSurfaceCounts[Surface] >= EFCalystoDecalReservationPrivate::SurfaceLimit(Style->Decals, Candidate.Opportunity->Surface)
 				|| ThemeCounts.FindRef(Candidate.Opportunity->ThemeId) >= Candidate.Effective.ActiveFloorBudget
-				|| ScopedSurfaces[Surface] >= SurfaceLimit(Candidate.Effective, Candidate.Opportunity->Surface)) continue;
+				|| ScopedSurfaces[Surface] >= EFCalystoDecalReservationPrivate::SurfaceLimit(Candidate.Effective, Candidate.Opportunity->Surface)) continue;
 			++GlobalCount; ++GlobalSurfaceCounts[Surface]; ++ThemeCounts.FindOrAdd(Candidate.Opportunity->ThemeId); ++ScopedSurfaces[Surface];
 			CapacityReserved.Add(Candidate); bReserved = true; break;
 		}
