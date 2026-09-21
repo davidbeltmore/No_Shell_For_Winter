@@ -1,0 +1,4 @@
+interface:
+  display_name: "EF Equipment Workbench"
+  short_description: "Maintain ACF equipment, satchels and native UI"
+  default_prompt: "Use $ef-equipment-workbench to inspect and maintain NoShellForWinter equipment with the reusable build and QA commands."
