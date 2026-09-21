@@ -1,0 +1,15 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "EF Equipment",
+  "Description": "Project-owned layered equipment and persistent ACF satchels.",
+  "Category": "Gameplay",
+  "CanContainContent": true,
+  "EnabledByDefault": true,
+  "Modules": [
+    { "Name": "EFEquipmentRuntime", "Type": "Runtime", "LoadingPhase": "Default" },
+    { "Name": "EFEquipmentEditor", "Type": "Editor", "LoadingPhase": "Default" }
+  ],
+  "Plugins": [ { "Name": "AscentCombatFramework", "Enabled": true }, { "Name": "CommonUI", "Enabled": true } ]
+}

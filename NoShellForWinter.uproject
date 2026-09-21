@@ -17,6 +17,10 @@
 	],
 	"Plugins": [
 		{
+			"Name": "EFEquipment",
+			"Enabled": true
+		},
+		{
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true,
 			"TargetAllowList": [

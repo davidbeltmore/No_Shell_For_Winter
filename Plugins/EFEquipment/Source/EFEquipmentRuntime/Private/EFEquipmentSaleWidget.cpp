@@ -1,0 +1,41 @@
+#include "EFEquipmentSaleWidget.h"
+#include "EFEquipmentCoordinatorComponent.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
+
+UEFEquipmentSaleWidget::UEFEquipmentSaleWidget() { bIsBackHandler = true; }
+void UEFEquipmentSaleWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+    if (ConfirmButton) ConfirmButton->OnClicked.AddUniqueDynamic(this, &UEFEquipmentSaleWidget::Confirm);
+    if (CancelButton) CancelButton->OnClicked.AddUniqueDynamic(this, &UEFEquipmentSaleWidget::Cancel);
+}
+void UEFEquipmentSaleWidget::SetQuote(UEFEquipmentCoordinatorComponent* Owner, const FEFEquipmentSaleQuote& Quote)
+{
+    Coordinator = Owner; QuoteId = Quote.QuoteId;
+    FString Breakdown;
+    for (const FText& Line : Quote.Lines) Breakdown += Line.ToString() + TEXT("\n");
+    Breakdown += FString::Printf(TEXT("\nTotal: %.2f\n\nSell this item and everything inside it?"), Quote.TotalPrice);
+    if (BreakdownLabel) BreakdownLabel->SetText(Quote.bValid ? FText::FromString(Breakdown) : Quote.Message);
+    if (ConfirmButton) ConfirmButton->SetIsEnabled(Quote.bValid);
+}
+UWidget* UEFEquipmentSaleWidget::NativeGetDesiredFocusTarget() const
+{ return ConfirmButton && ConfirmButton->GetIsEnabled() ? ConfirmButton.Get() : CancelButton.Get(); }
+void UEFEquipmentSaleWidget::Confirm()
+{
+    if (!Coordinator) return;
+    const auto Result = Coordinator->ConfirmSale(QuoteId);
+    if (Result.bSuccess) DeactivateWidget();
+    else
+    {
+        if (BreakdownLabel) BreakdownLabel->SetText(Result.Message);
+        if (ConfirmButton) ConfirmButton->SetIsEnabled(false);
+        if (CancelButton) CancelButton->SetKeyboardFocus();
+    }
+}
+void UEFEquipmentSaleWidget::Cancel() { DeactivateWidget(); }
+void UEFEquipmentSaleWidget::NativeOnDeactivated()
+{
+    if (Coordinator) Coordinator->CancelSale();
+    Super::NativeOnDeactivated();
+}
