@@ -158,11 +158,16 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::PreviewEquip(FGuid Guid, FG
     auto* Equippable = Cast<UACFEquippableItem>(Item.Item);
     if (!Equippable || !Equipment->CanBeEquipped(Item.ItemClass)) return FEFEquipmentResult::Failure(TEXT("This item cannot be equipped."));
     const auto Possible = Item.Item->GetPossibleItemSlots();
+    const bool bManaged = Item.Item->IsA<UEFEquipmentArmor>() || Item.Item->IsA<UEFEquipmentAccessory>();
+    auto Available = [&](FGameplayTag Slot)
+    {
+        return Registry->Find(Slot) || (!bManaged && Equipment->GetAvailableEquipmentSlot().Contains(Slot));
+    };
     if (!Destination.IsValid())
     {
         for (FGameplayTag Candidate : Possible)
         {
-            if (!Registry->Find(Candidate)) continue;
+            if (!Available(Candidate)) continue;
             if (!Destination.IsValid()) Destination = Candidate;
             bool bFree = true;
             for (const auto& Current : Equipment->GetCurrentEquipment().GetEquippedItems())
@@ -170,12 +175,12 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::PreviewEquip(FGuid Guid, FG
             if (bFree) { Destination = Candidate; break; }
         }
     }
-    if (!Possible.Contains(Destination) || !Registry->Find(Destination)) return FEFEquipmentResult::Failure(TEXT("This item does not fit that equipment slot."));
+    if (!Possible.Contains(Destination) || !Available(Destination)) return FEFEquipmentResult::Failure(TEXT("This item does not fit that equipment slot."));
     const auto* Rules = UEFEquipmentRulesFragment::Find(Item.Item);
     FString Error;
     if (Rules && (!Rules->Profile || !Rules->Profile->Validate(Error))) return FEFEquipmentResult::Failure(Error.IsEmpty() ? TEXT("Equipment rule profile is missing.") : Error);
     for (FGameplayTag Tag : Occupancy(Item.Item, Destination))
-        if (!Registry->Find(Tag)) return FEFEquipmentResult::Failure(TEXT("The item reserves an unavailable slot."));
+        if (Tag != Destination && !Registry->Find(Tag)) return FEFEquipmentResult::Failure(TEXT("The item reserves an unavailable slot."));
     TGuardValue<bool> Checking(bCheckingRequirements, true);
     TGuardValue<TObjectPtr<UACFItem>> Authorized(AuthorizedItem, Item.Item);
     if (!Equippable->CanBeEquipped(Equipment)) return FEFEquipmentResult::Failure(TEXT("The native equipment requirements are not met."));
@@ -426,13 +431,15 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::TakeFromInventory(UACFInven
         if (!Rules->FlushContainer(Error)) return Publish(FEFEquipmentResult::Failure(Error));
         auto* Inspection = NewObject<UEFContainerInventoryComponent>(GetOwner());
         Inspection->InitializeContainer(Guid, Rules->Profile->ContentCapacity);
-        if (!Inspection->ReadPayload(Rules->ContainerPayload, Error)) return Publish(FEFEquipmentResult::Failure(Error));
+        if (!Inspection->ReadPayload(Rules->ContainerPayload, Error))
+        { Inspection->DestroyComponent(); return Publish(FEFEquipmentResult::Failure(Error)); }
         AdditionalWeight += Inspection->GetCurrentInventoryTotalWeight();
+        Inspection->DestroyComponent();
     }
     if (AdditionalWeight > 0 && GetWeightSummary().EffectiveWeight + AdditionalWeight > BaseCarryCapacity + 0.000001)
         return Publish(FEFEquipmentResult::Failure(TEXT("This item and its contents would exceed your carry capacity.")));
-    bool bTransferred;
-    { TGuardValue<bool> Operation(bOperation, true); bTransferred = EFEquipmentACF::Transfer(Source, Equipment, Guid, Count, true, Error); }
+    bool bTransferred; FEFEquipmentResult Receipt;
+    { TGuardValue<bool> Operation(bOperation, true); bTransferred = EFEquipmentACF::Transfer(Source, Equipment, Guid, Count, true, Error, &Receipt); }
     RefreshState();
     if (!bTransferred) return Publish(FEFEquipmentResult::Failure(Error));
     if (bAutoEquip && Count == Item.Count)
@@ -440,7 +447,7 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::TakeFromInventory(UACFInven
         auto Preview = PreviewEquip(Guid, FGameplayTag());
         if (Preview.bSuccess && Preview.DisplacedItems.IsEmpty()) RequestEquip(Guid, Preview.SelectedSlot);
     }
-    return Publish(FEFEquipmentResult::Success());
+    return Publish(Receipt);
 }
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::MoveToContainer(FGuid Guid, FGuid ContainerGuid, int32 Count)
@@ -455,15 +462,19 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::MoveToContainer(FGuid Guid,
     const double AddedWeight = static_cast<double>(Entry.Item->GetItemInfo().ItemWeight) * Count;
     if (Container->GetCurrentInventoryTotalWeight() + AddedWeight > Container->GetContentCapacity() + 0.000001)
         return Publish(FEFEquipmentResult::Failure(TEXT("The satchel cannot carry this weight.")));
+    const FGameplayTag PreviousSlot = Entry.EquipmentSlot;
     if (Entry.bIsEquipped)
     { auto Result = RequestUnequip(Guid); if (!Result.bSuccess) return Result; }
-    bool bSuccess = false;
+    FInventoryItem Bag; Equipment->GetItemByGuid(ContainerGuid, Bag);
+    auto* BagRules = UEFEquipmentRulesFragment::Find(Bag.Item);
+    bool bSuccess = false; FEFEquipmentResult Receipt;
     {
         TGuardValue<bool> Operation(bOperation, true); Container->ReserveEntryCapacity(1);
-        bSuccess = EFEquipmentACF::Transfer(Equipment, Container, Guid, Count, false, Error);
-        if (bSuccess) bSuccess = FlushContainers(Error);
+        bSuccess = EFEquipmentACF::Transfer(Equipment, Container, Guid, Count, false, Error, &Receipt,
+            [BagRules](FString& Failure) { return BagRules && BagRules->FlushContainer(Failure); });
     }
-    RefreshState(); return Publish(bSuccess ? FEFEquipmentResult::Success() : FEFEquipmentResult::Failure(Error));
+    if (!bSuccess && PreviousSlot.IsValid()) RequestEquip(Guid, PreviousSlot);
+    RefreshState(); return Publish(bSuccess ? Receipt : FEFEquipmentResult::Failure(Error));
 }
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::MoveFromContainer(FGuid ContainerGuid, FGuid Guid, int32 Count)
@@ -471,13 +482,15 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::MoveFromContainer(FGuid Con
     if (bOperation || !InitializeEquipment() || !GetOwner()->HasAuthority()) return Publish(FEFEquipmentResult::Failure(TEXT("Equipment is busy or unavailable.")));
     FString Error; auto* Container = ResolveContainer(ContainerGuid, Error);
     if (!Container) return Publish(FEFEquipmentResult::Failure(Error));
-    bool bSuccess = false;
+    FInventoryItem Bag; Equipment->GetItemByGuid(ContainerGuid, Bag);
+    auto* BagRules = UEFEquipmentRulesFragment::Find(Bag.Item);
+    bool bSuccess = false; FEFEquipmentResult Receipt;
     {
         TGuardValue<bool> Operation(bOperation, true);
-        bSuccess = EFEquipmentACF::Transfer(Container, Equipment, Guid, Count, true, Error);
-        if (bSuccess) bSuccess = FlushContainers(Error);
+        bSuccess = EFEquipmentACF::Transfer(Container, Equipment, Guid, Count, true, Error, &Receipt,
+            [BagRules](FString& Failure) { return BagRules && BagRules->FlushContainer(Failure); });
     }
-    RefreshState(); return Publish(bSuccess ? FEFEquipmentResult::Success() : FEFEquipmentResult::Failure(Error));
+    RefreshState(); return Publish(bSuccess ? Receipt : FEFEquipmentResult::Failure(Error));
 }
 
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::RestoreEquippedIntent(const TArray<FInventoryItem>& Intent)

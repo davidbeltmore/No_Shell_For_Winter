@@ -17,7 +17,7 @@ try:
             task.set_editor_property('automated', True)
             task.set_editor_property('save', True)
             unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
-    
+
     result = unreal.EFEquipmentAuthoringLibrary.build_inventory_ui()
     if not result.startswith('PASS:'):
         raise RuntimeError(result)

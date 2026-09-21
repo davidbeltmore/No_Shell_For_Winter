@@ -143,3 +143,20 @@ PENDING until explicitly checked in the real menu.
 - Compile prerequisite committed separately as `c8dac94`; equipment foundation,
   initial data and native adapters committed as `4d64bff`. These are development
   checkpoints, not release acceptance. The preserved HUB change is excluded.
+
+### Transfer receipts and recovery
+
+- BuildEditor29 and NativeEquipment04 PASS. Native vertical assertions now also
+  cover corrupted-payload rejection without discarding live contents, split and
+  partial-extraction GUID receipts, quantity conservation, a late persistence
+  failure with rollback, and ACF's removal-before-veto alternative-slot behavior.
+  Evidence: `Saved/EquipmentQA/BuildEditor29/build.log` and
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment04/Report/index.json`.
+- Adapter commit verification occurs before inventory notifications. Whole items
+  keep their GUID; stateless splits get a new destination GUID. No implicit stack
+  merging is performed by this transfer path. Stateful stacks require a whole
+  transfer until a fragment-specific split contract exists.
+- Protected comparison PASS: `Saved/EquipmentQA/protected_transfer_result.json`.
+- Game build 01 FAIL in the two historical editor-only API consumers, with
+  `Module.EFEquipmentRuntime.cpp` compiled successfully. Evidence:
+  `Saved/EquipmentQA/build_game_01.log`. Game/cook/package acceptance stays FAIL/PENDING.

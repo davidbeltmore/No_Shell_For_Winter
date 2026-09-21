@@ -89,6 +89,51 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestTrue(TEXT("ACF container load"), Rehydrated->ReadPayload(Bytes, Error));
     const auto Loaded = Rehydrated->GetInventory();
     TestTrue(TEXT("Save/load preserves GUID, class and count"), Loaded.Num() == 1 && Loaded[0].GetItemGuid() == Bra.GetItemGuid() && Loaded[0].ItemClass == Bra.ItemClass && Loaded[0].Count == 1);
+    auto Corrupt = Bytes; Corrupt.Last() ^= 0x80;
+    TestFalse(TEXT("Corrupt container envelope is rejected"), Rehydrated->ReadPayload(Corrupt, Error));
+    TestTrue(TEXT("Rejected payload preserves the prior live contents"), Rehydrated->GetInventory().Num() == 1
+        && Rehydrated->GetInventory()[0].GetItemGuid() == Bra.GetItemGuid());
+
+    Coordinator->SetBaseCarryCapacity(180.125);
+    auto Stack = Add(TEXT("/Script/InventorySystem.ACFItem"), 8);
+    auto StackInfo = Stack.Item->GetItemInfo(); StackInfo.ItemWeight = 0.25f; StackInfo.MaxInventoryStack = 100;
+    Stack.Item->SetItemDescriptor(StackInfo); Coordinator->RefreshState();
+    const auto Split = Coordinator->MoveToContainer(Stack.GetItemGuid(), Bag.GetItemGuid(), 2);
+    TestTrue(TEXT("Partial stack receipt records both GUIDs and quantities"), Split.bSuccess
+        && Split.SourceGuid == Stack.GetItemGuid() && Split.DestinationGuid.IsValid()
+        && Split.SourceGuid != Split.DestinationGuid && Split.MovedQuantity == 2 && Split.SourceRemainingQuantity == 6);
+    FInventoryItem OriginalStack, MovedStack;
+    TestTrue(TEXT("Split conserves root and container quantities"), Native->GetItemByGuid(Stack.GetItemGuid(), OriginalStack)
+        && Container->GetItemByGuid(Split.DestinationGuid, MovedStack) && OriginalStack.Count == 6 && MovedStack.Count == 2);
+    const auto SplitBack = Coordinator->MoveFromContainer(Bag.GetItemGuid(), Split.DestinationGuid, 1);
+    TestTrue(TEXT("Partial extraction records another independent GUID"), SplitBack.bSuccess
+        && SplitBack.DestinationGuid != Split.DestinationGuid && SplitBack.MovedQuantity == 1 && SplitBack.SourceRemainingQuantity == 1);
+    auto Quantity = [&](UACFInventoryComponent* Inventory)
+    {
+        int32 Sum = 0; for (const auto& Item : Inventory->GetInventory()) if (Item.ItemClass == Stack.ItemClass) Sum += Item.Count;
+        return Sum;
+    };
+    TestEqual(TEXT("Repeated splits conserve all eight units"), Quantity(Native) + Quantity(Container), 8);
+    FEFEquipmentResult Rejected;
+    TestFalse(TEXT("Late persistence validation rejects a transfer"), EFEquipmentACF::Transfer(Native, Container,
+        Stack.GetItemGuid(), 3, false, Error, &Rejected, [](FString& Failure) { Failure = TEXT("Injected persistence failure."); return false; }));
+    TestTrue(TEXT("Late rejection restores the original source stack"), Native->GetItemByGuid(Stack.GetItemGuid(), OriginalStack) && OriginalStack.Count == 6);
+    TestEqual(TEXT("Late rejection preserves aggregate quantities"), Quantity(Native) + Quantity(Container), 8);
+    TestFalse(TEXT("Rejected transfer publishes no destination receipt"), Rejected.DestinationGuid.IsValid());
+
+    // ACF removes an already equipped item before calling its common veto.
+    // An external alternative-slot call must never bypass authorization.
+    Coordinator->MoveFromContainer(Bag.GetItemGuid(), Bra.GetItemGuid(), 1);
+    auto BraInfo = Bra.Item->GetItemInfo();
+    const auto OriginalSlots = BraInfo.ItemSlots;
+    BraInfo.ItemSlots.Add(FGameplayTag::RequestGameplayTag(TEXT("ItemSlot.Underwear.Legs")));
+    Bra.Item->SetItemDescriptor(BraInfo);
+    Equip(Bra);
+    Native->GetItemByGuid(Bra.GetItemGuid(), Live);
+    Native->EquipItemFromInventoryInSlot(Live, FGameplayTag::RequestGameplayTag(TEXT("ItemSlot.Underwear.Legs")));
+    TestFalse(TEXT("External alternative-slot change cannot apply unauthorized equipment"), IsEquipped(Bra));
+    BraInfo.ItemSlots = OriginalSlots; Bra.Item->SetItemDescriptor(BraInfo);
+    TestTrue(TEXT("Coordinator can recover after the external native removal"), Equip(Bra).bSuccess);
     return !HasAnyErrors();
 }
 #endif

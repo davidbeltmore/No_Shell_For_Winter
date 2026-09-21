@@ -42,13 +42,15 @@ bool EFEquipmentACF::ValidateInventory(UACFInventoryComponent* Component, FStrin
 }
 
 bool EFEquipmentACF::Transfer(UACFInventoryComponent* Source, UACFInventoryComponent* Destination,
-    FGuid Guid, int32 Count, bool bIgnoreDestinationWeight, FString& Error)
+    FGuid Guid, int32 Count, bool bIgnoreDestinationWeight, FString& Error,
+    FEFEquipmentResult* Receipt, TFunction<bool(FString&)> ValidateCommit)
 {
     FInventoryItem Entry;
-    if (!Source || !Destination || Source == Destination || !Source->GetOwner()->HasAuthority() || !Destination->GetOwner()->HasAuthority()
+    if (!IsInGameThread() || !Source || !Destination || Source == Destination || !Source->GetOwner()->HasAuthority() || !Destination->GetOwner()->HasAuthority()
         || !Inventory(Source) || !Inventory(Destination) || !Source->GetItemByGuid(Guid, Entry) || !Entry.Item
         || Count <= 0 || Count > Entry.Count || Entry.bIsEquipped)
     { Error = TEXT("Transfer requires an owned, unequipped inventory item and a valid quantity."); return false; }
+    if (!ValidateInventory(Source, Error) || !ValidateInventory(Destination, Error)) return false;
     if (Destination->GetInventoryListConst().Contains(Guid)) { Error = TEXT("The destination already owns this item."); return false; }
     if (Destination->GetAvailableSlots() < 1) { Error = TEXT("Inventory is full."); return false; }
     double Capacity = 0;
@@ -68,6 +70,13 @@ bool EFEquipmentACF::Transfer(UACFInventoryComponent* Source, UACFInventoryCompo
     }
     TStrongObjectPtr<UACFItem> KeepAlive(Moved.Item);
     const int32 OriginalCount = Entry.Count;
+    auto ClassQuantity = [&](UACFInventoryComponent* Inventory)
+    {
+        int64 Total = 0;
+        for (const auto& Item : Inventory->GetInventory()) if (Item.ItemClass == Entry.ItemClass) Total += Item.Count;
+        return Total;
+    };
+    const int64 TotalBefore = ClassQuantity(Source) + ClassQuantity(Destination);
     // Commit both lists on the game thread before broadcasting. Calling the high-level
     // MoveItemsFromInventory would publish a duplicate GUID and reconstruct stateful
     // stacks by class. These native FastArray methods keep the same ACF storage.
@@ -76,39 +85,64 @@ bool EFEquipmentACF::Transfer(UACFInventoryComponent* Source, UACFInventoryCompo
     if (Moved.Item->GetOuter() != Destination->GetOwner()
         && !Moved.Item->Rename(*MakeUniqueObjectName(Destination->GetOwner(), Moved.Item->GetClass(), PreviousName).ToString(), Destination->GetOwner(), REN_DontCreateRedirectors | REN_DoNotDirty))
     { Error = TEXT("The item could not change inventory ownership."); return false; }
+    struct FFragmentOwner { UACFItemFragment* Fragment; UObject* Outer; FName Name; };
+    TArray<FFragmentOwner> PreviousFragments;
+    auto RestoreOwnership = [&]()
+    {
+        bool bRestored = true;
+        for (const auto& Previous : PreviousFragments)
+            bRestored &= Previous.Fragment->Rename(*Previous.Name.ToString(), Previous.Outer, REN_DontCreateRedirectors | REN_DoNotDirty);
+        bRestored &= Moved.Item->Rename(*PreviousName.ToString(), PreviousOuter, REN_DontCreateRedirectors | REN_DoNotDirty);
+        Moved.Item->SetItemOwner(PreviousOwner);
+        return bRestored;
+    };
+    for (UACFItemFragment* Fragment : Moved.Item->Fragments)
+        if (Fragment && Fragment->GetOuter() != Destination->GetOwner())
+        {
+            PreviousFragments.Add({Fragment, Fragment->GetOuter(), Fragment->GetFName()});
+            if (!Fragment->Rename(*MakeUniqueObjectName(Destination->GetOwner(), Fragment->GetClass(), Fragment->GetFName()).ToString(), Destination->GetOwner(), REN_DontCreateRedirectors | REN_DoNotDirty))
+            { RestoreOwnership(); Error = TEXT("An item fragment could not change inventory ownership."); return false; }
+        }
     if (Count == OriginalCount)
     { Source->UnregisterFragmentsForItem(Entry.Item); Inventory(Source)->RemoveEntry(Entry); }
     else
     { FInventoryItem Remaining = Entry; Remaining.Count -= Count; Inventory(Source)->ChangeEntry(Remaining); }
-
     Moved.Item->SetItemOwner(Destination->GetOwner());
-    for (UACFItemFragment* Fragment : Moved.Item->Fragments)
-        if (Fragment && Fragment->GetOuter() != Destination->GetOwner())
-            Fragment->Rename(*MakeUniqueObjectName(Destination->GetOwner(), Fragment->GetClass(), Fragment->GetFName()).ToString(), Destination->GetOwner(), REN_DontCreateRedirectors | REN_DoNotDirty);
     // Use ACF's FastArray mutation API without its class-only stack reconstruction path.
     // No equipment effects are applied here; every entry is explicitly unequipped.
     Inventory(Destination)->AddEntry(Moved);
     Destination->RegisterFragmentsForItem(Moved.Item);
+    Source->RefreshTotalWeight(); Destination->RefreshTotalWeight();
     FInventoryItem Verified, Remaining;
     const bool bFoundSource = Source->GetItemByGuid(Guid, Remaining);
     if (!Destination->GetItemByGuid(Moved.GetItemGuid(), Verified) || Verified.Item != Moved.Item || Verified.Count != Count
-        || (Count == OriginalCount ? bFoundSource : !bFoundSource || Remaining.Count != OriginalCount - Count))
+        || (Count == OriginalCount ? bFoundSource : !bFoundSource || Remaining.Count != OriginalCount - Count)
+        || ClassQuantity(Source) + ClassQuantity(Destination) != TotalBefore
+        || !ValidateInventory(Source, Error) || !ValidateInventory(Destination, Error)
+        || (ValidateCommit && !ValidateCommit(Error)))
     {
         Destination->UnregisterFragmentsForItem(Moved.Item); Inventory(Destination)->RemoveEntry(Moved);
-        Moved.Item->Rename(*PreviousName.ToString(), PreviousOuter, REN_DontCreateRedirectors | REN_DoNotDirty); Moved.Item->SetItemOwner(PreviousOwner);
+        const bool bOwnershipRestored = RestoreOwnership();
         if (Count == OriginalCount)
         {
-            for (UACFItemFragment* Fragment : Moved.Item->Fragments) if (Fragment) Fragment->Rename(nullptr, PreviousOuter, REN_DontCreateRedirectors | REN_DoNotDirty);
             Inventory(Source)->AddEntry(Entry); Source->RegisterFragmentsForItem(Entry.Item);
         }
         else Inventory(Source)->ChangeEntry(Entry);
         Source->RefreshTotalWeight(); Destination->RefreshTotalWeight();
-        Error = TEXT("Transfer verification failed. The original inventory entry was restored."); return false;
+        Error = bOwnershipRestored ? TEXT("Transfer verification failed. The original inventory entry was restored.")
+            : TEXT("Transfer failed. Item quantities were retained, but object ownership needs recovery."); return false;
     }
-    Source->RefreshTotalWeight(); Destination->RefreshTotalWeight();
-    Source->OnItemRemoved.Broadcast(FBaseItem(Moved.ItemClass, Count));
+    if (Receipt)
+    {
+        *Receipt = FEFEquipmentResult::Success(); Receipt->SourceGuid = Guid;
+        Receipt->DestinationGuid = Moved.GetItemGuid(); Receipt->MovedQuantity = Count;
+        Receipt->SourceRemainingQuantity = OriginalCount - Count;
+    }
+    FBaseItem Removed(Entry.ItemClass, Count); Removed.ForceGuid(Guid);
+    FBaseItem Added(Moved.ItemClass, Count); Added.ForceGuid(Moved.GetItemGuid());
+    Source->OnItemRemoved.Broadcast(Removed);
     Source->OnInventoryChanged.Broadcast();
     Destination->OnInventoryChanged.Broadcast();
-    Destination->OnItemAdded.Broadcast(FBaseItem(Moved.ItemClass, Count));
+    Destination->OnItemAdded.Broadcast(Added);
     return true;
 }

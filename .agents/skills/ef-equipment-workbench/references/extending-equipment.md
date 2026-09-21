@@ -1,5 +1,12 @@
 # Extending equipment without rebuilding the inventory design
 
+Transfer results expose SourceGuid, DestinationGuid, MovedQuantity and
+SourceRemainingQuantity. Keep the returned GUID for a split; never infer the
+destination from its index. Whole transfers preserve identity. The adapter does
+not implicitly merge stacks and rejects partial stateful stacks. Its optional
+commit validator runs before notifications and restores both lists if persistence
+validation fails; keep new transfer consumers inside the coordinator's operation guard.
+
 ## New clothing or accessory
 
 Author the ACF item's native `ItemInfo.ItemSlots` as alternatives. A garment has

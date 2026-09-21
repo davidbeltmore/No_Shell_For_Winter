@@ -50,6 +50,11 @@ struct EFEQUIPMENTRUNTIME_API FEFEquipmentResult
     UPROPERTY(BlueprintReadOnly, Category="Equipment") TArray<FGuid> DisplacedItems;
     UPROPERTY(BlueprintReadOnly, Category="Equipment") FGameplayTag SelectedSlot;
     UPROPERTY(BlueprintReadOnly, Category="Equipment") int64 Revision = 0;
+    /** Transfer identity: splits retain SourceGuid and create a distinct DestinationGuid. */
+    UPROPERTY(BlueprintReadOnly, Category="Equipment") FGuid SourceGuid;
+    UPROPERTY(BlueprintReadOnly, Category="Equipment") FGuid DestinationGuid;
+    UPROPERTY(BlueprintReadOnly, Category="Equipment") int32 MovedQuantity = 0;
+    UPROPERTY(BlueprintReadOnly, Category="Equipment") int32 SourceRemainingQuantity = 0;
     static FEFEquipmentResult Failure(const FString& Text)
     { FEFEquipmentResult R; R.Message = FText::FromString(Text); return R; }
     static FEFEquipmentResult Success()
