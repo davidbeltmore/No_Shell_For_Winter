@@ -16,6 +16,10 @@ public class EFProceduralEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			"AssetRegistry",
+			"Json",
+			"ToolsetRegistry",
+			"PythonScriptPlugin",
 			"UnrealEd",
 			"PropertyEditor",
 			"InputCore",

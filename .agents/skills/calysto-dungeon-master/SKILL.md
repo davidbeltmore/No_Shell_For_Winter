@@ -45,7 +45,11 @@ source until proven cutover.
 - **Implement/migrate:** follow the nine master-plan milestones. Freeze/reproduce
   first; prove native traversal before population; migrate field by field;
   accept the candidate before retirement; rebuild/repackage the final tree.
-  Resume the first incomplete gate.
+  Resume the first incomplete gate. For authorized full completion or overnight
+  work, read [continuous-execution.md](references/continuous-execution.md): keep
+  working through automatic 45-60 minute checkpoints with one editor owner and
+  at most one auxiliary agent. A checkpoint is not completion or a request to
+  continue.
 - **Author:** inspect actual properties, use native transactions and exact asset
   edits, validate exact field errors, save only intended project packages.
   Behavior-test each changed functional control. Diagnostics belong in the
@@ -114,6 +118,12 @@ Require exact current test inventory/assertions, clean logs, process exit 0 and
 protected invariants together. PASS JSON followed by a crash fails. Unrun claims
 are PENDING; observed failures are FAIL. Authoring Valid, native tests, gameplay
 verification and release acceptance are separate states.
+
+For full V7 completion, update the frozen
+[acceptance ledger](../../../Docs/Migration/Evidence/Calysto_Director_V7_Acceptance.json).
+Its 31 original Section 11 bullets are the denominator; helper tests and partial
+subchecks never add criteria or earn fractional completion. Report verified
+whole criteria divided by the original total, with scope and evidence gaps.
 
 ## Protected boundary
 

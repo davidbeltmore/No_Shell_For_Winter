@@ -1,4 +1,5 @@
 #include "EFProceduralRuntimeSubsystem.h"
+#include "Calysto/EFCalystoDirectorSettings.h"
 
 #include "Interfaces/LevelReadinessProvider.h"
 #include "Interfaces/PlayerStartResolver.h"
@@ -87,6 +88,7 @@ bool UEFProceduralRuntimeSubsystem::IsDungeonRuntimeReady(UWorld* World)
 bool UEFProceduralRuntimeSubsystem::IsLevelRuntimeReady(UWorld* World)
 {
 	CompactProviders(LevelReadinessProviders);
+	if (UEFCalystoDirectorSettings::IsEnabled() && LevelReadinessProviders.Num() != 1) return false;
 
 	for (const TWeakObjectPtr<UObject>& ProviderPtr : LevelReadinessProviders)
 	{
@@ -106,6 +108,7 @@ bool UEFProceduralRuntimeSubsystem::ResolvePlayerStartTransform(UWorld* World, F
 {
 	TArray<TWeakObjectPtr<UObject>> MutableResolvers = PlayerStartResolvers;
 	CompactProviders(MutableResolvers);
+	if (UEFCalystoDirectorSettings::IsEnabled() && MutableResolvers.Num() != 1) return false;
 
 	for (const TWeakObjectPtr<UObject>& ProviderPtr : MutableResolvers)
 	{

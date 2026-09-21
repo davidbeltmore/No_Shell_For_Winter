@@ -1,0 +1,1576 @@
+{
+  "schema_version": 1,
+  "ledger_kind": "FROZEN_ORIGINAL_ACCEPTANCE",
+  "created_utc": "2026-09-08T09:44:19.738406+00:00",
+  "source_project_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "target_project": "D:/Projects UE5/NoShellForWinter",
+  "engine": "Unreal Engine 5.8",
+  "authority_target": "/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector",
+  "contract": {
+    "path": "Docs/Migration/Calysto_Dungeon_Director_V7.md",
+    "sha256": "f6eaa4e3fdf13f820ad2f35154a27234285ef880f760e862065d31f4dce81882",
+    "section": "11",
+    "section_sha256": "ec861b97489cd3fe1ba0fb61167adadf335243de180012b07d648b06776499f7",
+    "counted_sections": [
+      "11.1",
+      "11.2",
+      "11.3",
+      "11.4"
+    ],
+    "original_bullet_count": 31,
+    "cross_cutting_evidence_policy_section": "11.5",
+    "scope_change_policy": "Original IDs/text/denominator remain frozen unless the user explicitly changes product scope; preserve prior ledger and record the change."
+  },
+  "initial_scope": {
+    "commit": "5ec929d76546e95249cab4735f96176e3ca7911f",
+    "snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Snapshot.json",
+    "snapshot_timestamp_utc": "2026-09-08T09:38:24.253950+00:00",
+    "state": "Latest source changes uncompiled at initial resume; no accepted current V7 floor. Parent continues protected build and real PIE.",
+    "evidence": [
+      "EV-INITIAL-SNAPSHOT",
+      "EV-RESUME-CONTEXT"
+    ]
+  },
+  "accounting": {
+    "formula": "100 * fully_verified_original_criteria / original_bullet_count",
+    "original_bullet_count": 31,
+    "verified_original_criteria": 0,
+    "failed_current_criteria": 0,
+    "pending_current_criteria": 31,
+    "completion_percent": 0.0,
+    "rule": "PASS requires every part of one original criterion in current required scope. Partial/historical checks, test counts and trials add no numerator or denominator.",
+    "historical_failure_policy": "Preserve prior FAIL evidence; current criterion remains PENDING when changed-source validation has not run. A reproduced current-source failure marks the affected criterion FAIL."
+  },
+  "receipt_contract": {
+    "required_fields": [
+      "status",
+      "source_target_paths",
+      "exact_symbols_assets",
+      "source_sha256_manifest",
+      "source_snapshot_or_commit",
+      "binary_build_receipt_hashes",
+      "engine_configuration",
+      "command_arguments",
+      "utc_start_end",
+      "elapsed_seconds",
+      "wrapper_pid_exit",
+      "actual_child_pid_exit",
+      "log_report_screenshot_paths",
+      "protected_before_after_comparisons",
+      "historical_protected_discrepancies"
+    ],
+    "when_applicable": [
+      "test_inventory_and_trial_parameters",
+      "run_floor_request_attempt_identities",
+      "run_and_topology_seeds",
+      "failure_classification",
+      "cleanup_result",
+      "requested_feasible_selected_rejected_accepted_counts",
+      "runtime_package_environment",
+      "hardware_and_cold_warm_state"
+    ],
+    "pass_exclusions": [
+      "missing_or_nonzero_actual_process_exit",
+      "crash_after_pass_json",
+      "relevant_unclean_logs",
+      "stale_or_changed_source_scope",
+      "partial_criterion_coverage"
+    ]
+  },
+  "criteria": [
+    {
+      "id": "V7-11.1-01",
+      "section": "11.1",
+      "source_line": 635,
+      "original_text": "- A new user can locate Style/Theme materials, placement, Chance, Amount, and\n  Weight without diagnostic banners.",
+      "label": "Clean discoverable authoring",
+      "original_text_sha256": "2d5bd60dde368271019ae718ec21293a2d0b18c24017071bba4087407d0f00a8",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Inspect the current native Details UI and capture the requested user-facing controls without diagnostic banners."
+    },
+    {
+      "id": "V7-11.1-02",
+      "section": "11.1",
+      "source_line": 637,
+      "original_text": "- Every exposed functional setting has a behavioral test showing its runtime\n  effect; editor Undo/Redo, duplication, reset, pickers, search, named entries,\n  conditional fields, and exact-field errors work.",
+      "label": "Every control and native editor behavior",
+      "original_text_sha256": "a97f4251414fb75a8baf56f707c173e2b2d996c83e3035bf9df3d28a77e78d5b",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Complete the authored-field to runtime-consumer behavior table and exercise native editor operations on intended project-owned data."
+    },
+    {
+      "id": "V7-11.1-03",
+      "section": "11.1",
+      "source_line": 640,
+      "original_text": "- At least 100,000 in-memory trials cover Theme presence, conditional Theme\n  weights, guaranteed-room counts, quantity distributions, rarity including\n  Winter, and exact curve endpoints. Use deterministic, predeclared statistical\n  tolerances appropriate to each distribution and include exact assertions\n  where applicable; do not retry failed statistics until they pass.",
+      "label": "100K probability laws and exact endpoints",
+      "original_text_sha256": "cfd07e43bd2986726d183baabe8dfacdf80d53da4c7df2f21860375a4387e153",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-PROBABILITY-100K-20260905"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Audit production test assertions and per-law counts/tolerances, add only missing coverage, and run the exact current compiled inventory with clean exit evidence."
+    },
+    {
+      "id": "V7-11.1-04",
+      "section": "11.1",
+      "source_line": 645,
+      "original_text": "- Reordering arrays and renaming display names preserve decisions. Material\n  changes preserve topology; Theme-weight changes preserve Theme-presence sets.",
+      "label": "Identity and independent random domains",
+      "original_text_sha256": "d5735aa6fde0f804e0f9306c005b6d15be4d531b92e3cdb20966418eb9f75d73",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Exercise all four invariance claims against current production decisions and preserve exact input/output receipts."
+    },
+    {
+      "id": "V7-11.1-05",
+      "section": "11.1",
+      "source_line": 647,
+      "original_text": "- Empty catalogs, zero weights, exhausted cooldowns/budgets, incompatible\n  surfaces, no eligible rooms, and unpopulated rarity tiers have tested results.",
+      "label": "Empty and infeasible boundary cases",
+      "original_text_sha256": "3010361240d01580c5f3315161b06b761dcc337570d2a60f695d00c3869c4974",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Test each named unavailable or exhausted eligibility case against the current production library and runtime consumers."
+    },
+    {
+      "id": "V7-11.1-06",
+      "section": "11.1",
+      "source_line": 649,
+      "original_text": "- Fixed/uniform/triangular Amounts, supported endpoints, inheritance modes,\n  explicit probability/count overrides, floor limits, and disabled-adaptation\n  zero influence are tested.",
+      "label": "Amounts, inheritance, limits and disabled adaptation",
+      "original_text_sha256": "4b4370f2950656f4aa00a9140489797900bc00a9e100aa880a0b8cc4b76025b9",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Test every named Amount/endpoint/inheritance/override/limit/adaptation behavior with exact assertions and current-source evidence."
+    },
+    {
+      "id": "V7-11.1-07",
+      "section": "11.1",
+      "source_line": 652,
+      "original_text": "- Requested unconstrained, feasible, and accepted probability statistics are\n  reported separately, including rejected attempts.",
+      "label": "Separate requested, feasible and accepted statistics",
+      "original_text_sha256": "914e64814c4d35aacc24c9adef8aaf676e4aa17dc41d8e496cc33099c28b3998",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Collect separate unconstrained, feasible and accepted distributions including rejected world attempts."
+    },
+    {
+      "id": "V7-11.2-01",
+      "section": "11.2",
+      "source_line": 657,
+      "original_text": "- Native layout/architecture parity with extensions disabled; exactly one\n  Style, unique Start/End progression markers, one root generation per attempt.",
+      "label": "Native parity and one root generation",
+      "original_text_sha256": "81c2078c01f6bd3d959f1bfab639ff8cb48a3baff20a6b6ac44092bdcad8988a",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-TRAVERSAL-HISTORY",
+        "EV-MCP-TRAVERSAL-20260908",
+        "EV-V7-REPLAY177-20260908",
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Complete the protected build, validate native parity and capture actual one-root-call and Start/End/Style evidence per attempt."
+    },
+    {
+      "id": "V7-11.2-02",
+      "section": "11.2",
+      "source_line": 659,
+      "original_text": "- Start/End/Critical/Progression rooms remain unthemed; at least one eligible\n  themed room exists in every accepted final V7 floor.",
+      "label": "Protected rooms and guaranteed Theme",
+      "original_text_sha256": "6dad12db62dff65de9aedd928840efe08ee006595a5b289af166b04e15486ad8",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-TRAVERSAL-HISTORY",
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Validate protected room exclusion and at least one eligible themed room on every accepted full V7 floor."
+    },
+    {
+      "id": "V7-11.2-03",
+      "section": "11.2",
+      "source_line": 661,
+      "original_text": "- Floor collision/bounds, entry clearance, relevant nav data/tiles, and a\n  Start-to-End route pass before the player is released.",
+      "label": "Structural collision, entry and navigation",
+      "original_text_sha256": "cee95f51e05ecd6c034d1b9e1bce01dfc4d04697cef2d27094a3cd986c12efbd",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-TRAVERSAL-HISTORY",
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Use real-door PIE after the protected build to inspect actual floor geometry, entry capsule and relevant complete navigation route before release."
+    },
+    {
+      "id": "V7-11.2-04",
+      "section": "11.2",
+      "source_line": 663,
+      "original_text": "- Every committed actor, material assignment, PCG result, and decal verifies.\n  Failure injection proves whole-attempt rollback without leaked ownership or\n  partial companion/inventory/outcome state.",
+      "label": "Exact realization and whole-attempt rollback",
+      "original_text_sha256": "ebb0898b86debf1b317401c5b3f495b96e9774cd686fb81a7b63bc951982be7c",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-CANDIDATE-20260905"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Correct the observed materializer warning, validate exact selected realization and inject failures with complete world/gameplay rollback counts."
+    },
+    {
+      "id": "V7-11.2-05",
+      "section": "11.2",
+      "source_line": 666,
+      "original_text": "- Delayed geometry/nav registration stays Pending while genuinely unfinished.\n  Reseeding preserves Style, progression, budgets, and pre-floor state and\n  cannot double-commit outcomes.",
+      "label": "Pending, stable reseeding and atomic outcomes",
+      "original_text_sha256": "715ad86501dd248f4934e2413660ecb77846519013fb2bcb633788f3adaec892",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Observe delayed geometry/navigation and test reseeding against unchanged Style, progression, budgets and pre-floor state."
+    },
+    {
+      "id": "V7-11.2-06",
+      "section": "11.2",
+      "source_line": 669,
+      "original_text": "- Custom PCG contract violations fail before uncontrolled generation.",
+      "label": "Custom PCG preflight",
+      "original_text_sha256": "aa6abc15e9790c56d1af60c5b3f4b343749551b7247874e7d2a96d4284a7b73b",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Inject unsupported extension contracts and prove rejection precedes uncontrolled generation."
+    },
+    {
+      "id": "V7-11.2-07",
+      "section": "11.2",
+      "source_line": 670,
+      "original_text": "- Shared deadline, four-attempt limit, explicit error Retry/Return to HUB,\n  cancellation, stale callbacks, idempotent loads, and cleanup isolation work.",
+      "label": "Bounded recovery, cancellation and cleanup",
+      "original_text_sha256": "2ac035985cda0506662bf3d864e52a2e16e9691af1d4da902cbeec096c942a25",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Exercise the shared deadline/four-attempt contract, explicit recovery UI, cancellation, stale callbacks, idempotent loads and isolated cleanup."
+    },
+    {
+      "id": "V7-11.3-01",
+      "section": "11.3",
+      "source_line": 675,
+      "original_text": "- Real DoorToLevel HUB -> Floor 1 -> Floor 2 -> Floor 3, subsequent floors as\n  needed, and intended final HUB return. Three consecutive floors are the\n  mandatory rapid traversal gate, not three independent harness generations.",
+      "label": "Real three-floor door traversal and final HUB return",
+      "original_text_sha256": "bc55ea475b1662f043cb00d8b947fe70693f50b05042d86caa219cb2b9f4ed28",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-TRAVERSAL-HISTORY",
+        "EV-MCP-TRAVERSAL-20260908",
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "After native readiness is fixed, complete one real HUB-to-Floors-1-2-3 run with movement evidence; test intended terminal-floor HUB return separately."
+    },
+    {
+      "id": "V7-11.3-02",
+      "section": "11.3",
+      "source_line": 678,
+      "original_text": "- Both original failing seeds, every initial Style, cold/warm runs, and\n  supported size/depth extremes are covered by a targeted finite matrix.",
+      "label": "Failing seeds, Styles and finite extremes matrix",
+      "original_text_sha256": "31bb56c54e008ded6b4df01ad5936ae3591e1dad481c68177d8be6de7e2c923d",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-V7-REPLAY177-20260908",
+        "EV-V7-REPLAY119-20260908",
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Run the original failing topology seeds and the finite Style/cold-warm/size/depth matrix after the rapid gate passes."
+    },
+    {
+      "id": "V7-11.3-03",
+      "section": "11.3",
+      "source_line": 680,
+      "original_text": "- Grey general, orange Forge, and blue Shrine are independently verified on\n  Floor/Wall/Roof and boundaries by assignments and visual evidence.",
+      "label": "Grey, orange and blue surfaces and boundaries",
+      "original_text_sha256": "972a66297a772b0cc023376dd437da69b8a705f15efb09a7eb866d17d8f7df14",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Inspect actual component assignments and screenshots for each requested material, surface and shared boundary."
+    },
+    {
+      "id": "V7-11.3-04",
+      "section": "11.3",
+      "source_line": 682,
+      "original_text": "- Floor pickups/chests, Wall Middle torches, wall/corner/roof placements, native\n  torch effects, decal budgets/protected routes, and native architecture work.",
+      "label": "Placement, torches, decals and native architecture",
+      "original_text_sha256": "9f946744b3ff79ae369797ab0c3d39ed7af3e0aa9743d60e5dcf5cac3052a1ba",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Validate all specified placement zones, torch effects, decal budgets and route protection on generated geometry."
+    },
+    {
+      "id": "V7-11.3-05",
+      "section": "11.3",
+      "source_line": 684,
+      "original_text": "- Theme catalog isolation, recruitment, companion death/recall, inventory\n  persistence, chest variants, lockpicking, and container contents work.",
+      "label": "Catalogs, companions, inventory and containers",
+      "original_text_sha256": "c0d331620f3e4b889a43ec79aae50e2007b2e0d347c5be921ef35718d6d4daf1",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Exercise production catalog isolation and each companion/inventory/container gameplay bridge on accepted floors."
+    },
+    {
+      "id": "V7-11.3-06",
+      "section": "11.3",
+      "source_line": 686,
+      "original_text": "- Replay, reroll, same-seed restart, cancellation, repeated interaction,\n  stale callbacks, and recovery exhaustion are covered.",
+      "label": "Replay, reroll, restart and recovery cases",
+      "original_text_sha256": "5b501b61242fd8f7943abc846306d207772b60aad521dcf902727ce80fe90ea8",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Run the bounded replay/reroll/restart/cancel/repeated-interaction/stale-callback/exhaustion fixtures after the short gate passes."
+    },
+    {
+      "id": "V7-11.3-07",
+      "section": "11.3",
+      "source_line": 688,
+      "original_text": "- At least 25 consecutive accepted floor generations show no monotonic\n  retained-object, actor, component, or lease growth after the short gate\n  passes. Record rejected attempts and cleanup as part of the same soak; do\n  not hide failures by restarting the counter or discarding reports. Separate\n  legitimate shared-cache warmup from leaked attempt ownership.",
+      "label": "25-floor ownership retention soak",
+      "original_text_sha256": "bf9bfcb9f3919666458a47386da21dee373f615f82328fe4c08c7da32608dde9",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "After three-floor success, run the single planned 25-consecutive-accepted-floor ownership soak, retaining rejections and cleanup."
+    },
+    {
+      "id": "V7-11.4-01",
+      "section": "11.4",
+      "source_line": 696,
+      "original_text": "- Successful cold Editor, Development, and Shipping builds.",
+      "label": "Cold Editor, Development and Shipping builds",
+      "original_text_sha256": "bfd26ba215313854b2df38e1c83ccce4b72595394f0820a4fb009e74f3f0433c",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Produce successful cold Editor, Development and Shipping build receipts from the required current candidate/final tree."
+    },
+    {
+      "id": "V7-11.4-02",
+      "section": "11.4",
+      "source_line": 697,
+      "original_text": "- Affected Blueprint compilation with zero errors and no protected saves.",
+      "label": "Affected Blueprint compile without protected saves",
+      "original_text_sha256": "1efb9bf4ea56322aad503e4c81a1f7c35b8a3ddf256f5ded1b5b63b841b06a1a",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Compile affected Blueprints with zero errors and compare protected package hashes/save activity."
+    },
+    {
+      "id": "V7-11.4-03",
+      "section": "11.4",
+      "source_line": 698,
+      "original_text": "- Actual cook and fresh Development/Shipping packages, each linked to the\n  exact candidate/final tree and process/log evidence.",
+      "label": "Fresh cook and both package configurations",
+      "original_text_sha256": "45b82f05f0f0387a010d572479c4506886b5a55cf43edf3d3975fa089ab36030",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Actually cook and create fresh Development and Shipping archives tied to exact source/build/asset manifests and process exits."
+    },
+    {
+      "id": "V7-11.4-04",
+      "section": "11.4",
+      "source_line": 700,
+      "original_text": "- Packaged traversal and visual smoke tests, repeated after V6 retirement.",
+      "label": "Packaged traversal before and after retirement",
+      "original_text_sha256": "25f38def354385232e2d087fb433434997e2441f53ba42eb42c83b559959f139",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Capture packaged real traversal and inspected visual smoke in both configurations, then repeat after V6 retirement on the final tree."
+    },
+    {
+      "id": "V7-11.4-05",
+      "section": "11.4",
+      "source_line": 701,
+      "original_text": "- No active V3/V4/V5/V6 Director authority, classes, redirects, or runtime/cook\n  package dependencies in the final project.",
+      "label": "V7-only final authority and dependencies",
+      "original_text_sha256": "f0671cf729d7434c6d295cc2ea65406adb0b803d83a3eb92c26913b7b0e61228",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "After candidate acceptance, audit and retire exact legacy authority/classes/redirects/dependencies and verify the final source and cooked closures."
+    },
+    {
+      "id": "V7-11.4-06",
+      "section": "11.4",
+      "source_line": 703,
+      "original_text": "- Intended RealisticBlood texture dependency closure only for decals, with no\n  unintended Demo/Blueprint/Niagara assets and preserved native Calysto torches.",
+      "label": "Blood texture closure and native torches",
+      "original_text_sha256": "636dd260b6279226da6f0a54834f1027f39328b78a0e7bfca15e2197d2bebfff",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Audit the actual texture dependency closure and prove native Calysto torch effects remain available."
+    },
+    {
+      "id": "V7-11.4-07",
+      "section": "11.4",
+      "source_line": 705,
+      "original_text": "- Recorded target hardware and total Door-to-FloorReady latency including\n  failures/cleanup; initial P95 target below 30 seconds. Report cold/warm\n  PSO/nav/hitch/memory measurements and sample counts without invented baseline\n  improvement or excessive stress runs.",
+      "label": "Hardware, latency, PSO, navigation, hitches and memory",
+      "original_text_sha256": "52d48d84eb2557e0c6431df16b2cedad2f9719bb3fbea6630854172fe865db87",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Record hardware, cold/warm stage samples and Door-to-FloorReady distributions including failures/cleanup; evaluate the original P95 target honestly."
+    },
+    {
+      "id": "V7-11.4-08",
+      "section": "11.4",
+      "source_line": 709,
+      "original_text": "- Every required process exits successfully with clean relevant logs. PASS\n  JSON followed by a crash cannot satisfy a gate.",
+      "label": "Clean actual process exits and logs",
+      "original_text_sha256": "0a1b4218a31ae800866066ef5ce79e75f7f2c8cf85ebdbc0631886f91ed37bb3",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [
+        "EV-NATIVE-CANDIDATE-20260905",
+        "EV-MCP-OPERATOR-20260908"
+      ],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Wait for every required actual process exit, review final relevant logs, and reject crash/warning or incomplete-exit executions."
+    },
+    {
+      "id": "V7-11.4-09",
+      "section": "11.4",
+      "source_line": 711,
+      "original_text": "- Protected hashes are compared before/after every phase. Preserve and report\n  pre-existing discrepancies separately; never silently accept a new baseline.",
+      "label": "Per-phase protected comparisons",
+      "original_text_sha256": "36da5b660a99662b683a77e736bbf29a51177d344732fa2191157d7610686beb",
+      "status": "PENDING",
+      "required_scope": "Current V7 production candidate and exact final V7-only tree; repeat affected build/live/package evidence after retirement as required by the original contract.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Compare complete protected sets before/after each phase and retain historical discrepancies independently of task-local parity."
+    },
+    {
+      "id": "V7-11.4-10",
+      "section": "11.4",
+      "source_line": 713,
+      "original_text": "- RealisticBlood entitlement confirmed before distribution; until then that\n  gate stays PENDING even if technical packaging passes.",
+      "label": "Distribution entitlement",
+      "original_text_sha256": "82e06e0d48e7a8c9c9ed68a34e56dbb4179fad2af3832356bbc579f9977a1a49",
+      "status": "PENDING",
+      "required_scope": "Distribution entitlement before distribution, separate from technical completion.",
+      "verified_scope": null,
+      "acceptance_evidence": [],
+      "historical_or_partial_evidence": [],
+      "remaining_gap": "No receipt currently proves every part of this original criterion for its required source/runtime/package scope.",
+      "next_action": "Obtain explicit evidence of RealisticBlood entitlement before distribution; installed assets and successful packaging do not prove it."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EV-INITIAL-SNAPSHOT",
+      "status": "PASS",
+      "scope": "Historical task-resume snapshot identity only; no build, runtime or release acceptance.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Snapshot.json",
+          "sha256": "b6ba42bf3ea01ee1cd9a70d7ee9e7f75037d71f1efe7dd0cb398552a98b74a65"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/SourceBefore.zip",
+          "sha256": "2ca8171e43dded6760cbae3f32ab65e3c09b8a8e44c2e60396f09783b76cfcfd"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T09:38:24.253950+00:00",
+      "commit": "5ec929d76546e95249cab4735f96176e3ca7911f",
+      "process_exit": null,
+      "limitations": [
+        "No current-tree compilation or accepted V7 floor is proved by this snapshot.",
+        "Parent owns build/editor/protected phase receipts; append them when finalized."
+      ]
+    },
+    {
+      "id": "EV-PROBABILITY-100K-20260905",
+      "status": "PASS",
+      "scope": "Historical single production in-memory native test result only.",
+      "symbol": "NoShellForWinter.CalystoDungeon.Director.Probability.100000Trials",
+      "source_path": "Plugins/EFProcedural/Source/EFProceduralRuntime/Private/Tests/EFCalystoDirectorFoundationTests.cpp",
+      "tested_source_sha256": null,
+      "test_timestamp_unreal": "2026.09.05-14.05.22",
+      "trials": 100000,
+      "elapsed_seconds": 0.3897463083267212,
+      "warnings": 0,
+      "errors": 0,
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorMaterializer_20260905/Report/index.json",
+          "sha256": "f76dc98ea65c26ee1e37a35e1c46d9e57e0b1c68ec3fd60b438e2b146db51a71"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorMaterializer_20260905/StrictSummary.json",
+          "sha256": "4f72224f7bf7a99417af2fc7763d217fa0954ad0bbab0ea94fec9ceb6d4aa732"
+        }
+      ],
+      "launcher_exit_code": 0,
+      "actual_editor_exit_code": null,
+      "surrounding_execution_status": "FAIL",
+      "limitations": [
+        "Exact source hash for the tested binary has not been established by this ledger.",
+        "Complete Section 11.1-03 coverage, per-law assertions and current scope remain PENDING.",
+        "No world generation, accepted-world probability or full-run clean-log gate is proved."
+      ]
+    },
+    {
+      "id": "EV-NATIVE-CANDIDATE-20260905",
+      "status": "FAIL",
+      "scope": "Historical exact 70-test native suite execution, not final V7 acceptance.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorMaterializer_20260905/StrictSummary.json",
+          "sha256": "4f72224f7bf7a99417af2fc7763d217fa0954ad0bbab0ea94fec9ceb6d4aa732"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorMaterializer_20260905/Report/index.json",
+          "sha256": "f76dc98ea65c26ee1e37a35e1c46d9e57e0b1c68ec3fd60b438e2b146db51a71"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorMaterializer_20260905/Native.log",
+          "sha256": "a4d94db325035dae207f94c225416f8d1f65162536348301b9ac280838189d0f"
+        }
+      ],
+      "expected_tests": 70,
+      "succeeded_cleanly": 69,
+      "succeeded_with_warnings": 1,
+      "failed_test_states": 0,
+      "launcher_exit_code": 0,
+      "actual_editor_exit_code": null,
+      "elapsed_seconds": 71.05468240000482,
+      "timeout_seconds": 180,
+      "failure_symbol": "NoShellForWinter.CalystoDungeon.Director.ContentRealization.ExactActorAndWholeRollback",
+      "failure": "LogSpawn UWorld::DestroyActor reported World has no context; strict aggregate/inventory gate FAIL.",
+      "limitations": [
+        "A Success test state with a warning is not a clean PASS.",
+        "Latest source changes need new source-bound build and targeted validation."
+      ]
+    },
+    {
+      "id": "EV-NATIVE-TRAVERSAL-HISTORY",
+      "status": "FAIL",
+      "scope": "Historical native-candidate traversal investigations, no accepted V7 floor.",
+      "artifacts": [
+        {
+          "path": "Docs/Migration/Evidence/Calysto_Director_Native_Candidate_20260905.md",
+          "sha256": "999d13f5951fbb65db658dd2d2b374f510127d288357214df6ba4f6c102003bc"
+        },
+        {
+          "path": "Docs/Migration/Evidence/Calysto_Director_Traversal_Harness_20260905.md",
+          "sha256": "74dfb4c31bd9d6e7d88c25f0a9ee7632f40a7a7c9606aafd04bab2f696ab5dde"
+        }
+      ],
+      "accepted_final_v7_floors": 0,
+      "actual_process_exit_code": null,
+      "limitations": [
+        "Narrative evidence points to individual failed attempts; it does not substitute for current-source live/package validation."
+      ]
+    },
+    {
+      "id": "EV-RESUME-CONTEXT",
+      "status": "PENDING",
+      "scope": "Initial live-editor availability and current compiled state at resume.",
+      "timestamp_utc": "2026-09-08T09:38:24.253950+00:00",
+      "reported_by": "Parent agent read-only MCP/process preflight",
+      "live_editor": "No target editor/process listening at initial parent probe; live conclusions PENDING.",
+      "compiled_current_source": false,
+      "accepted_current_v7_floor": false,
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Snapshot.json",
+          "sha256": "b6ba42bf3ea01ee1cd9a70d7ee9e7f75037d71f1efe7dd0cb398552a98b74a65"
+        }
+      ],
+      "limitations": [
+        "Update only from completed parent process/build/live receipts, not from planned work."
+      ]
+    },
+    {
+      "id": "EV-MCP-OPERATOR-20260908",
+      "status": "PASS",
+      "scope": "Successful discovery and individual context, fixed traversal arming, actual-PIE diagnostics and graceful shutdown operations only; no traversal or final-source acceptance.",
+      "toolset": "EFProceduralEditor.EFCalystoDirectorToolset",
+      "operations": [
+        "ReadEditorContext",
+        "ArmTraversal",
+        "ReadDirectorDiagnostics",
+        "RequestEditorShutdown"
+      ],
+      "engine_observed": "5.8.2-56702186+++UE5+Release-5.8",
+      "diagnostics_transport": "returnValue JSON contains original diagnostics_json string; preserve int64 values without floating-point conversion.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/NativeFixToolset0.txt",
+          "sha256": "9225306d806a9e4c4dc73c208fba87c19ce5c73849063530c020a873cbe3d31e"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/NativeFixToolset1.txt",
+          "sha256": "3dcfff0234b5a357f1c676b249cc5141ac6e98b86696a0f18809f1cc96386030"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/McpNativeContext.json",
+          "sha256": "1a095553dfe8e4deaee51a9078f8cf4837a22cf72b703f2cf70ccd61ab29df5f"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/McpArmNativeCold.json",
+          "sha256": "d6ce401394d7015ca975a9c1e428ad34f27602df9244f385f017b7a610dfa804"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/McpArmNativeWarm.json",
+          "sha256": "c7fe7a33c7368834325d4f8134a47c12f898e5c0ef44ded0d5888951476ecfa1"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/McpLiveNativeWarmObservation.json",
+          "sha256": "3d3ba53637bcb2f2ef2b28692f995a738c3d2efe34ae8df20b87c9de0971d88c"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildMcpOperatorFixReceipt.json",
+          "sha256": "50d6e4b26390996edf25f34f762dd7bbae8e4f3bbad69e76283b0ee43d130917"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMcpNative/Launch.json",
+          "sha256": "50da424bab93ed70935c9661c4d256ea3476e5335915a32b8274ef61eaf5f5bb"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMcpNative/Exit.json",
+          "sha256": "807aaf9e29b647a529d643cfeb48be0cc7094c4742647ddc08bcb48e2caee926"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMcpNative/Editor.log",
+          "sha256": "f8e6cbb25b536fcffe1375e1a22a6236c22d79be4e55aa6a91a30643c79a3072"
+        }
+      ],
+      "actual_process_exit_code": 0,
+      "exit_evidence_method": "LiveMcpNative/Exit.json reports EXIT_ZERO after LaunchMcpNative.ps1 waited through the protected launcher, which checks the owned child ExitCode; final log records CloseEditor and Exiting.",
+      "exit_timestamp_utc": "2026-09-08T10:14:53.4041064Z",
+      "tested_complete_source_sha256_manifest": null,
+      "limitations": [
+        "Successful calls do not prove every refusal branch.",
+        "Complete tested-source/binary manifest linkage and full clean-log final-tree gate remain PENDING.",
+        "Computer Use native pipe was unavailable; the project MCP tool supplied the fixed harness operation."
+      ]
+    },
+    {
+      "id": "EV-MCP-TRAVERSAL-20260908",
+      "status": "FAIL",
+      "scope": "Historical cold and warm native-parity real-door runs before the current lighting/shared-load corrections.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_NativeMcpCold/traversal.json",
+          "sha256": "0cd4977731510bf1ea9a22abf04231e4ae966a5165fb66ef55a2744fcabccbb0"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_NativeMcpWarm/traversal.json",
+          "sha256": "68c59ef0c8e4dee80654741c836e49bc0b1784e68822f94a63dc951a44147bdb"
+        }
+      ],
+      "run_seed": "2959332854660340481",
+      "first_topology_seed": 2068023713,
+      "cold_failure": "SharedResourcesUnavailable: shared preparation 30.020955801s; terminal floor request 25.129822101s; zero native generation requests.",
+      "warm_observation": "Shared preparation 0.227272101s; actual GenerateLocal count one on observed attempts; native wall-light transform rejection followed by the unchanged request deadline.",
+      "accepted_final_v7_floors": 0,
+      "limitations": [
+        "No consecutive accepted floors, navigation/material/gameplay/visual acceptance or packaged result.",
+        "Changed-source corrections require new native and cold/warm runtime evidence."
+      ]
+    },
+    {
+      "id": "EV-V7-REPLAY177-20260908",
+      "status": "PASS",
+      "scope": "Exact V7 run-to-first-topology seed mapping observed on the actual transient native-parity Director only.",
+      "run_seed": "1219803037753221267",
+      "topology_seed": 1779679224,
+      "identity": {
+        "style_id": "43414C59-5354-4F4E-4154-495645535459",
+        "floor_number": 1,
+        "reroll_index": 0,
+        "attempt_index": 0
+      },
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/DeriveNativeReplaySeeds.py",
+          "sha256": "1cc22796894d61a817a9fe9b1f60f372a7751f3f456475c3a6b49f5172577329"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_LightObservationSeed177/traversal.json",
+          "sha256": "df74d52910554090b33c08cb556322a237b2f02a1f05fbde1fd41a6dae3fdef0"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_LightObservationSeed177Warm/traversal.json",
+          "sha256": "fa6c77c241f86756ec5566f2e5733002a9f7b6c9f75cb9cd3896ef08d10ba28a"
+        }
+      ],
+      "limitations": [
+        "Both traversal receipts FAIL; seed correspondence does not prove playable topology.",
+        "Mapping is conditional on the recorded Style/floor/reroll/attempt and current random-domain algorithm."
+      ]
+    },
+    {
+      "id": "EV-V7-REPLAY119-20260908",
+      "status": "PENDING",
+      "scope": "Mathematically derived V7 native-parity replay input; live topology and traversal confirmation not yet observed.",
+      "run_seed": "-3003287693235273058",
+      "topology_seed": 1190737158,
+      "identity": {
+        "style_id": "43414C59-5354-4F4E-4154-495645535459",
+        "floor_number": 1,
+        "reroll_index": 0,
+        "attempt_index": 0
+      },
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/DeriveNativeReplaySeeds.py",
+          "sha256": "1cc22796894d61a817a9fe9b1f60f372a7751f3f456475c3a6b49f5172577329"
+        }
+      ],
+      "mathematical_derivation_verified": true,
+      "live_topology_verified": false,
+      "limitations": [
+        "Do not count the derivation as a live run, accepted floor or completed failing-seed matrix."
+      ]
+    },
+    {
+      "id": "EV-NATIVE-TRILOGIES-20260908",
+      "status": "PASS",
+      "scope": "Native fixture traversal only. First known topology177 has short grounded walks; topology119 has complete protected-route walks on all3floors. No population/decals/full gameplay/final cap return/release acceptance. Black screenshots explicitly do not pass visual QA.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_WorldNavTrilogySeed177/traversal.json",
+          "sha256": "6804a3abb1efc3fd210b90da6d742a9167dbd9d46c806107b33b361c819e6070"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_WorldNavTrilogySeed177/first_attempt_geometry.json",
+          "sha256": "42200ec20a1d2424ccc861398ba9f50adf1b97435cc5fc7605d23e086e65ef4f"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_WorldNavTrilogySeed177/floor_01.png",
+          "sha256": "29b9ad2843a8943aabe17884ac1482e19b7ab7e7c038186e4cb5e7c6e14fcfc4"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_WorldNavTrilogySeed177/floor_02.png",
+          "sha256": "29b9ad2843a8943aabe17884ac1482e19b7ab7e7c038186e4cb5e7c6e14fcfc4"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_WorldNavTrilogySeed177/floor_03.png",
+          "sha256": "29b9ad2843a8943aabe17884ac1482e19b7ab7e7c038186e4cb5e7c6e14fcfc4"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_RouteSeed119/traversal.json",
+          "sha256": "4dd40b352c00d33571fad57d957cf9bdefabfe4a6c6cc9c8eed3b4aaed8498b4"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_RouteSeed119/first_attempt_geometry.json",
+          "sha256": "41472d0af2b7bd09cfb48a477b28d160902a4a7f25b744fe76540240e88141bf"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_RouteSeed119/floor_01.png",
+          "sha256": "ecf96857fe55c6b3a5f3dca774349bc5749ef79e8344216c5e5aae8009c7ba15"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_RouteSeed119/floor_02.png",
+          "sha256": "04ce074c06233da1dd8d13d14b1f45e0d92f6d4bd33b7fa653acdfa8e1658f31"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_RouteSeed119/floor_03.png",
+          "sha256": "df903b4bbdd3a3b338a8e2987d12f440429529744940d3faeabe12cce9b2979d"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T12:14:05.153050+00:00",
+      "run_seeds": [
+        1219803037753221267,
+        -3003287693235273058
+      ],
+      "first_topology_seeds": [
+        1779679224,
+        1190737158
+      ],
+      "elapsed_seconds": [
+        17.985,
+        77.594
+      ],
+      "actual_editor_exit": [
+        "Resume_20260908/LivePlayerResolution/Exit.json",
+        "Resume_20260908/LiveSeed119Route/Exit.json"
+      ],
+      "source_build_receipts": [
+        "Resume_20260908/BuildPlayerResolutionReceipt.json",
+        "Resume_20260908/BuildThemeMetadataReceipt.json"
+      ],
+      "limitations": [
+        "LivePlayerResolution log includes an earlier handled Python navigation CDO ensure; corrected instance invocation tested in fresh LiveSeed119Route.",
+        "Current source is advancing; exact source/binary/package final gates remain required."
+      ]
+    },
+    {
+      "id": "EV-LIT-NATIVE-TRILOGY-20260908",
+      "status": "PASS",
+      "scope": "Native fixture only: full protected-route walking on three real-door floors, native torch component verification and visible native structure. Not full catalog, final theme colors, raw generator parity or release acceptance.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_ScsLitRouteSeed177/traversal.json",
+          "sha256": "3de010c770689a9c6c54d032ac2b5464143d76f5974d2cf33a1bfad482726745"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_ScsLitRouteSeed177/floor_02.png",
+          "sha256": "fbbaa4e8afd7e02625fd9b68fd12ea3c2b32f9d12f7dfde475b283cc87b93f28"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_ScsLitRouteSeed177/floor_03.png",
+          "sha256": "06ca6a34d147ae54bda2c40a74d299981baafd46cb2b0028015fe6233228c1b3"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveNativeScsTorch/Exit.json",
+          "sha256": "395076720db44aebf2062e02f294479bad8638dcc3a2d6572400bc7c0b2dc5ed"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LitNativeGeometryComparison.json",
+          "sha256": "75996fc74328e6a2b9a7d7eeedd393e305d1cc8ffe0aea3ea820c4df43148aa3"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T13:19:55.878685+00:00"
+    },
+    {
+      "id": "EV-TRAITS-ARCHITECTURE-20260908",
+      "status": "PASS",
+      "scope": "Six exact native tests, including 100000 optional architecture decisions and typed Chance/entry Weight effects. Production world placement/gameplay integration remains pending.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_TraitsArchitectureCopy_20260908/StrictSummary.json",
+          "sha256": "b84b67a6f1af39a60277ddcaf22086c1267315d6dda408d9eb5d0f2d7e35f7bd"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_TraitsArchitectureCopy_20260908/Report/index.json",
+          "sha256": "ba975919bde4ee8f629176c86126484566ca02026257f0174ee9a7f66da73b25"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T13:19:55.878685+00:00"
+    },
+    {
+      "id": "EV-MASTER-MIGRATION-20260908",
+      "status": "PASS",
+      "scope": "Exact master saved with complete 2913 migration records, read-only V6, and native roundtrip. Fresh Editor reload confirms zero-save idempotence, zero authoring errors, readable actual native Details and clean exit0. Original exit3 remains archived. This proves asset migration/reload and operator access only; nested authoring UX, gameplay effects and full release gates remain PENDING.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/AuthoringMasterSave_20260908/ImportDirector.json",
+          "sha256": "2abaa6b7737dcb75a98302d8ff42bc2e3208cc66494a40e919a7392360cc056f"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/AuthoringMasterIdempotence_20260908/ImportDirector.json",
+          "sha256": "36af8f391b90fc6d853d263992503a61050e5c2a94a18103269ec4636db9cee5"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMasterMigration/Editor.log",
+          "sha256": "1f4c105db9ba997b841277ac6a610a533a509e32180659b285f95c69cacb73fa"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/ProtectedAfterMasterComparison.json",
+          "sha256": "d020c62f13348ac55951ddc0074584eb3a75a65dceddf512ac98be89b9e8ad6b"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/AuthoringReloadIdempotence_20260908/ImportDirector.json",
+          "sha256": "4f734b48dc7b6b2d3101060d921be6b6569f072b052333dfdbdbf63b885b4fc9"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMasterReload_2000/MasterDetails.png",
+          "sha256": "a542d317960af711c2fbf26e32af58df7213785474af97403e2182b25d22978c"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMasterReload_2000/Editor.log",
+          "sha256": "abd4f1d71637d918eef0a8185a66a2b193d5138e0092c9ff680ee29278a74b68"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMasterReload_2000/Exit.json",
+          "sha256": "d6a5b96a2cbb7564d5702fe139fdfc78192a4acb74ee6f264b254f0653191d39"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T20:14:54.924979+00:00"
+    },
+    {
+      "id": "EV-SNAPSHOT-PUBLICATION-20260908",
+      "status": "PASS",
+      "scope": "Four exact native tests, actual process exit0, 60.9159757 seconds including startup. Real ACF equipment/item/fragment/roster/outcome snapshot same-world rollback and identity reordering; production coordinator release boundary with controlled prepared state and real possessed pawn; existing lifecycle; read-only native Forge baked payload decoding9 meshes/8 dependencies. No full catalog, cross-world restoration, native baked Chance50/RotateZ interpretation or gameplay traversal claim.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_SnapshotPublication_20260908_2010/StrictSummary.json",
+          "sha256": "050ab8b01ccdd6cdc4a44240b8f13de90824479657c73eac7df86427d9dafc57"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_SnapshotPublication_20260908_2010/Report/index.json",
+          "sha256": "da3d392585c100ca142dfb5f71ef44afdc9d4ae891c8b02b28ea36a92353f38d"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_SnapshotPublication_20260908_2010/Native.log",
+          "sha256": "f11a3f8973c9aa3fdb4b2b4e06520332f3270c538f619ea323bbfe8880fb1ec9"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildPublicationPointer_2009.json",
+          "sha256": "9436f3364565dde55bee605366cd665af66535cb0b2c5bf0df77ac9a46a9dfd3"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2014/Snapshot.json",
+          "sha256": "84dc266c01aa2958a672bf8801c24aa5b2c32da4b2fe1bb38dfcfe5dcdcfec01"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T20:14:54.924979+00:00"
+    },
+    {
+      "id": "EV-ACTIVATION-NATIVE-20260908",
+      "status": "PASS",
+      "scope": "Five exact native tests passed with actual exit0: real nonempty materializer accepted activation/cleanup, existing exact staging/bindings/rollback and read-only native graph evidence. Full project gameplay bridge and coordinator activation result integration remain pending.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ActivationNativeContract_20260908_2021/StrictSummary.json",
+          "sha256": "1b6ae56102d74048ce55efd2f387a481e652bf188c9de07f4cba6a440f713eaa"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ActivationNativeContract_20260908_2021/Report/index.json",
+          "sha256": "14202c83b06ba99f73628178348530fb84d3da1250ac6be492fce46845a6fd44"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ActivationNativeContract_20260908_2021/Native.log",
+          "sha256": "537cfe81660c2c473ad200bb70a708417abcbd24b60fe245cc547b59d5270456"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T20:47:31.364180+00:00"
+    },
+    {
+      "id": "EV-BAKED-SURFACE-LOADING-20260908",
+      "status": "PASS",
+      "scope": "Eight exact native tests passed with actual exit0 in65.5283125s. Baked native child probabilities and relative/world yaw:100000 trials per law, independent six-sigma/CDF oracles,4.397s calculation. Actual Forge9children/8dependencies, stable point reorder, mandatory table and optional child semantics. Registered physics fixtures prove dense floors, wall/corner/roof, whole jitter obstruction, protected route and bounded atomic failure. Real streamable parent/child leases prove deduplication, cancellation and stale callbacks; selected Style/depth dependency filtering tested. Recast positive coverage, architecture world materialization and full gameplay remain pending.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_BakedSurfaceLoading_20260908_2045/StrictSummary.json",
+          "sha256": "31942e52652799a7b65a2d0d8c3ab86a4897724f169d93804029396de100d345"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_BakedSurfaceLoading_20260908_2045/Report/index.json",
+          "sha256": "71deb177c5c5d1eec735dc33ddbb314af09b33c610d91928cb6a5ad315c241f4"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_BakedSurfaceLoading_20260908_2045/Native.log",
+          "sha256": "c14b0562a30271f7e701a17e5277d4c29a78be45d4369a69e1c7974810530c5d"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildBakedSurfaceLoading_2043.json",
+          "sha256": "68e1f0bb4b23d92d7e84fa8e4c8d25a0a2b854b8b6347d599055dd5f2a5f3aba"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildBakedSurfaceLoadingScalar_2045.json",
+          "sha256": "fca21eb87be928aa10907f718f430169678d55876daccf66d5ce41c21b976a99"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2046/Snapshot.json",
+          "sha256": "3529ebb0fc31e0dd4d180f423776c4939201c917c653f2258c4e69a1328ac6b0"
+        }
+      ],
+      "timestamp_utc": "2026-09-08T20:47:31.364180+00:00"
+    },
+    {
+      "id": "EV-COOKED-SUPPORT-BATCH-20260908",
+      "status": "FAIL",
+      "scope": "Whole batch FAIL:4/5 tests passed, actual native cooked floor/wall/roof collision compatibility and exact architecture mesh realization passed. Player Recast isolated fixture was interrupted by EnhancedInput ensures before its first tick. Native elapsed57.404s, launcher1. No whole-gate acceptance.",
+      "timestamp_utc": "2026-09-08T21:41:05.285771+00:00",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_CookedSupportMeshBatch_20260908_2108/StrictSummary.json",
+          "sha256": "24bc231298c427b8668c9e92874b3ccb3f5ef9730a3fc8afaa5c5ba56a51bbfc"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_CookedSupportMeshBatch_20260908_2108/Report/index.json",
+          "sha256": "a2829a7d4020b06edf976f9f76ff79068dde5b276dbc74d7005af4633d241468"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_CookedSupportMeshBatch_20260908_2108/Native.log",
+          "sha256": "e4637d6836d15c7670eac2f5e6826dc038bb97fd2678d7ce6eee8971d3e7a870"
+        }
+      ]
+    },
+    {
+      "id": "EV-ACTIVATION-SURFACE-BATCH-20260908",
+      "status": "FAIL",
+      "scope": "Whole batch FAIL:6/7 tests passed. Production coordinator11 accepted/publication/reentrancy/invariant-failure scenarios pass, accepted cleanup retains committed values; exact nonempty materializer activation/rollback passes. Player Recast isolated fixture again failed before its first tick. Elapsed121.713s, launcher1. MarkAsGarbage did not solve iterator inclusion.",
+      "timestamp_utc": "2026-09-08T21:41:05.285771+00:00",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_AcceptedActivationSurface_20260908_2118/StrictSummary.json",
+          "sha256": "d30da88cf8940132c763aaaa9fadc66a0455a07a26bec7c93176536d00e62997"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_AcceptedActivationSurface_20260908_2118/Report/index.json",
+          "sha256": "a1a8155e03cdfbbe7be59eb78333e53dff53122d0bb7e64afa8475966aab4013"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_AcceptedActivationSurface_20260908_2118/Native.log",
+          "sha256": "d2812959c2123dd23274f0cdec36c7a10b9a28f796ab30c0bb6ae052c564e518"
+        }
+      ]
+    },
+    {
+      "id": "EV-ARCHITECTURE-INTEGRATION-BATCH-20260908",
+      "status": "FAIL",
+      "scope": "Whole batch FAIL:11/12 tests passed, elapsed59.416s, launcher1. Shared real physics proves eight native architecture zones, full supported yaw/translation/scales, blocker and floating endpoint exclusion. Native baked typed point data proves actual bounds and conditional child feasibility. Original Forge PCGDA_Table expands into frozen native child meshes/material slots and realizes through actual ISMs; this is not yet proof of its placement in a generated room.100000 trials per baked Chance/yaw law pass in3.254s. Player Recast still failed before first tick: UE5.8 TObjectIterator default excludes Unreachable but not Garbage, so deinitialized input subsystems remain visible. One real test-boundary GC is now pending compilation and retest; no engine patch or input fabrication.",
+      "timestamp_utc": "2026-09-08T21:41:05.285771+00:00",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ArchitectureIntegration_20260908_2134/StrictSummary.json",
+          "sha256": "9d4ea139615cf547c20e5a735508a20d6a903aa3a1613e6e3dece884eef7a899"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ArchitectureIntegration_20260908_2134/Report/index.json",
+          "sha256": "8312b72b8cc5ab02614d8ed019af1510ae98a08cb0f67db6f20021639af64ad1"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ArchitectureIntegration_20260908_2134/Native.log",
+          "sha256": "b77fc25c75fdde7110e08f08f4f2157ab529635296364acf7d3426dbd3c1ddaa"
+        }
+      ]
+    },
+    {
+      "id": "EV-TYPED-SURFACE-LIFECYCLE-20260908",
+      "status": "PASS",
+      "timestamp_utc": "2026-09-08T21:48:08.309753+00:00",
+      "scope": "Twelve exact native tests pass with actual process exit0 in52.4720918s. Positive actual Player Recast0.175s; exact mesh batch0.012s; original Forge native payload-to-ISM0.031s; eight-zone/whole-variation physics0.021s; bounded baked geometry0.017s; native cooked support0.044s; accepted activation/publication/cleanup, fixture authoring and100000 trials per native baked probability/yaw law2.928s. This is native fixture evidence, not full master floor/PIE/release acceptance.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_TypedSurfaceLifecycle_20260908_2146/StrictSummary.json",
+          "sha256": "c799470b2d9ba994b9e004d84e705412579781f4ba85d0abd5e8ee7d62f2d2ef"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_TypedSurfaceLifecycle_20260908_2146/Report/index.json",
+          "sha256": "8705d6c8c227b7f33be5b635de5764ef84bc8f10163769b580b713057ae428a7"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_TypedSurfaceLifecycle_20260908_2146/Native.log",
+          "sha256": "d8f23800dec82bed0c54a39f3cd96e6d7abeec9732f3921e4537c6e1e99e6b57"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2147/Snapshot.json",
+          "sha256": "1cdf1a386c3c7bafb7aea772d058e4367c7e737afff138d624f6b784a06afbe5"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildTypedSurfaceLifecycle_2145.json",
+          "sha256": "2b3b6da46c01ca4858a2f0ba078b9a5d7fbb8b6665d3245609a8634e0ab503ce"
+        }
+      ]
+    },
+    {
+      "id": "EV-ARCHITECTURE-FIRST-PIE-20260908",
+      "status": "FAIL",
+      "timestamp_utc": "2026-09-08T22:05:20.480170+00:00",
+      "scope": "Native architecture fixture first real-door floor rejected UnsupportedSupportFace before selection/acceptance. No automatic reseed for configuration error. Editor launcher exit0; full trilogy not observed.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_ArchitectureSeed177/traversal.json",
+          "sha256": "839ad5837344a43c7fbd020c8868e4bd0eeafc91cccec15e72d79b92feec6779"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveArchitectureFixture_2148/Exit.json",
+          "sha256": "427a545eaa8f2256e1eed713488c46005466f8dd3907fb19b322763817d67870"
+        }
+      ]
+    },
+    {
+      "id": "EV-TYPED-BRIDGE-20260908",
+      "status": "PASS",
+      "timestamp_utc": "2026-09-08T22:05:20.480170+00:00",
+      "scope": "Five exact native tests pass with actual exit0 in49.244s. Typed accepted bridge activation covers ten scenarios; regular native wall transformations pass. No full gameplay bridge or full floor acceptance.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ObservedWallBridge_20260908_2202/StrictSummary.json",
+          "sha256": "fabc096b09fefeefa3bc97fce172b0575044c8f89ff84e39631811314cc9f867"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_ObservedWallBridge_20260908_2202/Report/index.json",
+          "sha256": "0ec96f542a595992b8b70d0a1b5c80d48ecb61cf1b2e682e8a801f9c4404388a"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildObservedWall_2201.json",
+          "sha256": "8eaeb72eceabb0e81ef6d3d43778a11a9bc774946eff195ca25a921b87c9e973"
+        }
+      ]
+    },
+    {
+      "id": "EV-DOORWAY-FACE-REPRO-20260908",
+      "status": "FAIL",
+      "timestamp_utc": "2026-09-08T22:05:20.480170+00:00",
+      "scope": "One exact native geometry test reproduces SM_WallDoor five-vertex planar face rejection; deviation0 identifies winding rather than absent planar collision. Actual exit1 in48.326s; receipt preserved.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorwaySupport_20260908_2204/StrictSummary.json",
+          "sha256": "e227b00e17222afeabe538b5ffad4f1006502b2b8bdc5f10755565f36f6da63a"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_DoorwaySupport_20260908_2204/Report/index.json",
+          "sha256": "75f30dbf0ce3a0c0ec6740718cff435eaca8a6d21d0c4e833dac52cadfc380c9"
+        }
+      ]
+    },
+    {
+      "id": "EV-PLANAR-BOUNDARY-20260908",
+      "status": "PASS",
+      "timestamp_utc": "2026-09-08T22:05:20.480170+00:00",
+      "scope": "Six exact geometry/navigation tests pass with actual exit0 in49.026s after robust plane normal/right-handed winding. Actual doorway wall, rotated/scaled walls, gaps, holes, eight zones, variation and real Player navigation covered. Generated-room architecture remains pending until current PIE.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_PlanarBoundary_20260908_2206/StrictSummary.json",
+          "sha256": "23c247ca44925a89659686513fd8c63c2592778e291d900757a44cc7ed6b9760"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_PlanarBoundary_20260908_2206/Report/index.json",
+          "sha256": "2f875d4324036599b35ceffb6c270218f92ad6f1178d46e911c80808f4ac471c"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildPlanarBoundary_2206.json",
+          "sha256": "93eeab36209179be40befa7377ad3b7b0ab51c1fc9fa823d1c3331bb85207081"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2208/Snapshot.json",
+          "sha256": "dcdcc249540f154891d4f18af52302750985a94b75d8e51b94f224a2c723d0d7"
+        }
+      ]
+    },
+    {
+      "id": "EV-PLANAR-BOUNDARY-PIE-20260908",
+      "status": "FAIL",
+      "timestamp_utc": "2026-09-08T22:29:09.393136+00:00",
+      "scope": "Native architecture fixture crossed actual doorway-face validation, but empty architecture failed harness. Initial final navigation Pending was wrongly rejected spatially before a later native floor accepted empty architecture. Editor actual exit0; this does not prove required architecture traversal.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Traversal_20260908_PlanarBoundarySeed177/traversal.json",
+          "sha256": "f4c7b0301546915a02ff5bbb3149ab72049689060c18ae4aa7c9ce89dd4d6bc1"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LivePlanarBoundary_2208/Exit.json",
+          "sha256": "d46b8438625a043c3df7790a4c41b127a53c9ab893b5adb079b50fff1e90647e"
+        }
+      ]
+    },
+    {
+      "id": "EV-PENDING-FORGE-REPRO-20260908",
+      "status": "FAIL",
+      "timestamp_utc": "2026-09-08T22:29:09.393136+00:00",
+      "scope": "FAIL1/3: original Forge attachment has no compatible surface; same-world snapshot and explicit Pending release cases individually pass.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_PendingForge_20260908_2216/StrictSummary.json",
+          "sha256": "3b0f044266f549da0ccb2bb32de919134d97d893a0268d0613543b8f4b340173"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_PendingForge_20260908_2216/Report/index.json",
+          "sha256": "e83ab161494722cbef1e12a92114e6f17f997fadd244063208437f602753038a"
+        }
+      ]
+    },
+    {
+      "id": "EV-NATIVE-CONTACT-REPRO-20260908",
+      "status": "FAIL",
+      "timestamp_utc": "2026-09-08T22:29:09.393136+00:00",
+      "scope": "FAIL1/7: original Forge actual collision/render feet are0.193751467948cm above its native origin, exceeding old0.05cm attachment tolerance. Portable two-world inventory and other six tests individually pass. Unnecessary render-bound contact experiment was removed; no substitute support proof remains.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_NativeAttachmentPortable_20260908_2224/StrictSummary.json",
+          "sha256": "04bcd254a40488745ee86fe04e4a5a27e1107f7c5602a7fb9ef8049b4e56f18a"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_NativeAttachmentPortable_20260908_2224/Report/index.json",
+          "sha256": "2d72ee71f342c61ba8f929b37dfa8c567f7b4f57e3c11d72bbee0f6858cf20d3"
+        }
+      ]
+    },
+    {
+      "id": "EV-NATIVE-CONTACT-PORTABLE-20260908",
+      "status": "PASS",
+      "timestamp_utc": "2026-09-08T22:29:09.393136+00:00",
+      "scope": "Exact7-test native batch PASS actual exit0 in49.5045s. Native attachment permits max0.25cm authored gap while0.05cm independent plane/penetration rules remain. Original Forge reaches actual floor trace and collision query; real missing tile and larger gap reject. Portable native inventory preserves identities/fragment cross-links/currency/roster aliases after source-world destruction/GC without events; equipped lifecycle explicitly pending. Final release has typed Pending and preserves token/attempt/publication ownership.",
+      "artifacts": [
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_NativeContactPortable_20260908_2228/StrictSummary.json",
+          "sha256": "1bbc14bcc215e96ef0b37846bc7281d4b920b371e9728484efab1b4992347a9c"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Native_NativeContactPortable_20260908_2228/Report/index.json",
+          "sha256": "141e9a493483f2976644eaa881c645cd58ff04682a848b80357061c34648d615"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildNativeContact_2228.json",
+          "sha256": "aa35b43e8746f85bdf2435d079309a1147c6572e54b6cb8000c90df41c8ebe72"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/BuildNativeAttachmentPortable_2224.json",
+          "sha256": "ba1c53581621937af3f460f8551664beab25a0dbd51011a796553074c92000b2"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Protected2218Comparison.json",
+          "sha256": "2f408c1c978098f9ab097dd9a00f5844b6656883a19545daa4d0d8d356ba4676"
+        },
+        {
+          "path": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2230/Snapshot.json",
+          "sha256": "e38c7ac412de184ba33e1d4831d0b481235e561f427f7480b8393dae969489f7"
+        }
+      ]
+    }
+  ],
+  "checkpoint": {
+    "owner": "Parent /root; sole Editor/build/asset owner",
+    "active_milestone": "4/5 - Native architecture realization and gameplay bridge integration",
+    "last_recorded_context": "2026-09-08T22:29:09.393136+00:00",
+    "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2230/Snapshot.json",
+    "next_action": "Protected Editor launcher6455 owns LiveNativeContact_2230. Fresh MCP discovery/context then ArmTraversal Traversal_20260908_NativeContactSeed177 native_parity and immediate StartPIE; 150s, require nonempty reserved/verified architecture each floor plus full route walking. Follow first failed postcondition. Latest native7/7 PASS actual exit0: original Forge contact/hole/gap, actual Player navigation, full variation, portable snapshot source-world destruction/reconstruction, same-world rollback, final-release Pending. No full master gameplay floor accepted. Auxiliary drafts real enemy/FloorLocal NPC bridge plus narrow Social accepted cleanup latch and Director companion level proof; keep staged outside Source until coherent build boundary.",
+    "verified_partial": [
+      "Earlier exact master migration/reload/native Details and three-floor native route evidence remain scoped partial evidence.",
+      "Architecture integration compiles through shared actual surface feasibility, native-slot planner, immutable parent/child manifest and exact native ISM materialization; native body/material realization fixture passes.",
+      "Coordinator now receives explicit accepted activation results, preserves accepted outcomes on invariant failure, records accepted cleanup and prevents spatial retry/player release; eleven scenarios pass within failed overall batch.",
+      "All eight architecture zones and supported complete variation envelopes pass real physics fixtures. Baked chance/yaw100000 trials per law pass.",
+      "Whole12-test native batch now passes with clean exit0; prior failed receipts preserved.",
+      "Typed bridge acceptance native gate PASS5/5; exact native doorway winding defect reproduced and corrected, geometry/native navigation gate PASS6/6.",
+      "Native7/7 clean process proves actual Forge attachment, typed final Pending and bounded portable unequipped inventory reconstruction."
+    ],
+    "current_process_ownership": "Parent Editor launcher6455; auxiliary staged bridge and necessary owner patches only.",
+    "pending_corrections": "Actual architecture placement/3-floor PIE remains pending. Full gameplay/cross-world state, actor and continuous pitch-roll architecture, all exposed controls, Themes/material boundaries, decals/extensions/advanced behavior/performance, legacy retirement and candidate/final packages remain pending.",
+    "continuation": "Continue automatically; checkpoint does not pause. Preserve source read-only,145 historical protected discrepancies, unversioned master and all immutable migration sources.",
+    "protected_comparison": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Protected2135Comparison.json",
+    "evidence": [
+      "EV-COOKED-SUPPORT-BATCH-20260908",
+      "EV-ACTIVATION-SURFACE-BATCH-20260908",
+      "EV-ARCHITECTURE-INTEGRATION-BATCH-20260908",
+      "EV-TYPED-SURFACE-LIFECYCLE-20260908",
+      "EV-ARCHITECTURE-FIRST-PIE-20260908",
+      "EV-TYPED-BRIDGE-20260908",
+      "EV-DOORWAY-FACE-REPRO-20260908",
+      "EV-PLANAR-BOUNDARY-20260908",
+      "EV-PLANAR-BOUNDARY-PIE-20260908",
+      "EV-PENDING-FORGE-REPRO-20260908",
+      "EV-NATIVE-CONTACT-REPRO-20260908",
+      "EV-NATIVE-CONTACT-PORTABLE-20260908"
+    ],
+    "accepted_final_v7_floors": 0
+  },
+  "checkpoint_history": [
+    {
+      "owner": "Parent agent /root; sole editor and build owner",
+      "active_milestone": "2 - Native parity and playable traversal",
+      "last_recorded_context": "2026-09-08T09:38:24.253950+00:00",
+      "next_action": "Finish the protected current-source Editor build and owned process receipt; correct the known materializer warning with a focused native gate, then run the bounded real-door PIE traversal and update exact criterion evidence.",
+      "prerequisites": [
+        "Preserved dirty snapshot",
+        "Protected before-phase comparison",
+        "Both Daz plugins enabled in restored descriptor and receipt",
+        "One editor owner"
+      ],
+      "expected_evidence_root": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/",
+      "continuation": "Continue automatically through the first incomplete original gate; checkpoint every 45-60 minutes without resetting deadlines or asking permission to continue."
+    },
+    {
+      "owner": "Parent agent /root; sole editor and build owner",
+      "active_milestone": "2 - Native parity and playable traversal",
+      "last_recorded_context": "2026-09-08T10:31:08.110945+00:00",
+      "next_action": "Finish the parent-owned protected build and focused lighting/lifecycle validation, capture its exact source/binary manifest and actual process exit, then arm a fresh cold native-parity traversal at run seed 1219803037753221267 and immediately StartPIE. Diagnose the first failed native/navigation postcondition within the unchanged 30-second floor and 150-second harness budgets.",
+      "prerequisites": [
+        "Preserved dirty snapshot",
+        "Protected before-phase comparison",
+        "Both Daz plugins enabled in restored descriptor and receipt",
+        "One editor owner"
+      ],
+      "expected_evidence_root": "Saved/Migration/CalystoDungeonDirectorV7/<fresh parent-owned build/native/traversal evidence names>/",
+      "continuation": "Continue automatically through the first incomplete original gate; checkpoint every 45-60 minutes without resetting deadlines or asking permission to continue.",
+      "scope": "Operator discovery and completed prior live receipts; current corrected source awaits parent-owned build/native/navigation verification.",
+      "last_completed_editor_session": {
+        "evidence": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveMcpNative/Exit.json",
+        "status": "EXIT_ZERO",
+        "utc": "2026-09-08T10:14:53.4041064Z"
+      },
+      "current_process_ownership": "Parent /root owns the current protected build, native tests and subsequent Editor/nav work; this documentation task did not query, launch or stop processes.",
+      "known_failures": [
+        "Cold session shared-load timeout preceded native generation.",
+        "Warm native output rejected wall-light transforms; later observations reproduce topology 1779679224 but still fail traversal."
+      ],
+      "pending_corrections": "Parent-owned native lighting/navigation work and initial async priority/shared-deadline correction; source proposals do not count as runtime PASS.",
+      "evidence": [
+        "EV-MCP-OPERATOR-20260908",
+        "EV-MCP-TRAVERSAL-20260908",
+        "EV-V7-REPLAY177-20260908",
+        "EV-V7-REPLAY119-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "2 - Native traversal visual closure; milestone3 migration source progresses independently",
+      "last_recorded_context": "2026-09-08T12:14:05.153050+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_1212/Snapshot.json",
+      "next_action": "Launch protected fresh Editor with CalystoDirectorNativeParityLighting and run1219803037753221267. Arm fixed150-second full-route trilogy, verify actual native torches/materials/camera and visual captures. Then create/migrate the master through Editor, close remaining authored consumers and content transaction; continue all milestones.",
+      "verified_partial": [
+        "Both formerly failing first topologies accepted with actual Player10cm Recast and complete routes.",
+        "Three same-run real-door floors for both run seeds; full route walking for topology119 run.",
+        "G4 metadata and G7 safety ceiling focused native gates passed; actual Editor master migration PENDING."
+      ],
+      "current_process_ownership": "Parent protected-hash check; zero live Editors. Latest buildSafetyAndLitFixture and4focusednative tests completed exit0.",
+      "last_completed_editor_session": {
+        "evidence": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/LiveSeed119Route/Exit.json",
+        "status": "EXIT_ZERO",
+        "utc": "2026-09-08T12:08:16.0228993Z"
+      },
+      "pending_corrections": "Native lit fixture visual test, master asset still absent,36 original migration leaves unresolved, runtime fullcontent guarded off, V6 retirement and releases untouched.",
+      "continuation": "Continue automatically; checkpoints do not pause. Preserve historical145 protected differences and Frederick identity PENDING.",
+      "evidence": [
+        "EV-NATIVE-TRILOGIES-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "3 - Master created; native Details and clean Editor closure; milestone4/5 integration proceeds",
+      "last_recorded_context": "2026-09-08T13:19:55.878685+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_1305/Snapshot.json",
+      "next_action": "Compile pending scoped authoring capture/name picker/safe asset-window shutdown after auxiliary confirms source boundary. Launch fresh protected Editor, load saved master, inspect native Details and close with actual exit0. Continue native architecture world placement and real gameplay snapshot/materializer integration; then all remaining milestones.",
+      "verified_partial": [
+        "Both known failing first topology seeds accepted and full protected routes walked across three real-door floors.",
+        "Native torches and structural geometry visibly verified in lit fixture trilogy.",
+        "All original68 mapping leaves resolved; master native roundtrip and idempotence succeeded, but enclosing Editor exited3.",
+        "Six exact architecture/modifier tests passed, including100000 architecture decisions; decal pool/export three-test gate passed."
+      ],
+      "current_process_ownership": "Zero Editors/builds/tests active. Auxiliary workflow_completion implements same-world snapshot and prepares a coherent build boundary.",
+      "pending_corrections": "Fresh master Editor clean exit; scoped Details capture/name picker uncompiled. Full architecture world assembly, gameplay bridges/cross-world state, decals/extensions/performance, old authority retirement and candidate/final packages pending.",
+      "continuation": "Continue automatically, no checkpoint pause. Preserve historical145 protected differences; no rebaseline; Frederick identity pending.",
+      "evidence": [
+        "EV-LIT-NATIVE-TRILOGY-20260908",
+        "EV-TRAITS-ARCHITECTURE-20260908",
+        "EV-MASTER-MIGRATION-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "4/5 - Native architecture world assembly and gameplay materializer integration",
+      "last_recorded_context": "2026-09-08T20:14:54.924979+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2014/Snapshot.json",
+      "next_action": "Inspect native baked payload metadata/graph behavior, build actual surface compatibility and architecture realization; integrate real snapshot/gameplay bridge. Auxiliary implements sticky accepted materializer activation and focused tests. Recheck native Details nested controls and corrected Advanced safety row in the next useful Editor session.",
+      "verified_partial": [
+        "Master reload/zero-save import and scoped native Details capture with actual clean Editor exit0.",
+        "Both failing first topology seeds accepted and full three-floor native parity routes walked; native torch visual evidence.",
+        "Four exact snapshot/publication/baked/lifecycle tests passed with clean process exit.",
+        "Earlier probability/architecture/traits/decal gates retain their documented scopes."
+      ],
+      "current_process_ownership": "No Editor/build/test process active at checkpoint. Auxiliary owns bounded materializer source/test changes only.",
+      "pending_corrections": "Production full content/architecture/materializer/snapshot integration; cross-world state; strict activation error handling; full surfaces/material colors; decals/extensions/advanced modifiers/performance; legacy retirement and both candidate/final packaged gates.",
+      "continuation": "Continue without approval/checkpoint pause. Preserve historical145 protected discrepancies and source read-only; no rebaseline.",
+      "evidence": [
+        "EV-MASTER-MIGRATION-20260908",
+        "EV-SNAPSHOT-PUBLICATION-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "4/5 - Actual surface feasibility and architecture/content realization integration",
+      "last_recorded_context": "2026-09-08T20:47:31.364180+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2046/Snapshot.json",
+      "next_action": "Integrate actual surface receipts with architecture/content reservations and realization. Auxiliary completes positive Player-Recast/progression-protection fixture; parent supplies exact native frame/door closure, architecture payload placement/materialization and real gameplay bridge. Then test full master floor without weakening capability guards.",
+      "verified_partial": [
+        "Exact master2913 mappings, fresh reload/zero-save native values, readable scoped native Details, actual clean Editor exit0.",
+        "Both failing topology seeds accepted; three full consecutive native-parity floor routes walked with native torch evidence.",
+        "Same-world real ACF inventory/fragment/companion/outcome snapshot rollback and coordinator reversible publication fixtures pass.",
+        "Five accepted-activation/binding/staging/native-contract tests pass with clean process exit.",
+        "Eight baked-probability/physical-surface/phased-loading/authoring/lifecycle tests pass with clean process exit."
+      ],
+      "current_process_ownership": "No Editor/build/native test process active. Auxiliary owns only bounded surface candidate source/tests; compiled hashes archived before follow-up edits.",
+      "pending_corrections": "Actual positive Player-nav candidate coverage; architecture payload world realization; native door/frame/protected progression closure; full content/gameplay bridge and cross-world handoff; postacceptance activation failure integration; full Details interactions/control coverage/material colors; decals/extensions/advanced modifiers/performance; legacy retirement; candidate and final Development/Shipping gates.",
+      "continuation": "Continue automatically. Keep 145 historical protected discrepancies and source read-only. No baseline reset, approval pause or final completion claim.",
+      "evidence": [
+        "EV-ACTIVATION-NATIVE-20260908",
+        "EV-BAKED-SURFACE-LOADING-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "4/5 - Native architecture realization and gameplay bridge integration",
+      "last_recorded_context": "2026-09-08T21:41:05.285771+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2135/Snapshot.json",
+      "next_action": "Build corrected single-GC fixture and typed candidate outcome classification, run bounded focused inventory with clean actual exit, then launch protected Editor with explicit lit native architecture fixture. Inspect real selected/reserved/verified meshes and first failed placement postcondition through MCP; do not count empty architecture output as a realization PASS. Continue full gameplay integration after this gate.",
+      "verified_partial": [
+        "Earlier exact master migration/reload/native Details and three-floor native route evidence remain scoped partial evidence.",
+        "Architecture integration compiles through shared actual surface feasibility, native-slot planner, immutable parent/child manifest and exact native ISM materialization; native body/material realization fixture passes.",
+        "Coordinator now receives explicit accepted activation results, preserves accepted outcomes on invariant failure, records accepted cleanup and prevents spatial retry/player release; eleven scenarios pass within failed overall batch.",
+        "All eight architecture zones and supported complete variation envelopes pass real physics fixtures. Baked chance/yaw100000 trials per law pass."
+      ],
+      "current_process_ownership": "No Editor/build/test/hash process active at checkpoint. Auxiliary editing only typed surface failure classification; parent owns runtime consumer and forthcoming build/PIE.",
+      "pending_corrections": "Whole native test gate still FAIL until real test-boundary GC is built/retested. Typed Pending/Spatial/Resource/Configuration/Deadline plumbing pending compile. Original Forge generated-room compatibility, full authoring controls/continuous pitch-roll/actor architecture, full gameplay/cross-world snapshot/companions/inventory/outcomes, Themes/colors/shared boundaries, decals/extensions/adaptation/performance, legacy retirement and candidate/final packages remain pending.",
+      "continuation": "Continue automatically; checkpoint does not pause. Preserve source read-only,145 historical protected discrepancies, unversioned master and all immutable migration sources.",
+      "protected_comparison": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Protected2135Comparison.json",
+      "evidence": [
+        "EV-COOKED-SUPPORT-BATCH-20260908",
+        "EV-ACTIVATION-SURFACE-BATCH-20260908",
+        "EV-ARCHITECTURE-INTEGRATION-BATCH-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "4/5 - Native architecture realization and gameplay bridge integration",
+      "last_recorded_context": "2026-09-08T21:48:08.309753+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2147/Snapshot.json",
+      "next_action": "Native_TypedSurfaceLifecycle_20260908_2146 PASS12/12 actual exit0 in52.472s. Typed actual feasibility and normal GC fixture lifecycle compiled and verified. LiveArchitectureFixture_2148 protected Editor is launching; parent session47199 owns Editor/MCP/PIE. Inspect context, arm150s actual3floor traversal in native_parity mode with explicit architecture flag; require nonempty reserved/verified architecture on each floor. Then continue full gameplay bridge. Auxiliary performs only bounded read-only gameplay API inventory.",
+      "verified_partial": [
+        "Earlier exact master migration/reload/native Details and three-floor native route evidence remain scoped partial evidence.",
+        "Architecture integration compiles through shared actual surface feasibility, native-slot planner, immutable parent/child manifest and exact native ISM materialization; native body/material realization fixture passes.",
+        "Coordinator now receives explicit accepted activation results, preserves accepted outcomes on invariant failure, records accepted cleanup and prevents spatial retry/player release; eleven scenarios pass within failed overall batch.",
+        "All eight architecture zones and supported complete variation envelopes pass real physics fixtures. Baked chance/yaw100000 trials per law pass.",
+        "Whole12-test native batch now passes with clean exit0; prior failed receipts preserved."
+      ],
+      "current_process_ownership": "Protected Editor launcher session47199, LiveArchitectureFixture_2148; initial MCP discovery waiting for startup. Auxiliary read-only gameplay API inventory.",
+      "pending_corrections": "Actual architecture placement/3-floor PIE remains pending. Full gameplay/cross-world state, actor and continuous pitch-roll architecture, all exposed controls, Themes/material boundaries, decals/extensions/advanced behavior/performance, legacy retirement and candidate/final packages remain pending.",
+      "continuation": "Continue automatically; checkpoint does not pause. Preserve source read-only,145 historical protected discrepancies, unversioned master and all immutable migration sources.",
+      "protected_comparison": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Protected2135Comparison.json",
+      "evidence": [
+        "EV-COOKED-SUPPORT-BATCH-20260908",
+        "EV-ACTIVATION-SURFACE-BATCH-20260908",
+        "EV-ARCHITECTURE-INTEGRATION-BATCH-20260908",
+        "EV-TYPED-SURFACE-LIFECYCLE-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    },
+    {
+      "owner": "Parent /root; sole Editor/build/asset owner",
+      "active_milestone": "4/5 - Native architecture realization and gameplay bridge integration",
+      "last_recorded_context": "2026-09-08T22:05:20.480170+00:00",
+      "source_snapshot": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Checkpoint_2208/Snapshot.json",
+      "next_action": "Protected Editor launcher session29959 owns LivePlanarBoundary_2208. Discover MCP after startup, describe project and EditorApp toolsets, read target context, arm fresh Traversal_20260908_PlanarBoundarySeed177 native_parity and immediately StartPIE. Require nonempty verified architecture on all three floors plus full route walking. First former PIE failure was reproduced on exact SM_WallDoor in native test, then fixed with robust plane normal and right-handed winding. No floor accepted with architecture yet. Auxiliary is extending snapshot portability only; its future changes require a later build.",
+      "verified_partial": [
+        "Earlier exact master migration/reload/native Details and three-floor native route evidence remain scoped partial evidence.",
+        "Architecture integration compiles through shared actual surface feasibility, native-slot planner, immutable parent/child manifest and exact native ISM materialization; native body/material realization fixture passes.",
+        "Coordinator now receives explicit accepted activation results, preserves accepted outcomes on invariant failure, records accepted cleanup and prevents spatial retry/player release; eleven scenarios pass within failed overall batch.",
+        "All eight architecture zones and supported complete variation envelopes pass real physics fixtures. Baked chance/yaw100000 trials per law pass.",
+        "Whole12-test native batch now passes with clean exit0; prior failed receipts preserved.",
+        "Typed bridge acceptance native gate PASS5/5; exact native doorway winding defect reproduced and corrected, geometry/native navigation gate PASS6/6."
+      ],
+      "current_process_ownership": "Parent protected Editor launcher29959; auxiliary portable gameplay snapshot source work only.",
+      "pending_corrections": "Actual architecture placement/3-floor PIE remains pending. Full gameplay/cross-world state, actor and continuous pitch-roll architecture, all exposed controls, Themes/material boundaries, decals/extensions/advanced behavior/performance, legacy retirement and candidate/final packages remain pending.",
+      "continuation": "Continue automatically; checkpoint does not pause. Preserve source read-only,145 historical protected discrepancies, unversioned master and all immutable migration sources.",
+      "protected_comparison": "Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/Protected2135Comparison.json",
+      "evidence": [
+        "EV-COOKED-SUPPORT-BATCH-20260908",
+        "EV-ACTIVATION-SURFACE-BATCH-20260908",
+        "EV-ARCHITECTURE-INTEGRATION-BATCH-20260908",
+        "EV-TYPED-SURFACE-LIFECYCLE-20260908",
+        "EV-ARCHITECTURE-FIRST-PIE-20260908",
+        "EV-TYPED-BRIDGE-20260908",
+        "EV-DOORWAY-FACE-REPRO-20260908",
+        "EV-PLANAR-BOUNDARY-20260908"
+      ],
+      "accepted_final_v7_floors": 0
+    }
+  ],
+  "updated_utc": "2026-09-08T22:29:09.393136+00:00"
+}

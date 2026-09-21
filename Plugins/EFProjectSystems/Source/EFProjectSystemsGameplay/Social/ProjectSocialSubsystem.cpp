@@ -1,6 +1,198 @@
 #include "Social/ProjectSocialSubsystem.h"
 
+#include "Engine/World.h"
 #include "GameFramework/Actor.h"
+
+bool UProjectSocialSubsystem::SameParticipantState(const FProjectSocialParticipantState& A, const FProjectSocialParticipantState& B)
+{
+	return A.ParticipantId==B.ParticipantId && A.bVerifiedAdult==B.bVerifiedAdult && A.bAlive==B.bAlive
+		&& A.bConscious==B.bConscious && A.bHostile==B.bHostile && A.bInCombat==B.bInCombat
+		&& A.bInSafeLocation==B.bInSafeLocation && A.bRecruitable==B.bRecruitable
+		&& A.bRecruitedCompanion==B.bRecruitedCompanion && A.bOffersPlayerInitiatedIntimacy==B.bOffersPlayerInitiatedIntimacy
+		&& A.MinimumIntimacyAffinity==B.MinimumIntimacyAffinity && A.Affinity==B.Affinity;
+}
+
+bool UProjectSocialSubsystem::IsStageLocked(const TObjectKey<AActor>& ActorKey) const
+{
+	return ParticipantStagePhase!=EParticipantStagePhase::Empty && ParticipantStagePhase!=EParticipantStagePhase::Released
+		&& ParticipantStagePhase!=EParticipantStagePhase::Confirmed && StagedParticipantsByActor.Contains(ActorKey);
+}
+
+bool UProjectSocialSubsystem::IsStageIdentityLocked(FName ParticipantId) const
+{
+	return ParticipantStagePhase!=EParticipantStagePhase::Empty && ParticipantStagePhase!=EParticipantStagePhase::Released
+		&& ParticipantStagePhase!=EParticipantStagePhase::Confirmed && StagedParticipantsById.Contains(ParticipantId);
+}
+
+bool UProjectSocialSubsystem::StageParticipant(const FEFCalystoAttemptToken& Token, AActor* Participant,
+	const FProjectSocialParticipantState& State, FString& Error)
+{
+	Error.Reset();
+	if (!IsInGameThread() || bParticipantStageOperation || bParticipantStageReleaseRequested
+		|| !Token.Request.IsValid() || !Token.Attempt.IsValid() || !IsValid(Participant) || Participant->IsActorBeingDestroyed()
+		|| !Participant->GetWorld() || (GetWorld() && GetWorld()!=Participant->GetWorld()) || State.ParticipantId.IsNone()
+		|| State.Affinity!=FProjectSocialRules::ClampAffinity(State.Affinity))
+	{ Error=TEXT("Social staging requires an exclusive valid token, live actor and exact bounded native state."); return false; }
+	if (ParticipantStagePhase==EParticipantStagePhase::Released && ParticipantStageToken==Token)
+	{ Error=TEXT("A retired social attempt token cannot reopen."); return false; }
+	const bool bNewAttempt=ParticipantStagePhase==EParticipantStagePhase::Empty || ParticipantStagePhase==EParticipantStagePhase::Released;
+	if (!bNewAttempt && (!(ParticipantStageToken==Token) || bParticipantStageInvalidated || ParticipantStageWorld.Get()!=Participant->GetWorld()))
+	{ Error=TEXT("Another or invalidated attempt retains the social identity ledger."); return false; }
+	const TObjectKey<AActor> ActorKey(Participant);
+	if (!bNewAttempt)
+	{
+		if (const int32* Index=StagedParticipantsByActor.Find(ActorKey))
+		{
+			if (ParticipantStagePhase!=EParticipantStagePhase::Confirmed && SameParticipantState(StagedParticipants[*Index].State,State)) return true;
+			Error=TEXT("A staged actor cannot change its exact participant identity or native state."); return false;
+		}
+		if (ParticipantStagePhase!=EParticipantStagePhase::Staged)
+		{ Error=TEXT("A prepared social batch cannot accept another participant."); return false; }
+	}
+	if (ParticipantRecords.Contains(ActorKey) || ParticipantsById.Contains(State.ParticipantId)
+		|| (!bNewAttempt && (StagedParticipantsById.Contains(State.ParticipantId) || StagedParticipants.Num()>=512)))
+	{ Error=TEXT("Social staging cannot evict a registered/reserved identity or exceed 512 participants."); return false; }
+	if (bNewAttempt)
+	{
+		ParticipantStageToken=Token; ParticipantStageWorld=Participant->GetWorld(); ParticipantStagePhase=EParticipantStagePhase::Staged;
+		bParticipantStageInvalidated=false; bParticipantStageReleaseRequested=false; bParticipantStageAcceptedRelease=false;
+	}
+	FStagedParticipant Record; Record.ActorKey=ActorKey; Record.Actor=Participant; Record.State=State;
+	const int32 Index=StagedParticipants.Add(MoveTemp(Record));
+	StagedParticipantsByActor.Add(ActorKey,Index); StagedParticipantsById.Add(State.ParticipantId,Index);
+	return true;
+}
+
+bool UProjectSocialSubsystem::ObserveStagedParticipant(const FEFCalystoAttemptToken& Token, AActor* Participant,
+	FName ParticipantId, FProjectSocialParticipantState& OutState, FString& Error) const
+{
+	OutState={}; Error.Reset();
+	if (!IsInGameThread() || !(ParticipantStageToken==Token) || bParticipantStageInvalidated || bParticipantStageReleaseRequested
+		|| ParticipantStagePhase==EParticipantStagePhase::Empty || ParticipantStagePhase==EParticipantStagePhase::Released
+		|| !IsValid(Participant) || Participant->IsActorBeingDestroyed())
+	{ Error=TEXT("The exact social stage is unavailable, invalidated or releasing."); return false; }
+	const int32* Index=StagedParticipantsByActor.Find(TObjectKey<AActor>(Participant));
+	if (!Index || StagedParticipants[*Index].State.ParticipantId!=ParticipantId || StagedParticipants[*Index].Actor.Get()!=Participant)
+	{ Error=TEXT("Social observation does not bind the staged actor and participant ID."); return false; }
+	if (!ValidateStagedParticipants(Error)) return false;
+	OutState=StagedParticipants[*Index].State; return true;
+}
+
+bool UProjectSocialSubsystem::ValidateStagedParticipants(FString& Error) const
+{
+	if (bParticipantStageInvalidated || !ParticipantStageWorld.IsValid() || StagedParticipants.IsEmpty() || StagedParticipants.Num()>512)
+	{ Error=TEXT("The retained social attempt has lost a participant or its world."); return false; }
+	for (const FStagedParticipant& Staged:StagedParticipants)
+	{
+		const AActor* Actor=Staged.Actor.Get();
+		if (!IsValid(Actor) || Actor->IsActorBeingDestroyed() || Actor->GetWorld()!=ParticipantStageWorld.Get())
+		{ Error=TEXT("A reserved social actor disappeared before acceptance."); return false; }
+		const FParticipantRecord* Actual=ParticipantRecords.Find(Staged.ActorKey);
+		const TObjectKey<AActor>* ActualId=ParticipantsById.Find(Staged.State.ParticipantId);
+		if (ParticipantStagePhase==EParticipantStagePhase::Staged)
+		{
+			if (Actual || ActualId) { Error=TEXT("An existing social record conflicts with a reserved identity."); return false; }
+		}
+		else if (!Actual || !ActualId || *ActualId!=Staged.ActorKey || Actual->Actor.Get()!=Actor
+			|| !SameParticipantState(Actual->State,Staged.State)
+			|| Actual->bUnpublished!=(ParticipantStagePhase==EParticipantStagePhase::Prepared))
+		{ Error=TEXT("The prepared social records differ from their exact reserved actors and state."); return false; }
+	}
+	return true;
+}
+
+bool UProjectSocialSubsystem::PrepareStagedParticipants(const FEFCalystoAttemptToken& Token, FString& Error)
+{
+	Error.Reset();
+	if (!IsInGameThread() || bParticipantStageOperation || bParticipantStageReleaseRequested || !(ParticipantStageToken==Token)
+		|| (ParticipantStagePhase!=EParticipantStagePhase::Staged && ParticipantStagePhase!=EParticipantStagePhase::Prepared))
+	{ Error=TEXT("Only the current staged social batch may prepare publication."); return false; }
+	if (!ValidateStagedParticipants(Error)) return false;
+	if (ParticipantStagePhase==EParticipantStagePhase::Prepared) return true;
+	TGuardValue<bool> Operation(bParticipantStageOperation,true);
+	ParticipantRecords.Reserve(ParticipantRecords.Num()+StagedParticipants.Num());
+	ParticipantsById.Reserve(ParticipantsById.Num()+StagedParticipants.Num());
+	for (const FStagedParticipant& Staged:StagedParticipants)
+	{
+		FParticipantRecord Record; Record.Actor=Staged.Actor; Record.State=Staged.State; Record.bUnpublished=true;
+		ParticipantRecords.Add(Staged.ActorKey,MoveTemp(Record)); ParticipantsById.Add(Staged.State.ParticipantId,Staged.ActorKey);
+		Staged.Actor->OnDestroyed.AddUniqueDynamic(this,&ThisClass::HandleParticipantDestroyed);
+	}
+	ParticipantStagePhase=EParticipantStagePhase::Prepared; return true;
+}
+
+bool UProjectSocialSubsystem::PublishStagedParticipantsWithoutEvents(const FEFCalystoAttemptToken& Token, FString& Error)
+{
+	Error.Reset();
+	if (!IsInGameThread() || bParticipantStageOperation || bParticipantStageReleaseRequested || !(ParticipantStageToken==Token)
+		|| (ParticipantStagePhase!=EParticipantStagePhase::Prepared && ParticipantStagePhase!=EParticipantStagePhase::Published))
+	{ Error=TEXT("Only the exact prepared social batch may publish without events."); return false; }
+	if (!ValidateStagedParticipants(Error)) return false;
+	if (ParticipantStagePhase==EParticipantStagePhase::Published) return true;
+	// All identities, map storage, delegate bindings and live actors were proved above. No callbacks occur here.
+	for (const FStagedParticipant& Staged:StagedParticipants) ParticipantRecords.FindChecked(Staged.ActorKey).bUnpublished=false;
+	ParticipantStagePhase=EParticipantStagePhase::Published; return true;
+}
+
+bool UProjectSocialSubsystem::ConfirmStagedParticipants(const FEFCalystoAttemptToken& Token, FString& Error)
+{
+	Error.Reset();
+	if (!IsInGameThread() || bParticipantStageOperation || bParticipantStageReleaseRequested || !(ParticipantStageToken==Token))
+	{ Error=TEXT("Social confirmation does not own the exact published batch."); return false; }
+	if (ParticipantStagePhase==EParticipantStagePhase::Confirmed) return true;
+	if (ParticipantStagePhase!=EParticipantStagePhase::Published || !ValidateStagedParticipants(Error))
+	{ if (Error.IsEmpty()) Error=TEXT("Social confirmation requires a complete published batch."); return false; }
+	{
+		TGuardValue<bool> Operation(bParticipantStageOperation,true);
+		ParticipantStagePhase=EParticipantStagePhase::Confirming;
+		for (const FStagedParticipant& Staged:StagedParticipants)
+		{
+			if (const FParticipantRecord* Record=ParticipantRecords.Find(Staged.ActorKey)) BroadcastParticipantChanged(*Record);
+		}
+		ParticipantStagePhase=EParticipantStagePhase::Confirmed;
+	}
+	if (bParticipantStageReleaseRequested)
+	{
+		const bool bAccepted=bParticipantStageAcceptedRelease;
+		bParticipantStageReleaseRequested=false;
+		return ReleaseStagedParticipants(Token,bAccepted,Error);
+	}
+	return true;
+}
+
+void UProjectSocialSubsystem::RemoveParticipantRecordWithoutEvents(const TObjectKey<AActor>& ActorKey)
+{
+	if (const FParticipantRecord* Record=ParticipantRecords.Find(ActorKey))
+	{
+		if (AActor* Actor=Record->Actor.Get()) Actor->OnDestroyed.RemoveDynamic(this,&ThisClass::HandleParticipantDestroyed);
+		if (const TObjectKey<AActor>* Key=ParticipantsById.Find(Record->State.ParticipantId); Key && *Key==ActorKey)
+			ParticipantsById.Remove(Record->State.ParticipantId);
+	}
+	RemoveConsentForKey(ActorKey); ParticipantRecords.Remove(ActorKey);
+}
+
+bool UProjectSocialSubsystem::ReleaseStagedParticipants(const FEFCalystoAttemptToken& Token, bool bAccepted, FString& Error)
+{
+	Error.Reset();
+	if (!IsInGameThread() || !(ParticipantStageToken==Token) || ParticipantStagePhase==EParticipantStagePhase::Empty)
+	{ Error=TEXT("A stale social token cannot release another identity ledger."); return false; }
+	if (ParticipantStagePhase==EParticipantStagePhase::Released)
+	{
+		if (bAccepted==bParticipantStageAcceptedRelease) return true;
+		Error=TEXT("A retired social release cannot change its acceptance intent."); return false;
+	}
+	const bool bWasAccepted=ParticipantStagePhase==EParticipantStagePhase::Confirming || ParticipantStagePhase==EParticipantStagePhase::Confirmed;
+	if (bAccepted!=bWasAccepted) { Error=TEXT("Social release intent differs from its actual acceptance boundary."); return false; }
+	if (bParticipantStageOperation)
+	{
+		bParticipantStageReleaseRequested=true; bParticipantStageAcceptedRelease=bAccepted;
+		Error=TEXT("Social release is retained until the active confirmation callback unwinds."); return false;
+	}
+	if (!bAccepted) for (const FStagedParticipant& Staged:StagedParticipants) RemoveParticipantRecordWithoutEvents(Staged.ActorKey);
+	StagedParticipants.Reset(); StagedParticipantsByActor.Reset(); StagedParticipantsById.Reset(); ParticipantStageWorld.Reset();
+	bParticipantStageReleaseRequested=false; bParticipantStageAcceptedRelease=bAccepted;
+	ParticipantStagePhase=EParticipantStagePhase::Released; return true;
+}
 
 void UProjectSocialSubsystem::Deinitialize()
 {
@@ -15,6 +207,10 @@ void UProjectSocialSubsystem::Deinitialize()
 	ExplicitIntimacyConsent.Reset();
 	ParticipantsById.Reset();
 	ParticipantRecords.Reset();
+	StagedParticipants.Reset(); StagedParticipantsByActor.Reset(); StagedParticipantsById.Reset(); ParticipantStageWorld.Reset();
+	ParticipantStagePhase=EParticipantStagePhase::Released; bParticipantStageInvalidated=true;
+	NativeParticipantChanged.Clear();
+	NativeParticipantUnregistered.Clear();
 	Super::Deinitialize();
 }
 
@@ -22,7 +218,8 @@ bool UProjectSocialSubsystem::RegisterOrUpdateParticipant(
 	AActor* Participant,
 	const FProjectSocialParticipantState& State)
 {
-	if (!IsValid(Participant) || State.ParticipantId.IsNone())
+	if (!IsValid(Participant) || State.ParticipantId.IsNone()
+		|| IsStageLocked(TObjectKey<AActor>(Participant)) || IsStageIdentityLocked(State.ParticipantId))
 	{
 		return false;
 	}
@@ -47,6 +244,8 @@ bool UProjectSocialSubsystem::RegisterOrUpdateParticipant(
 		}
 	}
 
+	// An eviction notification may synchronously reserve the actor/ID for an attempt.
+	if (!IsValid(Participant) || IsStageLocked(ParticipantKey) || IsStageIdentityLocked(State.ParticipantId)) return false;
 	FParticipantRecord& Record = ParticipantRecords.FindOrAdd(ParticipantKey);
 	const bool bIdentityChanged = !Record.State.ParticipantId.IsNone()
 		&& Record.State.ParticipantId != State.ParticipantId;
@@ -84,6 +283,7 @@ void UProjectSocialSubsystem::UnregisterParticipant(AActor* Participant)
 	}
 
 	const TObjectKey<AActor> ParticipantKey(Participant);
+	if (IsStageLocked(ParticipantKey)) return;
 	Participant->OnDestroyed.RemoveAll(this);
 	if (const FParticipantRecord* Record = ParticipantRecords.Find(ParticipantKey))
 	{
@@ -93,6 +293,7 @@ void UProjectSocialSubsystem::UnregisterParticipant(AActor* Participant)
 	RemoveConsentForKey(ParticipantKey);
 	ParticipantRecords.Remove(ParticipantKey);
 	OnParticipantUnregistered.Broadcast(Participant);
+	NativeParticipantUnregistered.Broadcast(Participant);
 }
 
 bool UProjectSocialSubsystem::TryGetParticipantState(
@@ -113,7 +314,7 @@ AActor* UProjectSocialSubsystem::FindParticipantById(const FName ParticipantId) 
 {
 	const TObjectKey<AActor>* ParticipantKey = ParticipantsById.Find(ParticipantId);
 	const FParticipantRecord* Record = ParticipantKey ? ParticipantRecords.Find(*ParticipantKey) : nullptr;
-	return Record ? Record->Actor.Get() : nullptr;
+	return Record && !Record->bUnpublished ? Record->Actor.Get() : nullptr;
 }
 
 bool UProjectSocialSubsystem::IsVerifiedAdult(AActor* Participant) const
@@ -129,7 +330,8 @@ bool UProjectSocialSubsystem::SetExplicitIntimacyConsent(
 {
 	if (!IsValid(GrantingParticipant)
 		|| !IsValid(OtherParticipant)
-		|| GrantingParticipant == OtherParticipant)
+		|| GrantingParticipant == OtherParticipant
+		|| IsStageLocked(TObjectKey<AActor>(GrantingParticipant)) || IsStageLocked(TObjectKey<AActor>(OtherParticipant)))
 	{
 		return false;
 	}
@@ -191,10 +393,11 @@ bool UProjectSocialSubsystem::HasExplicitIntimacyConsent(
 
 void UProjectSocialSubsystem::ClearIntimacyConsentForParticipant(AActor* Participant)
 {
-	if (Participant)
+	if (Participant && !IsStageLocked(TObjectKey<AActor>(Participant)))
 	{
 		RemoveConsentForKey(TObjectKey<AActor>(Participant));
 		OnParticipantChanged.Broadcast(Participant);
+		NativeParticipantChanged.Broadcast(Participant);
 	}
 }
 
@@ -340,7 +543,7 @@ TArray<AActor*> UProjectSocialSubsystem::GetLivingCompanionsWithin(
 	for (const TPair<TObjectKey<AActor>, FParticipantRecord>& Pair : ParticipantRecords)
 	{
 		AActor* Candidate = Pair.Value.Actor.Get();
-		if (!IsValid(Candidate)
+		if (Pair.Value.bUnpublished || !IsValid(Candidate)
 			|| Candidate == SourceActor
 			|| !FProjectSocialRules::IsLivingCompanion(Pair.Value.State))
 		{
@@ -358,7 +561,7 @@ TArray<AActor*> UProjectSocialSubsystem::GetLivingCompanionsWithin(
 
 UProjectSocialSubsystem::FParticipantRecord* UProjectSocialSubsystem::FindMutableRecord(AActor* Participant)
 {
-	return IsValid(Participant)
+	return IsValid(Participant) && !IsStageLocked(TObjectKey<AActor>(Participant))
 		? ParticipantRecords.Find(TObjectKey<AActor>(Participant))
 		: nullptr;
 }
@@ -368,11 +571,17 @@ const UProjectSocialSubsystem::FParticipantRecord* UProjectSocialSubsystem::Find
 	const FParticipantRecord* Record = IsValid(Participant)
 		? ParticipantRecords.Find(TObjectKey<AActor>(Participant))
 		: nullptr;
-	return Record && Record->Actor.IsValid() ? Record : nullptr;
+	return Record && !Record->bUnpublished && Record->Actor.IsValid() ? Record : nullptr;
 }
 
 void UProjectSocialSubsystem::HandleParticipantDestroyed(AActor* DestroyedActor)
 {
+	if (DestroyedActor && IsStageLocked(TObjectKey<AActor>(DestroyedActor)))
+	{
+		bParticipantStageInvalidated=true;
+		RemoveParticipantRecordWithoutEvents(TObjectKey<AActor>(DestroyedActor));
+		return;
+	}
 	UnregisterParticipant(DestroyedActor);
 }
 
@@ -383,6 +592,7 @@ void UProjectSocialSubsystem::PruneInvalidParticipants()
 	{
 		if (!Pair.Value.Actor.IsValid())
 		{
+			if (IsStageLocked(Pair.Key)) bParticipantStageInvalidated=true;
 			InvalidKeys.Add(Pair.Key);
 			ParticipantsById.Remove(Pair.Value.State.ParticipantId);
 		}
@@ -411,5 +621,6 @@ void UProjectSocialSubsystem::BroadcastParticipantChanged(const FParticipantReco
 	if (AActor* Participant = Record.Actor.Get())
 	{
 		OnParticipantChanged.Broadcast(Participant);
+		NativeParticipantChanged.Broadcast(Participant);
 	}
 }

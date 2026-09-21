@@ -2,7 +2,7 @@
 
 #include "Combat/ProjectCombatAttributeComponent.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
 #include "Defeat/ProjectDefeatFlowComponent.h"
 #include "Defeat/ProjectDefeatTypes.h"
 #include "Engine/GameInstance.h"
@@ -40,7 +40,6 @@ namespace ProjectGameplayDebugCommandExecutorPrivate
 	const FName MysteryBiasName(TEXT("Mystery"));
 	const FName ClothingBiasName(TEXT("Clothing"));
 	const FString DungeonHarnessStylePrefix(TEXT("DungeonHarness.Style."));
-	const FString DungeonHarnessThemePrefix(TEXT("DungeonHarness.Theme."));
 	const FString DungeonHarnessScaleBiasPrefix(TEXT("DungeonHarness.ScaleBias."));
 	const FString DungeonHarnessBranchingBiasPrefix(TEXT("DungeonHarness.BranchingBias."));
 	const FString DungeonHarnessDangerBiasPrefix(TEXT("DungeonHarness.DangerBias."));
@@ -67,105 +66,85 @@ namespace ProjectGameplayDebugCommandExecutorPrivate
 		return FMath::IsFinite(Volatility) && Volatility >= -1.0f && Volatility <= 1.0f;
 	}
 
-	FString DescribeStyle(const EEFCalystoStyleV4 Style)
+	FString DescribeStyle(const FName StyleId)
 	{
-		switch (Style)
-		{
-		case EEFCalystoStyleV4::Standard: return TEXT("Standard");
-		case EEFCalystoStyleV4::Compact: return TEXT("Compact");
-		case EEFCalystoStyleV4::Branching: return TEXT("Branching");
-		default: return TEXT("Invalid");
-		}
+		return StyleId.IsNone() ? TEXT("Invalid") : StyleId.ToString();
 	}
 
-	FString DescribeTheme(const EEFCalystoThemeV4 Theme)
+	FString DescribeResolvedCategories(const FEFCalystoPopulationPlanV6& Plan)
 	{
-		switch (Theme)
+		TArray<FEFCalystoPopulationCountV6> Counts = Plan.CategoryCounts;
+		Counts.Sort([](const FEFCalystoPopulationCountV6& Left,
+			const FEFCalystoPopulationCountV6& Right)
 		{
-		case EEFCalystoThemeV4::Default: return TEXT("Default");
-		case EEFCalystoThemeV4::Forge: return TEXT("Forge");
-		case EEFCalystoThemeV4::Shrine: return TEXT("Shrine");
-		default: return TEXT("Invalid");
-		}
-	}
-
-	const TCHAR* DescribeCategory(const EEFCalystoContentCategoryV4 Category)
-	{
-		switch (Category)
-		{
-		case EEFCalystoContentCategoryV4::Enemy: return TEXT("Enemy");
-		case EEFCalystoContentCategoryV4::NPC: return TEXT("NPC");
-		case EEFCalystoContentCategoryV4::Food: return TEXT("Food");
-		case EEFCalystoContentCategoryV4::Chest: return TEXT("Chest");
-		case EEFCalystoContentCategoryV4::LooseLoot: return TEXT("Loot");
-		case EEFCalystoContentCategoryV4::Clothing: return TEXT("Clothing");
-		case EEFCalystoContentCategoryV4::SpecialEvent: return TEXT("Event");
-		case EEFCalystoContentCategoryV4::Decoration: return TEXT("Decoration");
-		case EEFCalystoContentCategoryV4::Lighting: return TEXT("Lighting");
-		default: return TEXT("Unknown");
-		}
-	}
-
-	FString DescribeResolvedCategories(const FEFCalystoResolvedFloorIntentV4& Intent)
-	{
+			return Left.Id.LexicalLess(Right.Id);
+		});
 		TArray<FString> Records;
-		Records.Reserve(Intent.Categories.Num());
-		for (const FEFCalystoResolvedCategoryV4& Category : Intent.Categories)
+		for (const FEFCalystoPopulationCountV6& Count : Counts)
 		{
-			if (Category.Category == EEFCalystoContentCategoryV4::Decoration
-				|| Category.Category == EEFCalystoContentCategoryV4::Lighting)
-			{
-				continue;
-			}
-			const FEFCalystoTierMixV4& Tiers = Category.ResolvedTiers;
-			Records.Add(FString::Printf(
-				TEXT("%s O%.0f/E%.0f%% Blend%.2f Inf%+.2f T[C%.0f U%.0f R%.0f Ep%.0f N%.0f W%.0f] #%d/%d"),
-				DescribeCategory(Category.Category),
-				Category.OpportunityChance * 100.0f,
-				Category.EffectiveChance * 100.0f,
-				Category.StyleThemeBlend,
-				Category.ResolvedInfluence,
-				Tiers.Common * 100.0f,
-				Tiers.Uncommon * 100.0f,
-				Tiers.Rare * 100.0f,
-				Tiers.Epic * 100.0f,
-				Tiers.GetCalculatedNothing() * 100.0f,
-				Category.WinterChance * 100.0f,
-				Category.TargetCount,
-				Category.MaximumPerFloor));
+			Records.Add(FString::Printf(TEXT("%s=%d"), *Count.Id.ToString(), Count.Count));
 		}
-		return FString::Join(Records, TEXT("; "));
+		return Records.IsEmpty() ? TEXT("None") : FString::Join(Records, TEXT(" "));
 	}
 
-	FString DescribeTravelKind(const EEFCalystoDungeonTravelKindV4 Kind)
+	FString DescribeThemeMix(const FEFCalystoRoomManifestV6& Manifest)
+	{
+		TMap<FName, int32> Counts;
+		for (const FEFCalystoRoomContextV6& Room : Manifest.Rooms)
+		{
+			Counts.FindOrAdd(Room.ThemeId) += 1;
+		}
+		TArray<FName> ThemeIds;
+		Counts.GetKeys(ThemeIds);
+		ThemeIds.Sort([](const FName Left, const FName Right)
+		{
+			return Left.LexicalLess(Right);
+		});
+		TArray<FString> Records;
+		for (const FName ThemeId : ThemeIds)
+		{
+			Records.Add(FString::Printf(
+				TEXT("%s=%d"), *ThemeId.ToString(), Counts.FindChecked(ThemeId)));
+		}
+		return Records.IsEmpty() ? TEXT("Pending") : FString::Join(Records, TEXT(" "));
+	}
+
+	FString DescribeTravelKind(const EEFCalystoDungeonTravelKindV6 Kind)
 	{
 		switch (Kind)
 		{
-		case EEFCalystoDungeonTravelKindV4::NewRun: return TEXT("NewRun");
-		case EEFCalystoDungeonTravelKindV4::Advance: return TEXT("Advance");
-		case EEFCalystoDungeonTravelKindV4::Reroll: return TEXT("Reroll");
-		case EEFCalystoDungeonTravelKindV4::Replay: return TEXT("Replay");
-		case EEFCalystoDungeonTravelKindV4::DebugJump: return TEXT("DebugJump");
+		case EEFCalystoDungeonTravelKindV6::NewRun: return TEXT("NewRun");
+		case EEFCalystoDungeonTravelKindV6::Advance: return TEXT("Advance");
+		case EEFCalystoDungeonTravelKindV6::Reroll: return TEXT("Reroll");
+		case EEFCalystoDungeonTravelKindV6::Replay: return TEXT("Replay");
+		case EEFCalystoDungeonTravelKindV6::Retry: return TEXT("Retry");
+		case EEFCalystoDungeonTravelKindV6::RestartSameSeed: return TEXT("RestartSameSeed");
+		case EEFCalystoDungeonTravelKindV6::DevelopmentJump: return TEXT("DevelopmentJump");
+		case EEFCalystoDungeonTravelKindV6::RecoverToHub: return TEXT("RecoverToHub");
 		default: return TEXT("None");
 		}
 	}
 
-	FString DescribeRunState(const EEFCalystoDungeonRunStateV4 State)
+	FString DescribeRunState(const EEFCalystoDungeonTravelStateV6 State)
 	{
 		switch (State)
 		{
-		case EEFCalystoDungeonRunStateV4::Traveling: return TEXT("Traveling");
-		case EEFCalystoDungeonRunStateV4::Generating: return TEXT("Generating");
-		case EEFCalystoDungeonRunStateV4::Ready: return TEXT("Ready");
-		case EEFCalystoDungeonRunStateV4::Failed: return TEXT("Failed");
+		case EEFCalystoDungeonTravelStateV6::Preloading: return TEXT("Preloading");
+		case EEFCalystoDungeonTravelStateV6::Traveling: return TEXT("Traveling");
+		case EEFCalystoDungeonTravelStateV6::Generating: return TEXT("Generating");
+		case EEFCalystoDungeonTravelStateV6::Ready: return TEXT("Ready");
+		case EEFCalystoDungeonTravelStateV6::Recovering: return TEXT("Recovering");
+		case EEFCalystoDungeonTravelStateV6::Failed: return TEXT("Failed");
 		default: return TEXT("Idle");
 		}
 	}
 
-	bool IsPendingFloorState(const EEFCalystoDungeonRunStateV4 State)
+	bool IsPendingFloorState(const EEFCalystoDungeonTravelStateV6 State)
 	{
-		return State == EEFCalystoDungeonRunStateV4::Traveling
-			|| State == EEFCalystoDungeonRunStateV4::Generating;
+		return State == EEFCalystoDungeonTravelStateV6::Preloading
+			|| State == EEFCalystoDungeonTravelStateV6::Traveling
+			|| State == EEFCalystoDungeonTravelStateV6::Generating
+			|| State == EEFCalystoDungeonTravelStateV6::Recovering;
 	}
 
 	UProjectSurvivalNeedsComponent* FindNeedsComponent(AActor* OwnerActor)
@@ -558,36 +537,35 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusLabel(AActor*
 		return FText::FromString(TEXT("Dungeon Harness Unavailable"));
 	}
 
-	const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
 	if (!Snapshot.bHasActiveRun)
 	{
 		return FText::FromString(TEXT("Status: No Active Dungeon Run"));
 	}
-	const FEFCalystoResolvedFloorIntentV4 FloorIntent = DungeonSubsystem->GetResolvedFloorIntent();
+	const FEFCalystoResolvedFloorIntentV6 FloorIntent = DungeonSubsystem->GetResolvedFloorIntent();
+	const FEFCalystoRoomManifestV6 RoomManifest = DungeonSubsystem->GetRoomManifestV6();
 	const FString ProfileSuffix = FloorIntent.bIsValid
 		? FString::Printf(
-			TEXT(" [%s + %s]"),
-			*ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(FloorIntent.Style),
-			*ProjectGameplayDebugCommandExecutorPrivate::DescribeTheme(FloorIntent.Theme))
+			TEXT(" [%s | Themes %s]"),
+			*ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(FloorIntent.StyleId),
+			*ProjectGameplayDebugCommandExecutorPrivate::DescribeThemeMix(RoomManifest))
 		: FString();
 	if (ProjectGameplayDebugCommandExecutorPrivate::IsPendingFloorState(Snapshot.State))
 	{
 		return FText::FromString(FString::Printf(
-			TEXT("Status: Floor %lld G%lld -> Floor %lld G%lld (%s)%s"),
+			TEXT("Status: Floor %lld G%lld (%s)%s"),
 			static_cast<long long>(Snapshot.FloorNumber),
 			static_cast<long long>(Snapshot.GenerationSerial),
-			static_cast<long long>(Snapshot.PendingFloorNumber),
-			static_cast<long long>(Snapshot.PendingGenerationSerial),
 			*ProjectGameplayDebugCommandExecutorPrivate::DescribeRunState(Snapshot.State),
 			*ProfileSuffix));
 	}
-	if (Snapshot.State == EEFCalystoDungeonRunStateV4::Failed)
+	if (Snapshot.State == EEFCalystoDungeonTravelStateV6::Failed)
 	{
 		return FText::FromString(FString::Printf(
 			TEXT("Status: Floor %lld G%lld (Failed: %s)%s"),
 			static_cast<long long>(Snapshot.FloorNumber),
 			static_cast<long long>(Snapshot.GenerationSerial),
-			Snapshot.FailureCode.IsNone() ? TEXT("Unknown") : *Snapshot.FailureCode.ToString(),
+			Snapshot.FailureReason.IsEmpty() ? TEXT("Unknown") : *Snapshot.FailureReason,
 			*ProfileSuffix));
 	}
 
@@ -612,11 +590,11 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusDescription(A
 		return FText::FromString(TEXT("Calysto dungeon runtime is not available in this world."));
 	}
 
-	const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
 	if (!Snapshot.bPolicyValid)
 	{
 		return FText::FromString(FString::Printf(
-			TEXT("Dungeon Director V4 policy invalid (fail closed): %s"),
+			TEXT("Dungeon Director V6 Data Asset invalid (fail closed): %s"),
 			*Snapshot.PolicyError));
 	}
 	if (!Snapshot.bHasActiveRun)
@@ -624,97 +602,96 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusDescription(A
 		return FText::FromString(TEXT("No run is active. Entering DungeonGeneration will start a new seeded run at Floor 1."));
 	}
 
-	const FEFCalystoDirectorIntentV4 QueuedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	const FEFCalystoDirectorIntentV6 QueuedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	const FString QueuedStyleName = QueuedIntent.bHasPreferredStyle
-		? ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(QueuedIntent.PreferredStyle)
-		: TEXT("Auto");
-	const FString QueuedThemeName = QueuedIntent.bHasPreferredTheme
-		? ProjectGameplayDebugCommandExecutorPrivate::DescribeTheme(QueuedIntent.PreferredTheme)
+		? ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(QueuedIntent.PreferredStyleId)
 		: TEXT("Auto");
 	const FString IntentState = Snapshot.bHasQueuedDirectorIntent
 		? FString::Printf(
-			TEXT("Queued Style=%s Theme=%s Scale=%+.2f Branch=%+.2f Danger=%+.2f Safe=%+.2f Abundance=%+.2f Mystery=%+.2f Clothing=%+.2f Volatility=%+.2f"),
+			TEXT("Queued Style=%s Scale=%+.2f Branch=%+.2f Danger=%+.2f Safety=%+.2f Abundance=%+.2f Mystery=%+.2f Clothing=%+.2f Volatility=%+.2f"),
 			*QueuedStyleName,
-			*QueuedThemeName,
 			QueuedIntent.Scale,
 			QueuedIntent.Branching,
 			QueuedIntent.Danger,
-			QueuedIntent.Safe,
+			QueuedIntent.Safety,
 			QueuedIntent.Abundance,
 			QueuedIntent.Mystery,
 			QueuedIntent.ClothingInfluence,
 			QueuedIntent.Volatility)
 		: TEXT("Autonomous Director");
-	const FEFCalystoResolvedFloorIntentV4 FloorIntent = DungeonSubsystem->GetResolvedFloorIntent();
-	const FEFCalystoRealizedFloorManifestV4 Manifest = DungeonSubsystem->GetRealizedFloorManifest();
+	const FEFCalystoResolvedFloorIntentV6 FloorIntent = DungeonSubsystem->GetResolvedFloorIntent();
+	const FEFCalystoRealizedFloorManifestV6 Manifest = DungeonSubsystem->GetRealizedFloorManifest();
+	const FEFCalystoRoomManifestV6 RoomManifest = DungeonSubsystem->GetRoomManifestV6();
+	const FEFCalystoPopulationPlanV6 PopulationPlan = DungeonSubsystem->GetPopulationPlanV6();
 	const FString DirectorState = FString::Printf(
 		TEXT("%s/%s"),
 		*ProjectGameplayDebugCommandExecutorPrivate::DescribeTravelKind(Snapshot.TravelKind),
 		*ProjectGameplayDebugCommandExecutorPrivate::DescribeRunState(Snapshot.State));
 	const FString ResolvedStyleName = FloorIntent.bIsValid
-		? ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(FloorIntent.Style)
+		? ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(FloorIntent.StyleId)
 		: TEXT("Pending");
-	const FString ResolvedThemeName = FloorIntent.bIsValid
-		? ProjectGameplayDebugCommandExecutorPrivate::DescribeTheme(FloorIntent.Theme)
-		: TEXT("Pending");
+	const FString ResolvedThemeMix =
+		ProjectGameplayDebugCommandExecutorPrivate::DescribeThemeMix(RoomManifest);
 
 	const FString IdentitySummary = FString::Printf(
-		TEXT("V4 | Floor %lld | Generation %lld | RunEpoch %lld | RunSeed %lld | PCG %d | Style %s + Theme %s"),
+		TEXT("V6 | Floor %lld | Generation %lld | RunEpoch %lld | RunSeed %lld | PCG %d | Style %s | Room Themes %s"),
 		static_cast<long long>(Snapshot.FloorNumber),
 		static_cast<long long>(Snapshot.GenerationSerial),
 		static_cast<long long>(DungeonSubsystem->GetRunEpoch()),
 		static_cast<long long>(Snapshot.RunSeed),
 		FloorIntent.bIsValid ? FloorIntent.PCGSeed : Snapshot.PCGSeed,
 		*ResolvedStyleName,
-		*ResolvedThemeName);
+		*ResolvedThemeMix);
 	const FString TraitSummary = FloorIntent.bIsValid
 		? FString::Printf(
-			TEXT("Traits Scale %+.2f Branch %+.2f Danger %+.2f Safe %+.2f Abundance %+.2f Mystery %+.2f Clothing %+.2f Volatility %.2f"),
-			FloorIntent.ResolvedTraits.Scale,
-			FloorIntent.ResolvedTraits.Branching,
-			FloorIntent.ResolvedTraits.Danger,
-			FloorIntent.ResolvedTraits.Safe,
-			FloorIntent.ResolvedTraits.Abundance,
-			FloorIntent.ResolvedTraits.Mystery,
-			FloorIntent.ResolvedTraits.ClothingInfluence,
-			FloorIntent.ResolvedTraits.Volatility)
+			TEXT("Intent Scale %+.2f Branch %+.2f Danger %+.2f Safety %+.2f Abundance %+.2f Mystery %+.2f Clothing %+.2f Volatility %+.2f"),
+			FloorIntent.DirectorIntent.Scale,
+			FloorIntent.DirectorIntent.Branching,
+			FloorIntent.DirectorIntent.Danger,
+			FloorIntent.DirectorIntent.Safety,
+			FloorIntent.DirectorIntent.Abundance,
+			FloorIntent.DirectorIntent.Mystery,
+			FloorIntent.DirectorIntent.ClothingInfluence,
+			FloorIntent.DirectorIntent.Volatility)
 		: TEXT("Traits pending");
 	const FString IntentSummary = FloorIntent.bIsValid
 		? FString::Printf(
-			TEXT("Intent Size %dx%d | Anchors %.0f%% | Side %.0f%% | Budgets T %.1f/R %.1f | %s"),
+			TEXT("Intent Size %dx%d | Candidate Density %.0f%% | Side %.0f%% | Theme Chance %.0f%% | Limits E%d/Actors%d | Population %s"),
 			FloorIntent.DungeonSize.X,
 			FloorIntent.DungeonSize.Y,
-			FloorIntent.CandidateAnchorDensity * 100.0f,
+			FloorIntent.CandidateDensity * 100.0f,
 			FloorIntent.SidePathChance * 100.0f,
-			FloorIntent.ThreatBudget,
-			FloorIntent.ResourceBudget,
-			*ProjectGameplayDebugCommandExecutorPrivate::DescribeResolvedCategories(FloorIntent))
+			FloorIntent.FloorPlan.ThemeRoomChance * 100.0f,
+			FloorIntent.FloorPlan.GlobalBudgets.MaximumEnemies,
+			FloorIntent.FloorPlan.GlobalBudgets.MaximumDirectorActors,
+			*ProjectGameplayDebugCommandExecutorPrivate::DescribeResolvedCategories(PopulationPlan))
 		: TEXT("Intent pending");
 	const FString ManifestSummary = Manifest.bIsValid
 		? FString::Printf(
-			TEXT("Realized Anchors %d | E%d NPC%d F%d C%d L%d Clothing%d Event%d | Actors %d | Costs T %.1f/R %.1f"),
+			TEXT("Realized Anchors %d | Eligible Rooms %d | Themed Rooms %d | E%d F%d C%d Loot%d Event%d | Actors %d | Costs T %.1f/R %.1f"),
 			Manifest.CandidateAnchorCount,
-			Manifest.EnemyCount,
-			Manifest.NPCCount,
-			Manifest.FoodCount,
-			Manifest.ChestCount,
-			Manifest.LooseLootCount,
-			Manifest.ClothingCount,
-			Manifest.SpecialEventCount,
+			RoomManifest.EligibleRoomCount,
+			RoomManifest.ThemedRoomCount,
+			PopulationPlan.EnemyCount,
+			PopulationPlan.LooseFoodCount,
+			PopulationPlan.ChestCount,
+			PopulationPlan.LootActorCount,
+			PopulationPlan.SpecialEventCount,
 			Manifest.SpawnedActorCount,
 			Manifest.RealizedThreatCost,
 			Manifest.RealizedResourceCost)
 		: TEXT("Manifest pending");
 	const FString HashSummary = FString::Printf(
-		TEXT("Hashes Policy %s | Ecology %s | Outcome %s | Intent %s | Companion %s | Anchor %s | Population %s | Resources %s | Manifest %s"),
-		*FloorIntent.PolicyHash,
+		TEXT("Hashes Policy %s | FloorPlan %s | Ecology %s | Outcome %s | Intent %s | Companion %s | Rooms %s | Anchor %s | Population %s | Manifest %s"),
+		*FloorIntent.GenerationContext.PolicyHash,
+		*FloorIntent.FloorPlan.FloorPlanHash,
 		*FloorIntent.EcologyHash,
-		*FloorIntent.OutcomeHash,
+		*FloorIntent.FrozenOutcome.OutcomeHash,
 		*FloorIntent.IntentHash,
 		*Manifest.CompanionSnapshotHash,
+		*Manifest.RoomManifestHash,
 		*Manifest.AnchorTopologyHash,
-		*Manifest.PopulationHash,
-		*Manifest.ResourceHash,
+		*Manifest.PopulationPlanHash,
 		*Manifest.ManifestHash);
 
 	return FText::FromString(FString::Printf(
@@ -738,9 +715,9 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessFloorChoiceLabel(
 	if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
 		ProjectGameplayDebugCommandExecutorPrivate::FindCalystoDungeonSubsystem(OwnerActor))
 	{
-		const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
+		const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
 		if (ProjectGameplayDebugCommandExecutorPrivate::IsPendingFloorState(Snapshot.State)
-			&& Snapshot.PendingFloorNumber == FloorNumber)
+			&& Snapshot.FloorNumber == FloorNumber)
 		{
 			Prefix = TEXT("[Pending] ");
 		}
@@ -761,17 +738,17 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessFloorChoiceLabel(
 FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStyleChoiceLabel(
 	AActor* OwnerActor,
 	const bool bAuto,
-	const EEFCalystoStyleV4 Style)
+	const FName StyleId)
 {
 	bool bSelected = false;
 #if !UE_BUILD_SHIPPING
 	if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
 		ProjectGameplayDebugCommandExecutorPrivate::FindCalystoDungeonSubsystem(OwnerActor))
 	{
-		const FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
+		const FEFCalystoDirectorIntentV6 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
 		bSelected = bAuto
 			? !Intent.bHasPreferredStyle
-			: Intent.bHasPreferredStyle && Intent.PreferredStyle == Style;
+			: Intent.bHasPreferredStyle && Intent.PreferredStyleId == StyleId;
 	}
 #else
 	(void)OwnerActor;
@@ -779,31 +756,7 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStyleChoiceLabel(
 	return FText::FromString(FString::Printf(
 		TEXT("%s%s"),
 		bSelected ? TEXT("[Selected] ") : TEXT(""),
-		bAuto ? TEXT("Auto") : *ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(Style)));
-}
-
-FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessThemeChoiceLabel(
-	AActor* OwnerActor,
-	const bool bAuto,
-	const EEFCalystoThemeV4 Theme)
-{
-	bool bSelected = false;
-#if !UE_BUILD_SHIPPING
-	if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
-		ProjectGameplayDebugCommandExecutorPrivate::FindCalystoDungeonSubsystem(OwnerActor))
-	{
-		const FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
-		bSelected = bAuto
-			? !Intent.bHasPreferredTheme
-			: Intent.bHasPreferredTheme && Intent.PreferredTheme == Theme;
-	}
-#else
-	(void)OwnerActor;
-#endif
-	return FText::FromString(FString::Printf(
-		TEXT("%s%s"),
-		bSelected ? TEXT("[Selected] ") : TEXT(""),
-		bAuto ? TEXT("Auto") : *ProjectGameplayDebugCommandExecutorPrivate::DescribeTheme(Theme)));
+		bAuto ? TEXT("Auto") : *ProjectGameplayDebugCommandExecutorPrivate::DescribeStyle(StyleId)));
 }
 
 FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessBiasChoiceLabel(
@@ -817,12 +770,12 @@ FText FProjectGameplayDebugCommandExecutor::GetDungeonHarnessBiasChoiceLabel(
 	if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
 		FindCalystoDungeonSubsystem(OwnerActor))
 	{
-		const FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
+		const FEFCalystoDirectorIntentV6 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
 		float EffectiveBias = 0.0f;
 		if (BiasName == ScaleBiasName) { EffectiveBias = Intent.Scale; }
 		else if (BiasName == BranchingBiasName) { EffectiveBias = Intent.Branching; }
 		else if (BiasName == DangerBiasName) { EffectiveBias = Intent.Danger; }
-		else if (BiasName == SafeBiasName) { EffectiveBias = Intent.Safe; }
+		else if (BiasName == SafeBiasName) { EffectiveBias = Intent.Safety; }
 		else if (BiasName == AbundanceBiasName) { EffectiveBias = Intent.Abundance; }
 		else if (BiasName == MysteryBiasName) { EffectiveBias = Intent.Mystery; }
 		else if (BiasName == ClothingBiasName) { EffectiveBias = Intent.ClothingInfluence; }
@@ -965,12 +918,12 @@ bool FProjectGameplayDebugCommandExecutor::RequestStartDungeonTestRun(AActor* Ow
 bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredStyle(
 	AActor* OwnerActor,
 	const bool bAuto,
-	const EEFCalystoStyleV4 Style)
+	const FName StyleId)
 {
 #if UE_BUILD_SHIPPING
 	(void)OwnerActor;
 	(void)bAuto;
-	(void)Style;
+	(void)StyleId;
 	return false;
 #else
 	UEFCalystoDungeonSubsystem* DungeonSubsystem =
@@ -979,46 +932,16 @@ bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredStyle(
 	{
 		return false;
 	}
-	FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	FEFCalystoDirectorIntentV6 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	Intent.bHasPreferredStyle = !bAuto;
-	Intent.PreferredStyle = Style;
+	Intent.PreferredStyleId = bAuto ? NAME_None : StyleId;
 	if (!DungeonSubsystem->SetNextFloorDirectorIntent(Intent))
 	{
 		return false;
 	}
-	const FEFCalystoDirectorIntentV4 AppliedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	const FEFCalystoDirectorIntentV6 AppliedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	return AppliedIntent.bHasPreferredStyle == !bAuto
-		&& (bAuto || AppliedIntent.PreferredStyle == Style);
-#endif
-}
-
-bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredTheme(
-	AActor* OwnerActor,
-	const bool bAuto,
-	const EEFCalystoThemeV4 Theme)
-{
-#if UE_BUILD_SHIPPING
-	(void)OwnerActor;
-	(void)bAuto;
-	(void)Theme;
-	return false;
-#else
-	UEFCalystoDungeonSubsystem* DungeonSubsystem =
-		ProjectGameplayDebugCommandExecutorPrivate::FindCalystoDungeonSubsystem(OwnerActor);
-	if (!DungeonSubsystem)
-	{
-		return false;
-	}
-	FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
-	Intent.bHasPreferredTheme = !bAuto;
-	Intent.PreferredTheme = Theme;
-	if (!DungeonSubsystem->SetNextFloorDirectorIntent(Intent))
-	{
-		return false;
-	}
-	const FEFCalystoDirectorIntentV4 AppliedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
-	return AppliedIntent.bHasPreferredTheme == !bAuto
-		&& (bAuto || AppliedIntent.PreferredTheme == Theme);
+		&& (bAuto || AppliedIntent.PreferredStyleId == StyleId);
 #endif
 }
 
@@ -1043,12 +966,12 @@ bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
 	{
 		return false;
 	}
-	FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	FEFCalystoDirectorIntentV6 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	float* SelectedBias = nullptr;
 	if (BiasName == ScaleBiasName) { SelectedBias = &Intent.Scale; }
 	else if (BiasName == BranchingBiasName) { SelectedBias = &Intent.Branching; }
 	else if (BiasName == DangerBiasName) { SelectedBias = &Intent.Danger; }
-	else if (BiasName == SafeBiasName) { SelectedBias = &Intent.Safe; }
+	else if (BiasName == SafeBiasName) { SelectedBias = &Intent.Safety; }
 	else if (BiasName == AbundanceBiasName) { SelectedBias = &Intent.Abundance; }
 	else if (BiasName == MysteryBiasName) { SelectedBias = &Intent.Mystery; }
 	else if (BiasName == ClothingBiasName) { SelectedBias = &Intent.ClothingInfluence; }
@@ -1061,11 +984,11 @@ bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
 	{
 		return false;
 	}
-	const FEFCalystoDirectorIntentV4 AppliedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	const FEFCalystoDirectorIntentV6 AppliedIntent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	if (BiasName == ScaleBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Scale, Bias); }
 	if (BiasName == BranchingBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Branching, Bias); }
 	if (BiasName == DangerBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Danger, Bias); }
-	if (BiasName == SafeBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Safe, Bias); }
+	if (BiasName == SafeBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Safety, Bias); }
 	if (BiasName == AbundanceBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Abundance, Bias); }
 	if (BiasName == MysteryBiasName) { return FMath::IsNearlyEqual(AppliedIntent.Mystery, Bias); }
 	return FMath::IsNearlyEqual(AppliedIntent.ClothingInfluence, Bias);
@@ -1091,7 +1014,7 @@ bool FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentVolatility(
 	{
 		return false;
 	}
-	FEFCalystoDirectorIntentV4 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
+	FEFCalystoDirectorIntentV6 Intent = DungeonSubsystem->GetNextFloorDirectorIntent();
 	Intent.Volatility = Volatility;
 	if (!DungeonSubsystem->SetNextFloorDirectorIntent(Intent))
 	{
@@ -1132,7 +1055,6 @@ bool FProjectGameplayDebugCommandExecutor::IsDungeonHarnessPersistentCommand(con
 
 	const FString OptionString = OptionId.ToString();
 	return OptionString.StartsWith(DungeonHarnessStylePrefix)
-		|| OptionString.StartsWith(DungeonHarnessThemePrefix)
 		|| OptionString.StartsWith(DungeonHarnessScaleBiasPrefix)
 		|| OptionString.StartsWith(DungeonHarnessBranchingBiasPrefix)
 		|| OptionString.StartsWith(DungeonHarnessDangerBiasPrefix)

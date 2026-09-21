@@ -323,3 +323,64 @@ PCG interops, ScriptableTools, DeformerGraph, MLDeformerFramework, Volumetrics, 
 9. Inspect effective output under `Saved/Config/WindowsEditor`, then re-hash ACFU, Daz, Player, Female, Frederick, Multiple, and Male.
 
 Rows explicitly marked `APPLIED_STRUCTURAL_PASS` have build, native-load, and config evidence only. `APPLIED_CONTENT_STRUCTURAL_PASS` covers content resolution and Blueprint/material compile/resave for the exact 31-package core-content batch, the separate exact 20-package procedural-contract batch, static load/save/reload for the exact `DungeonGeneration` World, the exact 15-package DirtyPawn closure, and the exact DoorToLevel/four-visual-package static batch plus read-only fresh-load; it does not apply `EFProceduralSettings`. The DirtyPawn batch additionally has a narrowly scoped runtime wrapper/binding PASS, without visual promotion. `APPLIED_PACKAGING_STRUCTURAL_PASS` records equivalent static validation plus the always-cook setting for the exact 127-package Modern UI batch. PIE input/level flow, procedural runtime, cook, package, and packaged runtime remain execution gates except where a narrower evidence artifact explicitly records a focused PASS; visual QA is `USER_OWNED_OUT_OF_SCOPE`.
+
+## Addendum 2026-08-31 — EFProceduralSettings and Calysto Director V5
+
+This addendum supersedes only the operational conclusions in older text that
+marked `EFProceduralSettings` as deferred or described the rejected V5
+DataTable as the active authority. Historical migration text remains in place
+for chronology; it is not evidence for the current V5 authoring model.
+
+`[/Script/EFProceduralRuntime.EFProceduralSettings]` keeps the project-owned
+DungeonGeneration integration, including `ManagedMapNames=DungeonGeneration`,
+the current `BP_MassiveDungeon` actor class, the `BP_StartPoint` class, and the
+target-owned ACF controller hints. Those settings do not authorize saving any
+Calysto vendor asset.
+
+### Active V5 authority
+
+The only intended V5 policy authority is the single V4-style Primary Data
+Asset:
+
+`/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV5Asset'/Game/_Game/Data/CalystoDungeon/V5/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy'`
+
+It is a `UPrimaryDataAsset`, not a `UDataTable`. Its Details panel groups V5
+identity/provenance, technical safety, validated sizes, styles, themes, and
+nested catalogs in one document that remains familiar to V4 authors. The V5
+compiler produces a transient V4 compatibility IR; the immutable V4 package is
+never an implicit V5 authority or fallback.
+
+The rejected V5 DataTable prototype may be retained byte-preserved during the
+cutover, but it is not an authoring surface, runtime authority, fallback, or
+cooked Director policy package. The active primary-asset cook rule must target
+the V5 Data Asset class and exclude V3, V4, and the rejected prototype from
+FinalStrict output.
+
+### Cutover evidence status
+
+Status: `CUTOVER_IN_PROGRESS / PENDING_VALIDATION`.
+
+No build, automation, editor, PIE, cook, package, smoke, determinism, or
+visual result produced for the rejected DataTable prototype may be promoted to
+evidence for the V5 Primary Data Asset. The following gates are all
+`PENDING` for the active authority:
+
+- create-once Data Asset authoring followed by a read-only validation pass;
+- live Editor class/object inspection and protected-asset dirty-state checks;
+- cold Editor, Game Development, and Game Shipping builds;
+- V5 native automation (exactly 7 tests) and the V4 schema-1 control (exactly
+  23 tests);
+- Blueprint compilation, PIE traversal, and visual QA;
+- fresh Development and Shipping FinalStrict cook/package, smoke, and
+  determinism runs;
+- post-run protected hashes, including a fresh V4 rollback-package hash.
+
+`C6DDB0A100012108F170BA8F566E17D1EFF60A8FAF3C724904FE091B028739A1` remains
+the frozen expected V4 migration-input SHA-256. Its current post-cutover hash
+verification is `PENDING`; it must not be inferred from earlier receipts.
+
+The current evidence ledger is
+[Calysto_Dungeon_Director_V5_20260831.md](Evidence/Calysto_Dungeon_Director_V5_20260831.md).
+This addendum neither converts a pending gate to PASS nor authorizes edits or
+resaves of `BP_MassiveDungeon`, the V4 rollback Data Asset, or another protected
+Calysto package.

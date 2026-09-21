@@ -1,35 +1,54 @@
 #include "EFProceduralEditor.h"
 
-#include "Calysto/EFCalystoCategoryProfileV4Customization.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
-#include "Calysto/EFCalystoTierMixV4Customization.h"
+#include "Calysto/EFCalystoDungeonDirectorPolicyV6.h"
+#include "Calysto/EFCalystoDungeonDirectorPolicyV6Details.h"
+#include "Calysto/EFCalystoDirectorToolset.h"
+#include "Calysto/EFCalystoTraitBindingDetails.h"
+#include "Calysto/EFCalystoDirectorTypes.h"
+#include "Editor.h"
+#include "Misc/CoreDelegates.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
+#include "ToolsetRegistry/UToolsetRegistry.h"
+
+namespace
+{
+	FDelegateHandle CalystoToolsetRegistration;
+	void RegisterCalystoToolset()
+	{
+		if (!IsRunningCommandlet()) UToolsetRegistry::RegisterToolsetClass(UEFCalystoDirectorToolset::StaticClass());
+	}
+}
 
 void FEFProceduralEditorModule::StartupModule()
 {
 	FPropertyEditorModule& PropertyEditor =
 		FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-	PropertyEditor.RegisterCustomPropertyTypeLayout(
-		FEFCalystoTierMixV4::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
-			&FEFCalystoTierMixV4Customization::MakeInstance));
-	PropertyEditor.RegisterCustomPropertyTypeLayout(
-		FEFCalystoCategoryProfileV4::StaticStruct()->GetFName(),
-		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
-			&FEFCalystoCategoryProfileV4Customization::MakeInstance));
+	PropertyEditor.RegisterCustomClassLayout(
+		UEFCalystoDungeonDirectorPolicyV6Asset::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FEFCalystoDungeonDirectorPolicyV6Details::MakeInstance));
+	PropertyEditor.RegisterCustomPropertyTypeLayout(FEFCalystoTraitBinding::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FEFCalystoTraitBindingDetails::MakeInstance));
 	PropertyEditor.NotifyCustomizationModuleChanged();
+	if (!IsRunningCommandlet())
+	{
+		if (GEditor && UToolsetRegistry::IsAvailable()) RegisterCalystoToolset();
+		else CalystoToolsetRegistration = FCoreDelegates::GetOnPostEngineInit().AddStatic(&RegisterCalystoToolset);
+	}
 }
 
 void FEFProceduralEditorModule::ShutdownModule()
 {
+	FCoreDelegates::GetOnPostEngineInit().Remove(CalystoToolsetRegistration);
+	UEFCalystoDirectorToolset::CancelPendingShutdown();
+	UToolsetRegistry::UnregisterToolsetClass(UEFCalystoDirectorToolset::StaticClass());
 	if (FPropertyEditorModule* PropertyEditor =
 		FModuleManager::GetModulePtr<FPropertyEditorModule>(TEXT("PropertyEditor")))
 	{
-		PropertyEditor->UnregisterCustomPropertyTypeLayout(
-			FEFCalystoTierMixV4::StaticStruct()->GetFName());
-		PropertyEditor->UnregisterCustomPropertyTypeLayout(
-			FEFCalystoCategoryProfileV4::StaticStruct()->GetFName());
+		PropertyEditor->UnregisterCustomClassLayout(
+			UEFCalystoDungeonDirectorPolicyV6Asset::StaticClass()->GetFName());
+		PropertyEditor->UnregisterCustomPropertyTypeLayout(FEFCalystoTraitBinding::StaticStruct()->GetFName());
 		PropertyEditor->NotifyCustomizationModuleChanged();
 	}
 }

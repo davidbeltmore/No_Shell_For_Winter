@@ -42,6 +42,10 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingSurfaceDeformerBuilderLibrary final
 	GENERATED_BODY()
 
 public:
+	/** Project-owned DQS adapter that preserves zero-scale hidden bone matrices. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph|Bodies")
+	static FEFClothingSurfaceDeformerBuildResult BuildBodyCoverageDeformer();
+
 	/** Build, structurally validate, compile and save the canonical V3 graph asset. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Surface Guard")
 	static FEFClothingSurfaceDeformerBuildResult BuildOrUpdateSurfaceConstraintDeformer(

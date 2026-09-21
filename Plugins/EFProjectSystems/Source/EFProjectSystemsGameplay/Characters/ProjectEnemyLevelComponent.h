@@ -32,7 +32,7 @@ public:
 	void ResetGameplayScalingState();
 	USceneComponent* EnsurePreferredTargetPoint(const UProjectEnemyLevelSettings& Settings, FString& OutFailureReason);
 
-	/** Strict readiness check used by the V4 population transaction. */
+	/** Strict readiness check used by the definitive V6 population transaction. */
 	bool ValidateDirectorLevelState(int32 ExpectedLogicalLevel, FString& OutFailureReason) const;
 
 	UFUNCTION(BlueprintPure, Category = "Project|EnemyLevel")

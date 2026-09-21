@@ -699,7 +699,8 @@ public:
 	float SweatMaxPoints = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Sweat", meta = (ClampMin = "0.0"))
-	float SweatMovementGainPerSecond = 10.0f;
+	// Running, jumping, and rolling should require 100 seconds of activity to reach 100% sweat.
+	float SweatMovementGainPerSecond = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Sweat", meta = (ClampMin = "0.0"))
 	float SweatIntimacyGainPerSecond = 2.0f;

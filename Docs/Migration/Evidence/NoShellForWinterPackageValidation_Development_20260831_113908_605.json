@@ -1,0 +1,49 @@
+{
+    "schema_version":  1,
+    "generated_utc":  "2026-08-31T16:43:34.0782913Z",
+    "status":  "FAIL",
+    "target":  "NoShellForWinter",
+    "configuration":  "Development",
+    "validation_mode":  "FinalStrict",
+    "archive_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605",
+    "pending_validation_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation",
+    "package":  {
+                    "status":  "PASS",
+                    "exit_code":  0,
+                    "cook_log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605.Package.log",
+                    "cook_log_sha256":  "6595B8DFF64BDCA5A682F32E2D8387C3CDDF657A88F8C57EF402E5583CCF76F6"
+                },
+    "calysto_v5_package_validation":  {
+                                          "status":  "NOT_RUN",
+                                          "exit_code":  null,
+                                          "report":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605.V5PackageValidation.json",
+                                          "report_sha256":  "",
+                                          "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605.V5PackageValidation.log"
+                                      },
+    "calysto_v5_packaged_smoke":  {
+                                      "status":  "NOT_RUN",
+                                      "expected_case_count":  8,
+                                      "completed_case_count":  0,
+                                      "cases":  [
+
+                                                ]
+                                  },
+    "calysto_v5_packaged_determinism":  {
+                                            "status":  "NOT_RUN",
+                                            "result":  null
+                                        },
+    "clothing_morph_v4_packaged_startup":  {
+                                               "status":  "NOT_RUN",
+                                               "exit_code":  null,
+                                               "summary":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA\\PackagedStartup_20260831_113908_605\\Summary.json",
+                                               "summary_sha256":  "",
+                                               "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605.ClothingV4PackagedStartup.log"
+                                           },
+    "cleanup":  {
+                    "status":  "RETAINED_AFTER_GATE_FAILURE",
+                    "archive_removed_after_pass":  false,
+                    "archive_retained":  true,
+                    "error":  ""
+                },
+    "orchestrator_error":  "D:\\Projects UE5\\NoShellForWinter\\Tools\\Migration\\Validate-CalystoDungeonDirectorV5Package58.ps1 : No se puede procesar "
+}

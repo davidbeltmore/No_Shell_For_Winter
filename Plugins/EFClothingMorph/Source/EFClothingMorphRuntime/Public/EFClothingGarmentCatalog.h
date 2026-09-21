@@ -4,9 +4,11 @@
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
 #include "Misc/SecureHash.h"
+#include "EFClothingV5Types.h"
 #include "EFClothingGarmentCatalog.generated.h"
 
 class USkeletalMesh;
+class UMeshDeformer;
 
 /** Internal runtime backend. V4 selects the safe automatic backend for new rows. */
 UENUM(BlueprintType)
@@ -74,7 +76,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Use This Clothing", ToolTip = "Turns automatic fitting on for this clothing. An unfinished entry stays a draft and cannot disable other clothes."))
-	bool bEnabled = false;
+	bool bEnabled = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Clothing Name", ToolTip = "A unique, stable name used by gameplay and saved data. A name is created automatically after both meshes are assigned, and you may edit it at any time before release."))
 	FName GarmentId = NAME_None;
@@ -82,8 +84,49 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Clothing Mesh", ToolTip = "The clothing mesh shown in game. You may edit and save it with Unreal Engine's native Skeletal Mesh tools. EF Clothing Morph never replaces it."))
 	TSoftObjectPtr<USkeletalMesh> SourceGarment;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Body Mesh", ToolTip = "The exact visible body this clothing must follow, for example Female or Male. The body mesh, skin weights, and shared skeleton are never modified."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Clothing Setup", meta = (DisplayName = "Body Mesh", ToolTip = "The body this garment was authored for. All registered bodies receive their own fit without replacing the clothing or body mesh."))
 	TSoftObjectPtr<USkeletalMesh> BodySurface;
+
+	/** Generated variant metadata; never a second authoring row. */
+	UPROPERTY()
+	FName AuthoredGarmentId;
+
+	UPROPERTY()
+	TSoftObjectPtr<USkeletalMesh> ReferenceBodySurface;
+
+	UPROPERTY()
+	TArray<FName> BodyBoneBranchesToHide;
+
+	UPROPERTY()
+	TSoftObjectPtr<UMeshDeformer> BoneCoverageDeformer;
+
+	UPROPERTY()
+	TSoftObjectPtr<UMeshDeformer> BoneCoverageDeformerSource;
+
+	/** Explicit genital coverage independent of inaccurate legacy coverage tags. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body Hiding")
+	bool bCoversGenitals = false;
+
+	/**
+	 * Optional V5.1 semantic stacking contract stored directly in this table row.
+	 * It is intentionally independent from the
+	 * proven surface-binding fingerprint, so reorganizing wardrobe layers never
+	 * rebuilds immutable body correspondence data.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Layering", meta = (ShowOnlyInnerProperties, DisplayName = "Layer and Occupancy"))
+	FEFClothingLayerRule LayerRule;
+
+	/** Body-profile regions covered by this garment, independent of material slots. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Layering", meta = (DisplayName = "Covered Body Regions"))
+	TArray<FName> CoveredBodyRegionIds;
+
+	/**
+	 * Declarative V5.1 render policy stored in the same row. Force Opaque is the safe default which keeps
+	 * skin and tattoo decals behind cloth; slot/material exceptions must be
+	 * authored explicitly.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Material Exceptions", meta = (ShowOnlyInnerProperties, DisplayName = "Material Policy"))
+	FEFClothingMaterialPolicySet MaterialPolicy;
 
 	/** Internal/developer-only profile selector retained for compiler compatibility. */
 	UPROPERTY()
@@ -98,6 +141,13 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Live Fit", meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "0.5", Units = "cm", DisplayName = "Surface Volume (cm)", ToolTip = "Makes this clothing look fuller by moving its visible surface outward. It updates immediately and does not create new geometry."))
 	float ShellThicknessCm = 0.0f;
+
+	/**
+	 * Optional V5.1 lower-body reserve, kept in this same Director row. Exact
+	 * morph names prevent Bra or other upper garments from inheriting it.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Morph Guards", meta = (ShowOnlyInnerProperties, DisplayName = "Lower Body Morph Guard"))
+	FEFClothingLowerBodyMorphGuardRule LowerBodyMorphGuard;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced Mesh Edit", meta = (DisplayName = "Native Offset Settings", ShowOnlyInnerProperties, ToolTip = "Settings for an explicit Unreal mesh edit. Changing these values alone does nothing. Use Skin Gap or Surface Volume for immediate, non-destructive tuning."))
 	FEFClothingNativeUEOffsetSettings NativeUEOffset;
@@ -121,7 +171,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	 * used by the binding/compiler, but remain visible unless the separate
 	 * Body Sections to Hide in Gameplay list contains them.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fit Surface", meta = (DisplayName = "Body Sections Excluded from Fit", ToolTip = "Body material slots ignored by the fitting surface. This keeps difficult or auxiliary geometry out of the solver without hiding it in gameplay. Update This Clothing after changing this list."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fit Surface", meta = (DisplayName = "Body Sections Excluded from Fit", ToolTip = "Body material slots ignored by the fitting surface. This keeps difficult or auxiliary geometry out of the solver without hiding it in gameplay. The binding updates automatically."))
 	TArray<FName> ExcludedBodySurfaceMaterialSlots;
 
 	// ---------------------------------------------------------------------
@@ -288,7 +338,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 
 		const TArray<FName> EffectiveExcludedSections = GetEffectiveBodySectionsToExclude();
 		const FString Canonical = FString::Printf(
-			TEXT("Backend=%d|Fit=%d|NativeSkinProfile=%s|Coverage=%s|BodySections=%s|ExcludedBones=%s|ExcludedMorphs=%s|MinMultiplier=%.6f|Fabric=%.6f|MaxCorrection=%.6f"),
+			TEXT("Backend=%d|Fit=%d|NativeSkinProfile=%s|Coverage=%s|BodySections=%s|ExcludedBones=%s|ExcludedMorphs=%s|MinMultiplier=%.6f|Fabric=%.6f|MaxCorrection=%.6f|LowerGuardEnabled=%d|LowerGuardMorphs=%s|LowerGuardClearance=%.6f"),
 			static_cast<int32>(Backend),
 			static_cast<int32>(FitPolicy),
 			*NativeSkinWeightProfile.ToString(),
@@ -298,8 +348,11 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 			*CanonicalStrings(ExcludedBodyMorphPrefixes),
 			MinimumClearanceMultiplier,
 			FabricClearanceCm,
-			MaximumCorrectionCm);
-		return FMD5::HashAnsiString(*Canonical);
+			MaximumCorrectionCm,
+			LowerBodyMorphGuard.bEnabled ? 1 : 0,
+			*CanonicalNames(LowerBodyMorphGuard.ExactBodyMorphNames),
+			LowerBodyMorphGuard.MaximumClearanceCm);
+		return FMD5::HashAnsiString(*(ReferenceBodySurface.IsNull() ? Canonical : Canonical + TEXT("|UnisexReferenceV2=") + ReferenceBodySurface.ToSoftObjectPath().ToString()));
 	}
 };
 

@@ -89,7 +89,13 @@ namespace EFCalystoContentPlannerPrivate
 		TArray<FEFCalystoReservedContent> Elements;
 		TArray<FEFCalystoReservedSpace> Space;
 		TSet<FGuid> UsedCandidates;
+		// Complete surface feasibility is indexed by its already-validated native
+		// room and zone. Every candidate remains in the proof; the index only
+		// avoids rescanning unrelated rooms for each room-local opportunity.
+		TMap<int64, TMap<EEFCalystoPlacementZone, TArray<const FEFCalystoContentSurface*>>> SurfacesByRoomAndZone;
 		TMap<FGuid, TArray<FEFCalystoResolvedContentGroup>> ThemeGroups;
+		TMap<FGuid, double> ChanceMultipliers;
+		TMap<FGuid, TMap<FGuid, double>> EntryWeights;
 		TMap<FGuid, int32> StyleEntryLimits;
 		double ThreatBudget = 0;
 		bool bFailed = false;
@@ -111,12 +117,29 @@ namespace EFCalystoContentPlannerPrivate
 				return Fail(TEXT("ReservationWorkBound"), TEXT("Finite reservation proof exceeded its work bound. No manifest was accepted and no unknown feasibility was treated as impossible."), true);
 			return true;
 		}
+		bool TraitMultiplier(const FEFCalystoContentRoom& Room, EEFCalystoGameplayRole Role,
+			EEFCalystoTraitControl Control, FGuid Entry, double& Result)
+		{
+			Result = 1.0;
+			const auto& Policy = Config.GetAdvanced().Adaptation;
+			if (!Policy.bEnabled || Policy.MaximumEffectPercent == 0 || Policy.Bindings.IsEmpty()) return true;
+			const int64 Count = Policy.Bindings.Num();
+			// Includes duplicate validation, canonical ordering and evaluation, once per distinct resolved target.
+			if (!Work(Count * (Count + 8))) return false;
+			const auto* Theme = Config.FindTheme(Room.ThemeId); FString Error;
+			if (!FEFCalystoDirectorProbability::ResolveTraitMultiplier(Policy, Style->Traits, Theme ? &Theme->Traits : nullptr,
+				Input.TraitSnapshot.IsSet() ? &Input.TraitSnapshot.GetValue() : nullptr, Role, Control, Entry, Result, Error))
+				return Fail(TEXT("TraitContextInvalid"), Error);
+			return true;
+		}
 		bool Validate()
 		{
 			const auto& L = Input.Limits;
 			if (!Config.IsValid() || !(Style = Config.FindStyle(Input.Random.StyleId)) || Input.Random.FloorNumber < 1
 				|| Input.Random.AttemptIndex < 0 || Input.Random.RerollIndex < 0)
 				return Fail(TEXT("ReservationIdentityInvalid"), TEXT("A valid compiled Style and immutable floor identity are required."));
+			if (!Style->Selection.bEnabled || Style->Selection.Weight <= 0.0)
+				return Fail(TEXT("ReservationStyleInactive"), TEXT("Reservation requires an enabled positive-weight Style with compile-validated safety capacities."));
 			if (L.MaximumRooms < 1 || L.MaximumRooms > 2048 || L.MaximumSurfaces < 1 || L.MaximumSurfaces > 65536
 				|| L.MaximumEntriesPerGroup < 1 || L.MaximumEntriesPerGroup > 1024 || L.MaximumCompatiblePairs < 1 || L.MaximumCompatiblePairs > 65536
 				|| L.MaximumAmount < 1 || L.MaximumAmount > 128 || L.MaximumReservations < 1 || L.MaximumReservations > 4096
@@ -148,9 +171,8 @@ namespace EFCalystoContentPlannerPrivate
 			{ for (const auto Role : Roles) if (uint8(Role) > uint8(EEFCalystoGameplayRole::SpecialEvent)) return false; return true; };
 			if (!IdsValid(Input.BlockedEntryIds) || !IdsValid(Input.GraveyardEligibleEntryIds))
 				return Fail(TEXT("EligibilityIdentityInvalid"), TEXT("Eligibility sets require valid persisted entry identities."));
-			if (Config.GetAdvanced().Adaptation.bEnabled
-				&& (!FMath::IsFinite(Input.NormalizedAdaptationInput) || FMath::Abs(Input.NormalizedAdaptationInput) > 1.0))
-				return Fail(TEXT("AdaptationInputInvalid"), TEXT("Enabled adaptation requires an explicit finite input in [-1,1]."));
+			// Compile proves each active Style capacity <= its immutable global ceiling. Keep the
+			// Style's exact lower capacities for existing usage and pre-Chance feasibility; never clamp a draw.
 			ThreatBudget = FEFCalystoDirectorProbability::EvaluateLinearCurve(Style->FloorBudgets.Threat, Input.Random.FloorNumber);
 			Usage = Input.InitialUsage;
 			if (Usage.Actors < 0 || Usage.Actors > Style->FloorBudgets.TotalActors || !FMath::IsFinite(Usage.Threat) || Usage.Threat < 0 || Usage.Threat > ThreatBudget
@@ -210,6 +232,19 @@ namespace EFCalystoContentPlannerPrivate
 					if (Content.Entries.Num() > L.MaximumEntriesPerGroup || Highest > L.MaximumAmount)
 						return Fail(TEXT("ContentAmountUnsupported"), TEXT("A category exceeds the declared entry/count reservation capability; it was not truncated."));
 					const FGuid Scope = FEFCalystoContentReservationPlanner::ScopeIdentity(Input.Random.StyleId, Room.ThemeId, Content.Id);
+					double ChanceMultiplier;
+					if (!TraitMultiplier(Room, Content.Role, EEFCalystoTraitControl::Chance, {}, ChanceMultiplier)) return false;
+					ChanceMultipliers.Add(Scope, ChanceMultiplier);
+					auto& EffectiveWeights = EntryWeights.FindOrAdd(Scope);
+					for (const auto& Entry : Content.Entries)
+					{
+						double WeightMultiplier;
+						if (!TraitMultiplier(Room, Content.Role, EEFCalystoTraitControl::EntryWeight, Entry.Selection.Id, WeightMultiplier)) return false;
+						const double Weight = Entry.Selection.Weight * WeightMultiplier;
+						if (!FMath::IsFinite(Weight) || Weight < 0)
+							return Fail(TEXT("TraitWeightInvalid"), TEXT("Explicit trait-adjusted entry weight must remain finite and nonnegative."));
+						EffectiveWeights.Add(Entry.Selection.Id, Weight);
+					}
 					ScopedCategoryLimits.Add(Scope, Content.MaximumPerFloor);
 					int32& FloorLimit = CategoryLimits.FindOrAdd(Content.Role);
 					FloorLimit = FMath::Max(FloorLimit, Group.FloorMaximum);
@@ -236,6 +271,7 @@ namespace EFCalystoContentPlannerPrivate
 			if (!WithinCaps(Usage.Categories, CategoryLimits) || !WithinCaps(Usage.Entries, KnownEntryLimits)
 				|| !WithinCaps(Usage.ScopedCategories, ScopedCategoryLimits) || !WithinCaps(Usage.ScopedEntries, ScopedEntryLimits))
 				return Fail(TEXT("ReservationUsageInvalid"), TEXT("Every existing category/entry counter must identify a current authored scope and remain within its exact capacity."));
+			SurfacesByRoomAndZone.Reset();
 			for (const auto& Surface : Input.Surfaces)
 			{
 				if (!Work()) return false;
@@ -247,7 +283,14 @@ namespace EFCalystoContentPlannerPrivate
 					|| !FMath::IsFinite(Surface.AvailableClearanceCm) || Surface.AvailableClearanceCm < 0)
 					return Fail(TEXT("ReservationSurfaceInvalid"), TEXT("Surface identities, room ownership, geometry and validated clearance must be finite and explicit."));
 				UsedCandidates.Add(Surface.Id);
+				SurfacesByRoomAndZone.FindOrAdd(Surface.RoomId).FindOrAdd(Surface.Zone).Add(&Surface);
 			}
+			for (auto& RoomSurfaces : SurfacesByRoomAndZone)
+				for (auto& ZoneSurfaces : RoomSurfaces.Value)
+					ZoneSurfaces.Value.Sort([](const FEFCalystoContentSurface& A, const FEFCalystoContentSurface& B)
+					{
+						return GuidLess(A.Id, B.Id);
+					});
 			UsedCandidates.Reset();
 			for (const auto& Existing : Input.ExistingSpace)
 			{
@@ -284,7 +327,8 @@ namespace EFCalystoContentPlannerPrivate
 				return Fail(TEXT("ResourceBudgetUnavailable"), TEXT("A nonzero authored resource cost requires an explicit resource budget before Chance."));
 			return true;
 		}
-		FPair MakePair(const FOpportunity& O, int32 EntryIndex, FGuid Candidate, const FTransform& Transform, const FBox& Bounds, int32 Slot)
+		FPair MakePair(const FOpportunity& O, int32 EntryIndex, FGuid Candidate, const FTransform& Transform, const FBox& Bounds, int32 Slot,
+			const FString& CollisionContractHash = FString())
 		{
 			FPair Pair; Pair.EntryIndex = EntryIndex;
 			auto& R = Pair.Reservation;
@@ -293,7 +337,32 @@ namespace EFCalystoContentPlannerPrivate
 			R.ParentContainerId = O.ContainerId; R.InventorySlot = Slot; R.RoomId = O.Room->RoomId; R.ThemeId = O.Room->ThemeId;
 			R.Role = O.Group->Content.Role; R.Budget = O.Group->Content.Budget;
 			R.Entry = O.Group->Content.Entries[EntryIndex]; R.Transform = Transform; R.ReservedBounds = Bounds;
+			R.CollisionContractHash = CollisionContractHash;
 			return Pair;
+		}
+		bool ExactPlacementFeasible(const FEFCalystoContentEntry& Entry, const FTransform& Transform,
+			const FString& CollisionContractHash)
+		{
+			if (!Input.ExactPlacementPreflight)
+			{
+				if (Input.bRequireExactPlacementPreflight)
+					return Fail(TEXT("ExactPlacementPreflightMissing"),
+						TEXT("This live content request requires an exact CDO collision preflight for every jittered placement before Chance."));
+				return true;
+			}
+			FString Error;
+			switch (Input.ExactPlacementPreflight(Entry, Transform, CollisionContractHash, Error))
+			{
+			case EEFCalystoExactPlacementPreflight::Feasible:
+				return true;
+			case EEFCalystoExactPlacementPreflight::SpatiallyBlocked:
+				return false;
+			case EEFCalystoExactPlacementPreflight::Invalid:
+				return Fail(TEXT("ExactPlacementPreflightInvalid"), Error.IsEmpty()
+					? TEXT("The exact CDO collision preflight could not validate a deterministic placement.") : Error);
+			default:
+				return Fail(TEXT("ExactPlacementPreflightInvalid"), TEXT("The exact CDO collision preflight returned an unsupported result."));
+			}
 		}
 		bool BuildPairs(const FOpportunity& O, TArray<FPair>& Pairs)
 		{
@@ -302,7 +371,8 @@ namespace EFCalystoContentPlannerPrivate
 			{
 				const auto& Entry = O.Group->Content.Entries[E];
 				if (!Work()) return false;
-				if (!EntryEligible(Entry) || RarityWeight(Rarity, Entry.Rarity) <= 0) { if (bFailed) return false; continue; }
+				if (!EntryEligible(Entry) || EntryWeights.FindChecked(O.Scope).FindChecked(Entry.Selection.Id) <= 0
+					|| RarityWeight(Rarity, Entry.Rarity) <= 0) { if (bFailed) return false; continue; }
 				if (O.Group->Content.Role == EEFCalystoGameplayRole::Container && !Input.ContainerCapacities.Contains(Entry.Selection.Id))
 					return Fail(TEXT("ContainerContractUnavailable"), TEXT("An eligible container entry requires an explicit inventory slot/compatibility schema before selection."));
 				if (O.ContainerId.IsValid())
@@ -317,22 +387,37 @@ namespace EFCalystoContentPlannerPrivate
 						Pairs.Add(MakePair(O, E, SlotId, FTransform::Identity, FBox(ForceInit), Slot));
 					}
 				}
-				else for (const auto& Surface : Input.Surfaces)
+				else if (const TMap<EEFCalystoPlacementZone, TArray<const FEFCalystoContentSurface*>>* RoomSurfaces =
+					SurfacesByRoomAndZone.Find(O.Room->RoomId))
 				{
-					if (!Work()) return false;
-					if (Surface.RoomId != O.Room->RoomId || Surface.Zone != Entry.Placement.Zone || !Surface.bCollisionValidated
-						|| Surface.bProtectsDoorway || Surface.bProtectsMainRoute || !Surface.AllowedRoles.Contains(O.Group->Content.Role)
-						|| !Surface.CompatibleEntryIds.Contains(Entry.Selection.Id) || UsedCandidates.Contains(Surface.Id)
-						|| (Entry.Placement.bRequiresNavigation && !Surface.bNavigationValidated)
-						|| Surface.AvailableClearanceCm < Entry.Placement.Clearance) continue;
+					const TArray<const FEFCalystoContentSurface*>* CandidateSurfaces = RoomSurfaces->Find(Entry.Placement.Zone);
+					if (!CandidateSurfaces) continue;
+					for (const FEFCalystoContentSurface* SurfacePtr : *CandidateSurfaces)
+					{
+						if (!Work()) return false;
+						const FEFCalystoContentSurface& Surface = *SurfacePtr;
+						if (!Surface.bCollisionValidated || !Surface.bCollisionContractValidated || !Surface.ReservedLocalBounds.IsValid || Surface.CollisionContractHash.IsEmpty()
+							|| Surface.bProtectsDoorway || Surface.bProtectsMainRoute || !Surface.AllowedRoles.Contains(O.Group->Content.Role)
+							|| !Surface.CompatibleEntryIds.Contains(Entry.Selection.Id) || UsedCandidates.Contains(Surface.Id)
+							|| (Entry.Placement.bRequiresNavigation && !Surface.bNavigationValidated)
+							|| Surface.AvailableClearanceCm < Entry.Placement.Clearance) continue;
 					FVector TangentA, TangentB; Surface.Normal.FindBestAxisVectors(TangentA, TangentB);
 					const FGuid PlacementId = Join(O.Id, Join(Surface.Id, Entry.Selection.Id));
 					const double A = (2.0 * FEFCalystoDirectorProbability::Unit(Input.Random, EEFCalystoRandomDomain::Placement, PlacementId, 0) - 1.0) * Entry.Placement.PositionVariationCm;
 					const double B = (2.0 * FEFCalystoDirectorProbability::Unit(Input.Random, EEFCalystoRandomDomain::Placement, PlacementId, 1) - 1.0) * Entry.Placement.PositionVariationCm;
 					FTransform Transform = Surface.Transform; Transform.AddToTranslation(A * TangentA + B * TangentB);
-					const FVector Extent = Entry.Placement.FootprintHalfExtent;
-					// Clearance and jitter are world centimetres, even for scaled/rotated payloads.
-					const FBox Bounds = FBox(-Extent, Extent).TransformBy(Transform).ExpandBy(Entry.Placement.Clearance);
+					// The surface proves the whole support/protection envelope. The attempt-owned
+					// predicate additionally proves this exact deterministic jittered pose with
+					// the same CDO collision rule used by deferred spawning, before Chance.
+					if (!ExactPlacementFeasible(Entry, Transform, Surface.CollisionContractHash))
+					{ if (bFailed) return false; continue; }
+					// The candidate already proved this CDO-derived local envelope. Retain the
+					// authored footprint/clearance in world centimetres as a conservative second
+					// envelope: a caller-provided actor scale can never shrink spatial safety.
+					FBox Bounds = Surface.ReservedLocalBounds.TransformBy(Transform);
+					const FBox AuthoredBounds = FBox(-Entry.Placement.FootprintHalfExtent,
+						Entry.Placement.FootprintHalfExtent).ShiftBy(Transform.GetLocation()).ExpandBy(Entry.Placement.Clearance);
+					Bounds += AuthoredBounds.Min; Bounds += AuthoredBounds.Max;
 					if (Transform.ContainsNaN() || !Transform.GetRotation().IsNormalized() || !FiniteBox(Bounds))
 						return Fail(TEXT("PlacementTransformInvalid"), TEXT("A proposed deterministic placement produced nonfinite geometry."));
 					FBox LocalBounds(ForceInit);
@@ -348,7 +433,8 @@ namespace EFCalystoContentPlannerPrivate
 						|| LocalBounds.Min.Z < -Surface.AvailableHalfExtent.Z || LocalBounds.Max.Z > Surface.AvailableHalfExtent.Z) continue;
 					if (Pairs.Num() >= Input.Limits.MaximumCompatiblePairs)
 						return Fail(TEXT("CompatibilityPairBound"), TEXT("Finite entry/candidate compatibility exceeds the supported pair limit."));
-					Pairs.Add(MakePair(O, E, Surface.Id, Transform, Bounds, INDEX_NONE));
+						Pairs.Add(MakePair(O, E, Surface.Id, Transform, Bounds, INDEX_NONE, Surface.CollisionContractHash));
+					}
 				}
 				if (Pairs.Num() > Input.Limits.MaximumCompatiblePairs)
 					return Fail(TEXT("CompatibilityPairBound"), TEXT("Finite entry/candidate compatibility exceeds the supported pair limit."));
@@ -466,8 +552,11 @@ namespace EFCalystoContentPlannerPrivate
 			Detail.OpportunityId = O.Id; Detail.RoomId = O.Room->RoomId; Detail.GroupId = O.Group->Content.Id;
 			Detail.Role = O.Group->Content.Role; Detail.ContainerId = O.ContainerId;
 			Detail.RequestedChancePercent = FEFCalystoDirectorProbability::EvaluateLinearCurve(O.Group->Content.Chance, Input.Random.FloorNumber);
+			Detail.ChanceMultiplier = ChanceMultipliers.FindChecked(O.Scope);
 			Detail.EffectiveChancePercent = FMath::Clamp(Detail.RequestedChancePercent
-				* FEFCalystoDirectorProbability::AdaptationMultiplier(Config.GetAdvanced().Adaptation, Input.NormalizedAdaptationInput), 0.0, 100.0);
+				* Detail.ChanceMultiplier, 0.0, 100.0);
+			for (const auto& Entry : O.Group->Content.Entries)
+				Detail.EffectiveEntryWeights.Add({Entry.Selection.Id, EntryWeights.FindChecked(O.Scope).FindChecked(Entry.Selection.Id)});
 			if (O.Room->Protection != EEFCalystoProtectedRoom::None || !O.Room->AllowedRoles.Contains(Detail.Role))
 			{ Detail.Outcome = EEFCalystoContentOpportunityOutcome::IneligibleRoom; Detail.Reason = TEXT("ProtectedOrIneligibleRoom"); return true; }
 			TArray<FPair> Pairs;
@@ -519,7 +608,7 @@ namespace EFCalystoContentPlannerPrivate
 					ViablePairs.Add(Index);
 					const auto& Entry = Pairs[Index].Reservation.Entry;
 					if (!SeenEntries.Contains(Entry.Selection.Id))
-					{ SeenEntries.Add(Entry.Selection.Id); Entries.Add({Entry.Selection.Id, Entry.Selection.Weight}); Tiers.AddUnique(Entry.Rarity); }
+					{ SeenEntries.Add(Entry.Selection.Id); Entries.Add({Entry.Selection.Id, EntryWeights.FindChecked(O.Scope).FindChecked(Entry.Selection.Id)}); Tiers.AddUnique(Entry.Rarity); }
 				}
 				EEFCalystoRarity Tier;
 				if (!FEFCalystoDirectorProbability::SelectPopulatedRarity(Rarity, Tiers,
@@ -631,6 +720,7 @@ namespace EFCalystoContentPlannerPrivate
 			if (R.ReservedBounds.IsValid)
 				Canonical += FString::Printf(TEXT("%.17g,%.17g,%.17g|%.17g,%.17g,%.17g"),
 					R.ReservedBounds.Min.X,R.ReservedBounds.Min.Y,R.ReservedBounds.Min.Z,R.ReservedBounds.Max.X,R.ReservedBounds.Max.Y,R.ReservedBounds.Max.Z);
+			Canonical += TEXT("|") + R.CollisionContractHash;
 			Canonical += TEXT("\n");
 		}
 		return FMD5::HashAnsiString(*Canonical);

@@ -960,7 +960,7 @@ bool UProjectEnemyLevelComponent::SyncAssignedLevelToAscent(FString& OutDiagnost
 	UActorComponent* LevelingComponent = ProjectEnemyLevelComponentPrivate::FindComponentByClassHint<UActorComponent>(Owner, { TEXT("ARSLevelingComponent") });
 	UActorComponent* StatisticsComponent = ProjectEnemyLevelComponentPrivate::FindComponentByClassHint<UActorComponent>(Owner, { TEXT("ACFGASStatisticsComponent"), TEXT("ARSStatisticsComponent") });
 
-	// V4 Winter levels remain authoritative in this project-owned component and
+	// V6 Winter levels remain authoritative in this project-owned component and
 	// its linear scaling. ACF data/curves have only been certified through level
 	// 100, so never pass a larger physical level into Marketplace components.
 	const int32 PhysicalAscentLevel = LastPhysicalAscentLevel;

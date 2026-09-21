@@ -20,6 +20,7 @@ public:
 
 	virtual FName GetCategoryName() const override;
 
+	/** Returns only an already resident preset; runtime bootstrap never performs a synchronous load. */
 	const UEFProceduralProjectPreset* LoadProjectPreset() const;
 
 	UPROPERTY(EditAnywhere, Config, Category = "General")

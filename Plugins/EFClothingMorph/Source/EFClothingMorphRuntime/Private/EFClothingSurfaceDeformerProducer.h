@@ -59,6 +59,17 @@ public:
 	uint32 GetImmediateEnqueueFallbackCount() const;
 	uint32 GetRenderValidationFallbackCount() const;
 	FString GetRenderPreflightSummary() const;
+	float GetLastBodyMorphActivity() const { return LastBodyMorphActivity; }
+	float GetLastBreastMorphActivity() const { return LastBreastMorphActivity; }
+	float GetLastLowerBodyMorphActivity() const { return LastLowerBodyMorphActivity; }
+	float GetLastLowerBodyReserveCm() const
+	{
+		return LastLowerBodyMorphActivity * LowerBodyMorphGuardMaximumClearanceCm;
+	}
+	int32 GetLowerBodyMorphGuardVertexCount() const
+	{
+		return LowerBodyMorphGuardVertexCount;
+	}
 	/**
 	 * Number of submissions which reached ComputeFramework's render-frame
 	 * validation/submit phase without invoking its fallback delegate.
@@ -94,6 +105,13 @@ private:
 	int32 GarmentLODIndex = INDEX_NONE;
 	int32 BodyLODIndex = INDEX_NONE;
 	uint64 EnqueuedFrameCount = 0;
+	bool bTransportReferenceShape = false;
+	float LastBodyMorphActivity = 0.0f;
+	float LastBreastMorphActivity = 0.0f;
+	float LastLowerBodyMorphActivity = 0.0f;
+	TSet<FName> LowerBodyMorphGuardExactBodyMorphNames;
+	float LowerBodyMorphGuardMaximumClearanceCm = 0.0f;
+	int32 LowerBodyMorphGuardVertexCount = 0;
 	uint32 LastObservedDispatchFailureCount = 0;
 	uint32 DispatchRecoverySubmissionCount = 0;
 	double DispatchRecoveryElapsedSeconds = 0.0;

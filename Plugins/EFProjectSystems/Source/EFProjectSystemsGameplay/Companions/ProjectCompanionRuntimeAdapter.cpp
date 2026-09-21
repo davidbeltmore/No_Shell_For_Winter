@@ -5,6 +5,7 @@
 #include "ACFGASAttributesComponent.h"
 #include "Actors/ACFCharacter.h"
 #include "Characters/ProjectEnemyLevelComponent.h"
+#include "Calysto/ProjectCalystoDormantController.h"
 #include "Characters/ProjectEnemyLevelSettings.h"
 #include "Components/ACFCompanionGroupAIComponent.h"
 #include "Components/ACFTeamComponent.h"
@@ -212,6 +213,74 @@ namespace ProjectCompanionRuntimeAdapterPrivate
 		State.bRecruitedCompanion = bRegisterAsRecruited;
 		return Social->RegisterOrUpdateParticipant(Character, State);
 	}
+
+	/** Shared native actor-local work. No controller creation, party change or social publication. */
+	FProjectCompanionSpawnResult InitializeCompanionLocalState(AACFCharacter* Character,const FProjectCompanionDefinition& Definition)
+	{
+		if (!IsValid(Character) || !Character->HasActorBegunPlay())
+		{
+			return Failure(EProjectCompanionSpawnFailure::SpawnFailed,
+				TEXT("Deferred companion did not survive FinishSpawning/BeginPlay."));
+		}
+		FString DefinitionError;
+		if (!Definition.IsValid(DefinitionError) || !Character->HasAuthority()
+			|| !Definition.CharacterClass.Get() || !Character->IsA(Definition.CharacterClass.Get()))
+		{
+			return Failure(EProjectCompanionSpawnFailure::InvalidRequest,
+				DefinitionError.IsEmpty()?TEXT("Actor-local companion initialization has no valid exact native definition."):DefinitionError);
+		}
+
+		UACFGASAttributesComponent* Attributes = Character->FindComponentByClass<UACFGASAttributesComponent>();
+		const FDataTableRowHandle RealizedRow = Attributes ? Attributes->GetCharacterRow() : FDataTableRowHandle();
+		if (!Attributes || !RealizedRow.DataTable || RealizedRow.RowName.IsNone())
+		{
+			return Failure(EProjectCompanionSpawnFailure::StatisticsRepairFailed,
+				TEXT("The realized companion has no valid instance statistics row after FinishSpawning."));
+		}
+
+		UProjectEnemyLevelComponent* LogicalLevel = Character->FindComponentByClass<UProjectEnemyLevelComponent>();
+		if (!LogicalLevel)
+		{
+			LogicalLevel = NewObject<UProjectEnemyLevelComponent>(
+				Character, TEXT("ProjectCompanionLogicalLevel"), RF_Transient);
+			if (!LogicalLevel)
+			{
+				return Failure(EProjectCompanionSpawnFailure::LogicalLevelComponentFailed,
+					TEXT("Could not allocate project logical-level metadata."));
+			}
+			Character->AddInstanceComponent(LogicalLevel);
+			LogicalLevel->RegisterComponent();
+		}
+		// This actor is staged by the Director and is later validated with the
+		// Director's exact logical-level contract.  A display/world-tier bucket
+		// would leave a matching level with contradictory immutable metadata, so
+		// write the same frozen level to every Director projection field.
+		LogicalLevel->SetAssignedLevelData(
+			Definition.ResolvedLevel,
+			Definition.ResolvedLevel,
+			Definition.ResolvedLevel,
+			Definition.ResolvedLevel,
+			FMath::Clamp((static_cast<float>(FMath::Min(Definition.ResolvedLevel, 100)) - 1.0f) / 99.0f, 0.0f, 1.0f));
+
+		const UProjectEnemyLevelSettings* LevelSettings = UProjectEnemyLevelSettings::Get();
+		FString ScalingFailure;
+		FString AscentSyncDiagnostic;
+		LogicalLevel->SyncAssignedLevelToAscent(AscentSyncDiagnostic);
+		if (!LevelSettings
+			|| !LogicalLevel->CaptureGameplayScalingBaseline(*LevelSettings, ScalingFailure)
+			|| !LogicalLevel->ApplyGameplayScaling(*LevelSettings, ScalingFailure))
+		{
+			return Failure(
+				EProjectCompanionSpawnFailure::LogicalLevelComponentFailed,
+				ScalingFailure.IsEmpty()
+					? TEXT("Project companion gameplay scaling settings are unavailable.")
+					: ScalingFailure);
+		}
+
+		FProjectCompanionSpawnResult Result;Result.bSucceeded=true;Result.Failure=EProjectCompanionSpawnFailure::None;
+		Result.SpawnedCharacter=Character;return Result;
+	}
+
 }
 
 bool UProjectCompanionRuntimeAdapter::PrepareDeferredCompanion(
@@ -283,59 +352,12 @@ FProjectCompanionSpawnResult UProjectCompanionRuntimeAdapter::FinalizeDeferredCo
 {
 	using namespace ProjectCompanionRuntimeAdapterPrivate;
 
-	if (!IsValid(Character) || !Character->HasActorBegunPlay())
-	{
-		return Failure(EProjectCompanionSpawnFailure::SpawnFailed,
-			TEXT("Deferred companion did not survive FinishSpawning/BeginPlay."));
-	}
 	if (bRegisterAsRecruited && !CompanionGroup)
-	{
-		return Failure(EProjectCompanionSpawnFailure::CompanionGroupMissing,
-			TEXT("A persistent roster projection requires the ACF companion group."));
-	}
-
-	UACFGASAttributesComponent* Attributes = Character->FindComponentByClass<UACFGASAttributesComponent>();
-	const FDataTableRowHandle RealizedRow = Attributes ? Attributes->GetCharacterRow() : FDataTableRowHandle();
-	if (!Attributes || !RealizedRow.DataTable || RealizedRow.RowName.IsNone())
-	{
-		return Failure(EProjectCompanionSpawnFailure::StatisticsRepairFailed,
-			TEXT("The realized companion has no valid instance statistics row after FinishSpawning."));
-	}
-
-	UProjectEnemyLevelComponent* LogicalLevel = Character->FindComponentByClass<UProjectEnemyLevelComponent>();
-	if (!LogicalLevel)
-	{
-		LogicalLevel = NewObject<UProjectEnemyLevelComponent>(
-			Character, TEXT("ProjectCompanionLogicalLevel"), RF_Transient);
-		if (!LogicalLevel)
-		{
-			return Failure(EProjectCompanionSpawnFailure::LogicalLevelComponentFailed,
-				TEXT("Could not allocate project logical-level metadata."));
-		}
-		Character->AddInstanceComponent(LogicalLevel);
-		LogicalLevel->RegisterComponent();
-	}
-	LogicalLevel->SetAssignedLevelData(
-		FMath::Max(1, ((Definition.ResolvedLevel - 1) / 10) + 1),
-		Definition.ResolvedLevel,
-		Definition.ResolvedLevel,
-		Definition.ResolvedLevel,
-		FMath::Clamp((static_cast<float>(FMath::Min(Definition.ResolvedLevel, 100)) - 1.0f) / 99.0f, 0.0f, 1.0f));
-
-	const UProjectEnemyLevelSettings* LevelSettings = UProjectEnemyLevelSettings::Get();
-	FString ScalingFailure;
-	FString AscentSyncDiagnostic;
-	LogicalLevel->SyncAssignedLevelToAscent(AscentSyncDiagnostic);
-	if (!LevelSettings
-		|| !LogicalLevel->CaptureGameplayScalingBaseline(*LevelSettings, ScalingFailure)
-		|| !LogicalLevel->ApplyGameplayScaling(*LevelSettings, ScalingFailure))
-	{
-		return Failure(
-			EProjectCompanionSpawnFailure::LogicalLevelComponentFailed,
-			ScalingFailure.IsEmpty()
-				? TEXT("Project companion gameplay scaling settings are unavailable.")
-				: ScalingFailure);
-	}
+		return Failure(EProjectCompanionSpawnFailure::CompanionGroupMissing,TEXT("A persistent roster projection requires the ACF companion group."));
+	const auto Local=InitializeCompanionLocalState(Character,Definition);
+	if (!Local.bSucceeded) return Local;
+	const auto* Attributes=Character->FindComponentByClass<UACFGASAttributesComponent>();
+	const FDataTableRowHandle RealizedRow=Attributes->GetCharacterRow();
 
 	if (bRegisterAsRecruited)
 	{
@@ -397,6 +419,61 @@ FProjectCompanionSpawnResult UProjectCompanionRuntimeAdapter::FinalizeDeferredCo
 		Definition.ResolvedLevel,
 		FMath::Clamp(Definition.ResolvedLevel, 1, 100));
 	return Result;
+}
+
+FProjectCompanionSpawnResult UProjectCompanionRuntimeAdapter::FinalizeDeferredCompanionForDirector(
+	AACFCharacter* Character,const FProjectCompanionDefinition& Definition,
+	const FEFCalystoAttemptToken& Token,const FProjectCalystoDormantController& Controller)
+{
+	using namespace ProjectCompanionRuntimeAdapterPrivate;
+	FString Error;
+	if (!Controller.Verify(Token,Character,Error)) return Failure(EProjectCompanionSpawnFailure::ControllerMissing,Error);
+	const auto Local=InitializeCompanionLocalState(Character,Definition);
+	if (!Local.bSucceeded) return Local;
+	if (!Character->FindComponentByClass<UACFTeamComponent>())
+		return Failure(EProjectCompanionSpawnFailure::TeamComponentMissing,TEXT("The staged companion has no native ACF team component."));
+	if (!Character->FindComponentByClass<UAIPerceptionStimuliSourceComponent>())
+		return Failure(EProjectCompanionSpawnFailure::PerceptionComponentMissing,TEXT("The staged companion has no native perception stimuli source."));
+	UGameInstance* Instance=Character->GetWorld()->GetGameInstance();
+	auto* Social=Instance?Instance->GetSubsystem<UProjectSocialSubsystem>():nullptr;
+	if (!Social) return Failure(EProjectCompanionSpawnFailure::SocialRegistrationFailed,TEXT("The real native social owner is unavailable."));
+	FProjectSocialParticipantState State;
+	State.ParticipantId=FName(*FString::Printf(TEXT("Companion.%s"),*Definition.StableCompanionId.ToString(EGuidFormats::Digits)));
+	State.bAlive=true;State.bConscious=true;State.bHostile=false;State.bInCombat=false;State.bInSafeLocation=true;
+	State.bRecruitable=Definition.Lifecycle==EProjectCompanionLifecycle::Recruitable;State.bRecruitedCompanion=false;
+	if (!Social->StageParticipant(Token,Character,State,Error))
+		return Failure(EProjectCompanionSpawnFailure::SocialRegistrationFailed,Error);
+	if (!ValidateDeferredCompanionForDirector(Character,Definition,Token,Controller,Error))
+		return Failure(EProjectCompanionSpawnFailure::SocialRegistrationFailed,Error);
+	FProjectCompanionSpawnResult Result;Result.bSucceeded=true;Result.Failure=EProjectCompanionSpawnFailure::None;
+	Result.SpawnedCharacter=Character;Result.Diagnostic=TEXT("Native companion state is initialized with its exact dormant controller and unpublished social identity.");
+	return Result;
+}
+
+bool UProjectCompanionRuntimeAdapter::ValidateDeferredCompanionForDirector(
+	AACFCharacter* Character,const FProjectCompanionDefinition& Definition,
+	const FEFCalystoAttemptToken& Token,const FProjectCalystoDormantController& Controller,FString& Error)
+{
+	Error.Reset();
+	if (!IsValid(Character) || !Character->HasActorBegunPlay() || !Character->HasAuthority()
+		|| Character->GetClass()!=Definition.CharacterClass.Get() || !Definition.IsValid(Error)
+		|| !Controller.Verify(Token,Character,Error))
+	{ if (Error.IsEmpty()) Error=TEXT("The staged companion differs from its exact live native definition and controller.");return false; }
+	const auto* Level=Character->FindComponentByClass<UProjectEnemyLevelComponent>();
+	const auto* Attributes=Character->FindComponentByClass<UACFGASAttributesComponent>();
+	if (!Level || !Level->ValidateDirectorLevelState(Definition.ResolvedLevel,Error) || !Attributes
+		|| !Attributes->GetCharacterRow().DataTable || Attributes->GetCharacterRow().RowName.IsNone()
+		|| !Character->FindComponentByClass<UACFTeamComponent>() || !Character->FindComponentByClass<UAIPerceptionStimuliSourceComponent>())
+	{ if (Error.IsEmpty()) Error=TEXT("The staged companion lacks its exact native level, statistics, team or perception state.");return false; }
+	const auto* Instance=Character->GetWorld()->GetGameInstance();
+	const auto* Social=Instance?Instance->GetSubsystem<UProjectSocialSubsystem>():nullptr;
+	FProjectSocialParticipantState State;
+	const FName Id(*FString::Printf(TEXT("Companion.%s"),*Definition.StableCompanionId.ToString(EGuidFormats::Digits)));
+	if (!Social || !Social->ObserveStagedParticipant(Token,Character,Id,State,Error)
+		|| !State.bAlive || !State.bConscious || State.bHostile || State.bInCombat || !State.bInSafeLocation
+		|| State.bRecruitedCompanion || State.bRecruitable!=(Definition.Lifecycle==EProjectCompanionLifecycle::Recruitable))
+	{ if (Error.IsEmpty()) Error=TEXT("The unpublished native NPC identity or lifecycle changed.");return false; }
+	return true;
 }
 
 FProjectCompanionSpawnResult UProjectCompanionRuntimeAdapter::SpawnAndRegisterCompanion(

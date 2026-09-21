@@ -11,11 +11,13 @@
 #include "Engine/Texture2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
+#include "EFCharacterCustomizationComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Intimacy/ProjectIntimacySubsystem.h"
 #include "Kismet/KismetRenderingLibrary.h"
+#include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/SecureHash.h"
@@ -67,6 +69,23 @@ namespace ProjectDefaultTattooSkinnedDecalPrivate
 	const FName EmissiveStrengthParameterName(TEXT("DecalEmissive Strength"));
 	const FName UseEmissiveParameterName(TEXT("DecaulUseEmissive"));
 	const FName TattooShopPreviewAtlasRowName(TEXT("__TattooShopPreview"));
+
+	bool IsMaterialOrParent(const UMaterialInterface* Material, const FSoftObjectPath& ExpectedMaterialPath)
+	{
+		const FTopLevelAssetPath ExpectedAssetPath = ExpectedMaterialPath.GetAssetPath();
+		for (const UMaterialInterface* Candidate = Material; IsValid(Candidate);)
+		{
+			if (FSoftObjectPath(Candidate).GetAssetPath() == ExpectedAssetPath)
+			{
+				return true;
+			}
+
+			const UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Candidate);
+			Candidate = MaterialInstance ? MaterialInstance->Parent.Get() : nullptr;
+		}
+
+		return false;
+	}
 
 	struct FRuntimeTattooLimits
 	{
@@ -2721,12 +2740,88 @@ USkinnedDecalSampler* UProjectDefaultTattooSkinnedDecalSubsystem::ResolveOrCreat
 	return Sampler;
 }
 
+void UProjectDefaultTattooSkinnedDecalSubsystem::EnsureClothingOccludesTattooOverlay(
+	APawn* Pawn,
+	USkeletalMeshComponent* TargetMesh) const
+{
+	if (!IsValid(Pawn) || !IsValid(TargetMesh))
+	{
+		return;
+	}
+
+	const UEFCharacterCustomizationComponent* CustomizationComponent =
+		Pawn->FindComponentByClass<UEFCharacterCustomizationComponent>();
+	if (!IsValid(CustomizationComponent))
+	{
+		return;
+	}
+
+	// Both Daz alpha garments and the SkinnedDecal overlay render in the
+	// AfterDOF translucency pass. With equal sort priorities Unreal may draw the
+	// body overlay after a garment, making a skin tattoo look as if it were
+	// printed through the cloth. Keep every Character Creation garment at least
+	// one layer after the tattoo-bearing body while preserving any intentional
+	// higher garment ordering.
+	const int32 MinimumClothingSortPriority = TargetMesh->TranslucencySortPriority + 1;
+	const UProjectTattooShopSettings* Settings = UProjectTattooShopSettings::Get();
+	UMaterialInterface* RagShirtOccluderMaterial = Settings
+		? Settings->RagShirtTattooOccluderMaterial.LoadSynchronous()
+		: nullptr;
+	for (USkeletalMeshComponent* ClothingMesh : CustomizationComponent->GetClothingMeshComponents())
+	{
+		if (!IsValid(ClothingMesh) || ClothingMesh == TargetMesh)
+		{
+			continue;
+		}
+
+		if (ClothingMesh->TranslucencySortPriority < MinimumClothingSortPriority)
+		{
+			ClothingMesh->SetTranslucentSortPriority(MinimumClothingSortPriority);
+		}
+
+		if (!Settings
+			|| !IsValid(RagShirtOccluderMaterial)
+			|| Settings->RagShirtSourceMaterial.IsNull())
+		{
+			continue;
+		}
+
+		for (int32 MaterialIndex = 0; MaterialIndex < ClothingMesh->GetNumMaterials(); ++MaterialIndex)
+		{
+			UMaterialInterface* ClothingMaterial = ClothingMesh->GetMaterial(MaterialIndex);
+			if (!IsValid(ClothingMaterial)
+				|| ClothingMaterial->GetBlendMode() != BLEND_Translucent
+				|| !ProjectDefaultTattooSkinnedDecalPrivate::IsMaterialOrParent(
+					ClothingMaterial,
+					Settings->RagShirtSourceMaterial.ToSoftObjectPath()))
+			{
+				continue;
+			}
+
+			// A translucent garment cannot fully hide a translucent body overlay:
+			// sorting only changes blend order. The project-owned masked duplicate
+			// writes depth while using the same DAZ cutout texture. Copy runtime
+			// uniform values so clothing tint/texture adjustments remain intact.
+			UMaterialInstanceDynamic* OccludingMaterial = UMaterialInstanceDynamic::Create(
+				RagShirtOccluderMaterial,
+				ClothingMesh);
+			if (IsValid(OccludingMaterial))
+			{
+				OccludingMaterial->CopyMaterialUniformParameters(ClothingMaterial);
+				ClothingMesh->SetMaterial(MaterialIndex, OccludingMaterial);
+			}
+		}
+	}
+}
+
 bool UProjectDefaultTattooSkinnedDecalSubsystem::ConfigureSampler(USkinnedDecalSampler* Sampler, USkeletalMeshComponent* TargetMesh)
 {
 	if (!IsValid(Sampler) || !IsValid(TargetMesh))
 	{
 		return false;
 	}
+
+	EnsureClothingOccludesTattooOverlay(Cast<APawn>(Sampler->GetOwner()), TargetMesh);
 
 	Sampler->BlendMode = ESkinnedDecalBlendMode::Overlay;
 	Sampler->AdditionalData = ESkinnedDecalAdditionalData::NoAdditionalData;

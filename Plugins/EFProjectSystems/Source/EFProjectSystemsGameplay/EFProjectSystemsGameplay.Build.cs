@@ -44,6 +44,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"EFCharacterCreationRuntime",
 			"EFLevelFlowRuntime",
 			"EFProceduralRuntime",
+			"EFProceduralPCGRuntime",
 			"AdvancedRPGSystem",
 			"ACFTrainingSystem",
 			"AscentCoreInterfaces",
@@ -64,8 +65,9 @@ public class EFProjectSystemsGameplay : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"ApplicationCore",
-			"Json"
+				"ApplicationCore",
+				"NetCore",
+				"Json"
 		});
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)

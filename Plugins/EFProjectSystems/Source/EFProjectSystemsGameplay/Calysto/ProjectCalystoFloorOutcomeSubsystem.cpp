@@ -1,5 +1,7 @@
 #include "Calysto/ProjectCalystoFloorOutcomeSubsystem.h"
 
+#include "Calysto/EFCalystoDirectorSettings.h"
+#include "Calysto/EFCalystoDirectorSubsystem.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "Combat/ProjectCombatAttributeComponent.h"
 #include "Engine/GameInstance.h"
@@ -33,6 +35,18 @@ namespace ProjectCalystoFloorOutcomePrivate
 void UProjectCalystoFloorOutcomeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		Collection.InitializeDependency<UEFCalystoDirectorSubsystem>();
+		BoundDirector = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+		if (UEFCalystoDirectorSubsystem* Director = BoundDirector.Get())
+		{
+			Director->BeforeTravel.AddUObject(this, &ThisClass::HandleDirectorRequestPreparing);
+			Director->FloorReady.AddUObject(this, &ThisClass::HandleDirectorContextReady);
+			Director->RequestFailed.AddUObject(this, &ThisClass::HandleDirectorContextFailed);
+		}
+		return;
+	}
 	Collection.InitializeDependency<UEFCalystoDungeonSubsystem>();
 
 	UEFCalystoDungeonSubsystem* Director = GetGameInstance()
@@ -44,7 +58,7 @@ void UProjectCalystoFloorOutcomeSubsystem::Initialize(FSubsystemCollectionBase& 
 		UE_LOG(
 			LogProjectCalystoFloorOutcome,
 			Warning,
-			TEXT("Dungeon Director V4 telemetry bridge could not resolve its runtime subsystem; outcomes remain neutral."));
+			TEXT("Dungeon Director V6 telemetry bridge could not resolve its runtime subsystem; outcomes remain neutral."));
 		return;
 	}
 
@@ -60,6 +74,13 @@ void UProjectCalystoFloorOutcomeSubsystem::Initialize(FSubsystemCollectionBase& 
 void UProjectCalystoFloorOutcomeSubsystem::Deinitialize()
 {
 	UnbindTrackedPlayerDeath();
+	if (UEFCalystoDirectorSubsystem* Director = BoundDirector.Get())
+	{
+		Director->BeforeTravel.RemoveAll(this);
+		Director->FloorReady.RemoveAll(this);
+		Director->RequestFailed.RemoveAll(this);
+	}
+	BoundDirector.Reset();
 	if (UEFCalystoDungeonSubsystem* Director = DungeonSubsystem.Get())
 	{
 		Director->OnBeforeFloorAdvance().RemoveAll(this);
@@ -70,13 +91,44 @@ void UProjectCalystoFloorOutcomeSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+void UProjectCalystoFloorOutcomeSubsystem::HandleDirectorRequestPreparing(const int64 FloorNumber)
+{
+	(void)FloorNumber;
+	// Observations are not a committed adaptive outcome. Keep them intact while
+	// the request may retry and detach the pawn owned by the departing world.
+	UnbindTrackedPlayerDeath();
+}
+
+void UProjectCalystoFloorOutcomeSubsystem::HandleDirectorContextReady(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	if (Snapshot.State != EEFCalystoDirectorState::Ready || !Snapshot.bNativeFloorVerified) return;
+	if (TrackedRunEpoch != Snapshot.LastCommittedRunEpoch
+		|| TrackedFloorNumber != Snapshot.LastCommittedFloorNumber)
+	{
+		FloorDeaths = 0;
+		FloorFailures = 0;
+	}
+	TrackedRunSeed = Snapshot.RunSeed;
+	TrackedRunEpoch = Snapshot.LastCommittedRunEpoch;
+	TrackedFloorNumber = Snapshot.LastCommittedFloorNumber;
+	FloorReadySeconds = FPlatformTime::Seconds();
+	BindTrackedPlayerDeath();
+}
+
+void UProjectCalystoFloorOutcomeSubsystem::HandleDirectorContextFailed(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	(void)Snapshot;
+	UnbindTrackedPlayerDeath();
+	HandleFloorTravelFailed();
+}
+
 void UProjectCalystoFloorOutcomeSubsystem::HandleBeforeFloorAdvance(
 	const int64 CompletedFloor,
-	const FEFCalystoResolvedFloorIntentV4& CompletedIntent)
+	const FEFCalystoResolvedFloorIntentV6& CompletedIntent)
 {
 	UEFCalystoDungeonSubsystem* Director = DungeonSubsystem.Get();
 	if (!Director || !CompletedIntent.bIsValid
-		|| CompletedIntent.FloorNumber != CompletedFloor)
+		|| CompletedIntent.GenerationContext.FloorNumber != CompletedFloor)
 	{
 		return;
 	}
@@ -89,30 +141,30 @@ void UProjectCalystoFloorOutcomeSubsystem::HandleBeforeFloorAdvance(
 	// not compile this branch and therefore continues to submit real outcomes.
 	FString PackagedSmokeScenario;
 	if (FApp::IsUnattended()
-		&& FParse::Param(FCommandLine::Get(), TEXT("CalystoV4PackagedSmoke"))
+		&& FParse::Param(FCommandLine::Get(), TEXT("CalystoV6PackagedSmoke"))
 		&& FParse::Value(
 			FCommandLine::Get(),
-			TEXT("CalystoV4SmokeScenario="),
+			TEXT("CalystoV6SmokeScenario="),
 			PackagedSmokeScenario)
 		&& PackagedSmokeScenario.Equals(TEXT("Natural"), ESearchCase::IgnoreCase)
-		&& FParse::Param(FCommandLine::Get(), TEXT("CalystoV4DisableOutcomeTelemetry")))
+		&& FParse::Param(FCommandLine::Get(), TEXT("CalystoV6DisableOutcomeTelemetry")))
 	{
 		UE_LOG(
 			LogProjectCalystoFloorOutcome,
 			Log,
-			TEXT("Suppressed Floor %lld outcome for the unattended Director V4 neutral-telemetry fixture."),
+			TEXT("Suppressed Floor %lld outcome for the unattended Director V6 neutral-telemetry fixture."),
 			static_cast<long long>(CompletedFloor));
 		return;
 	}
 #endif
 
-	const FEFCalystoFloorOutcomeV4 Outcome = BuildOutcome(CompletedIntent);
+	const FEFCalystoFloorOutcomeV6 Outcome = BuildOutcome(CompletedIntent);
 	if (!Director->SubmitFloorOutcome(Outcome))
 	{
 		UE_LOG(
 			LogProjectCalystoFloorOutcome,
 			Warning,
-			TEXT("Dungeon Director V4 rejected the synchronous Floor %lld outcome; Advance will continue with neutral telemetry."),
+			TEXT("Dungeon Director V6 rejected the synchronous Floor %lld outcome; Advance will continue with neutral telemetry."),
 			static_cast<long long>(CompletedFloor));
 		return;
 	}
@@ -120,7 +172,7 @@ void UProjectCalystoFloorOutcomeSubsystem::HandleBeforeFloorAdvance(
 	UE_LOG(
 		LogProjectCalystoFloorOutcome,
 		Verbose,
-		TEXT("Submitted V4 Floor %lld outcome: Combat=%.3f Survival=%.3f Resources=%.3f Pace=%.3f DeathsAndFailures=%.3f."),
+		TEXT("Submitted V6 Floor %lld outcome: Combat=%.3f Survival=%.3f Resources=%.3f Pace=%.3f DeathsAndFailures=%.3f."),
 		static_cast<long long>(CompletedFloor),
 		Outcome.Combat,
 		Outcome.Survival,
@@ -132,30 +184,31 @@ void UProjectCalystoFloorOutcomeSubsystem::HandleBeforeFloorAdvance(
 void UProjectCalystoFloorOutcomeSubsystem::HandleFloorReady(
 	const int64 FloorNumber,
 	const int32 PCGSeed,
-	const FEFCalystoResolvedFloorIntentV4& Intent,
-	const FEFCalystoRealizedFloorManifestV4& Manifest)
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoRealizedFloorManifestV6& Manifest)
 {
 	(void)PCGSeed;
 	(void)Manifest;
-	if (!Intent.bIsValid || Intent.FloorNumber != FloorNumber)
+	if (!Intent.bIsValid || Intent.GenerationContext.FloorNumber != FloorNumber)
 	{
 		return;
 	}
 
 	const UEFCalystoDungeonSubsystem* Director = DungeonSubsystem.Get();
-	const EEFCalystoDungeonTravelKindV4 TravelKind = Director
+	const EEFCalystoDungeonTravelKindV6 TravelKind = Director
 		? Director->GetSnapshot().TravelKind
-		: EEFCalystoDungeonTravelKindV4::None;
-	const bool bNewLogicalFloor = TrackedRunSeed != Intent.RunSeed
+		: EEFCalystoDungeonTravelKindV6::None;
+	const bool bNewLogicalFloor = TrackedRunSeed != Intent.GenerationContext.RunSeed
 		|| TrackedFloorNumber != FloorNumber
-		|| TravelKind == EEFCalystoDungeonTravelKindV4::NewRun
-		|| TravelKind == EEFCalystoDungeonTravelKindV4::DebugJump;
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::NewRun
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::RestartSameSeed
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::DevelopmentJump;
 	if (bNewLogicalFloor)
 	{
 		FloorDeaths = 0;
 		FloorFailures = 0;
 	}
-	TrackedRunSeed = Intent.RunSeed;
+	TrackedRunSeed = Intent.GenerationContext.RunSeed;
 	TrackedFloorNumber = FloorNumber;
 	FloorReadySeconds = FPlatformTime::Seconds();
 	BindTrackedPlayerDeath();
@@ -215,31 +268,27 @@ AActor* UProjectCalystoFloorOutcomeSubsystem::ResolveLocalPlayerPawn() const
 	return PlayerController ? PlayerController->GetPawn() : nullptr;
 }
 
-FEFCalystoFloorOutcomeV4 UProjectCalystoFloorOutcomeSubsystem::BuildOutcome(
-	const FEFCalystoResolvedFloorIntentV4& CompletedIntent) const
+FEFCalystoFloorOutcomeV6 UProjectCalystoFloorOutcomeSubsystem::BuildOutcome(
+	const FEFCalystoResolvedFloorIntentV6& CompletedIntent) const
 {
 	using namespace ProjectCalystoFloorOutcomePrivate;
-	FEFCalystoFloorOutcomeV4 Outcome;
+	FEFCalystoFloorOutcomeV6 Outcome;
 
 	int32 InitialEnemyCount = 0;
-	if (const FEFCalystoResolvedCategoryV4* EnemyCategory = CompletedIntent.Categories.FindByPredicate(
-		[](const FEFCalystoResolvedCategoryV4& Category)
-		{
-			return Category.Category == EEFCalystoContentCategoryV4::Enemy;
-		}))
-	{
-		InitialEnemyCount = EnemyCategory->TargetCount;
-	}
 	if (const UEFCalystoDungeonSubsystem* Director = DungeonSubsystem.Get())
 	{
-		const FEFCalystoRealizedFloorManifestV4 Manifest =
+		const FEFCalystoRealizedFloorManifestV6 Manifest =
 			Director->GetRealizedFloorManifest();
 		if (Manifest.bIsValid
-			&& Manifest.RunSeed == CompletedIntent.RunSeed
-			&& Manifest.FloorNumber == CompletedIntent.FloorNumber
-			&& Manifest.GenerationSerial == CompletedIntent.GenerationSerial)
+			&& Manifest.RunSeed == CompletedIntent.GenerationContext.RunSeed
+			&& Manifest.FloorNumber == CompletedIntent.GenerationContext.FloorNumber
+			&& Manifest.GenerationSerial == CompletedIntent.GenerationContext.GenerationSerial)
 		{
-			InitialEnemyCount = Manifest.EnemyCount;
+			for (const FEFCalystoRealizedPopulationActorRecordV6& Actor : Manifest.Actors)
+			{
+				InitialEnemyCount += Actor.CategoryId.IsEqual(
+					TEXT("Enemy"), ENameCase::IgnoreCase) ? 1 : 0;
+			}
 		}
 	}
 
@@ -258,6 +307,7 @@ FEFCalystoFloorOutcomeV4 UProjectCalystoFloorOutcomeSubsystem::BuildOutcome(
 	const int32 DeathAndFailureCount = FMath::Max(FloorDeaths, 0) + FMath::Max(FloorFailures, 0);
 	Outcome.DeathsAndFailures = FMath::Clamp(
 		static_cast<float>(DeathAndFailureCount) / 3.0f, 0.0f, 1.0f);
+	Outcome.OutcomeHash = FEFCalystoDungeonRuntimeMathV6::ComputeFloorOutcomeHash(Outcome);
 	return Outcome;
 }
 

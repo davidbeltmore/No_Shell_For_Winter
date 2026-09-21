@@ -10,6 +10,9 @@ class APlayerController;
 class APawn;
 class UAIPerceptionStimuliSourceComponent;
 class UWorld;
+class UACFDamageHandlerComponent;
+class FReply;
+struct FEFCalystoDirectorSnapshot;
 
 UCLASS()
 class EFLEVELFLOWRUNTIME_API UEFLevelFlowSubsystem : public UGameInstanceSubsystem
@@ -27,6 +30,14 @@ private:
 		TWeakObjectPtr<APlayerController> PlayerController;
 		TWeakObjectPtr<APawn> Pawn;
 		bool bIsActive = false;
+		bool bDirectorManaged = false;
+		FGuid DirectorLoadingRequest;
+		bool bInputBlocked = false;
+		bool bPawnFrozen = false;
+		bool bFailureVisible = false;
+		bool bPreviousCanBeDamaged = true;
+		bool bPreviousAcfImmortal = false;
+		TWeakObjectPtr<UACFDamageHandlerComponent> ProtectedDamageHandler;
 		bool bPawnPositioned = false;
 		bool bWasMouseCursorVisible = false;
 		bool bWasMoveInputIgnored = false;
@@ -45,6 +56,12 @@ private:
 	bool ShouldDelaySpawnForWorld(const UWorld* World) const;
 	void StartLevelLoadingSequence(UWorld* World, APlayerController* PlayerController, APawn* Pawn);
 	void TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld> WorldPtr, int32 AttemptIndex);
+	void TryFinishDirectorLoading(UWorld* World, APlayerController* PlayerController, APawn* Pawn);
+	void HandleDirectorBeforeTravel(int64 FloorNumber);
+	void HandleDirectorRequestFailed(const FEFCalystoDirectorSnapshot& Snapshot);
+	void ShowDirectorFailure(const FText& Message);
+	FReply RetryDirectorLoading();
+	FReply ReturnDirectorToHub();
 	void ResetLevelLoadingSequence(bool bRestoreGameplayState);
 	bool TryResolveDungeonEntryTransform(UWorld* World, APawn* Pawn, FTransform& OutTransform) const;
 	bool FindFloorAdjustedDungeonTransform(UWorld* World, APawn* Pawn, const FTransform& CandidateTransform, FTransform& OutTransform) const;

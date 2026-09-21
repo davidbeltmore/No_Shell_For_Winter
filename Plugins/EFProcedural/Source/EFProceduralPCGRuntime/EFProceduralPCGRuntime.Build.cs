@@ -11,7 +11,8 @@ public class EFProceduralPCGRuntime : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"EFProceduralRuntime"
+			"EFProceduralRuntime",
+			"PCG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -19,7 +20,9 @@ public class EFProceduralPCGRuntime : ModuleRules
 			"AIModule",
 			"GameplayTasks",
 			"NavigationSystem",
-			"PCG",
+			"PhysicsCore",
+			"Chaos",
+			"ChaosCore",
 			"EFProceduralACFURuntime"
 		});
 	}

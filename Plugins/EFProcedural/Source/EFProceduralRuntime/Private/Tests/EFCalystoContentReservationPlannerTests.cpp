@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Calysto/EFCalystoContentReservationPlanner.h"
+#include "Algo/Reverse.h"
+#include <limits>
 #include "Misc/AutomationTest.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/Actor.h"
@@ -56,7 +58,9 @@ namespace EFCalystoContentReservationTests
 		FEFCalystoContentSurface S;
 		S.Id = Id(Value); S.RoomId = RoomId; S.Transform.SetLocation(Position);
 		S.AvailableHalfExtent = FVector(200); S.AvailableClearanceCm = 20;
-		S.bCollisionValidated = S.bNavigationValidated = true; S.AllowedRoles.Add(Role);
+		S.bCollisionValidated = S.bCollisionContractValidated = S.bNavigationValidated = true;
+		S.ReservedLocalBounds = FBox(FVector(-40,-40,-40),FVector(40,40,40));
+		S.CollisionContractHash = TEXT("PlannerFixtureCollisionContract"); S.AllowedRoles.Add(Role);
 		for (const FGuid& EntryId : Entries) S.CompatibleEntryIds.Add(EntryId);
 		return S;
 	}
@@ -144,12 +148,16 @@ bool FEFCalystoContentCompletionTest::RunTest(const FString&)
 	if (!Compile(*this,*A,C)) return false;
 	TestTrue(TEXT("Renamed and reordered input still plans"), FPlanner::Build(C,R,M,Report));
 	TestEqual(TEXT("Labels/order do not change frozen decisions"), M.GetHash(), Expected);
-	R.NormalizedAdaptationInput = -1;
+	R.TraitSnapshot = FEFCalystoTraits{};
 	TestTrue(TEXT("Disabled adaptation accepts an independent explicit input"), FPlanner::Build(C,R,M,Report));
 	TestEqual(TEXT("Disabled adaptation has exactly zero influence"), M.GetHash(), Expected);
 	A->Advanced.Adaptation.bEnabled=true; A->Advanced.Adaptation.MaximumEffectPercent=100;
+	FEFCalystoTraitBinding Binding; Binding.Source = EEFCalystoTraitSource::Snapshot;
+	Binding.Trait = EEFCalystoTrait::Danger; Binding.Role = EEFCalystoGameplayRole::Enemy;
+	Binding.EffectAtZeroPercent = -100; Binding.EffectAtOnePercent = 100;
+	A->Advanced.Adaptation.Bindings.Add(Binding);
 	A->Styles[0].Content[0].Chance.FirstPercent=A->Styles[0].Content[0].Chance.LastPercent=50;
-	R.NormalizedAdaptationInput=1;
+	R.TraitSnapshot.GetValue().Danger = 1;
 	if (!Compile(*this,*A,C)) return false;
 	TestTrue(TEXT("Explicit bounded adaptation can change Chance"),FPlanner::Build(C,R,M,Report));
 	TestEqual(TEXT("Requested Chance remains independently reported"),Report.Opportunities[0].RequestedChancePercent,50.0);
@@ -225,6 +233,72 @@ bool FEFCalystoContentEligibilityTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoContentSafetyCeilingsTest,
+	"NoShellForWinter.CalystoDungeon.Director.Content.SafetyCeilingsAndSharedUsage",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FEFCalystoContentSafetyCeilingsTest::RunTest(const FString&)
+{
+	using namespace EFCalystoContentReservationTests;
+	struct FCase { int32 FEFCalystoSafetyCeilings::* Ceiling; int32 FEFCalystoFloorBudgets::* Budget;
+		EEFCalystoBudgetMembership Bucket; EEFCalystoGameplayRole Role; };
+	const FCase Cases[] = {
+		{&FEFCalystoSafetyCeilings::Enemies, &FEFCalystoFloorBudgets::Enemies, EEFCalystoBudgetMembership::Enemy, EEFCalystoGameplayRole::Enemy},
+		{&FEFCalystoSafetyCeilings::LooseFood, &FEFCalystoFloorBudgets::LooseFood, EEFCalystoBudgetMembership::LooseFood, EEFCalystoGameplayRole::Food},
+		{&FEFCalystoSafetyCeilings::Chests, &FEFCalystoFloorBudgets::Chests, EEFCalystoBudgetMembership::Chest, EEFCalystoGameplayRole::Container},
+		{&FEFCalystoSafetyCeilings::LootActors, &FEFCalystoFloorBudgets::LootActors, EEFCalystoBudgetMembership::LootActor, EEFCalystoGameplayRole::LooseLoot},
+		{&FEFCalystoSafetyCeilings::SpecialEvents, &FEFCalystoFloorBudgets::SpecialEvents, EEFCalystoBudgetMembership::SpecialEvent, EEFCalystoGameplayRole::SpecialEvent},
+		{&FEFCalystoSafetyCeilings::TotalActors, &FEFCalystoFloorBudgets::TotalActors, EEFCalystoBudgetMembership::None, EEFCalystoGameplayRole::Prop}};
+	for (const auto& Case : Cases)
+	{
+		auto* A = Asset(); auto G = Group(Case.Role); G.Budget = Case.Bucket; G.Entries.Add(Entry(10));
+		G.Amount.Distribution = EEFCalystoDistribution::Uniform; G.Amount.Minimum = 1; G.Amount.Maximum = 3;
+		A->Styles[0].Content.Add(G);
+		auto Overlay = G; Overlay.Entries = {Entry(11)}; A->RoomThemes[0].Content.Add(Overlay);
+		A->Advanced.HardCeilings.*Case.Ceiling = A->Styles[0].FloorBudgets.*Case.Budget = 2;
+		auto R = Request(); R.InitialUsage.Actors = 1;
+		if (Case.Bucket != EEFCalystoBudgetMembership::None) R.InitialUsage.Buckets.Add(Case.Bucket, 1);
+		for (int32 Index = 1; Index <= 3; ++Index)
+		{
+			auto CurrentRoom = Room(Index, Case.Role); if (Index > 1) CurrentRoom.ThemeId = Id(5); R.Rooms.Add(CurrentRoom);
+			R.Surfaces.Add(Surface(200 + Index, Index, FVector(Index * 1000, 0, 0), {Id(10), Id(11)}, Case.Role));
+		}
+		if (Case.Role == EEFCalystoGameplayRole::Container)
+		{ R.ContainerCapacities.Add(Id(10), FEFCalystoContainerCapacity()); R.ContainerCapacities.Add(Id(11), FEFCalystoContainerCapacity()); }
+		for (const auto Mode : {EEFCalystoContentMode::Replace, EEFCalystoContentMode::Extend})
+		{
+			A->RoomThemes[0].Content[0].Mode = Mode;
+			FEFCalystoCompiledDirector C; if (!Compile(*this, *A, C)) return false;
+			FEFCalystoReservedContentManifest M; FEFCalystoContentPlanningReport Report;
+			if (!TestTrue(TEXT("Global ceiling and existing usage admit a complete bounded plan"), FPlanner::Build(C, R, M, Report)))
+			{ AddError(Report.Message); return false; }
+			TestEqual(TEXT("Three rooms share exactly one remaining actor capacity"), M.GetElements().Num(), 1);
+			TestEqual(TEXT("Existing actor usage counts toward final total"), M.GetFinalUsage().Actors, 2);
+			if (Case.Bucket != EEFCalystoBudgetMembership::None)
+				TestEqual(TEXT("Existing typed usage counts toward global ceiling"), M.GetFinalUsage().Buckets.FindRef(Case.Bucket), 2);
+			int32 ChanceRolls = 0;
+			for (const auto& Opportunity : Report.Opportunities)
+				if (Opportunity.bChanceRolled)
+				{
+					++ChanceRolls;
+					TestEqual(TEXT("Capacity does not alter authored Chance"), Opportunity.EffectiveChancePercent, 100.0);
+					TestTrue(TEXT("Amount conditions on one feasible count, without truncating a draw"), FMath::IsNearlyEqual(Opportunity.FeasibleAmountProbabilityMass, 1.0 / 3.0, 1e-10));
+				}
+			TestEqual(TEXT("Exhausted shared capacity prevents later Chance rolls"), ChanceRolls, 1);
+			const FString Hash = M.GetHash();
+			A->Advanced.HardCeilings.*Case.Ceiling = 3;
+			if (!Compile(*this, *A, C)) return false;
+			TestTrue(TEXT("An unused higher ceiling still plans"), FPlanner::Build(C, R, M, Report));
+			TestEqual(TEXT("Unchanged effective capacities preserve exact selected manifest identity"), M.GetHash(), Hash);
+			A->Advanced.HardCeilings.*Case.Ceiling = 2;
+			auto Excess = R; Excess.InitialUsage.Actors = 3;
+			if (Case.Bucket != EEFCalystoBudgetMembership::None) Excess.InitialUsage.Buckets.Add(Case.Bucket, 3);
+			TestFalse(TEXT("Already exceeded safety capacity rejects atomically"), FPlanner::Build(C, Excess, M, Report));
+			TestFalse(TEXT("Invalid initial usage cannot expose a partial manifest"), M.IsValid());
+		}
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoContentContainerTest,
 	"NoShellForWinter.CalystoDungeon.Director.Content.PerContainerInventoryReservations",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -294,6 +368,15 @@ bool FEFCalystoContentInputValidationTest::RunTest(const FString&)
 	R.BlockedEntryIds={Id(10),Id(11),Id(12)};
 	TestFalse(TEXT("Oversized caller-owned metadata is rejected before copying"),FPlanner::Build(C,R,M,Report));
 	TestEqual(TEXT("Metadata bound is distinct from infeasible content"),Report.FailureCode,FName(TEXT("ReservationMetadataBound")));
+	R = Request();
+	auto Inactive = A->Styles[0]; Inactive.Selection.Id = Id(999); Inactive.Selection.bEnabled = false;
+	Inactive.FloorBudgets.Enemies = 26; A->Styles.Add(Inactive); R.Random.StyleId = Id(999);
+	if (!Compile(*this, *A, C)) return false;
+	TestFalse(TEXT("Direct request cannot consume an inactive unvalidated Style"), FPlanner::Build(C, R, M, Report));
+	TestEqual(TEXT("Inactive Style rejection is explicit"), Report.FailureCode, FName(TEXT("ReservationStyleInactive")));
+	A->Styles[1].Selection.bEnabled = true; A->Styles[1].Selection.Weight = 0;
+	if (!Compile(*this, *A, C)) return false;
+	TestFalse(TEXT("Direct request cannot consume a zero-weight Style"), FPlanner::Build(C, R, M, Report));
 	return true;
 }
 
@@ -316,7 +399,10 @@ bool FEFCalystoContentTransformBoundsTest::RunTest(const FString&)
 	TestEqual(TEXT("Unsafe inverse scale is a configuration error"),Report.FailureCode,FName(TEXT("ReservationSurfaceInvalid")));
 	R.Surfaces[0].Transform.SetScale3D(FVector(0.5,2,1));
 	R.Surfaces[0].Transform.SetRotation(FQuat(FVector::UpVector,FMath::DegreesToRadians(45.0)));
-	R.Surfaces[0].AvailableHalfExtent=FVector(200);
+	// AvailableHalfExtent is a proven local support envelope that includes the
+	// deterministic jitter region.  The rotated nonuniform fixture needs enough
+	// room for its exact +/-2 cm world-space placement variation.
+	R.Surfaces[0].AvailableHalfExtent=FVector(220);
 	for (int32 Seed=0; Seed<24; ++Seed)
 	{
 		R.Random.RunSeed=Seed;
@@ -333,6 +419,189 @@ bool FEFCalystoContentTransformBoundsTest::RunTest(const FString&)
 				FMath::Abs(Local.X)<=S.AvailableHalfExtent.X && FMath::Abs(Local.Y)<=S.AvailableHalfExtent.Y && FMath::Abs(Local.Z)<=S.AvailableHalfExtent.Z);
 		}
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoContentExactJitterPreflightTest,
+	"NoShellForWinter.CalystoDungeon.Director.Content.ExactJitterPreflightBeforeChance",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FEFCalystoContentExactJitterPreflightTest::RunTest(const FString&)
+{
+	using namespace EFCalystoContentReservationTests;
+	auto* A=Asset(); auto G=Group(); auto E=Entry(10); E.Placement.PositionVariationCm=37; G.Entries.Add(E); A->Styles[0].Content.Add(G);
+	FEFCalystoCompiledDirector C; if (!Compile(*this,*A,C)) return false;
+	auto R=Request(); R.Rooms.Add(Room(1)); R.Surfaces.Add(Surface(200,1,FVector(100,200,300),{Id(10)}));
+	R.bRequireExactPlacementPreflight=true;
+	int32 Calls=0; bool bObservedJitter=false;
+	R.ExactPlacementPreflight=[&](const FEFCalystoContentEntry&,const FTransform& Transform,const FString& Hash,FString& Error)
+	{
+		++Calls; Error.Reset();
+		bObservedJitter|=!Transform.GetLocation().Equals(R.Surfaces[0].Transform.GetLocation(),0.001);
+		return Hash==R.Surfaces[0].CollisionContractHash
+			? EEFCalystoExactPlacementPreflight::SpatiallyBlocked : EEFCalystoExactPlacementPreflight::Invalid;
+	};
+	FEFCalystoReservedContentManifest M; FEFCalystoContentPlanningReport Report;
+	for (int32 Seed=0; Seed<16; ++Seed)
+	{
+		R.Random.RunSeed=Seed;
+		if (!TestTrue(TEXT("A blocked exact jitter pose remains an ordinary pre-Chance infeasibility"),FPlanner::Build(C,R,M,Report)))
+		{ AddError(Report.Message); return false; }
+		if (!TestEqual(TEXT("One content opportunity is still reported"),Report.Opportunities.Num(),1)) return false;
+		TestFalse(TEXT("A CDO-blocked jitter pose cannot roll Chance"),Report.Opportunities[0].bChanceRolled);
+		TestTrue(TEXT("A CDO-blocked jitter pose cannot reserve an actor"),M.GetElements().IsEmpty());
+	}
+	TestTrue(TEXT("The predicate receives the planner's actual deterministic jittered transform"),Calls>0 && bObservedJitter);
+	R.ExactPlacementPreflight=[](const FEFCalystoContentEntry&,const FTransform&,const FString&,FString& Error)
+	{
+		Error=TEXT("Fixture CDO contract became unavailable."); return EEFCalystoExactPlacementPreflight::Invalid;
+	};
+	TestFalse(TEXT("An unavailable exact CDO predicate rejects the whole manifest"),FPlanner::Build(C,R,M,Report));
+	TestEqual(TEXT("Exact CDO predicate failure is diagnosed precisely"),Report.FailureCode,FName(TEXT("ExactPlacementPreflightInvalid")));
+	TestFalse(TEXT("An invalid exact predicate exposes no manifest"),M.IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoContentTraitBindingsTest,
+	"NoShellForWinter.CalystoDungeon.Director.Content.TypedTraitBindings",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FEFCalystoContentTraitBindingsTest::RunTest(const FString&)
+{
+	using namespace EFCalystoContentReservationTests;
+	using FProbability = FEFCalystoDirectorProbability;
+	double FEFCalystoTraits::* Members[] = {&FEFCalystoTraits::Mystery, &FEFCalystoTraits::Danger,
+		&FEFCalystoTraits::Safe, &FEFCalystoTraits::Abundance, &FEFCalystoTraits::ClothingInfluence};
+	auto* A = Asset(); auto G = Group(); G.Chance.FirstPercent = G.Chance.LastPercent = 50;
+	G.Entries = {Entry(10), Entry(11)}; A->Styles[0].Content.Add(G);
+	auto R = Request(); R.Rooms.Add(Room(1)); R.Rooms[0].ThemeId = Id(5);
+	R.Surfaces.Add(Surface(200, 1, FVector::ZeroVector, {Id(10), Id(11)}));
+	FEFCalystoCompiledDirector C; FEFCalystoReservedContentManifest M; FEFCalystoContentPlanningReport Report;
+	auto& Policy = A->Advanced.Adaptation; Policy.bEnabled = true; Policy.MaximumEffectPercent = 100;
+	for (auto Source : {EEFCalystoTraitSource::Style, EEFCalystoTraitSource::Theme, EEFCalystoTraitSource::Snapshot})
+		for (int32 Trait = 0; Trait < UE_ARRAY_COUNT(Members); ++Trait)
+		{
+			FEFCalystoTraitBinding Chance; Chance.Source = Source; Chance.Trait = EEFCalystoTrait(Trait);
+			Chance.Role = EEFCalystoGameplayRole::Enemy; Chance.EffectAtZeroPercent = -100; Chance.EffectAtOnePercent = 100;
+			auto Weight = Chance; Weight.Control = EEFCalystoTraitControl::EntryWeight; Weight.EntryId = Id(10);
+			Weight.EffectAtZeroPercent = 100; Weight.EffectAtOnePercent = -100; Policy.Bindings = {Chance, Weight};
+			for (double Value : {0.0, 0.5, 1.0})
+			{
+				A->Styles[0].Traits = {}; A->RoomThemes[0].Traits = {}; R.TraitSnapshot = FEFCalystoTraits{};
+				auto& Values = Source == EEFCalystoTraitSource::Style ? A->Styles[0].Traits
+					: Source == EEFCalystoTraitSource::Theme ? A->RoomThemes[0].Traits : R.TraitSnapshot.GetValue();
+				Values.*Members[Trait] = Value;
+				if (!Compile(*this, *A, C) || !TestTrue(TEXT("Each named trait drives actual bounded planner behavior"), FPlanner::Build(C, R, M, Report)))
+				{ AddError(Report.Message); return false; }
+				if (!TestEqual(TEXT("One explicit opportunity"), Report.Opportunities.Num(), 1)) return false;
+				const auto& Detail = Report.Opportunities[0];
+				TestEqual(TEXT("Exact linear Chance endpoint/midpoint"), Detail.EffectiveChancePercent, Value * 100.0);
+				const auto* Adjusted = Detail.EffectiveEntryWeights.FindByPredicate([&](const auto& E) { return E.Id == Id(10); });
+				const auto* Unchanged = Detail.EffectiveEntryWeights.FindByPredicate([&](const auto& E) { return E.Id == Id(11); });
+				if (!Adjusted || !Unchanged) return false;
+				TestEqual(TEXT("Exact entry Weight endpoint/midpoint"), Adjusted->Weight, 2.0 * (1.0 - Value));
+				TestEqual(TEXT("Unbound entry retains its authored weight"), Unchanged->Weight, 1.0);
+				if (Value == 0) TestTrue(TEXT("Zero Chance produces no reservation"), M.GetElements().IsEmpty());
+				if (Value == 1)
+				{
+					if (!TestEqual(TEXT("Certain Chance reserves exact Amount"), M.GetElements().Num(), 1)) return false;
+					TestEqual(TEXT("Zero adjusted weight was excluded before feasibility/selection"), M.GetElements()[0].Entry.Selection.Id, Id(11));
+					TestEqual(TEXT("Frozen payload retains authored selection data"), M.GetElements()[0].Entry.Selection.Weight, 1.0);
+				}
+			}
+		}
+	// Last explicit Snapshot binding uses ClothingInfluence. Missing context is an error, never an inferred zero.
+	R.TraitSnapshot.Reset();
+	TestFalse(TEXT("Missing referenced enabled snapshot rejects atomically"), FPlanner::Build(C, R, M, Report));
+	TestEqual(TEXT("Missing input has an explicit failure code"), Report.FailureCode, FName(TEXT("TraitContextInvalid")));
+	TestFalse(TEXT("Rejected context exposes no accepted manifest"), M.IsValid());
+	R.TraitSnapshot = FEFCalystoTraits{}; R.TraitSnapshot.GetValue().ClothingInfluence = 1;
+	R.Surfaces[0].CompatibleEntryIds = {Id(10)};
+	TestTrue(TEXT("Zero-weight only site is resolved as ineligible before Chance"), FPlanner::Build(C, R, M, Report));
+	TestFalse(TEXT("Feasibility never relies on an entry later removed by a modifier"), Report.Opportunities[0].bChanceRolled);
+	R.Surfaces[0].CompatibleEntryIds.Add(Id(11));
+	Policy.bEnabled = false;
+	if (!Compile(*this, *A, C) || !FPlanner::Build(C, R, M, Report)) return false;
+	const FString Baseline = M.GetHash(); const int64 BaselineWork = Report.WorkUnits;
+	R.TraitSnapshot.GetValue().ClothingInfluence = std::numeric_limits<double>::quiet_NaN();
+	A->Styles[0].Traits.Mystery = .71; A->RoomThemes[0].Traits.Danger = .91;
+	Algo::Reverse(Policy.Bindings);
+	if (!Compile(*this, *A, C) || !FPlanner::Build(C, R, M, Report)) return false;
+	TestEqual(TEXT("Disabled bindings ignore context including nonfinite unused input exactly"), M.GetHash(), Baseline);
+	TestEqual(TEXT("Disabled binding context costs no extra decision work"), Report.WorkUnits, BaselineWork);
+	Policy.Bindings.Reset(); Policy.bEnabled = true;
+	if (!Compile(*this, *A, C) || !FPlanner::Build(C, R, M, Report)) return false;
+	TestEqual(TEXT("Enabled with no authored bindings has no hidden mapping"), M.GetHash(), Baseline);
+	FEFCalystoTraitBinding First; First.Role = EEFCalystoGameplayRole::Enemy;
+	First.EffectAtZeroPercent = 80; First.EffectAtOnePercent = 80;
+	auto Second = First; Second.Source = EEFCalystoTraitSource::Theme; Second.EffectAtZeroPercent = -20; Second.EffectAtOnePercent = -20;
+	Policy.Bindings = {First, Second}; Policy.MaximumEffectPercent = 20;
+	double Multiplier, Reordered; FString Error;
+	TestTrue(TEXT("Explicit mixed-source effects resolve"), FProbability::ResolveTraitMultiplier(Policy, {}, &A->RoomThemes[0].Traits,
+		nullptr, EEFCalystoGameplayRole::Enemy, EEFCalystoTraitControl::Chance, {}, Multiplier, Error));
+	TestEqual(TEXT("Sum is bounded once, not each contribution"), Multiplier, 1.2);
+	Algo::Reverse(Policy.Bindings);
+	FProbability::ResolveTraitMultiplier(Policy, {}, &A->RoomThemes[0].Traits, nullptr,
+		EEFCalystoGameplayRole::Enemy, EEFCalystoTraitControl::Chance, {}, Reordered, Error);
+	TestEqual(TEXT("Binding array order is mathematically irrelevant"), Reordered, Multiplier);
+	FProbability::ResolveTraitMultiplier(Policy, {}, nullptr, nullptr,
+		EEFCalystoGameplayRole::Food, EEFCalystoTraitControl::Chance, {}, Multiplier, Error);
+	TestEqual(TEXT("A different typed role is unaffected"), Multiplier, 1.0);
+	Policy.MaximumEffectPercent = 0;
+	TestTrue(TEXT("Zero maximum requires no input snapshot"), FProbability::ResolveTraitMultiplier(Policy, {}, nullptr, nullptr,
+		EEFCalystoGameplayRole::Enemy, EEFCalystoTraitControl::Chance, {}, Multiplier, Error));
+	TestEqual(TEXT("Zero maximum has exactly no effect"), Multiplier, 1.0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoTraitAuthoringTest,
+	"NoShellForWinter.CalystoDungeon.Director.Authoring.TraitBindings",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FEFCalystoTraitAuthoringTest::RunTest(const FString&)
+{
+	using namespace EFCalystoContentReservationTests;
+	auto* A = Asset(); auto G = Group(); G.Entries.Add(Entry(10)); A->Styles[0].Content.Add(G);
+	FEFCalystoCompiledDirector C; TArray<FEFCalystoValidationIssue> Issues;
+	const auto Rejects = [&](const FString& Field)
+	{
+		TestFalse(TEXT("Malformed trait authoring rejects compilation"), A->Compile(C, Issues));
+		TestTrue(TEXT("Error names the exact authored field"), Issues.ContainsByPredicate([&](const auto& I) { return I.Field == Field; }));
+	};
+	double FEFCalystoTraits::* Members[] = {&FEFCalystoTraits::Mystery, &FEFCalystoTraits::Danger,
+		&FEFCalystoTraits::Safe, &FEFCalystoTraits::Abundance, &FEFCalystoTraits::ClothingInfluence};
+	const TCHAR* Names[] = {TEXT("Mystery"), TEXT("Danger"), TEXT("Safe"), TEXT("Abundance"), TEXT("ClothingInfluence")};
+	for (int32 Profile = 0; Profile < 2; ++Profile) for (int32 Trait = 0; Trait < UE_ARRAY_COUNT(Members); ++Trait)
+	{
+		auto& Values = Profile == 0 ? A->Styles[0].Traits : A->RoomThemes[0].Traits;
+		for (double Bad : {-0.01, 1.01, std::numeric_limits<double>::infinity()})
+		{
+			Values.*Members[Trait] = Bad;
+			Rejects(FString(Profile == 0 ? TEXT("Styles[0].Traits.") : TEXT("RoomThemes[0].Traits.")) + Names[Trait]);
+		}
+		Values.*Members[Trait] = 1.0;
+		if (!Compile(*this, *A, C)) return false;
+		TestEqual(TEXT("Every normalized trait freezes exactly"),
+			(Profile == 0 ? C.FindStyle(Id(1))->Traits : C.FindTheme(Id(5))->Traits).*Members[Trait], 1.0);
+		Values.*Members[Trait] = 0.0;
+	}
+	FEFCalystoTraitBinding B; B.Role = EEFCalystoGameplayRole::Enemy;
+	A->Advanced.Adaptation.Bindings = {B};
+	const auto BadBinding = [&](FEFCalystoTraitBinding Bad, const TCHAR* Field)
+	{ A->Advanced.Adaptation.Bindings = {Bad}; Rejects(FString(TEXT("Advanced.Adaptation.Bindings[0].")) + Field); };
+	auto Bad = B; Bad.Source = EEFCalystoTraitSource(255); BadBinding(Bad, TEXT("Source"));
+	Bad = B; Bad.Trait = EEFCalystoTrait(255); BadBinding(Bad, TEXT("Trait"));
+	Bad = B; Bad.Role = EEFCalystoGameplayRole(255); BadBinding(Bad, TEXT("Role"));
+	Bad = B; Bad.Control = EEFCalystoTraitControl(255); BadBinding(Bad, TEXT("Control"));
+	Bad = B; Bad.EntryId = Id(10); BadBinding(Bad, TEXT("EntryId"));
+	Bad = B; Bad.Control = EEFCalystoTraitControl::EntryWeight; BadBinding(Bad, TEXT("EntryId"));
+	Bad.EntryId = Id(999); BadBinding(Bad, TEXT("EntryId"));
+	Bad = B; Bad.EffectAtZeroPercent = -101; BadBinding(Bad, TEXT("EffectAtZeroPercent"));
+	Bad = B; Bad.EffectAtOnePercent = std::numeric_limits<double>::quiet_NaN(); BadBinding(Bad, TEXT("EffectAtOnePercent"));
+	A->Advanced.Adaptation.Bindings = {B, B}; Rejects(TEXT("Advanced.Adaptation.Bindings[1]"));
+	A->Advanced.Adaptation.Bindings.Init(B, 65); Rejects(TEXT("Advanced.Adaptation.Bindings"));
+	A->Advanced.Adaptation.Bindings = {B}; B.Control = EEFCalystoTraitControl::EntryWeight; B.EntryId = Id(10);
+	A->Advanced.Adaptation.Bindings.Add(B);
+	if (!Compile(*this, *A, C)) return false;
+	A->Advanced.Adaptation.Bindings[0].EffectAtOnePercent = 20;
+	TestEqual(TEXT("Compiled bindings are immutable copies"), C.GetAdvanced().Adaptation.Bindings[0].EffectAtOnePercent, 0.0);
 	return true;
 }
 

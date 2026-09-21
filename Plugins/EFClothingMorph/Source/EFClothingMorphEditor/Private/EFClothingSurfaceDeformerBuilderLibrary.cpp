@@ -31,7 +31,7 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR AssetObjectPath[] = TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint");
 	constexpr TCHAR GraphSchemaMetadataKey[] = TEXT("EFClothingMorph.SurfaceGraphSchema");
 	constexpr TCHAR PrimarySemanticMetadataKey[] = TEXT("EFClothingMorph.PrimaryBindingSemantic");
-	constexpr TCHAR GraphSchemaVersion[] = TEXT("27.0");
+	constexpr TCHAR GraphSchemaVersion[] = TEXT("35.0");
 	constexpr TCHAR PrimarySemantic[] = TEXT("Garment");
 
 	constexpr TCHAR CustomKernelClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_CustomComputeKernel");
@@ -42,8 +42,14 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR VariableGetNodeClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_GetVariable");
 
 	constexpr TCHAR BaseKernelName[] = TEXT("EF_GarmentSurfaceBase");
-	constexpr TCHAR WitnessKernelName[] = TEXT("EF_GarmentWitnessFinalize");
+	constexpr TCHAR CohesionAKernelName[] = TEXT("EF_GarmentShapeCohesionA");
+	constexpr TCHAR CohesionBKernelName[] = TEXT("EF_GarmentShapeCohesionB");
+	constexpr TCHAR WitnessKernelName[] = TEXT("EF_GarmentWitness");
+	constexpr TCHAR FinalizeKernelName[] = TEXT("EF_GarmentSeamAndTangentFinalize");
 	constexpr TCHAR BasePositionResourceName[] = TEXT("BaseCorrectedPosition");
+	constexpr TCHAR CohesionAPositionResourceName[] = TEXT("CohesionACorrectedPosition");
+	constexpr TCHAR CohesionBPositionResourceName[] = TEXT("CohesionBCorrectedPosition");
+	constexpr TCHAR WitnessPositionResourceName[] = TEXT("WitnessCorrectedPosition");
 	constexpr TCHAR PrimaryGroupPin[] = TEXT("Primary Group");
 	constexpr TCHAR BodyGroupPin[] = TEXT("Body");
 	// UE 5.8's explicit component-source node is the SkeletalMesh subtype, while
@@ -60,6 +66,7 @@ namespace EFClothingSurfaceDeformerBuilder
 		Int2Array,
 		Int4Array,
 		Float,
+		FloatArray,
 		Float2Array,
 		Float4Array,
 		Transform
@@ -85,6 +92,15 @@ namespace EFClothingSurfaceDeformerBuilder
 			{ TEXT("EF_RestOffsetAndClearanceCm"), EVariableType::Float4Array },
 			{ TEXT("EF_MaximumCorrectionAndRestGapCm"), EVariableType::Float2Array },
 			{ TEXT("EF_ThicknessReferenceAndLayer"), EVariableType::Int2Array },
+			{ TEXT("EF_NeighborReferenceCount"), EVariableType::Int },
+			{ TEXT("EF_NeighborRanges"), EVariableType::Int2Array },
+			{ TEXT("EF_NeighborIndices"), EVariableType::IntArray },
+			{ TEXT("EF_WeldReferenceCount"), EVariableType::Int },
+			{ TEXT("EF_WeldRanges"), EVariableType::Int2Array },
+			{ TEXT("EF_WeldIndices"), EVariableType::IntArray },
+			{ TEXT("EF_LocalFeatureSizeCm"), EVariableType::FloatArray },
+			{ TEXT("EF_UnderBreastGuardWeights"), EVariableType::FloatArray },
+			{ TEXT("EF_LowerBodyMorphGuardWeights"), EVariableType::FloatArray },
 			{ TEXT("EF_WitnessCount"), EVariableType::Int },
 			{ TEXT("EF_WitnessReferenceCount"), EVariableType::Int },
 			{ TEXT("EF_WitnessRanges"), EVariableType::Int2Array },
@@ -97,6 +113,12 @@ namespace EFClothingSurfaceDeformerBuilder
 			{ TEXT("EF_GarmentClearanceOffsetCm"), EVariableType::Float },
 			{ TEXT("EF_GarmentInflateCm"), EVariableType::Float },
 			{ TEXT("EF_MaximumCorrectionOverrideCm"), EVariableType::Float },
+			{ TEXT("EF_MaximumAutomaticBodyShapeTravelCm"), EVariableType::Float },
+			{ TEXT("EF_BodyMorphActivity"), EVariableType::Float },
+			{ TEXT("EF_BreastMorphActivity"), EVariableType::Float },
+			{ TEXT("EF_UnderBreastClearanceMaxCm"), EVariableType::Float },
+			{ TEXT("EF_LowerBodyMorphActivity"), EVariableType::Float },
+			{ TEXT("EF_LowerBodyMorphClearanceMaxCm"), EVariableType::Float },
 			{ TEXT("EF_DeltaTimeSeconds"), EVariableType::Float },
 			{ TEXT("EF_BodyToGarmentTransform"), EVariableType::Transform }
 		};
@@ -124,6 +146,9 @@ namespace EFClothingSurfaceDeformerBuilder
 		case EVariableType::Float:
 			// Optimus variables use UE double storage and convert it to HLSL float.
 			Handle = Registry.FindType(*FDoubleProperty::StaticClass());
+			break;
+		case EVariableType::FloatArray:
+			Handle = Registry.FindArrayType(*FDoubleProperty::StaticClass());
 			break;
 		case EVariableType::Float2Array:
 			Handle = Registry.FindArrayType(TBaseStructure<FVector2D>::Get());
@@ -370,9 +395,45 @@ KERNEL
 	RuntimeInflateCm = isfinite(RuntimeInflateCm)
 		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
 		: 0.0f;
+	float BodyMorphActivity = ReadEF_BodyMorphActivity();
+	// SurfaceTarget already contains the exact animated morph magnitude. Activity
+	// is only a gate; multiplying by the curve value here would apply the morph a
+	// second time and make sub-unit weights follow quadratically.
+	float BodyMorphGate = isfinite(BodyMorphActivity)
+		&& abs(BodyMorphActivity) > 1.0e-4f
+		? 1.0f
+		: 0.0f;
+	float BreastMorphActivity = ReadEF_BreastMorphActivity();
+	float BreastMorphStrength = isfinite(BreastMorphActivity)
+		? saturate(abs(BreastMorphActivity))
+		: 0.0f;
 	float CorrectionOverrideCm = ReadEF_MaximumCorrectionOverrideCm();
 	CorrectionOverrideCm = isfinite(CorrectionOverrideCm)
 		? max(CorrectionOverrideCm, 0.0f)
+		: 0.0f;
+	float MaximumAutomaticBodyShapeTravelCm =
+		ReadEF_MaximumAutomaticBodyShapeTravelCm();
+	MaximumAutomaticBodyShapeTravelCm =
+		isfinite(MaximumAutomaticBodyShapeTravelCm)
+		? clamp(MaximumAutomaticBodyShapeTravelCm, 0.0f, 32.0f)
+		: 0.0f;
+	// This reserve is consumed only through a compiler-generated inframammary
+	// weight. It cannot affect the upper breast, torso, back, or unrelated clothes.
+	float UnderBreastClearanceMaxCm =
+		ReadEF_UnderBreastClearanceMaxCm();
+	UnderBreastClearanceMaxCm =
+		isfinite(UnderBreastClearanceMaxCm)
+		? clamp(UnderBreastClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float LowerBodyMorphActivity = ReadEF_LowerBodyMorphActivity();
+	float LowerBodyMorphStrength = isfinite(LowerBodyMorphActivity)
+		? saturate(max(LowerBodyMorphActivity, 0.0f))
+		: 0.0f;
+	float LowerBodyMorphClearanceMaxCm =
+		ReadEF_LowerBodyMorphClearanceMaxCm();
+	LowerBodyMorphClearanceMaxCm =
+		isfinite(LowerBodyMorphClearanceMaxCm)
+		? clamp(LowerBodyMorphClearanceMaxCm, 0.0f, 0.35f)
 		: 0.0f;
 	// Imported DAZ garment tangents are not a certified exterior direction at
 	// every seam. V3 never hides or replaces the garment on invalid/stale data;
@@ -434,28 +495,41 @@ KERNEL
 		return;
 	}
 
+)EFHLSL")) + FString(TEXT(R"EFHLSL(
+
 	StructuredBuffer<int4> BodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
 	StructuredBuffer<float4> BarycentricsAndFollowWeightBuffer = ReadEF_BarycentricsAndFollowWeight();
 	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer = ReadEF_RestOffsetAndClearanceCm();
 	StructuredBuffer<float2> MaximumCorrectionAndRestGapCmBuffer = ReadEF_MaximumCorrectionAndRestGapCm();
 	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer = ReadEF_ThicknessReferenceAndLayer();
+	StructuredBuffer<float> UnderBreastGuardWeightsBuffer = ReadEF_UnderBreastGuardWeights();
+	StructuredBuffer<float> LowerBodyMorphGuardWeightsBuffer =
+		ReadEF_LowerBodyMorphGuardWeights();
 
 	uint TriangleBufferCount = 0;
 	uint BarycentricBufferCount = 0;
 	uint RestOffsetBufferCount = 0;
 	uint LimitBufferCount = 0;
 	uint ThicknessBufferCount = 0;
+	uint UnderBreastGuardBufferCount = 0;
+	uint LowerBodyMorphGuardBufferCount = 0;
 	uint IgnoredStride = 0;
 	BodyTriangleAndModeBuffer.GetDimensions(TriangleBufferCount, IgnoredStride);
 	BarycentricsAndFollowWeightBuffer.GetDimensions(BarycentricBufferCount, IgnoredStride);
 	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
 	MaximumCorrectionAndRestGapCmBuffer.GetDimensions(LimitBufferCount, IgnoredStride);
 	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
+	UnderBreastGuardWeightsBuffer.GetDimensions(UnderBreastGuardBufferCount, IgnoredStride);
+	LowerBodyMorphGuardWeightsBuffer.GetDimensions(
+		LowerBodyMorphGuardBufferCount,
+		IgnoredStride);
 	if (Index >= TriangleBufferCount
 		|| Index >= BarycentricBufferCount
 		|| Index >= RestOffsetBufferCount
 		|| Index >= LimitBufferCount
-		|| Index >= ThicknessBufferCount)
+		|| Index >= ThicknessBufferCount
+		|| Index >= UnderBreastGuardBufferCount
+		|| Index >= LowerBodyMorphGuardBufferCount)
 	{
 		WriteCorrectedPosition(Index, ConservativePosition);
 		WritePreservedTangentX(Index, GarmentTangentX);
@@ -468,6 +542,8 @@ KERNEL
 	float4 RestOffsetAndClearanceCm = RestOffsetAndClearanceCmBuffer[Index];
 	float2 MaximumCorrectionAndRestGapCm = MaximumCorrectionAndRestGapCmBuffer[Index];
 	int2 ThicknessReferenceAndLayer = ThicknessReferenceAndLayerBuffer[Index];
+	float UnderBreastGuardWeight = UnderBreastGuardWeightsBuffer[Index];
+	float LowerBodyMorphGuardWeight = LowerBodyMorphGuardWeightsBuffer[Index];
 
 	int BodyVertexCountValue = ReadEF_BodyVertexCount();
 	uint BodyVertexCount = (uint)max(BodyVertexCountValue, 0);
@@ -479,6 +555,12 @@ KERNEL
 		|| !all(isfinite(BarycentricsAndFollowWeight))
 		|| !all(isfinite(RestOffsetAndClearanceCm))
 		|| !all(isfinite(MaximumCorrectionAndRestGapCm))
+		|| !isfinite(UnderBreastGuardWeight)
+		|| UnderBreastGuardWeight < 0.0f
+		|| UnderBreastGuardWeight > 1.0f
+		|| !isfinite(LowerBodyMorphGuardWeight)
+		|| LowerBodyMorphGuardWeight < 0.0f
+		|| LowerBodyMorphGuardWeight > 1.0f
 		|| ThicknessReferenceAndLayer.y < 0
 		|| ThicknessReferenceAndLayer.y > 1)
 	{
@@ -489,9 +571,18 @@ KERNEL
 	}
 	if (BodyTriangleAndMode.w == 3)
 	{
-		// Explicit catalog-derived anatomy exclusion: preserve the complete
-		// upstream DAZ/skinning/morph/Chaos result without a late surface push.
-		WriteCorrectedPosition(Index, GarmentPosition);
+		// Explicit catalog-derived anatomy exclusion: never sample or anchor to the
+		// excluded anatomical surface. Preserve the complete upstream
+		// DAZ/skinning/morph/Chaos result and apply only the bounded, compiler-masked
+		// lower-body morph reserve along the garment's safe upstream normal.
+		float PreserveUpstreamLowerBodyReserveCm = LowerBodyMorphStrength
+			* LowerBodyMorphGuardWeight
+			* LowerBodyMorphClearanceMaxCm;
+		float3 PreserveUpstreamPosition = PreserveUpstreamLowerBodyReserveCm > 0.0f
+			? GarmentPosition
+				+ SafeNormalDirection * PreserveUpstreamLowerBodyReserveCm
+			: GarmentPosition;
+		WriteCorrectedPosition(Index, PreserveUpstreamPosition);
 		WritePreservedTangentX(Index, GarmentTangentX);
 		WritePreservedTangentZ(Index, GarmentTangentZ);
 		return;
@@ -611,12 +702,46 @@ KERNEL
 		+ SurfaceNormal * RuntimeRestOffsetCm.z;
 
 	int SurfaceMode = BodyTriangleAndMode.w;
+	float3 SurfaceDelta = SurfaceTarget - RuntimeGarmentPosition;
+	float SurfaceDeltaLengthCm = length(SurfaceDelta);
+	float SurfaceDeltaScale = SurfaceDeltaLengthCm > 1.0e-8f
+		? min(1.0f, MaximumAutomaticBodyShapeTravelCm / SurfaceDeltaLengthCm)
+		: 0.0f;
+	float3 BoundedSurfaceDelta = SurfaceDelta * SurfaceDeltaScale;
+	float OutwardSurfaceTravelCm = clamp(
+		max(dot(BoundedSurfaceDelta, SurfaceNormal), 0.0f),
+		0.0f,
+		MaximumAutomaticBodyShapeTravelCm);
+	// Drive a compact clearance reserve from the actual final surface travel. This
+	// includes tangential/downward motion at the inframammary fold that an
+	// outward-only dot product misses. The compiler-authored mask keeps this out of
+	// the upper breast, chest and every unrelated clothing region.
+	float UnderBreastTravelGate = smoothstep(
+		0.02f,
+		0.75f,
+		min(SurfaceDeltaLengthCm, MaximumAutomaticBodyShapeTravelCm));
+	float UnderBreastReserveCm = BreastMorphStrength
+		* UnderBreastGuardWeight
+		* UnderBreastClearanceMaxCm
+		* UnderBreastTravelGate;
+	float LowerBodyMorphReserveCm = LowerBodyMorphStrength
+		* LowerBodyMorphGuardWeight
+		* LowerBodyMorphClearanceMaxCm;
+	float CompiledFollowWeight = saturate(BarycentricsAndFollowWeight.w);
 	float FollowWeight = SurfaceMode == 2
-		? 0.0f
-		: saturate(BarycentricsAndFollowWeight.w);
-	float3 FollowDelta = (SurfaceTarget - RuntimeGarmentPosition) * FollowWeight;
-	// Surface following may transport tangentially or outward, never toward skin.
-	FollowDelta -= SurfaceNormal * min(dot(FollowDelta, SurfaceNormal), 0.0f);
+		? CompiledFollowWeight * BodyMorphGate
+		: CompiledFollowWeight;
+	// V4 CollisionOnly remains an exact pass-through while no body morph is active.
+	// During a morph it uses the compiler's continuous geometry confidence and can
+	// transport in both directions, so reductions follow the skin as faithfully as
+	// expansions. The final clearance projection below remains strictly unilateral.
+	float3 FollowDelta = (SurfaceMode == 2 ? BoundedSurfaceDelta : SurfaceDelta)
+		* FollowWeight;
+	if (SurfaceMode != 2)
+	{
+		// Preserve the established V26 behavior for legacy SurfaceFollow/Hybrid data.
+		FollowDelta -= SurfaceNormal * min(dot(FollowDelta, SurfaceNormal), 0.0f);
+	}
 	float3 CandidatePosition = RuntimeGarmentPosition + FollowDelta;
 
 	float BaseTargetGapCm = max(RuntimeTargetClearanceCm, 0.0f);
@@ -634,7 +759,8 @@ KERNEL
 			? RuntimeInflateCm
 			: 0.0f;
 	float TargetGapCm = max(
-		BaseTargetGapCm + RuntimeOffsetCm + SourceSurfaceInflateCm,
+		BaseTargetGapCm + RuntimeOffsetCm + SourceSurfaceInflateCm
+			+ UnderBreastReserveCm + LowerBodyMorphReserveCm,
 		0.0f);
 	float SignedGapCm = dot(CandidatePosition - SurfaceAnchor, SurfaceNormal);
 	float RequiredPushCm = max(TargetGapCm - SignedGapCm, 0.0f);
@@ -647,7 +773,15 @@ KERNEL
 	// manual tuning remains useful without allowing a malformed gap to explode.
 	float RuntimeCorrectionBudgetCm = clamp(max(RuntimeOffsetCm, 0.0f), 0.0f, 2.0f)
 		+ clamp(RuntimeInflateCm, 0.0f, 2.0f);
-	float MaximumAppliedPushCm = MaximumCorrectionCm + RuntimeCorrectionBudgetCm;
+	// The compiled correction remains the normal animation budget. When a body
+	// shape itself travels farther (for example an extreme DAZ full-body morph),
+	// extend only the available unilateral budget by that measured surface
+	// advance. No correction is applied unless the current signed gap requires it.
+	float MaximumAppliedPushCm = MaximumCorrectionCm
+		+ RuntimeCorrectionBudgetCm
+		+ OutwardSurfaceTravelCm * BodyMorphGate
+		+ UnderBreastReserveCm
+		+ LowerBodyMorphReserveCm;
 	if (MaximumAppliedPushCm <= 0.0f)
 	{
 		WriteCorrectedPosition(Index, ConservativePosition);
@@ -674,6 +808,445 @@ KERNEL
 		return Source;
 	}
 
+	const FString& GetCohesionKernelSource()
+	{
+		static const FString Source = FString(TEXT(R"EFHLSL(
+KERNEL
+{
+	float3 RawPosition = ReadRawCorrectedPosition(Index);
+	float3 UpstreamPosition = ReadUpstreamGarmentPosition(Index);
+	float BodyMorphActivity = ReadEF_BodyMorphActivity();
+	float LowerBodyMorphActivity = ReadEF_LowerBodyMorphActivity();
+	float LowerBodyMorphStrength = isfinite(LowerBodyMorphActivity)
+		? saturate(max(LowerBodyMorphActivity, 0.0f))
+		: 0.0f;
+	bool MorphActive = (isfinite(BodyMorphActivity)
+		&& abs(BodyMorphActivity) > 1.0e-4f)
+		|| LowerBodyMorphStrength > 1.0e-4f;
+	float BreastMorphActivity = ReadEF_BreastMorphActivity();
+	float BreastMorphStrength = isfinite(BreastMorphActivity)
+		? saturate(abs(BreastMorphActivity))
+		: 0.0f;
+	bool HasFiniteInput = all(isfinite(RawPosition))
+		&& all(isfinite(UpstreamPosition));
+	float3 ConservativePosition = all(isfinite(RawPosition))
+		? RawPosition
+		: (all(isfinite(UpstreamPosition))
+			? UpstreamPosition
+			: float3(0.0f, 0.0f, 0.0f));
+	int BindingVertexCount = ReadEF_BindingVertexCount();
+	int BodyVertexCountValue = ReadEF_BodyVertexCount();
+	int NeighborReferenceCountValue = ReadEF_NeighborReferenceCount();
+	if (!HasFiniteInput
+		|| !MorphActive
+		|| BindingVertexCount <= 0
+		|| Index >= (uint)BindingVertexCount
+		|| BodyVertexCountValue <= 0
+		|| NeighborReferenceCountValue < 0
+		|| ReadEF_GarmentLODIndex() < 0
+		|| ReadEF_BodyLODIndex() < 0)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+
+	StructuredBuffer<int4> BodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
+	StructuredBuffer<float4> BarycentricsAndFollowWeightBuffer =
+		ReadEF_BarycentricsAndFollowWeight();
+	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer =
+		ReadEF_RestOffsetAndClearanceCm();
+	StructuredBuffer<float2> MaximumCorrectionAndRestGapCmBuffer =
+		ReadEF_MaximumCorrectionAndRestGapCm();
+	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer =
+		ReadEF_ThicknessReferenceAndLayer();
+	StructuredBuffer<float> UnderBreastGuardWeightsBuffer =
+		ReadEF_UnderBreastGuardWeights();
+	StructuredBuffer<float> LowerBodyMorphGuardWeightsBuffer =
+		ReadEF_LowerBodyMorphGuardWeights();
+	StructuredBuffer<int2> NeighborRangesBuffer = ReadEF_NeighborRanges();
+	StructuredBuffer<int> NeighborIndicesBuffer = ReadEF_NeighborIndices();
+	StructuredBuffer<float> LocalFeatureSizeCmBuffer = ReadEF_LocalFeatureSizeCm();
+
+	uint TriangleBufferCount = 0;
+	uint BarycentricBufferCount = 0;
+	uint RestOffsetBufferCount = 0;
+	uint LimitBufferCount = 0;
+	uint ThicknessBufferCount = 0;
+	uint UnderBreastGuardBufferCount = 0;
+	uint LowerBodyMorphGuardBufferCount = 0;
+	uint NeighborRangeBufferCount = 0;
+	uint NeighborIndexBufferCount = 0;
+	uint LocalFeatureBufferCount = 0;
+	uint IgnoredStride = 0;
+	BodyTriangleAndModeBuffer.GetDimensions(TriangleBufferCount, IgnoredStride);
+	BarycentricsAndFollowWeightBuffer.GetDimensions(BarycentricBufferCount, IgnoredStride);
+	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
+	MaximumCorrectionAndRestGapCmBuffer.GetDimensions(LimitBufferCount, IgnoredStride);
+	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
+	UnderBreastGuardWeightsBuffer.GetDimensions(UnderBreastGuardBufferCount, IgnoredStride);
+	LowerBodyMorphGuardWeightsBuffer.GetDimensions(
+		LowerBodyMorphGuardBufferCount,
+		IgnoredStride);
+	NeighborRangesBuffer.GetDimensions(NeighborRangeBufferCount, IgnoredStride);
+	NeighborIndicesBuffer.GetDimensions(NeighborIndexBufferCount, IgnoredStride);
+	LocalFeatureSizeCmBuffer.GetDimensions(LocalFeatureBufferCount, IgnoredStride);
+	if (TriangleBufferCount < (uint)BindingVertexCount
+		|| BarycentricBufferCount < (uint)BindingVertexCount
+		|| RestOffsetBufferCount < (uint)BindingVertexCount
+		|| LimitBufferCount < (uint)BindingVertexCount
+		|| ThicknessBufferCount < (uint)BindingVertexCount
+		|| NeighborRangeBufferCount < (uint)BindingVertexCount
+		|| NeighborIndexBufferCount < (uint)NeighborReferenceCountValue
+		|| LocalFeatureBufferCount < (uint)BindingVertexCount
+		|| UnderBreastGuardBufferCount < (uint)BindingVertexCount
+		|| LowerBodyMorphGuardBufferCount < (uint)BindingVertexCount)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+
+	int4 PrimaryTriangleAndMode = BodyTriangleAndModeBuffer[Index];
+	float4 PrimaryBarycentricsAndFollowWeight =
+		BarycentricsAndFollowWeightBuffer[Index];
+	float4 PrimaryRestOffsetAndClearanceCm =
+		RestOffsetAndClearanceCmBuffer[Index];
+	float2 PrimaryMaximumCorrectionAndRestGapCm =
+		MaximumCorrectionAndRestGapCmBuffer[Index];
+	int2 PrimaryThicknessReferenceAndLayer =
+		ThicknessReferenceAndLayerBuffer[Index];
+	float OwnFollowWeight = saturate(PrimaryBarycentricsAndFollowWeight.w);
+	float OwnLocalFeatureSizeCm = LocalFeatureSizeCmBuffer[Index];
+	float UnderBreastGuardWeight = UnderBreastGuardWeightsBuffer[Index];
+	float LowerBodyMorphGuardWeight = LowerBodyMorphGuardWeightsBuffer[Index];
+	if (PrimaryTriangleAndMode.w == 3
+		|| OwnFollowWeight <= 1.0e-4f
+		|| !isfinite(OwnLocalFeatureSizeCm)
+		|| OwnLocalFeatureSizeCm <= 1.0e-5f
+		|| !isfinite(UnderBreastGuardWeight)
+		|| UnderBreastGuardWeight < 0.0f
+		|| UnderBreastGuardWeight > 1.0f
+		|| !isfinite(LowerBodyMorphGuardWeight)
+		|| LowerBodyMorphGuardWeight < 0.0f
+		|| LowerBodyMorphGuardWeight > 1.0f)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+
+	int2 NeighborRange = NeighborRangesBuffer[Index];
+	if (NeighborRange.x < 0
+		|| NeighborRange.y < 0
+		|| NeighborRange.y > 256
+		|| NeighborRange.x > NeighborReferenceCountValue
+		|| NeighborRange.y > NeighborReferenceCountValue - NeighborRange.x)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+)EFHLSL")) + FString(TEXT(R"EFHLSL(
+
+	float RuntimeInflateCm = ReadEF_GarmentInflateCm();
+	RuntimeInflateCm = isfinite(RuntimeInflateCm)
+		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
+		: 0.0f;
+	float3 EffectiveUpstreamPosition = UpstreamPosition;
+	float RuntimeTargetClearanceCm = PrimaryRestOffsetAndClearanceCm.w;
+	if (PrimaryThicknessReferenceAndLayer.y == 1)
+	{
+		int InnerReference = PrimaryThicknessReferenceAndLayer.x;
+		if (InnerReference < 0
+			|| InnerReference >= BindingVertexCount
+			|| (uint)InnerReference >= RestOffsetBufferCount
+			|| (uint)InnerReference >= ThicknessBufferCount)
+		{
+			WriteCohesivePosition(Index, ConservativePosition);
+			return;
+		}
+		float4 InnerRest = RestOffsetAndClearanceCmBuffer[InnerReference];
+		float3 InnerUpstreamPosition =
+			ReadUpstreamGarmentPosition((uint)InnerReference);
+		float3 LayerVectorCm = PrimaryRestOffsetAndClearanceCm.xyz
+			- InnerRest.xyz;
+		float LayerLengthCm = length(LayerVectorCm);
+		if (!all(isfinite(InnerRest))
+			|| !all(isfinite(InnerUpstreamPosition))
+			|| LayerLengthCm <= 1.0e-6f)
+		{
+			WriteCohesivePosition(Index, ConservativePosition);
+			return;
+		}
+		float ThicknessScale = RuntimeInflateCm / LayerLengthCm;
+		EffectiveUpstreamPosition = InnerUpstreamPosition
+			+ (UpstreamPosition - InnerUpstreamPosition) * ThicknessScale;
+		float3 EffectiveRest = InnerRest.xyz + LayerVectorCm * ThicknessScale;
+		RuntimeTargetClearanceCm = InnerRest.w
+			+ max(EffectiveRest.z - InnerRest.z, 0.0f);
+	}
+
+	float3 RawCorrection = RawPosition - EffectiveUpstreamPosition;
+	float3 ConstraintCorrectionSum = RawCorrection;
+	float ConstraintWeightSum = 1.0f;
+	[loop]
+	for (int LocalNeighborIndex = 0;
+		LocalNeighborIndex < NeighborRange.y;
+		++LocalNeighborIndex)
+	{
+		int NeighborVertexIndex =
+			NeighborIndicesBuffer[NeighborRange.x + LocalNeighborIndex];
+		if (NeighborVertexIndex < 0
+			|| NeighborVertexIndex >= BindingVertexCount
+			|| NeighborVertexIndex == (int)Index)
+		{
+			continue;
+		}
+		int4 NeighborTriangleAndMode =
+			BodyTriangleAndModeBuffer[NeighborVertexIndex];
+		if (NeighborTriangleAndMode.w == 3)
+		{
+			continue;
+		}
+		float3 NeighborRawPosition =
+			ReadRawCorrectedPosition((uint)NeighborVertexIndex);
+		float3 NeighborUpstreamPosition =
+			ReadUpstreamGarmentPosition((uint)NeighborVertexIndex);
+		float NeighborLocalFeatureSizeCm =
+			LocalFeatureSizeCmBuffer[NeighborVertexIndex];
+		if (!all(isfinite(NeighborRawPosition))
+			|| !all(isfinite(NeighborUpstreamPosition))
+			|| !isfinite(NeighborLocalFeatureSizeCm)
+			|| NeighborLocalFeatureSizeCm <= 1.0e-5f)
+		{
+			continue;
+		}
+		float NeighborFollowWeight = saturate(
+			BarycentricsAndFollowWeightBuffer[NeighborVertexIndex].w);
+		int2 NeighborThicknessReferenceAndLayer =
+			ThicknessReferenceAndLayerBuffer[NeighborVertexIndex];
+		if (NeighborThicknessReferenceAndLayer.y == 1)
+		{
+			int NeighborInnerReference =
+				NeighborThicknessReferenceAndLayer.x;
+			if (NeighborInnerReference < 0
+				|| NeighborInnerReference >= BindingVertexCount
+				|| (uint)NeighborInnerReference >= RestOffsetBufferCount)
+			{
+				continue;
+			}
+			float4 NeighborRest =
+				RestOffsetAndClearanceCmBuffer[NeighborVertexIndex];
+			float4 NeighborInnerRest =
+				RestOffsetAndClearanceCmBuffer[NeighborInnerReference];
+			float3 NeighborInnerUpstream =
+				ReadUpstreamGarmentPosition((uint)NeighborInnerReference);
+			float3 NeighborLayerVectorCm = NeighborRest.xyz
+				- NeighborInnerRest.xyz;
+			float NeighborLayerLengthCm = length(NeighborLayerVectorCm);
+			if (!all(isfinite(NeighborRest))
+				|| !all(isfinite(NeighborInnerRest))
+				|| !all(isfinite(NeighborInnerUpstream))
+				|| NeighborLayerLengthCm <= 1.0e-6f)
+			{
+				continue;
+			}
+			NeighborUpstreamPosition = NeighborInnerUpstream
+				+ (NeighborUpstreamPosition - NeighborInnerUpstream)
+					* (RuntimeInflateCm / NeighborLayerLengthCm);
+		}
+
+		float3 NeighborCorrection = NeighborRawPosition
+			- NeighborUpstreamPosition;
+		float3 CorrectionDifference = RawCorrection - NeighborCorrection;
+		float CorrectionDifferenceLength = length(CorrectionDifference);
+		float UpstreamEdgeLengthCm = length(
+			EffectiveUpstreamPosition - NeighborUpstreamPosition);
+		// True topology adjacency is distinct from import-vertex weld groups. A
+		// symmetric midpoint proposal cannot make the two endpoints cross, while the
+		// local feature bound protects small or slender triangles.
+		float MaximumCorrectionGradientCm = min(
+			UpstreamEdgeLengthCm * 0.45f,
+			min(OwnLocalFeatureSizeCm, NeighborLocalFeatureSizeCm) * 0.40f);
+		if (!isfinite(MaximumCorrectionGradientCm)
+			|| MaximumCorrectionGradientCm <= 1.0e-6f)
+		{
+			continue;
+		}
+		float DifferenceScale = CorrectionDifferenceLength > 1.0e-8f
+			? min(1.0f,
+				MaximumCorrectionGradientCm / CorrectionDifferenceLength)
+			: 0.0f;
+		float3 PairMidpoint = (RawCorrection + NeighborCorrection) * 0.5f;
+		float3 PairProposalForOwn = PairMidpoint
+			+ CorrectionDifference * (0.5f * DifferenceScale);
+		float PairConfidence = 0.25f
+			+ 0.75f * min(OwnFollowWeight, NeighborFollowWeight);
+		ConstraintCorrectionSum += PairProposalForOwn * PairConfidence;
+		ConstraintWeightSum += PairConfidence;
+	}
+
+	float3 ConsensusCorrection = ConstraintCorrectionSum
+		/ max(ConstraintWeightSum, 1.0e-6f);
+	float CohesionBlend = saturate(OwnFollowWeight * 4.0f);
+	float3 CohesivePosition = EffectiveUpstreamPosition
+		+ lerp(RawCorrection, ConsensusCorrection, CohesionBlend);
+)EFHLSL")) + FString(TEXT(R"EFHLSL(
+
+	float PrimaryBarycentricSum = dot(
+		PrimaryBarycentricsAndFollowWeight.xyz,
+		float3(1.0f, 1.0f, 1.0f));
+	uint BodyVertexCount = (uint)BodyVertexCountValue;
+	if (any(PrimaryTriangleAndMode.xyz < 0)
+		|| any((uint3)PrimaryTriangleAndMode.xyz >= BodyVertexCount)
+		|| !all(isfinite(PrimaryBarycentricsAndFollowWeight))
+		|| !all(isfinite(PrimaryRestOffsetAndClearanceCm))
+		|| !all(isfinite(PrimaryMaximumCorrectionAndRestGapCm))
+		|| abs(PrimaryBarycentricSum) <= 1.0e-8f)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+	float3 PrimaryBarycentrics =
+		PrimaryBarycentricsAndFollowWeight.xyz / PrimaryBarycentricSum;
+	float3 BodyP0 = Body::ReadBodyPosition((uint)PrimaryTriangleAndMode.x);
+	float3 BodyP1 = Body::ReadBodyPosition((uint)PrimaryTriangleAndMode.y);
+	float3 BodyP2 = Body::ReadBodyPosition((uint)PrimaryTriangleAndMode.z);
+	float4x4 BodyToGarment = ReadEF_BodyToGarmentTransform();
+	BodyP0 = mul(float4(BodyP0, 1.0f), BodyToGarment).xyz;
+	BodyP1 = mul(float4(BodyP1, 1.0f), BodyToGarment).xyz;
+	BodyP2 = mul(float4(BodyP2, 1.0f), BodyToGarment).xyz;
+	float3 Edge01 = BodyP1 - BodyP0;
+	float3 Edge02 = BodyP2 - BodyP0;
+	float3 UnnormalizedNormal = cross(Edge01, Edge02);
+	float NormalLengthSquared = dot(UnnormalizedNormal, UnnormalizedNormal);
+	if (!all(isfinite(BodyP0))
+		|| !all(isfinite(BodyP1))
+		|| !all(isfinite(BodyP2))
+		|| NormalLengthSquared <= 1.0e-12f)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+	float3 SurfaceNormal = UnnormalizedNormal * rsqrt(NormalLengthSquared);
+	float3 SurfaceTangent = Edge01
+		- SurfaceNormal * dot(Edge01, SurfaceNormal);
+	float SurfaceTangentLengthSquared = dot(SurfaceTangent, SurfaceTangent);
+	if (SurfaceTangentLengthSquared <= 1.0e-12f)
+	{
+		SurfaceTangent = Edge02
+			- SurfaceNormal * dot(Edge02, SurfaceNormal);
+		SurfaceTangentLengthSquared = dot(SurfaceTangent, SurfaceTangent);
+	}
+	if (SurfaceTangentLengthSquared <= 1.0e-12f)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+	SurfaceTangent *= rsqrt(SurfaceTangentLengthSquared);
+	float3 SurfaceBitangent = normalize(cross(SurfaceNormal, SurfaceTangent));
+	SurfaceTangent = normalize(cross(SurfaceBitangent, SurfaceNormal));
+	float3 SurfaceAnchor = BodyP0 * PrimaryBarycentrics.x
+		+ BodyP1 * PrimaryBarycentrics.y
+		+ BodyP2 * PrimaryBarycentrics.z;
+	float MaximumAutomaticBodyShapeTravelCm =
+		ReadEF_MaximumAutomaticBodyShapeTravelCm();
+	MaximumAutomaticBodyShapeTravelCm =
+		isfinite(MaximumAutomaticBodyShapeTravelCm)
+		? clamp(MaximumAutomaticBodyShapeTravelCm, 0.0f, 32.0f)
+		: 0.0f;
+	float3 SurfaceTarget = SurfaceAnchor
+		+ SurfaceTangent * PrimaryRestOffsetAndClearanceCm.x
+		+ SurfaceBitangent * PrimaryRestOffsetAndClearanceCm.y
+		+ SurfaceNormal * PrimaryRestOffsetAndClearanceCm.z;
+	float3 SurfaceDelta = SurfaceTarget - EffectiveUpstreamPosition;
+	float SurfaceDeltaLengthCm = length(SurfaceDelta);
+	float SurfaceDeltaScale = SurfaceDeltaLengthCm > 1.0e-8f
+		? min(1.0f, MaximumAutomaticBodyShapeTravelCm / SurfaceDeltaLengthCm)
+		: 0.0f;
+	float OutwardSurfaceTravelCm = clamp(
+		max(dot(SurfaceDelta * SurfaceDeltaScale, SurfaceNormal), 0.0f),
+		0.0f,
+		MaximumAutomaticBodyShapeTravelCm);
+	float UnderBreastClearanceMaxCm = ReadEF_UnderBreastClearanceMaxCm();
+	UnderBreastClearanceMaxCm = isfinite(UnderBreastClearanceMaxCm)
+		? clamp(UnderBreastClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float UnderBreastTravelGate = smoothstep(
+		0.02f,
+		0.75f,
+		min(SurfaceDeltaLengthCm, MaximumAutomaticBodyShapeTravelCm));
+	float UnderBreastReserveCm = BreastMorphStrength
+		* UnderBreastGuardWeight
+		* UnderBreastClearanceMaxCm
+		* UnderBreastTravelGate;
+	float LowerBodyMorphClearanceMaxCm =
+		ReadEF_LowerBodyMorphClearanceMaxCm();
+	LowerBodyMorphClearanceMaxCm = isfinite(LowerBodyMorphClearanceMaxCm)
+		? clamp(LowerBodyMorphClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float LowerBodyMorphReserveCm = LowerBodyMorphStrength
+		* LowerBodyMorphGuardWeight
+		* LowerBodyMorphClearanceMaxCm;
+	float BaseTargetGapCm = max(RuntimeTargetClearanceCm, 0.0f);
+	if (PrimaryTriangleAndMode.w == 0)
+	{
+		BaseTargetGapCm = max(
+			BaseTargetGapCm,
+			PrimaryRestOffsetAndClearanceCm.z);
+	}
+	float SourceSurfaceInflateCm =
+		(PrimaryThicknessReferenceAndLayer.x < 0
+			&& PrimaryThicknessReferenceAndLayer.y == 0)
+			? RuntimeInflateCm
+			: 0.0f;
+	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
+		+ ReadEF_GarmentClearanceOffsetCm();
+	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
+	float TargetGapCm = max(
+		BaseTargetGapCm + RuntimeOffsetCm + SourceSurfaceInflateCm
+			+ UnderBreastReserveCm + LowerBodyMorphReserveCm,
+		0.0f);
+	float RequiredPushCm = max(
+		TargetGapCm
+			- dot(CohesivePosition - SurfaceAnchor, SurfaceNormal),
+		0.0f);
+	float CorrectionOverrideCm = ReadEF_MaximumCorrectionOverrideCm();
+	CorrectionOverrideCm = isfinite(CorrectionOverrideCm)
+		? max(CorrectionOverrideCm, 0.0f)
+		: 0.0f;
+	float MaximumCorrectionCm = CorrectionOverrideCm > 0.0f
+		? CorrectionOverrideCm
+		: max(PrimaryMaximumCorrectionAndRestGapCm.x, 0.0f);
+	float RuntimeCorrectionBudgetCm =
+		clamp(max(RuntimeOffsetCm, 0.0f), 0.0f, 2.0f)
+		+ RuntimeInflateCm;
+	float AllowedAdditionalPushCm = MaximumCorrectionCm
+		+ RuntimeCorrectionBudgetCm
+		+ UnderBreastReserveCm
+		+ LowerBodyMorphReserveCm;
+	// The input position has already passed the unilateral Base constraint. A
+	// regularization step that cannot be re-opened inside the same certified
+	// budget is rejected instead of creating an unbounded outward spike.
+	if (!isfinite(RequiredPushCm)
+		|| RequiredPushCm > AllowedAdditionalPushCm + 1.0e-5f)
+	{
+		WriteCohesivePosition(Index, ConservativePosition);
+		return;
+	}
+	float3 ProjectedPosition = CohesivePosition
+		+ SurfaceNormal * RequiredPushCm;
+	float MaximumTotalTravelCm = MaximumAutomaticBodyShapeTravelCm
+		+ AllowedAdditionalPushCm;
+	if (!all(isfinite(ProjectedPosition))
+		|| length(ProjectedPosition - EffectiveUpstreamPosition)
+			> MaximumTotalTravelCm + 1.0e-4f)
+	{
+		ProjectedPosition = ConservativePosition;
+	}
+	WriteCohesivePosition(Index, ProjectedPosition);
+}
+)EFHLSL"));
+		return Source;
+	}
+
 	const FString& GetWitnessKernelSource()
 	{
 		static const FString Source = FString(TEXT(R"EFHLSL(
@@ -690,6 +1263,30 @@ KERNEL
 	RuntimeInflateCm = isfinite(RuntimeInflateCm)
 		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
 		: 0.0f;
+	float BreastMorphActivity = ReadEF_BreastMorphActivity();
+	float BreastMorphStrength = isfinite(BreastMorphActivity)
+		? saturate(abs(BreastMorphActivity))
+		: 0.0f;
+	float UnderBreastClearanceMaxCm = ReadEF_UnderBreastClearanceMaxCm();
+	UnderBreastClearanceMaxCm = isfinite(UnderBreastClearanceMaxCm)
+		? clamp(UnderBreastClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float LowerBodyMorphActivity = ReadEF_LowerBodyMorphActivity();
+	float LowerBodyMorphStrength = isfinite(LowerBodyMorphActivity)
+		? saturate(max(LowerBodyMorphActivity, 0.0f))
+		: 0.0f;
+	float LowerBodyMorphClearanceMaxCm =
+		ReadEF_LowerBodyMorphClearanceMaxCm();
+	LowerBodyMorphClearanceMaxCm = isfinite(LowerBodyMorphClearanceMaxCm)
+		? clamp(LowerBodyMorphClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float UnderBreastWitnessReserveBudgetCm =
+		BreastMorphStrength * UnderBreastClearanceMaxCm;
+	float LowerBodyMorphWitnessReserveBudgetCm =
+		LowerBodyMorphStrength * LowerBodyMorphClearanceMaxCm;
+	float AutomaticWitnessReserveBudgetCm =
+		UnderBreastWitnessReserveBudgetCm
+		+ LowerBodyMorphWitnessReserveBudgetCm;
 	// The base pass is already vertex-safe against an explicitly oriented body
 	// triangle. Never use the imported garment tangent normal as an emergency
 	// direction here: DAZ garments can expose an inward tangent basis at seams,
@@ -757,6 +1354,8 @@ KERNEL
 		return;
 	}
 
+)EFHLSL")) + TEXT(R"EFHLSL(
+
 	StructuredBuffer<int2> WitnessRangesBuffer = ReadEF_WitnessRanges();
 	StructuredBuffer<int> WitnessIndicesBuffer = ReadEF_WitnessIndices();
 	StructuredBuffer<int4> PrimaryBodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
@@ -766,6 +1365,11 @@ KERNEL
 		ReadEF_RestOffsetAndClearanceCm();
 	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer =
 		ReadEF_ThicknessReferenceAndLayer();
+	StructuredBuffer<float> LocalFeatureSizeCmBuffer = ReadEF_LocalFeatureSizeCm();
+	StructuredBuffer<float> UnderBreastGuardWeightsBuffer =
+		ReadEF_UnderBreastGuardWeights();
+	StructuredBuffer<float> LowerBodyMorphGuardWeightsBuffer =
+		ReadEF_LowerBodyMorphGuardWeights();
 	StructuredBuffer<int4> WitnessGarmentVerticesBuffer = ReadEF_WitnessGarmentVertices();
 	StructuredBuffer<float4> WitnessGarmentBarycentricsAndClearanceCmBuffer =
 		ReadEF_WitnessGarmentBarycentricsAndClearanceCm();
@@ -779,6 +1383,9 @@ KERNEL
 	uint PrimaryBarycentricBufferCount = 0;
 	uint RestOffsetBufferCount = 0;
 	uint ThicknessBufferCount = 0;
+	uint LocalFeatureBufferCount = 0;
+	uint UnderBreastGuardBufferCount = 0;
+	uint LowerBodyMorphGuardBufferCount = 0;
 	uint WitnessGarmentVertexBufferCount = 0;
 	uint WitnessGarmentBarycentricBufferCount = 0;
 	uint WitnessBodyVertexBufferCount = 0;
@@ -792,6 +1399,13 @@ KERNEL
 		IgnoredStride);
 	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
 	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
+	LocalFeatureSizeCmBuffer.GetDimensions(LocalFeatureBufferCount, IgnoredStride);
+	UnderBreastGuardWeightsBuffer.GetDimensions(
+		UnderBreastGuardBufferCount,
+		IgnoredStride);
+	LowerBodyMorphGuardWeightsBuffer.GetDimensions(
+		LowerBodyMorphGuardBufferCount,
+		IgnoredStride);
 	WitnessGarmentVerticesBuffer.GetDimensions(WitnessGarmentVertexBufferCount, IgnoredStride);
 	WitnessGarmentBarycentricsAndClearanceCmBuffer.GetDimensions(
 		WitnessGarmentBarycentricBufferCount,
@@ -810,6 +1424,9 @@ KERNEL
 		|| PrimaryBarycentricBufferCount < (uint)BindingVertexCount
 		|| RestOffsetBufferCount < (uint)BindingVertexCount
 		|| ThicknessBufferCount < (uint)BindingVertexCount
+		|| LocalFeatureBufferCount < (uint)BindingVertexCount
+		|| UnderBreastGuardBufferCount < (uint)BindingVertexCount
+		|| LowerBodyMorphGuardBufferCount < (uint)BindingVertexCount
 		|| WitnessGarmentVertexBufferCount < (uint)WitnessCountValue
 		|| WitnessGarmentBarycentricBufferCount < (uint)WitnessCountValue
 		|| WitnessBodyVertexBufferCount < (uint)WitnessCountValue
@@ -841,7 +1458,7 @@ KERNEL
 		WriteFinalTangentZ(Index, BaseTangentZ);
 		return;
 	}
-)EFHLSL")) + TEXT(R"EFHLSL(
+)EFHLSL") + TEXT(R"EFHLSL(
 
 	uint BodyVertexCount = (uint)BodyVertexCountValue;
 	float4x4 BodyToGarment = ReadEF_BodyToGarmentTransform();
@@ -900,6 +1517,15 @@ KERNEL
 		* rsqrt(max(PrimaryGeometricNormalLengthSquared, 1.0e-12f));
 	float3 PrimaryNormal = PrimaryGeometricNormal;
 	float3 ExtraCorrection = float3(0.0f, 0.0f, 0.0f);
+	float LocalFeatureSizeCm = LocalFeatureSizeCmBuffer[Index];
+	if (!isfinite(LocalFeatureSizeCm) || LocalFeatureSizeCm <= 1.0e-5f)
+	{
+		InvalidWitnessData = true;
+	}
+	float MaximumWitnessCorrectionCm = min(
+		0.70f,
+		max(LocalFeatureSizeCm * 0.25f, 0.0f)
+			+ AutomaticWitnessReserveBudgetCm);
 
 	// Solve every incident face/edge constraint as a small convex half-space
 	// problem local to this render vertex. Requiring every participating corner
@@ -942,6 +1568,13 @@ KERNEL
 				InvalidWitnessData = true;
 				break;
 			}
+			// The authored witness budget and local topology feature size both bound
+			// this vertex. A small triangle can no longer receive the old fixed
+			// 0.35cm differential push that visually tore dense DAZ garments.
+			MaximumWitnessCorrectionCm = min(
+				MaximumWitnessCorrectionCm,
+				max(BodyBarycentricsAndMaximumCorrectionCm.w, 0.0f)
+					+ AutomaticWitnessReserveBudgetCm);
 			float GarmentBarycentricSum = dot(
 				GarmentBarycentricsAndClearanceCm.xyz,
 				float3(1.0f, 1.0f, 1.0f));
@@ -956,6 +1589,24 @@ KERNEL
 			}
 			float3 GarmentBarycentrics =
 				GarmentBarycentricsAndClearanceCm.xyz / GarmentBarycentricSum;
+			float WitnessUnderBreastGuardWeight =
+				UnderBreastGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
+				+ UnderBreastGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
+				+ UnderBreastGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
+			float WitnessLowerBodyMorphGuardWeight =
+				LowerBodyMorphGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
+				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
+				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
+			if (!isfinite(WitnessUnderBreastGuardWeight)
+				|| WitnessUnderBreastGuardWeight < 0.0f
+				|| WitnessUnderBreastGuardWeight > 1.0f
+				|| !isfinite(WitnessLowerBodyMorphGuardWeight)
+				|| WitnessLowerBodyMorphGuardWeight < 0.0f
+				|| WitnessLowerBodyMorphGuardWeight > 1.0f)
+			{
+				InvalidWitnessData = true;
+				break;
+			}
 			float IncidenceWeight = GarmentVertices.x == (int)Index
 				? GarmentBarycentrics.x
 				: (GarmentVertices.y == (int)Index
@@ -1058,8 +1709,17 @@ KERNEL
 				DynamicVertexClearanceCm[0] * GarmentBarycentrics.x
 				+ DynamicVertexClearanceCm[1] * GarmentBarycentrics.y
 				+ DynamicVertexClearanceCm[2] * GarmentBarycentrics.z;
+			float WitnessUnderBreastReserveCm =
+				UnderBreastWitnessReserveBudgetCm * WitnessUnderBreastGuardWeight;
+			float WitnessLowerBodyMorphReserveCm =
+				LowerBodyMorphWitnessReserveBudgetCm
+				* WitnessLowerBodyMorphGuardWeight;
 			float TargetClearanceCm =
-				max(DynamicWitnessClearanceCm + RuntimeOffsetCm, 0.0f);
+				max(
+					DynamicWitnessClearanceCm + RuntimeOffsetCm
+						+ WitnessUnderBreastReserveCm
+						+ WitnessLowerBodyMorphReserveCm,
+					0.0f);
 			float RequiredPushCm = max(
 				TargetClearanceCm - dot(SamplePosition - BodyAnchor, WitnessNormal),
 				0.0f);
@@ -1093,10 +1753,9 @@ KERNEL
 	// Keep the edge/face correction subordinate to the vertex-safe base pass. This
 	// visual stability limit is topology-agnostic; excluded Director sections have
 	// already taken the PreserveUpstream path before witness evaluation.
-	static const float MaximumVisualEdgeCorrectionCm = 0.35f;
 	float ExtraCorrectionLength = length(ExtraCorrection);
 	float BoundedCorrectionScale = ExtraCorrectionLength > 1.0e-8f
-		? min(1.0f, MaximumVisualEdgeCorrectionCm / ExtraCorrectionLength)
+		? min(1.0f, MaximumWitnessCorrectionCm / ExtraCorrectionLength)
 		: 0.0f;
 	float3 BoundedExtraCorrection = InvalidWitnessData
 		? float3(0.0f, 0.0f, 0.0f)
@@ -1109,6 +1768,511 @@ KERNEL
 	WriteFinalPosition(Index, FinalPosition);
 	WriteFinalTangentX(Index, BaseTangentX);
 	WriteFinalTangentZ(Index, BaseTangentZ);
+}
+)EFHLSL");
+		return Source;
+	}
+
+	const FString& GetFinalizeKernelSource()
+	{
+		static const FString Source = FString(TEXT(R"EFHLSL(
+KERNEL
+{
+	float3 WitnessPosition = ReadWitnessPosition(Index);
+	float3 UpstreamPosition = ReadUpstreamGarmentPosition(Index);
+	float4 WitnessTangentX = ReadWitnessTangentX(Index);
+	float4 WitnessTangentZ = ReadWitnessTangentZ(Index);
+	float BodyMorphActivity = ReadEF_BodyMorphActivity();
+	float LowerBodyMorphActivity = ReadEF_LowerBodyMorphActivity();
+	float LowerBodyMorphStrength = isfinite(LowerBodyMorphActivity)
+		? saturate(max(LowerBodyMorphActivity, 0.0f))
+		: 0.0f;
+	bool MorphActive = (isfinite(BodyMorphActivity)
+		&& abs(BodyMorphActivity) > 1.0e-4f)
+		|| LowerBodyMorphStrength > 1.0e-4f;
+	float BreastMorphActivity = ReadEF_BreastMorphActivity();
+	float BreastMorphStrength = isfinite(BreastMorphActivity)
+		? saturate(abs(BreastMorphActivity))
+		: 0.0f;
+
+	// Seam welding and tangent rebuilding are body-morph stability operations.
+	// Outside that narrow gate this pass is bit-for-bit transparent to the
+	// already certified witness result.
+	if (!MorphActive)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	bool FiniteInputs = all(isfinite(WitnessPosition))
+		&& all(isfinite(UpstreamPosition))
+		&& all(isfinite(WitnessTangentX))
+		&& all(isfinite(WitnessTangentZ));
+	int BindingVertexCount = ReadEF_BindingVertexCount();
+	int BodyVertexCountValue = ReadEF_BodyVertexCount();
+	int WeldReferenceCountValue = ReadEF_WeldReferenceCount();
+	if (!FiniteInputs
+		|| BindingVertexCount <= 0
+		|| Index >= (uint)BindingVertexCount
+		|| BodyVertexCountValue <= 0
+		|| WeldReferenceCountValue < 0
+		|| ReadEF_GarmentLODIndex() < 0
+		|| ReadEF_BodyLODIndex() < 0)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	StructuredBuffer<int2> WeldRangesBuffer = ReadEF_WeldRanges();
+	StructuredBuffer<int> WeldIndicesBuffer = ReadEF_WeldIndices();
+	StructuredBuffer<int4> BodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
+	StructuredBuffer<float4> BarycentricsAndFollowWeightBuffer =
+		ReadEF_BarycentricsAndFollowWeight();
+	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer =
+		ReadEF_RestOffsetAndClearanceCm();
+	StructuredBuffer<float2> MaximumCorrectionAndRestGapCmBuffer =
+		ReadEF_MaximumCorrectionAndRestGapCm();
+	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer =
+		ReadEF_ThicknessReferenceAndLayer();
+	StructuredBuffer<float> UnderBreastGuardWeightsBuffer =
+		ReadEF_UnderBreastGuardWeights();
+	StructuredBuffer<float> LowerBodyMorphGuardWeightsBuffer =
+		ReadEF_LowerBodyMorphGuardWeights();
+
+	uint WeldRangeBufferCount = 0;
+	uint WeldIndexBufferCount = 0;
+	uint TriangleBufferCount = 0;
+	uint BarycentricBufferCount = 0;
+	uint RestOffsetBufferCount = 0;
+	uint LimitBufferCount = 0;
+	uint ThicknessBufferCount = 0;
+	uint UnderBreastGuardBufferCount = 0;
+	uint LowerBodyMorphGuardBufferCount = 0;
+	uint IgnoredStride = 0;
+	WeldRangesBuffer.GetDimensions(WeldRangeBufferCount, IgnoredStride);
+	WeldIndicesBuffer.GetDimensions(WeldIndexBufferCount, IgnoredStride);
+	BodyTriangleAndModeBuffer.GetDimensions(TriangleBufferCount, IgnoredStride);
+	BarycentricsAndFollowWeightBuffer.GetDimensions(BarycentricBufferCount, IgnoredStride);
+	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
+	MaximumCorrectionAndRestGapCmBuffer.GetDimensions(LimitBufferCount, IgnoredStride);
+	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
+	UnderBreastGuardWeightsBuffer.GetDimensions(UnderBreastGuardBufferCount, IgnoredStride);
+	LowerBodyMorphGuardWeightsBuffer.GetDimensions(
+		LowerBodyMorphGuardBufferCount,
+		IgnoredStride);
+	if (WeldRangeBufferCount < (uint)BindingVertexCount
+		|| WeldIndexBufferCount < (uint)WeldReferenceCountValue
+		|| TriangleBufferCount < (uint)BindingVertexCount
+		|| BarycentricBufferCount < (uint)BindingVertexCount
+		|| RestOffsetBufferCount < (uint)BindingVertexCount
+		|| LimitBufferCount < (uint)BindingVertexCount
+		|| ThicknessBufferCount < (uint)BindingVertexCount
+		|| UnderBreastGuardBufferCount < (uint)BindingVertexCount
+		|| LowerBodyMorphGuardBufferCount < (uint)BindingVertexCount)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	int4 CurrentTriangleAndMode = BodyTriangleAndModeBuffer[Index];
+	float CurrentFollowWeight = saturate(
+		BarycentricsAndFollowWeightBuffer[Index].w);
+	if (CurrentTriangleAndMode.w == 3)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	int2 WeldRange = WeldRangesBuffer[Index];
+	if (WeldRange.x < 0
+		|| WeldRange.y < 0
+		|| WeldRange.y > 256
+		|| (WeldRange.y == 0 && WeldRange.x != 0)
+		|| WeldRange.x > WeldReferenceCountValue
+		|| WeldRange.y > WeldReferenceCountValue - WeldRange.x)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	// Singleton render vertices still need the same body-aligned tangent rebuild as
+	// split vertices during large morphs.  A zero range therefore means a valid
+	// one-member logical group whose canonical vertex and position are this vertex.
+	float3 WeldPositionSum = WitnessPosition;
+	int CanonicalVertexIndex = (int)Index;
+	int PreviousVertexIndex = -1;
+	bool ContainsCurrentVertex = WeldRange.y == 0;
+	bool InvalidWeldGroup = false;
+	[loop]
+	for (int LocalWeldIndex = 0; LocalWeldIndex < WeldRange.y; ++LocalWeldIndex)
+	{
+		int WeldVertexIndex = WeldIndicesBuffer[WeldRange.x + LocalWeldIndex];
+		// The compiler sorts every group. Enforcing that invariant makes the first
+		// member a deterministic canonical surface for every duplicated render split.
+		if (WeldVertexIndex < 0
+			|| WeldVertexIndex >= BindingVertexCount
+			|| WeldVertexIndex <= PreviousVertexIndex)
+		{
+			InvalidWeldGroup = true;
+			break;
+		}
+		float3 WeldPosition = ReadWitnessPosition((uint)WeldVertexIndex);
+		if (!all(isfinite(WeldPosition)))
+		{
+			InvalidWeldGroup = true;
+			break;
+		}
+		CanonicalVertexIndex = LocalWeldIndex == 0
+			? WeldVertexIndex
+			: CanonicalVertexIndex;
+		ContainsCurrentVertex = ContainsCurrentVertex
+			|| WeldVertexIndex == (int)Index;
+		PreviousVertexIndex = WeldVertexIndex;
+		WeldPositionSum = LocalWeldIndex == 0
+			? WeldPosition
+			: WeldPositionSum + WeldPosition;
+	}
+	if (InvalidWeldGroup || !ContainsCurrentVertex || CanonicalVertexIndex < 0)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+	float3 SharedPosition = WeldRange.y == 0
+		? WitnessPosition
+		: WeldPositionSum / (float)WeldRange.y;
+	// Low-confidence vertices do not inherit the body's tangent frame, but exact
+	// render splits must still close to one position.  Returning the shared result
+	// here prevents a witness pass from reopening UV/material seams.
+	if (CurrentFollowWeight <= 1.0e-4f)
+	{
+		WriteFinalPosition(Index, SharedPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+)EFHLSL")) + FString(TEXT(R"EFHLSL(
+
+	int4 CanonicalTriangleAndMode =
+		BodyTriangleAndModeBuffer[CanonicalVertexIndex];
+	float4 CanonicalBarycentricsAndFollowWeight =
+		BarycentricsAndFollowWeightBuffer[CanonicalVertexIndex];
+	float4 CanonicalRestOffsetAndClearanceCm =
+		RestOffsetAndClearanceCmBuffer[CanonicalVertexIndex];
+	float2 CanonicalMaximumCorrectionAndRestGapCm =
+		MaximumCorrectionAndRestGapCmBuffer[CanonicalVertexIndex];
+	int2 CanonicalThicknessReferenceAndLayer =
+		ThicknessReferenceAndLayerBuffer[CanonicalVertexIndex];
+	float CanonicalUnderBreastGuardWeight =
+		UnderBreastGuardWeightsBuffer[CanonicalVertexIndex];
+	float CanonicalLowerBodyMorphGuardWeight =
+		LowerBodyMorphGuardWeightsBuffer[CanonicalVertexIndex];
+	float CanonicalFollowWeight = saturate(
+		CanonicalBarycentricsAndFollowWeight.w);
+	uint BodyVertexCount = (uint)BodyVertexCountValue;
+	float CanonicalBarycentricSum = dot(
+		CanonicalBarycentricsAndFollowWeight.xyz,
+		float3(1.0f, 1.0f, 1.0f));
+	bool InvalidCanonicalSurface = CanonicalTriangleAndMode.w == 3
+		|| CanonicalFollowWeight <= 1.0e-4f
+		|| any(CanonicalTriangleAndMode.xyz < 0)
+		|| any((uint3)CanonicalTriangleAndMode.xyz >= BodyVertexCount)
+		|| !all(isfinite(CanonicalBarycentricsAndFollowWeight))
+		|| !all(isfinite(CanonicalRestOffsetAndClearanceCm))
+		|| !all(isfinite(CanonicalMaximumCorrectionAndRestGapCm))
+		|| !isfinite(CanonicalUnderBreastGuardWeight)
+		|| CanonicalUnderBreastGuardWeight < 0.0f
+		|| CanonicalUnderBreastGuardWeight > 1.0f
+		|| !isfinite(CanonicalLowerBodyMorphGuardWeight)
+		|| CanonicalLowerBodyMorphGuardWeight < 0.0f
+		|| CanonicalLowerBodyMorphGuardWeight > 1.0f
+		|| abs(CanonicalBarycentricSum) <= 1.0e-8f
+		|| CanonicalThicknessReferenceAndLayer.y < 0
+		|| CanonicalThicknessReferenceAndLayer.y > 1;
+	if (InvalidCanonicalSurface)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	float3 CanonicalBarycentrics =
+		CanonicalBarycentricsAndFollowWeight.xyz / CanonicalBarycentricSum;
+	float4x4 BodyToGarment = ReadEF_BodyToGarmentTransform();
+	float3 BodyP0 = Body::ReadBodyPosition((uint)CanonicalTriangleAndMode.x);
+	float3 BodyP1 = Body::ReadBodyPosition((uint)CanonicalTriangleAndMode.y);
+	float3 BodyP2 = Body::ReadBodyPosition((uint)CanonicalTriangleAndMode.z);
+	BodyP0 = mul(float4(BodyP0, 1.0f), BodyToGarment).xyz;
+	BodyP1 = mul(float4(BodyP1, 1.0f), BodyToGarment).xyz;
+	BodyP2 = mul(float4(BodyP2, 1.0f), BodyToGarment).xyz;
+	float3 Edge01 = BodyP1 - BodyP0;
+	float3 Edge02 = BodyP2 - BodyP0;
+	float3 UnnormalizedSurfaceNormal = cross(Edge01, Edge02);
+	float SurfaceNormalLengthSquared = dot(
+		UnnormalizedSurfaceNormal,
+		UnnormalizedSurfaceNormal);
+	float3 SurfaceTangent = Edge01;
+	if (SurfaceNormalLengthSquared > 1.0e-12f)
+	{
+		float3 PreliminaryNormal = UnnormalizedSurfaceNormal
+			* rsqrt(SurfaceNormalLengthSquared);
+		SurfaceTangent -= PreliminaryNormal * dot(SurfaceTangent, PreliminaryNormal);
+		if (dot(SurfaceTangent, SurfaceTangent) <= 1.0e-12f)
+		{
+			SurfaceTangent = Edge02
+				- PreliminaryNormal * dot(Edge02, PreliminaryNormal);
+		}
+	}
+	float SurfaceTangentLengthSquared = dot(SurfaceTangent, SurfaceTangent);
+	if (!all(isfinite(BodyP0))
+		|| !all(isfinite(BodyP1))
+		|| !all(isfinite(BodyP2))
+		|| SurfaceNormalLengthSquared <= 1.0e-12f
+		|| SurfaceTangentLengthSquared <= 1.0e-12f)
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	float3 SurfaceNormal = UnnormalizedSurfaceNormal
+		* rsqrt(SurfaceNormalLengthSquared);
+	SurfaceTangent *= rsqrt(SurfaceTangentLengthSquared);
+	float3 SurfaceBitangent = normalize(cross(SurfaceNormal, SurfaceTangent));
+	SurfaceTangent = normalize(cross(SurfaceBitangent, SurfaceNormal));
+	float3 SurfaceAnchor = BodyP0 * CanonicalBarycentrics.x
+		+ BodyP1 * CanonicalBarycentrics.y
+		+ BodyP2 * CanonicalBarycentrics.z;
+
+	float RuntimeInflateCm = ReadEF_GarmentInflateCm();
+	RuntimeInflateCm = isfinite(RuntimeInflateCm)
+		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
+		: 0.0f;
+	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
+		+ ReadEF_GarmentClearanceOffsetCm();
+	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
+	float3 RuntimeRestOffsetCm = CanonicalRestOffsetAndClearanceCm.xyz;
+	float RuntimeTargetClearanceCm = CanonicalRestOffsetAndClearanceCm.w;
+	float3 CanonicalUpstreamPosition =
+		ReadUpstreamGarmentPosition((uint)CanonicalVertexIndex);
+	if (!all(isfinite(CanonicalUpstreamPosition)))
+	{
+		WriteFinalPosition(Index, WitnessPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+
+	if (CanonicalThicknessReferenceAndLayer.y == 1)
+	{
+		int InnerReference = CanonicalThicknessReferenceAndLayer.x;
+		if (InnerReference < 0
+			|| InnerReference >= BindingVertexCount
+			|| (uint)InnerReference >= RestOffsetBufferCount)
+		{
+			WriteFinalPosition(Index, WitnessPosition);
+			WriteFinalTangentX(Index, WitnessTangentX);
+			WriteFinalTangentZ(Index, WitnessTangentZ);
+			return;
+		}
+		float4 InnerRest = RestOffsetAndClearanceCmBuffer[InnerReference];
+		float3 InnerUpstream = ReadUpstreamGarmentPosition((uint)InnerReference);
+		float3 LayerVectorCm = CanonicalRestOffsetAndClearanceCm.xyz
+			- InnerRest.xyz;
+		float LayerLengthCm = length(LayerVectorCm);
+		if (!all(isfinite(InnerRest))
+			|| !all(isfinite(InnerUpstream))
+			|| LayerLengthCm <= 1.0e-6f)
+		{
+			WriteFinalPosition(Index, WitnessPosition);
+			WriteFinalTangentX(Index, WitnessTangentX);
+			WriteFinalTangentZ(Index, WitnessTangentZ);
+			return;
+		}
+		float ThicknessScale = RuntimeInflateCm / LayerLengthCm;
+		CanonicalUpstreamPosition = InnerUpstream
+			+ (CanonicalUpstreamPosition - InnerUpstream) * ThicknessScale;
+		RuntimeRestOffsetCm = InnerRest.xyz + LayerVectorCm * ThicknessScale;
+		RuntimeTargetClearanceCm = InnerRest.w
+			+ max(RuntimeRestOffsetCm.z - InnerRest.z, 0.0f);
+	}
+)EFHLSL")) + TEXT(R"EFHLSL(
+
+	float BaseTargetGapCm = max(RuntimeTargetClearanceCm, 0.0f);
+	if (CanonicalTriangleAndMode.w == 0)
+	{
+		BaseTargetGapCm = max(BaseTargetGapCm, RuntimeRestOffsetCm.z);
+	}
+	float SourceSurfaceInflateCm =
+		(CanonicalThicknessReferenceAndLayer.x < 0
+			&& CanonicalThicknessReferenceAndLayer.y == 0)
+			? RuntimeInflateCm
+			: 0.0f;
+	float CorrectionOverrideCm = ReadEF_MaximumCorrectionOverrideCm();
+	CorrectionOverrideCm = isfinite(CorrectionOverrideCm)
+		? max(CorrectionOverrideCm, 0.0f)
+		: 0.0f;
+	float MaximumCorrectionCm = CorrectionOverrideCm > 0.0f
+		? CorrectionOverrideCm
+		: max(CanonicalMaximumCorrectionAndRestGapCm.x, 0.0f);
+	float RuntimeCorrectionBudgetCm =
+		clamp(max(RuntimeOffsetCm, 0.0f), 0.0f, 2.0f)
+		+ RuntimeInflateCm;
+	float MaximumAutomaticBodyShapeTravelCm =
+		ReadEF_MaximumAutomaticBodyShapeTravelCm();
+	MaximumAutomaticBodyShapeTravelCm =
+		isfinite(MaximumAutomaticBodyShapeTravelCm)
+		? clamp(MaximumAutomaticBodyShapeTravelCm, 0.0f, 32.0f)
+		: 0.0f;
+	float3 SurfaceTarget = SurfaceAnchor
+		+ SurfaceTangent * RuntimeRestOffsetCm.x
+		+ SurfaceBitangent * RuntimeRestOffsetCm.y
+		+ SurfaceNormal * RuntimeRestOffsetCm.z;
+	float3 SurfaceDelta = SurfaceTarget - CanonicalUpstreamPosition;
+	float SurfaceDeltaLengthCm = length(SurfaceDelta);
+	float SurfaceDeltaScale = SurfaceDeltaLengthCm > 1.0e-8f
+		? min(1.0f, MaximumAutomaticBodyShapeTravelCm / SurfaceDeltaLengthCm)
+		: 0.0f;
+	float OutwardSurfaceTravelCm = clamp(
+		max(dot(SurfaceDelta * SurfaceDeltaScale, SurfaceNormal), 0.0f),
+		0.0f,
+		MaximumAutomaticBodyShapeTravelCm);
+	float UnderBreastClearanceMaxCm = ReadEF_UnderBreastClearanceMaxCm();
+	UnderBreastClearanceMaxCm = isfinite(UnderBreastClearanceMaxCm)
+		? clamp(UnderBreastClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float UnderBreastTravelGate = smoothstep(
+		0.02f,
+		0.75f,
+		min(SurfaceDeltaLengthCm, MaximumAutomaticBodyShapeTravelCm));
+	float UnderBreastReserveCm = BreastMorphStrength
+		* CanonicalUnderBreastGuardWeight
+		* UnderBreastClearanceMaxCm
+		* UnderBreastTravelGate;
+	float LowerBodyMorphClearanceMaxCm =
+		ReadEF_LowerBodyMorphClearanceMaxCm();
+	LowerBodyMorphClearanceMaxCm = isfinite(LowerBodyMorphClearanceMaxCm)
+		? clamp(LowerBodyMorphClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float LowerBodyMorphReserveCm = LowerBodyMorphStrength
+		* CanonicalLowerBodyMorphGuardWeight
+		* LowerBodyMorphClearanceMaxCm;
+	float TargetGapCm = max(
+		BaseTargetGapCm + RuntimeOffsetCm + SourceSurfaceInflateCm
+			+ UnderBreastReserveCm + LowerBodyMorphReserveCm,
+		0.0f);
+	float SignedGapCm = dot(SharedPosition - SurfaceAnchor, SurfaceNormal);
+	float RequiredPushCm = max(TargetGapCm - SignedGapCm, 0.0f);
+	float AllowedAdditionalPushCm = MaximumCorrectionCm
+		+ RuntimeCorrectionBudgetCm
+		+ OutwardSurfaceTravelCm
+		+ UnderBreastReserveCm
+		+ LowerBodyMorphReserveCm;
+	float MaximumTotalTravelCm = MaximumAutomaticBodyShapeTravelCm
+		+ MaximumCorrectionCm
+		+ RuntimeCorrectionBudgetCm
+		+ UnderBreastReserveCm
+		+ LowerBodyMorphReserveCm;
+	float3 ProjectedSharedPosition = SharedPosition
+		+ SurfaceNormal * RequiredPushCm;
+	bool ProjectionWithinBudget = isfinite(RequiredPushCm)
+		&& RequiredPushCm <= AllowedAdditionalPushCm + 1.0e-5f
+		&& all(isfinite(ProjectedSharedPosition))
+		&& length(ProjectedSharedPosition - CanonicalUpstreamPosition)
+			<= MaximumTotalTravelCm + 1.0e-4f;
+	if (!ProjectionWithinBudget)
+	{
+		// All members use the same canonical witness fallback, so even a saturated
+		// morph cannot split a render seam into the visible triangular tears seen in V4.
+		ProjectedSharedPosition =
+			ReadWitnessPosition((uint)CanonicalVertexIndex);
+	}
+	if (!all(isfinite(ProjectedSharedPosition)))
+	{
+		ProjectedSharedPosition = WitnessPosition;
+	}
+
+	float UpstreamNormalLengthSquared = dot(
+		WitnessTangentZ.xyz,
+		WitnessTangentZ.xyz);
+	if (!isfinite(UpstreamNormalLengthSquared)
+		|| UpstreamNormalLengthSquared <= 1.0e-12f)
+	{
+		WriteFinalPosition(Index, ProjectedSharedPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+	float3 UpstreamNormal = WitnessTangentZ.xyz
+		* rsqrt(UpstreamNormalLengthSquared);
+	float3 UpstreamTangent = WitnessTangentX.xyz
+		- UpstreamNormal * dot(WitnessTangentX.xyz, UpstreamNormal);
+	float UpstreamTangentLengthSquared = dot(UpstreamTangent, UpstreamTangent);
+	if (!isfinite(UpstreamTangentLengthSquared)
+		|| UpstreamTangentLengthSquared <= 1.0e-12f)
+	{
+		WriteFinalPosition(Index, ProjectedSharedPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+	UpstreamTangent *= rsqrt(UpstreamTangentLengthSquared);
+	if (dot(SurfaceNormal, UpstreamNormal) < 0.0f)
+	{
+		SurfaceNormal = -SurfaceNormal;
+		SurfaceTangent = -SurfaceTangent;
+	}
+	if (dot(SurfaceTangent, UpstreamTangent) < 0.0f)
+	{
+		SurfaceTangent = -SurfaceTangent;
+	}
+	float FrameBlend = saturate(min(CurrentFollowWeight, CanonicalFollowWeight));
+	float3 FinalNormal = lerp(UpstreamNormal, SurfaceNormal, FrameBlend);
+	float FinalNormalLengthSquared = dot(FinalNormal, FinalNormal);
+	if (!isfinite(FinalNormalLengthSquared)
+		|| FinalNormalLengthSquared <= 1.0e-12f)
+	{
+		WriteFinalPosition(Index, ProjectedSharedPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+	FinalNormal *= rsqrt(FinalNormalLengthSquared);
+	float3 ProjectedUpstreamTangent = UpstreamTangent
+		- FinalNormal * dot(UpstreamTangent, FinalNormal);
+	float3 ProjectedBodyTangent = SurfaceTangent
+		- FinalNormal * dot(SurfaceTangent, FinalNormal);
+	float3 FinalTangent = lerp(
+		ProjectedUpstreamTangent,
+		ProjectedBodyTangent,
+		FrameBlend);
+	FinalTangent -= FinalNormal * dot(FinalTangent, FinalNormal);
+	float FinalTangentLengthSquared = dot(FinalTangent, FinalTangent);
+	if (!isfinite(FinalTangentLengthSquared)
+		|| FinalTangentLengthSquared <= 1.0e-12f)
+	{
+		WriteFinalPosition(Index, ProjectedSharedPosition);
+		WriteFinalTangentX(Index, WitnessTangentX);
+		WriteFinalTangentZ(Index, WitnessTangentZ);
+		return;
+	}
+	FinalTangent *= rsqrt(FinalTangentLengthSquared);
+	WriteFinalPosition(Index, ProjectedSharedPosition);
+	WriteFinalTangentX(Index, float4(FinalTangent, WitnessTangentX.w));
+	WriteFinalTangentZ(Index, float4(FinalNormal, WitnessTangentZ.w));
 }
 )EFHLSL");
 		return Source;
@@ -1305,39 +2469,77 @@ KERNEL
 
 		const FOptimusDataDomain VertexDomain(TArray<FName>{ Optimus::DomainName::Vertex });
 		const FOptimusDataDomain SingletonDomain;
-		UOptimusResourceDescription* BasePositionResource = Deformer->AddResource(
-			ResolveVector3Type(),
-			BasePositionResourceName);
-		if (!BasePositionResource)
+		auto AddPositionResource = [Deformer, PrimaryBinding, &VertexDomain, &OutError](
+			const FName ResourceName,
+			UOptimusResourceDescription*& OutResource) -> bool
 		{
-			OutError = TEXT("Failed to create the BaseCorrectedPosition Optimus resource.");
-			return false;
-		}
-		BasePositionResource->ComponentBinding = PrimaryBinding;
-		BasePositionResource->Modify();
-		if (!Deformer->SetResourceDataDomain(BasePositionResource, VertexDomain, true))
+			OutResource = Deformer->AddResource(ResolveVector3Type(), ResourceName);
+			if (!OutResource)
+			{
+				OutError = FString::Printf(
+					TEXT("Failed to create the %s Optimus resource."),
+					*ResourceName.ToString());
+				return false;
+			}
+			OutResource->ComponentBinding = PrimaryBinding;
+			OutResource->Modify();
+			if (!Deformer->SetResourceDataDomain(OutResource, VertexDomain, true))
+			{
+				OutError = FString::Printf(
+					TEXT("Failed to bind %s to the Garment vertex domain."),
+					*ResourceName.ToString());
+				return false;
+			}
+			return true;
+		};
+
+		UOptimusResourceDescription* BasePositionResource = nullptr;
+		UOptimusResourceDescription* CohesionAPositionResource = nullptr;
+		UOptimusResourceDescription* CohesionBPositionResource = nullptr;
+		UOptimusResourceDescription* WitnessPositionResource = nullptr;
+		if (!AddPositionResource(BasePositionResourceName, BasePositionResource)
+			|| !AddPositionResource(CohesionAPositionResourceName, CohesionAPositionResource)
+			|| !AddPositionResource(CohesionBPositionResourceName, CohesionBPositionResource)
+			|| !AddPositionResource(WitnessPositionResourceName, WitnessPositionResource))
 		{
-			OutError = TEXT("Failed to bind BaseCorrectedPosition to the Garment vertex domain.");
 			return false;
 		}
 
-		UOptimusNode* PrimaryBindingNode = Graph->AddComponentBindingGetNode(PrimaryBinding, FVector2D(-1700.0, -300.0));
-		UOptimusNode* BodyBindingNode = Graph->AddComponentBindingGetNode(BodyBinding, FVector2D(-1700.0, 620.0));
-		UOptimusNode* GarmentReadNode = Graph->AddDataInterfaceNode(ReadClass, FVector2D(-1360.0, -340.0));
-		UOptimusNode* BodyReadNode = Graph->AddDataInterfaceNode(ReadClass, FVector2D(-1360.0, 620.0));
-		UOptimusNode* BaseKernelNode = Graph->AddNode(KernelClass, FVector2D(-260.0, -220.0));
+		UOptimusNode* PrimaryBindingNode = Graph->AddComponentBindingGetNode(PrimaryBinding, FVector2D(-2100.0, -300.0));
+		UOptimusNode* BodyBindingNode = Graph->AddComponentBindingGetNode(BodyBinding, FVector2D(-2100.0, 760.0));
+		UOptimusNode* GarmentReadNode = Graph->AddDataInterfaceNode(ReadClass, FVector2D(-1760.0, -340.0));
+		UOptimusNode* BodyReadNode = Graph->AddDataInterfaceNode(ReadClass, FVector2D(-1760.0, 760.0));
+		UOptimusNode* BaseKernelNode = Graph->AddNode(KernelClass, FVector2D(-660.0, -220.0));
 		UOptimusNode* BasePositionResourceNode = Graph->AddResourceNode(
 			BasePositionResource,
-			FVector2D(380.0, -360.0));
-		UOptimusNode* WitnessKernelNode = Graph->AddNode(KernelClass, FVector2D(760.0, -120.0));
-		UOptimusNode* WriteNode = Graph->AddDataInterfaceNode(WriteClass, FVector2D(1420.0, -100.0));
+			FVector2D(-20.0, -360.0));
+		UOptimusNode* CohesionAKernelNode = Graph->AddNode(KernelClass, FVector2D(360.0, -220.0));
+		UOptimusNode* CohesionAPositionResourceNode = Graph->AddResourceNode(
+			CohesionAPositionResource,
+			FVector2D(1000.0, -360.0));
+		UOptimusNode* CohesionBKernelNode = Graph->AddNode(KernelClass, FVector2D(1380.0, -220.0));
+		UOptimusNode* CohesionBPositionResourceNode = Graph->AddResourceNode(
+			CohesionBPositionResource,
+			FVector2D(2020.0, -360.0));
+		UOptimusNode* WitnessKernelNode = Graph->AddNode(KernelClass, FVector2D(2400.0, -120.0));
+		UOptimusNode* WitnessPositionResourceNode = Graph->AddResourceNode(
+			WitnessPositionResource,
+			FVector2D(3040.0, -360.0));
+		UOptimusNode* FinalizeKernelNode = Graph->AddNode(KernelClass, FVector2D(3420.0, -120.0));
+		UOptimusNode* WriteNode = Graph->AddDataInterfaceNode(WriteClass, FVector2D(4080.0, -100.0));
 		if (!PrimaryBindingNode
 			|| !BodyBindingNode
 			|| !GarmentReadNode
 			|| !BodyReadNode
 			|| !BaseKernelNode
 			|| !BasePositionResourceNode
+			|| !CohesionAKernelNode
+			|| !CohesionAPositionResourceNode
+			|| !CohesionBKernelNode
+			|| !CohesionBPositionResourceNode
 			|| !WitnessKernelNode
+			|| !WitnessPositionResourceNode
+			|| !FinalizeKernelNode
 			|| !WriteNode)
 		{
 			OutError = TEXT("Failed to create one or more required Optimus nodes.");
@@ -1347,9 +2549,18 @@ KERNEL
 		if (!SetValidatedNameProperty(BaseKernelNode, TEXT("KernelName"), BaseKernelName, OutError)
 			|| !SetExecutionDomain(BaseKernelNode, OutError)
 			|| !SetGroupSize(BaseKernelNode, OutError)
+			|| !SetValidatedNameProperty(CohesionAKernelNode, TEXT("KernelName"), CohesionAKernelName, OutError)
+			|| !SetExecutionDomain(CohesionAKernelNode, OutError)
+			|| !SetGroupSize(CohesionAKernelNode, OutError)
+			|| !SetValidatedNameProperty(CohesionBKernelNode, TEXT("KernelName"), CohesionBKernelName, OutError)
+			|| !SetExecutionDomain(CohesionBKernelNode, OutError)
+			|| !SetGroupSize(CohesionBKernelNode, OutError)
 			|| !SetValidatedNameProperty(WitnessKernelNode, TEXT("KernelName"), WitnessKernelName, OutError)
 			|| !SetExecutionDomain(WitnessKernelNode, OutError)
-			|| !SetGroupSize(WitnessKernelNode, OutError))
+			|| !SetGroupSize(WitnessKernelNode, OutError)
+			|| !SetValidatedNameProperty(FinalizeKernelNode, TEXT("KernelName"), FinalizeKernelName, OutError)
+			|| !SetExecutionDomain(FinalizeKernelNode, OutError)
+			|| !SetGroupSize(FinalizeKernelNode, OutError))
 		{
 			return false;
 		}
@@ -1369,6 +2580,19 @@ KERNEL
 			MakeBinding(TEXT("PreservedTangentX"), ResolveVector4Type(), VertexDomain),
 			MakeBinding(TEXT("PreservedTangentZ"), ResolveVector4Type(), VertexDomain)
 		};
+		TArray<FOptimusParameterBinding> CohesionInputs =
+		{
+			MakeBinding(TEXT("RawCorrectedPosition"), ResolveVector3Type(), VertexDomain),
+			MakeBinding(TEXT("UpstreamGarmentPosition"), ResolveVector3Type(), VertexDomain)
+		};
+		for (const FVariableSpec& Spec : GetVariableSpecs())
+		{
+			CohesionInputs.Add(MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+		}
+		const TArray<FOptimusParameterBinding> CohesionOutputs =
+		{
+			MakeBinding(TEXT("CohesivePosition"), ResolveVector3Type(), VertexDomain)
+		};
 		TArray<FOptimusParameterBinding> WitnessInputs =
 		{
 			MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain),
@@ -1385,6 +2609,23 @@ KERNEL
 			MakeBinding(TEXT("FinalTangentX"), ResolveVector4Type(), VertexDomain),
 			MakeBinding(TEXT("FinalTangentZ"), ResolveVector4Type(), VertexDomain)
 		};
+		TArray<FOptimusParameterBinding> FinalizeInputs =
+		{
+			MakeBinding(TEXT("WitnessPosition"), ResolveVector3Type(), VertexDomain),
+			MakeBinding(TEXT("UpstreamGarmentPosition"), ResolveVector3Type(), VertexDomain),
+			MakeBinding(TEXT("WitnessTangentX"), ResolveVector4Type(), VertexDomain),
+			MakeBinding(TEXT("WitnessTangentZ"), ResolveVector4Type(), VertexDomain)
+		};
+		for (const FVariableSpec& Spec : GetVariableSpecs())
+		{
+			FinalizeInputs.Add(MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+		}
+		const TArray<FOptimusParameterBinding> FinalizeOutputs =
+		{
+			MakeBinding(TEXT("FinalPosition"), ResolveVector3Type(), VertexDomain),
+			MakeBinding(TEXT("FinalTangentX"), ResolveVector4Type(), VertexDomain),
+			MakeBinding(TEXT("FinalTangentZ"), ResolveVector4Type(), VertexDomain)
+		};
 		const TArray<FOptimusParameterBinding> BodyInputs =
 		{
 			MakeBinding(TEXT("BodyPosition"), ResolveVector3Type(), VertexDomain)
@@ -1392,22 +2633,41 @@ KERNEL
 		if (!SetParameterBindingArray(BaseKernelNode, TEXT("InputBindingArray"), BaseInputs, OutError)
 			|| !SetParameterBindingArray(BaseKernelNode, TEXT("OutputBindingArray"), BaseOutputs, OutError)
 			|| !SetSecondaryBodyBindings(BaseKernelNode, BodyInputs, OutError)
+			|| !SetParameterBindingArray(CohesionAKernelNode, TEXT("InputBindingArray"), CohesionInputs, OutError)
+			|| !SetParameterBindingArray(CohesionAKernelNode, TEXT("OutputBindingArray"), CohesionOutputs, OutError)
+			|| !SetSecondaryBodyBindings(CohesionAKernelNode, BodyInputs, OutError)
+			|| !SetParameterBindingArray(CohesionBKernelNode, TEXT("InputBindingArray"), CohesionInputs, OutError)
+			|| !SetParameterBindingArray(CohesionBKernelNode, TEXT("OutputBindingArray"), CohesionOutputs, OutError)
+			|| !SetSecondaryBodyBindings(CohesionBKernelNode, BodyInputs, OutError)
 			|| !SetParameterBindingArray(WitnessKernelNode, TEXT("InputBindingArray"), WitnessInputs, OutError)
 			|| !SetParameterBindingArray(WitnessKernelNode, TEXT("OutputBindingArray"), WitnessOutputs, OutError)
-			|| !SetSecondaryBodyBindings(WitnessKernelNode, BodyInputs, OutError))
+			|| !SetSecondaryBodyBindings(WitnessKernelNode, BodyInputs, OutError)
+			|| !SetParameterBindingArray(FinalizeKernelNode, TEXT("InputBindingArray"), FinalizeInputs, OutError)
+			|| !SetParameterBindingArray(FinalizeKernelNode, TEXT("OutputBindingArray"), FinalizeOutputs, OutError)
+			|| !SetSecondaryBodyBindings(FinalizeKernelNode, BodyInputs, OutError))
 		{
 			return false;
 		}
 
 		IOptimusShaderTextProvider* BaseShaderTextProvider = Cast<IOptimusShaderTextProvider>(BaseKernelNode);
+		IOptimusShaderTextProvider* CohesionAShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionAKernelNode);
+		IOptimusShaderTextProvider* CohesionBShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionBKernelNode);
 		IOptimusShaderTextProvider* WitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(WitnessKernelNode);
-		if (!BaseShaderTextProvider || !WitnessShaderTextProvider)
+		IOptimusShaderTextProvider* FinalizeShaderTextProvider = Cast<IOptimusShaderTextProvider>(FinalizeKernelNode);
+		if (!BaseShaderTextProvider
+			|| !CohesionAShaderTextProvider
+			|| !CohesionBShaderTextProvider
+			|| !WitnessShaderTextProvider
+			|| !FinalizeShaderTextProvider)
 		{
 			OutError = TEXT("One or more reflected custom kernels do not implement IOptimusShaderTextProvider.");
 			return false;
 		}
 		BaseShaderTextProvider->SetShaderText(GetBaseKernelSource());
+		CohesionAShaderTextProvider->SetShaderText(GetCohesionKernelSource());
+		CohesionBShaderTextProvider->SetShaderText(GetCohesionKernelSource());
 		WitnessShaderTextProvider->SetShaderText(GetWitnessKernelSource());
+		FinalizeShaderTextProvider->SetShaderText(GetFinalizeKernelSource());
 
 		if (!AddRequiredLink(Graph, PrimaryBindingNode, SkeletalComponentPin, GarmentReadNode, SkinnedComponentPin, OutError)
 			|| !AddRequiredLink(Graph, PrimaryBindingNode, SkeletalComponentPin, WriteNode, SkinnedComponentPin, OutError)
@@ -1417,13 +2677,27 @@ KERNEL
 			|| !AddRequiredLink(Graph, GarmentReadNode, TEXT("TangentZ"), BaseKernelNode, TEXT("Primary Group.GarmentTangentZ"), OutError)
 			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), BaseKernelNode, TEXT("Body.BodyPosition"), OutError)
 			|| !AddRequiredLink(Graph, BaseKernelNode, TEXT("CorrectedPosition"), BasePositionResourceNode, TEXT("SetBaseCorrectedPosition"), OutError)
-			|| !AddRequiredLink(Graph, BasePositionResourceNode, TEXT("GetBaseCorrectedPosition"), WitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, BasePositionResourceNode, TEXT("GetBaseCorrectedPosition"), CohesionAKernelNode, TEXT("Primary Group.RawCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, GarmentReadNode, TEXT("Position"), CohesionAKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"), OutError)
+			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), CohesionAKernelNode, TEXT("Body.BodyPosition"), OutError)
+			|| !AddRequiredLink(Graph, CohesionAKernelNode, TEXT("CohesivePosition"), CohesionAPositionResourceNode, TEXT("SetCohesionACorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, CohesionAPositionResourceNode, TEXT("GetCohesionACorrectedPosition"), CohesionBKernelNode, TEXT("Primary Group.RawCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, GarmentReadNode, TEXT("Position"), CohesionBKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"), OutError)
+			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), CohesionBKernelNode, TEXT("Body.BodyPosition"), OutError)
+			|| !AddRequiredLink(Graph, CohesionBKernelNode, TEXT("CohesivePosition"), CohesionBPositionResourceNode, TEXT("SetCohesionBCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, CohesionBPositionResourceNode, TEXT("GetCohesionBCorrectedPosition"), WitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"), OutError)
 			|| !AddRequiredLink(Graph, BaseKernelNode, TEXT("PreservedTangentX"), WitnessKernelNode, TEXT("Primary Group.BaseTangentX"), OutError)
 			|| !AddRequiredLink(Graph, BaseKernelNode, TEXT("PreservedTangentZ"), WitnessKernelNode, TEXT("Primary Group.BaseTangentZ"), OutError)
 			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), WitnessKernelNode, TEXT("Body.BodyPosition"), OutError)
-			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalPosition"), WriteNode, TEXT("Position"), OutError)
-			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalTangentX"), WriteNode, TEXT("TangentX"), OutError)
-			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"), OutError))
+			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalPosition"), WitnessPositionResourceNode, TEXT("SetWitnessCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, WitnessPositionResourceNode, TEXT("GetWitnessCorrectedPosition"), FinalizeKernelNode, TEXT("Primary Group.WitnessPosition"), OutError)
+			|| !AddRequiredLink(Graph, GarmentReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"), OutError)
+			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalTangentX"), FinalizeKernelNode, TEXT("Primary Group.WitnessTangentX"), OutError)
+			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalTangentZ"), FinalizeKernelNode, TEXT("Primary Group.WitnessTangentZ"), OutError)
+			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Body.BodyPosition"), OutError)
+			|| !AddRequiredLink(Graph, FinalizeKernelNode, TEXT("FinalPosition"), WriteNode, TEXT("Position"), OutError)
+			|| !AddRequiredLink(Graph, FinalizeKernelNode, TEXT("FinalTangentX"), WriteNode, TEXT("TangentX"), OutError)
+			|| !AddRequiredLink(Graph, FinalizeKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"), OutError))
 		{
 			return false;
 		}
@@ -1433,7 +2707,7 @@ KERNEL
 		{
 			UOptimusVariableDescription* const* Variable = Variables.Find(Spec.Name);
 			UOptimusNode* VariableNode = Variable
-				? Graph->AddVariableGetNode(*Variable, FVector2D(-640.0, -520.0 + VariableNodeIndex * 90.0))
+				? Graph->AddVariableGetNode(*Variable, FVector2D(-1040.0, -520.0 + VariableNodeIndex * 90.0))
 				: nullptr;
 			if (!VariableNode
 				|| !AddRequiredLink(
@@ -1447,7 +2721,28 @@ KERNEL
 					Graph,
 					VariableNode,
 					Spec.Name.ToString(),
+					CohesionAKernelNode,
+					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
+					OutError)
+				|| !AddRequiredLink(
+					Graph,
+					VariableNode,
+					Spec.Name.ToString(),
+					CohesionBKernelNode,
+					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
+					OutError)
+				|| !AddRequiredLink(
+					Graph,
+					VariableNode,
+					Spec.Name.ToString(),
 					WitnessKernelNode,
+					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
+					OutError)
+				|| !AddRequiredLink(
+					Graph,
+					VariableNode,
+					Spec.Name.ToString(),
+					FinalizeKernelNode,
 					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
 					OutError))
 			{
@@ -1515,7 +2810,7 @@ KERNEL
 			if (A.Name != E.Name || A.DataType != E.DataType || A.DataDomain != E.DataDomain)
 			{
 				OutError = FString::Printf(
-					TEXT("Kernel binding %s[%d] does not match V3 schema (%s)."),
+					TEXT("Kernel binding %s[%d] does not match schema 35 (%s)."),
 					*PropertyName.ToString(),
 					Index,
 					*E.Name.ToString());
@@ -1630,14 +2925,58 @@ KERNEL
 		}
 		const FOptimusDataDomain VertexDomain(TArray<FName>{ Optimus::DomainName::Vertex });
 		const TArray<UOptimusResourceDescription*>& Resources = Deformer->GetResources();
-		UOptimusResourceDescription* BasePositionResource = Resources.Num() == 1 ? Resources[0] : nullptr;
-		if (!BasePositionResource
-			|| BasePositionResource->ResourceName != BasePositionResourceName
-			|| BasePositionResource->DataType != ResolveVector3Type()
-			|| BasePositionResource->ComponentBinding.Get() != PrimaryBinding
-			|| BasePositionResource->DataDomain != VertexDomain)
+		UOptimusResourceDescription* BasePositionResource = nullptr;
+		UOptimusResourceDescription* CohesionAPositionResource = nullptr;
+		UOptimusResourceDescription* CohesionBPositionResource = nullptr;
+		UOptimusResourceDescription* WitnessPositionResource = nullptr;
+		for (UOptimusResourceDescription* Resource : Resources)
+		{
+			if (Resource && Resource->ResourceName == BasePositionResourceName)
+			{
+				BasePositionResource = Resource;
+			}
+			else if (Resource && Resource->ResourceName == CohesionAPositionResourceName)
+			{
+				CohesionAPositionResource = Resource;
+			}
+			else if (Resource && Resource->ResourceName == CohesionBPositionResourceName)
+			{
+				CohesionBPositionResource = Resource;
+			}
+			else if (Resource && Resource->ResourceName == WitnessPositionResourceName)
+			{
+				WitnessPositionResource = Resource;
+			}
+		}
+		if (Resources.Num() != 4)
+		{
+			Errors.Add(FString::Printf(TEXT("Resource count is %d, expected 4."), Resources.Num()));
+		}
+		auto IsValidPositionResource = [PrimaryBinding, &VertexDomain](
+			const UOptimusResourceDescription* Resource,
+			const FName ExpectedName) -> bool
+		{
+			return Resource
+				&& Resource->ResourceName == ExpectedName
+				&& Resource->DataType == ResolveVector3Type()
+				&& Resource->ComponentBinding.Get() == PrimaryBinding
+				&& Resource->DataDomain == VertexDomain;
+		};
+		if (!IsValidPositionResource(BasePositionResource, BasePositionResourceName))
 		{
 			Errors.Add(TEXT("BaseCorrectedPosition resource is missing or not bound to Garment float3/Vertex."));
+		}
+		if (!IsValidPositionResource(CohesionAPositionResource, CohesionAPositionResourceName))
+		{
+			Errors.Add(TEXT("CohesionACorrectedPosition resource is missing or not bound to Garment float3/Vertex."));
+		}
+		if (!IsValidPositionResource(CohesionBPositionResource, CohesionBPositionResourceName))
+		{
+			Errors.Add(TEXT("CohesionBCorrectedPosition resource is missing or not bound to Garment float3/Vertex."));
+		}
+		if (!IsValidPositionResource(WitnessPositionResource, WitnessPositionResourceName))
+		{
+			Errors.Add(TEXT("WitnessCorrectedPosition resource is missing or not bound to Garment float3/Vertex."));
 		}
 
 		const TArray<UOptimusVariableDescription*>& Variables = Deformer->GetVariables();
@@ -1669,7 +3008,7 @@ KERNEL
 		else
 		{
 			const TArray<UOptimusNode*>& Nodes = Graph->GetAllNodes();
-			const int32 ExpectedNodeCount = 2 + 3 + 2 + 1 + GetVariableSpecs().Num();
+			const int32 ExpectedNodeCount = 2 + 3 + 5 + 4 + GetVariableSpecs().Num();
 			if (Nodes.Num() != ExpectedNodeCount)
 			{
 				Errors.Add(FString::Printf(TEXT("Node count is %d, expected %d."), Nodes.Num(), ExpectedNodeCount));
@@ -1704,21 +3043,27 @@ KERNEL
 					WriteNodes.Add(Node);
 				}
 				else if (Node
-					&& Node->FindPin(TEXT("SetBaseCorrectedPosition"))
-					&& Node->FindPin(TEXT("GetBaseCorrectedPosition")))
+					&& ((Node->FindPin(TEXT("SetBaseCorrectedPosition"))
+						&& Node->FindPin(TEXT("GetBaseCorrectedPosition")))
+						|| (Node->FindPin(TEXT("SetCohesionACorrectedPosition"))
+							&& Node->FindPin(TEXT("GetCohesionACorrectedPosition")))
+						|| (Node->FindPin(TEXT("SetCohesionBCorrectedPosition"))
+							&& Node->FindPin(TEXT("GetCohesionBCorrectedPosition")))
+						|| (Node->FindPin(TEXT("SetWitnessCorrectedPosition"))
+							&& Node->FindPin(TEXT("GetWitnessCorrectedPosition")))))
 				{
 					ResourceNodes.Add(Node);
 				}
 			}
 
-			if (KernelNodes.Num() != 2
+			if (KernelNodes.Num() != 5
 				|| ReadNodes.Num() != 2
 				|| WriteNodes.Num() != 1
 				|| ComponentNodes.Num() != 2
 				|| VariableNodes.Num() != GetVariableSpecs().Num()
-				|| ResourceNodes.Num() != 1)
+				|| ResourceNodes.Num() != 4)
 			{
-				Errors.Add(TEXT("Required two-kernel/read/write/component/resource/variable node cardinality does not match V3."));
+				Errors.Add(TEXT("Required five-kernel/read/write/component/resource/variable node cardinality does not match schema 35."));
 			}
 			else
 			{
@@ -1733,7 +3078,10 @@ KERNEL
 					return Value ? Value->Name : NAME_None;
 				};
 				UOptimusNode* BaseKernelNode = nullptr;
+				UOptimusNode* CohesionAKernelNode = nullptr;
+				UOptimusNode* CohesionBKernelNode = nullptr;
 				UOptimusNode* WitnessKernelNode = nullptr;
+				UOptimusNode* FinalizeKernelNode = nullptr;
 				for (UOptimusNode* KernelNode : KernelNodes)
 				{
 					const FName Name = GetKernelName(KernelNode);
@@ -1741,13 +3089,47 @@ KERNEL
 					{
 						BaseKernelNode = KernelNode;
 					}
+					else if (Name == CohesionAKernelName)
+					{
+						CohesionAKernelNode = KernelNode;
+					}
+					else if (Name == CohesionBKernelName)
+					{
+						CohesionBKernelNode = KernelNode;
+					}
 					else if (Name == WitnessKernelName)
 					{
 						WitnessKernelNode = KernelNode;
 					}
+					else if (Name == FinalizeKernelName)
+					{
+						FinalizeKernelNode = KernelNode;
+					}
 				}
 				UOptimusNode* WriteNode = WriteNodes[0];
-				UOptimusNode* BasePositionResourceNode = ResourceNodes[0];
+				UOptimusNode* BasePositionResourceNode = nullptr;
+				UOptimusNode* CohesionAPositionResourceNode = nullptr;
+				UOptimusNode* CohesionBPositionResourceNode = nullptr;
+				UOptimusNode* WitnessPositionResourceNode = nullptr;
+				for (UOptimusNode* ResourceNode : ResourceNodes)
+				{
+					if (ResourceNode && ResourceNode->FindPin(TEXT("GetBaseCorrectedPosition")))
+					{
+						BasePositionResourceNode = ResourceNode;
+					}
+					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetCohesionACorrectedPosition")))
+					{
+						CohesionAPositionResourceNode = ResourceNode;
+					}
+					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetCohesionBCorrectedPosition")))
+					{
+						CohesionBPositionResourceNode = ResourceNode;
+					}
+					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetWitnessCorrectedPosition")))
+					{
+						WitnessPositionResourceNode = ResourceNode;
+					}
+				}
 				UOptimusNode* PrimaryBindingNode = nullptr;
 				UOptimusNode* BodyBindingNode = nullptr;
 				for (UOptimusNode* ComponentNode : ComponentNodes)
@@ -1780,9 +3162,16 @@ KERNEL
 					|| !GarmentReadNode
 					|| !BodyReadNode
 					|| !BaseKernelNode
-					|| !WitnessKernelNode)
+					|| !BasePositionResourceNode
+					|| !CohesionAKernelNode
+					|| !CohesionAPositionResourceNode
+					|| !CohesionBKernelNode
+					|| !CohesionBPositionResourceNode
+					|| !WitnessKernelNode
+					|| !WitnessPositionResourceNode
+					|| !FinalizeKernelNode)
 				{
-					Errors.Add(TEXT("Explicit Garment/Body routing or named two-kernel chain is incomplete."));
+					Errors.Add(TEXT("Explicit Garment/Body routing or named five-kernel chain is incomplete."));
 				}
 				else
 				{
@@ -1793,16 +3182,30 @@ KERNEL
 						&& ArePinsDirectlyLinked(GarmentReadNode, TEXT("TangentZ"), BaseKernelNode, TEXT("Primary Group.GarmentTangentZ"))
 						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), BaseKernelNode, TEXT("Body.BodyPosition"))
 						&& ArePinsDirectlyLinked(BaseKernelNode, TEXT("CorrectedPosition"), BasePositionResourceNode, TEXT("SetBaseCorrectedPosition"))
-						&& ArePinsDirectlyLinked(BasePositionResourceNode, TEXT("GetBaseCorrectedPosition"), WitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"))
+						&& ArePinsDirectlyLinked(BasePositionResourceNode, TEXT("GetBaseCorrectedPosition"), CohesionAKernelNode, TEXT("Primary Group.RawCorrectedPosition"))
+						&& ArePinsDirectlyLinked(GarmentReadNode, TEXT("Position"), CohesionAKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"))
+						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), CohesionAKernelNode, TEXT("Body.BodyPosition"))
+						&& ArePinsDirectlyLinked(CohesionAKernelNode, TEXT("CohesivePosition"), CohesionAPositionResourceNode, TEXT("SetCohesionACorrectedPosition"))
+						&& ArePinsDirectlyLinked(CohesionAPositionResourceNode, TEXT("GetCohesionACorrectedPosition"), CohesionBKernelNode, TEXT("Primary Group.RawCorrectedPosition"))
+						&& ArePinsDirectlyLinked(GarmentReadNode, TEXT("Position"), CohesionBKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"))
+						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), CohesionBKernelNode, TEXT("Body.BodyPosition"))
+						&& ArePinsDirectlyLinked(CohesionBKernelNode, TEXT("CohesivePosition"), CohesionBPositionResourceNode, TEXT("SetCohesionBCorrectedPosition"))
+						&& ArePinsDirectlyLinked(CohesionBPositionResourceNode, TEXT("GetCohesionBCorrectedPosition"), WitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"))
 						&& ArePinsDirectlyLinked(BaseKernelNode, TEXT("PreservedTangentX"), WitnessKernelNode, TEXT("Primary Group.BaseTangentX"))
 						&& ArePinsDirectlyLinked(BaseKernelNode, TEXT("PreservedTangentZ"), WitnessKernelNode, TEXT("Primary Group.BaseTangentZ"))
 						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), WitnessKernelNode, TEXT("Body.BodyPosition"))
-						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalPosition"), WriteNode, TEXT("Position"))
-						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalTangentX"), WriteNode, TEXT("TangentX"))
-						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"));
+						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalPosition"), WitnessPositionResourceNode, TEXT("SetWitnessCorrectedPosition"))
+						&& ArePinsDirectlyLinked(WitnessPositionResourceNode, TEXT("GetWitnessCorrectedPosition"), FinalizeKernelNode, TEXT("Primary Group.WitnessPosition"))
+						&& ArePinsDirectlyLinked(GarmentReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"))
+						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalTangentX"), FinalizeKernelNode, TEXT("Primary Group.WitnessTangentX"))
+						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalTangentZ"), FinalizeKernelNode, TEXT("Primary Group.WitnessTangentZ"))
+						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Body.BodyPosition"))
+						&& ArePinsDirectlyLinked(FinalizeKernelNode, TEXT("FinalPosition"), WriteNode, TEXT("Position"))
+						&& ArePinsDirectlyLinked(FinalizeKernelNode, TEXT("FinalTangentX"), WriteNode, TEXT("TangentX"))
+						&& ArePinsDirectlyLinked(FinalizeKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"));
 					if (!bCoreLinksValid)
 					{
-						Errors.Add(TEXT("Core Garment/Body/base/resource/witness/write links do not match V3."));
+						Errors.Add(TEXT("Core Garment/Body/base/cohesion-A/cohesion-B/witness/finalize/write links do not match schema 35."));
 					}
 				}
 
@@ -1821,6 +3224,20 @@ KERNEL
 					MakeBinding(TEXT("PreservedTangentX"), ResolveVector4Type(), VertexDomain),
 					MakeBinding(TEXT("PreservedTangentZ"), ResolveVector4Type(), VertexDomain)
 				};
+				TArray<FOptimusParameterBinding> ExpectedCohesionInputs =
+				{
+					MakeBinding(TEXT("RawCorrectedPosition"), ResolveVector3Type(), VertexDomain),
+					MakeBinding(TEXT("UpstreamGarmentPosition"), ResolveVector3Type(), VertexDomain)
+				};
+				for (const FVariableSpec& Spec : GetVariableSpecs())
+				{
+					ExpectedCohesionInputs.Add(
+						MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+				}
+				const TArray<FOptimusParameterBinding> ExpectedCohesionOutputs =
+				{
+					MakeBinding(TEXT("CohesivePosition"), ResolveVector3Type(), VertexDomain)
+				};
 				TArray<FOptimusParameterBinding> ExpectedWitnessInputs =
 				{
 					MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain),
@@ -1832,6 +3249,24 @@ KERNEL
 					ExpectedWitnessInputs.Add(MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
 				}
 				const TArray<FOptimusParameterBinding> ExpectedWitnessOutputs =
+				{
+					MakeBinding(TEXT("FinalPosition"), ResolveVector3Type(), VertexDomain),
+					MakeBinding(TEXT("FinalTangentX"), ResolveVector4Type(), VertexDomain),
+					MakeBinding(TEXT("FinalTangentZ"), ResolveVector4Type(), VertexDomain)
+				};
+				TArray<FOptimusParameterBinding> ExpectedFinalizeInputs =
+				{
+					MakeBinding(TEXT("WitnessPosition"), ResolveVector3Type(), VertexDomain),
+					MakeBinding(TEXT("UpstreamGarmentPosition"), ResolveVector3Type(), VertexDomain),
+					MakeBinding(TEXT("WitnessTangentX"), ResolveVector4Type(), VertexDomain),
+					MakeBinding(TEXT("WitnessTangentZ"), ResolveVector4Type(), VertexDomain)
+				};
+				for (const FVariableSpec& Spec : GetVariableSpecs())
+				{
+					ExpectedFinalizeInputs.Add(
+						MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+				}
+				const TArray<FOptimusParameterBinding> ExpectedFinalizeOutputs =
 				{
 					MakeBinding(TEXT("FinalPosition"), ResolveVector3Type(), VertexDomain),
 					MakeBinding(TEXT("FinalTangentX"), ResolveVector4Type(), VertexDomain),
@@ -1849,6 +3284,30 @@ KERNEL
 				{
 					Errors.Add(Error);
 				}
+				if (!ValidateBindingArray(CohesionAKernelNode, TEXT("InputBindingArray"), ExpectedCohesionInputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateBindingArray(CohesionAKernelNode, TEXT("OutputBindingArray"), ExpectedCohesionOutputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateSecondaryBodyBindings(CohesionAKernelNode, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateBindingArray(CohesionBKernelNode, TEXT("InputBindingArray"), ExpectedCohesionInputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateBindingArray(CohesionBKernelNode, TEXT("OutputBindingArray"), ExpectedCohesionOutputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateSecondaryBodyBindings(CohesionBKernelNode, Error))
+				{
+					Errors.Add(Error);
+				}
 				if (!ValidateBindingArray(WitnessKernelNode, TEXT("InputBindingArray"), ExpectedWitnessInputs, Error))
 				{
 					Errors.Add(Error);
@@ -1861,16 +3320,45 @@ KERNEL
 				{
 					Errors.Add(Error);
 				}
+				if (!ValidateBindingArray(FinalizeKernelNode, TEXT("InputBindingArray"), ExpectedFinalizeInputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateBindingArray(FinalizeKernelNode, TEXT("OutputBindingArray"), ExpectedFinalizeOutputs, Error))
+				{
+					Errors.Add(Error);
+				}
+				if (!ValidateSecondaryBodyBindings(FinalizeKernelNode, Error))
+				{
+					Errors.Add(Error);
+				}
 
 				const IOptimusShaderTextProvider* BaseShaderTextProvider = Cast<IOptimusShaderTextProvider>(BaseKernelNode);
+				const IOptimusShaderTextProvider* CohesionAShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionAKernelNode);
+				const IOptimusShaderTextProvider* CohesionBShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionBKernelNode);
 				const IOptimusShaderTextProvider* WitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(WitnessKernelNode);
+				const IOptimusShaderTextProvider* FinalizeShaderTextProvider = Cast<IOptimusShaderTextProvider>(FinalizeKernelNode);
 				if (!BaseShaderTextProvider || BaseShaderTextProvider->GetShaderText() != GetBaseKernelSource())
 				{
-					Errors.Add(TEXT("Base kernel source differs from the generated V3 source."));
+						Errors.Add(TEXT("Base kernel source differs from the generated schema-35 source."));
+				}
+				if (!CohesionAShaderTextProvider
+					|| CohesionAShaderTextProvider->GetShaderText() != GetCohesionKernelSource())
+				{
+						Errors.Add(TEXT("Cohesion-A kernel source differs from the generated schema-35 source."));
+				}
+				if (!CohesionBShaderTextProvider
+					|| CohesionBShaderTextProvider->GetShaderText() != GetCohesionKernelSource())
+				{
+						Errors.Add(TEXT("Cohesion-B kernel source differs from the generated schema-35 source."));
 				}
 				if (!WitnessShaderTextProvider || WitnessShaderTextProvider->GetShaderText() != GetWitnessKernelSource())
 				{
-					Errors.Add(TEXT("Witness kernel source differs from the generated V3 source."));
+						Errors.Add(TEXT("Witness kernel source differs from the generated schema-35 source."));
+				}
+				if (!FinalizeShaderTextProvider || FinalizeShaderTextProvider->GetShaderText() != GetFinalizeKernelSource())
+				{
+						Errors.Add(TEXT("Seam/tangent finalize kernel source differs from the generated schema-35 source."));
 				}
 
 				for (const FVariableSpec& Spec : GetVariableSpecs())
@@ -1883,9 +3371,12 @@ KERNEL
 					const FString KernelPinPath = FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString());
 					if (!VariableNode || !*VariableNode
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), BaseKernelNode, KernelPinPath)
-						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), WitnessKernelNode, KernelPinPath))
+						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), CohesionAKernelNode, KernelPinPath)
+						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), CohesionBKernelNode, KernelPinPath)
+						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), WitnessKernelNode, KernelPinPath)
+						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), FinalizeKernelNode, KernelPinPath))
 					{
-						Errors.Add(FString::Printf(TEXT("Variable node/dual-kernel links %s are missing."), *Spec.Name.ToString()));
+						Errors.Add(FString::Printf(TEXT("Variable node/five-kernel links %s are missing."), *Spec.Name.ToString()));
 					}
 				}
 			}
@@ -1909,10 +3400,10 @@ KERNEL
 		}
 
 		OutReport = FString::Printf(
-			TEXT("PASS: %s; Primary=Garment, Secondary=Body, %d variables, %d nodes, BodyToGarment transform, two-pass unilateral vertex/witness constraint and tangent passthrough validated."),
+			TEXT("PASS: %s; Primary=Garment, Secondary=Body, %d variables, %d nodes, BodyToGarment transform, five-pass base/two-stage cohesion/witness/seam-tangent constraint validated."),
 			AssetObjectPath,
 			GetVariableSpecs().Num(),
-			2 + 3 + 2 + 1 + GetVariableSpecs().Num());
+			2 + 3 + 5 + 4 + GetVariableSpecs().Num());
 		return true;
 	}
 
@@ -2111,3 +3602,4 @@ UEFClothingSurfaceDeformerBuilderLibrary::ValidateSurfaceConstraintDeformer()
 	Result.Report = FString::Printf(TEXT("%s\n%s"), *ValidationReport, *StatusReport);
 	return Result;
 }
+#include "EFClothingBodyCoverageBuilder.inl"

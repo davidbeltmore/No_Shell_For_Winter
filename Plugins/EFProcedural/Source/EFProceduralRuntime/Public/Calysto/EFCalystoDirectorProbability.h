@@ -76,6 +76,14 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoDirectorProbability final
 		TConstArrayView<FEFCalystoThemeOpportunity> Rooms, double AdditionalChancePercent,
 		TArray<FEFCalystoThemeDecision>& OutDecisions, FString& OutError);
 	static double AdaptationMultiplier(const FEFCalystoAdaptation& Policy, double NormalizedInput);
+	static bool IsValid(const FEFCalystoTraits& Traits);
+	/** Exact relative field is returned for native authoring errors; no clamping of authored inputs. */
+	static bool ValidateTraitBindings(const FEFCalystoAdaptation& Policy, FString& OutField, FString& OutError);
+	/** Pure explicit control evaluation. Missing Theme skips Theme terms; a referenced Snapshot is required.
+	 * Disabled/zero-bound adaptation ignores all context exactly. No random draws or label mapping. */
+	static bool ResolveTraitMultiplier(const FEFCalystoAdaptation& Policy, const FEFCalystoTraits& Style,
+		const FEFCalystoTraits* Theme, const FEFCalystoTraits* Snapshot, EEFCalystoGameplayRole Role,
+		EEFCalystoTraitControl Control, const FGuid& EntryId, double& OutMultiplier, FString& OutError);
 	static bool IsEligible(const FEFCalystoSelection& Selection, int64 FloorNumber,
 		TConstArrayView<FGuid> CoolingDownIds);
 };

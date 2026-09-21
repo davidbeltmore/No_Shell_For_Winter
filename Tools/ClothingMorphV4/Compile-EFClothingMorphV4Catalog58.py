@@ -218,7 +218,7 @@ def run(payload):
     if not bool(director.is_policy_valid()):
         raise RuntimeError("Director validation failed: " + str(director.get_policy_validation_error()))
 
-    rows = [row for row in list(prop(director, "garments")) if bool(prop(row, "enabled"))]
+    rows = [row for row in list(director.build_body_variants()) if bool(prop(row, "enabled"))]
     if not rows:
         raise RuntimeError("Director has no enabled clothes.")
     ids = [str(prop(row, "garment_id")) for row in rows]
@@ -320,8 +320,8 @@ def run(payload):
             and binding is not None
             and package_name(binding).startswith(OUTPUT_ROOT + "/")
             and str(prop(binding, "garment_id")) == row_id
-            and binding_compiler_version == 28
-            and binding_schema_version == 8
+            and binding_compiler_version == 35
+            and binding_schema_version == 15
             and package_name(prop(binding, "source_garment")).startswith("/Game/")
             and not package_name(prop(binding, "fitted_garment"))
             and pair_valid
@@ -398,13 +398,16 @@ def run(payload):
         raise RuntimeError("V4 enabled/compiled/binding equality gate failed.")
     if not payload["protected_inputs_unchanged"]:
         raise RuntimeError("A protected mesh, skeleton, Player or Director changed during V4 binding compilation.")
+    payload["v5_sync"] = unreal.EFClothingFitCompilerLibrary.sync_unisex_runtime_catalog(director)
+    if not payload["v5_sync"].startswith("PASS:"):
+        raise RuntimeError("V5 publication failed after catalog compilation: " + payload["v5_sync"])
 
 
 def main():
     payload = {
         "schema_version": 1,
-        "compiler_version": 28,
-        "binding_schema_version": 8,
+        "compiler_version": 35,
+        "binding_schema_version": 15,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "status": "UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE_FAIL",
         "success": False,

@@ -8,6 +8,8 @@
 class AACFCharacter;
 class APawn;
 class UACFCompanionGroupAIComponent;
+class FProjectCalystoDormantController;
+struct FEFCalystoAttemptToken;
 
 /**
  * Project-owned boundary around ACF companion spawning. It never mutates an ACF
@@ -42,6 +44,16 @@ public:
 		const FProjectCompanionDefinition& Definition,
 		UACFCompanionGroupAIComponent* CompanionGroup,
 		bool bRegisterAsRecruited);
+
+	/** Initialize actor-local ACF state and reserve an unpublished social identity. The exact
+	 * selected controller has already been created unpossessed by its retained native owner. */
+	static FProjectCompanionSpawnResult FinalizeDeferredCompanionForDirector(
+		AACFCharacter* Character,const FProjectCompanionDefinition& Definition,
+		const FEFCalystoAttemptToken& Token,const FProjectCalystoDormantController& Controller);
+	/** Read-only proof used before the native floor publication boundary. */
+	static bool ValidateDeferredCompanionForDirector(
+		AACFCharacter* Character,const FProjectCompanionDefinition& Definition,
+		const FEFCalystoAttemptToken& Token,const FProjectCalystoDormantController& Controller,FString& Error);
 
 	/** Deterministic NavMesh projection; never calls a random navigation API. */
 	static bool FindDeterministicSafeSpawnTransform(

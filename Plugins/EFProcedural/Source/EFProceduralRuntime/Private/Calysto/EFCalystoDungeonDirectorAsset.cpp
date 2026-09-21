@@ -1,4 +1,5 @@
 #include "Calysto/EFCalystoDungeonDirectorAsset.h"
+#include "Calysto/EFCalystoLightingResolver.h"
 
 #include "UObject/UnrealType.h"
 #if WITH_EDITOR
@@ -35,6 +36,14 @@ struct FValidator
 		Require(S.FirstEligibleFloor >= 1, Path + TEXT(".FirstEligibleFloor"), TEXT("First eligible floor must be positive."));
 		Require(S.LastEligibleFloor == 0 || S.LastEligibleFloor >= S.FirstEligibleFloor, Path + TEXT(".LastEligibleFloor"), TEXT("Last eligible floor must be zero or at least the first floor."));
 		Require(S.CooldownFloors >= 0, Path + TEXT(".CooldownFloors"), TEXT("Cooldown cannot be negative."));
+	}
+	void Traits(const FEFCalystoTraits& T, const FString& Path)
+	{
+		const double Values[] = {T.Mystery, T.Danger, T.Safe, T.Abundance, T.ClothingInfluence};
+		const TCHAR* Names[] = {TEXT("Mystery"), TEXT("Danger"), TEXT("Safe"), TEXT("Abundance"), TEXT("ClothingInfluence")};
+		for (int32 Index = 0; Index < UE_ARRAY_COUNT(Values); ++Index)
+			Require(FMath::IsFinite(Values[Index]) && Values[Index] >= 0 && Values[Index] <= 1,
+				Path + TEXT(".") + Names[Index], TEXT("A normalized trait must be finite within [0,1]; no implicit target or clamping."));
 	}
 	void Distribution(const FEFCalystoFloatDistribution& D, const double Minimum, const double Maximum, const FString& Path)
 	{
@@ -92,6 +101,8 @@ struct FValidator
 			}
 			Transform(E.Transform, At + TEXT(".Transform"));
 			Variation(E.Variation, At + TEXT(".Variation"));
+			Require(static_cast<uint8>(E.Rotation) <= static_cast<uint8>(EEFCalystoArchitectureRotation::Full360),
+				At + TEXT(".Rotation"), TEXT("Architecture rotation must be None, 45 Degrees, 90 Degrees or Full 360 Degrees."));
 		}
 		Require(!bRequired || bPositive, Path, TEXT("Required construction needs a positive eligible alternative."));
 	}
@@ -199,11 +210,12 @@ void AddPath(const FSoftObjectPath& Path, TSet<FSoftObjectPath>& Paths)
 	if (!Path.IsNull()) Paths.Add(Path);
 }
 
-void GatherArchitecture(const TArray<FEFCalystoArchitectureEntry>& Entries, TSet<FSoftObjectPath>& Paths)
+void GatherArchitecture(const TArray<FEFCalystoArchitectureEntry>& Entries, TSet<FSoftObjectPath>& Paths, int64 Floor=0)
 {
 	for (const FEFCalystoArchitectureEntry& E : Entries)
 	{
 		if (!E.Selection.bEnabled || E.Selection.Weight <= 0.0) continue;
+		if (Floor>0 && !FEFCalystoDirectorProbability::IsEligible(E.Selection,Floor,{})) continue;
 		if (E.Payload == EEFCalystoArchitecturePayload::Mesh) AddPath(E.Mesh.ToSoftObjectPath(), Paths);
 		else if (E.Payload == EEFCalystoArchitecturePayload::Actor) AddPath(E.ActorClass.ToSoftObjectPath(), Paths);
 		else if (E.Payload == EEFCalystoArchitecturePayload::BakedPCG) AddPath(E.BakedPCG.ToSoftObjectPath(), Paths);
@@ -213,7 +225,23 @@ void GatherArchitecture(const TArray<FEFCalystoArchitectureEntry>& Entries, TSet
 void GatherDecoration(const TArray<FEFCalystoSurfaceDecoration>& Decoration, TSet<FSoftObjectPath>& Paths)
 {
 	for (const FEFCalystoSurfaceDecoration& D : Decoration)
-		if (D.Chance.FirstPercent > 0.0 || D.Chance.LastPercent > 0.0) GatherArchitecture(D.Alternatives, Paths);
+		// This is the complete inspection inventory; an inherited Style chance can enable a zero local curve.
+		GatherArchitecture(D.Alternatives, Paths);
+}
+
+/** CDO collision descriptors are eligibility inputs, so every potentially selectable
+ * world actor must be resident before candidate feasibility and random decisions. */
+void GatherContentCollision(const TArray<FEFCalystoContentGroup>& Groups, TSet<FSoftObjectPath>& Paths, const int64 Floor)
+{
+	for (const FEFCalystoContentGroup& Group : Groups)
+	{
+		if (Group.Mode == EEFCalystoContentMode::Block || Group.Mode == EEFCalystoContentMode::Inherit
+			|| Group.Role == EEFCalystoGameplayRole::ContainerContent) continue;
+		for (const FEFCalystoContentEntry& Entry : Group.Entries)
+			if (Entry.Selection.bEnabled && Entry.Selection.Weight > 0.0
+				&& FEFCalystoDirectorProbability::IsEligible(Entry.Selection, Floor, {}))
+				AddPath(Entry.ActorClass.ToSoftObjectPath(), Paths);
+	}
 }
 
 void CanonicalContent(TArray<FEFCalystoContentGroup>& Groups)
@@ -250,6 +278,30 @@ bool UEFCalystoDungeonDirectorAsset::Compile(FEFCalystoCompiledDirector& OutConf
 	V.Require(FMath::IsFinite(Advanced.RoomIdentityQuantizationCm) && Advanced.RoomIdentityQuantizationCm > 0.0, TEXT("Advanced.RoomIdentityQuantizationCm"), TEXT("Room identity quantization must be finite and positive."));
 	V.Require(FMath::IsFinite(Advanced.Adaptation.MaximumEffectPercent) && Advanced.Adaptation.MaximumEffectPercent >= 0.0 && Advanced.Adaptation.MaximumEffectPercent <= 100.0,
 		TEXT("Advanced.Adaptation.MaximumEffectPercent"), TEXT("Adaptation effect must be bounded from 0 to 100 percent."));
+	FString BindingField, BindingError;
+	if (!FEFCalystoDirectorProbability::ValidateTraitBindings(Advanced.Adaptation, BindingField, BindingError))
+		OutIssues.Add({TEXT("Advanced.Adaptation.") + BindingField, BindingError});
+	for (int32 Index = 0; Index < FMath::Min(Advanced.Adaptation.Bindings.Num(), 64); ++Index)
+	{
+		const auto& Binding = Advanced.Adaptation.Bindings[Index];
+		bool Found = false;
+		const auto FindTarget = [&](const auto& Profiles)
+		{
+			for (const auto& Profile : Profiles) for (const auto& Group : Profile.Content)
+				if (Group.Role == Binding.Role)
+					Found |= Binding.Control == EEFCalystoTraitControl::Chance || Group.Entries.ContainsByPredicate(
+						[&](const auto& Entry) { return Entry.Selection.Id == Binding.EntryId; });
+		};
+		FindTarget(Styles); FindTarget(RoomThemes);
+		V.Require(Found, FieldAt(TEXT("Advanced.Adaptation.Bindings"), Index)
+			+ (Binding.Control == EEFCalystoTraitControl::Chance ? TEXT(".Role") : TEXT(".EntryId")),
+			TEXT("An explicit modifier must target an authored content role and, for Weight, an existing entry in that role."));
+	}
+	const FEFCalystoSafetyCeilings& H = Advanced.HardCeilings;
+	const int32 Ceilings[] = {H.Enemies, H.LooseFood, H.Chests, H.LootActors, H.SpecialEvents, H.TotalActors};
+	const TCHAR* CapacityNames[] = {TEXT("Enemies"), TEXT("LooseFood"), TEXT("Chests"), TEXT("LootActors"), TEXT("SpecialEvents"), TEXT("TotalActors")};
+	for (int32 Capacity = 0; Capacity < UE_ARRAY_COUNT(Ceilings); ++Capacity)
+		V.Require(Ceilings[Capacity] >= 0, FString(TEXT("Advanced.HardCeilings.")) + CapacityNames[Capacity], TEXT("A global safety ceiling must be nonnegative."));
 	TSet<FGuid> StyleIds;
 	bool bEnabledStyle = false;
 	for (int32 Index = 0; Index < Styles.Num(); ++Index)
@@ -257,6 +309,7 @@ bool UEFCalystoDungeonDirectorAsset::Compile(FEFCalystoCompiledDirector& OutConf
 		const FEFCalystoStyle& S = Styles[Index];
 		const FString Path = FieldAt(TEXT("Styles"), Index);
 		V.Selection(S.Selection, Path + TEXT(".Selection"), StyleIds);
+		V.Traits(S.Traits, Path + TEXT(".Traits"));
 		if (!S.Selection.bEnabled || S.Selection.Weight <= 0.0) continue;
 		bEnabledStyle = true;
 		V.Distribution(S.Layout.DungeonSize, 18.0, 30.0, Path + TEXT(".Layout.DungeonSize"));
@@ -268,6 +321,10 @@ bool UEFCalystoDungeonDirectorAsset::Compile(FEFCalystoCompiledDirector& OutConf
 		V.Require(!S.Materials.Wall.IsNull(), Path + TEXT(".Materials.Wall"), TEXT("Style Wall material is required; native fallback is forbidden."));
 		V.Require(!S.Materials.Roof.IsNull(), Path + TEXT(".Materials.Roof"), TEXT("Style Roof material is required; native fallback is forbidden."));
 		const FEFCalystoStyleArchitecture& A = S.Architecture;
+		V.Require(A.MaximumDecorationsPerRoom >= 0 && A.MaximumDecorationsPerRoom <= 256,
+			Path + TEXT(".Architecture.MaximumDecorationsPerRoom"), TEXT("Optional decoration room capacity must be between 0 and 256 across all zones."));
+		V.Require(FEFCalystoDirectorProbability::IsValid(A.DecorationChance),
+			Path + TEXT(".Architecture.DecorationChance"), TEXT("Default optional-decoration Chance requires an ordered percentage curve."));
 		V.Architecture(A.Floor, Path + TEXT(".Architecture.Floor"), true);
 		V.Architecture(A.Wall, Path + TEXT(".Architecture.Wall"), true);
 		V.Architecture(A.Roof, Path + TEXT(".Architecture.Roof"), true);
@@ -290,16 +347,18 @@ bool UEFCalystoDungeonDirectorAsset::Compile(FEFCalystoCompiledDirector& OutConf
 			V.Transform(D.DoorTransform, At + TEXT(".DoorTransform"));
 		}
 		V.Decoration(A.Decoration, Path + TEXT(".Architecture.Decoration"));
-		V.Distribution(S.Lighting.IntensityMultiplier, 0.0, 4.0, Path + TEXT(".Lighting.IntensityMultiplier"));
-		V.Require(FMath::IsFinite(S.Lighting.WallLightHeight) && S.Lighting.WallLightHeight >= 0.0, Path + TEXT(".Lighting.WallLightHeight"), TEXT("Light height must be finite and nonnegative."));
-		V.Require(S.Lighting.WallLightTileDistance >= 1, Path + TEXT(".Lighting.WallLightTileDistance"), TEXT("Light tile spacing must be positive."));
+		FString LightingField, LightingError;
+		if (!FEFCalystoLightingResolver::Validate(S.Lighting, LightingField, LightingError))
+			OutIssues.Add({Path + TEXT(".Lighting.") + LightingField, LightingError});
 		V.Placement(S.Lighting.Placement, Path + TEXT(".Lighting.Placement"));
 		V.Architecture(S.Lighting.WallLights, Path + TEXT(".Lighting.WallLights"), false);
 		V.Content(S.Content, Path + TEXT(".Content"), true);
 		V.Decals(S.Decals, Path + TEXT(".Decals"), true);
 		const FEFCalystoFloorBudgets& B = S.FloorBudgets;
-		V.Require(B.Enemies >= 0 && B.LooseFood >= 0 && B.Chests >= 0 && B.LootActors >= 0 && B.SpecialEvents >= 0 && B.TotalActors >= 0,
-			Path + TEXT(".FloorBudgets"), TEXT("All floor capacities must be nonnegative."));
+		const int32 Capacities[] = {B.Enemies, B.LooseFood, B.Chests, B.LootActors, B.SpecialEvents, B.TotalActors};
+		for (int32 Capacity = 0; Capacity < UE_ARRAY_COUNT(Capacities); ++Capacity)
+			V.Require(Capacities[Capacity] >= 0 && Capacities[Capacity] <= Ceilings[Capacity],
+				Path + TEXT(".FloorBudgets.") + CapacityNames[Capacity], TEXT("Capacity must be nonnegative and no greater than the matching Advanced.HardCeilings value."));
 		V.Require(FEFCalystoDirectorProbability::IsValid(B.Threat) && B.Threat.FirstValue >= 0.0 && B.Threat.LastValue >= 0.0,
 			Path + TEXT(".FloorBudgets.Threat"), TEXT("Threat needs a nonnegative exact linear depth curve."));
 	}
@@ -311,6 +370,7 @@ bool UEFCalystoDungeonDirectorAsset::Compile(FEFCalystoCompiledDirector& OutConf
 		const FEFCalystoTheme& T = RoomThemes[Index];
 		const FString Path = FieldAt(TEXT("RoomThemes"), Index);
 		V.Selection(T.Selection, Path + TEXT(".Selection"), ThemeIds);
+		V.Traits(T.Traits, Path + TEXT(".Traits"));
 		if (!T.Selection.bEnabled || T.Selection.Weight <= 0.0) continue;
 		bEnabledTheme = true;
 		const FEFCalystoMaterialOverride* Surfaces[] = { &T.Materials.Floor, &T.Materials.Wall, &T.Materials.Roof };
@@ -408,6 +468,47 @@ TArray<FString> UEFCalystoDungeonDirectorAsset::GetAuthoringErrors() const
 	TArray<FString> Errors;
 	ValidateAuthoring(Errors);
 	return Errors;
+}
+
+bool FEFCalystoCompiledDirector::GetReachableVisualDependencies(const FEFCalystoRandomKey& Key,
+	TArray<FSoftObjectPath>& Paths, FString& Error) const
+{
+	using namespace EFCalystoDirectorAssetPrivate;
+	Paths.Reset(); Error.Reset(); const auto* S=FindStyle(Key.StyleId);
+	if (!bValid || !S || Key.FloorNumber<1 || !FEFCalystoDirectorProbability::IsEligible(S->Selection,Key.FloorNumber,{}))
+	{ Error=TEXT("Reachable visuals require the selected eligible Style and a valid floor."); return false; }
+	TSet<FSoftObjectPath> Visuals;
+	const auto Architecture=[&](const TArray<FEFCalystoArchitectureEntry>& Entries) { GatherArchitecture(Entries,Visuals,Key.FloorNumber); };
+	const auto Decoration=[&](const TArray<FEFCalystoSurfaceDecoration>& Zones)
+	{
+		if (S->Architecture.MaximumDecorationsPerRoom==0) return;
+		for (const auto& Zone:Zones)
+			if (FEFCalystoDirectorProbability::EvaluateLinearCurve(Zone.bOverrideDefaultChance
+				? Zone.Chance : S->Architecture.DecorationChance,Key.FloorNumber)>0) Architecture(Zone.Alternatives);
+	};
+	AddPath(S->Materials.Floor.ToSoftObjectPath(),Visuals); AddPath(S->Materials.Wall.ToSoftObjectPath(),Visuals);
+	AddPath(S->Materials.Roof.ToSoftObjectPath(),Visuals);
+	Architecture(S->Architecture.Floor); Architecture(S->Architecture.Wall); Architecture(S->Architecture.Roof);
+	Architecture(S->Architecture.DoorFrames); Architecture(S->Architecture.Doors);
+	Architecture(S->Architecture.RampTop); Architecture(S->Architecture.RampBottom); Architecture(S->Lighting.WallLights);
+	Decoration(S->Architecture.Decoration); AddPath(S->Architecture.ProgressionDoorMesh.ToSoftObjectPath(),Visuals);
+	GatherContentCollision(S->Content, Visuals, Key.FloorNumber);
+	for (const auto& Door:S->Architecture.Doorways)
+		if (FEFCalystoDirectorProbability::IsEligible(Door.Selection,Key.FloorNumber,{}))
+		{
+			AddPath(Door.WallMesh.ToSoftObjectPath(),Visuals); AddPath(Door.FrameMesh.ToSoftObjectPath(),Visuals);
+			AddPath(Door.DoorClass.ToSoftObjectPath(),Visuals);
+		}
+	for (const auto& T:Themes)
+	{
+		if (!FEFCalystoDirectorProbability::IsEligible(T.Selection,Key.FloorNumber,{})) continue;
+		if (T.Materials.Floor.Mode==EEFCalystoMaterialMode::Override) AddPath(T.Materials.Floor.Material.ToSoftObjectPath(),Visuals);
+		if (T.Materials.Wall.Mode==EEFCalystoMaterialMode::Override) AddPath(T.Materials.Wall.Material.ToSoftObjectPath(),Visuals);
+		if (T.Materials.Roof.Mode==EEFCalystoMaterialMode::Override) AddPath(T.Materials.Roof.Material.ToSoftObjectPath(),Visuals);
+		Decoration(T.Architecture);
+		GatherContentCollision(T.Content, Visuals, Key.FloorNumber);
+	}
+	Paths=Visuals.Array(); Paths.Sort([](const auto& A,const auto& B) { return A.ToString()<B.ToString(); }); return true;
 }
 
 const FEFCalystoStyle* FEFCalystoCompiledDirector::FindStyle(const FGuid& Id) const

@@ -1,0 +1,49 @@
+{
+    "schema_version":  1,
+    "generated_utc":  "2026-08-31T16:05:02.4516354Z",
+    "status":  "FAIL",
+    "target":  "NoShellForWinter",
+    "configuration":  "Development",
+    "validation_mode":  "FinalStrict",
+    "archive_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_110255_768",
+    "pending_validation_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation",
+    "package":  {
+                    "status":  "NOT_RUN",
+                    "exit_code":  null,
+                    "cook_log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_110255_768.Package.log",
+                    "cook_log_sha256":  "F8C6360BEA242A0BCDD74762DA70D972B74BF8B5A83DA4554D0A529146A657D7"
+                },
+    "calysto_v5_package_validation":  {
+                                          "status":  "NOT_RUN",
+                                          "exit_code":  null,
+                                          "report":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_110255_768.V5PackageValidation.json",
+                                          "report_sha256":  "",
+                                          "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_110255_768.V5PackageValidation.log"
+                                      },
+    "calysto_v5_packaged_smoke":  {
+                                      "status":  "NOT_RUN",
+                                      "expected_case_count":  8,
+                                      "completed_case_count":  0,
+                                      "cases":  [
+
+                                                ]
+                                  },
+    "calysto_v5_packaged_determinism":  {
+                                            "status":  "NOT_RUN",
+                                            "result":  null
+                                        },
+    "clothing_morph_v4_packaged_startup":  {
+                                               "status":  "NOT_RUN",
+                                               "exit_code":  null,
+                                               "summary":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA\\PackagedStartup_20260831_110255_768\\Summary.json",
+                                               "summary_sha256":  "",
+                                               "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_110255_768.ClothingV4PackagedStartup.log"
+                                           },
+    "cleanup":  {
+                    "status":  "RETAINED_AFTER_GATE_FAILURE",
+                    "archive_removed_after_pass":  false,
+                    "archive_retained":  false,
+                    "error":  ""
+                },
+    "orchestrator_error":  "NoShellForWinter Development cook/package failed with exit code 25."
+}

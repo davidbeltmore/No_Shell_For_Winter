@@ -7,7 +7,7 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FProjectDungeonHarnessDebugNullWorldTest,
-	"NoShellForWinter.GameplayDebug.DungeonHarness.V4.NullWorldSafe",
+	"NoShellForWinter.CalystoDungeon.V6.GameplayDebug.DungeonHarness.NullWorldSafe",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FProjectDungeonHarnessDebugNullWorldTest::RunTest(const FString& Parameters)
@@ -30,10 +30,7 @@ bool FProjectDungeonHarnessDebugNullWorldTest::RunTest(const FString& Parameters
 		FProjectGameplayDebugCommandExecutor::RequestStartDungeonTestRun(nullptr));
 	TestFalse(TEXT("Style intent should no-op without a runtime owner"),
 		FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredStyle(
-			nullptr, false, EEFCalystoStyleV4::Compact));
-	TestFalse(TEXT("Theme intent should no-op without a runtime owner"),
-		FProjectGameplayDebugCommandExecutor::SetDungeonHarnessPreferredTheme(
-			nullptr, false, EEFCalystoThemeV4::Forge));
+			nullptr, false, TEXT("Compact")));
 	TestFalse(TEXT("Scale intent should no-op without a runtime owner"),
 		FProjectGameplayDebugCommandExecutor::SetDungeonHarnessIntentBias(
 			nullptr, TEXT("Scale"), 0.5f));
@@ -57,10 +54,7 @@ bool FProjectDungeonHarnessDebugNullWorldTest::RunTest(const FString& Parameters
 		FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStatusDescription(nullptr).IsEmpty());
 	TestFalse(TEXT("Style choice label should still be meaningful"),
 		FProjectGameplayDebugCommandExecutor::GetDungeonHarnessStyleChoiceLabel(
-			nullptr, true, EEFCalystoStyleV4::Standard).IsEmpty());
-	TestFalse(TEXT("Theme choice label should still be meaningful"),
-		FProjectGameplayDebugCommandExecutor::GetDungeonHarnessThemeChoiceLabel(
-			nullptr, true, EEFCalystoThemeV4::Default).IsEmpty());
+			nullptr, true, NAME_None).IsEmpty());
 	TestFalse(TEXT("Bias choice label should still be meaningful"),
 		FProjectGameplayDebugCommandExecutor::GetDungeonHarnessBiasChoiceLabel(
 			nullptr, TEXT("Scale"), 0.0f).IsEmpty());
@@ -69,7 +63,7 @@ bool FProjectDungeonHarnessDebugNullWorldTest::RunTest(const FString& Parameters
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FProjectDungeonHarnessDebugPersistentClassificationTest,
-	"NoShellForWinter.GameplayDebug.DungeonHarness.V4.PersistentClassification",
+	"NoShellForWinter.CalystoDungeon.V6.GameplayDebug.DungeonHarness.PersistentClassification",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FProjectDungeonHarnessDebugPersistentClassificationTest::RunTest(const FString& Parameters)
@@ -83,10 +77,6 @@ bool FProjectDungeonHarnessDebugPersistentClassificationTest::RunTest(const FStr
 		FName(TEXT("DungeonHarness.Style.Standard")),
 		FName(TEXT("DungeonHarness.Style.Compact")),
 		FName(TEXT("DungeonHarness.Style.Branching")),
-		FName(TEXT("DungeonHarness.Theme.Auto")),
-		FName(TEXT("DungeonHarness.Theme.Default")),
-		FName(TEXT("DungeonHarness.Theme.Forge")),
-		FName(TEXT("DungeonHarness.Theme.Shrine")),
 		FName(TEXT("DungeonHarness.ScaleBias.-1.00")),
 		FName(TEXT("DungeonHarness.BranchingBias.-0.50")),
 		FName(TEXT("DungeonHarness.DangerBias.0.00")),
@@ -127,7 +117,7 @@ bool FProjectDungeonHarnessDebugPersistentClassificationTest::RunTest(const FStr
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FProjectDungeonDirectorOutcomeNormalizationTest,
-	"NoShellForWinter.GameplayDebug.DungeonHarness.V4.OutcomeNormalization",
+	"NoShellForWinter.CalystoDungeon.V6.GameplayDebug.DungeonHarness.OutcomeNormalization",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FProjectDungeonDirectorOutcomeNormalizationTest::RunTest(const FString& Parameters)

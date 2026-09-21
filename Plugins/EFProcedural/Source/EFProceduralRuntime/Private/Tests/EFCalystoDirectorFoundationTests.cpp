@@ -234,6 +234,53 @@ bool FEFCalystoDirectorProbabilityBoundaries::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoReachableVisuals,
+	"NoShellForWinter.CalystoDungeon.Director.Loading.ReachableVisualSelection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FEFCalystoReachableVisuals::RunTest(const FString&)
+{
+	using namespace EFCalystoDirectorFoundationTests;
+	auto* Asset=MakeAsset();
+	const FSoftObjectPath OtherMaterial(TEXT("/Game/Fixtures/OtherStyle.OtherStyle"));
+	const FSoftObjectPath LaterMesh(TEXT("/Game/Fixtures/LaterMesh.LaterMesh"));
+	const FSoftObjectPath Baked(TEXT("/Game/Fixtures/Baked.Baked"));
+	const auto Other=Asset->Styles[0]; Asset->Styles.Add(Other);
+	Asset->Styles[1].Selection.Id=FGuid(100,0,0,1); Asset->Styles[1].Materials.Floor=TSoftObjectPtr<UMaterialInterface>(OtherMaterial);
+	auto& Zone=Asset->Styles[0].Architecture.Decoration.AddDefaulted_GetRef();
+	Zone.Zone=EEFCalystoPlacementZone::Floor; Zone.Chance.FirstPercent=Zone.Chance.LastPercent=0;
+	Zone.bOverrideDefaultChance=false;
+	auto& Child=Zone.Alternatives.AddDefaulted_GetRef(); Child.Selection.Id=FGuid(101,0,0,1);
+	Child.Payload=EEFCalystoArchitecturePayload::BakedPCG; Child.BakedPCG=TSoftObjectPtr<UObject>(Baked);
+	const auto Later=Asset->Styles[0].Architecture.Floor[0]; Asset->Styles[0].Architecture.Floor.Add(Later);
+	Asset->Styles[0].Architecture.Floor.Last().Selection.Id=FGuid(102,0,0,1);
+	Asset->Styles[0].Architecture.Floor.Last().Selection.FirstEligibleFloor=5;
+	Asset->Styles[0].Architecture.Floor.Last().Mesh=TSoftObjectPtr<UStaticMesh>(LaterMesh);
+	Asset->RoomThemes[0].Selection.FirstEligibleFloor=5;
+	FEFCalystoCompiledDirector Compiled; TArray<FEFCalystoValidationIssue> Issues; FString Error;
+	if (!TestTrue(TEXT("Reachability fixture compiles"),Asset->Compile(Compiled,Issues)))
+	{ for (const auto& I:Issues) AddError(I.Field+TEXT(": ")+I.Message); return false; }
+	FEFCalystoRandomKey Key; Key.StyleId=Asset->Styles[0].Selection.Id;
+	TArray<FSoftObjectPath> Paths;
+	TestTrue(TEXT("Selected floor visuals resolve"),Compiled.GetReachableVisualDependencies(Key,Paths,Error));
+	TestFalse(TEXT("Unselected Style material is not requested"),Paths.Contains(OtherMaterial));
+	TestFalse(TEXT("Future-depth structural variant is not requested"),Paths.Contains(LaterMesh));
+	TestFalse(TEXT("Future-depth Theme material is not requested"),Paths.Contains(Asset->RoomThemes[0].Materials.Floor.Material.ToSoftObjectPath()));
+	TestTrue(TEXT("Inherited nonzero Style chance loads baked payload despite zero inactive local curve"),Paths.Contains(Baked));
+	TestTrue(TEXT("Complete inspection inventory also includes inherited-chance payload"),Compiled.GetVisualDependencies().Contains(Baked));
+	Key.FloorNumber=5;
+	TestTrue(TEXT("Exact depth endpoint resolves"),Compiled.GetReachableVisualDependencies(Key,Paths,Error));
+	TestTrue(TEXT("Structural variant enters exactly at its authored floor"),Paths.Contains(LaterMesh));
+	TestTrue(TEXT("Theme material enters exactly at its authored floor"),Paths.Contains(Asset->RoomThemes[0].Materials.Floor.Material.ToSoftObjectPath()));
+	Asset->Styles[0].Architecture.Decoration[0].bOverrideDefaultChance=true;
+	TestTrue(TEXT("Explicit zero-chance override compiles"),Asset->Compile(Compiled,Issues));
+	TestTrue(TEXT("Explicit zero-chance visuals resolve"),Compiled.GetReachableVisualDependencies(Key,Paths,Error));
+	TestFalse(TEXT("Zero-chance payload is not loaded"),Paths.Contains(Baked));
+	Key.StyleId=FGuid();
+	TestFalse(TEXT("Missing selected Style rejects atomically"),Compiled.GetReachableVisualDependencies(Key,Paths,Error));
+	TestTrue(TEXT("Rejected visual query contains no stale resources"),Paths.IsEmpty());
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoDirectorCompilation,
 	"NoShellForWinter.CalystoDungeon.Director.Authoring.CompilationAndPrecedence",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -253,6 +300,17 @@ bool FEFCalystoDirectorCompilation::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Material precedence resolves"), Compiled.ResolveMaterials(StyleId, ThemeId, Materials, Error));
 	TestTrue(TEXT("Theme wins Floor"), Materials.Floor == Asset->RoomThemes[0].Materials.Floor.Material);
 	TestTrue(TEXT("Inherit retains Style Wall"), Materials.Wall == Asset->Styles[0].Materials.Wall);
+#if WITH_EDITORONLY_DATA
+	const TArray<FSoftObjectPath> BeforeMetadataDependencies = Compiled.GetVisualDependencies();
+	Asset->RoomThemes[0].Description = TEXT("Editor notes changed without changing gameplay.");
+	Asset->RoomThemes[0].PreviewColor = FLinearColor::Blue;
+	TestTrue(TEXT("Authoring metadata edit compiles"), Asset->Compile(Compiled, Issues));
+	FEFCalystoSurfaceMaterials AfterMetadataMaterials;
+	TestTrue(TEXT("Original Theme identity still resolves after metadata edit"), Compiled.ResolveMaterials(StyleId, ThemeId, AfterMetadataMaterials, Error));
+	TestTrue(TEXT("Preview swatch cannot recolor generated surfaces"), AfterMetadataMaterials.Floor == Materials.Floor
+		&& AfterMetadataMaterials.Wall == Materials.Wall && AfterMetadataMaterials.Roof == Materials.Roof);
+	TestTrue(TEXT("Metadata cannot add or change visual dependencies"), Compiled.GetVisualDependencies() == BeforeMetadataDependencies);
+#endif
 	Asset->Styles[0].Materials.Wall.Reset();
 	TestFalse(TEXT("Missing Style material fails authoring"), Asset->Compile(Compiled, Issues));
 	TestFalse(TEXT("Failed recompile cannot retain a valid old configuration"), Compiled.IsValid());
@@ -334,6 +392,58 @@ bool FEFCalystoDirectorCompilation::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Editor identity maintenance is stable after reorder"), Asset->Styles[0].Selection.Id, DuplicateId);
 #endif
 	AddInfo(TEXT("Authoring/decision tests do not establish material realization, native geometry, gameplay traversal or packaged validation."));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoDirectorSafetyCeilings,
+	"NoShellForWinter.CalystoDungeon.Director.Authoring.SafetyCeilings",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FEFCalystoDirectorSafetyCeilings::RunTest(const FString&)
+{
+	using namespace EFCalystoDirectorFoundationTests;
+	struct FCase { const TCHAR* Name; int32 FEFCalystoSafetyCeilings::* Ceiling; int32 FEFCalystoFloorBudgets::* Budget; };
+	const FCase Cases[] = {
+		{TEXT("Enemies"), &FEFCalystoSafetyCeilings::Enemies, &FEFCalystoFloorBudgets::Enemies},
+		{TEXT("LooseFood"), &FEFCalystoSafetyCeilings::LooseFood, &FEFCalystoFloorBudgets::LooseFood},
+		{TEXT("Chests"), &FEFCalystoSafetyCeilings::Chests, &FEFCalystoFloorBudgets::Chests},
+		{TEXT("LootActors"), &FEFCalystoSafetyCeilings::LootActors, &FEFCalystoFloorBudgets::LootActors},
+		{TEXT("SpecialEvents"), &FEFCalystoSafetyCeilings::SpecialEvents, &FEFCalystoFloorBudgets::SpecialEvents},
+		{TEXT("TotalActors"), &FEFCalystoSafetyCeilings::TotalActors, &FEFCalystoFloorBudgets::TotalActors}};
+	for (const auto& Case : Cases)
+	{
+		auto* Asset = MakeAsset();
+		int32& Ceiling = Asset->Advanced.HardCeilings.*Case.Ceiling;
+		int32& Budget = Asset->Styles[0].FloorBudgets.*Case.Budget;
+		FEFCalystoCompiledDirector Compiled; TArray<FEFCalystoValidationIssue> Issues;
+		Ceiling = Budget = 2;
+		if (!TestTrue(FString(Case.Name) + TEXT(" exact ceiling compiles"), Asset->Compile(Compiled, Issues))) return false;
+		Ceiling = 1;
+		TestEqual(TEXT("Previously compiled safety ceiling is immutable"), Compiled.GetAdvanced().HardCeilings.*Case.Ceiling, 2);
+		TestFalse(FString(Case.Name) + TEXT(" lowered ceiling rejects excessive Style"), Asset->Compile(Compiled, Issues));
+		TestFalse(TEXT("Invalid ceiling recompile clears prior compiled output"), Compiled.IsValid());
+		TestTrue(TEXT("Violation identifies exact Style capacity"), Issues.ContainsByPredicate([&](const FEFCalystoValidationIssue& I)
+			{ return I.Field == FString(TEXT("Styles[0].FloorBudgets.")) + Case.Name; }));
+		TestEqual(TEXT("Rejected authoring capacity is never clamped"), Budget, 2);
+		Ceiling = Budget = 0;
+		TestTrue(FString(Case.Name) + TEXT(" zero is a valid capacity"), Asset->Compile(Compiled, Issues));
+		Ceiling = -1;
+		TestFalse(TEXT("Negative global ceiling rejects"), Asset->Compile(Compiled, Issues));
+		TestTrue(TEXT("Negative ceiling identifies exact Advanced field"), Issues.ContainsByPredicate([&](const FEFCalystoValidationIssue& I)
+			{ return I.Field == FString(TEXT("Advanced.HardCeilings.")) + Case.Name; }));
+	}
+	auto* Asset = MakeAsset();
+	auto Inactive = Asset->Styles[0]; Inactive.Selection.Id = FGuid(9, 0, 0, 9);
+	Inactive.Selection.bEnabled = false; Inactive.FloorBudgets.Enemies = 26;
+	Asset->Styles.Add(Inactive);
+	FEFCalystoCompiledDirector Compiled; TArray<FEFCalystoValidationIssue> Issues;
+	TestTrue(TEXT("Inactive Style retains authored capacity without participating"), Asset->Compile(Compiled, Issues));
+	Asset->Styles[1].Selection.bEnabled = true; Asset->Styles[1].Selection.Weight = 0;
+	TestTrue(TEXT("Zero-weight Style also retains inactive authoring"), Asset->Compile(Compiled, Issues));
+	Asset->Styles[1].Selection.Weight = 1;
+	TestFalse(TEXT("Activating retained over-ceiling Style rejects"), Asset->Compile(Compiled, Issues));
+	TestTrue(TEXT("Activation error identifies exact second Style"), Issues.ContainsByPredicate([](const FEFCalystoValidationIssue& I)
+		{ return I.Field == TEXT("Styles[1].FloorBudgets.Enemies"); }));
 	return true;
 }
 #endif

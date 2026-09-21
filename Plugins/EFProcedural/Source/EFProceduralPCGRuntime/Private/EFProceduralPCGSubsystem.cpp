@@ -1,33 +1,42 @@
 #include "EFProceduralPCGSubsystem.h"
+#include "Calysto/EFCalystoDirectorSettings.h"
 
 #include "AIController.h"
+#include "Calysto/EFCalystoAssignRoomThemeV6.h"
+#include "Calysto/EFCalystoDecalPoolV6.h"
+#include "Calysto/EFCalystoDungeonDirectorPolicyV6.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
 #include "Calysto/EFCalystoFloorDoor.h"
 #include "Calysto/EFCalystoPackagedSmokeSubsystem.h"
 #include "Calysto/EFCalystoDungeonHarnessSettings.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "Calysto/EFCalystoPCGAdapter.h"
-#include "Calysto/EFCalystoPCGCookedCompatibility.h"
+#include "Calysto/EFCalystoPCGRuntimeGraphV6.h"
 #include "Calysto/EFCalystoPopulationAnchor.h"
-#include "Calysto/EFCalystoPopulationBridgeV4.h"
-#include "Calysto/EFCalystoPopulationMaterializerV4.h"
+#include "Calysto/EFCalystoPopulationBridgeV6.h"
+#include "Calysto/EFCalystoPopulationMaterializerV6.h"
 #include "EFProceduralACFU.h"
 #include "EFProceduralSettings.h"
 #include "EFProceduralRuntimeSubsystem.h"
 #include "Components/BrushComponent.h"
 #include "Components/PrimitiveComponent.h"
-#include "Engine/AssetManager.h"
+#include "Data/PCGBasePointData.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
-#include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Helpers/PCGHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "HAL/IConsoleManager.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
 #include "Misc/App.h"
 #include "Misc/PackageName.h"
+#include "Misc/ScopeExit.h"
+#include "Metadata/PCGMetadata.h"
 #include "NavMesh/NavMeshBoundsVolume.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
@@ -76,7 +85,7 @@ namespace EFProceduralPCGAutomationPrivate
 
 	static FAutoConsoleCommandWithWorldAndArgs SuppressStartPointOnceCommand(
 		TEXT("EF.Calysto.Automation.SuppressStartPointOnce"),
-		TEXT("Unattended PIE only. Suppress exactly one valid PCG StartPoint so deterministic V4 repair can be validated."),
+		TEXT("Unattended PIE only. Suppress exactly one valid PCG StartPoint so deterministic V6 repair can be validated."),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&SuppressStartPointOnce));
 }
 #endif
@@ -89,10 +98,21 @@ namespace EFProceduralRuntimePrivate
 	static constexpr float TopologyDoorApproachOffset = 90.0f;
 	static constexpr float TopologyDoorMaximumApproachDistance = 140.0f;
 	static constexpr int32 TopologyMaximumCandidateCount = 1024;
-	static const FName TopologyRepairTag(TEXT("EF.Calysto.TopologyRepair.V4"));
+	static const FName TopologyRepairTag(TEXT("EF.Calysto.TopologyRepair.V6"));
 	static const FString TopologyRepairHashTagPrefix(TEXT("EF.Calysto.TopologyRepairHash."));
-	static const FName StartPointRepairTag(TEXT("EF.Calysto.StartPointRepair.V4"));
+	static const FName StartPointRepairTag(TEXT("EF.Calysto.StartPointRepair.V6"));
 	static const FString StartPointRepairHashTagPrefix(TEXT("EF.Calysto.StartPointRepairHash."));
+
+	static bool IsCalystoResourceCategory(const FName CategoryId)
+	{
+		const FString Category = CategoryId.ToString();
+		return Category.Contains(TEXT("Food"), ESearchCase::IgnoreCase) ||
+			Category.Contains(TEXT("Loot"), ESearchCase::IgnoreCase) ||
+			Category.Contains(TEXT("Chest"), ESearchCase::IgnoreCase) ||
+			Category.Contains(TEXT("Potion"), ESearchCase::IgnoreCase) ||
+			Category.Contains(TEXT("Water"), ESearchCase::IgnoreCase) ||
+			Category.Contains(TEXT("Armor"), ESearchCase::IgnoreCase);
+	}
 
 	struct FTopologyDoorCandidate
 	{
@@ -257,6 +277,11 @@ namespace EFProceduralRuntimePrivate
 	}
 }
 
+bool UEFProceduralPCGSubsystem::ShouldCreateSubsystem(UObject* Outer) const
+{
+	return Super::ShouldCreateSubsystem(Outer) && !UEFCalystoDirectorSettings::IsEnabled();
+}
+
 void UEFProceduralPCGSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Collection.InitializeDependency<UEFProceduralRuntimeSubsystem>();
@@ -280,6 +305,43 @@ void UEFProceduralPCGSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		DungeonSubsystem->OnDirectorWorldAccepted().AddUObject(
 			this, &UEFProceduralPCGSubsystem::HandleDirectorWorldAccepted);
+	}
+
+	const UEFProceduralSettings* Settings = UEFProceduralSettings::Get();
+	const UEFCalystoDungeonHarnessSettings* HarnessSettings =
+		UEFCalystoDungeonHarnessSettings::Get();
+	const TArray<FString> ManagedMaps = Settings
+		? Settings->GetManagedMapNamesResolved()
+		: TArray<FString>();
+	const FString ConfiguredDungeonMap = HarnessSettings
+		? EFProceduralRuntimePrivate::NormalizeMapName(
+			HarnessSettings->DungeonMap.ToSoftObjectPath().GetLongPackageName())
+		: FString();
+	const bool bHarnessMapManaged = !ConfiguredDungeonMap.IsEmpty()
+		&& ManagedMaps.ContainsByPredicate(
+			[&ConfiguredDungeonMap](const FString& ManagedMap)
+			{
+				return EFProceduralRuntimePrivate::MatchesManagedMapName(
+					ConfiguredDungeonMap, ManagedMap);
+			});
+	const bool bDungeonClassConfigured = Settings
+		&& !Settings->GetDungeonActorClassResolved().IsNull();
+	const bool bStartPointClassConfigured = Settings
+		&& !Settings->GetStartPointActorClassResolved().IsNull();
+	if (!bHarnessMapManaged || !bDungeonClassConfigured
+		|| !bStartPointClassConfigured)
+	{
+		UE_LOG(
+			LogEFProceduralPCGRuntime,
+			Error,
+			TEXT("CALYSTO_PCG_CONFIG_INVALID harness_map=%s managed_maps=%s "
+				 "harness_map_managed=%s dungeon_class_configured=%s "
+				 "start_point_class_configured=%s"),
+			*ConfiguredDungeonMap,
+			*FString::Join(ManagedMaps, TEXT(",")),
+			bHarnessMapManaged ? TEXT("true") : TEXT("false"),
+			bDungeonClassConfigured ? TEXT("true") : TEXT("false"),
+			bStartPointClassConfigured ? TEXT("true") : TEXT("false"));
 	}
 }
 
@@ -318,14 +380,18 @@ void UEFProceduralPCGSubsystem::Deinitialize()
 	for (TPair<TObjectKey<UWorld>, FDungeonRuntimeState>& Pair : RuntimeStates)
 	{
 		FDungeonRuntimeState& RuntimeState = Pair.Value;
-		if (RuntimeState.DungeonPreloadHandle.IsValid()
-			&& !RuntimeState.DungeonPreloadHandle->HasLoadCompleted())
-		{
-			RuntimeState.DungeonPreloadHandle->CancelHandle();
-		}
 		if (UWorld* RuntimeWorld = RuntimeState.World.Get())
 		{
 			RuntimeWorld->GetTimerManager().ClearTimer(RuntimeState.DungeonReadinessPollHandle);
+			RollbackMaterializedPopulationV6(RuntimeWorld, RuntimeState);
+		}
+		if (AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState.DecalPoolOwnerV6.Get())
+		{
+			if (PoolOwner->DecalPool)
+			{
+				PoolOwner->DecalPool->ReleaseAllDecals();
+			}
+			PoolOwner->Destroy();
 		}
 		if (AActor* DungeonActor = RuntimeState.DungeonActor.Get())
 		{
@@ -493,39 +559,80 @@ void UEFProceduralPCGSubsystem::HandlePostWorldInitialization(UWorld* World, con
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("Runtime dungeon world %s is waiting for the V4 DirectorWorldAccepted gate."),
+		TEXT("Runtime dungeon world %s is waiting for the V6 DirectorWorldAccepted gate."),
 		*World->GetName());
 }
 
 void UEFProceduralPCGSubsystem::HandleDirectorWorldAccepted(
 	const int64 RunEpoch,
-	const EEFCalystoDungeonTravelKindV4 TravelKind,
-	const FEFCalystoResolvedFloorIntentV4& Intent)
+	const EEFCalystoDungeonTravelKindV6 TravelKind,
+	const FEFCalystoResolvedFloorIntentV6& Intent)
 {
 	(void)TravelKind;
 	UGameInstance* GameInstance = GetGameInstance();
 	UWorld* World = GameInstance ? GameInstance->GetWorld() : nullptr;
-	if (!IsManagedRuntimeWorld(World)
-		|| RunEpoch <= 0
-		|| !Intent.bIsValid
-		|| Intent.GeneratorVersion != 4
-		|| Intent.IntentHash.IsEmpty())
+	const bool bWorldValid = IsValid(World);
+	const bool bGameWorld = bWorldValid && World->IsGameWorld();
+	const bool bManagedWorld = IsManagedRuntimeWorld(World);
+	const bool bEpochValid = RunEpoch > 0;
+	const bool bIntentValid = Intent.bIsValid;
+	const bool bIdentityValid = Intent.GenerationContext.RunEpoch == RunEpoch
+		&& Intent.GenerationContext.TravelKind == TravelKind;
+	const bool bGeneratorValid = Intent.GeneratorVersion == EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion;
+	const bool bIntentHashValid = !Intent.IntentHash.IsEmpty();
+	if (!bManagedWorld || !bEpochValid || !bIntentValid || !bIdentityValid || !bGeneratorValid
+		|| !bIntentHashValid)
 	{
+		const UEFProceduralSettings* Settings = UEFProceduralSettings::Get();
+		const TArray<FString> ManagedMaps = Settings
+			? Settings->GetManagedMapNamesResolved()
+			: TArray<FString>();
 		UE_LOG(
 			LogEFProceduralPCGRuntime,
 			Error,
-			TEXT("V4 DirectorWorldAccepted supplied invalid bootstrap state for world %s."),
-			*GetNameSafe(World));
+			TEXT("V6 DirectorWorldAccepted supplied invalid bootstrap state: "
+				 "world=%s world_valid=%s game_world=%s managed_world=%s "
+				 "managed_maps=%s epoch=%lld epoch_valid=%s intent_valid=%s "
+				 "identity_valid=%s generator=%d generator_valid=%s intent_hash_empty=%s."),
+			*GetNameSafe(World),
+			bWorldValid ? TEXT("true") : TEXT("false"),
+			bGameWorld ? TEXT("true") : TEXT("false"),
+			bManagedWorld ? TEXT("true") : TEXT("false"),
+			*FString::Join(ManagedMaps, TEXT(",")),
+			RunEpoch,
+			bEpochValid ? TEXT("true") : TEXT("false"),
+			bIntentValid ? TEXT("true") : TEXT("false"),
+			bIdentityValid ? TEXT("true") : TEXT("false"),
+			Intent.GeneratorVersion,
+			bGeneratorValid ? TEXT("true") : TEXT("false"),
+			bIntentHashValid ? TEXT("false") : TEXT("true"));
 		if (IsValid(World))
 		{
 			if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
 				GameInstance->GetSubsystem<UEFCalystoDungeonSubsystem>())
 			{
 				DungeonSubsystem->NotifyGenerationFailed(
-					TEXT("V4_DIRECTOR_ACCEPTANCE_INVALID"),
-					TEXT("PCG refused to bootstrap before a valid V4 DirectorWorldAccepted contract."));
+					TEXT("V6_DIRECTOR_ACCEPTANCE_INVALID"),
+					TEXT("PCG refused to bootstrap before a valid V6 DirectorWorldAccepted contract."));
 			}
 		}
+		return;
+	}
+
+	UEFCalystoDungeonSubsystem* DungeonSubsystem = GameInstance
+		? GameInstance->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr;
+	if (!DungeonSubsystem
+		|| !DungeonSubsystem->IsGenerationBootstrapCurrentV6(Intent.IntentHash))
+	{
+		// Multicast listeners run sequentially. A preceding subsystem may already
+		// have rejected the accepted world and started fail-closed recovery. Do not
+		// schedule stale PCG work or report a second failure against that retry.
+		UE_LOG(
+			LogEFProceduralPCGRuntime,
+			Warning,
+			TEXT("V6 PCG bootstrap skipped because accepted intent %s no longer owns generation."),
+			*Intent.IntentHash);
 		return;
 	}
 
@@ -535,7 +642,7 @@ void UEFProceduralPCGSubsystem::HandleDirectorWorldAccepted(
 		UE_LOG(
 			LogEFProceduralPCGRuntime,
 			Error,
-			TEXT("Duplicate V4 DirectorWorldAccepted gate rejected for world %s intent=%s."),
+			TEXT("Duplicate V6 DirectorWorldAccepted gate rejected for world %s intent=%s."),
 			*World->GetName(),
 			*Intent.IntentHash);
 		return;
@@ -546,7 +653,7 @@ void UEFProceduralPCGSubsystem::HandleDirectorWorldAccepted(
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("CALYSTO_V4_DIRECTOR_GATE_ACCEPTED world=%s epoch=%lld intent=%s"),
+		TEXT("CALYSTO_V6_DIRECTOR_GATE_ACCEPTED world=%s epoch=%lld intent=%s"),
 		*World->GetName(),
 		RunEpoch,
 		*Intent.IntentHash);
@@ -576,12 +683,17 @@ void UEFProceduralPCGSubsystem::HandleWorldCleanup(UWorld* World, bool bSessionE
 
 	if (FDungeonRuntimeState* RuntimeState = RuntimeStates.Find(WorldKey))
 	{
-		if (RuntimeState->DungeonPreloadHandle.IsValid()
-			&& !RuntimeState->DungeonPreloadHandle->HasLoadCompleted())
-		{
-			RuntimeState->DungeonPreloadHandle->CancelHandle();
-		}
 		World->GetTimerManager().ClearTimer(RuntimeState->DungeonReadinessPollHandle);
+		RollbackMaterializedPopulationV6(World, *RuntimeState);
+		if (AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState->DecalPoolOwnerV6.Get())
+		{
+			if (PoolOwner->DecalPool)
+			{
+				PoolOwner->DecalPool->ReleaseAllDecals();
+			}
+			PoolOwner->Destroy();
+			RuntimeState->DecalPoolOwnerV6.Reset();
+		}
 		if (AActor* DungeonActor = RuntimeState->DungeonActor.Get())
 		{
 			TArray<UPCGComponent*> PCGComponents;
@@ -630,6 +742,10 @@ void UEFProceduralPCGSubsystem::BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr
 			*World->GetName());
 		return;
 	}
+	if (RuntimeState.bPCGGenerationTriggered || RuntimeState.bPCGGenerationFinished)
+	{
+		return;
+	}
 	World->GetTimerManager().ClearTimer(RuntimeState.DungeonReadinessPollHandle);
 	RuntimeState.DungeonReadinessPollHandle.Invalidate();
 	SetFloorDoorsEnabled(World, false);
@@ -645,7 +761,23 @@ void UEFProceduralPCGSubsystem::BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr
 		RuntimeState.bPCGGenerationFinished = false;
 		RuntimeState.bPCGGenerationFailed = true;
 		RuntimeState.bDungeonReady = false;
+		RuntimeState.bRoomManifestReady = false;
+		RuntimeState.bPostTopologyAssetsReady = false;
+		RuntimeState.bFloorVisualAssetsReady = false;
+		RuntimeState.bVisualsReady = false;
+		RuntimeState.bDecalsRealized = false;
+		RuntimeState.RealizedDecalCount = 0;
+		RuntimeState.GenerationGateV6.Reset();
 		RuntimeState.PendingPCGComponents.Reset();
+		if (AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState.DecalPoolOwnerV6.Get())
+		{
+			if (PoolOwner->DecalPool)
+			{
+				PoolOwner->DecalPool->ReleaseAllDecals();
+			}
+			PoolOwner->Destroy();
+			RuntimeState.DecalPoolOwnerV6.Reset();
+		}
 		if (!RuntimeState.bFailureReported)
 		{
 			RuntimeState.bFailureReported = true;
@@ -694,182 +826,114 @@ void UEFProceduralPCGSubsystem::BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr
 		return;
 	}
 
-	UClass* DungeonClass = DungeonClassPtr.Get();
-	if (!RuntimeState.DungeonPreloadHandle.IsValid())
-	{
-		TArray<FSoftObjectPath> AssetsToPreload;
-		AssetsToPreload.Reserve(Settings->DungeonBootstrapPreloadAssets.Num() + 10);
-		auto AddSoftReference = [&AssetsToPreload](const auto& SoftReference)
-		{
-			const FSoftObjectPath AssetPath = SoftReference.ToSoftObjectPath();
-			if (AssetPath.IsValid())
-			{
-				AssetsToPreload.AddUnique(AssetPath);
-			}
-		};
-
-		AddSoftReference(DungeonClassPtr);
-		AddSoftReference(Settings->GetStartPointActorClassResolved());
-		AddSoftReference(Settings->GetMeleeAIControllerClassResolved());
-		AddSoftReference(Settings->GetRangedAIControllerClassResolved());
-		if (const UEFCalystoDungeonHarnessSettings* HarnessSettings = UEFCalystoDungeonHarnessSettings::Get())
-		{
-			AddSoftReference(HarnessSettings->DirectorPolicy);
-			AddSoftReference(HarnessSettings->DungeonMeshDataAsset);
-			AddSoftReference(HarnessSettings->SpawnerDataAsset);
-			AddSoftReference(HarnessSettings->RoomThemeDataAsset);
-			AddSoftReference(HarnessSettings->DungeonFloorDoorClass);
-			AddSoftReference(HarnessSettings->DungeonFloorDoorMesh);
-			AddSoftReference(HarnessSettings->PopulationAnchorClass);
-		}
-		UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
-			? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
-			: nullptr;
-		if (!DungeonSubsystem)
-		{
-			const FString FailureMessage = TEXT("The V4 Director subsystem disappeared before bootstrap preload.");
-			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
-			ReportTerminalBootstrapFailure(TEXT("V4_DIRECTOR_UNAVAILABLE"), FailureMessage);
-			return;
-		}
-		const FEFCalystoResolvedFloorIntentV4 Intent = DungeonSubsystem->GetResolvedFloorIntent();
-		if (!Intent.bIsValid
-			|| Intent.GeneratorVersion != 4
-			|| Intent.IntentHash.IsEmpty()
-			|| Intent.IntentHash != RuntimeState.DirectorIntentHash)
-		{
-			const FString FailureMessage = FString::Printf(
-				TEXT("Active V4 intent changed before bootstrap preload (accepted=%s active=%s)."),
-				*RuntimeState.DirectorIntentHash,
-				*Intent.IntentHash);
-			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
-			ReportTerminalBootstrapFailure(TEXT("V4_DIRECTOR_INTENT_DRIFT"), FailureMessage);
-			return;
-		}
-		TArray<FSoftObjectPath> SelectedFloorPaths;
-		FString SelectedPathError;
-		if (!UEFCalystoDungeonSubsystem::GatherResolvedFloorAssetPathsV4(
-				Intent, SelectedFloorPaths, SelectedPathError))
-		{
-			const FString FailureMessage = FString::Printf(
-				TEXT("V4 project-owned bootstrap preload contract failed: %s"),
-				*SelectedPathError);
-			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
-			ReportTerminalBootstrapFailure(
-				TEXT("V4_BRIDGE_PRELOAD_CONTRACT_INVALID"),
-				FailureMessage);
-			return;
-		}
-		for (const FSoftObjectPath& SelectedPath : SelectedFloorPaths)
-		{
-			AssetsToPreload.AddUnique(SelectedPath);
-		}
-		for (const FSoftObjectPath& AssetPath : Settings->DungeonBootstrapPreloadAssets)
-		{
-			if (AssetPath.IsValid())
-			{
-				AssetsToPreload.AddUnique(AssetPath);
-			}
-		}
-		AssetsToPreload.Sort([](const FSoftObjectPath& Left, const FSoftObjectPath& Right)
-		{
-			return Left.ToString() < Right.ToString();
-		});
-		RuntimeState.DungeonPreloadPaths = AssetsToPreload;
-		RuntimeState.bDungeonPreloadVerified = false;
-		TArray<FString> PreloadPathStrings;
-		PreloadPathStrings.Reserve(AssetsToPreload.Num());
-		for (const FSoftObjectPath& AssetPath : AssetsToPreload)
-		{
-			PreloadPathStrings.Add(AssetPath.ToString());
-		}
-		UE_LOG(
-			LogEFProceduralPCGRuntime,
-			Log,
-			TEXT("CALYSTO_V4_BOOTSTRAP_PRELOAD_REQUEST world=%s intent=%s count=%d paths=%s"),
-			*World->GetName(),
-			*RuntimeState.DirectorIntentHash,
-			AssetsToPreload.Num(),
-			*FString::Join(PreloadPathStrings, TEXT(";")));
-
-		RuntimeState.DungeonPreloadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
-			AssetsToPreload,
-			FStreamableDelegate::CreateUObject(
-				this,
-				&UEFProceduralPCGSubsystem::HandleDungeonPreloadComplete,
-				WorldPtr,
-				AttemptIndex,
-				RuntimeState.DirectorIntentHash),
-			FStreamableManager::AsyncLoadHighPriority,
-			false,
-			false,
-			TEXT("EFProceduralDungeonBootstrap"));
-
-		if (RuntimeState.DungeonPreloadHandle.IsValid())
-		{
-			UE_LOG(
-				LogEFProceduralPCGRuntime,
-				Log,
-				TEXT("Requested asynchronous dungeon bootstrap preload for %d assets in world %s."),
-				AssetsToPreload.Num(),
-				*World->GetName());
-			return;
-		}
-	}
-
-	if (RuntimeState.DungeonPreloadHandle.IsValid()
-		&& !RuntimeState.DungeonPreloadHandle->HasLoadCompleted())
-	{
-		return;
-	}
 	UEFCalystoDungeonSubsystem* ActiveDungeonSubsystem = World->GetGameInstance()
 		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
-	const FEFCalystoResolvedFloorIntentV4 ActiveIntent = ActiveDungeonSubsystem
-		? ActiveDungeonSubsystem->GetResolvedFloorIntent()
-		: FEFCalystoResolvedFloorIntentV4();
+	const FEFCalystoResolvedFloorIntentV6 ActiveIntent = ActiveDungeonSubsystem
+		? ActiveDungeonSubsystem->GetResolvedFloorIntentV6()
+		: FEFCalystoResolvedFloorIntentV6();
 	if (!ActiveDungeonSubsystem
+		|| !ActiveDungeonSubsystem->IsGenerationBootstrapCurrentV6(
+			RuntimeState.DirectorIntentHash)
 		|| !ActiveIntent.bIsValid
-		|| ActiveIntent.GeneratorVersion != 4
+		|| ActiveIntent.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion
 		|| ActiveIntent.IntentHash != RuntimeState.DirectorIntentHash)
 	{
 		const FString FailureMessage = FString::Printf(
-			TEXT("V4 Director intent token changed while bootstrap assets were loading (accepted=%s active=%s)."),
+			TEXT("V6 Director intent token changed while bootstrap assets were loading (accepted=%s active=%s)."),
 			*RuntimeState.DirectorIntentHash,
 			*ActiveIntent.IntentHash);
 		UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
-		ReportTerminalBootstrapFailure(TEXT("V4_DIRECTOR_INTENT_DRIFT"), FailureMessage);
+		ReportTerminalBootstrapFailure(TEXT("V6_DIRECTOR_INTENT_DRIFT"), FailureMessage);
 		return;
 	}
-	if (!RuntimeState.bDungeonPreloadVerified)
+
+	FString FloorVisualReadinessError;
+	const EEFCalystoLoadPhaseState FloorVisualState =
+		ActiveDungeonSubsystem->GetFloorVisualAssetLoadStateV6(FloorVisualReadinessError);
+	if (FloorVisualState != EEFCalystoLoadPhaseState::Ready)
 	{
-		TArray<FString> MissingPaths;
-		for (const FSoftObjectPath& AssetPath : RuntimeState.DungeonPreloadPaths)
-		{
-			if (!AssetPath.ResolveObject())
-			{
-				MissingPaths.Add(AssetPath.ToString());
-			}
-		}
-		if (!MissingPaths.IsEmpty())
+		if (FloorVisualState == EEFCalystoLoadPhaseState::Failed)
 		{
 			const FString FailureMessage = FString::Printf(
-				TEXT("V4 bootstrap preload completed with unresolved assets: %s"),
-				*FString::Join(MissingPaths, TEXT(";")));
+				TEXT("Calysto V6 Floor Visual loading failed: %s"),
+				*FloorVisualReadinessError);
 			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
-			ReportTerminalBootstrapFailure(TEXT("V4_BOOTSTRAP_PRELOAD_INCOMPLETE"), FailureMessage);
+			ReportTerminalBootstrapFailure(TEXT("V6_FLOOR_VISUAL_LOAD_FAILED"), FailureMessage);
 			return;
 		}
-		RuntimeState.bDungeonPreloadVerified = true;
-		UE_LOG(
-			LogEFProceduralPCGRuntime,
-			Log,
-			TEXT("CALYSTO_V4_BOOTSTRAP_PRELOAD_READY world=%s count=%d"),
-			*World->GetName(),
-			RuntimeState.DungeonPreloadPaths.Num());
-	}
+		if (RuntimeState.bFloorVisualLoadCompletionObserved &&
+			FloorVisualState != EEFCalystoLoadPhaseState::Loading)
+		{
+			const FString FailureMessage = FString::Printf(
+				TEXT("Calysto V6 Floor Visual loading completed in an invalid state: %s"),
+				*FloorVisualReadinessError);
+			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
+			ReportTerminalBootstrapFailure(TEXT("V6_FLOOR_VISUAL_LOAD_INVALID"), FailureMessage);
+			return;
+		}
 
-	DungeonClass = DungeonClassPtr.Get();
+		if (!RuntimeState.bFloorVisualLoadRequested)
+		{
+			RuntimeState.bFloorVisualLoadRequested = true;
+			FString StartError;
+			if (!ActiveDungeonSubsystem->EnsureFloorVisualAssetsV6(
+					FStreamableDelegate::CreateUObject(
+						this,
+						&UEFProceduralPCGSubsystem::HandleFloorVisualAssetsReadyV6,
+						WorldPtr,
+						AttemptIndex,
+						RuntimeState.DirectorIntentHash),
+					StartError))
+			{
+				const FString FailureMessage = FString::Printf(
+					TEXT("Calysto V6 Floor Visual loading could not start: %s"),
+					*StartError);
+				UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
+				ReportTerminalBootstrapFailure(TEXT("V6_FLOOR_VISUAL_LOAD_START_FAILED"), FailureMessage);
+				return;
+			}
+			UE_LOG(
+				LogEFProceduralPCGRuntime,
+				Log,
+				TEXT("CALYSTO_V6_FLOOR_VISUAL_WAIT world=%s floor_plan=%s state=%s"),
+				*World->GetName(),
+				*ActiveDungeonSubsystem->GetResolvedFloorPlanV6().FloorPlanHash,
+				*FloorVisualReadinessError);
+		}
+
+		const double ElapsedSeconds = World->GetTimeSeconds() - RuntimeState.BootstrapStartTimeSeconds;
+		if (ElapsedSeconds >= EFProceduralRuntimePrivate::DungeonReadinessTimeoutSeconds)
+		{
+			const FString FailureMessage = FString::Printf(
+				TEXT("Calysto V6 Floor Visual loading did not become ready within %.1f seconds: %s"),
+				EFProceduralRuntimePrivate::DungeonReadinessTimeoutSeconds,
+				*FloorVisualReadinessError);
+			UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("%s"), *FailureMessage);
+			ReportTerminalBootstrapFailure(TEXT("V6_FLOOR_VISUAL_LOAD_TIMEOUT"), FailureMessage);
+			return;
+		}
+
+		World->GetTimerManager().SetTimer(
+			RuntimeState.DungeonReadinessPollHandle,
+			FTimerDelegate::CreateUObject(
+				this,
+				&UEFProceduralPCGSubsystem::BootstrapDungeon,
+				WorldPtr,
+				AttemptIndex),
+			Settings->DungeonBootstrapRetrySeconds,
+			false);
+		return;
+	}
+	RuntimeState.bFloorVisualAssetsReady = true;
+	UE_LOG(
+		LogEFProceduralPCGRuntime,
+		Log,
+		TEXT("CALYSTO_V6_FLOOR_VISUAL_READY world=%s floor_plan=%s"),
+		*World->GetName(),
+		*ActiveDungeonSubsystem->GetResolvedFloorPlanV6().FloorPlanHash);
+
+	UClass* DungeonClass = DungeonClassPtr.Get();
 	if (!IsValid(DungeonClass))
 	{
 		if (AttemptIndex < Settings->MaxDungeonBootstrapAttempts)
@@ -902,20 +966,21 @@ void UEFProceduralPCGSubsystem::BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr
 		return;
 	}
 
-	TSharedPtr<FStreamableHandle> DungeonPreloadHandle = RuntimeState.DungeonPreloadHandle;
-	TArray<FSoftObjectPath> DungeonPreloadPaths = MoveTemp(RuntimeState.DungeonPreloadPaths);
-	const bool bDungeonPreloadVerified = RuntimeState.bDungeonPreloadVerified;
 	const bool bDirectorWorldAccepted = RuntimeState.bDirectorWorldAccepted;
+	const bool bFloorVisualLoadRequested = RuntimeState.bFloorVisualLoadRequested;
+	const bool bFloorVisualLoadCompletionObserved = RuntimeState.bFloorVisualLoadCompletionObserved;
+	const bool bFloorVisualAssetsReady = RuntimeState.bFloorVisualAssetsReady;
+	const double BootstrapStartTimeSeconds = RuntimeState.BootstrapStartTimeSeconds;
 	FString DirectorIntentHash = MoveTemp(RuntimeState.DirectorIntentHash);
 	RuntimeState = FDungeonRuntimeState();
 	RuntimeState.World = World;
-	RuntimeState.DungeonPreloadHandle = MoveTemp(DungeonPreloadHandle);
-	RuntimeState.DungeonPreloadPaths = MoveTemp(DungeonPreloadPaths);
-	RuntimeState.bDungeonPreloadVerified = bDungeonPreloadVerified;
 	RuntimeState.bDirectorWorldAccepted = bDirectorWorldAccepted;
+	RuntimeState.bFloorVisualLoadRequested = bFloorVisualLoadRequested;
+	RuntimeState.bFloorVisualLoadCompletionObserved = bFloorVisualLoadCompletionObserved;
+	RuntimeState.bFloorVisualAssetsReady = bFloorVisualAssetsReady;
 	RuntimeState.DirectorIntentHash = MoveTemp(DirectorIntentHash);
 	RuntimeState.bBootstrapStarted = true;
-	RuntimeState.BootstrapStartTimeSeconds = World->GetTimeSeconds();
+	RuntimeState.BootstrapStartTimeSeconds = BootstrapStartTimeSeconds;
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -947,7 +1012,7 @@ void UEFProceduralPCGSubsystem::BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr
 	ApplyCalystoHarnessAndGenerate(World, DungeonActor, true);
 }
 
-void UEFProceduralPCGSubsystem::HandleDungeonPreloadComplete(
+void UEFProceduralPCGSubsystem::HandleFloorVisualAssetsReadyV6(
 	TWeakObjectPtr<UWorld> WorldPtr,
 	const int32 AttemptIndex,
 	const FString ExpectedIntentHash)
@@ -960,9 +1025,9 @@ void UEFProceduralPCGSubsystem::HandleDungeonPreloadComplete(
 	UEFCalystoDungeonSubsystem* DungeonSubsystem = WorldPtr->GetGameInstance()
 		? WorldPtr->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
-	const FEFCalystoResolvedFloorIntentV4 ActiveIntent = DungeonSubsystem
-		? DungeonSubsystem->GetResolvedFloorIntent()
-		: FEFCalystoResolvedFloorIntentV4();
+	const FEFCalystoResolvedFloorIntentV6 ActiveIntent = DungeonSubsystem
+		? DungeonSubsystem->GetResolvedFloorIntentV6()
+		: FEFCalystoResolvedFloorIntentV6();
 	if (!RuntimeState
 		|| !RuntimeState->bDirectorWorldAccepted
 		|| RuntimeState->DirectorIntentHash != ExpectedIntentHash
@@ -972,19 +1037,25 @@ void UEFProceduralPCGSubsystem::HandleDungeonPreloadComplete(
 		UE_LOG(
 			LogEFProceduralPCGRuntime,
 			Warning,
-			TEXT("Ignored stale V4 bootstrap preload callback for world %s expected_intent=%s active_intent=%s."),
+			TEXT("Ignored stale Calysto V6 Floor Visual callback for world %s expected_intent=%s active_intent=%s."),
 			*WorldPtr->GetName(),
 			*ExpectedIntentHash,
 			*ActiveIntent.IntentHash);
 		return;
 	}
 
+	RuntimeState->bFloorVisualLoadCompletionObserved = true;
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("Asynchronous dungeon bootstrap preload completed for world %s."),
+		TEXT("Calysto V6 Floor Visual asynchronous phase completed for world %s."),
 		*WorldPtr->GetName());
-	BootstrapDungeon(WorldPtr, AttemptIndex);
+	WorldPtr->GetTimerManager().SetTimerForNextTick(
+		FTimerDelegate::CreateUObject(
+			this,
+			&UEFProceduralPCGSubsystem::BootstrapDungeon,
+			WorldPtr,
+			AttemptIndex));
 }
 
 AActor* UEFProceduralPCGSubsystem::FindDungeonActor(
@@ -1021,6 +1092,664 @@ AActor* UEFProceduralPCGSubsystem::FindDungeonActor(
 	return FirstDungeonActor;
 }
 
+bool UEFProceduralPCGSubsystem::BuildRoomThemeGenerationConfigV6(
+	const FEFCalystoResolvedFloorPlanV6& FloorPlan,
+	const TMap<FName, TObjectPtr<UObject>>& ThemeRoomTypes,
+	const FTransform& DungeonTransform,
+	FEFCalystoRoomThemeGenerationConfigV6& OutConfig,
+	FString& OutError) const
+{
+	OutConfig = FEFCalystoRoomThemeGenerationConfigV6();
+	OutError.Reset();
+	if (FloorPlan.FloorSeed == 0
+		|| FloorPlan.StyleId.IsNone()
+		|| FloorPlan.PolicyHash.Len() != 64
+		|| FloorPlan.FloorPlanHash.Len() != 64
+		|| !FMath::IsFinite(FloorPlan.ThemeRoomChance)
+		|| FloorPlan.ThemeRoomChance < 0.0f
+		|| FloorPlan.ThemeRoomChance > 1.0f
+		|| !FMath::IsFinite(FloorPlan.RoomIdentityQuantizationCm)
+		|| FloorPlan.RoomIdentityQuantizationCm <= 0.0f
+		|| FloorPlan.MaximumRoomRecords <= 0
+		|| FloorPlan.DecalComponentPoolCapacity <= 0
+		|| FloorPlan.DecalComponentPoolCapacity > UEFCalystoDecalPoolComponentV6::HardMaximumDecals
+		|| DungeonTransform.ContainsNaN()
+		|| !DungeonTransform.IsValid())
+	{
+		OutError = TEXT("The active Calysto V6 floor plan is incomplete or invalid at the PCG boundary.");
+		return false;
+	}
+	if (FloorPlan.Themes.Num() != FloorPlan.ThemeAliasProbability.Num()
+		|| FloorPlan.Themes.Num() != FloorPlan.ThemeAliasIndex.Num()
+		|| (FloorPlan.ThemeRoomChance > 0.0f && FloorPlan.Themes.IsEmpty()))
+	{
+		OutError = TEXT("The frozen Calysto V6 Theme alias table does not match its resolved Theme profiles.");
+		return false;
+	}
+
+	OutConfig.GenerationSeed = FloorPlan.FloorSeed;
+	OutConfig.FloorPlanHash = FloorPlan.FloorPlanHash;
+	OutConfig.ThemePresenceChance = FloorPlan.ThemeRoomChance;
+	OutConfig.DungeonTransform = DungeonTransform;
+	OutConfig.RoomIdentityGridCm = FloorPlan.RoomIdentityQuantizationCm;
+	OutConfig.ProtectionToleranceCm = FMath::Max(2.0, FloorPlan.RoomIdentityQuantizationCm * 0.25);
+	// The protected vendor graph exposes Start/End room connectors but no
+	// pre-theme door-point stream. A fixed, fingerprinted AABB halo supplies
+	// deterministic DoorClearance flags; physical door hits are also rejected.
+	OutConfig.DoorClearanceRadiusCm = 200.0;
+	OutConfig.Style.StyleId = FloorPlan.StyleId;
+	OutConfig.Style.FloorMaterial = FloorPlan.StyleMaterials.FloorMaterial;
+	OutConfig.Style.WallMaterial = FloorPlan.StyleMaterials.WallMaterial;
+	OutConfig.Style.RoofMaterial = FloorPlan.StyleMaterials.RoofMaterial;
+	OutConfig.ThemeAliasProbability = FloorPlan.ThemeAliasProbability;
+	OutConfig.ThemeAliasIndex = FloorPlan.ThemeAliasIndex;
+	OutConfig.Themes.Reserve(FloorPlan.Themes.Num());
+	for (const FEFCalystoResolvedThemeProfileV6& ResolvedTheme : FloorPlan.Themes)
+	{
+		FEFCalystoPCGThemeProfileV6& Theme = OutConfig.Themes.AddDefaulted_GetRef();
+		Theme.ThemeId = ResolvedTheme.ThemeId;
+		Theme.SelectionWeight = ResolvedTheme.SelectionWeight;
+		Theme.RoomType = ThemeRoomTypes.FindRef(ResolvedTheme.ThemeId);
+		Theme.ArchitectureHash = ResolvedTheme.ArchitectureHash;
+		Theme.FloorMaterial = ResolvedTheme.FloorMaterialMode == EEFCalystoMaterialResolutionModeV6::Override
+			? ResolvedTheme.EffectiveMaterials.FloorMaterial
+			: TSoftObjectPtr<UMaterialInstance>();
+		Theme.WallMaterial = ResolvedTheme.WallMaterialMode == EEFCalystoMaterialResolutionModeV6::Override
+			? ResolvedTheme.EffectiveMaterials.WallMaterial
+			: TSoftObjectPtr<UMaterialInstance>();
+		Theme.RoofMaterial = ResolvedTheme.RoofMaterialMode == EEFCalystoMaterialResolutionModeV6::Override
+			? ResolvedTheme.EffectiveMaterials.RoofMaterial
+			: TSoftObjectPtr<UMaterialInstance>();
+		Theme.CatalogId = ResolvedTheme.ThemeId;
+	}
+
+	if (!OutConfig.Validate(OutError))
+	{
+		OutConfig = FEFCalystoRoomThemeGenerationConfigV6();
+		return false;
+	}
+	return true;
+}
+
+bool UEFProceduralPCGSubsystem::EnsureDecalPoolV6(
+	UWorld* World,
+	FDungeonRuntimeState& RuntimeState,
+	FString& OutError)
+{
+	OutError.Reset();
+	if (!IsValid(World) || !World->IsGameWorld())
+	{
+		OutError = TEXT("The Calysto V6 decal pool requires a valid game world.");
+		return false;
+	}
+	const UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr;
+	const FEFCalystoResolvedFloorPlanV6 FloorPlan = DungeonSubsystem
+		? DungeonSubsystem->GetResolvedFloorPlanV6()
+		: FEFCalystoResolvedFloorPlanV6();
+	if (FloorPlan.FloorPlanHash.IsEmpty()
+		|| FloorPlan.DecalComponentPoolCapacity <= 0
+		|| FloorPlan.DecalComponentPoolCapacity > UEFCalystoDecalPoolComponentV6::HardMaximumDecals)
+	{
+		OutError = TEXT("The frozen Calysto V6 decal component capacity is invalid.");
+		return false;
+	}
+
+	AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState.DecalPoolOwnerV6.Get();
+	if (!IsValid(PoolOwner))
+	{
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Name = MakeUniqueObjectName(
+			World,
+			AEFCalystoDecalPoolOwnerV6::StaticClass(),
+			TEXT("EFCalystoDecalPoolOwnerV6"));
+		SpawnParameters.ObjectFlags |= RF_Transient;
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		PoolOwner = World->SpawnActor<AEFCalystoDecalPoolOwnerV6>(
+			AEFCalystoDecalPoolOwnerV6::StaticClass(),
+			FTransform::Identity,
+			SpawnParameters);
+		if (!IsValid(PoolOwner))
+		{
+			OutError = TEXT("Calysto V6 could not create its single transient decal pool owner.");
+			return false;
+		}
+		RuntimeState.DecalPoolOwnerV6 = PoolOwner;
+	}
+	if (!PoolOwner->DecalPool
+		|| !PoolOwner->DecalPool->InitializePool(FloorPlan.DecalComponentPoolCapacity))
+	{
+		OutError = FString::Printf(
+			TEXT("Calysto V6 could not initialize its decal component pool to capacity %d."),
+			FloorPlan.DecalComponentPoolCapacity);
+		return false;
+	}
+	RuntimeState.bDecalPoolReady = true;
+	return true;
+}
+
+bool UEFProceduralPCGSubsystem::RealizeDecalsV6(
+	UWorld* World,
+	FDungeonRuntimeState& RuntimeState,
+	FString& OutError)
+{
+	OutError.Reset();
+	UEFCalystoDungeonSubsystem* DungeonSubsystem = IsValid(World) && World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr;
+	AActor* DungeonActor = RuntimeState.DungeonActor.Get();
+	AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState.DecalPoolOwnerV6.Get();
+	if (!DungeonSubsystem || !IsValid(DungeonActor) || !IsValid(PoolOwner)
+		|| !PoolOwner->DecalPool || !RuntimeState.bDecalPoolReady)
+	{
+		OutError = TEXT("Calysto V6 decal realization requires its frozen floor, dungeon actor, and initialized pool.");
+		return false;
+	}
+
+	const FEFCalystoResolvedFloorPlanV6 FloorPlan = DungeonSubsystem->GetResolvedFloorPlanV6();
+	const FEFCalystoRoomManifestV6 Manifest = DungeonSubsystem->GetRoomManifestV6();
+	if (FloorPlan.FloorPlanHash != RuntimeState.V6FloorPlanHash
+		|| Manifest.FloorPlanHash != RuntimeState.V6FloorPlanHash)
+	{
+		OutError = TEXT("Calysto V6 rejected decal realization because the frozen floor or manifest drifted.");
+		return false;
+	}
+
+	TArray<FEFCalystoDecalPlacementCandidateV6> Candidates;
+	if (!FEFCalystoDecalPlacementMathV6::BuildCandidates(FloorPlan, Manifest, Candidates, OutError))
+	{
+		return false;
+	}
+	PoolOwner->DecalPool->ReleaseAllDecals();
+	RuntimeState.RealizedDecalCount = 0;
+	const FTransform DungeonTransform = DungeonActor->GetActorTransform();
+	const FVector DungeonUp = DungeonTransform.TransformVectorNoScale(FVector::UpVector).GetSafeNormal();
+	if (DungeonUp.IsNearlyZero())
+	{
+		OutError = TEXT("Calysto V6 dungeon transform has no valid up axis for decal normal validation.");
+		return false;
+	}
+
+	FCollisionObjectQueryParams ObjectTypes;
+	ObjectTypes.AddObjectTypesToQuery(ECC_WorldStatic);
+	FCollisionQueryParams QueryParams(TEXT("EFCalystoV6DecalTrace"), true);
+	QueryParams.bReturnPhysicalMaterial = false;
+	QueryParams.AddIgnoredActor(PoolOwner);
+	int32 RejectedTraceCount = 0;
+	for (const FEFCalystoDecalPlacementCandidateV6& Candidate : Candidates)
+	{
+		UMaterialInterface* Material = Candidate.Material.Get();
+		UMaterial* BaseMaterial = IsValid(Material) ? Material->GetMaterial() : nullptr;
+		if (!IsValid(Material) || !IsValid(BaseMaterial)
+			|| BaseMaterial->MaterialDomain != MD_DeferredDecal)
+		{
+			PoolOwner->DecalPool->ReleaseAllDecals();
+			OutError = FString::Printf(
+				TEXT("Resident decal material %s is missing or is not a Deferred Decal before room %lld could be realized."),
+				*Candidate.Material.ToSoftObjectPath().ToString(),
+				Candidate.StableRoomId);
+			return false;
+		}
+
+		const FVector TraceStart = DungeonTransform.TransformPosition(Candidate.LocalTraceStart);
+		const FVector TraceEnd = DungeonTransform.TransformPosition(Candidate.LocalTraceEnd);
+		FHitResult Hit;
+		if (!World->LineTraceSingleByObjectType(Hit, TraceStart, TraceEnd, ObjectTypes, QueryParams)
+			|| !Hit.bBlockingHit
+			|| !IsValid(Hit.GetActor())
+			|| !IsValid(Hit.GetComponent()))
+		{
+			++RejectedTraceCount;
+			continue;
+		}
+
+		AActor* HitActor = Hit.GetActor();
+		UPrimitiveComponent* HitComponent = Hit.GetComponent();
+		const bool bGeneratedGeometry = HitActor == DungeonActor
+			|| HitActor->ActorHasTag(PCGHelpers::DefaultPCGActorTag)
+			|| HitComponent->ComponentHasTag(PCGHelpers::DefaultPCGTag);
+		const auto IsDoorToken = [](const UObject* Object)
+		{
+			return IsValid(Object)
+				&& (Object->GetName().Contains(TEXT("Door"), ESearchCase::IgnoreCase)
+					|| Object->GetClass()->GetName().Contains(TEXT("Door"), ESearchCase::IgnoreCase));
+		};
+		if (!bGeneratedGeometry || IsDoorToken(HitActor) || IsDoorToken(HitComponent)
+			|| HitActor->ActorHasTag(TEXT("Door")) || HitComponent->ComponentHasTag(TEXT("Door")))
+		{
+			++RejectedTraceCount;
+			continue;
+		}
+
+		const FVector SurfaceNormal = Hit.ImpactNormal.GetSafeNormal();
+		const double UpDot = FVector::DotProduct(SurfaceNormal, DungeonUp);
+		const bool bNormalAccepted = Candidate.Surface == EEFCalystoPCGDecalSurfaceV6::Floor
+			? UpDot >= 0.65
+			: Candidate.Surface == EEFCalystoPCGDecalSurfaceV6::Roof
+				? UpDot <= -0.65
+				: FMath::Abs(UpDot) <= 0.35;
+		if (SurfaceNormal.IsNearlyZero() || !bNormalAccepted)
+		{
+			++RejectedTraceCount;
+			continue;
+		}
+
+		const FQuat SurfaceRotation = SurfaceNormal.Rotation().Quaternion();
+		const FQuat RollRotation(SurfaceNormal, FMath::DegreesToRadians(Candidate.RollDegrees));
+		FEFCalystoPooledDecalRequestV6 Request;
+		Request.StableDecalId = Candidate.StableDecalId;
+		Request.Surface = Candidate.Surface;
+		Request.Material = Material;
+		Request.WorldTransform = FTransform(
+			RollRotation * SurfaceRotation,
+			Hit.ImpactPoint + SurfaceNormal * 1.0,
+			FVector::OneVector);
+		Request.DecalSize = FVector(
+			FMath::Max(8.0f, Candidate.SizeCm * 0.12f),
+			Candidate.SizeCm,
+			Candidate.SizeCm);
+		Request.FadeStartDistanceCm = Candidate.FadeStartDistanceCm;
+		Request.CullDistanceCm = Candidate.CullDistanceCm;
+		FEFCalystoPooledDecalHandleV6 Handle;
+		if (!PoolOwner->DecalPool->AcquireDecal(Request, Handle))
+		{
+			PoolOwner->DecalPool->ReleaseAllDecals();
+			RuntimeState.RealizedDecalCount = 0;
+			OutError = FString::Printf(
+				TEXT("Calysto V6 decal pool rejected the deterministic request for room %lld."),
+				Candidate.StableRoomId);
+			return false;
+		}
+		++RuntimeState.RealizedDecalCount;
+	}
+	if (PoolOwner->DecalPool->GetActiveDecalCount() != RuntimeState.RealizedDecalCount)
+	{
+		PoolOwner->DecalPool->ReleaseAllDecals();
+		RuntimeState.RealizedDecalCount = 0;
+		OutError = TEXT("Calysto V6 decal pool active cardinality differs from the deterministic realization count.");
+		return false;
+	}
+
+	RuntimeState.bDecalsRealized = true;
+	UE_LOG(
+		LogEFProceduralPCGRuntime,
+		Log,
+		TEXT("CALYSTO_V6_DECALS_REALIZED candidates=%d active=%d trace_rejected=%d floor_plan=%s manifest=%s."),
+		Candidates.Num(),
+		RuntimeState.RealizedDecalCount,
+		RejectedTraceCount,
+		*FloorPlan.FloorPlanHash,
+		*Manifest.ManifestHash);
+	return true;
+}
+
+bool UEFProceduralPCGSubsystem::FreezeRoomManifestFromPCGOutputV6(
+	UWorld* World,
+	UPCGComponent* PCGComponent,
+	FDungeonRuntimeState& RuntimeState,
+	FString& OutError)
+{
+	OutError.Reset();
+	UEFCalystoDungeonSubsystem* DungeonSubsystem = IsValid(World) && World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr;
+	if (!DungeonSubsystem || !IsValid(PCGComponent)
+		|| RuntimeState.ControlledPCGComponent.Get() != PCGComponent)
+	{
+		OutError = TEXT("Calysto V6 cannot freeze room topology from an unowned PCG completion.");
+		return false;
+	}
+	const FEFCalystoResolvedFloorPlanV6 FloorPlan = DungeonSubsystem->GetResolvedFloorPlanV6();
+	if (FloorPlan.FloorPlanHash.IsEmpty()
+		|| FloorPlan.FloorPlanHash != RuntimeState.V6FloorPlanHash
+		|| FloorPlan.StyleId.IsNone()
+		|| !RuntimeState.DungeonActor.IsValid())
+	{
+		OutError = TEXT("Calysto V6 rejected post-PCG topology because the frozen floor plan changed or is unavailable.");
+		return false;
+	}
+
+	struct FObservedRoom
+	{
+		int32 Flags = 0;
+		FName ThemeId = NAME_None;
+		FName StyleId = NAME_None;
+		FSoftObjectPath FloorMaterial;
+		FSoftObjectPath WallMaterial;
+		FSoftObjectPath RoofMaterial;
+		int32 FloorMaterialAuthority = INDEX_NONE;
+		int32 WallMaterialAuthority = INDEX_NONE;
+		int32 RoofMaterialAuthority = INDEX_NONE;
+		TObjectPtr<UObject> VendorRoomType;
+		bool bVendorOverrideFloorMaterial = false;
+		FSoftObjectPath VendorFloorMaterial;
+		bool bVendorOverrideWallMaterial = false;
+		FSoftObjectPath VendorWallMaterial;
+		bool bVendorOverrideRoofMaterial = false;
+		FSoftObjectPath VendorRoofMaterial;
+	};
+	TMap<int64, FObservedRoom> ObservedRooms;
+	TArray<FEFCalystoRoomIdentityInputV6> RoomInputs;
+	const FTransform DungeonTransform = RuntimeState.DungeonActor->GetActorTransform();
+	int32 ContextDataSetCount = 0;
+
+	for (const FPCGTaggedData& TaggedData : PCGComponent->GetGeneratedGraphOutput().TaggedData)
+	{
+		const bool bRoomContexts = TaggedData.Pin == FEFCalystoRoomThemePinsV6::RoomContexts
+			|| TaggedData.Tags.Contains(TEXT("EF.RoomContexts.V6"));
+		if (!bRoomContexts)
+		{
+			continue;
+		}
+		const UPCGBasePointData* PointData = Cast<UPCGBasePointData>(TaggedData.Data);
+		const UPCGMetadata* Metadata = PointData ? PointData->ConstMetadata() : nullptr;
+		if (!PointData || !Metadata)
+		{
+			OutError = TEXT("The Calysto V6 Room Contexts graph output contains non-point data or no metadata.");
+			return false;
+		}
+		++ContextDataSetCount;
+		const FPCGMetadataAttribute<FString>* RoomIdAttribute =
+			Metadata->GetConstTypedAttribute<FString>(FEFCalystoRoomThemeMetadataV6::RoomId);
+		const FPCGMetadataAttribute<int32>* FlagsAttribute =
+			Metadata->GetConstTypedAttribute<int32>(FEFCalystoRoomThemeMetadataV6::RoomFlags);
+		const FPCGMetadataAttribute<FName>* TopologyAttribute =
+			Metadata->GetConstTypedAttribute<FName>(FEFCalystoRoomThemeMetadataV6::TopologyKind);
+		const FPCGMetadataAttribute<int32>* CollisionAttribute =
+			Metadata->GetConstTypedAttribute<int32>(FEFCalystoRoomThemeMetadataV6::CollisionOrdinal);
+		const FPCGMetadataAttribute<FName>* ThemeAttribute =
+			Metadata->GetConstTypedAttribute<FName>(FEFCalystoRoomThemeMetadataV6::ThemeId);
+		const FPCGMetadataAttribute<FName>* StyleAttribute =
+			Metadata->GetConstTypedAttribute<FName>(FEFCalystoRoomThemeMetadataV6::StyleId);
+		const FPCGMetadataAttribute<FSoftObjectPath>* FloorAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::EffectiveFloorMaterial);
+		const FPCGMetadataAttribute<FSoftObjectPath>* WallAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::EffectiveWallMaterial);
+		const FPCGMetadataAttribute<FSoftObjectPath>* RoofAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::EffectiveRoofMaterial);
+		const FPCGMetadataAttribute<int32>* FloorAuthorityAttribute =
+			Metadata->GetConstTypedAttribute<int32>(FEFCalystoRoomThemeMetadataV6::FloorMaterialAuthority);
+		const FPCGMetadataAttribute<int32>* WallAuthorityAttribute =
+			Metadata->GetConstTypedAttribute<int32>(FEFCalystoRoomThemeMetadataV6::WallMaterialAuthority);
+		const FPCGMetadataAttribute<int32>* RoofAuthorityAttribute =
+			Metadata->GetConstTypedAttribute<int32>(FEFCalystoRoomThemeMetadataV6::RoofMaterialAuthority);
+		const FPCGMetadataAttribute<FSoftObjectPath>* VendorRoomTypeAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::VendorRoomType);
+		const FPCGMetadataAttribute<bool>* VendorOverrideFloorAttribute =
+			Metadata->GetConstTypedAttribute<bool>(FEFCalystoRoomThemeMetadataV6::VendorOverrideFloorMaterial);
+		const FPCGMetadataAttribute<FSoftObjectPath>* VendorFloorAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::VendorFloorMaterial);
+		const FPCGMetadataAttribute<bool>* VendorOverrideWallAttribute =
+			Metadata->GetConstTypedAttribute<bool>(FEFCalystoRoomThemeMetadataV6::VendorOverrideWallMaterial);
+		const FPCGMetadataAttribute<FSoftObjectPath>* VendorWallAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::VendorWallMaterial);
+		const FPCGMetadataAttribute<bool>* VendorOverrideRoofAttribute =
+			Metadata->GetConstTypedAttribute<bool>(FEFCalystoRoomThemeMetadataV6::VendorOverrideRoofMaterial);
+		const FPCGMetadataAttribute<FSoftObjectPath>* VendorRoofAttribute =
+			Metadata->GetConstTypedAttribute<FSoftObjectPath>(FEFCalystoRoomThemeMetadataV6::VendorRoofMaterial);
+		if (!RoomIdAttribute || !FlagsAttribute || !TopologyAttribute
+			|| !CollisionAttribute || !ThemeAttribute || !StyleAttribute
+			|| !FloorAttribute || !WallAttribute || !RoofAttribute
+			|| !FloorAuthorityAttribute || !WallAuthorityAttribute || !RoofAuthorityAttribute
+			|| !VendorRoomTypeAttribute
+			|| !VendorOverrideFloorAttribute || !VendorFloorAttribute
+			|| !VendorOverrideWallAttribute || !VendorWallAttribute
+			|| !VendorOverrideRoofAttribute || !VendorRoofAttribute)
+		{
+			OutError = TEXT("The Calysto V6 Room Contexts output is missing one or more identity, Style, Theme, authority, or vendor-material attributes.");
+			return false;
+		}
+
+		const FConstPCGPointValueRanges PointRanges(PointData);
+		for (int32 PointIndex = 0; PointIndex < PointData->GetNumPoints(); ++PointIndex)
+		{
+			const FPCGPoint& Point = PointRanges.GetPoint(PointIndex);
+			const PCGMetadataEntryKey EntryKey = Point.MetadataEntry;
+			int64 ObservedStableRoomId = 0;
+			const FString RoomIdText = RoomIdAttribute->GetValueFromItemKey(EntryKey);
+			if (!LexTryParseString(ObservedStableRoomId, *RoomIdText) || ObservedStableRoomId <= 0)
+			{
+				OutError = FString::Printf(TEXT("Calysto V6 Room Contexts contains invalid Stable Room ID '%s'."), *RoomIdText);
+				return false;
+			}
+
+			const FBox LocalBounds = Point.GetLocalBounds()
+				.TransformBy(Point.Transform)
+				.TransformBy(DungeonTransform.Inverse());
+			FEFCalystoRoomIdentityInputV6 Input;
+			Input.LocalCenter = LocalBounds.GetCenter();
+			Input.Extents = LocalBounds.GetExtent();
+			Input.TopologyKind = TopologyAttribute->GetValueFromItemKey(EntryKey);
+			Input.CollisionOrdinal = CollisionAttribute->GetValueFromItemKey(EntryKey);
+			Input.RoomFlags = FlagsAttribute->GetValueFromItemKey(EntryKey);
+			const int64 RecomputedStableRoomId = FEFCalystoDungeonDirectorMathV6::BuildStableRoomId(
+				FloorPlan.FloorSeed,
+				Input,
+				FloorPlan.RoomIdentityQuantizationCm);
+			if (RecomputedStableRoomId != ObservedStableRoomId
+				|| ObservedRooms.Contains(ObservedStableRoomId))
+			{
+				OutError = FString::Printf(
+					TEXT("Calysto V6 Room Context identity mismatch or duplicate (observed=%lld recomputed=%lld)."),
+					ObservedStableRoomId,
+					RecomputedStableRoomId);
+				return false;
+			}
+			RoomInputs.Add(Input);
+			FObservedRoom& Observed = ObservedRooms.Add(ObservedStableRoomId);
+			Observed.Flags = Input.RoomFlags;
+			Observed.ThemeId = ThemeAttribute->GetValueFromItemKey(EntryKey);
+			Observed.StyleId = StyleAttribute->GetValueFromItemKey(EntryKey);
+			Observed.FloorMaterial = FloorAttribute->GetValueFromItemKey(EntryKey);
+			Observed.WallMaterial = WallAttribute->GetValueFromItemKey(EntryKey);
+			Observed.RoofMaterial = RoofAttribute->GetValueFromItemKey(EntryKey);
+			Observed.FloorMaterialAuthority = FloorAuthorityAttribute->GetValueFromItemKey(EntryKey);
+			Observed.WallMaterialAuthority = WallAuthorityAttribute->GetValueFromItemKey(EntryKey);
+			Observed.RoofMaterialAuthority = RoofAuthorityAttribute->GetValueFromItemKey(EntryKey);
+			Observed.VendorRoomType = VendorRoomTypeAttribute->GetValueFromItemKey(EntryKey).ResolveObject();
+			Observed.bVendorOverrideFloorMaterial = VendorOverrideFloorAttribute->GetValueFromItemKey(EntryKey);
+			Observed.VendorFloorMaterial = VendorFloorAttribute->GetValueFromItemKey(EntryKey);
+			Observed.bVendorOverrideWallMaterial = VendorOverrideWallAttribute->GetValueFromItemKey(EntryKey);
+			Observed.VendorWallMaterial = VendorWallAttribute->GetValueFromItemKey(EntryKey);
+			Observed.bVendorOverrideRoofMaterial = VendorOverrideRoofAttribute->GetValueFromItemKey(EntryKey);
+			Observed.VendorRoofMaterial = VendorRoofAttribute->GetValueFromItemKey(EntryKey);
+		}
+	}
+
+	if (ContextDataSetCount <= 0 || RoomInputs.IsEmpty()
+		|| RoomInputs.Num() > FloorPlan.MaximumRoomRecords)
+	{
+		OutError = FString::Printf(
+			TEXT("Calysto V6 expected 1..%d Room Context records, found %d across %d data sets."),
+			FloorPlan.MaximumRoomRecords,
+			RoomInputs.Num(),
+			ContextDataSetCount);
+		return false;
+	}
+
+	FEFCalystoRoomManifestV6 FrozenManifest;
+	if (!DungeonSubsystem->BuildAndFreezeRoomManifestV6(RoomInputs, FrozenManifest, OutError))
+	{
+		return false;
+	}
+	if (FrozenManifest.FloorPlanHash != FloorPlan.FloorPlanHash
+		|| FrozenManifest.FloorPlanHash != RuntimeState.V6FloorPlanHash
+		|| FrozenManifest.StyleId != FloorPlan.StyleId)
+	{
+		OutError = FString::Printf(
+			TEXT("Calysto V6 authoritative manifest belongs to a different floor plan (manifest=%s active=%s runtime=%s)."),
+			*FrozenManifest.FloorPlanHash,
+			*FloorPlan.FloorPlanHash,
+			*RuntimeState.V6FloorPlanHash);
+		return false;
+	}
+	if (FrozenManifest.Rooms.Num() != ObservedRooms.Num())
+	{
+		OutError = TEXT("Calysto V6 authoritative manifest cardinality differs from the PCG Room Context output.");
+		return false;
+	}
+	TMap<FName, const FEFCalystoResolvedThemeProfileV6*> ThemesById;
+	for (const FEFCalystoResolvedThemeProfileV6& Theme : FloorPlan.Themes)
+	{
+		if (Theme.ThemeId.IsNone() || Theme.ThemeId == UEFCalystoDungeonDirectorPolicyV6Asset::NoThemeId
+			|| !IsValid(RuntimeState.ThemeRoomTypes.FindRef(Theme.ThemeId)) || ThemesById.Contains(Theme.ThemeId))
+		{
+			OutError = TEXT("Calysto V6 cannot verify PCG material metadata against an invalid or duplicate frozen Theme profile.");
+			return false;
+		}
+		ThemesById.Add(Theme.ThemeId, &Theme);
+	}
+	for (const FEFCalystoRoomContextV6& Context : FrozenManifest.Rooms)
+	{
+		const FObservedRoom* Observed = ObservedRooms.Find(Context.StableRoomId);
+		if (!Observed
+			|| Observed->Flags != Context.RoomFlags
+			|| Observed->ThemeId != Context.ThemeId
+			|| Observed->StyleId != Context.StyleId
+			|| Context.StyleId != FrozenManifest.StyleId
+			|| Observed->FloorMaterial != Context.EffectiveMaterials.FloorMaterial.ToSoftObjectPath()
+			|| Observed->WallMaterial != Context.EffectiveMaterials.WallMaterial.ToSoftObjectPath()
+			|| Observed->RoofMaterial != Context.EffectiveMaterials.RoofMaterial.ToSoftObjectPath())
+		{
+			OutError = FString::Printf(
+				TEXT("Calysto V6 PCG metadata disagrees with the authoritative frozen manifest for room %lld."),
+				Context.StableRoomId);
+			return false;
+		}
+
+		const bool bObservedThemed = Observed->ThemeId != UEFCalystoDungeonDirectorPolicyV6Asset::NoThemeId;
+		const FEFCalystoResolvedThemeProfileV6* ExpectedTheme = Context.bIsThemed
+			? ThemesById.FindRef(Context.ThemeId)
+			: nullptr;
+		const TObjectPtr<UObject> ExpectedRoomType = Context.bIsThemed
+			? RuntimeState.ThemeRoomTypes.FindRef(Context.ThemeId) : nullptr;
+		if (bObservedThemed != Context.bIsThemed
+			|| (Context.bIsThemed && !ExpectedTheme)
+			|| (!Context.bIsThemed
+				&& Context.ThemeId != UEFCalystoDungeonDirectorPolicyV6Asset::NoThemeId)
+			|| Observed->VendorRoomType != ExpectedRoomType)
+		{
+			OutError = FString::Printf(
+				TEXT("Calysto V6 PCG Theme/RoomType semantics disagree with the authoritative manifest for room %lld."),
+				Context.StableRoomId);
+			return false;
+		}
+
+		const auto VerifySurfaceContract = [&OutError, &Context](
+			const TCHAR* SurfaceLabel,
+			const int32 ObservedAuthority,
+			const bool bObservedVendorOverride,
+			const FSoftObjectPath& ObservedVendorMaterial,
+			const EEFCalystoMaterialResolutionModeV6 ExpectedMode,
+			const FSoftObjectPath& ExpectedEffectiveMaterial)
+		{
+			const bool bExpectedVendorOverride = Context.bIsThemed
+				&& ExpectedMode == EEFCalystoMaterialResolutionModeV6::Override;
+			const EEFCalystoMaterialAuthorityV6 ExpectedAuthority = bExpectedVendorOverride
+				? EEFCalystoMaterialAuthorityV6::RoomTheme
+				: EEFCalystoMaterialAuthorityV6::Style;
+			const FSoftObjectPath ExpectedVendorMaterial = bExpectedVendorOverride
+				? ExpectedEffectiveMaterial
+				: FSoftObjectPath();
+			if (ObservedAuthority != static_cast<int32>(ExpectedAuthority)
+				|| bObservedVendorOverride != bExpectedVendorOverride
+				|| ObservedVendorMaterial != ExpectedVendorMaterial)
+			{
+				OutError = FString::Printf(
+					TEXT("Calysto V6 PCG %s authority/vendor override semantics disagree with the authoritative manifest for room %lld."),
+					SurfaceLabel,
+					Context.StableRoomId);
+				return false;
+			}
+			return true;
+		};
+		const EEFCalystoMaterialResolutionModeV6 FloorMode = ExpectedTheme
+			? ExpectedTheme->FloorMaterialMode
+			: EEFCalystoMaterialResolutionModeV6::InheritStyle;
+		const EEFCalystoMaterialResolutionModeV6 WallMode = ExpectedTheme
+			? ExpectedTheme->WallMaterialMode
+			: EEFCalystoMaterialResolutionModeV6::InheritStyle;
+		const EEFCalystoMaterialResolutionModeV6 RoofMode = ExpectedTheme
+			? ExpectedTheme->RoofMaterialMode
+			: EEFCalystoMaterialResolutionModeV6::InheritStyle;
+		if (!VerifySurfaceContract(
+				TEXT("Floor"),
+				Observed->FloorMaterialAuthority,
+				Observed->bVendorOverrideFloorMaterial,
+				Observed->VendorFloorMaterial,
+				FloorMode,
+				Context.EffectiveMaterials.FloorMaterial.ToSoftObjectPath())
+			|| !VerifySurfaceContract(
+				TEXT("Wall"),
+				Observed->WallMaterialAuthority,
+				Observed->bVendorOverrideWallMaterial,
+				Observed->VendorWallMaterial,
+				WallMode,
+				Context.EffectiveMaterials.WallMaterial.ToSoftObjectPath())
+			|| !VerifySurfaceContract(
+				TEXT("Roof"),
+				Observed->RoofMaterialAuthority,
+				Observed->bVendorOverrideRoofMaterial,
+				Observed->VendorRoofMaterial,
+				RoofMode,
+				Context.EffectiveMaterials.RoofMaterial.ToSoftObjectPath()))
+		{
+			return false;
+		}
+	}
+
+	const FEFCalystoPopulationPlanV6& PopulationPlan = DungeonSubsystem->GetPopulationPlanV6();
+	if (PopulationPlan.PopulationHash.IsEmpty()
+		|| PopulationPlan.RoomManifestHash != FrozenManifest.ManifestHash
+		|| PopulationPlan.FloorPlanHash != FloorPlan.FloorPlanHash)
+	{
+		OutError = TEXT("Calysto V6 DungeonSubsystem did not expose a population plan bound to the frozen room manifest.");
+		return false;
+	}
+	TArray<FSoftObjectPath> PopulationPreloadPaths;
+	if (!FEFCalystoPopulationMaterializerV6::GatherRequiredPreloadPaths(
+			PopulationPlan,
+			PopulationPreloadPaths,
+			OutError))
+	{
+		return false;
+	}
+	if (!DungeonSubsystem->BeginPostTopologyContentLoadV6(
+			PopulationPreloadPaths,
+			OutError))
+	{
+		return false;
+	}
+	if (RuntimeState.bPopulationPlanReady
+		&& RuntimeState.PopulationPlanV6.PopulationHash != PopulationPlan.PopulationHash)
+	{
+		OutError = TEXT("Calysto V6 rejected a second, different immutable population plan for this floor.");
+		return false;
+	}
+	RuntimeState.PopulationPlanV6 = PopulationPlan;
+	RuntimeState.V6PopulationMaterializationHash.Reset();
+	RuntimeState.bPopulationPlanReady = true;
+	RuntimeState.bPostTopologyLoadRequested = true;
+
+	RuntimeState.bRoomManifestReady = true;
+	UE_LOG(
+		LogEFProceduralPCGRuntime,
+		Log,
+		TEXT("CALYSTO_V6_PCG_MANIFEST_VERIFIED rooms=%d eligible=%d themed=%d data_sets=%d style=%s hash=%s population=%s actors=%d chest_contents=%d preload_paths=%d."),
+		FrozenManifest.Rooms.Num(),
+		FrozenManifest.EligibleRoomCount,
+		FrozenManifest.ThemedRoomCount,
+		ContextDataSetCount,
+		*FrozenManifest.StyleId.ToString(),
+		*FrozenManifest.ManifestHash,
+		*RuntimeState.PopulationPlanV6.PopulationHash,
+		RuntimeState.PopulationPlanV6.ActorDecisionCount,
+		RuntimeState.PopulationPlanV6.ChestContentDecisionCount,
+		PopulationPreloadPaths.Num());
+	return true;
+}
+
 bool UEFProceduralPCGSubsystem::ApplyCalystoHarnessAndGenerate(
 	UWorld* World,
 	AActor* DungeonActor,
@@ -1037,11 +1766,42 @@ bool UEFProceduralPCGSubsystem::ApplyCalystoHarnessAndGenerate(
 		RuntimeState.World = World;
 		RuntimeState.DungeonActor = DungeonActor;
 		RuntimeState.bBootstrapStarted = true;
-		RuntimeState.bPCGGenerationTriggered = false;
-		RuntimeState.bPCGGenerationFinished = false;
-		RuntimeState.bPCGGenerationFailed = true;
-		RuntimeState.bDungeonReady = false;
-		RuntimeState.PendingPCGComponents.Reset();
+		World->GetTimerManager().ClearTimer(RuntimeState.DungeonReadinessPollHandle);
+		RuntimeState.DungeonReadinessPollHandle.Invalidate();
+
+		// A GenerateLocal call can complete (and broadcast) before the engine returns
+		// its task id. Tear down every project-owned side effect before resetting the
+		// bookkeeping so an invalid id or synchronous callback failure cannot leave a
+		// half-accepted manifest, population, decal, delegate, or watchdog behind.
+		if (RuntimeState.bPopulationMaterializationStarted
+			|| !RuntimeState.V6PopulationMaterializationHash.IsEmpty())
+		{
+			RollbackMaterializedPopulationV6(World, RuntimeState);
+		}
+		if (AEFCalystoDecalPoolOwnerV6* PoolOwner = RuntimeState.DecalPoolOwnerV6.Get())
+		{
+			if (PoolOwner->DecalPool)
+			{
+				PoolOwner->DecalPool->ReleaseAllDecals();
+			}
+			PoolOwner->Destroy();
+			RuntimeState.DecalPoolOwnerV6.Reset();
+		}
+		if (UPCGComponent* ControlledPCG = RuntimeState.ControlledPCGComponent.Get())
+		{
+			ControlledPCG->OnPCGGraphGeneratedDelegate.RemoveAll(this);
+			ControlledPCG->OnPCGGraphCancelledDelegate.RemoveAll(this);
+			ControlledPCG->OnPCGGraphCleanedDelegate.RemoveAll(this);
+			ControlledPCG->CancelGeneration();
+			ControlledPCG->CleanupLocalImmediate(true, true);
+		}
+		if (ANavMeshBoundsVolume* NavBounds = RuntimeState.NavBoundsVolume.Get())
+		{
+			NavBounds->Destroy();
+		}
+		UNavigationSystemV1::UnregisterNavigationInvoker(*DungeonActor);
+		RollbackGenerationLaunchStateV6(RuntimeState);
+		SetFloorDoorsEnabled(World, false);
 		UE_LOG(
 			LogEFProceduralPCGRuntime,
 			Error,
@@ -1091,7 +1851,7 @@ bool UEFProceduralPCGSubsystem::ApplyCalystoHarnessAndGenerate(
 	}
 
 	UPCGComponent* RuntimePCG = RuntimePCGComponents[0];
-	const UPCGGraph* RuntimeGraph = RuntimePCG->GetGraph();
+	UPCGGraph* RuntimeGraph = RuntimePCG->GetGraph();
 	static const FString ExpectedGraphPath =
 		TEXT("/Game/Calysto/Dungeon/PCG/PCG_MassiveDungeonMaster.PCG_MassiveDungeonMaster");
 	if (!IsValid(RuntimeGraph) || RuntimeGraph->GetPathName() != ExpectedGraphPath)
@@ -1129,28 +1889,47 @@ bool UEFProceduralPCGSubsystem::ApplyCalystoHarnessAndGenerate(
 		return FailClosed(TEXT("GetPiecesShape unexpectedly started or reconfigured runtime PCG generation."));
 	}
 
-	const FEFCalystoPCGCookedCompatibilityResult CookedCompatibility =
-		FEFCalystoPCGCookedCompatibility::TryBuild(RuntimePCG->GetGraph(), DungeonActor);
-	if (!CookedCompatibility.bApplied || !IsValid(CookedCompatibility.RuntimeGraph))
+	UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr;
+	const FEFCalystoResolvedFloorPlanV6 FloorPlan = DungeonSubsystem
+		? DungeonSubsystem->GetResolvedFloorPlanV6()
+		: FEFCalystoResolvedFloorPlanV6();
+	FEFCalystoRoomThemeGenerationConfigV6 ThemeConfig;
+	FString V6Error;
+	if (!DungeonSubsystem
+		|| !BuildRoomThemeGenerationConfigV6(
+			FloorPlan,
+			AdapterResult.ThemeRoomTypes,
+			DungeonActor->GetActorTransform(),
+			ThemeConfig,
+			V6Error))
 	{
-		return FailClosed(CookedCompatibility.FailureReason.IsEmpty()
-			? TEXT("failed to resolve the cooked-safe transient Calysto graph chain.")
-			: CookedCompatibility.FailureReason);
+		return FailClosed(V6Error.IsEmpty()
+			? TEXT("the immutable Calysto V6 floor plan is unavailable at the PCG boundary.")
+			: V6Error);
 	}
-	if (CookedCompatibility.RuntimeGraph != RuntimeGraph)
+	const FEFCalystoPCGRuntimeGraphResultV6 V6GraphResult =
+		FEFCalystoPCGRuntimeGraphBuilderV6::TryBuild(
+			RuntimeGraph,
+			DungeonActor,
+			ThemeConfig);
+	if (!V6GraphResult.bBuilt || !IsValid(V6GraphResult.RuntimeGraph))
 	{
-		// SetGraphLocal refreshes and can implicitly regenerate an already-generated
-		// component, so the terminal/task guards above are part of the single-request contract.
-		RuntimePCG->SetGraphLocal(CookedCompatibility.RuntimeGraph);
+		return FailClosed(V6GraphResult.FailureReason.IsEmpty()
+			? TEXT("failed to compose the authoritative transient Calysto V6 graph.")
+			: V6GraphResult.FailureReason);
 	}
-	if (RuntimePCG->bGenerated
-		|| RuntimePCG->IsGenerating()
-		|| RuntimePCG->IsCleaningUp()
-		|| RuntimePCG->GetGenerationTaskId() != InvalidPCGTaskId
-		|| RuntimePCG->GetGraph() != CookedCompatibility.RuntimeGraph
-		|| RuntimePCG->GenerationTrigger != EPCGComponentGenerationTrigger::GenerateOnDemand)
+	TSharedPtr<FEFCalystoPCGSingleGenerationGateV6> GenerationGate =
+		FEFCalystoPCGSingleGenerationGateV6::CreateAndPrepare(
+			RuntimePCG,
+			V6GraphResult.RuntimeGraph,
+			V6Error);
+	if (!GenerationGate.IsValid())
 	{
-		return FailClosed(TEXT("transient cooked compatibility unexpectedly started or misconfigured runtime PCG generation."));
+		return FailClosed(V6Error.IsEmpty()
+			? TEXT("failed to create the Calysto V6 one-shot generation gate.")
+			: V6Error);
 	}
 
 	// Bind first so even a synchronous completion cannot be missed. Then seed and issue
@@ -1161,34 +1940,53 @@ bool UEFProceduralPCGSubsystem::ApplyCalystoHarnessAndGenerate(
 	{
 		return FailClosed(TEXT("failed to bind the exact runtime PCG component before generation."));
 	}
+	RuntimeState.GenerationGateV6 = GenerationGate;
+	RuntimeState.V6FloorPlanHash = FloorPlan.FloorPlanHash;
+	RuntimeState.ThemeRoomTypes = AdapterResult.ThemeRoomTypes;
+	RuntimeState.ThemeArchitectureLeases = AdapterResult.RuntimeStrongReferences;
+	RuntimeState.V6GraphConfigurationFingerprint = V6GraphResult.ConfigurationFingerprint;
+	if (!EnsureDecalPoolV6(World, RuntimeState, V6Error))
+	{
+		return FailClosed(V6Error);
+	}
 
 	if (!AdapterResult.bGetPiecesShapeInvoked)
 	{
 		return FailClosed(TEXT("adapter did not invoke the validated GetPiecesShape boundary."));
 	}
 	RuntimePCG->Seed = AdapterResult.PCGSeed;
-	++RuntimeState.GenerateLocalRequestCount;
-	const FPCGTaskId GenerationTaskId = RuntimePCG->GenerateLocalGetTaskId(
-		EPCGComponentGenerationTrigger::GenerateOnDemand,
-		true,
-		PCGHiGenGrid::UninitializedGridSize());
+	if (!ArmGenerateLocalRequestV6(RuntimeState, V6Error))
+	{
+		return FailClosed(V6Error.IsEmpty()
+			? TEXT("The project-owned readiness trace could not arm the one controlled GenerateLocal request.")
+			: V6Error);
+	}
+
+	// GenerateLocal may synchronously broadcast completion. GenerateLocal is already
+	// the first readiness milestone, so that callback can now append PCGComplete
+	// without observing a transiently invalid trace.
+	const FPCGTaskId GenerationTaskId = GenerationGate->GenerateOnce(V6Error, true);
 	RuntimeState.ControlledGenerationTaskId = GenerationTaskId;
 	if (GenerationTaskId == InvalidPCGTaskId)
 	{
-		return FailClosed(TEXT("PCG rejected the one controlled GenerateLocal request before scheduling a task."));
+		return FailClosed(V6Error.IsEmpty()
+			? TEXT("PCG rejected the one controlled V6 GenerateLocal request before scheduling a task.")
+			: V6Error);
 	}
-	if (!RecordReadinessMilestone(RuntimeState, TEXT("GenerateLocal")))
+	if (RuntimeState.bPCGGenerationFailed || RuntimeState.bRuntimeReadinessFailed)
 	{
-		return FailClosed(TEXT("The project-owned readiness trace rejected the GenerateLocal milestone."));
+		return FailClosed(TEXT("PCG completed synchronously but the authoritative completion callback failed closed."));
 	}
 	RuntimeState.DungeonReadinessPollStartTimeSeconds = World->GetTimeSeconds();
 	ScheduleDungeonReadinessPoll(World, RuntimeState);
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("Calysto V4 adapter requested GenerateLocal exactly once for %s with PCG seed %d and task %llu."),
+		TEXT("Calysto V6 requested GenerateLocal exactly once for %s with topology seed %d, floor plan %s, graph config %s, and task %llu."),
 		*DungeonActor->GetName(),
 		AdapterResult.PCGSeed,
+		*FloorPlan.FloorPlanHash,
+		*V6GraphResult.ConfigurationFingerprint,
 		static_cast<unsigned long long>(GenerationTaskId));
 	RefreshDungeonRuntimeState(World, RuntimeState);
 	return true;
@@ -1208,6 +2006,11 @@ void UEFProceduralPCGSubsystem::TrackDungeonActor(
 	RuntimeState.World = World;
 	RuntimeState.DungeonActor = DungeonActor;
 	RuntimeState.ControlledPCGComponent = ControlledPCGComponent;
+	RuntimeState.GenerationGateV6.Reset();
+	RuntimeState.V6FloorPlanHash.Reset();
+	RuntimeState.V6GraphConfigurationFingerprint.Reset();
+	RuntimeState.PopulationPlanV6 = FEFCalystoPopulationPlanV6();
+	RuntimeState.V6PopulationMaterializationHash.Reset();
 	RuntimeState.bBootstrapStarted = true;
 	if (RuntimeState.BootstrapStartTimeSeconds <= 0.0)
 	{
@@ -1225,6 +2028,14 @@ void UEFProceduralPCGSubsystem::TrackDungeonActor(
 	RuntimeState.bTopologyRepairApplied = false;
 	RuntimeState.bTopologyRepairAwaitingNavRebuild = false;
 	RuntimeState.bTopologyReady = false;
+	RuntimeState.bRoomManifestReady = false;
+	RuntimeState.bPopulationPlanReady = false;
+	RuntimeState.bPostTopologyLoadRequested = false;
+	RuntimeState.bPostTopologyAssetsReady = false;
+	RuntimeState.bVisualsReady = false;
+	RuntimeState.bDecalPoolReady = false;
+	RuntimeState.bDecalsRealized = false;
+	RuntimeState.RealizedDecalCount = 0;
 	RuntimeState.TopologyRepairApproachLocation = FVector::ZeroVector;
 	RuntimeState.bSpawnedPawnsRevalidatedAfterNav = false;
 	RuntimeState.bPopulationMaterializationStarted = false;
@@ -1289,12 +2100,14 @@ UEFProceduralPCGSubsystem::FDungeonRuntimeState* UEFProceduralPCGSubsystem::Find
 
 bool UEFProceduralPCGSubsystem::RecordReadinessMilestone(
 	FDungeonRuntimeState& RuntimeState,
-	const FName Milestone) const
+	const FName Milestone)
 {
 	static const FName ExpectedTrace[] =
 	{
 		TEXT("GenerateLocal"),
 		TEXT("PCGComplete"),
+		TEXT("ManifestReady"),
+		TEXT("VisualsReady"),
 		TEXT("NavigationPathReady"),
 		TEXT("EnemyLevelsReady"),
 		TEXT("PopulationRealized"),
@@ -1311,12 +2124,93 @@ bool UEFProceduralPCGSubsystem::RecordReadinessMilestone(
 	return true;
 }
 
+bool UEFProceduralPCGSubsystem::ArmGenerateLocalRequestV6(
+	FDungeonRuntimeState& RuntimeState,
+	FString& OutError)
+{
+	OutError.Reset();
+	if (RuntimeState.GenerateLocalRequestCount != 0)
+	{
+		OutError = FString::Printf(
+			TEXT("GenerateLocal was already requested %d time(s); the V6 one-shot launch cannot be armed again."),
+			RuntimeState.GenerateLocalRequestCount);
+		return false;
+	}
+	if (!RecordReadinessMilestone(RuntimeState, TEXT("GenerateLocal")))
+	{
+		OutError = TEXT("The project-owned readiness trace rejected GenerateLocal as its first milestone.");
+		return false;
+	}
+
+	// Count the attempt before entering PCG. A synchronous completion callback may
+	// execute inside GenerateLocalGetTaskId, and a rejected task must remain consumed
+	// so no recovery path can issue a second request in the same world.
+	++RuntimeState.GenerateLocalRequestCount;
+	return true;
+}
+
+void UEFProceduralPCGSubsystem::RollbackGenerationLaunchStateV6(
+	FDungeonRuntimeState& RuntimeState)
+{
+	RuntimeState.GenerationGateV6.Reset();
+	RuntimeState.ControlledPCGComponent.Reset();
+	RuntimeState.NavBoundsVolume.Reset();
+	RuntimeState.DecalPoolOwnerV6.Reset();
+	RuntimeState.SpawnedPawns.Reset();
+	RuntimeState.PendingPCGComponents.Reset();
+	RuntimeState.ReadinessTrace.Reset();
+	RuntimeState.V6FloorPlanHash.Reset();
+	RuntimeState.V6GraphConfigurationFingerprint.Reset();
+	RuntimeState.PopulationPlanV6 = FEFCalystoPopulationPlanV6();
+	RuntimeState.V6PopulationMaterializationHash.Reset();
+	RuntimeState.TopologyRepairApproachLocation = FVector::ZeroVector;
+	RuntimeState.bPCGGenerationTriggered = false;
+	RuntimeState.bPCGGenerationFinished = false;
+	RuntimeState.bPCGGenerationFailed = true;
+	RuntimeState.bNavBoundsCreated = false;
+	RuntimeState.bNavigationBuildRequested = false;
+	RuntimeState.bNavigationReady = false;
+	RuntimeState.bTopologyRepairAttempted = false;
+	RuntimeState.bTopologyRepairApplied = false;
+	RuntimeState.bTopologyRepairAwaitingNavRebuild = false;
+	RuntimeState.bTopologyReady = false;
+	RuntimeState.bRoomManifestReady = false;
+	RuntimeState.bPopulationPlanReady = false;
+	RuntimeState.bPostTopologyLoadRequested = false;
+	RuntimeState.bPostTopologyAssetsReady = false;
+	RuntimeState.bVisualsReady = false;
+	RuntimeState.bDecalPoolReady = false;
+	RuntimeState.bDecalsRealized = false;
+	RuntimeState.RealizedDecalCount = 0;
+	RuntimeState.bSpawnedPawnsRevalidatedAfterNav = false;
+	RuntimeState.bPopulationMaterializationStarted = false;
+	RuntimeState.bPopulationReady = false;
+	RuntimeState.bCompanionRosterReady = false;
+	RuntimeState.bDungeonReady = false;
+	RuntimeState.bFloorReadyNotified = false;
+	RuntimeState.ControlledGenerationTaskId = InvalidPCGTaskId;
+	RuntimeState.NavigationPreparationAttempts = 0;
+	RuntimeState.NavigationPathValidationAttempts = 0;
+	RuntimeState.TopologyRepairNavRebuildCount = 0;
+	RuntimeState.DungeonReadinessPollStartTimeSeconds = -1.0;
+	RuntimeState.DungeonReadinessPollHandle.Invalidate();
+}
+
 void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDungeonRuntimeState& RuntimeState)
 {
 	if (!IsValid(World))
 	{
 		return;
 	}
+	ON_SCOPE_EXIT
+	{
+		if ((RuntimeState.bPCGGenerationFailed || RuntimeState.bRuntimeReadinessFailed)
+			&& (RuntimeState.bPopulationMaterializationStarted
+				|| !RuntimeState.V6PopulationMaterializationHash.IsEmpty()))
+		{
+			RollbackMaterializedPopulationV6(World, RuntimeState);
+		}
+	};
 	if (RuntimeState.bPCGGenerationFailed || RuntimeState.bRuntimeReadinessFailed)
 	{
 		RuntimeState.bDungeonReady = false;
@@ -1357,6 +2251,165 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			return;
 		}
 		UE_LOG(LogEFProceduralPCGRuntime, Log, TEXT("PCGComplete world=%s. Preparing runtime navigation."), *World->GetName());
+	}
+	if (RuntimeState.bPCGGenerationFinished && !RuntimeState.bRoomManifestReady)
+	{
+		RuntimeState.bRuntimeReadinessFailed = true;
+		RuntimeState.bDungeonReady = false;
+		SetFloorDoorsEnabled(World, false);
+		if (!RuntimeState.bFailureReported)
+		{
+			RuntimeState.bFailureReported = true;
+			if (UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+				? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+				: nullptr)
+			{
+				DungeonSubsystem->NotifyGenerationFailed(
+					TEXT("V6_ROOM_MANIFEST_MISSING"),
+					TEXT("PCG completed without a verified authoritative V6 room manifest."));
+			}
+		}
+		return;
+	}
+	if (RuntimeState.bPCGGenerationFinished
+		&& RuntimeState.bRoomManifestReady
+		&& !RuntimeState.ReadinessTrace.Contains(TEXT("ManifestReady")))
+	{
+		if (!RecordReadinessMilestone(RuntimeState, TEXT("ManifestReady")))
+		{
+			RuntimeState.bRuntimeReadinessFailed = true;
+			RuntimeState.bDungeonReady = false;
+			SetFloorDoorsEnabled(World, false);
+			return;
+		}
+	}
+	if (RuntimeState.bPCGGenerationFinished
+		&& RuntimeState.bRoomManifestReady
+		&& !RuntimeState.bPostTopologyAssetsReady)
+	{
+		UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+			? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+			: nullptr;
+		FString AssetReadinessError;
+		const EEFCalystoLoadPhaseState AssetState = DungeonSubsystem
+			? DungeonSubsystem->GetPostTopologyAssetLoadStateV6(AssetReadinessError)
+			: EEFCalystoLoadPhaseState::Failed;
+		RuntimeState.bPostTopologyAssetsReady =
+			AssetState == EEFCalystoLoadPhaseState::Ready;
+		if (!DungeonSubsystem && AssetReadinessError.IsEmpty())
+		{
+			AssetReadinessError = TEXT("The Calysto Dungeon subsystem is unavailable while checking post-topology assets.");
+		}
+		if (AssetState == EEFCalystoLoadPhaseState::Failed ||
+			AssetState == EEFCalystoLoadPhaseState::NotStarted)
+		{
+			RuntimeState.bRuntimeReadinessFailed = true;
+			RuntimeState.bDungeonReady = false;
+			SetFloorDoorsEnabled(World, false);
+			if (!RuntimeState.bFailureReported)
+			{
+				RuntimeState.bFailureReported = true;
+				if (DungeonSubsystem)
+				{
+					DungeonSubsystem->NotifyGenerationFailed(
+						TEXT("POST_TOPOLOGY_ASSET_LOAD_FAILED"),
+						AssetReadinessError.IsEmpty()
+							? TEXT("The post-topology asset load failed before floor readiness.")
+							: AssetReadinessError);
+				}
+			}
+			return;
+		}
+	}
+	if (RuntimeState.bPCGGenerationFinished
+		&& RuntimeState.bRoomManifestReady
+		&& !RuntimeState.bFloorVisualAssetsReady)
+	{
+		UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+			? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+			: nullptr;
+		FString FloorVisualReadinessError;
+		const EEFCalystoLoadPhaseState FloorVisualState = DungeonSubsystem
+			? DungeonSubsystem->GetFloorVisualAssetLoadStateV6(FloorVisualReadinessError)
+			: EEFCalystoLoadPhaseState::Failed;
+		RuntimeState.bFloorVisualAssetsReady =
+			FloorVisualState == EEFCalystoLoadPhaseState::Ready;
+		if (!DungeonSubsystem && FloorVisualReadinessError.IsEmpty())
+		{
+			FloorVisualReadinessError = TEXT("The Calysto Dungeon subsystem is unavailable while checking Floor Visual assets.");
+		}
+		if (FloorVisualState == EEFCalystoLoadPhaseState::Failed ||
+			FloorVisualState == EEFCalystoLoadPhaseState::NotStarted)
+		{
+			RuntimeState.bRuntimeReadinessFailed = true;
+			RuntimeState.bDungeonReady = false;
+			SetFloorDoorsEnabled(World, false);
+			if (!RuntimeState.bFailureReported)
+			{
+				RuntimeState.bFailureReported = true;
+				if (DungeonSubsystem)
+				{
+					DungeonSubsystem->NotifyGenerationFailed(
+						TEXT("FLOOR_VISUAL_ASSET_LOAD_FAILED"),
+						FloorVisualReadinessError.IsEmpty()
+							? TEXT("The Floor Visual asset load failed before floor readiness.")
+							: FloorVisualReadinessError);
+				}
+			}
+			return;
+		}
+	}
+	if (RuntimeState.bFloorVisualAssetsReady
+		&& RuntimeState.bPostTopologyAssetsReady
+		&& RuntimeState.bDecalPoolReady
+		&& !RuntimeState.bDecalsRealized)
+	{
+		FString DecalError;
+		if (!RealizeDecalsV6(World, RuntimeState, DecalError))
+		{
+			RuntimeState.bRuntimeReadinessFailed = true;
+			RuntimeState.bDungeonReady = false;
+			SetFloorDoorsEnabled(World, false);
+			if (!RuntimeState.bFailureReported)
+			{
+				RuntimeState.bFailureReported = true;
+				if (UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+					? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+					: nullptr)
+				{
+					DungeonSubsystem->NotifyGenerationFailed(
+						TEXT("V6_DECAL_REALIZATION_FAILED"), DecalError);
+				}
+			}
+			return;
+		}
+	}
+	if (RuntimeState.bFloorVisualAssetsReady
+		&& RuntimeState.bPostTopologyAssetsReady
+		&& RuntimeState.bDecalPoolReady
+		&& RuntimeState.bDecalsRealized
+		&& !RuntimeState.bVisualsReady)
+	{
+		if (!RecordReadinessMilestone(RuntimeState, TEXT("VisualsReady")))
+		{
+			RuntimeState.bRuntimeReadinessFailed = true;
+			RuntimeState.bDungeonReady = false;
+			SetFloorDoorsEnabled(World, false);
+			return;
+		}
+		RuntimeState.bVisualsReady = true;
+		UE_LOG(
+			LogEFProceduralPCGRuntime,
+			Log,
+			TEXT("VisualsReady world=%s floor_plan=%s graph_config=%s decal_pool_capacity=%d active_decals=%d."),
+			*World->GetName(),
+			*RuntimeState.V6FloorPlanHash,
+			*RuntimeState.V6GraphConfigurationFingerprint,
+			RuntimeState.DecalPoolOwnerV6.IsValid()
+				&& RuntimeState.DecalPoolOwnerV6->DecalPool
+				? RuntimeState.DecalPoolOwnerV6->DecalPool->MaximumDecals
+				: 0,
+			RuntimeState.RealizedDecalCount);
 	}
 
 	if (RuntimeState.bPCGGenerationFinished)
@@ -1418,7 +2471,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			UE_LOG(
 				LogEFProceduralPCGRuntime,
 				Error,
-				TEXT("Calysto V4 exposed an invalid configured start-point contract after PCGComplete: count=%d class=%s."),
+				TEXT("Calysto V6 exposed an invalid configured start-point contract after PCGComplete: count=%d class=%s."),
 				StartPointCount,
 				*GetPathNameSafe(StartPointClass));
 			if (!RuntimeState.bFailureReported)
@@ -1433,9 +2486,9 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 						? FName(TEXT("START_POINT_CLASS_INVALID"))
 						: FName(TEXT("START_POINT_CARDINALITY"));
 					const FString FailureMessage = bClassInvalid
-						? FString(TEXT("The configured V4 start-point class was not loaded after PCGComplete."))
+						? FString(TEXT("The configured V6 start-point class was not loaded after PCGComplete."))
 						: FString::Printf(
-							TEXT("Expected at most one configured V4 start point before deterministic repair; found %d."),
+							TEXT("Expected at most one configured V6 start point before deterministic repair; found %d."),
 							StartPointCount);
 					DungeonSubsystem->NotifyGenerationFailed(
 						FailureCode,
@@ -1449,11 +2502,13 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			UE_LOG(
 				LogEFProceduralPCGRuntime,
 				Warning,
-				TEXT("Calysto V4 produced no configured start point after PCGComplete; deterministic project-owned repair is deferred until NavMesh is idle."));
+				TEXT("Calysto V6 produced no configured start point after PCGComplete; deterministic project-owned repair is deferred until NavMesh is idle."));
 		}
 	}
 
-	if (RuntimeState.bPCGGenerationFinished && !RuntimeState.bNavigationBuildRequested)
+	if (RuntimeState.bPCGGenerationFinished
+		&& RuntimeState.bVisualsReady
+		&& !RuntimeState.bNavigationBuildRequested)
 	{
 		EnsureRuntimeNavigation(World, RuntimeState);
 	}
@@ -1478,6 +2533,9 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 		RevalidateSpawnedPawns(World);
 	}
 	if (RuntimeState.bNavigationReady
+		&& RuntimeState.bPopulationPlanReady
+		&& RuntimeState.bPostTopologyLoadRequested
+		&& RuntimeState.bPostTopologyAssetsReady
 		&& !RuntimeState.bPopulationReady
 		&& !TryMaterializePopulation(World, RuntimeState))
 	{
@@ -1489,6 +2547,11 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 	// Managed Calysto floors are never considered playable without confirmed runtime navigation.
 	// This stays fail-closed if nav bounds or the navigation system cannot be prepared.
 	RuntimeState.bDungeonReady = RuntimeState.bPCGGenerationFinished
+		&& RuntimeState.bRoomManifestReady
+		&& RuntimeState.bFloorVisualAssetsReady
+		&& RuntimeState.bPostTopologyAssetsReady
+		&& RuntimeState.bVisualsReady
+		&& RuntimeState.bDecalsRealized
 		&& RuntimeState.bTopologyReady
 		&& RuntimeState.bNavigationReady
 		&& RuntimeState.bPopulationReady
@@ -1506,7 +2569,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			UE_LOG(
 				LogEFProceduralPCGRuntime,
 				Error,
-				TEXT("Dungeon PCG/navigation/population/companion roster became ready, but the active frozen V4 intent rejected its one-shot floor-ready notification in world %s."),
+				TEXT("Dungeon PCG/navigation/population/companion roster became ready, but the active frozen V6 intent rejected its one-shot floor-ready notification in world %s."),
 				*World->GetName());
 			if (!RuntimeState.bFailureReported)
 			{
@@ -1516,7 +2579,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 					DungeonSubsystem->NotifyGenerationFailed(
 						TEXT("FLOOR_READY_REJECTED"),
 						FString::Printf(
-							TEXT("The one-shot V4 floor-ready notification was rejected in world %s."),
+							TEXT("The one-shot V6 floor-ready notification was rejected in world %s."),
 							*World->GetName()));
 				}
 			}
@@ -1524,7 +2587,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 		}
 
 		SetFloorDoorsEnabled(World, true);
-		const FEFCalystoResolvedFloorIntentV4 ReadyIntent = DungeonSubsystem->GetResolvedFloorIntent();
+		const FEFCalystoResolvedFloorIntentV6 ReadyIntent = DungeonSubsystem->GetResolvedFloorIntentV6();
 		const bool bTraceAccepted = RecordReadinessMilestone(RuntimeState, TEXT("DoorEnabled"));
 		UEFCalystoPackagedSmokeSubsystem* PackagedSmokeSubsystem = World->GetGameInstance()
 			? World->GetGameInstance()->GetSubsystem<UEFCalystoPackagedSmokeSubsystem>()
@@ -1533,8 +2596,8 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			|| (ReadyIntent.bIsValid
 				&& PackagedSmokeSubsystem->RecordRuntimeReadinessTrace(
 					World,
-					ReadyIntent.FloorNumber,
-					ReadyIntent.GenerationSerial,
+					ReadyIntent.GenerationContext.FloorNumber,
+					ReadyIntent.GenerationContext.GenerationSerial,
 					RuntimeState.ReadinessTrace));
 		if (!bTraceAccepted || !bTracePersisted)
 		{
@@ -1552,7 +2615,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 				DungeonSubsystem->NotifyGenerationFailed(
 					TEXT("READINESS_TRACE_PERSIST_FAILED"),
 					FString::Printf(
-						TEXT("The exact V4 readiness trace could not be persisted in world %s."),
+						TEXT("The exact V6 readiness trace could not be persisted in world %s."),
 						*World->GetName()));
 			}
 			return;
@@ -1567,7 +2630,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 			UE_LOG(
 				LogEFProceduralPCGRuntime,
 				Error,
-				TEXT("The exact V4 readiness trace was persisted, but the one-shot floor-ready notification was rejected in world %s."),
+				TEXT("The exact V6 readiness trace was persisted, but the one-shot floor-ready notification was rejected in world %s."),
 				*World->GetName());
 			if (!RuntimeState.bFailureReported)
 			{
@@ -1575,7 +2638,7 @@ void UEFProceduralPCGSubsystem::RefreshDungeonRuntimeState(UWorld* World, FDunge
 				DungeonSubsystem->NotifyGenerationFailed(
 					TEXT("FLOOR_READY_REJECTED"),
 					FString::Printf(
-						TEXT("The one-shot V4 floor-ready notification was rejected in world %s."),
+						TEXT("The one-shot V6 floor-ready notification was rejected in world %s."),
 						*World->GetName()));
 			}
 			return;
@@ -1632,7 +2695,7 @@ void UEFProceduralPCGSubsystem::HandleTrackedPCGComponentComplete(
 				UE_LOG(
 					LogEFProceduralPCGRuntime,
 					Error,
-					TEXT("Duplicate or untracked successful PCG callback received from %s; V4 fails closed."),
+					TEXT("Duplicate or untracked successful PCG callback received from %s; V6 fails closed."),
 					*PCGComponent->GetName());
 				if (!RuntimeState->bFailureReported)
 				{
@@ -1648,6 +2711,42 @@ void UEFProceduralPCGSubsystem::HandleTrackedPCGComponentComplete(
 				}
 				RefreshDungeonRuntimeState(World, *RuntimeState);
 				return;
+			}
+			if (RemovedCount > 0 && bSucceeded)
+			{
+				FString ManifestError;
+				if (!FreezeRoomManifestFromPCGOutputV6(
+						World,
+						PCGComponent,
+						*RuntimeState,
+						ManifestError))
+				{
+					RuntimeState->bPCGGenerationFailed = true;
+					RuntimeState->bPCGGenerationFinished = false;
+					RuntimeState->bRoomManifestReady = false;
+					RuntimeState->bDungeonReady = false;
+					SetFloorDoorsEnabled(World, false);
+					UE_LOG(
+						LogEFProceduralPCGRuntime,
+						Error,
+						TEXT("Calysto V6 rejected post-PCG Room Contexts from %s: %s"),
+						*PCGComponent->GetName(),
+						*ManifestError);
+					if (!RuntimeState->bFailureReported)
+					{
+						RuntimeState->bFailureReported = true;
+						if (UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+							? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+							: nullptr)
+						{
+							DungeonSubsystem->NotifyGenerationFailed(
+								TEXT("V6_ROOM_MANIFEST_INVALID"),
+								ManifestError);
+						}
+					}
+					RefreshDungeonRuntimeState(World, *RuntimeState);
+					return;
+				}
 			}
 			if (!bSucceeded)
 			{
@@ -1834,6 +2933,34 @@ void UEFProceduralPCGSubsystem::SetFloorDoorsEnabled(UWorld* World, const bool b
 	}
 }
 
+void UEFProceduralPCGSubsystem::RollbackMaterializedPopulationV6(
+	UWorld* World,
+	FDungeonRuntimeState& RuntimeState)
+{
+	if (!IsValid(World) || !RuntimeState.bPopulationPlanReady)
+	{
+		return;
+	}
+	if (AActor* DungeonActor = RuntimeState.DungeonActor.Get())
+	{
+		FEFCalystoPopulationMaterializerV6::RollbackMaterializedPopulation(
+			World,
+			DungeonActor,
+			RuntimeState.PopulationPlanV6);
+	}
+	if (UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
+		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+		: nullptr)
+	{
+		DungeonSubsystem->RollbackPopulationRealizedV6(
+			RuntimeState.PopulationPlanV6.PopulationHash,
+			RuntimeState.V6PopulationMaterializationHash);
+	}
+	RuntimeState.V6PopulationMaterializationHash.Reset();
+	RuntimeState.bPopulationReady = false;
+	RuntimeState.bCompanionRosterReady = false;
+}
+
 bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 	UWorld* World,
 	FDungeonRuntimeState& RuntimeState)
@@ -1842,6 +2969,10 @@ bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 		|| !RuntimeState.bPCGGenerationFinished
 		|| !RuntimeState.bTopologyReady
 		|| !RuntimeState.bNavigationReady
+		|| !RuntimeState.bRoomManifestReady
+		|| !RuntimeState.bPopulationPlanReady
+		|| !RuntimeState.bPostTopologyLoadRequested
+		|| !RuntimeState.bPostTopologyAssetsReady
 		|| RuntimeState.bRuntimeReadinessFailed)
 	{
 		return false;
@@ -1855,31 +2986,28 @@ bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 		return false;
 	}
 
-	RuntimeState.bPopulationMaterializationStarted = true;
 	UEFCalystoDungeonSubsystem* DungeonSubsystem = World->GetGameInstance()
 		? World->GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
 	AActor* DungeonActor = RuntimeState.DungeonActor.Get();
 	auto FailPopulation = [this, World, DungeonSubsystem, &RuntimeState](const FString& Reason)
 	{
-		if (DungeonSubsystem)
-		{
-			FEFCalystoPopulationMaterializerV4::RollbackMaterializedPopulation(
-				World,
-				DungeonSubsystem->GetResolvedFloorIntent());
-		}
-		RuntimeState.bPopulationReady = false;
-		RuntimeState.bCompanionRosterReady = false;
+		RollbackMaterializedPopulationV6(World, RuntimeState);
 		RuntimeState.bRuntimeReadinessFailed = true;
 		RuntimeState.bDungeonReady = false;
 		SetFloorDoorsEnabled(World, false);
-		UE_LOG(LogEFProceduralPCGRuntime, Error, TEXT("PopulationRealized failed closed in world %s: %s"), *World->GetName(), *Reason);
+		UE_LOG(
+			LogEFProceduralPCGRuntime,
+			Error,
+			TEXT("V6 PopulationRealized failed closed in world %s: %s"),
+			*World->GetName(),
+			*Reason);
 		if (!RuntimeState.bFailureReported)
 		{
 			RuntimeState.bFailureReported = true;
 			if (DungeonSubsystem)
 			{
-				DungeonSubsystem->NotifyGenerationFailed(TEXT("POPULATION_FAILED"), Reason);
+				DungeonSubsystem->NotifyGenerationFailed(TEXT("V6_POPULATION_FAILED"), Reason);
 			}
 		}
 		return false;
@@ -1889,38 +3017,119 @@ bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 		return FailPopulation(TEXT("Calysto subsystem or runtime dungeon actor is unavailable."));
 	}
 
-	const FEFCalystoResolvedFloorIntentV4 Intent = DungeonSubsystem->GetResolvedFloorIntent();
-	if (!Intent.bIsValid || Intent.GeneratorVersion != 4)
+	const FEFCalystoRoomManifestV6 RoomManifest = DungeonSubsystem->GetRoomManifestV6();
+	if (RoomManifest.ManifestHash.IsEmpty()
+		|| RoomManifest.ManifestHash != RuntimeState.PopulationPlanV6.RoomManifestHash
+		|| RoomManifest.FloorPlanHash != RuntimeState.V6FloorPlanHash)
 	{
-		return FailPopulation(TEXT("The active V4 floor intent is invalid before population materialization; legacy fallback is forbidden."));
+		return FailPopulation(TEXT("The immutable V6 population plan no longer matches the active room manifest."));
+	}
+	FString ValidationError;
+	if (!FEFCalystoPopulationMaterializerV6::ValidatePlan(
+			RoomManifest,
+			RuntimeState.PopulationPlanV6,
+			ValidationError))
+	{
+		return FailPopulation(ValidationError);
+	}
+	if (!FEFCalystoPopulationMaterializerV6::ValidatePreloadClosureResident(
+			RuntimeState.PopulationPlanV6,
+			ValidationError))
+	{
+		return FailPopulation(FString::Printf(
+			TEXT("The retained PostTopologyContent lease is incomplete: %s"),
+			*ValidationError));
 	}
 
-	const FBox DungeonBounds = CollectDungeonBounds(World, RuntimeState);
-	const FEFCalystoPopulationMaterializationResultV4 Materialization =
-		FEFCalystoPopulationMaterializerV4::Materialize(World, DungeonActor, DungeonBounds, Intent);
+	TArray<FEFCalystoPlacementCandidateV6> PlacementCandidates;
+	if (!RuntimeState.ControlledPCGComponent.IsValid()
+		|| !FEFCalystoPopulationMaterializerV6::GatherNativePlacementCandidates(
+			RuntimeState.ControlledPCGComponent->GetGeneratedGraphOutput(), DungeonActor->GetActorTransform(),
+			RoomManifest, RuntimeState.PopulationPlanV6, PlacementCandidates, ValidationError))
+	{
+		return FailPopulation(ValidationError);
+	}
+	RuntimeState.bPopulationMaterializationStarted = true;
+	const FEFCalystoPopulationMaterializationResultV6 Materialization =
+		FEFCalystoPopulationMaterializerV6::Materialize(
+			World,
+			DungeonActor,
+			RoomManifest,
+			RuntimeState.PopulationPlanV6,
+			MakeArrayView(PlacementCandidates));
 	if (!Materialization.bSucceeded)
 	{
 		return FailPopulation(Materialization.FailureReason);
+	}
+
+	TMap<FString, const FEFCalystoPopulationDecisionV6*> ActorDecisions;
+	for (const FEFCalystoRoomPopulationPlanV6& Room : RuntimeState.PopulationPlanV6.Rooms)
+	{
+		for (const FEFCalystoPopulationDecisionV6& Decision : Room.Decisions)
+		{
+			if (Decision.Kind == EEFCalystoPopulationDecisionKindV6::Actor)
+			{
+				ActorDecisions.Add(Decision.DecisionId.ToLower(), &Decision);
+			}
+		}
+	}
+	TArray<FEFCalystoRealizedPopulationActorRecordV6> RealizedActorRecords;
+	RealizedActorRecords.Reserve(Materialization.RealizedActors.Num());
+	for (const FEFCalystoRealizedPopulationActorV6& Realized : Materialization.RealizedActors)
+	{
+		const FEFCalystoPopulationDecisionV6* const* DecisionPtr =
+			ActorDecisions.Find(Realized.DecisionId.ToLower());
+		const FEFCalystoPopulationDecisionV6* Decision =
+			DecisionPtr ? *DecisionPtr : nullptr;
+		if (!Decision || !Realized.Actor.IsValid())
+		{
+			return FailPopulation(
+				TEXT("The population materializer returned an actor without a live frozen decision."));
+		}
+		FEFCalystoRealizedPopulationActorRecordV6& Record =
+			RealizedActorRecords.AddDefaulted_GetRef();
+		Record.StableActorId = FName(*Decision->DecisionId);
+		Record.StableRoomId = Decision->StableRoomId;
+		Record.CategoryId = Decision->CategoryId;
+		Record.CatalogEntryId = Decision->EntryId;
+		Record.ActorClass = TSoftClassPtr<AActor>(Decision->ClassPath);
+		Record.Transform = Realized.Transform;
+		Record.Tier = Decision->Tier;
+		Record.Lifecycle = Decision->Lifecycle;
+		Record.ThreatCost = FMath::Max(0.0f, Decision->ThreatCost);
+		Record.ResourceCost =
+			EFProceduralRuntimePrivate::IsCalystoResourceCategory(Decision->CategoryId)
+				? 1.0f : 0.0f;
+		for (const FString& VerifiedContentId : Realized.VerifiedChestContentDecisionIds)
+		{
+			Record.VerifiedChestContentIds.Add(FName(*VerifiedContentId));
+		}
+	}
+	if (RealizedActorRecords.Num() != Materialization.SpawnedActorCount)
+	{
+		return FailPopulation(
+			TEXT("The materializer actor records do not match its realized actor count."));
+	}
+	RuntimeState.V6PopulationMaterializationHash = Materialization.MaterializationHash;
+	if (!DungeonSubsystem->NotifyPopulationRealizedV6(
+			Materialization.MaterializationHash,
+			Materialization.CandidateAnchorCount,
+			RealizedActorRecords))
+	{
+		return FailPopulation(TEXT("The Calysto subsystem rejected the realized V6 population transaction."));
 	}
 	if (!RecordReadinessMilestone(RuntimeState, TEXT("EnemyLevelsReady")))
 	{
 		return FailPopulation(
 			TEXT("The project-owned runtime trace rejected the EnemyLevelsReady milestone."));
 	}
-	// Enemy is a required project bridge category. A successful materialization
-	// therefore proves that every enemy completed its pre-BeginPlay physical ACF
-	// level and post-BeginPlay logical/scaling verification before entering the
-	// immutable manifest (including the valid zero-enemy case).
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("EnemyLevelsReady world=%s enemies=%d."),
+		TEXT("EnemyLevelsReady world=%s enemies=%d population=%s."),
 		*World->GetName(),
-		Materialization.Manifest.EnemyCount);
-	if (!DungeonSubsystem->NotifyPopulationRealized(Materialization.Manifest))
-	{
-		return FailPopulation(TEXT("The Calysto subsystem rejected the realized V4 population manifest."));
-	}
+		RuntimeState.PopulationPlanV6.EnemyCount,
+		*RuntimeState.PopulationPlanV6.PopulationHash);
 
 	RuntimeState.bPopulationReady = true;
 	if (!RecordReadinessMilestone(RuntimeState, TEXT("PopulationRealized")))
@@ -1931,36 +3140,41 @@ bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("PopulationRealized world=%s manifestHash=%s actors=%d enemies=%d npc=%d food=%d chests=%d loot=%d clothing=%d special=%d companionHash=%s."),
+		TEXT("PopulationRealizedV6 world=%s population=%s materialization=%s actors=%d enemies=%d chests=%d chest_contents=%d already_applied=%s."),
 		*World->GetName(),
-		*Materialization.Manifest.ManifestHash,
-		Materialization.Manifest.SpawnedActorCount,
-		Materialization.Manifest.EnemyCount,
-		Materialization.Manifest.NPCCount,
-		Materialization.Manifest.FoodCount,
-		Materialization.Manifest.ChestCount,
-		Materialization.Manifest.LooseLootCount,
-		Materialization.Manifest.ClothingCount,
-		Materialization.Manifest.SpecialEventCount,
-		*Materialization.Manifest.CompanionSnapshotHash);
+		*Materialization.PopulationHash,
+		*Materialization.MaterializationHash,
+		Materialization.SpawnedActorCount,
+		RuntimeState.PopulationPlanV6.EnemyCount,
+		RuntimeState.PopulationPlanV6.ChestCount,
+		Materialization.VerifiedChestContentCount,
+		Materialization.bAlreadyApplied ? TEXT("true") : TEXT("false"));
+
+	// Companion persistence is still a separate project-owned gate. It is
+	// intentionally validated only after the authoritative V6 transaction.
+	const FEFCalystoResolvedFloorIntentV6 ActiveIntent =
+		DungeonSubsystem->GetResolvedFloorIntentV6();
 	FString CompanionReadinessError;
-	if (!FEFCalystoPopulationMaterializerV4::ValidateCompanionRosterReady(
+	if (!ActiveIntent.bIsValid
+		|| !IEFCalystoPopulationBridgeV6::ValidateRegisteredCompanionRosterReady(
 			World,
-			Intent.CompanionSnapshotHash,
+			RuntimeState.PopulationPlanV6,
+			ActiveIntent.CompanionRoster.SnapshotHash,
 			CompanionReadinessError))
 	{
 		return FailPopulation(FString::Printf(
-			TEXT("CompanionRosterReady validation failed after PopulationRealized: %s"),
+			TEXT("CompanionRosterReady validation failed after V6 PopulationRealized: %s"),
 			*CompanionReadinessError));
 	}
-	if (!DungeonSubsystem->NotifyCompanionRosterReady(Intent.CompanionSnapshotHash))
+	if (!DungeonSubsystem->NotifyCompanionRosterReady(
+			ActiveIntent.CompanionRoster.SnapshotHash))
 	{
-		return FailPopulation(TEXT("The Calysto subsystem rejected the verified V4 companion-roster snapshot."));
+		return FailPopulation(TEXT("The Calysto subsystem rejected the verified companion-roster snapshot."));
 	}
 	RuntimeState.bCompanionRosterReady = DungeonSubsystem->IsCompanionRosterReady();
 	if (!RuntimeState.bCompanionRosterReady)
 	{
-		return FailPopulation(TEXT("The V4 companion roster did not remain ready after Director acceptance."));
+		return FailPopulation(TEXT("The companion roster did not remain ready after V6 population acceptance."));
 	}
 	if (!RecordReadinessMilestone(RuntimeState, TEXT("CompanionRosterReady")))
 	{
@@ -1970,10 +3184,10 @@ bool UEFProceduralPCGSubsystem::TryMaterializePopulation(
 	UE_LOG(
 		LogEFProceduralPCGRuntime,
 		Log,
-		TEXT("CompanionRosterReady world=%s manifestHash=%s companionHash=%s."),
+		TEXT("CompanionRosterReady world=%s population=%s companion=%s."),
 		*World->GetName(),
-		*Materialization.Manifest.ManifestHash,
-		*Materialization.Manifest.CompanionSnapshotHash);
+		*RuntimeState.PopulationPlanV6.PopulationHash,
+		*ActiveIntent.CompanionRoster.SnapshotHash);
 	return true;
 }
 
@@ -2096,7 +3310,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 		return FailClosed(
 			TEXT("FLOOR_DOOR_CARDINALITY"),
 			FString::Printf(
-				TEXT("PCGComplete and NavMesh idle exposed %d V4 floor doors; topology repair never deletes an ambiguous endpoint."),
+				TEXT("PCGComplete and NavMesh idle exposed %d V6 floor doors; topology repair never deletes an ambiguous endpoint."),
 				Doors.Num()));
 	}
 
@@ -2175,7 +3389,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 		return FailClosed(
 			TEXT("START_POINT_CLASS_INVALID"),
 			FString::Printf(
-				TEXT("The configured V4 start-point class must resolve to an AActor subclass; got %s."),
+				TEXT("The configured V6 start-point class must resolve to an AActor subclass; got %s."),
 				*GetPathNameSafe(StartPointClass)));
 	}
 
@@ -2194,7 +3408,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 		return FailClosed(
 			TEXT("START_POINT_CARDINALITY"),
 			FString::Printf(
-				TEXT("NavMesh idle exposed %d configured V4 start points; deterministic repair never deletes an ambiguous entry."),
+				TEXT("NavMesh idle exposed %d configured V6 start points; deterministic repair never deletes an ambiguous entry."),
 				StartPoints.Num()));
 	}
 
@@ -2284,7 +3498,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 		{
 			return FailClosed(
 				TEXT("START_POINT_REPAIR_NO_STRUCTURAL_SURFACE"),
-				TEXT("PCGComplete exposed no start point, no population anchors, and no floor door; V4 will not fabricate an entry on an empty topology."));
+				TEXT("PCGComplete exposed no start point, no population anchors, and no floor door; V6 will not fabricate an entry on an empty topology."));
 		}
 
 		const FVector BoundsSize = DungeonBounds.GetSize();
@@ -2365,7 +3579,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 			return Tag.ToString().StartsWith(EFProceduralRuntimePrivate::StartPointRepairHashTagPrefix);
 		});
 		const FString StartRepairHash = UEFCalystoDungeonSubsystem::ComputeCanonicalHash(FString::Printf(
-			TEXT("V4|START_SPAWN|%s|%s|%s"),
+			TEXT("V6|START_SPAWN|%s|%s|%s"),
 			*StartPointClass->GetPathName(),
 			*SelectedStart.StableKey,
 			*EFProceduralRuntimePrivate::QuantizedTopologyTransform(SelectedStart.Location, SelectedStart.Yaw)));
@@ -2670,7 +3884,7 @@ bool UEFProceduralPCGSubsystem::ResolveOrRepairDungeonTopology(
 		return Tag.ToString().StartsWith(EFProceduralRuntimePrivate::TopologyRepairHashTagPrefix);
 	});
 	const FString RepairHash = UEFCalystoDungeonSubsystem::ComputeCanonicalHash(FString::Printf(
-		TEXT("V4|%s|%d|%s|%s|%s|%d"),
+		TEXT("V6|%s|%d|%s|%s|%s|%d"),
 		bDoorWasMissing ? TEXT("SPAWN") : TEXT("RELOCATE"),
 		bDoorWasMissing ? 0 : 1,
 		*Selected.StableKey,
@@ -3239,9 +4453,9 @@ void UEFProceduralPCGSubsystem::TrySanitizeSpawnedPawn(TWeakObjectPtr<APawn> Paw
 	}
 
 	APawn* Pawn = PawnPtr.Get();
-	if (Pawn->ActorHasTag(FName(TEXT("EF.Calysto.Population.V4"))))
+	if (Pawn->ActorHasTag(FName(TEXT("EF.Calysto.Population"))))
 	{
-		// V4 already projected and collision-validated this deterministic placement.
+		// V6 already projected and collision-validated this deterministic placement.
 		// Moving it after the manifest was hashed would break replay guarantees.
 		TryEnsurePawnController(PawnPtr, 0);
 		return;

@@ -7,6 +7,9 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
+class UEFCalystoDungeonSubsystem;
+class UEFCalystoDirectorSubsystem;
+struct FEFCalystoDirectorSnapshot;
 class UWorld;
 
 /**
@@ -24,6 +27,7 @@ public:
 	AProjectLevelDoor();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintCallable, Category = "ACF")
 	void SetEnabled(bool bEnabled);
@@ -64,8 +68,14 @@ protected:
 
 private:
 	void EndPawnInteraction(APawn* Pawn) const;
+	void HandleCalystoTravelFailed();
+	void HandleDirectorTravelFailed(const FEFCalystoDirectorSnapshot& Snapshot);
+	void UnbindCalystoTravelFailure();
 	bool IsDestinationAvailable() const;
 
+	TWeakObjectPtr<UEFCalystoDungeonSubsystem> BoundCalystoDungeonSubsystem;
+	TWeakObjectPtr<UEFCalystoDirectorSubsystem> BoundCalystoDirector;
+	FDelegateHandle CalystoTravelFailureHandle;
 	bool bDestinationAvailable = false;
 	bool bTravelRequested = false;
 };

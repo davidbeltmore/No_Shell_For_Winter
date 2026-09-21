@@ -2,6 +2,8 @@
 
 #include "EFClothingFitProfile.h"
 #include "EFClothingSurfaceBinding.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/MorphTarget.h"
 
 namespace EFClothingMorphDirectorPrivate
 {
@@ -11,7 +13,9 @@ namespace EFClothingMorphDirectorPrivate
 	static FText MakeAuthoringGuide()
 	{
 		return FText::FromString(TEXT(
-			"Add one entry to Clothes for each clothing mesh and body mesh pair. Clothing Name is created automatically when both meshes are assigned and remains editable. "
+			"This Director is the only clothing table to maintain. Add one entry to Clothes for each clothing mesh and its reference body; register target bodies once in Bodies. Clothing Name is created automatically when both meshes are assigned and remains editable. "
+			"V5.1 compiles all manifests, definitions and bindings internally and applies the garment material policy immediately; Force Opaque is the safe default that hides skin and tattoos behind cloth. "
+			"Optional Layering and Material Exceptions stay inside the same clothing row. "
 			"Skin Gap and Surface Volume update only that clothing at runtime. Several clothes can be active together, and an unfinished draft cannot disable ready clothes. "
 			"Body Sections to Hide in Gameplay controls visibility only; leave it empty to show every body section. Body Sections Excluded from Fit controls solver geometry only. "
 			"Advanced mesh edits are explicit Unreal Engine operations. Fit-data updates never edit the body, its skin weights, or the shared skeleton."));
@@ -91,7 +95,70 @@ bool FEFClothingGarmentRow::ValidateClothingForUse(FString& OutError) const
 		OutError = TEXT("This clothing has invalid internal fit limits.");
 		return false;
 	}
+	FString LowerBodyGuardError;
+	if (!LowerBodyMorphGuard.Validate(LowerBodyGuardError))
+	{
+		OutError = LowerBodyGuardError;
+		return false;
+	}
 	return true;
+}
+
+TArray<FEFClothingGarmentRow> UEFClothingMorphDirectorPolicy::BuildBodyVariants() const
+{
+	TArray<FEFClothingGarmentRow> Result;
+	for (const FEFClothingGarmentRow& Authored : Garments)
+	{
+		TArray<FEFClothingBodyTarget> Targets = Bodies;
+		if (!Targets.ContainsByPredicate([&](const FEFClothingBodyTarget& Target)
+			{ return Target.BodySurface == Authored.BodySurface; }))
+		{
+			FEFClothingBodyTarget Reference;
+			Reference.BodySurface = Authored.BodySurface;
+			Targets.Insert(Reference, 0);
+		}
+		TSet<FSoftObjectPath> SeenBodies;
+		for (const FEFClothingBodyTarget& Target : Targets)
+		{
+			const FSoftObjectPath BodyPath = Target.BodySurface.ToSoftObjectPath();
+			if (BodyPath.IsNull() || SeenBodies.Contains(BodyPath)) { continue; }
+			SeenBodies.Add(BodyPath);
+			FEFClothingGarmentRow Row = Authored;
+			Row.AuthoredGarmentId = Authored.GarmentId;
+			Row.BodySurface = Target.BodySurface;
+			if (Target.BodySurface != Authored.BodySurface)
+			{
+				Row.ReferenceBodySurface = Authored.BodySurface;
+				Row.GarmentId = FName(*(Authored.GarmentId.ToString() + TEXT("__Body_")
+					+ FMD5::HashAnsiString(*BodyPath.ToString())));
+				// These are reference-body-specific corrections. Automatic shape transport
+				// and collision still run on every target body.
+				Row.LowerBodyMorphGuard.bEnabled = false;
+				Row.ExcludedBodyMorphPrefixes.Reset();
+				Row.ExcludedBodyBoneBranches.Reset();
+			}
+			auto TranslateSlots = [&Target](TArray<FName>& Slots)
+			{
+				for (FName& Slot : Slots)
+				{
+					if (const FName* Alias = Target.MaterialSlotAliases.Find(Slot)) { Slot = *Alias; }
+				}
+				Slots.Remove(NAME_None);
+			};
+			TranslateSlots(Row.BodySectionsToExclude);
+			TranslateSlots(Row.ExcludedBodySurfaceMaterialSlots);
+			for (const FName Bone : Target.ExcludedFitBoneBranches) { Row.ExcludedBodyBoneBranches.AddUnique(Bone); }
+			if (Row.bCoversGenitals)
+			{
+				for (const FName Slot : Target.GenitalMaterialSlots) { Row.BodySectionsToExclude.AddUnique(Slot); }
+				Row.BodyBoneBranchesToHide = Target.GenitalBoneBranches;
+				Row.BoneCoverageDeformer = Target.BoneCoverageDeformer;
+				Row.BoneCoverageDeformerSource = Target.BoneCoverageDeformerSource;
+			}
+			Result.Add(MoveTemp(Row));
+		}
+	}
+	return Result;
 }
 
 bool UEFClothingMorphDirectorPolicy::ValidateIdentity(FString& OutError) const

@@ -2,13 +2,20 @@
 
 #include "Calysto/EFCalystoFloorDoor.h"
 #include "Calysto/EFCalystoDungeonHarnessSettings.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "Calysto/EFCalystoPopulationAnchor.h"
 #include "Engine/GameInstance.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/Actor.h"
+#include "Materials/MaterialInstance.h"
 #include "UObject/SoftObjectPath.h"
+#include "UObject/StructOnScope.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/UnrealType.h"
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Misc/AutomationTest.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogEFCalystoPCGAdapter, Log, All);
 
@@ -19,11 +26,28 @@ namespace EFCalystoPCGAdapterPrivate
 		FObjectProperty* Dungeon = nullptr;
 		FObjectProperty* Spawners = nullptr;
 		FObjectProperty* RoomThemeList = nullptr;
+		FObjectProperty* DungeonMaterial = nullptr;
+		FBoolProperty* OverrideFloorMaterial = nullptr;
+		FBoolProperty* OverrideWallMaterial = nullptr;
+		FBoolProperty* OverrideRoofMaterial = nullptr;
 		FStructProperty* DungeonSize = nullptr;
 		FNumericProperty* SpawnerDensity = nullptr;
 		FNumericProperty* SidePathChance = nullptr;
 		FNumericProperty* WallLightHeight = nullptr;
 		FIntProperty* WallLightTileDistance = nullptr;
+	};
+
+	struct FMaterialSlotSchema
+	{
+		FStructProperty* Slot = nullptr;
+		FObjectProperty* Material = nullptr;
+	};
+
+	struct FDungeonMaterialSchema
+	{
+		FMaterialSlotSchema Floor;
+		FMaterialSlotSchema Wall;
+		FMaterialSlotSchema Roof;
 	};
 
 	struct FSpawnerSchema
@@ -40,6 +64,39 @@ namespace EFCalystoPCGAdapterPrivate
 		FStructProperty* EntryStruct = nullptr;
 		FObjectProperty* RoomType = nullptr;
 		FDoubleProperty* Weight = nullptr;
+		FBoolProperty* OverrideFloorMaterial = nullptr;
+		FObjectProperty* FloorMaterial = nullptr;
+		FBoolProperty* OverrideWallMaterial = nullptr;
+		FObjectProperty* WallMaterial = nullptr;
+		FBoolProperty* OverrideRoofMaterial = nullptr;
+		FObjectProperty* RoofMaterial = nullptr;
+	};
+
+	/** Reflected, runtime-safe view of Calysto's PDA_RoomMeshes/ST_ObjectDungeon contract. */
+	struct FRoomArchitectureSchema
+	{
+		FArrayProperty* WallBottom = nullptr;
+		FArrayProperty* WallMiddle = nullptr;
+		FArrayProperty* WallTop = nullptr;
+		FArrayProperty* Floor = nullptr;
+		FArrayProperty* CornerBottom = nullptr;
+		FArrayProperty* CornerMiddle = nullptr;
+		FArrayProperty* CornerTop = nullptr;
+		FArrayProperty* Roof = nullptr;
+		FStructProperty* EntryStruct = nullptr;
+		FProperty* Type = nullptr;
+		FObjectProperty* Mesh = nullptr;
+		FClassProperty* Blueprint = nullptr;
+		FObjectProperty* LevelInstance = nullptr;
+		FIntProperty* Weight = nullptr;
+		FProperty* RotationType = nullptr;
+		FStructProperty* TransformMinimum = nullptr;
+		FStructProperty* TransformMaximum = nullptr;
+		FStructProperty* RotationMinimum = nullptr;
+		FStructProperty* RotationMaximum = nullptr;
+		FBoolProperty* UniformScale = nullptr;
+		FStructProperty* ScaleMinimum = nullptr;
+		FStructProperty* ScaleMaximum = nullptr;
 	};
 
 	static FString Canonicalize(const FString& Name)
@@ -156,6 +213,64 @@ namespace EFCalystoPCGAdapterPrivate
 		return Property;
 	}
 
+	static bool ValidateMaterialInstanceProperty(
+		const FObjectProperty* Property,
+		const TCHAR* ContractName,
+		FString& OutError)
+	{
+		if (!Property || !Property->PropertyClass
+			|| !Property->PropertyClass->IsChildOf(UMaterialInstance::StaticClass()))
+		{
+			OutError = FString::Printf(
+				TEXT("Allowlisted %s must be a hard UMaterialInstance property; found %s."),
+				ContractName,
+				Property && Property->PropertyClass
+					? *Property->PropertyClass->GetPathName()
+					: TEXT("<null>"));
+			return false;
+		}
+		return true;
+	}
+
+	static bool ResolveDungeonMaterialSlotSchema(
+		UObject* DungeonMaterial,
+		const TCHAR* SlotName,
+		FMaterialSlotSchema& OutSchema,
+		FString& OutError)
+	{
+		OutSchema.Slot = FindTypedAllowlistedProperty<FStructProperty>(
+			DungeonMaterial ? DungeonMaterial->GetClass() : nullptr,
+			SlotName,
+			TEXT("ST_DungeonMaterial struct property"),
+			OutError);
+		if (!OutSchema.Slot || !OutSchema.Slot->Struct)
+		{
+			return false;
+		}
+		OutSchema.Material = FindPlainObjectProperty(
+			OutSchema.Slot->Struct,
+			TEXT("Material"),
+			OutError);
+		return OutSchema.Material
+			&& ValidateMaterialInstanceProperty(
+				OutSchema.Material,
+				SlotName,
+				OutError);
+	}
+
+	static bool ResolveDungeonMaterialSchema(
+		UObject* DungeonMaterial,
+		FDungeonMaterialSchema& OutSchema,
+		FString& OutError)
+	{
+		return ResolveDungeonMaterialSlotSchema(
+			DungeonMaterial, TEXT("Floor"), OutSchema.Floor, OutError)
+			&& ResolveDungeonMaterialSlotSchema(
+				DungeonMaterial, TEXT("Wall"), OutSchema.Wall, OutError)
+			&& ResolveDungeonMaterialSlotSchema(
+				DungeonMaterial, TEXT("Roof"), OutSchema.Roof, OutError);
+	}
+
 	static FNumericProperty* FindFloatingProperty(
 		const UStruct* Owner,
 		const TCHAR* CanonicalName,
@@ -189,6 +304,13 @@ namespace EFCalystoPCGAdapterPrivate
 		OutSchema.Dungeon = FindPlainObjectProperty(ActorClass, TEXT("Dungeon"), OutError);
 		OutSchema.Spawners = FindPlainObjectProperty(ActorClass, TEXT("Spawners"), OutError);
 		OutSchema.RoomThemeList = FindPlainObjectProperty(ActorClass, TEXT("RoomThemeList"), OutError);
+		OutSchema.DungeonMaterial = FindPlainObjectProperty(ActorClass, TEXT("DungeonMaterial"), OutError);
+		OutSchema.OverrideFloorMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			ActorClass, TEXT("OverrideFloorMaterial"), TEXT("bool property"), OutError);
+		OutSchema.OverrideWallMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			ActorClass, TEXT("OverrideWallMaterial"), TEXT("bool property"), OutError);
+		OutSchema.OverrideRoofMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			ActorClass, TEXT("OverrideRoofMaterial"), TEXT("bool property"), OutError);
 		OutSchema.DungeonSize = FindTypedAllowlistedProperty<FStructProperty>(
 			ActorClass,
 			TEXT("DungeonSize"),
@@ -203,6 +325,10 @@ namespace EFCalystoPCGAdapterPrivate
 		if (!OutSchema.Dungeon
 			|| !OutSchema.Spawners
 			|| !OutSchema.RoomThemeList
+			|| !OutSchema.DungeonMaterial
+			|| !OutSchema.OverrideFloorMaterial
+			|| !OutSchema.OverrideWallMaterial
+			|| !OutSchema.OverrideRoofMaterial
 			|| !OutSchema.DungeonSize
 			|| !OutSchema.SpawnerDensity
 			|| !OutSchema.SidePathChance
@@ -369,12 +495,469 @@ namespace EFCalystoPCGAdapterPrivate
 			TEXT("Weight"),
 			TEXT("double property"),
 			OutError);
-		if (!OutSchema.RoomType || !OutSchema.Weight)
+		OutSchema.OverrideFloorMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			OutSchema.EntryStruct->Struct,
+			TEXT("ThemeOverrideFloorMaterial"),
+			TEXT("bool property"),
+			OutError);
+		OutSchema.FloorMaterial = FindPlainObjectProperty(
+			OutSchema.EntryStruct->Struct,
+			TEXT("FloorMaterial"),
+			OutError);
+		OutSchema.OverrideWallMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			OutSchema.EntryStruct->Struct,
+			TEXT("ThemeOverrideWallMaterial"),
+			TEXT("bool property"),
+			OutError);
+		OutSchema.WallMaterial = FindPlainObjectProperty(
+			OutSchema.EntryStruct->Struct,
+			TEXT("WallMaterial"),
+			OutError);
+		OutSchema.OverrideRoofMaterial = FindTypedAllowlistedProperty<FBoolProperty>(
+			OutSchema.EntryStruct->Struct,
+			TEXT("ThemeOverrideRoofMaterial"),
+			TEXT("bool property"),
+			OutError);
+		OutSchema.RoofMaterial = FindPlainObjectProperty(
+			OutSchema.EntryStruct->Struct,
+			TEXT("RoofMaterial"),
+			OutError);
+		if (!OutSchema.RoomType || !OutSchema.Weight
+			|| !OutSchema.OverrideFloorMaterial || !OutSchema.FloorMaterial
+			|| !OutSchema.OverrideWallMaterial || !OutSchema.WallMaterial
+			|| !OutSchema.OverrideRoofMaterial || !OutSchema.RoofMaterial)
+		{
+			return false;
+		}
+		if (!ValidateMaterialInstanceProperty(OutSchema.FloorMaterial, TEXT("ST_RoomTheme.FloorMaterial"), OutError)
+			|| !ValidateMaterialInstanceProperty(OutSchema.WallMaterial, TEXT("ST_RoomTheme.WallMaterial"), OutError)
+			|| !ValidateMaterialInstanceProperty(OutSchema.RoofMaterial, TEXT("ST_RoomTheme.RoofMaterial"), OutError))
 		{
 			return false;
 		}
 
 		return true;
+	}
+
+	static UEnum* ResolveEnumDefinition(const FProperty* Property)
+	{
+		if (const FEnumProperty* EnumProperty = CastField<FEnumProperty>(Property))
+		{
+			return EnumProperty->GetEnum();
+		}
+		if (const FByteProperty* ByteProperty = CastField<FByteProperty>(Property))
+		{
+			return ByteProperty->Enum;
+		}
+		return nullptr;
+	}
+
+	static bool ResolveEnumValue(
+		const FProperty* Property,
+		const TArray<FString>& CanonicalCandidates,
+		int64& OutValue,
+		FString& OutError)
+	{
+		OutValue = INDEX_NONE;
+		UEnum* Enum = ResolveEnumDefinition(Property);
+		if (!Enum)
+		{
+			OutError = FString::Printf(
+				TEXT("Allowlisted property %s is not backed by an enum."),
+				Property ? *Property->GetPathName() : TEXT("<null>"));
+			return false;
+		}
+
+		for (int32 EnumIndex = 0; EnumIndex < Enum->NumEnums(); ++EnumIndex)
+		{
+			const int64 CandidateValue = Enum->GetValueByIndex(EnumIndex);
+			if (CandidateValue == INDEX_NONE)
+			{
+				continue;
+			}
+			const FString InternalName = Canonicalize(Enum->GetNameStringByIndex(EnumIndex));
+			const FString DisplayName = Canonicalize(Enum->GetDisplayNameTextByIndex(EnumIndex).ToString());
+			for (const FString& Expected : CanonicalCandidates)
+			{
+				if (InternalName == Expected || DisplayName == Expected)
+				{
+					OutValue = CandidateValue;
+					return true;
+				}
+			}
+		}
+
+		OutError = FString::Printf(
+			TEXT("Enum %s has no allowlisted value matching '%s'."),
+			*Enum->GetPathName(),
+			*FString::Join(CanonicalCandidates, TEXT("/")));
+		return false;
+	}
+
+	static bool ResolveArchitectureTypeValue(
+		const FProperty* Property,
+		const EEFCalystoArchitectureObjectTypeV6 Type,
+		int64& OutValue,
+		FString& OutError)
+	{
+		switch (Type)
+		{
+		case EEFCalystoArchitectureObjectTypeV6::StaticMesh:
+			return ResolveEnumValue(Property, { TEXT("staticmesh") }, OutValue, OutError);
+		case EEFCalystoArchitectureObjectTypeV6::ActorBlueprint:
+			return ResolveEnumValue(Property, { TEXT("blueprint"), TEXT("actorblueprint") }, OutValue, OutError);
+		case EEFCalystoArchitectureObjectTypeV6::LevelInstance:
+			return ResolveEnumValue(Property, { TEXT("levelinstance") }, OutValue, OutError);
+		default:
+			OutError = FString::Printf(TEXT("Unsupported V6 Architecture Object Type value %d."), static_cast<int32>(Type));
+			return false;
+		}
+	}
+
+	static bool ResolveArchitectureRotationValue(
+		const FProperty* Property,
+		const EEFCalystoArchitectureRotationV6 Rotation,
+		int64& OutValue,
+		FString& OutError)
+	{
+		switch (Rotation)
+		{
+		case EEFCalystoArchitectureRotationV6::None:
+			return ResolveEnumValue(Property, { TEXT("none") }, OutValue, OutError);
+		case EEFCalystoArchitectureRotationV6::Degrees45:
+			return ResolveEnumValue(Property, { TEXT("45"), TEXT("degrees45"), TEXT("45degrees") }, OutValue, OutError);
+		case EEFCalystoArchitectureRotationV6::Degrees90:
+			return ResolveEnumValue(Property, { TEXT("90"), TEXT("degrees90"), TEXT("90degrees") }, OutValue, OutError);
+		case EEFCalystoArchitectureRotationV6::Full360:
+			return ResolveEnumValue(Property, { TEXT("360"), TEXT("full360"), TEXT("full360degrees") }, OutValue, OutError);
+		default:
+			OutError = FString::Printf(TEXT("Unsupported V6 Architecture Rotation value %d."), static_cast<int32>(Rotation));
+			return false;
+		}
+	}
+
+	static bool WriteEnumValue(FProperty* Property, void* Container, const int64 Value, FString& OutError)
+	{
+		if (FEnumProperty* EnumProperty = CastField<FEnumProperty>(Property))
+		{
+			FNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+			void* ValueAddress = EnumProperty->ContainerPtrToValuePtr<void>(Container);
+			if (!UnderlyingProperty || !ValueAddress)
+			{
+				OutError = FString::Printf(TEXT("Enum property %s has no writable underlying value."), *EnumProperty->GetPathName());
+				return false;
+			}
+			UnderlyingProperty->SetIntPropertyValue(ValueAddress, Value);
+			return true;
+		}
+		if (FByteProperty* ByteProperty = CastField<FByteProperty>(Property))
+		{
+			if (!ByteProperty->Enum || Value < 0 || Value > MAX_uint8)
+			{
+				OutError = FString::Printf(TEXT("Byte enum property %s cannot store value %lld."), *ByteProperty->GetPathName(), Value);
+				return false;
+			}
+			ByteProperty->SetPropertyValue_InContainer(Container, static_cast<uint8>(Value));
+			return true;
+		}
+		OutError = FString::Printf(
+			TEXT("Property %s is not a supported enum representation."),
+			Property ? *Property->GetPathName() : TEXT("<null>"));
+		return false;
+	}
+
+	static bool ResolveRoomArchitectureSchema(
+		UClass* RoomTypeClass,
+		FRoomArchitectureSchema& OutSchema,
+		FString& OutError)
+	{
+		OutSchema = FRoomArchitectureSchema();
+		if (!IsValid(RoomTypeClass)
+			|| RoomTypeClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists))
+		{
+			OutError = FString::Printf(
+				TEXT("Calysto Room Type property class %s is invalid or cannot be instantiated."),
+				*GetPathNameSafe(RoomTypeClass));
+			return false;
+		}
+
+		const auto ResolveArray = [&OutSchema, RoomTypeClass, &OutError](
+			const TCHAR* Name,
+			FArrayProperty*& OutArray)
+		{
+			OutArray = FindTypedAllowlistedProperty<FArrayProperty>(
+				RoomTypeClass,
+				Name,
+				TEXT("array of ST_ObjectDungeon"),
+				OutError);
+			FStructProperty* Inner = OutArray ? CastField<FStructProperty>(OutArray->Inner) : nullptr;
+			if (!Inner || !Inner->Struct)
+			{
+				if (OutError.IsEmpty())
+				{
+					OutError = FString::Printf(
+						TEXT("Allowlisted room architecture array %s.%s is not an array of structs."),
+						*RoomTypeClass->GetPathName(), Name);
+				}
+				return false;
+			}
+			if (OutSchema.EntryStruct && OutSchema.EntryStruct->Struct != Inner->Struct)
+			{
+				OutError = FString::Printf(
+					TEXT("Room architecture array %s.%s uses %s; expected shared entry struct %s."),
+					*RoomTypeClass->GetPathName(), Name, *Inner->Struct->GetPathName(),
+					*OutSchema.EntryStruct->Struct->GetPathName());
+				return false;
+			}
+			if (!OutSchema.EntryStruct)
+			{
+				OutSchema.EntryStruct = Inner;
+			}
+			return true;
+		};
+
+		if (!ResolveArray(TEXT("WallBottom"), OutSchema.WallBottom)
+			|| !ResolveArray(TEXT("WallMiddle"), OutSchema.WallMiddle)
+			|| !ResolveArray(TEXT("WallTop"), OutSchema.WallTop)
+			|| !ResolveArray(TEXT("Floor"), OutSchema.Floor)
+			|| !ResolveArray(TEXT("CornerBottom"), OutSchema.CornerBottom)
+			|| !ResolveArray(TEXT("CornerMiddle"), OutSchema.CornerMiddle)
+			|| !ResolveArray(TEXT("CornerTop"), OutSchema.CornerTop)
+			|| !ResolveArray(TEXT("Roof"), OutSchema.Roof)
+			|| !OutSchema.EntryStruct || !OutSchema.EntryStruct->Struct)
+		{
+			return false;
+		}
+
+		UScriptStruct* EntryStruct = OutSchema.EntryStruct->Struct;
+		OutSchema.Type = FindAllowlistedProperty(EntryStruct, TEXT("Type"), OutError);
+		OutSchema.Mesh = FindPlainObjectProperty(EntryStruct, TEXT("Mesh"), OutError);
+		OutSchema.Blueprint = FindTypedAllowlistedProperty<FClassProperty>(
+			EntryStruct, TEXT("Blueprint"), TEXT("Actor class property"), OutError);
+		OutSchema.LevelInstance = FindPlainObjectProperty(EntryStruct, TEXT("LevelInstance"), OutError);
+		OutSchema.Weight = FindTypedAllowlistedProperty<FIntProperty>(
+			EntryStruct, TEXT("Weight"), TEXT("int32 property"), OutError);
+		OutSchema.RotationType = FindAllowlistedProperty(EntryStruct, TEXT("Rotation Type"), OutError);
+		OutSchema.TransformMinimum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Transform Min"), TEXT("FVector struct property"), OutError);
+		OutSchema.TransformMaximum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Transform Max"), TEXT("FVector struct property"), OutError);
+		OutSchema.RotationMinimum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Rotation Min"), TEXT("FRotator struct property"), OutError);
+		OutSchema.RotationMaximum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Rotation Max"), TEXT("FRotator struct property"), OutError);
+		OutSchema.UniformScale = FindTypedAllowlistedProperty<FBoolProperty>(
+			EntryStruct, TEXT("Uniform Scale"), TEXT("bool property"), OutError);
+		OutSchema.ScaleMinimum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Scale Min"), TEXT("FVector struct property"), OutError);
+		OutSchema.ScaleMaximum = FindTypedAllowlistedProperty<FStructProperty>(
+			EntryStruct, TEXT("Scale Max"), TEXT("FVector struct property"), OutError);
+		if (!OutSchema.Type || !OutSchema.Mesh || !OutSchema.Blueprint || !OutSchema.LevelInstance
+			|| !OutSchema.Weight || !OutSchema.RotationType || !OutSchema.TransformMinimum
+			|| !OutSchema.TransformMaximum || !OutSchema.RotationMinimum || !OutSchema.RotationMaximum
+			|| !OutSchema.UniformScale || !OutSchema.ScaleMinimum || !OutSchema.ScaleMaximum)
+		{
+			return false;
+		}
+
+		if (!ResolveEnumDefinition(OutSchema.Type) || !ResolveEnumDefinition(OutSchema.RotationType))
+		{
+			OutError = TEXT("Calysto ST_ObjectDungeon Type or Rotation Type is no longer an enum property.");
+			return false;
+		}
+		if (!OutSchema.Mesh->PropertyClass
+			|| !OutSchema.Mesh->PropertyClass->IsChildOf(UStaticMesh::StaticClass()))
+		{
+			OutError = TEXT("Calysto ST_ObjectDungeon.Mesh is no longer a hard UStaticMesh property.");
+			return false;
+		}
+		if (!OutSchema.Blueprint->MetaClass
+			|| !OutSchema.Blueprint->MetaClass->IsChildOf(AActor::StaticClass()))
+		{
+			OutError = TEXT("Calysto ST_ObjectDungeon.Blueprint is no longer an Actor class property.");
+			return false;
+		}
+		if (!OutSchema.LevelInstance->PropertyClass)
+		{
+			OutError = TEXT("Calysto ST_ObjectDungeon.LevelInstance has no valid hard object class.");
+			return false;
+		}
+
+		const auto ValidateStructType = [&OutError](
+			const FStructProperty* Property,
+			const UScriptStruct* Expected,
+			const TCHAR* Label)
+		{
+			if (!Property || Property->Struct != Expected)
+			{
+				OutError = FString::Printf(
+					TEXT("Calysto ST_ObjectDungeon.%s uses %s; expected %s."),
+					Label,
+					*GetPathNameSafe(Property ? Property->Struct : nullptr),
+					*GetPathNameSafe(Expected));
+				return false;
+			}
+			return true;
+		};
+		if (!ValidateStructType(OutSchema.TransformMinimum, TBaseStructure<FVector>::Get(), TEXT("Transform Min"))
+			|| !ValidateStructType(OutSchema.TransformMaximum, TBaseStructure<FVector>::Get(), TEXT("Transform Max"))
+			|| !ValidateStructType(OutSchema.RotationMinimum, TBaseStructure<FRotator>::Get(), TEXT("Rotation Min"))
+			|| !ValidateStructType(OutSchema.RotationMaximum, TBaseStructure<FRotator>::Get(), TEXT("Rotation Max"))
+			|| !ValidateStructType(OutSchema.ScaleMinimum, TBaseStructure<FVector>::Get(), TEXT("Scale Min"))
+			|| !ValidateStructType(OutSchema.ScaleMaximum, TBaseStructure<FVector>::Get(), TEXT("Scale Max")))
+		{
+			return false;
+		}
+
+		// Validate the complete open V6 enum mapping once at the schema boundary.
+		int64 Ignored = 0;
+		return ResolveArchitectureTypeValue(OutSchema.Type, EEFCalystoArchitectureObjectTypeV6::StaticMesh, Ignored, OutError)
+			&& ResolveArchitectureTypeValue(OutSchema.Type, EEFCalystoArchitectureObjectTypeV6::ActorBlueprint, Ignored, OutError)
+			&& ResolveArchitectureTypeValue(OutSchema.Type, EEFCalystoArchitectureObjectTypeV6::LevelInstance, Ignored, OutError)
+			&& ResolveArchitectureRotationValue(OutSchema.RotationType, EEFCalystoArchitectureRotationV6::None, Ignored, OutError)
+			&& ResolveArchitectureRotationValue(OutSchema.RotationType, EEFCalystoArchitectureRotationV6::Degrees45, Ignored, OutError)
+			&& ResolveArchitectureRotationValue(OutSchema.RotationType, EEFCalystoArchitectureRotationV6::Degrees90, Ignored, OutError)
+			&& ResolveArchitectureRotationValue(OutSchema.RotationType, EEFCalystoArchitectureRotationV6::Full360, Ignored, OutError);
+	}
+
+	static bool WriteArchitectureEntry(
+		void* Entry,
+		const FRoomArchitectureSchema& Schema,
+		const FEFCalystoArchitectureObjectV6& Source,
+		const FString& Label,
+		FString& OutError)
+	{
+		if (!Entry || Source.SelectionWeight <= 0
+			|| Source.Variation.LocationMinimum.ContainsNaN()
+			|| Source.Variation.LocationMaximum.ContainsNaN()
+			|| Source.Variation.RotationMinimum.ContainsNaN()
+			|| Source.Variation.RotationMaximum.ContainsNaN()
+			|| Source.Variation.ScaleMinimum.ContainsNaN()
+			|| Source.Variation.ScaleMaximum.ContainsNaN())
+		{
+			OutError = FString::Printf(
+				TEXT("%s has an invalid weight or non-finite transform range."),
+				*Label);
+			return false;
+		}
+
+		Schema.Mesh->SetObjectPropertyValue_InContainer(Entry, nullptr);
+		Schema.Blueprint->SetObjectPropertyValue_InContainer(Entry, nullptr);
+		Schema.LevelInstance->SetObjectPropertyValue_InContainer(Entry, nullptr);
+		switch (Source.Type)
+		{
+		case EEFCalystoArchitectureObjectTypeV6::StaticMesh:
+		{
+			UStaticMesh* Mesh = Source.Mesh.Get();
+			if (!Source.Mesh.IsNull() && (!IsValid(Mesh) || !Mesh->IsA(Schema.Mesh->PropertyClass)))
+			{
+				OutError = FString::Printf(
+					TEXT("%s Static Mesh %s is not resident or violates the Calysto property class."),
+					*Label, *Source.Mesh.ToSoftObjectPath().ToString());
+				return false;
+			}
+			Schema.Mesh->SetObjectPropertyValue_InContainer(Entry, Mesh);
+			break;
+		}
+		case EEFCalystoArchitectureObjectTypeV6::ActorBlueprint:
+		{
+			UClass* ActorClass = Source.ActorClass.Get();
+			if (!Source.ActorClass.IsNull() && (!IsValid(ActorClass) || ActorClass->HasAnyClassFlags(CLASS_Abstract)
+				|| !ActorClass->IsChildOf(Schema.Blueprint->MetaClass)))
+			{
+				OutError = FString::Printf(
+					TEXT("%s Actor Blueprint %s is not resident or is incompatible with Calysto."),
+					*Label, *Source.ActorClass.ToSoftObjectPath().ToString());
+				return false;
+			}
+			Schema.Blueprint->SetObjectPropertyValue_InContainer(Entry, ActorClass);
+			break;
+		}
+		case EEFCalystoArchitectureObjectTypeV6::LevelInstance:
+		{
+			UObject* LevelInstance = Source.LevelInstance.Get();
+			if (!Source.LevelInstance.IsNull() && (!IsValid(LevelInstance) || !LevelInstance->IsA(Schema.LevelInstance->PropertyClass)))
+			{
+				OutError = FString::Printf(
+					TEXT("%s Level Instance %s is not resident or violates the Calysto property class."),
+					*Label, *Source.LevelInstance.ToSoftObjectPath().ToString());
+				return false;
+			}
+			Schema.LevelInstance->SetObjectPropertyValue_InContainer(Entry, LevelInstance);
+			break;
+		}
+		default:
+			OutError = FString::Printf(TEXT("%s uses unsupported object type %d."), *Label, static_cast<int32>(Source.Type));
+			return false;
+		}
+
+		int64 TypeValue = 0;
+		int64 RotationValue = 0;
+		if (!ResolveArchitectureTypeValue(Schema.Type, Source.Type, TypeValue, OutError)
+			|| !ResolveArchitectureRotationValue(Schema.RotationType, Source.Rotation, RotationValue, OutError)
+			|| !WriteEnumValue(Schema.Type, Entry, TypeValue, OutError)
+			|| !WriteEnumValue(Schema.RotationType, Entry, RotationValue, OutError))
+		{
+			return false;
+		}
+
+		Schema.Weight->SetPropertyValue_InContainer(Entry, Source.SelectionWeight);
+		*Schema.TransformMinimum->ContainerPtrToValuePtr<FVector>(Entry) = Source.Variation.LocationMinimum;
+		*Schema.TransformMaximum->ContainerPtrToValuePtr<FVector>(Entry) = Source.Variation.LocationMaximum;
+		*Schema.RotationMinimum->ContainerPtrToValuePtr<FRotator>(Entry) = Source.Variation.RotationMinimum;
+		*Schema.RotationMaximum->ContainerPtrToValuePtr<FRotator>(Entry) = Source.Variation.RotationMaximum;
+		Schema.UniformScale->SetPropertyValue_InContainer(Entry, Source.Variation.bUniformScale);
+		*Schema.ScaleMinimum->ContainerPtrToValuePtr<FVector>(Entry) = Source.Variation.ScaleMinimum;
+		*Schema.ScaleMaximum->ContainerPtrToValuePtr<FVector>(Entry) = Source.Variation.ScaleMaximum;
+		return true;
+	}
+
+	static bool PopulateArchitectureArray(
+		UObject* RoomType,
+		FArrayProperty* ArrayProperty,
+		const FRoomArchitectureSchema& Schema,
+		const TArray<FEFCalystoArchitectureObjectV6>& Source,
+		const FString& Label,
+		FString& OutError)
+	{
+		if (!IsValid(RoomType) || !ArrayProperty)
+		{
+			OutError = FString::Printf(TEXT("%s has no valid transient target array."), *Label);
+			return false;
+		}
+		FScriptArrayHelper Entries(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(RoomType));
+		Entries.Resize(Source.Num());
+		for (int32 Index = 0; Index < Source.Num(); ++Index)
+		{
+			if (!WriteArchitectureEntry(
+				Entries.GetRawPtr(Index),
+				Schema,
+				Source[Index],
+				FString::Printf(TEXT("%s[%d]"), *Label, Index),
+				OutError))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static bool PopulateRoomArchitecture(
+		UObject* RoomType,
+		const FRoomArchitectureSchema& Schema,
+		const FEFCalystoRoomArchitectureV6& Architecture,
+		const FName ThemeId,
+		FString& OutError)
+	{
+		const FString Prefix = FString::Printf(TEXT("V6 Theme '%s' Architecture"), *ThemeId.ToString());
+		return PopulateArchitectureArray(RoomType, Schema.WallBottom, Schema, Architecture.WallBottom, Prefix + TEXT(".Wall Bottom"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.WallMiddle, Schema, Architecture.WallMiddle, Prefix + TEXT(".Wall Middle"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.WallTop, Schema, Architecture.WallTop, Prefix + TEXT(".Wall Top"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.Floor, Schema, Architecture.Floor, Prefix + TEXT(".Floor"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.CornerBottom, Schema, Architecture.CornerBottom, Prefix + TEXT(".Corner Bottom"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.CornerMiddle, Schema, Architecture.CornerMiddle, Prefix + TEXT(".Corner Middle"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.CornerTop, Schema, Architecture.CornerTop, Prefix + TEXT(".Corner Top"), OutError)
+			&& PopulateArchitectureArray(RoomType, Schema.Roof, Schema, Architecture.Roof, Prefix + TEXT(".Roof"), OutError);
 	}
 
 	static UObject* DuplicateTransiently(UObject* Source, AActor* DungeonActor, const TCHAR* Suffix)
@@ -433,74 +1016,578 @@ namespace EFCalystoPCGAdapterPrivate
 		Property->SetFloatingPointPropertyValue(Property->ContainerPtrToValuePtr<void>(Container), Value);
 	}
 
-	static bool ApplySelectedThemeV4(
-		UObject* ThemeClone,
-		const FThemeSchema& Schema,
-		const EEFCalystoThemeV4 Theme,
-		UObject* SelectedRoomType,
-		int32& OutUpdatedEntries,
+	static bool ResolveResidentMaterial(
+		const TSoftObjectPtr<UMaterialInstance>& MaterialReference,
+		const FString& ContractName,
+		UMaterialInstance*& OutMaterial,
 		FString& OutError)
 	{
+		OutMaterial = Cast<UMaterialInstance>(MaterialReference.Get());
+		if (!IsValid(OutMaterial))
+		{
+			OutError = FString::Printf(
+				TEXT("%s material %s is not a resident UMaterialInstance. V6 Floor Visual preload must complete before PCG generation."),
+				*ContractName,
+				*MaterialReference.ToSoftObjectPath().ToString());
+			return false;
+		}
+		return true;
+	}
+
+	// All writes below target a transient clone and reject changes in the vendor schema.
+	static bool WriteNativeObject(const UStruct* Schema, void* Data, const TCHAR* Name,
+		UObject* Value, const bool bRequired, FString& Error)
+	{
+		FObjectPropertyBase* Property = FindTypedAllowlistedProperty<FObjectPropertyBase>(
+			Schema, Name, TEXT("object/class property"), Error);
+		if (!Property || (bRequired && !IsValid(Value))
+			|| (Value && !Value->IsA(Property->PropertyClass)))
+		{
+			if (Error.IsEmpty()) Error = FString::Printf(TEXT("Inline Architecture %s is not resident or has an incompatible class."), Name);
+			return false;
+		}
+		if (FClassProperty* ClassProperty = CastField<FClassProperty>(Property))
+		{
+			UClass* Class = Cast<UClass>(Value);
+			if (Value && (!Class || !Class->IsChildOf(ClassProperty->MetaClass)))
+			{
+				Error = FString::Printf(TEXT("Inline Architecture %s violates the native Actor class contract."), Name);
+				return false;
+			}
+		}
+		Property->SetObjectPropertyValue_InContainer(Data, Value);
+		return true;
+	}
+
+	template<typename T>
+	static bool WriteNativeStruct(const UStruct* Schema, void* Data, const TCHAR* Name, const T& Value, FString& Error)
+	{
+		FStructProperty* Property = FindTypedAllowlistedProperty<FStructProperty>(Schema, Name, TEXT("struct property"), Error);
+		if (!Property || Property->Struct != TBaseStructure<T>::Get())
+		{
+			if (Error.IsEmpty()) Error = FString::Printf(TEXT("Inline Architecture %s has changed struct type."), Name);
+			return false;
+		}
+		*Property->ContainerPtrToValuePtr<T>(Data) = Value;
+		return true;
+	}
+
+	static bool WriteNativeBool(const UStruct* Schema, void* Data, const TCHAR* Name, bool Value, FString& Error)
+	{
+		FBoolProperty* Property = FindTypedAllowlistedProperty<FBoolProperty>(Schema, Name, TEXT("bool property"), Error);
+		if (!Property) return false;
+		Property->SetPropertyValue_InContainer(Data, Value);
+		return true;
+	}
+
+	static bool WriteNativeWeight(const UStruct* Schema, void* Data, double Value, FString& Error)
+	{
+		FNumericProperty* Property = FindTypedAllowlistedProperty<FNumericProperty>(Schema, TEXT("Weight"), TEXT("numeric property"), Error);
+		if (!Property || !FMath::IsFinite(Value) || Value < 0.0) return false;
+		void* Address = Property->ContainerPtrToValuePtr<void>(Data);
+		if (Property->IsFloatingPoint()) Property->SetFloatingPointPropertyValue(Address, Value);
+		else Property->SetIntPropertyValue(Address, FMath::RoundToInt64(Value));
+		return true;
+	}
+
+	static bool WriteFixedTransform(const UStruct* Schema, void* Data,
+		const FEFCalystoArchitectureTransformV6& Transform, const FString& Suffix, FString& Error)
+	{
+		return WriteNativeBool(Schema, Data, *(TEXT("Object Uniform Scale") + Suffix), Transform.bUniformScale, Error)
+			&& WriteNativeStruct(Schema, Data, *(TEXT("Object Transform") + Suffix), Transform.LocationOffset, Error)
+			&& WriteNativeStruct(Schema, Data, *(TEXT("Object Rotation") + Suffix), Transform.RotationOffset, Error)
+			&& WriteNativeStruct(Schema, Data, *(TEXT("Object Scale") + Suffix), Transform.Scale, Error);
+	}
+
+	static bool WriteVariation(const UStruct* Schema, void* Data,
+		const FEFCalystoArchitectureVariationV6& Variation, FString& Error)
+	{
+		return WriteNativeStruct(Schema, Data, TEXT("Transform Min"), Variation.LocationMinimum, Error)
+			&& WriteNativeStruct(Schema, Data, TEXT("Transform Max"), Variation.LocationMaximum, Error)
+			&& WriteNativeStruct(Schema, Data, TEXT("Rotation Min"), Variation.RotationMinimum, Error)
+			&& WriteNativeStruct(Schema, Data, TEXT("Rotation Max"), Variation.RotationMaximum, Error)
+			&& WriteNativeBool(Schema, Data, TEXT("Uniform Scale"), Variation.bUniformScale, Error)
+			&& WriteNativeStruct(Schema, Data, TEXT("Scale Min"), Variation.ScaleMinimum, Error)
+			&& WriteNativeStruct(Schema, Data, TEXT("Scale Max"), Variation.ScaleMaximum, Error);
+	}
+
+	template<typename EntryType, typename Writer>
+	static bool WriteStyleArray(UObject* Clone, const TCHAR* Name, const TArray<EntryType>& Source, Writer&& Write, FString& Error)
+	{
+		FArrayProperty* Property = FindTypedAllowlistedProperty<FArrayProperty>(Clone->GetClass(), Name, TEXT("struct array"), Error);
+		FStructProperty* Inner = Property ? CastField<FStructProperty>(Property->Inner) : nullptr;
+		if (!Inner || !Inner->Struct)
+		{
+			if (Error.IsEmpty()) Error = FString::Printf(TEXT("Style Architecture %s is not a struct array."), Name);
+			return false;
+		}
+		FScriptArrayHelper Array(Property, Property->ContainerPtrToValuePtr<void>(Clone));
+		Array.Resize(0);
+		for (const EntryType& Entry : Source)
+		{
+			void* Data = Array.GetRawPtr(Array.AddValue());
+			if (!Write(Inner->Struct, Data, Entry)) return false;
+		}
+		return true;
+	}
+
+	static bool ApplyStyleArchitectureV6(UObject* Clone, const FEFCalystoStyleArchitectureV6& SourceArchitecture,
+		UClass* RoomTypeClass, FString& Error)
+	{
+		FEFCalystoStyleArchitectureV6 Architecture = SourceArchitecture;
+		Architecture.WallLights.Reset();
+		for (const FEFCalystoArchitectureLightV6& Light : SourceArchitecture.WallLights)
+		{
+			if (Light.PlacementZone == EEFCalystoPlacementZoneV6::WallMiddle)
+			{
+				Architecture.WallLights.Add(Light);
+				continue;
+			}
+			FEFCalystoArchitectureObjectV6 Object;
+			Object.Type = EEFCalystoArchitectureObjectTypeV6::ActorBlueprint;
+			Object.ActorClass = Light.ActorClass;
+			Object.SelectionWeight = Light.SelectionWeight;
+			Object.Variation = Light.Variation;
+			Object.Variation.LocationMinimum.Y -= Light.PositionJitterCm;
+			Object.Variation.LocationMaximum.Y += Light.PositionJitterCm;
+			Object.Variation.LocationMinimum.Z -= Light.PositionJitterCm;
+			Object.Variation.LocationMaximum.Z += Light.PositionJitterCm;
+			if (Light.PlacementZone == EEFCalystoPlacementZoneV6::WallBottom) Architecture.WallBottomObjects.Add(Object);
+			else if (Light.PlacementZone == EEFCalystoPlacementZoneV6::WallTop) Architecture.WallTopObjects.Add(Object);
+			else { Error = TEXT("Style lights require a Wall Bottom, Wall Middle or Wall Top placement zone."); return false; }
+		}
+		const auto MeshWriter = [&Error](const UStruct* Schema, void* Data, const FEFCalystoArchitectureMeshV6& Entry)
+		{
+			return WriteNativeObject(Schema, Data, TEXT("Mesh"), Entry.Mesh.Get(), !Entry.Mesh.IsNull(), Error)
+				&& WriteNativeWeight(Schema, Data, Entry.SelectionWeight, Error)
+				&& WriteFixedTransform(Schema, Data, Entry.Transform, TEXT(""), Error);
+		};
+		const auto ActorWriter = [&Error](const UStruct* Schema, void* Data, const FEFCalystoArchitectureActorV6& Entry)
+		{
+			return WriteNativeObject(Schema, Data, TEXT("Mesh"), Entry.ActorClass.Get(), !Entry.ActorClass.IsNull(), Error)
+				&& WriteNativeWeight(Schema, Data, Entry.SelectionWeight, Error)
+				&& WriteFixedTransform(Schema, Data, Entry.Transform, TEXT(""), Error);
+		};
+		const auto DoorWriter = [&Error](const UStruct* Schema, void* Data, const FEFCalystoArchitectureDoorwayV6& Entry)
+		{
+			return WriteNativeObject(Schema, Data, TEXT("Mesh Wall"), Entry.WallMesh.Get(), !Entry.WallMesh.IsNull(), Error)
+				&& WriteNativeObject(Schema, Data, TEXT("Mesh Frame"), Entry.FrameMesh.Get(), !Entry.FrameMesh.IsNull(), Error)
+				&& WriteNativeObject(Schema, Data, TEXT("Door Blueprint"), Entry.DoorClass.Get(), !Entry.DoorClass.IsNull(), Error)
+				&& WriteNativeWeight(Schema, Data, Entry.SelectionWeight, Error)
+				&& WriteFixedTransform(Schema, Data, Entry.WallTransform, TEXT(""), Error)
+				&& WriteFixedTransform(Schema, Data, Entry.FrameTransform, TEXT(" Frame"), Error)
+				&& WriteFixedTransform(Schema, Data, Entry.DoorTransform, TEXT(" Door"), Error);
+		};
+		const auto LightWriter = [&Error](const UStruct* Schema, void* Data, const FEFCalystoArchitectureLightV6& Entry)
+		{
+			FEFCalystoArchitectureVariationV6 Variation = Entry.Variation;
+			// Native light transforms are in the wall's local frame. Keep depth fixed.
+			Variation.LocationMinimum.Y -= Entry.PositionJitterCm;
+			Variation.LocationMaximum.Y += Entry.PositionJitterCm;
+			Variation.LocationMinimum.Z -= Entry.PositionJitterCm;
+			Variation.LocationMaximum.Z += Entry.PositionJitterCm;
+			return WriteNativeObject(Schema, Data, TEXT("Blueprint"), Entry.ActorClass.Get(), !Entry.ActorClass.IsNull(), Error)
+				&& WriteNativeWeight(Schema, Data, Entry.SelectionWeight, Error)
+				&& WriteVariation(Schema, Data, Variation, Error);
+		};
+		FRoomArchitectureSchema ObjectSchema;
+		if (!ResolveRoomArchitectureSchema(RoomTypeClass, ObjectSchema, Error)) return false;
+		const auto ObjectWriter = [&Error, &ObjectSchema](const UStruct* Schema, void* Data, const FEFCalystoArchitectureObjectV6& Entry)
+		{
+			if (Schema != ObjectSchema.EntryStruct->Struct)
+			{
+				Error = TEXT("Style decoration entries no longer share ST_ObjectDungeon with Room Architecture.");
+				return false;
+			}
+			return WriteArchitectureEntry(Data, ObjectSchema, Entry, TEXT("Style Architecture"), Error);
+		};
+		return WriteStyleArray(Clone, TEXT("Floor"), Architecture.Floor, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("Wall"), Architecture.Wall, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("Roof"), Architecture.Roof, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("DoorFrame"), Architecture.DoorFrame, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("RampTop"), Architecture.RampTop, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("RampBottom"), Architecture.RampBottom, MeshWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("Door"), Architecture.Door, ActorWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("WallDoor"), Architecture.WallDoor, DoorWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("WallLightObject"), Architecture.WallLights, LightWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("WallBottomObject"), Architecture.WallBottomObjects, ObjectWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("WallMiddleObject"), Architecture.WallMiddleObjects, ObjectWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("WallTopObject"), Architecture.WallTopObjects, ObjectWriter, Error)
+			&& WriteStyleArray(Clone, TEXT("RoofObject"), Architecture.RoofObjects, ObjectWriter, Error)
+			&& WriteNativeObject(Clone->GetClass(), Clone, TEXT("StartBlueprint"), Architecture.StartBlueprint.Get(), !Architecture.StartBlueprint.IsNull(), Error)
+			&& WriteNativeObject(Clone->GetClass(), Clone, TEXT("EndBlueprint"), Architecture.EndBlueprint.Get(), !Architecture.EndBlueprint.IsNull(), Error);
+	}
+
+	static bool ApplyDungeonMaterialPlanV6(
+		UObject* DungeonMaterialClone,
+		const FDungeonMaterialSchema& Schema,
+		const FEFCalystoSurfaceMaterialSetV6& StyleMaterials,
+		int32& OutUpdatedSlots,
+		FString& OutError)
+	{
+		OutUpdatedSlots = 0;
+		UMaterialInstance* FloorMaterial = nullptr;
+		UMaterialInstance* WallMaterial = nullptr;
+		UMaterialInstance* RoofMaterial = nullptr;
+		if (!ResolveResidentMaterial(StyleMaterials.FloorMaterial, TEXT("V6 Style Floor"), FloorMaterial, OutError)
+			|| !ResolveResidentMaterial(StyleMaterials.WallMaterial, TEXT("V6 Style Wall"), WallMaterial, OutError)
+			|| !ResolveResidentMaterial(StyleMaterials.RoofMaterial, TEXT("V6 Style Roof"), RoofMaterial, OutError))
+		{
+			return false;
+		}
+
+		const auto WriteSlot = [DungeonMaterialClone](
+			const FMaterialSlotSchema& Slot,
+			UMaterialInstance* Material)
+		{
+			void* SlotValue = Slot.Slot->ContainerPtrToValuePtr<void>(DungeonMaterialClone);
+			Slot.Material->SetObjectPropertyValue_InContainer(SlotValue, Material);
+		};
+		WriteSlot(Schema.Floor, FloorMaterial);
+		WriteSlot(Schema.Wall, WallMaterial);
+		WriteSlot(Schema.Roof, RoofMaterial);
+		OutUpdatedSlots = 3;
+		return true;
+	}
+
+	static bool ApplyReachableThemeCompatibilityV6(
+		AActor* DungeonActor,
+		UObject* ThemeClone,
+		const FThemeSchema& Schema,
+		const FEFCalystoResolvedFloorPlanV6& FloorPlan,
+		TMap<FName, TObjectPtr<UObject>>& OutThemeRoomTypes,
+		TArray<TStrongObjectPtr<UObject>>& OutStrongReferences,
+		int32& OutUpdatedEntries,
+		int32& OutUpdatedMaterialEntries,
+		FString& OutError)
+	{
+		OutThemeRoomTypes.Reset();
+		OutStrongReferences.Reset();
 		OutUpdatedEntries = 0;
+		OutUpdatedMaterialEntries = 0;
+		if (!IsValid(DungeonActor) || !Schema.RoomType || !IsValid(Schema.RoomType->PropertyClass))
+		{
+			OutError = TEXT("The V6 Room Theme adapter cannot synthesize room architecture without a valid runtime actor and RoomType property class.");
+			return false;
+		}
+
+		FRoomArchitectureSchema ArchitectureSchema;
+		if (!ResolveRoomArchitectureSchema(Schema.RoomType->PropertyClass, ArchitectureSchema, OutError))
+		{
+			return false;
+		}
 		FScriptArrayHelper Entries(Schema.Entries, Schema.Entries->ContainerPtrToValuePtr<void>(ThemeClone));
 		if (Entries.Num() <= 0)
 		{
-			OutError = TEXT("The transient Calysto V4 theme clone has no ST_RoomTheme entries.");
+			OutError = TEXT("The transient Calysto V6 Room Theme compatibility clone has no ST_RoomTheme entries.");
 			return false;
 		}
 
-		if (Theme == EEFCalystoThemeV4::Default)
+		FStructOnScope VendorTemplate(Schema.EntryStruct->Struct);
+		if (!VendorTemplate.IsValid())
 		{
-			if (IsValid(SelectedRoomType))
+			OutError = TEXT("The vendor ST_RoomTheme schema could not create a transient template record.");
+			return false;
+		}
+		Schema.EntryStruct->Struct->CopyScriptStruct(
+			VendorTemplate.GetStructMemory(), Entries.GetRawPtr(0));
+
+		TArray<const FEFCalystoResolvedThemeProfileV6*> OrderedThemes;
+		OrderedThemes.Reserve(FloorPlan.Themes.Num());
+		TSet<FName> ThemeIds;
+		for (const FEFCalystoResolvedThemeProfileV6& Theme : FloorPlan.Themes)
+		{
+			if (Theme.ThemeId.IsNone() || !FMath::IsFinite(Theme.SelectionWeight)
+				|| Theme.SelectionWeight <= 0.0f || Theme.ArchitectureHash.Len() != 64)
 			{
-				OutError = TEXT("The neutral Default V4 theme must not force a Calysto room type.");
+				OutError = FString::Printf(
+					TEXT("Reachable V6 Theme '%s' has an invalid weight or inline Architecture Hash."),
+					*Theme.ThemeId.ToString());
 				return false;
 			}
-			for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
+			if (ThemeIds.Contains(Theme.ThemeId))
 			{
-				void* Entry = Entries.GetRawPtr(EntryIndex);
-				UObject* ExistingRoomType = Schema.RoomType->GetObjectPropertyValue_InContainer(Entry);
-				const double ExistingWeight = Schema.Weight->GetFloatingPointPropertyValue(
-					Schema.Weight->ContainerPtrToValuePtr<void>(Entry));
-				if (!IsValid(ExistingRoomType) || !FMath::IsFinite(ExistingWeight) || ExistingWeight <= 0.0)
+				OutError = FString::Printf(
+					TEXT("Frozen V6 floor plan contains duplicate Theme ID '%s'."),
+					*Theme.ThemeId.ToString());
+				return false;
+			}
+			ThemeIds.Add(Theme.ThemeId);
+			OrderedThemes.Add(&Theme);
+		}
+		OrderedThemes.Sort([](
+			const FEFCalystoResolvedThemeProfileV6& Left,
+			const FEFCalystoResolvedThemeProfileV6& Right)
+		{
+			return Left.ThemeId.ToString().ToLower() < Right.ThemeId.ToString().ToLower();
+		});
+
+		const auto ApplyThemeSlot = [&OutError](
+			FBoolProperty* OverrideProperty,
+			FObjectProperty* MaterialProperty,
+			void* Entry,
+			const EEFCalystoMaterialResolutionModeV6 Mode,
+			const TSoftObjectPtr<UMaterialInstance>& MaterialReference,
+			const FString& ContractName)
+		{
+			const bool bOverride = Mode == EEFCalystoMaterialResolutionModeV6::Override;
+			OverrideProperty->SetPropertyValue_InContainer(Entry, bOverride);
+			if (!bOverride)
+			{
+				MaterialProperty->SetObjectPropertyValue_InContainer(Entry, nullptr);
+				return true;
+			}
+			UMaterialInstance* Material = nullptr;
+			if (!ResolveResidentMaterial(MaterialReference, ContractName, Material, OutError))
+			{
+				return false;
+			}
+			MaterialProperty->SetObjectPropertyValue_InContainer(Entry, Material);
+			return true;
+		};
+
+		// The vendor asset supplies only the reflected schema and one initialized
+		// template. V6 rebuilds the transient array from the complete frozen Theme
+		// set, so an open FName policy is not capped by the vendor's authored rows.
+		Entries.Resize(0);
+		for (const FEFCalystoResolvedThemeProfileV6* ThemePtr : OrderedThemes)
+		{
+			if (!ThemePtr)
+			{
+				OutError = TEXT("The canonical reachable Theme order contains a null profile.");
+				return false;
+			}
+			const FEFCalystoResolvedThemeProfileV6& Theme = *ThemePtr;
+			FString SafeThemeName = Theme.ThemeId.ToString();
+			for (TCHAR& Character : SafeThemeName)
+			{
+				if (!FChar::IsAlnum(Character) && Character != TEXT('_'))
 				{
-					OutError = FString::Printf(
-						TEXT("Default V4 theme entry %d has invalid room type or weight."),
-						EntryIndex);
-					return false;
+					Character = TEXT('_');
 				}
 			}
-			return true;
-		}
+			const FName BaseName(*FString::Printf(TEXT("EFCalystoV6_%s_RoomArchitecture"), *SafeThemeName));
+			const FName ObjectName = MakeUniqueObjectName(DungeonActor, Schema.RoomType->PropertyClass, BaseName);
+			UObject* RoomType = NewObject<UObject>(
+				DungeonActor,
+				Schema.RoomType->PropertyClass,
+				ObjectName,
+				RF_Transient);
+			if (!IsValid(RoomType) || RoomType->GetOuter() != DungeonActor
+				|| !RoomType->HasAnyFlags(RF_Transient)
+				|| !PopulateRoomArchitecture(RoomType, ArchitectureSchema, Theme.Architecture, Theme.ThemeId, OutError))
+			{
+				if (OutError.IsEmpty())
+				{
+					OutError = FString::Printf(
+						TEXT("V6 failed to synthesize transient Calysto Room Type for Theme '%s'."),
+						*Theme.ThemeId.ToString());
+				}
+				return false;
+			}
+			OutThemeRoomTypes.Add(Theme.ThemeId, RoomType);
+			OutStrongReferences.Emplace(RoomType);
 
-		if (!IsValid(SelectedRoomType))
+			const int32 EntryIndex = Entries.AddValue();
+			void* Entry = Entries.GetRawPtr(EntryIndex);
+			Schema.EntryStruct->Struct->CopyScriptStruct(
+				Entry, VendorTemplate.GetStructMemory());
+			Schema.RoomType->SetObjectPropertyValue_InContainer(Entry, RoomType);
+			const FString ThemeLabel = FString::Printf(TEXT("V6 Room Theme %s"), *Theme.ThemeId.ToString());
+			if (!ApplyThemeSlot(Schema.OverrideFloorMaterial, Schema.FloorMaterial, Entry,
+					Theme.FloorMaterialMode, Theme.EffectiveMaterials.FloorMaterial, ThemeLabel + TEXT(" Floor"))
+				|| !ApplyThemeSlot(Schema.OverrideWallMaterial, Schema.WallMaterial, Entry,
+					Theme.WallMaterialMode, Theme.EffectiveMaterials.WallMaterial, ThemeLabel + TEXT(" Wall"))
+				|| !ApplyThemeSlot(Schema.OverrideRoofMaterial, Schema.RoofMaterial, Entry,
+					Theme.RoofMaterialMode, Theme.EffectiveMaterials.RoofMaterial, ThemeLabel + TEXT(" Roof")))
+			{
+				return false;
+			}
+			Schema.Weight->SetPropertyValue_InContainer(Entry, static_cast<double>(Theme.SelectionWeight));
+			++OutUpdatedEntries;
+			++OutUpdatedMaterialEntries;
+		}
+		if (Entries.Num() != FloorPlan.Themes.Num())
 		{
-			OutError = TEXT("Forge/Shrine V4 theme selected an unloaded Calysto room type.");
+			OutError = TEXT("The transient ST_RoomTheme array did not materialize every frozen reachable Theme.");
 			return false;
 		}
-		int32 MatchCount = 0;
+		if (OutThemeRoomTypes.Num() != FloorPlan.Themes.Num()
+			|| OutStrongReferences.Num() != FloorPlan.Themes.Num())
+		{
+			OutError = TEXT("The transient Room Type retention set does not cover every reachable V6 Theme.");
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Read the committed transient objects back through the same narrow reflected
+	 * contract used for application.  This is deliberately native rather than
+	 * Python/editor-property based: Calysto keeps the relevant BP variables
+	 * private, while the runtime contract must be certified in packaged builds
+	 * too.  A failure here happens before GetPiecesShape/PCG starts.
+	 */
+	static bool VerifyCommittedVisualMaterialPlanV6(
+		AActor* DungeonActor,
+		UObject* DungeonMaterialClone,
+		UObject* ThemeClone,
+		const FActorSchema& ActorSchema,
+		const FDungeonMaterialSchema& DungeonMaterialSchema,
+		const FThemeSchema& ThemeSchema,
+		const FEFCalystoResolvedFloorPlanV6& FloorPlan,
+		FString& OutProof,
+		const TMap<FName, TObjectPtr<UObject>>& ThemeRoomTypes,
+		FString& OutError)
+	{
+		OutProof.Reset();
+		OutError.Reset();
+		if (!IsValid(DungeonActor) || !IsValid(DungeonMaterialClone) || !IsValid(ThemeClone))
+		{
+			OutError = TEXT("V6 visual-material verification received an invalid runtime object.");
+			return false;
+		}
+		if (ActorSchema.DungeonMaterial->GetObjectPropertyValue_InContainer(DungeonActor) != DungeonMaterialClone
+			|| ActorSchema.RoomThemeList->GetObjectPropertyValue_InContainer(DungeonActor) != ThemeClone
+			|| DungeonMaterialClone->GetOuter() != DungeonActor
+			|| ThemeClone->GetOuter() != DungeonActor
+			|| !DungeonMaterialClone->HasAnyFlags(RF_Transient)
+			|| !ThemeClone->HasAnyFlags(RF_Transient))
+		{
+			OutError = TEXT("V6 visual-material clones were not committed as transient properties of the runtime dungeon actor.");
+			return false;
+		}
+		if (!ActorSchema.OverrideFloorMaterial->GetPropertyValue_InContainer(DungeonActor)
+			|| !ActorSchema.OverrideWallMaterial->GetPropertyValue_InContainer(DungeonActor)
+			|| !ActorSchema.OverrideRoofMaterial->GetPropertyValue_InContainer(DungeonActor))
+		{
+			OutError = TEXT("V6 Style Dungeon Material priority flags are not all enabled on the runtime dungeon actor.");
+			return false;
+		}
+
+		const auto VerifyDungeonSlot = [&OutError, DungeonMaterialClone](
+			const FMaterialSlotSchema& Slot,
+			const TSoftObjectPtr<UMaterialInstance>& ExpectedReference,
+			const TCHAR* Label)
+		{
+			UMaterialInstance* ExpectedMaterial = nullptr;
+			if (!ResolveResidentMaterial(ExpectedReference, FString::Printf(TEXT("V6 verification %s"), Label), ExpectedMaterial, OutError))
+			{
+				return false;
+			}
+			void* SlotValue = Slot.Slot->ContainerPtrToValuePtr<void>(DungeonMaterialClone);
+			UObject* ActualMaterial = Slot.Material->GetObjectPropertyValue_InContainer(SlotValue);
+			if (ActualMaterial != ExpectedMaterial)
+			{
+				OutError = FString::Printf(
+					TEXT("V6 %s material mismatch after commit: expected %s, actual %s."),
+					Label,
+					*GetPathNameSafe(ExpectedMaterial),
+					*GetPathNameSafe(ActualMaterial));
+				return false;
+			}
+			return true;
+		};
+		if (!VerifyDungeonSlot(DungeonMaterialSchema.Floor, FloorPlan.StyleMaterials.FloorMaterial, TEXT("Dungeon Floor"))
+			|| !VerifyDungeonSlot(DungeonMaterialSchema.Wall, FloorPlan.StyleMaterials.WallMaterial, TEXT("Dungeon Wall"))
+			|| !VerifyDungeonSlot(DungeonMaterialSchema.Roof, FloorPlan.StyleMaterials.RoofMaterial, TEXT("Dungeon Roof")))
+		{
+			return false;
+		}
+
+		TMap<UObject*, const FEFCalystoResolvedThemeProfileV6*> ThemesByRoomType;
+		for (const FEFCalystoResolvedThemeProfileV6& Theme : FloorPlan.Themes)
+		{
+			UObject* RoomType = ThemeRoomTypes.FindRef(Theme.ThemeId);
+			if (!IsValid(RoomType) || ThemesByRoomType.Contains(RoomType))
+			{
+				OutError = TEXT("V6 visual-material verification requires one resident Room Type per reachable Theme.");
+				return false;
+			}
+			ThemesByRoomType.Add(RoomType, &Theme);
+		}
+
+		const auto VerifyThemeSlot = [&OutError](
+			FBoolProperty* OverrideProperty,
+			FObjectProperty* MaterialProperty,
+			void* Entry,
+			const bool bExpectedOverride,
+			const TSoftObjectPtr<UMaterialInstance>& ExpectedReference,
+			const FString& Label)
+		{
+			const bool bActualOverride = OverrideProperty->GetPropertyValue_InContainer(Entry);
+			if (bActualOverride != bExpectedOverride)
+			{
+				OutError = FString::Printf(TEXT("V6 %s priority flag mismatch after commit."), *Label);
+				return false;
+			}
+			UObject* ActualMaterial = MaterialProperty->GetObjectPropertyValue_InContainer(Entry);
+			if (!bExpectedOverride)
+			{
+				if (ActualMaterial != nullptr)
+				{
+					OutError = FString::Printf(
+						TEXT("V6 %s Inherit slot retained material %s; nullptr is required."),
+						*Label,
+						*GetPathNameSafe(ActualMaterial));
+					return false;
+				}
+				return true;
+			}
+			UMaterialInstance* ExpectedMaterial = nullptr;
+			if (!ResolveResidentMaterial(ExpectedReference, TEXT("V6 Room Theme verification"), ExpectedMaterial, OutError))
+			{
+				return false;
+			}
+			if (ActualMaterial != ExpectedMaterial)
+			{
+				OutError = FString::Printf(
+					TEXT("V6 %s material mismatch after commit: expected %s, actual %s."),
+					*Label,
+					*GetPathNameSafe(ExpectedMaterial),
+					*GetPathNameSafe(ActualMaterial));
+				return false;
+			}
+			return true;
+		};
+
+		FScriptArrayHelper Entries(ThemeSchema.Entries, ThemeSchema.Entries->ContainerPtrToValuePtr<void>(ThemeClone));
+		TSet<UObject*> VerifiedRoomTypes;
 		for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
 		{
 			void* Entry = Entries.GetRawPtr(EntryIndex);
-			UObject* ExistingRoomType = Schema.RoomType->GetObjectPropertyValue_InContainer(Entry);
-			if (!IsValid(ExistingRoomType))
+			UObject* RoomType = ThemeSchema.RoomType->GetObjectPropertyValue_InContainer(Entry);
+			const FEFCalystoResolvedThemeProfileV6* const* PlannedTheme = ThemesByRoomType.Find(RoomType);
+			if (!RoomType || !PlannedTheme || !*PlannedTheme || VerifiedRoomTypes.Contains(RoomType))
 			{
-				OutError = FString::Printf(TEXT("V4 theme entry %d has no valid RoomType."), EntryIndex);
+				OutError = TEXT("V6 visual-material verification could not match one unique reachable Room Theme clone entry.");
 				return false;
 			}
-			const bool bSelected = ExistingRoomType == SelectedRoomType;
-			Schema.Weight->SetPropertyValue_InContainer(Entry, bSelected ? 5.0 : 1.0);
-			MatchCount += bSelected ? 1 : 0;
-			++OutUpdatedEntries;
+			const FEFCalystoResolvedThemeProfileV6& Theme = **PlannedTheme;
+			const FString ThemeLabel = Theme.ThemeId.ToString();
+			if (!VerifyThemeSlot(ThemeSchema.OverrideFloorMaterial, ThemeSchema.FloorMaterial, Entry,
+					Theme.FloorMaterialMode == EEFCalystoMaterialResolutionModeV6::Override, Theme.EffectiveMaterials.FloorMaterial, ThemeLabel + TEXT(" Floor"))
+				|| !VerifyThemeSlot(ThemeSchema.OverrideWallMaterial, ThemeSchema.WallMaterial, Entry,
+					Theme.WallMaterialMode == EEFCalystoMaterialResolutionModeV6::Override, Theme.EffectiveMaterials.WallMaterial, ThemeLabel + TEXT(" Wall"))
+				|| !VerifyThemeSlot(ThemeSchema.OverrideRoofMaterial, ThemeSchema.RoofMaterial, Entry,
+					Theme.RoofMaterialMode == EEFCalystoMaterialResolutionModeV6::Override, Theme.EffectiveMaterials.RoofMaterial, ThemeLabel + TEXT(" Roof")))
+			{
+				return false;
+			}
+			VerifiedRoomTypes.Add(RoomType);
 		}
-		if (MatchCount != 1)
+		if (VerifiedRoomTypes.Num() != ThemesByRoomType.Num())
 		{
-			OutError = FString::Printf(
-				TEXT("Selected V4 Calysto room type %s matched %d vendor theme entries; exactly one is required."),
-				*GetPathNameSafe(SelectedRoomType),
-				MatchCount);
+			OutError = TEXT("V6 visual-material verification did not read every reachable Room Theme clone entry.");
 			return false;
 		}
+		OutProof = FString::Printf(
+			TEXT("visualInputPlanProof=PASS visualActorPriority=111 visualDungeonMaterialClone=%s visualRoomThemeListClone=%s styleId=%s styleMaterialHash=%s reachableThemes=%d"),
+			*GetPathNameSafe(DungeonMaterialClone),
+			*GetPathNameSafe(ThemeClone),
+			*FloorPlan.StyleId.ToString(),
+			*FloorPlan.StyleMaterialHash,
+			FloorPlan.Themes.Num());
 		return true;
 	}
 }
@@ -531,26 +1618,32 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 		return Fail(TEXT("Calysto dungeon subsystem or harness settings are unavailable."));
 	}
 
-	const FEFCalystoResolvedFloorIntentV4 Plan = DungeonSubsystem->GetResolvedFloorIntent();
+	const FEFCalystoResolvedFloorIntentV6 Plan = DungeonSubsystem->GetResolvedFloorIntentV6();
 	if (!Plan.bIsValid
-		|| Plan.GeneratorVersion != 4
-		|| Plan.RunSeed <= 0
-		|| Plan.FloorNumber < 1
-		|| Plan.GenerationSerial < 1
-		|| Plan.PolicyHash.IsEmpty()
+		|| Plan.SchemaVersion != EFCalystoDungeonRuntimeSchemaV6::SchemaVersion
+		|| Plan.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion
+		|| Plan.GenerationContext.RunSeed <= 0
+		|| Plan.GenerationContext.FloorNumber < 1
+		|| Plan.GenerationContext.GenerationSerial < 0
+		|| Plan.GenerationContext.PolicyHash.IsEmpty()
 		|| Plan.EcologyHash.IsEmpty()
-		|| Plan.CompanionSnapshotHash.IsEmpty()
+		|| Plan.CompanionRoster.SnapshotHash.IsEmpty()
+		|| Plan.FloorPlan.FloorPlanHash.IsEmpty()
+		|| Plan.StyleId.IsNone()
+		|| Plan.StyleId != Plan.FloorPlan.StyleId
 		|| Plan.IntentHash.IsEmpty())
 	{
 		return Fail(FString::Printf(
-			TEXT("Frozen V4 floor intent is invalid (valid=%d run=%lld floor=%lld serial=%lld policy=%s ecology=%s companion=%s intent=%s); legacy fallback is forbidden."),
+			TEXT("Frozen V6 floor intent is invalid (valid=%d run=%lld floor=%lld serial=%lld style=%s policy=%s ecology=%s companion=%s plan=%s intent=%s); fallback is forbidden."),
 			Plan.bIsValid ? 1 : 0,
-			Plan.RunSeed,
-			Plan.FloorNumber,
-			Plan.GenerationSerial,
-			*Plan.PolicyHash,
+			Plan.GenerationContext.RunSeed,
+			Plan.GenerationContext.FloorNumber,
+			Plan.GenerationContext.GenerationSerial,
+			*Plan.StyleId.ToString(),
+			*Plan.GenerationContext.PolicyHash,
 			*Plan.EcologyHash,
-			*Plan.CompanionSnapshotHash,
+			*Plan.CompanionRoster.SnapshotHash,
+			*Plan.FloorPlan.FloorPlanHash,
 			*Plan.IntentHash));
 	}
 
@@ -569,7 +1662,8 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 	UObject* OriginalDungeon = ActorSchema.Dungeon->GetObjectPropertyValue_InContainer(DungeonActor);
 	UObject* OriginalSpawners = ActorSchema.Spawners->GetObjectPropertyValue_InContainer(DungeonActor);
 	UObject* OriginalThemeList = ActorSchema.RoomThemeList->GetObjectPropertyValue_InContainer(DungeonActor);
-	if (!IsValid(OriginalDungeon) || !IsValid(OriginalSpawners) || !IsValid(OriginalThemeList))
+	UObject* OriginalDungeonMaterial = ActorSchema.DungeonMaterial->GetObjectPropertyValue_InContainer(DungeonActor);
+	if (!IsValid(OriginalDungeon) || !IsValid(OriginalSpawners) || !IsValid(OriginalThemeList) || !IsValid(OriginalDungeonMaterial))
 	{
 		return Fail(TEXT("One or more allowlisted Calysto source DataAssets are null on the dungeon actor."));
 	}
@@ -598,6 +1692,14 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 			*GetPathNameSafe(OriginalThemeList),
 			*GetPathNameSafe(ConfiguredThemeList)));
 	}
+	UObject* ConfiguredDungeonMaterial = Settings->DungeonMaterialDataAsset.Get();
+	if (!IsValid(ConfiguredDungeonMaterial) || ConfiguredDungeonMaterial != OriginalDungeonMaterial)
+	{
+		return Fail(FString::Printf(
+			TEXT("Actor DungeonMaterial source %s does not match preloaded harness source %s."),
+			*GetPathNameSafe(OriginalDungeonMaterial),
+			*GetPathNameSafe(ConfiguredDungeonMaterial)));
+	}
 
 	UClass* FloorDoorClass = Settings->DungeonFloorDoorClass.Get();
 	if (!IsValid(FloorDoorClass) || !FloorDoorClass->IsChildOf(AEFCalystoFloorDoor::StaticClass()))
@@ -610,7 +1712,7 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 	if (ConfiguredAnchorClass != AEFCalystoPopulationAnchor::StaticClass())
 	{
 		return Fail(FString::Printf(
-			TEXT("PopulationAnchorClass must resolve to the native V4 anchor %s, got %s."),
+			TEXT("PopulationAnchorClass must resolve to the project-owned V6 anchor %s, got %s."),
 			*AEFCalystoPopulationAnchor::StaticClass()->GetPathName(),
 			*GetPathNameSafe(ConfiguredAnchorClass)));
 	}
@@ -618,9 +1720,11 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 	FClassProperty* EndBlueprintProperty = nullptr;
 	FSpawnerSchema SpawnerSchema;
 	FThemeSchema ThemeSchema;
+	FDungeonMaterialSchema DungeonMaterialSchema;
 	if (!ResolveDungeonMeshSchema(OriginalDungeon, EndBlueprintProperty, Error)
 		|| !ResolveSpawnerSchema(OriginalSpawners, SpawnerSchema, Error)
-		|| !ResolveThemeSchema(OriginalThemeList, ThemeSchema, Error))
+		|| !ResolveThemeSchema(OriginalThemeList, ThemeSchema, Error)
+		|| !ResolveDungeonMaterialSchema(OriginalDungeonMaterial, DungeonMaterialSchema, Error))
 	{
 		return Fail(MoveTemp(Error));
 	}
@@ -647,7 +1751,7 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 			BaselineWallLightHeight,
 			BaselineWallLightTileDistance));
 	}
-	UE_LOG(LogEFCalystoPCGAdapter, Log, TEXT("Diagnostic BP_MassiveDungeon baseline size=%s density=%.6f sidePath=%.6f nativeLightHeight=%.3f nativeLightInterval=%d; authoritative V4 intent will be applied to the transient runtime actor."),
+	UE_LOG(LogEFCalystoPCGAdapter, Log, TEXT("Diagnostic BP_MassiveDungeon baseline size=%s density=%.6f sidePath=%.6f nativeLightHeight=%.3f nativeLightInterval=%d; authoritative V6 intent will be applied to the transient runtime actor."),
 		*BaselineDungeonSize.ToString(), BaselineSpawnerDensity, BaselineSidePathChance, BaselineWallLightHeight, BaselineWallLightTileDistance);
 
 	constexpr int32 MinDungeonEdge = 18;
@@ -659,26 +1763,26 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 		|| Plan.DungeonSize.Z != 1)
 	{
 		return Fail(FString::Printf(
-			TEXT("Frozen V4 layout size %s violates authoritative 18-30x18-30x1 limits (diagnostic baseline %s)."),
+			TEXT("Frozen V6 layout size %s violates authoritative 18-30x18-30x1 limits (diagnostic baseline %s)."),
 			*Plan.DungeonSize.ToString(),
 			*BaselineDungeonSize.ToString()));
 	}
-	if (!FMath::IsFinite(Plan.CandidateAnchorDensity)
-		|| Plan.CandidateAnchorDensity < 0.20f
-		|| Plan.CandidateAnchorDensity > 0.50f
+	if (!FMath::IsFinite(Plan.CandidateDensity)
+		|| Plan.CandidateDensity < 0.20f
+		|| Plan.CandidateDensity > 0.50f
 		|| !FMath::IsFinite(Plan.SidePathChance)
 		|| Plan.SidePathChance < 0.30f
 		|| Plan.SidePathChance > 0.70f)
 	{
-		return Fail(TEXT("Frozen V4 candidate-anchor density or side-path chance violates immutable limits."));
+		return Fail(TEXT("Frozen V6 candidate density or side-path chance violates immutable limits."));
 	}
-	if (!FMath::IsFinite(Plan.NativeWallLightHeight)
-		|| Plan.NativeWallLightHeight < 0.0f
-		|| Plan.NativeWallLightHeight > 1000.0f
-		|| Plan.NativeWallLightTileDistance < 1
-		|| Plan.NativeWallLightTileDistance > 100)
+	if (!FMath::IsFinite(Plan.Lighting.WallLightHeightCm)
+		|| Plan.Lighting.WallLightHeightCm < 0.0f
+		|| Plan.Lighting.WallLightHeightCm > 1000.0f
+		|| Plan.Lighting.WallLightTileDistance < 1
+		|| Plan.Lighting.WallLightTileDistance > 100)
 	{
-		return Fail(TEXT("Frozen V4 native lighting values violate the Calysto-safe height or tile-interval range."));
+		return Fail(TEXT("Frozen V6 lighting values violate the Calysto-safe height or tile-interval range."));
 	}
 	const FIntVector AppliedDungeonSize = Plan.DungeonSize;
 	// FloorIntent owns the Shape RNG domain. Consuming that frozen value here keeps
@@ -687,29 +1791,44 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 	const int32 DeterministicPCGSeed = Plan.PCGSeed;
 	if (DeterministicPCGSeed <= 0)
 	{
-		return Fail(TEXT("Failed to derive the deterministic V4 PCG seed."));
+		return Fail(TEXT("Frozen V6 intent has an invalid deterministic PCG seed."));
 	}
 
 	UObject* DungeonClone = DuplicateTransiently(OriginalDungeon, DungeonActor, TEXT("Dungeon"));
 	UObject* SpawnersClone = DuplicateTransiently(OriginalSpawners, DungeonActor, TEXT("Spawners"));
 	UObject* ThemeClone = DuplicateTransiently(OriginalThemeList, DungeonActor, TEXT("Themes"));
-	if (!DungeonClone || !SpawnersClone || !ThemeClone)
+	UObject* DungeonMaterialClone = DuplicateTransiently(OriginalDungeonMaterial, DungeonActor, TEXT("DungeonMaterial"));
+	if (!DungeonClone || !SpawnersClone || !ThemeClone || !DungeonMaterialClone)
 	{
-		return Fail(TEXT("Failed to create all three transient Calysto DataAsset clones."));
+		return Fail(TEXT("Failed to create all four transient Calysto DataAsset clones."));
 	}
 
+	if (!ApplyStyleArchitectureV6(DungeonClone, Plan.FloorPlan.StyleArchitecture, ThemeSchema.RoomType->PropertyClass, Error))
+	{
+		return Fail(MoveTemp(Error));
+	}
+	// The progression door remains project-owned regardless of the decorative end marker.
 	EndBlueprintProperty->SetObjectPropertyValue_InContainer(DungeonClone, FloorDoorClass);
-	if (!ApplyPopulationAnchorSpawner(
+	if (!ApplyDungeonMaterialPlanV6(
+			DungeonMaterialClone,
+			DungeonMaterialSchema,
+			Plan.FloorPlan.StyleMaterials,
+			Result.UpdatedDungeonMaterialSlots,
+			Error)
+		|| !ApplyPopulationAnchorSpawner(
 			SpawnersClone,
 			SpawnerSchema,
 			Result.UpdatedAnchorEntries,
 			Error)
-		|| !ApplySelectedThemeV4(
+		|| !ApplyReachableThemeCompatibilityV6(
+			DungeonActor,
 			ThemeClone,
 			ThemeSchema,
-			Plan.Theme,
-			Plan.CalystoRoomType.Get(),
+			Plan.FloorPlan,
+			Result.ThemeRoomTypes,
+			Result.RuntimeStrongReferences,
 			Result.UpdatedThemeEntries,
+			Result.UpdatedThemeMaterialEntries,
 			Error))
 	{
 		return Fail(MoveTemp(Error));
@@ -719,45 +1838,130 @@ FEFCalystoPCGAdapterResult FEFCalystoPCGAdapter::TryApply(AActor* DungeonActor)
 	ActorSchema.Dungeon->SetObjectPropertyValue_InContainer(DungeonActor, DungeonClone);
 	ActorSchema.Spawners->SetObjectPropertyValue_InContainer(DungeonActor, SpawnersClone);
 	ActorSchema.RoomThemeList->SetObjectPropertyValue_InContainer(DungeonActor, ThemeClone);
+	ActorSchema.DungeonMaterial->SetObjectPropertyValue_InContainer(DungeonActor, DungeonMaterialClone);
+	ActorSchema.OverrideFloorMaterial->SetPropertyValue_InContainer(DungeonActor, true);
+	ActorSchema.OverrideWallMaterial->SetPropertyValue_InContainer(DungeonActor, true);
+	ActorSchema.OverrideRoofMaterial->SetPropertyValue_InContainer(DungeonActor, true);
 	*ActorSchema.DungeonSize->ContainerPtrToValuePtr<FIntVector>(DungeonActor) = AppliedDungeonSize;
-	WriteFloating(ActorSchema.SpawnerDensity, DungeonActor, Plan.CandidateAnchorDensity);
+	WriteFloating(ActorSchema.SpawnerDensity, DungeonActor, Plan.CandidateDensity);
 	WriteFloating(ActorSchema.SidePathChance, DungeonActor, Plan.SidePathChance);
 	// These are Calysto's own BP_MassiveDungeon variables.  The actor is a
 	// transient runtime instance, so this alters neither the vendor Blueprint
 	// nor its CDO.  Calysto remains the only system that places torch actors.
-	WriteFloating(ActorSchema.WallLightHeight, DungeonActor, Plan.NativeWallLightHeight);
+	WriteFloating(ActorSchema.WallLightHeight, DungeonActor, Plan.Lighting.WallLightHeightCm);
 	ActorSchema.WallLightTileDistance->SetPropertyValue_InContainer(
-		DungeonActor, Plan.NativeWallLightTileDistance);
+		DungeonActor, Plan.Lighting.WallLightTileDistance);
 
 	// Calysto remains the owner of its derived piece/shape state. Invoke its exact native
 	// boundary after the transient inputs are committed and before PCG delegates/seed/generation.
 	DungeonActor->ProcessEvent(GetPiecesShapeFunction, nullptr);
 	Result.bGetPiecesShapeInvoked = true;
+	FString VisualMaterialProof;
+	if (!VerifyCommittedVisualMaterialPlanV6(
+			DungeonActor,
+			DungeonMaterialClone,
+			ThemeClone,
+			ActorSchema,
+			DungeonMaterialSchema,
+			ThemeSchema,
+			Plan.FloorPlan,
+			VisualMaterialProof,
+			Result.ThemeRoomTypes,
+			Error))
+	{
+		return Fail(MoveTemp(Error));
+	}
 
 	Result.PCGSeed = DeterministicPCGSeed;
 	Result.bApplied = true;
 	UE_LOG(
 		LogEFCalystoPCGAdapter,
 		Log,
-		TEXT("PASS V4 actor=%s run=%lld floor=%lld serial=%lld seed=%d style=%d theme=%d policyHash=%s ecologyHash=%s companionHash=%s intentHash=%s size=%s anchorDensity=%.3f sidePath=%.3f nativeLightHeight=%.3f nativeLightInterval=%d nativeLightBlend=%.3f anchorEntries=%d themeEntries=%d."),
+		TEXT("PASS V6 actor=%s run=%lld floor=%lld serial=%lld seed=%d style=%s policyHash=%s ecologyHash=%s companionHash=%s intentHash=%s floorPlanHash=%s styleMaterialHash=%s size=%s candidateDensity=%.3f sidePath=%.3f wallLightHeight=%.3f wallLightInterval=%d lightingDraw=%.3f anchorEntries=%d reachableThemeEntries=%d dungeonMaterialSlots=%d themeMaterialEntries=%d."),
 		*DungeonActor->GetName(),
-		Plan.RunSeed,
-		Plan.FloorNumber,
-		Plan.GenerationSerial,
+		Plan.GenerationContext.RunSeed,
+		Plan.GenerationContext.FloorNumber,
+		Plan.GenerationContext.GenerationSerial,
 		Result.PCGSeed,
-		static_cast<int32>(Plan.Style),
-		static_cast<int32>(Plan.Theme),
-		*Plan.PolicyHash,
+		*Plan.StyleId.ToString(),
+		*Plan.GenerationContext.PolicyHash,
 		*Plan.EcologyHash,
-		*Plan.CompanionSnapshotHash,
+		*Plan.CompanionRoster.SnapshotHash,
 		*Plan.IntentHash,
+		*Plan.FloorPlan.FloorPlanHash,
+		*Plan.FloorPlan.StyleMaterialHash,
 		*AppliedDungeonSize.ToString(),
-		Plan.CandidateAnchorDensity,
+		Plan.CandidateDensity,
 		Plan.SidePathChance,
-		Plan.NativeWallLightHeight,
-		Plan.NativeWallLightTileDistance,
-		Plan.LightingBlend,
+		Plan.Lighting.WallLightHeightCm,
+		Plan.Lighting.WallLightTileDistance,
+		Plan.Lighting.IntensityDraw,
 		Result.UpdatedAnchorEntries,
-		Result.UpdatedThemeEntries);
+		Result.UpdatedThemeEntries,
+		Result.UpdatedDungeonMaterialSlots,
+		Result.UpdatedThemeMaterialEntries);
+	UE_LOG(
+		LogEFCalystoPCGAdapter,
+		Log,
+		TEXT("PASS V6_VISUAL_INPUT_PLAN_APPLIED actor=%s floorPlanHash=%s %s."),
+		*DungeonActor->GetName(),
+		*Plan.FloorPlan.FloorPlanHash,
+		*VisualMaterialProof);
 	return Result;
 }
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFCalystoInlineArchitectureBridgeV6Test,
+	"NoShellForWinter.CalystoDungeon.V6.PCG.InlineArchitectureBridge",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FEFCalystoInlineArchitectureBridgeV6Test::RunTest(const FString& Parameters)
+{
+	using namespace EFCalystoPCGAdapterPrivate;
+	// Editor-only, read-only fixture loading. The runtime bridge itself performs no loads.
+	UObject* SourceDungeon = LoadObject<UObject>(nullptr, TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMesh.DA_DungeonMesh"));
+	UObject* SourceThemes = LoadObject<UObject>(nullptr, TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_RoomTheme.DA_RoomTheme"));
+	UObject* SourceMaterials = LoadObject<UObject>(nullptr, TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMaterial.DA_DungeonMaterial"));
+	if (!TestNotNull(TEXT("Native architecture schema fixture"), SourceDungeon)
+		|| !TestNotNull(TEXT("Native theme schema fixture"), SourceThemes)
+		|| !TestNotNull(TEXT("Native material schema fixture"), SourceMaterials)) return false;
+	const bool DungeonDirty = SourceDungeon->GetOutermost()->IsDirty();
+	const bool ThemesDirty = SourceThemes->GetOutermost()->IsDirty();
+	UEFCalystoDungeonDirectorPolicyV6Asset* Policy = NewObject<UEFCalystoDungeonDirectorPolicyV6Asset>();
+	Policy->InitializeV6Defaults();
+	FEFCalystoResolvedFloorPlanV6 Plan;
+	FString Error;
+	if (!Policy->BuildResolvedFloorPlanForStyle(717, TEXT("Standard"), Plan, Error))
+	{ AddError(Error); return false; }
+	for (const FSoftObjectPath& Path : Plan.ReachableVisualPreloadPaths)
+		if (!TestNotNull(*FString::Printf(TEXT("Inline visual dependency %s exists"), *Path.ToString()), Path.TryLoad())) return false;
+	FThemeSchema ThemeSchema;
+	FDungeonMaterialSchema MaterialSchema;
+	if (!ResolveThemeSchema(SourceThemes, ThemeSchema, Error)
+		|| !ResolveDungeonMaterialSchema(SourceMaterials, MaterialSchema, Error))
+	{ AddError(Error); return false; }
+	UObject* DungeonClone = DuplicateObject<UObject>(SourceDungeon, GetTransientPackage());
+	DungeonClone->SetFlags(RF_Transient);
+	if (!ApplyStyleArchitectureV6(DungeonClone, Plan.StyleArchitecture, ThemeSchema.RoomType->PropertyClass, Error))
+	{ AddError(Error); return false; }
+	FRoomArchitectureSchema RoomSchema;
+	if (!ResolveRoomArchitectureSchema(ThemeSchema.RoomType->PropertyClass, RoomSchema, Error))
+	{ AddError(Error); return false; }
+	for (const FEFCalystoResolvedThemeProfileV6& Theme : Plan.Themes)
+	{
+		UObject* Room = NewObject<UObject>(GetTransientPackage(), ThemeSchema.RoomType->PropertyClass, NAME_None, RF_Transient);
+		if (!PopulateRoomArchitecture(Room, RoomSchema, Theme.Architecture, Theme.ThemeId, Error))
+		{ AddError(Error); return false; }
+		FScriptArrayHelper Floors(RoomSchema.Floor, RoomSchema.Floor->ContainerPtrToValuePtr<void>(Room));
+		TestEqual(TEXT("Inline room floor entry count survives native reflection"), Floors.Num(), Theme.Architecture.Floor.Num());
+	}
+	UObject* MaterialClone = DuplicateObject<UObject>(SourceMaterials, GetTransientPackage());
+	int32 Slots = 0;
+	if (!ApplyDungeonMaterialPlanV6(MaterialClone, MaterialSchema, Plan.StyleMaterials, Slots, Error))
+	{ AddError(Error); return false; }
+	TestEqual(TEXT("Three independent Style material slots"), Slots, 3);
+	TestEqual(TEXT("Vendor dungeon package remains unchanged"), SourceDungeon->GetOutermost()->IsDirty(), DungeonDirty);
+	TestEqual(TEXT("Vendor theme package remains unchanged"), SourceThemes->GetOutermost()->IsDirty(), ThemesDirty);
+	return true;
+}
+#endif

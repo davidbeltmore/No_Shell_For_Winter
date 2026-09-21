@@ -9,12 +9,15 @@
 #include "EFClothingMorphV2Settings.h"
 #include "EFClothingNativeMeshAuthoringLibrary.h"
 #include "EFClothingNativeSourceEditorGate.h"
+#include "EFClothingV5EditorBridge.h"
+#include "Editor.h"
 #include "Engine/SkeletalMesh.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "IDetailChildrenBuilder.h"
 #include "IDetailGroup.h"
 #include "Misc/MessageDialog.h"
 #include "PropertyHandle.h"
+#include "Subsystems/EditorAssetSubsystem.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -130,6 +133,20 @@ namespace EFClothingGarmentRowCustomizationPrivate
 		UEFClothingFitRegistry* Registry = Settings
 			? Settings->Registry.LoadSynchronous()
 			: nullptr;
+		const FEFClothingV5DirectorPreparationResult Preparation =
+			FEFClothingV5EditorBridge::PrepareDirectorDefaults(Director);
+		if (Preparation.bChanged)
+		{
+			UEditorAssetSubsystem* AssetSubsystem = GEditor
+				? GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()
+				: nullptr;
+			TArray<UObject*> AssetsToSave = {Director};
+			if (!IsValid(AssetSubsystem)
+				|| !AssetSubsystem->SaveLoadedAssets(AssetsToSave, true))
+			{
+				ShowResult(false, TEXT("The lower-body guard was prepared before rebuilding fit data, but the Director could not be saved and remains dirty."));
+			}
+		}
 		const FEFClothingNativeSourceEditorGateResult Result =
 			FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 				Director,
@@ -138,7 +155,19 @@ namespace EFClothingGarmentRowCustomizationPrivate
 				true,
 				GarmentId,
 				false);
-		ShowResult(Result.bSuccess, Result.Report);
+		if (!Result.bSuccess)
+		{
+			ShowResult(false, Result.Report);
+			return FReply::Handled();
+		}
+		const FEFClothingV5EditorSyncResult V5Result =
+			FEFClothingV5EditorBridge::SyncFromV4(
+				Director,
+				Result.Registry,
+				true);
+		ShowResult(
+			V5Result.bSuccess,
+			FString::Printf(TEXT("%s | %s"), *Result.Report, *V5Result.Report));
 		return FReply::Handled();
 	}
 
@@ -279,7 +308,7 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		[
 			SNew(SButton)
 			.Text(LOCTEXT("RefreshFitDataButton", "Update This Clothing"))
-			.ToolTipText(LOCTEXT("RefreshFitDataTooltip", "Updates fit data only for this clothing. Other clothes remain active. It never replaces a Clothing Mesh or modifies a body, skin weights, morph targets, or shared skeleton."))
+			.ToolTipText(LOCTEXT("RefreshFitDataTooltip", "Optional manual rebuild. Fit data is normally created automatically after both meshes are assigned and refreshed when either mesh is saved. Other clothes remain active."))
 			.OnClicked_Lambda([StructHandle]() { return RefreshBinding(StructHandle); })
 		]
 	];
@@ -289,6 +318,30 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		LOCTEXT("LiveFitGroup", "Live Fit"));
 	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, AdditionalClearanceCm)));
 	AddPropertyIfValid(LiveFitGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, ShellThicknessCm)));
+
+	IDetailGroup& LowerBodyMorphGuardGroup = StructBuilder.AddGroup(
+		TEXT("V51LowerBodyMorphGuard"),
+		LOCTEXT("V51LowerBodyMorphGuardGroup", "Lower Body Morph Guard (Advanced)"),
+		false);
+	if (const TSharedPtr<IPropertyHandle> GuardHandle = Child(
+		GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, LowerBodyMorphGuard)))
+	{
+		AddPropertyIfValid(LowerBodyMorphGuardGroup, GuardHandle->GetChildHandle(
+			GET_MEMBER_NAME_CHECKED(FEFClothingLowerBodyMorphGuardRule, bEnabled)));
+		AddPropertyIfValid(LowerBodyMorphGuardGroup, GuardHandle->GetChildHandle(
+			GET_MEMBER_NAME_CHECKED(FEFClothingLowerBodyMorphGuardRule, ExactBodyMorphNames)));
+		AddPropertyIfValid(LowerBodyMorphGuardGroup, GuardHandle->GetChildHandle(
+			GET_MEMBER_NAME_CHECKED(FEFClothingLowerBodyMorphGuardRule, MaximumClearanceCm)));
+	}
+	LowerBodyMorphGuardGroup.AddWidgetRow()
+	.WholeRowContent()
+	[
+		SNew(STextBlock)
+		.AutoWrapText(true)
+		.Text(LOCTEXT(
+			"V51LowerBodyMorphGuardHelp",
+			"Uses exact body morph names to request a small conditional reserve for this lower garment. Panty, Bikini, and RagPants receive the Body Voluptuous guard automatically; upper garments never inherit it from Layering or Coverage."))
+	];
 
 	IDetailGroup& FitSurfaceGroup = StructBuilder.AddGroup(
 		TEXT("FitSurface"),
@@ -330,8 +383,36 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 	IDetailGroup& BodyHidingGroup = StructBuilder.AddGroup(
 		TEXT("BodyHiding"),
 		LOCTEXT("BodyHidingGroup", "Body Hiding"));
+	AddPropertyIfValid(BodyHidingGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, bCoversGenitals)));
 	AddPropertyIfValid(BodyHidingGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, BodySectionsToExclude)));
 	AddPropertyIfValid(BodyHidingGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, CoverageTags)));
+
+	IDetailGroup& NotesGroup = StructBuilder.AddGroup(
+		TEXT("Notes"),
+		LOCTEXT("NotesGroup", "Notes"));
+	AddPropertyIfValid(NotesGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, Notes)));
+
+	IDetailGroup& LayeringGroup = StructBuilder.AddGroup(
+		TEXT("V51Layering"),
+		LOCTEXT("V51LayeringGroup", "Layering and Coverage (Advanced)"),
+		false);
+	AddPropertyIfValid(LayeringGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, LayerRule)));
+	AddPropertyIfValid(LayeringGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, CoveredBodyRegionIds)));
+
+	IDetailGroup& MaterialsGroup = StructBuilder.AddGroup(
+		TEXT("V51Materials"),
+		LOCTEXT("V51MaterialsGroup", "Material Exceptions (Advanced)"),
+		false);
+	AddPropertyIfValid(MaterialsGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, MaterialPolicy)));
+	MaterialsGroup.AddWidgetRow()
+	.WholeRowContent()
+	[
+		SNew(STextBlock)
+		.AutoWrapText(true)
+		.Text(LOCTEXT(
+			"V51MaterialPolicyHelp",
+			"Force Opaque is automatic for every new clothing row and prevents skin or tattoos from showing through cloth. Open this group only to add an explicit Preserve Masked or Allow Translucent exception. Changes are applied and saved automatically."))
+	];
 
 	AdvancedMeshEditGroup.AddWidgetRow()
 	.WholeRowContent()
@@ -351,10 +432,6 @@ void FEFClothingGarmentRowCustomization::CustomizeChildren(
 		.OnClicked_Lambda([StructHandle]() { return CreateShell(StructHandle); })
 	];
 
-	IDetailGroup& NotesGroup = StructBuilder.AddGroup(
-		TEXT("Notes"),
-		LOCTEXT("NotesGroup", "Notes"));
-	AddPropertyIfValid(NotesGroup, Child(GET_MEMBER_NAME_CHECKED(FEFClothingGarmentRow, Notes)));
 }
 
 #undef LOCTEXT_NAMESPACE

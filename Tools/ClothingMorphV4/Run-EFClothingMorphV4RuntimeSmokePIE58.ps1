@@ -90,6 +90,15 @@ $HashesBeforePath = Join-Path $RunDir 'ProtectedHashesBefore.json'
 $HashesAfterPath = Join-Path $RunDir 'ProtectedHashesAfter.json'
 New-Item -ItemType Directory -Path $RunDir -Force | Out-Null
 
+$MorphStressValue = [string]$env:CODEX_EF_CLOTHING_V4_MORPH_STRESS
+$IsMorphStress = $MorphStressValue.Trim().ToLowerInvariant() -in @('1', 'true', 'yes')
+$ExpectedRuntimeStatus = if ($IsMorphStress) {
+    'UE58_EF_CLOTHING_MORPH_V4_MORPH_STRESS_PASS'
+}
+else {
+    'UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_PASS'
+}
+
 function Write-JsonFile {
     param(
         [Parameter(Mandatory = $true)]$Value,
@@ -357,12 +366,12 @@ try {
     }
     $runtime = Get-Content -LiteralPath $RuntimeResultPath -Raw | ConvertFrom-Json
     $summary.runtime_result = $runtime
-    if ([string]$runtime.status -ne 'UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_PASS') {
+    if ([string]$runtime.status -ne $ExpectedRuntimeStatus) {
         throw "V4 runtime smoke failed: $($runtime.failure)"
     }
     if (
-        [int]$runtime.expected_compiler_version -ne 28 -or
-        [int]$runtime.expected_binding_schema -ne 8 -or
+        [int]$runtime.expected_compiler_version -ne 35 -or
+        [int]$runtime.expected_binding_schema -ne 15 -or
         [string]$runtime.hub_character_creation_gate.status -ne 'PASS_ABSENT_FROM_ALL_OBSERVED_HUB_PIE_TICKS' -or
         [string]$runtime.source_visibility_gate.status -ne 'PASS_EXACT_SOURCE_READY_NEVER_HIDDEN_WHILE_EXPECTED' -or
         @($runtime.source_visibility_gate.passthrough_observations).Count -ne 0 -or
@@ -373,27 +382,51 @@ try {
     ) {
         throw 'V4 runtime result is missing a required source-first/HUB/no-readback gate.'
     }
-    if (
-        [int]$runtime.catalog.valid_row_count -lt 2 -or
-        [int]$runtime.catalog.enabled_row_count -lt [int]$runtime.catalog.valid_row_count -or
-        [int]$runtime.catalog.valid_row_count -ne [int]$runtime.catalog.native_binding_count -or
-        [int]$runtime.catalog.generated_profile_count -ne 0 -or
-        [int]$runtime.catalog.valid_row_count -ne @($runtime.rows_tested).Count
-    ) {
-        throw 'V4 runtime catalog does not equal its binding-only registry/test coverage.'
+    if ($IsMorphStress) {
+        if (
+            [string]$runtime.mode -ne 'MORPH_STRESS' -or
+            -not [bool]$runtime.catalog.targeted_morph_stress -or
+            [int]$runtime.catalog.valid_row_count -ne 1 -or
+            [int]$runtime.catalog.all_valid_row_count -ne [int]$runtime.catalog.native_binding_count -or
+            [int]$runtime.catalog.generated_profile_count -ne 0 -or
+            @($runtime.rows_tested).Count -ne 1 -or
+            [string]$runtime.multi_clothing_gate.status -ne 'NOT_APPLICABLE_TARGETED_MORPH_STRESS' -or
+            [string]$runtime.morph_stress.status -ne 'PASS_BREASTS_VOLUPTUOUS_COMBINED_AND_MOVING_READY' -or
+            [bool]$runtime.morph_stress.runtime_special_cases -or
+            @($runtime.morph_stress.cases).Count -lt 12 -or
+            @($runtime.morph_stress.cases | Where-Object {
+                [string]$_.status -ne 'PASS_READY_MORPH_ACTIVITY_AND_GAMEPLAY_CAPTURES' -or
+                [string]$_.runtime_state -ne 'Ready' -or
+                -not [bool]$_.visible -or
+                @($_.screenshots).Count -lt 2
+            }).Count -gt 0
+        ) {
+            throw 'V4 targeted body-morph stress gate failed.'
+        }
     }
-    if (
-        [string]$runtime.multi_clothing_gate.status -ne 'PASS_ALL_ENABLED_VALID_CLOTHES_SIMULTANEOUS_READY' -or
-        [int]$runtime.multi_clothing_gate.expected_simultaneous_clothes -ne [int]$runtime.catalog.valid_row_count -or
-        [int]$runtime.multi_clothing_gate.final_runtime_counts.managed -ne [int]$runtime.catalog.valid_row_count -or
-        [int]$runtime.multi_clothing_gate.final_runtime_counts.ready -ne [int]$runtime.catalog.valid_row_count -or
-        [int]$runtime.multi_clothing_gate.final_runtime_counts.warming -ne 0 -or
-        [int]$runtime.multi_clothing_gate.final_runtime_counts.passthrough -ne 0 -or
-        @($runtime.multi_clothing_gate.offset_isolation_checks).Count -lt 1 -or
-        @($runtime.multi_clothing_gate.unequip_isolation_checks).Count -lt 1 -or
-        @($runtime.multi_clothing_gate.combined_gameplay_screenshots).Count -lt 4
-    ) {
-        throw 'V4 simultaneous independent-clothing gate failed.'
+    else {
+        if (
+            [int]$runtime.catalog.valid_row_count -lt 2 -or
+            [int]$runtime.catalog.enabled_row_count -lt [int]$runtime.catalog.valid_row_count -or
+            [int]$runtime.catalog.valid_row_count -ne [int]$runtime.catalog.native_binding_count -or
+            [int]$runtime.catalog.generated_profile_count -ne 0 -or
+            [int]$runtime.catalog.valid_row_count -ne @($runtime.rows_tested).Count
+        ) {
+            throw 'V4 runtime catalog does not equal its binding-only registry/test coverage.'
+        }
+        if (
+            [string]$runtime.multi_clothing_gate.status -ne 'PASS_ALL_ENABLED_VALID_CLOTHES_SIMULTANEOUS_READY' -or
+            [int]$runtime.multi_clothing_gate.expected_simultaneous_clothes -ne [int]$runtime.catalog.valid_row_count -or
+            [int]$runtime.multi_clothing_gate.final_runtime_counts.managed -ne [int]$runtime.catalog.valid_row_count -or
+            [int]$runtime.multi_clothing_gate.final_runtime_counts.ready -ne [int]$runtime.catalog.valid_row_count -or
+            [int]$runtime.multi_clothing_gate.final_runtime_counts.warming -ne 0 -or
+            [int]$runtime.multi_clothing_gate.final_runtime_counts.passthrough -ne 0 -or
+            @($runtime.multi_clothing_gate.offset_isolation_checks).Count -lt 1 -or
+            @($runtime.multi_clothing_gate.unequip_isolation_checks).Count -lt 1 -or
+            @($runtime.multi_clothing_gate.combined_gameplay_screenshots).Count -lt 4
+        ) {
+            throw 'V4 simultaneous independent-clothing gate failed.'
+        }
     }
     if (
         @($runtime.cleanup.offset_components_cleared).Count -ne [int]$runtime.catalog.valid_row_count -or
@@ -403,7 +436,8 @@ try {
     }
 
     foreach ($runtimeRow in @($runtime.rows_tested)) {
-        if ([string]$runtimeRow.status -ne 'PASS') {
+        $ExpectedRowStatus = if ($IsMorphStress) { 'PASS_MORPH_STRESS' } else { 'PASS' }
+        if ([string]$runtimeRow.status -ne $ExpectedRowStatus) {
             throw "Runtime row did not pass: $($runtimeRow.row_name)"
         }
         if (
@@ -413,7 +447,19 @@ try {
         ) {
             throw "V4 exact SourceGarment gate failed for $($runtimeRow.row_name)."
         }
-        if (
+        if ($IsMorphStress) {
+            if (
+                [string]$runtimeRow.acf_real_equip.status -notin @(
+                    'PASS_REAL_WORLD_INTERACT_TO_ACF_EQUIPMENT',
+                    'PASS_TRANSIENT_PIE_ACF_INVENTORY_TO_EQUIPMENT'
+                ) -or
+                [bool]$runtimeRow.acf_real_equip.direct_mesh_assignment -or
+                [string]$runtimeRow.acf_real_equip.guid -notmatch '^[0-9A-F]{32}$'
+            ) {
+                throw "V4 morph-stress ACF acquisition/GUID gate failed for $($runtimeRow.row_name)."
+            }
+        }
+        elseif (
             [string]$runtimeRow.acf_real_equip.status -ne 'PASS_REAL_WORLD_INTERACT_TO_ACF_EQUIPMENT' -or
             [bool]$runtimeRow.acf_real_equip.direct_mesh_assignment -or
             [bool]$runtimeRow.acf_real_equip.direct_equipment_shortcut_for_initial_acquisition -or
@@ -428,22 +474,24 @@ try {
         ) {
             throw "V4 live offset sequence failed for $($runtimeRow.row_name)."
         }
-        if (
-            [string]$runtimeRow.motion.idle.status -ne 'PASS' -or
-            [string]$runtimeRow.motion.walk.status -ne 'PASS' -or
-            [double]$runtimeRow.motion.walk.speed_cm_s -le 5.0
-        ) {
-            throw "V4 idle/locomotion smoke failed for $($runtimeRow.row_name)."
-        }
-        if (
-            [int]$runtimeRow.equip_unequip_cycles.requested -ne 3 -or
-            [int]$runtimeRow.equip_unequip_cycles.completed -ne 3 -or
-            [string]$runtimeRow.equip_unequip_cycles.status -ne 'PASS_3_REAL_ACF_UNEQUIP_REEQUIP_READY_CYCLES'
-        ) {
-            throw "V4 three-cycle ACF smoke failed for $($runtimeRow.row_name)."
-        }
-        if (@($runtimeRow.screenshots).Count -ne 4) {
-            throw "Expected four gameplay captures for $($runtimeRow.row_name)."
+        if (-not $IsMorphStress) {
+            if (
+                [string]$runtimeRow.motion.idle.status -ne 'PASS' -or
+                [string]$runtimeRow.motion.walk.status -ne 'PASS' -or
+                [double]$runtimeRow.motion.walk.speed_cm_s -le 5.0
+            ) {
+                throw "V4 idle/locomotion smoke failed for $($runtimeRow.row_name)."
+            }
+            if (
+                [int]$runtimeRow.equip_unequip_cycles.requested -ne 3 -or
+                [int]$runtimeRow.equip_unequip_cycles.completed -ne 3 -or
+                [string]$runtimeRow.equip_unequip_cycles.status -ne 'PASS_3_REAL_ACF_UNEQUIP_REEQUIP_READY_CYCLES'
+            ) {
+                throw "V4 three-cycle ACF smoke failed for $($runtimeRow.row_name)."
+            }
+            if (@($runtimeRow.screenshots).Count -ne 4) {
+                throw "Expected four gameplay captures for $($runtimeRow.row_name)."
+            }
         }
         foreach ($checkpoint in @($runtimeRow.runtime_checks)) {
             if (
@@ -511,7 +559,12 @@ try {
     foreach ($property in $runtime.screenshots.PSObject.Properties) {
         $screenRows += Get-ImageMetadata -Path ([string]$property.Value.path)
     }
-    $expectedScreenshotCount = 4 * [int]$runtime.catalog.valid_row_count
+    $expectedScreenshotCount = if ($IsMorphStress) {
+        @($runtime.morph_stress.cases | ForEach-Object { @($_.screenshots) }).Count
+    }
+    else {
+        4 * [int]$runtime.catalog.valid_row_count
+    }
     if ($screenRows.Count -ne $expectedScreenshotCount) {
         throw "Expected $expectedScreenshotCount V4 gameplay screenshots; found $($screenRows.Count)."
     }
@@ -542,7 +595,7 @@ try {
     }
 
     $summary.cleanup = 'CLEAN_EDITOR_SELF_EXIT'
-    $summary.status = 'UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_PASS'
+    $summary.status = $ExpectedRuntimeStatus
 }
 catch {
     $failureException = $_

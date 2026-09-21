@@ -22,8 +22,8 @@ void FEFClothingMorphDirectorDetails::CustomizeDetails(IDetailLayoutBuilder& Det
 	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UEFClothingMorphDirectorPolicy, DirectorId));
 
 	IDetailCategoryBuilder& Overview = DetailBuilder.EditCategory(
-		TEXT("EF Clothing Morph V4"),
-		LOCTEXT("OverviewCategory", "EF Clothing Morph V4"),
+		TEXT("EF Clothing Morph V5.1"),
+		LOCTEXT("OverviewCategory", "EF Clothing Morph V5.1 - Single Clothing Table"),
 		ECategoryPriority::Important);
 	Overview.AddCustomRow(LOCTEXT("OverviewSearch", "Clothes clothing help mesh live fit"))
 	.WholeRowContent()
@@ -36,7 +36,7 @@ void FEFClothingMorphDirectorDetails::CustomizeDetails(IDetailLayoutBuilder& Det
 			.AutoWrapText(true)
 			.Text(LOCTEXT(
 				"OverviewText",
-				"Add one entry to Clothes for each Clothing Mesh and Body Mesh pair. Clothing Name is created automatically when both meshes are assigned and remains editable. Skin Gap and Surface Volume update only that clothing at runtime. Several clothes can work at the same time, and unfinished drafts cannot disable ready clothes. Advanced mesh edits happen only when you press their buttons. Fit-data updates never replace a Clothing Mesh or modify the body or shared skeleton."))
+				"This is the only clothing table you maintain, using the same workflow as V4.5. Add each clothing mesh once with its reference Body Mesh, then register all supported bodies in Bodies. Every garment is unisex; body-specific fits and anatomy coverage are generated automatically. Force Opaque prevents skin and tattoos from appearing through cloth. Optional layering and material exceptions stay inside the same row; no generated Data Asset is an authoring surface. Fit-data updates never replace a Clothing Mesh or modify the body or shared skeleton, and V4 remains available as rollback."))
 		]
 	];
 

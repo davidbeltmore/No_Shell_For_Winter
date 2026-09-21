@@ -1,20 +1,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ProjectCalystoFloorOutcomeSubsystem.generated.h"
 
 class AActor;
+class UEFCalystoDirectorSubsystem;
 class UEFCalystoDungeonSubsystem;
 class UProjectCombatAttributeComponent;
+struct FEFCalystoDirectorSnapshot;
 
 /**
- * Project-owned telemetry bridge for Dungeon Director V4.
+ * Project-owned floor telemetry bound to the active Director authority.
  *
  * It samples only stable, bounded gameplay signals immediately before every
- * production Advance request. Missing signals remain neutral (0.5); this
- * subsystem never blocks travel and never owns Director state.
+ * legacy production Advance request. The unversioned Director context records
+ * observations without submitting adaptive outcomes until its staged gameplay
+ * bridge is available. This subsystem never owns Director state.
  */
 UCLASS()
 class EFPROJECTSYSTEMSGAMEPLAY_API UProjectCalystoFloorOutcomeSubsystem
@@ -32,14 +35,21 @@ public:
 #endif
 
 private:
+	friend class FProjectCalystoGameplaySnapshot;
+	friend class FProjectCalystoGameplaySnapshotTest;
+	/** Same-world snapshot ownership, excluded from all canonical gameplay state. */
+	FGuid GameplaySnapshotRequest;
+	void HandleDirectorRequestPreparing(int64 FloorNumber);
+	void HandleDirectorContextReady(const FEFCalystoDirectorSnapshot& Snapshot);
+	void HandleDirectorContextFailed(const FEFCalystoDirectorSnapshot& Snapshot);
 	void HandleBeforeFloorAdvance(
 		int64 CompletedFloor,
-		const FEFCalystoResolvedFloorIntentV4& CompletedIntent);
+		const FEFCalystoResolvedFloorIntentV6& CompletedIntent);
 	void HandleFloorReady(
 		int64 FloorNumber,
 		int32 PCGSeed,
-		const FEFCalystoResolvedFloorIntentV4& Intent,
-		const FEFCalystoRealizedFloorManifestV4& Manifest);
+		const FEFCalystoResolvedFloorIntentV6& Intent,
+		const FEFCalystoRealizedFloorManifestV6& Manifest);
 	void HandleFloorTravelFailed();
 
 	UFUNCTION()
@@ -48,8 +58,8 @@ private:
 	void BindTrackedPlayerDeath();
 	void UnbindTrackedPlayerDeath();
 	AActor* ResolveLocalPlayerPawn() const;
-	FEFCalystoFloorOutcomeV4 BuildOutcome(
-		const FEFCalystoResolvedFloorIntentV4& CompletedIntent) const;
+	FEFCalystoFloorOutcomeV6 BuildOutcome(
+		const FEFCalystoResolvedFloorIntentV6& CompletedIntent) const;
 	int32 CountAliveDungeonEnemies() const;
 	float ResolveSurvivalScore() const;
 	float ResolveResourceScore() const;
@@ -62,8 +72,10 @@ private:
 		int32 InitialEnemyCount);
 
 	TWeakObjectPtr<UEFCalystoDungeonSubsystem> DungeonSubsystem;
+	TWeakObjectPtr<UEFCalystoDirectorSubsystem> BoundDirector;
 	TWeakObjectPtr<UProjectCombatAttributeComponent> TrackedPlayerCombat;
 	int64 TrackedRunSeed = 0;
+	int64 TrackedRunEpoch = 0;
 	int64 TrackedFloorNumber = 0;
 	double FloorReadySeconds = -1.0;
 	int32 FloorDeaths = 0;

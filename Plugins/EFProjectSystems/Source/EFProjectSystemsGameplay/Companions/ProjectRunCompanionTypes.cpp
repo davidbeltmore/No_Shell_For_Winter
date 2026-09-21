@@ -151,7 +151,9 @@ void FProjectCompanionRunSnapshot::RefreshHash()
 bool FProjectCompanionRunSnapshot::IsValid(FString& OutError) const
 {
 	OutError.Reset();
-	if (RunEpoch <= 0 || FloorNumber <= 0 || GenerationSerial <= 0 || SnapshotHash.Len() != 64)
+	// GenerationSerial zero is the canonical first generation of a new V6 run.
+	// Rerolls and later floors advance it; negative values are invalid.
+	if (RunEpoch <= 0 || FloorNumber <= 0 || GenerationSerial < 0 || SnapshotHash.Len() != 64)
 	{
 		OutError = TEXT("Companion snapshot identity or SHA-256 is invalid.");
 		return false;
@@ -179,7 +181,7 @@ bool FProjectCompanionRunSnapshot::IsValid(FString& OutError) const
 		const bool bAlive = Entry.State == EProjectCompanionRunState::Alive;
 		if ((bAlive && (Entry.DeathFloor != 0 || Entry.DeathGenerationSerial != 0))
 			|| (!bAlive && (Entry.DeathFloor <= 0
-				|| Entry.DeathGenerationSerial <= 0
+				|| Entry.DeathGenerationSerial < 0
 				|| Entry.DeathFloor > FloorNumber)))
 		{
 			OutError = FString::Printf(

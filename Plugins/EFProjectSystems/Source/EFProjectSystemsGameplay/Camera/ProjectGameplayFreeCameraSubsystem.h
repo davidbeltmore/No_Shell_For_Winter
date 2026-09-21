@@ -8,6 +8,7 @@
 
 class AActor;
 class ACameraActor;
+class AHUD;
 class APlayerController;
 class APawn;
 class UInputComponent;
@@ -54,6 +55,9 @@ protected:
 	AActor* ResolveRestoreViewTarget(APlayerController* PlayerController) const;
 	void ScheduleDeferredViewTargetRestore(APlayerController* PlayerController);
 	void RestorePostFreeCameraViewTarget();
+	void ApplyHudSuppression();
+	void RestoreHudSuppression();
+	bool TrySetReflectedHudEnabled(AHUD* HudActor, bool bEnabled) const;
 	void MarkMaintenanceRequired();
 
 	UFUNCTION()
@@ -80,6 +84,7 @@ protected:
 	void HandleRollLeftReleased();
 	void HandleRollRightPressed();
 	void HandleRollRightReleased();
+	void HandleSuppressedNeedsHudTogglePressed();
 
 protected:
 	UPROPERTY(Transient)
@@ -113,4 +118,9 @@ protected:
 	bool bMoveBackwardPressed = false;
 	bool bRollLeftPressed = false;
 	bool bRollRightPressed = false;
+	bool bHasSavedProjectHudVisibility = false;
+	bool bWasProjectHudVisible = false;
+	bool bHasSavedPlayerHudVisibility = false;
+	bool bWasPlayerHudVisible = true;
+	bool bAppliedAcfHudDisable = false;
 };

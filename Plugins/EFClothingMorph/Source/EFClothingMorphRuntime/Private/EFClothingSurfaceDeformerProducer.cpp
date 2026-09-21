@@ -28,6 +28,15 @@ namespace EFClothingSurfaceGraphContract
 	const FName RestOffsetAndClearanceCm(TEXT("EF_RestOffsetAndClearanceCm"));
 	const FName MaximumCorrectionAndRestGapCm(TEXT("EF_MaximumCorrectionAndRestGapCm"));
 	const FName ThicknessReferenceAndLayer(TEXT("EF_ThicknessReferenceAndLayer"));
+	const FName NeighborReferenceCount(TEXT("EF_NeighborReferenceCount"));
+	const FName NeighborRanges(TEXT("EF_NeighborRanges"));
+	const FName NeighborIndices(TEXT("EF_NeighborIndices"));
+	const FName WeldReferenceCount(TEXT("EF_WeldReferenceCount"));
+	const FName WeldRanges(TEXT("EF_WeldRanges"));
+	const FName WeldIndices(TEXT("EF_WeldIndices"));
+	const FName LocalFeatureSizeCm(TEXT("EF_LocalFeatureSizeCm"));
+	const FName UnderBreastGuardWeights(TEXT("EF_UnderBreastGuardWeights"));
+	const FName LowerBodyMorphGuardWeights(TEXT("EF_LowerBodyMorphGuardWeights"));
 	const FName WitnessCount(TEXT("EF_WitnessCount"));
 	const FName WitnessReferenceCount(TEXT("EF_WitnessReferenceCount"));
 	const FName WitnessRanges(TEXT("EF_WitnessRanges"));
@@ -42,6 +51,13 @@ namespace EFClothingSurfaceGraphContract
 	const FName GarmentClearanceOffsetCm(TEXT("EF_GarmentClearanceOffsetCm"));
 	const FName GarmentInflateCm(TEXT("EF_GarmentInflateCm"));
 	const FName MaximumCorrectionOverrideCm(TEXT("EF_MaximumCorrectionOverrideCm"));
+	const FName MaximumAutomaticBodyShapeTravelCm(
+		TEXT("EF_MaximumAutomaticBodyShapeTravelCm"));
+	const FName BodyMorphActivity(TEXT("EF_BodyMorphActivity"));
+	const FName BreastMorphActivity(TEXT("EF_BreastMorphActivity"));
+	const FName UnderBreastClearanceMaxCm(TEXT("EF_UnderBreastClearanceMaxCm"));
+	const FName LowerBodyMorphActivity(TEXT("EF_LowerBodyMorphActivity"));
+	const FName LowerBodyMorphClearanceMaxCm(TEXT("EF_LowerBodyMorphClearanceMaxCm"));
 	const FName DeltaTimeSeconds(TEXT("EF_DeltaTimeSeconds"));
 	const FName BodyToGarmentTransform(TEXT("EF_BodyToGarmentTransform"));
 }
@@ -73,6 +89,13 @@ namespace
 	constexpr uint32 MaximumInitialWarmupSubmissions = 2400u;
 	constexpr double InitialWarmupTimeoutSeconds = 10.0;
 	constexpr double MaximumRecoveryDeltaSeconds = 0.25;
+
+	bool IsBreastAffectingMorphName(const FName MorphName)
+	{
+		const FString Name = MorphName.ToString();
+		return Name.Contains(TEXT("Breast"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Voluptuous"), ESearchCase::IgnoreCase);
+	}
 
 	/**
 	 * One-shot render-thread arm. We intentionally wait through two EndFrameRT
@@ -122,6 +145,199 @@ namespace
 			&& FMath::IsFinite(Value.Y)
 			&& FMath::IsFinite(Value.Z);
 	}
+
+	bool ValidateWeldContract(
+		const FEFClothingSurfaceLODPairBinding& Pair,
+		const int32 VertexCount,
+		FString& OutFailureReason)
+	{
+		if (Pair.Metrics.WeldReferenceCount != Pair.WeldRenderVertexIndices.Num()
+			|| Pair.Metrics.WeldGroupCount < 0
+			|| Pair.Metrics.WeldReferenceCount < 0)
+		{
+			OutFailureReason = TEXT("Surface binding weld metrics do not match the exact-split pool.");
+			return false;
+		}
+
+		TMap<int32, int32> WeldGroupCountsByOffset;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			if (!Pair.VertexBindings.IsValidIndex(VertexIndex))
+			{
+				OutFailureReason = TEXT("Surface binding weld validation encountered a missing vertex binding.");
+				return false;
+			}
+			const FEFClothingSurfaceVertexBinding& Binding = Pair.VertexBindings[VertexIndex];
+			if (!FMath::IsFinite(Binding.LocalFeatureSizeCm)
+				|| Binding.LocalFeatureSizeCm <= 0.0f)
+			{
+				OutFailureReason = FString::Printf(
+					TEXT("Surface binding vertex %d has an invalid local feature size."),
+					VertexIndex);
+				return false;
+			}
+			const FEFClothingSurfaceIndexRange& WeldRange = Binding.WeldRange;
+			if (WeldRange.Count == 0)
+			{
+				if (WeldRange.Offset != 0)
+				{
+					OutFailureReason = FString::Printf(
+						TEXT("Surface binding singleton vertex %d has a non-zero weld offset."),
+						VertexIndex);
+					return false;
+				}
+				continue;
+			}
+			if (WeldRange.Count < 2
+				|| WeldRange.Count > 256
+				|| WeldRange.Offset < 0
+				|| WeldRange.Offset > Pair.WeldRenderVertexIndices.Num()
+				|| WeldRange.Count
+					> Pair.WeldRenderVertexIndices.Num() - WeldRange.Offset)
+			{
+				OutFailureReason = FString::Printf(
+					TEXT("Surface binding vertex %d has an invalid weld range."),
+					VertexIndex);
+				return false;
+			}
+			bool bRangeContainsVertex = false;
+			for (int32 LocalIndex = 0; LocalIndex < WeldRange.Count; ++LocalIndex)
+			{
+				bRangeContainsVertex |= Pair.WeldRenderVertexIndices[
+					WeldRange.Offset + LocalIndex] == VertexIndex;
+			}
+			if (!bRangeContainsVertex)
+			{
+				OutFailureReason = FString::Printf(
+					TEXT("Surface binding vertex %d points to a weld group that does not contain it."),
+					VertexIndex);
+				return false;
+			}
+			int32& StoredCount = WeldGroupCountsByOffset.FindOrAdd(
+				WeldRange.Offset,
+				WeldRange.Count);
+			if (StoredCount != WeldRange.Count)
+			{
+				OutFailureReason = TEXT("Surface binding weld ranges disagree on a shared group size.");
+				return false;
+			}
+		}
+
+		TArray<int32> SortedGroupOffsets;
+		WeldGroupCountsByOffset.GetKeys(SortedGroupOffsets);
+		SortedGroupOffsets.Sort();
+		if (SortedGroupOffsets.Num() != Pair.Metrics.WeldGroupCount)
+		{
+			OutFailureReason = TEXT("Surface binding weld-group evidence is stale.");
+			return false;
+		}
+		int32 ExpectedOffset = 0;
+		for (const int32 GroupOffset : SortedGroupOffsets)
+		{
+			const int32 GroupCount = WeldGroupCountsByOffset.FindChecked(GroupOffset);
+			if (GroupOffset != ExpectedOffset || GroupCount < 2 || GroupCount > 256)
+			{
+				OutFailureReason = TEXT("Surface binding weld groups do not form a contiguous deterministic pool.");
+				return false;
+			}
+			int32 PreviousVertexIndex = INDEX_NONE;
+			bool bAnyPreserveUpstream = false;
+			for (int32 LocalIndex = 0; LocalIndex < GroupCount; ++LocalIndex)
+			{
+				const int32 MemberVertexIndex =
+					Pair.WeldRenderVertexIndices[GroupOffset + LocalIndex];
+				if (MemberVertexIndex < 0
+					|| MemberVertexIndex >= VertexCount
+					|| MemberVertexIndex <= PreviousVertexIndex)
+				{
+					OutFailureReason = TEXT("Surface binding weld group is not a sorted set of valid render vertices.");
+					return false;
+				}
+				PreviousVertexIndex = MemberVertexIndex;
+				const FEFClothingSurfaceVertexBinding& Member =
+					Pair.VertexBindings[MemberVertexIndex];
+				if (Member.WeldRange.Offset != GroupOffset
+					|| Member.WeldRange.Count != GroupCount)
+				{
+					OutFailureReason = TEXT("Surface binding weld member does not point back to its complete group.");
+					return false;
+				}
+				bAnyPreserveUpstream |= Member.Mode
+					== EEFClothingSurfaceVertexMode::PreserveUpstream;
+			}
+
+			const int32 AuthoritativeVertexIndex =
+				Pair.WeldRenderVertexIndices[GroupOffset];
+			const FEFClothingSurfaceVertexBinding& Authority =
+				Pair.VertexBindings[AuthoritativeVertexIndex];
+			auto NearlyEqualVector3 = [](const FVector3f& A, const FVector3f& B)
+			{
+				return FMath::IsNearlyEqual(A.X, B.X, 1.0e-5f)
+					&& FMath::IsNearlyEqual(A.Y, B.Y, 1.0e-5f)
+					&& FMath::IsNearlyEqual(A.Z, B.Z, 1.0e-5f);
+			};
+			for (int32 LocalIndex = 0; LocalIndex < GroupCount; ++LocalIndex)
+			{
+				const int32 MemberVertexIndex =
+					Pair.WeldRenderVertexIndices[GroupOffset + LocalIndex];
+				const FEFClothingSurfaceVertexBinding& Member =
+					Pair.VertexBindings[MemberVertexIndex];
+				if (Member.BodyRenderVertexIndices != Authority.BodyRenderVertexIndices
+					|| !NearlyEqualVector3(Member.BodyBarycentrics, Authority.BodyBarycentrics)
+					|| !NearlyEqualVector3(
+						Member.RestTangentFrameOffsetCm,
+						Authority.RestTangentFrameOffsetCm)
+					|| !FMath::IsNearlyEqual(Member.RestSignedGapCm, Authority.RestSignedGapCm, 1.0e-5f)
+					|| !FMath::IsNearlyEqual(Member.TargetClearanceCm, Authority.TargetClearanceCm, 1.0e-5f)
+					|| !FMath::IsNearlyEqual(Member.MaximumCorrectionCm, Authority.MaximumCorrectionCm, 1.0e-5f)
+					|| !FMath::IsNearlyEqual(Member.LocalFeatureSizeCm, Authority.LocalFeatureSizeCm, 1.0e-5f)
+					|| !FMath::IsNearlyEqual(
+						Member.UnderBreastGuardWeight,
+						Authority.UnderBreastGuardWeight,
+						1.0e-6f)
+					|| !FMath::IsNearlyEqual(
+						Member.LowerBodyMorphGuardWeight,
+						Authority.LowerBodyMorphGuardWeight,
+						1.0e-6f)
+					|| Member.CandidateRange.Offset != Authority.CandidateRange.Offset
+					|| Member.CandidateRange.Count != Authority.CandidateRange.Count
+					|| Member.ThicknessReferenceRenderVertexIndex
+						!= Authority.ThicknessReferenceRenderVertexIndex
+					|| Member.bOuterThicknessLayer != Authority.bOuterThicknessLayer
+					|| Member.Mode != Authority.Mode
+					|| !FMath::IsNearlyEqual(Member.FollowWeight, Authority.FollowWeight, 1.0e-6f)
+					|| (bAnyPreserveUpstream
+						&& (Member.Mode != EEFClothingSurfaceVertexMode::PreserveUpstream
+							|| !FMath::IsNearlyZero(Member.FollowWeight, 1.0e-6f))))
+				{
+					OutFailureReason = TEXT("Surface binding weld group does not share one canonical surface constraint.");
+					return false;
+				}
+				for (int32 NeighborOffset = 0;
+					NeighborOffset < Member.NeighborRange.Count;
+					++NeighborOffset)
+				{
+					const int32 NeighborVertexIndex = Pair.NeighborRenderVertexIndices[
+						Member.NeighborRange.Offset + NeighborOffset];
+					if (NeighborVertexIndex >= AuthoritativeVertexIndex
+						&& NeighborVertexIndex <= PreviousVertexIndex
+						&& Pair.VertexBindings[NeighborVertexIndex].WeldRange.Offset == GroupOffset
+						&& Pair.VertexBindings[NeighborVertexIndex].WeldRange.Count == GroupCount)
+					{
+						OutFailureReason = TEXT("Surface binding cohesion adjacency contains an exact weld twin.");
+						return false;
+					}
+				}
+			}
+			ExpectedOffset += GroupCount;
+		}
+		if (ExpectedOffset != Pair.WeldRenderVertexIndices.Num())
+		{
+			OutFailureReason = TEXT("Surface binding weld ranges do not cover the exact-split pool.");
+			return false;
+		}
+		return true;
+	}
 }
 
 bool UEFClothingSurfaceDeformerProducer::Install(
@@ -166,11 +382,46 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 
 	GarmentComponent = InGarmentComponent;
 	BodyComponent = InBodyComponent;
+	bTransportReferenceShape = !InSurfaceBinding->ReferenceBodySurface.IsNull();
 	GarmentLODIndex = InLODPair.GarmentTopology.LODIndex;
 	BodyLODIndex = InLODPair.BodyTopology.LODIndex;
 	if (InSurfaceBinding->FindLODPair(GarmentLODIndex, BodyLODIndex) != &InLODPair)
 	{
 		OutFailureReason = TEXT("LOD binding does not belong to the supplied immutable surface asset.");
+		Detach();
+		return false;
+	}
+	LowerBodyMorphGuardExactBodyMorphNames.Reset();
+	if (InSurfaceBinding->bLowerBodyMorphGuardEnabled)
+	{
+		for (const FName MorphName : InSurfaceBinding->LowerBodyMorphGuardExactBodyMorphNames)
+		{
+			if (!MorphName.IsNone())
+			{
+				LowerBodyMorphGuardExactBodyMorphNames.Add(MorphName);
+			}
+		}
+	}
+	LowerBodyMorphGuardMaximumClearanceCm = FMath::Clamp(
+		InSurfaceBinding->bLowerBodyMorphGuardEnabled
+			&& FMath::IsFinite(InSurfaceBinding->LowerBodyMorphGuardMaximumClearanceCm)
+			? InSurfaceBinding->LowerBodyMorphGuardMaximumClearanceCm
+			: 0.0f,
+		0.0f,
+		EFClothingMorphV4::MaximumAutomaticLowerBodyMorphClearanceCm);
+	LowerBodyMorphGuardVertexCount = InLODPair.Metrics.LowerBodyMorphGuardVertexCount;
+	const bool bLowerBodyGuardContractValid = InSurfaceBinding->bLowerBodyMorphGuardEnabled
+		? (LowerBodyMorphGuardExactBodyMorphNames.Num()
+				== InSurfaceBinding->LowerBodyMorphGuardExactBodyMorphNames.Num()
+			&& LowerBodyMorphGuardMaximumClearanceCm > 0.0f
+			&& LowerBodyMorphGuardVertexCount > 0
+			&& LowerBodyMorphGuardVertexCount <= InLODPair.VertexBindings.Num())
+		: (LowerBodyMorphGuardExactBodyMorphNames.IsEmpty()
+			&& LowerBodyMorphGuardMaximumClearanceCm <= 0.0f
+			&& LowerBodyMorphGuardVertexCount == 0);
+	if (!bLowerBodyGuardContractValid)
+	{
+		OutFailureReason = TEXT("Surface binding lower-body morph guard metadata is incomplete or inconsistent.");
 		Detach();
 		return false;
 	}
@@ -454,6 +705,45 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 		return false;
 	}
 
+	float BodyMorphActivity = bTransportReferenceShape ? 1.0f : 0.0f;
+	float BreastMorphActivity = 0.0f;
+	float LowerBodyMorphActivity = 0.0f;
+	for (const TPair<FName, float>& MorphCurve : Body->GetMorphTargetCurves())
+	{
+		if (!FMath::IsFinite(MorphCurve.Value))
+		{
+			LastBodyMorphActivity = 0.0f;
+			LastBreastMorphActivity = 0.0f;
+			LastLowerBodyMorphActivity = 0.0f;
+			OutFailureReason = FString::Printf(
+				TEXT("Body morph %s has a non-finite weight; the clothing surface pass was rejected fail-closed."),
+				*MorphCurve.Key.ToString());
+			return false;
+		}
+		BodyMorphActivity = FMath::Max(
+			BodyMorphActivity,
+			FMath::Abs(MorphCurve.Value));
+		if (IsBreastAffectingMorphName(MorphCurve.Key))
+		{
+			BreastMorphActivity = FMath::Max(
+				BreastMorphActivity,
+				FMath::Abs(MorphCurve.Value));
+		}
+		if (LowerBodyMorphGuardExactBodyMorphNames.Contains(MorphCurve.Key))
+		{
+			// Lower-body fitting is expansion-only. Negative corrective/JCM values
+			// must never pull a garment farther into the body.
+			LowerBodyMorphActivity = FMath::Max(
+				LowerBodyMorphActivity,
+				FMath::Max(MorphCurve.Value, 0.0f));
+		}
+	}
+	LastBodyMorphActivity = FMath::Clamp(BodyMorphActivity, 0.0f, 1.0f);
+	LastBreastMorphActivity = FMath::Clamp(BreastMorphActivity, 0.0f, 1.0f);
+	LastLowerBodyMorphActivity = LowerBodyMorphActivity > 1.0e-4f
+		? FMath::Clamp(LowerBodyMorphActivity, 0.0f, 1.0f)
+		: 0.0f;
+
 	const bool bParametersAccepted =
 		Instance->SetTransformVariable(
 			EFClothingSurfaceGraphContract::BodyToGarmentTransform,
@@ -481,6 +771,24 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
 			FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::MaximumAutomaticBodyShapeTravelCm,
+			EFClothingMorphV4::MaximumAutomaticBodyShapeTravelCm)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::BodyMorphActivity,
+			LastBodyMorphActivity)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::BreastMorphActivity,
+			LastBreastMorphActivity)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::UnderBreastClearanceMaxCm,
+			EFClothingMorphV4::MaximumAutomaticUnderBreastClearanceCm)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::LowerBodyMorphActivity,
+			LastLowerBodyMorphActivity)
+		&& Instance->SetFloatVariable(
+			EFClothingSurfaceGraphContract::LowerBodyMorphClearanceMaxCm,
+			LowerBodyMorphGuardMaximumClearanceCm)
 		&& Instance->SetFloatVariable(
 			EFClothingSurfaceGraphContract::DeltaTimeSeconds,
 			FMath::Max(FMath::IsFinite(DeltaTimeSeconds) ? DeltaTimeSeconds : 0.0f, 0.0f));
@@ -622,6 +930,12 @@ void UEFClothingSurfaceDeformerProducer::Detach()
 	bDispatchRecoveryStartedAfterReady = false;
 	EnqueuedFrameCount = 0;
 	bRenderPreflightEnqueued = false;
+	LastBodyMorphActivity = 0.0f;
+	LastBreastMorphActivity = 0.0f;
+	LastLowerBodyMorphActivity = 0.0f;
+	LowerBodyMorphGuardExactBodyMorphNames.Reset();
+	LowerBodyMorphGuardMaximumClearanceCm = 0.0f;
+	LowerBodyMorphGuardVertexCount = 0;
 }
 
 bool UEFClothingSurfaceDeformerProducer::IsInstalledFor(
@@ -733,6 +1047,13 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	TArray<FVector4> RestOffsetAndClearanceCm;
 	TArray<FVector2D> MaximumCorrectionAndRestGapCm;
 	TArray<FIntPoint> ThicknessReferenceAndLayer;
+	TArray<FIntPoint> NeighborRanges;
+	TArray<int32> NeighborIndices;
+	TArray<FIntPoint> WeldRanges;
+	TArray<int32> WeldIndices;
+	TArray<double> LocalFeatureSizeCm;
+	TArray<double> UnderBreastGuardWeights;
+	TArray<double> LowerBodyMorphGuardWeights;
 	TArray<FIntPoint> WitnessRanges;
 	TArray<int32> WitnessIndices;
 	TArray<FIntVector4> WitnessGarmentVertices;
@@ -745,9 +1066,71 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	RestOffsetAndClearanceCm.Reserve(VertexCount);
 	MaximumCorrectionAndRestGapCm.Reserve(VertexCount);
 	ThicknessReferenceAndLayer.Reserve(VertexCount);
-
-	for (const FEFClothingSurfaceVertexBinding& Binding : InLODPair.VertexBindings)
+	NeighborRanges.Reserve(VertexCount);
+	WeldRanges.Reserve(VertexCount);
+	LocalFeatureSizeCm.Reserve(VertexCount);
+	UnderBreastGuardWeights.Reserve(VertexCount);
+	LowerBodyMorphGuardWeights.Reserve(VertexCount);
+	const int32 NeighborReferenceCount = InLODPair.NeighborRenderVertexIndices.Num();
+	int32 ObservedLowerBodyMorphGuardVertexCount = 0;
+	NeighborIndices = InLODPair.NeighborRenderVertexIndices;
+	if (InLODPair.Metrics.NeighborReferenceCount != NeighborReferenceCount)
 	{
+		OutFailureReason = TEXT("Surface binding neighbor-reference evidence does not match its adjacency pool.");
+		return false;
+	}
+
+	int32 ExpectedNeighborOffset = 0;
+	for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+	{
+		const FEFClothingSurfaceVertexBinding& Binding = InLODPair.VertexBindings[VertexIndex];
+		if (!FMath::IsFinite(Binding.LowerBodyMorphGuardWeight)
+			|| Binding.LowerBodyMorphGuardWeight < 0.0f
+			|| Binding.LowerBodyMorphGuardWeight > 1.0f)
+		{
+			OutFailureReason = FString::Printf(
+				TEXT("Surface binding vertex %d has an invalid lower-body morph guard weight."),
+				VertexIndex);
+			return false;
+		}
+		ObservedLowerBodyMorphGuardVertexCount += Binding.LowerBodyMorphGuardWeight > 1.0e-4f ? 1 : 0;
+		if (Binding.NeighborRange.Offset != ExpectedNeighborOffset
+			|| Binding.NeighborRange.Count < 0
+			|| Binding.NeighborRange.Count > 256
+			|| Binding.NeighborRange.Offset < 0
+			|| Binding.NeighborRange.Offset > NeighborReferenceCount
+			|| Binding.NeighborRange.Count
+				> NeighborReferenceCount - Binding.NeighborRange.Offset)
+		{
+			OutFailureReason = FString::Printf(
+				TEXT("Surface binding vertex %d has an invalid or non-contiguous neighbor range."),
+				VertexIndex);
+			return false;
+		}
+		for (int32 LocalNeighborIndex = 0;
+			LocalNeighborIndex < Binding.NeighborRange.Count;
+			++LocalNeighborIndex)
+		{
+			const int32 NeighborVertexIndex = NeighborIndices[
+				Binding.NeighborRange.Offset + LocalNeighborIndex];
+			if (NeighborVertexIndex < 0
+				|| NeighborVertexIndex >= VertexCount
+				|| NeighborVertexIndex == VertexIndex)
+			{
+				OutFailureReason = FString::Printf(
+					TEXT("Surface binding vertex %d has invalid neighbor %d."),
+					VertexIndex,
+					NeighborVertexIndex);
+				return false;
+			}
+		}
+		NeighborRanges.Emplace(Binding.NeighborRange.Offset, Binding.NeighborRange.Count);
+		ExpectedNeighborOffset += Binding.NeighborRange.Count;
+		WeldRanges.Emplace(Binding.WeldRange.Offset, Binding.WeldRange.Count);
+		LocalFeatureSizeCm.Add(static_cast<double>(Binding.LocalFeatureSizeCm));
+		UnderBreastGuardWeights.Add(static_cast<double>(Binding.UnderBreastGuardWeight));
+		LowerBodyMorphGuardWeights.Add(static_cast<double>(Binding.LowerBodyMorphGuardWeight));
+
 		BodyTriangleAndMode.Emplace(
 			Binding.BodyRenderVertexIndices.X,
 			Binding.BodyRenderVertexIndices.Y,
@@ -770,7 +1153,22 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			Binding.ThicknessReferenceRenderVertexIndex,
 			Binding.bOuterThicknessLayer ? 1 : 0);
 	}
-
+	if (ExpectedNeighborOffset != NeighborReferenceCount)
+	{
+		OutFailureReason = TEXT("Surface binding neighbor ranges do not cover the complete adjacency pool.");
+		return false;
+	}
+	if (InLODPair.Metrics.LowerBodyMorphGuardVertexCount != ObservedLowerBodyMorphGuardVertexCount)
+	{
+		OutFailureReason = TEXT("Surface binding lower-body morph guard evidence is stale.");
+		return false;
+	}
+	if (!ValidateWeldContract(InLODPair, VertexCount, OutFailureReason))
+	{
+		return false;
+	}
+	const int32 WeldReferenceCount = InLODPair.WeldRenderVertexIndices.Num();
+	WeldIndices = InLODPair.WeldRenderVertexIndices;
 	TArray<int32> WitnessReferenceCounts;
 	WitnessReferenceCounts.Init(0, VertexCount);
 	WitnessGarmentVertices.Reserve(InLODPair.Witnesses.Num());
@@ -913,6 +1311,33 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 			EFClothingSurfaceGraphContract::ThicknessReferenceAndLayer,
 			ThicknessReferenceAndLayer)
 		&& Instance->SetIntVariable(
+			EFClothingSurfaceGraphContract::NeighborReferenceCount,
+			NeighborReferenceCount)
+		&& Instance->SetInt2ArrayVariable(
+			EFClothingSurfaceGraphContract::NeighborRanges,
+			NeighborRanges)
+		&& Instance->SetIntArrayVariable(
+			EFClothingSurfaceGraphContract::NeighborIndices,
+			NeighborIndices)
+		&& Instance->SetIntVariable(
+			EFClothingSurfaceGraphContract::WeldReferenceCount,
+			WeldReferenceCount)
+		&& Instance->SetInt2ArrayVariable(
+			EFClothingSurfaceGraphContract::WeldRanges,
+			WeldRanges)
+		&& Instance->SetIntArrayVariable(
+			EFClothingSurfaceGraphContract::WeldIndices,
+			WeldIndices)
+		&& Instance->SetFloatArrayVariable(
+			EFClothingSurfaceGraphContract::LocalFeatureSizeCm,
+			LocalFeatureSizeCm)
+		&& Instance->SetFloatArrayVariable(
+			EFClothingSurfaceGraphContract::UnderBreastGuardWeights,
+			UnderBreastGuardWeights)
+		&& Instance->SetFloatArrayVariable(
+			EFClothingSurfaceGraphContract::LowerBodyMorphGuardWeights,
+			LowerBodyMorphGuardWeights)
+		&& Instance->SetIntVariable(
 			EFClothingSurfaceGraphContract::WitnessCount,
 			InLODPair.Witnesses.Num())
 		&& Instance->SetIntVariable(
@@ -1004,6 +1429,9 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 		|| InLODPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount < 0
 		|| InLODPair.Metrics.NeighborReferenceCount
 			!= InLODPair.NeighborRenderVertexIndices.Num()
+		|| InLODPair.Metrics.WeldReferenceCount
+			!= InLODPair.WeldRenderVertexIndices.Num()
+		|| InLODPair.Metrics.WeldGroupCount < 0
 		|| InLODPair.Metrics.CandidateTriangleCount != InLODPair.CandidateTriangles.Num()
 		|| InLODPair.Metrics.WitnessCount != InLODPair.Witnesses.Num()
 		|| InLODPair.VertexBindings.Num() != GarmentVertexCount
@@ -1086,9 +1514,14 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 	}
 
 	float RecomputedMaximumInitialCorrectionCm = 0.0f;
+	int32 RecomputedUnderBreastGuardVertexCount = 0;
 	for (int32 VertexIndex = 0; VertexIndex < InLODPair.VertexBindings.Num(); ++VertexIndex)
 	{
 		const FEFClothingSurfaceVertexBinding& Binding = InLODPair.VertexBindings[VertexIndex];
+		if (Binding.UnderBreastGuardWeight > 1.0e-4f)
+		{
+			++RecomputedUnderBreastGuardVertexCount;
+		}
 		const bool bThicknessReferenceValid =
 			Binding.ThicknessReferenceRenderVertexIndex == INDEX_NONE
 				? !Binding.bOuterThicknessLayer
@@ -1109,6 +1542,7 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			+ Binding.BodyBarycentrics.Z;
 		const bool bRangesValid = Binding.NeighborRange.Offset >= 0
 			&& Binding.NeighborRange.Count >= 0
+			&& Binding.NeighborRange.Count <= 256
 			&& Binding.NeighborRange.Offset <= InLODPair.NeighborRenderVertexIndices.Num()
 			&& Binding.NeighborRange.Count
 				<= InLODPair.NeighborRenderVertexIndices.Num() - Binding.NeighborRange.Offset
@@ -1116,7 +1550,14 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			&& Binding.CandidateRange.Count >= 0
 			&& Binding.CandidateRange.Offset <= InLODPair.CandidateTriangles.Num()
 			&& Binding.CandidateRange.Count
-				<= InLODPair.CandidateTriangles.Num() - Binding.CandidateRange.Offset;
+				<= InLODPair.CandidateTriangles.Num() - Binding.CandidateRange.Offset
+			&& Binding.WeldRange.Offset >= 0
+			&& Binding.WeldRange.Count >= 0
+			&& Binding.WeldRange.Offset <= InLODPair.WeldRenderVertexIndices.Num()
+			&& Binding.WeldRange.Count
+				<= InLODPair.WeldRenderVertexIndices.Num() - Binding.WeldRange.Offset
+			&& (Binding.WeldRange.Count == 0
+				|| (Binding.WeldRange.Count >= 2 && Binding.WeldRange.Count <= 256));
 		const bool bValuesValid = IsFiniteVector3f(Binding.BodyBarycentrics)
 			&& IsFiniteVector3f(Binding.RestTangentFrameOffsetCm)
 			&& FMath::IsNearlyEqual(BarycentricSum, 1.0f, 1.0e-3f)
@@ -1129,6 +1570,11 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			&& FMath::IsFinite(Binding.FollowWeight)
 			&& Binding.FollowWeight >= 0.0f
 			&& Binding.FollowWeight <= 1.0f
+			&& FMath::IsFinite(Binding.UnderBreastGuardWeight)
+			&& Binding.UnderBreastGuardWeight >= 0.0f
+			&& Binding.UnderBreastGuardWeight <= 1.0f
+			&& FMath::IsFinite(Binding.LocalFeatureSizeCm)
+			&& Binding.LocalFeatureSizeCm > 0.0f
 			&& FMath::IsFinite(Binding.MaximumCorrectionCm)
 			&& Binding.MaximumCorrectionCm > 0.0f
 			&& (Binding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
@@ -1137,7 +1583,8 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 			&& static_cast<uint8>(Binding.Mode)
 				<= static_cast<uint8>(EEFClothingSurfaceVertexMode::PreserveUpstream)
 			&& (Binding.Mode != EEFClothingSurfaceVertexMode::PreserveUpstream
-				|| FMath::IsNearlyZero(Binding.FollowWeight, 1.0e-6f));
+				|| (FMath::IsNearlyZero(Binding.FollowWeight, 1.0e-6f)
+					&& FMath::IsNearlyZero(Binding.UnderBreastGuardWeight, 1.0e-6f)));
 		if (!bIndicesValid || !bRangesValid || !bValuesValid)
 		{
 			OutFailureReason = FString::Printf(
@@ -1151,6 +1598,16 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 				RecomputedMaximumInitialCorrectionCm,
 				FMath::Max(0.0f, Binding.TargetClearanceCm - Binding.RestSignedGapCm));
 		}
+	}
+	if (!ValidateWeldContract(InLODPair, GarmentVertexCount, OutFailureReason))
+	{
+		return false;
+	}
+	if (RecomputedUnderBreastGuardVertexCount
+		!= InLODPair.Metrics.UnderBreastGuardVertexCount)
+	{
+		OutFailureReason = TEXT("Surface binding inframammary-guard metrics are stale.");
+		return false;
 	}
 	if (!FMath::IsNearlyEqual(
 		InLODPair.Metrics.MaximumInitialCorrectionCm,

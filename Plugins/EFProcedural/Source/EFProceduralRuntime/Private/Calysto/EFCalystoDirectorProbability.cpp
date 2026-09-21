@@ -367,3 +367,87 @@ bool FEFCalystoDirectorProbability::IsEligible(const FEFCalystoSelection& Select
 		(Selection.LastEligibleFloor == 0 || FloorNumber <= Selection.LastEligibleFloor) &&
 		!CoolingDownIds.Contains(Selection.Id);
 }
+
+namespace
+{
+	double TraitValue(const FEFCalystoTraits& T, EEFCalystoTrait Trait)
+	{
+		switch (Trait)
+		{
+		case EEFCalystoTrait::Mystery: return T.Mystery;
+		case EEFCalystoTrait::Danger: return T.Danger;
+		case EEFCalystoTrait::Safe: return T.Safe;
+		case EEFCalystoTrait::Abundance: return T.Abundance;
+		case EEFCalystoTrait::ClothingInfluence: return T.ClothingInfluence;
+		default: return -1.0;
+		}
+	}
+	bool BindingLess(const FEFCalystoTraitBinding& A, const FEFCalystoTraitBinding& B)
+	{
+		if (A.Source != B.Source) return uint8(A.Source) < uint8(B.Source);
+		if (A.Trait != B.Trait) return uint8(A.Trait) < uint8(B.Trait);
+		if (A.Role != B.Role) return uint8(A.Role) < uint8(B.Role);
+		if (A.Control != B.Control) return uint8(A.Control) < uint8(B.Control);
+		return A.EntryId.ToString() < B.EntryId.ToString();
+	}
+}
+
+bool FEFCalystoDirectorProbability::IsValid(const FEFCalystoTraits& Traits)
+{
+	const double Values[] = {Traits.Mystery, Traits.Danger, Traits.Safe, Traits.Abundance, Traits.ClothingInfluence};
+	for (double Value : Values) if (!FMath::IsFinite(Value) || Value < 0.0 || Value > 1.0) return false;
+	return true;
+}
+
+bool FEFCalystoDirectorProbability::ValidateTraitBindings(const FEFCalystoAdaptation& Policy, FString& OutField, FString& OutError)
+{
+	OutField.Reset(); OutError.Reset();
+	auto Invalid = [&](const FString& Field, const TCHAR* Message) { OutField = Field; OutError = Message; return false; };
+	if (!FMath::IsFinite(Policy.MaximumEffectPercent) || Policy.MaximumEffectPercent < 0 || Policy.MaximumEffectPercent > 100)
+		return Invalid(TEXT("MaximumEffectPercent"), TEXT("Adaptation maximum effect must be finite within [0,100]."));
+	if (Policy.Bindings.Num() > 64) return Invalid(TEXT("Bindings"), TEXT("At most 64 explicit trait bindings are supported."));
+	for (int32 Index = 0; Index < Policy.Bindings.Num(); ++Index)
+	{
+		const auto& B = Policy.Bindings[Index]; const FString At = FString::Printf(TEXT("Bindings[%d]."), Index);
+		if (uint8(B.Source) > uint8(EEFCalystoTraitSource::Snapshot)) return Invalid(At + TEXT("Source"), TEXT("Unknown trait input source."));
+		if (uint8(B.Trait) > uint8(EEFCalystoTrait::ClothingInfluence)) return Invalid(At + TEXT("Trait"), TEXT("Unknown normalized trait."));
+		if (uint8(B.Role) > uint8(EEFCalystoGameplayRole::SpecialEvent)) return Invalid(At + TEXT("Role"), TEXT("Unknown typed content role."));
+		if (uint8(B.Control) > uint8(EEFCalystoTraitControl::EntryWeight)) return Invalid(At + TEXT("Control"), TEXT("Only Chance and exact-entry Weight are supported."));
+		if (B.EntryId.IsValid() != (B.Control == EEFCalystoTraitControl::EntryWeight))
+			return Invalid(At + TEXT("EntryId"), TEXT("Weight requires an exact entry identity; Chance must not name an entry."));
+		if (!FMath::IsFinite(B.EffectAtZeroPercent) || FMath::Abs(B.EffectAtZeroPercent) > 100)
+			return Invalid(At + TEXT("EffectAtZeroPercent"), TEXT("Effect endpoint must be finite within [-100,100]."));
+		if (!FMath::IsFinite(B.EffectAtOnePercent) || FMath::Abs(B.EffectAtOnePercent) > 100)
+			return Invalid(At + TEXT("EffectAtOnePercent"), TEXT("Effect endpoint must be finite within [-100,100]."));
+		for (int32 Previous = 0; Previous < Index; ++Previous)
+			if (!BindingLess(B, Policy.Bindings[Previous]) && !BindingLess(Policy.Bindings[Previous], B))
+				return Invalid(At.LeftChop(1), TEXT("Duplicate input/control/target binding; combine its authored endpoint effects explicitly."));
+	}
+	return true;
+}
+
+bool FEFCalystoDirectorProbability::ResolveTraitMultiplier(const FEFCalystoAdaptation& Policy, const FEFCalystoTraits& Style,
+	const FEFCalystoTraits* Theme, const FEFCalystoTraits* Snapshot, EEFCalystoGameplayRole Role,
+	EEFCalystoTraitControl Control, const FGuid& EntryId, double& OutMultiplier, FString& OutError)
+{
+	OutMultiplier = 1.0; OutError.Reset();
+	if (!Policy.bEnabled || Policy.MaximumEffectPercent == 0.0) return true;
+	FString Field;
+	if (!ValidateTraitBindings(Policy, Field, OutError)) { OutError = Field + TEXT(": ") + OutError; return false; }
+	TArray<FEFCalystoTraitBinding, TInlineAllocator<64>> Matching;
+	for (const auto& Binding : Policy.Bindings)
+		if (Binding.Role == Role && Binding.Control == Control && Binding.EntryId == EntryId) Matching.Add(Binding);
+	Matching.Sort(BindingLess);
+	double Effect = 0.0;
+	for (const auto& Binding : Matching)
+	{
+		const FEFCalystoTraits* Values = Binding.Source == EEFCalystoTraitSource::Style ? &Style
+			: Binding.Source == EEFCalystoTraitSource::Theme ? Theme : Snapshot;
+		if (!Values && Binding.Source == EEFCalystoTraitSource::Theme) continue;
+		if (!Values || !IsValid(*Values))
+		{ OutError = TEXT("A referenced trait snapshot/profile must be explicit and finite within [0,1]."); return false; }
+		Effect += FMath::Lerp(Binding.EffectAtZeroPercent, Binding.EffectAtOnePercent, TraitValue(*Values, Binding.Trait));
+	}
+	OutMultiplier = AdaptationMultiplier(Policy, Effect / Policy.MaximumEffectPercent);
+	return true;
+}

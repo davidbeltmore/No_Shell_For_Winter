@@ -52,7 +52,7 @@ const UEFProceduralProjectPreset* UEFProceduralSettings::LoadProjectPreset() con
 {
 	return ProjectPreset.IsNull()
 		? nullptr
-		: Cast<UEFProceduralProjectPreset>(ProjectPreset.LoadSynchronous());
+		: Cast<UEFProceduralProjectPreset>(ProjectPreset.Get());
 }
 
 TArray<FString> UEFProceduralSettings::GetManagedMapNamesResolved() const

@@ -35,6 +35,8 @@ class EFPROJECTSYSTEMSGAMEPLAY_API UProjectEnemyLevelSubsystem : public UTickabl
 	GENERATED_BODY()
 
 public:
+	/** Direct frozen instance assignments are resolved before the immutable legacy tag path. */
+	static constexpr bool SupportsTypedDirectorAssignments() { return true; }
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	virtual void Tick(float DeltaTime) override;
@@ -52,7 +54,7 @@ public:
 	bool IsEnemyInitializationPending(const APawn* Pawn) const;
 
 	/**
-	 * Pre-BeginPlay half of the V4 transaction. Writes CharacterInitLevel on the
+	 * Pre-BeginPlay half of the Director transaction. Writes CharacterInitLevel on the
 	 * deferred instance so ACF starts at min(LogicalLevel, 100), then records an
 	 * exact token required by InitializeDirectorEnemySynchronously.
 	 */
@@ -63,8 +65,8 @@ public:
 		FString& OutFailureReason);
 
 	/**
-	 * Completes a V4 Director enemy on the game thread before PopulationRealized.
-	 * The pawn must already have its immutable Director tags and must have
+	 * Completes a Director enemy on the game thread before realization acceptance.
+	 * The pawn must already have its immutable native assignment and must have
 	 * completed FinishSpawning. Repeated calls only validate the completed state;
 	 * they never reapply scaling.
 	 */

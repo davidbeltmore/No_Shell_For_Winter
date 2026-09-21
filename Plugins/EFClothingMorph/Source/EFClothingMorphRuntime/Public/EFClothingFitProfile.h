@@ -566,6 +566,79 @@ public:
 	bool MatchesSource(const USkeletalMesh* Mesh) const;
 };
 
+/**
+ * Lightweight V5 registry entry for one streamable surface-binding chunk.
+ *
+ * Every asset reference remains soft so loading the registry does not pull the
+ * (potentially large) binding into memory. StableBindingId is authored once and
+ * survives recompiles; ContentHash identifies the exact compiled payload.
+ */
+USTRUCT(BlueprintType)
+struct EFCLOTHINGMORPHRUNTIME_API FEFClothingV5StreamableBinding
+{
+	GENERATED_BODY()
+
+	/** Stable, content-independent identity used by saves and equipment adapters. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	FName StableBindingId = NAME_None;
+
+	/** Stable Director garment identity. Array order is deliberately not part of any key. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	FName GarmentId = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	TSoftObjectPtr<USkeletalMesh> SourceGarment;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
+	TSoftObjectPtr<USkeletalMesh> BodySurface;
+
+	/** Soft payload reference. Registry lookup never resolves or loads this object. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Binding")
+	TSoftObjectPtr<UEFClothingSurfaceBinding> Binding;
+
+	/** Garment LOD chunk represented by Binding. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Binding", meta = (ClampMin = "0"))
+	int32 LODIndex = 0;
+
+	/** Deterministic digest of the cooked binding payload, excluding StableBindingId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Integrity")
+	FString ContentHash;
+
+	/** Schema understood by the binding payload referenced by this entry. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Integrity", meta = (ClampMin = "1"))
+	int32 SchemaVersion = 0;
+
+	/** Fail-closed metadata check which does not load any referenced asset. */
+	bool HasValidMetadata() const
+	{
+		return !StableBindingId.IsNone()
+			&& !GarmentId.IsNone()
+			&& !SourceGarment.IsNull()
+			&& !BodySurface.IsNull()
+			&& !Binding.IsNull()
+			&& LODIndex >= 0
+			&& !ContentHash.IsEmpty()
+			&& SchemaVersion > 0;
+	}
+
+	/**
+	 * Computes the deterministic digest published in ContentHash for one exact
+	 * loaded binding/garment-LOD payload. Shared by editor publication and the
+	 * runtime integrity gate so both sides use one canonical algorithm.
+	 */
+	static FString ComputePayloadContentHash(
+		const UEFClothingSurfaceBinding* LoadedBinding,
+		const FEFClothingSurfaceLODPairBinding& LODPair);
+
+	/**
+	 * Fail-closed validation for a resolved soft payload. Verifies metadata,
+	 * identity, schema, unique garment LOD and ContentHash before runtime use.
+	 */
+	bool ValidateLoadedPayload(
+		const UEFClothingSurfaceBinding* LoadedBinding,
+		FString* OutFailureReason = nullptr) const;
+};
+
 UCLASS(BlueprintType)
 class EFCLOTHINGMORPHRUNTIME_API UEFClothingFitRegistry : public UPrimaryDataAsset
 {
@@ -583,6 +656,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "EF Clothing Morph V3")
 	TArray<TObjectPtr<UEFClothingSurfaceBinding>> NativeSourceBindings;
 
+	/**
+	 * V5 streamable manifest. Unlike NativeSourceBindings, these records contain
+	 * only soft references, so loading this registry never loads binding payloads.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "EF Clothing Morph V5")
+	TArray<FEFClothingV5StreamableBinding> V5StreamableBindings;
+
 	const UEFClothingFitProfile* FindProfileForSource(const USkeletalMesh* SourceMesh) const;
 	const UEFClothingFitProfile* FindProfileForSourceAndBody(
 		const USkeletalMesh* SourceMesh,
@@ -598,6 +678,43 @@ public:
 		const USkeletalMesh* SourceMesh,
 		const USkeletalMesh* BodyMesh) const;
 
+	/**
+	 * Finds the unique V5 record for a source-garment/body/LOD pair. If more than
+	 * one garment identity publishes that pair, selection is ambiguous and fails
+	 * closed; use the GarmentId or StableBindingId overload instead.
+	 */
+	const FEFClothingV5StreamableBinding* FindV5StreamableBinding(
+		const FSoftObjectPath& SourcePath,
+		const FSoftObjectPath& BodyPath,
+		int32 LODIndex = 0) const;
+
+	const FEFClothingV5StreamableBinding* FindV5StreamableBinding(
+		const USkeletalMesh* SourceMesh,
+		const USkeletalMesh* BodyMesh,
+		int32 LODIndex = 0) const;
+
+	/** Exact multi-clothing lookup; does not resolve any soft reference. */
+	const FEFClothingV5StreamableBinding* FindV5StreamableBinding(
+		FName GarmentId,
+		const FSoftObjectPath& SourcePath,
+		const FSoftObjectPath& BodyPath,
+		int32 LODIndex = 0) const;
+
+	const FEFClothingV5StreamableBinding* FindV5StreamableBinding(
+		FName GarmentId,
+		const USkeletalMesh* SourceMesh,
+		const USkeletalMesh* BodyMesh,
+		int32 LODIndex = 0) const;
+
+	/** Stable-identity lookup; returns metadata and a still-unresolved soft binding. */
+	const FEFClothingV5StreamableBinding* FindV5StreamableBindingByStableId(
+		FName StableBindingId) const;
+
+	/** Explicitly refreshes every transient V5 index after editor publication. */
+	void RebuildV5StreamableBindingIndex() const;
+
+	virtual void PostLoad() override;
+
 private:
 	void RebuildRuntimeIndex() const;
 	static FString MakeRuntimeKey(const FSoftObjectPath& SourcePath, const FSoftObjectPath& BodyPath);
@@ -605,12 +722,30 @@ private:
 		FName ClothingId,
 		const FSoftObjectPath& SourcePath,
 		const FSoftObjectPath& BodyPath);
+	static FString MakeV5PairRuntimeKey(
+		const FSoftObjectPath& SourcePath,
+		const FSoftObjectPath& BodyPath,
+		int32 LODIndex);
+	static FString MakeV5RuntimeKey(
+		FName GarmentId,
+		const FSoftObjectPath& SourcePath,
+		const FSoftObjectPath& BodyPath,
+		int32 LODIndex);
 	uint32 CalculateNativeBindingSignature() const;
 	void RebuildNativeBindingIndex() const;
+	uint32 CalculateV5StreamableBindingSignature() const;
+	void EnsureV5StreamableBindingIndex() const;
 
 	mutable TMap<FString, TWeakObjectPtr<const UEFClothingFitProfile>> RuntimeProfileIndex;
 	mutable int32 IndexedProfileCount = INDEX_NONE;
 	mutable TMap<FString, TWeakObjectPtr<const UEFClothingSurfaceBinding>> RuntimeNativeBindingIndex;
 	mutable int32 IndexedNativeBindingCount = INDEX_NONE;
 	mutable uint32 IndexedNativeBindingSignature = 0;
+
+	/** Non-serialized metadata indices. INDEX_NONE values mark ambiguous keys. */
+	mutable TMap<FString, int32> RuntimeV5BindingPairIndex;
+	mutable TMap<FString, int32> RuntimeV5BindingIndex;
+	mutable TMap<FName, int32> RuntimeV5BindingStableIdIndex;
+	mutable int32 IndexedV5StreamableBindingCount = INDEX_NONE;
+	mutable uint32 IndexedV5StreamableBindingSignature = 0;
 };

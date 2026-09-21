@@ -34,6 +34,7 @@ if (@(Get-Process UnrealEditor -ErrorAction SilentlyContinue).Count -ne 0) {
 }
 $originalProjectBytes = [System.IO.File]::ReadAllBytes($projectPath)
 $originalProjectHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $projectPath).Hash
+$originalProjectWriteTimeUtc = (Get-Item -LiteralPath $projectPath).LastWriteTimeUtc
 $projectText = [System.IO.File]::ReadAllText($projectPath)
 $temporaryProjectText = $projectText
 foreach ($pluginName in @("DazToUnreal", "EFCharacterCreationDazBridge")) {
@@ -55,6 +56,7 @@ try {
 }
 finally {
     [System.IO.File]::WriteAllBytes($projectPath, $originalProjectBytes)
+    [System.IO.File]::SetLastWriteTimeUtc($projectPath, $originalProjectWriteTimeUtc)
 }
 
 $restoredProjectHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $projectPath).Hash

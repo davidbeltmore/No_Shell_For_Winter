@@ -5,12 +5,12 @@
 #include "EFCalystoDungeonHarnessSettings.generated.h"
 
 class AActor;
-class UEFCalystoDungeonDirectorPolicyV4;
+class UEFCalystoDungeonDirectorPolicyV6Asset;
 class UStaticMesh;
 class UWorld;
 
-/** Project-owned integration paths. Generation policy lives exclusively in the V4 Primary Data Asset. */
-UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Calysto Dungeon Director V4"))
+/** Project-owned integration paths. Generation policy lives exclusively in the definitive V6 Primary Data Asset. */
+UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Calysto Dungeon Director V6"))
 class EFPROCEDURALRUNTIME_API UEFCalystoDungeonHarnessSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
@@ -24,9 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Assets")
 	TSoftObjectPtr<UWorld> DungeonMap;
 
-	/** Sole V4 authoring authority. Missing or invalid policy fails generation closed. */
-	UPROPERTY(EditAnywhere, Config, Category = "Assets|Policy V4")
-	TSoftObjectPtr<UEFCalystoDungeonDirectorPolicyV4> DirectorPolicy;
+	/** Sole V6 authoring authority. Missing or invalid data fails generation closed. */
+	UPROPERTY(EditAnywhere, Config, Category = "Assets|Policy V6")
+	TSoftObjectPtr<UEFCalystoDungeonDirectorPolicyV6Asset> DirectorPolicy;
 
 	/** Native Calysto DA_DungeonMesh source; the adapter duplicates it transiently. */
 	UPROPERTY(EditAnywhere, Config, Category = "Assets")
@@ -39,6 +39,10 @@ public:
 	/** Exact vendor source cloned transiently for probabilistic room themes; never modified or saved. */
 	UPROPERTY(EditAnywhere, Config, Category = "Assets")
 	TSoftObjectPtr<UObject> RoomThemeDataAsset;
+
+	/** Exact vendor source cloned transiently for global Floor, Wall, and Roof materials; never modified or saved. */
+	UPROPERTY(EditAnywhere, Config, Category = "Assets")
+	TSoftObjectPtr<UObject> DungeonMaterialDataAsset;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Assets")
 	TSoftClassPtr<AActor> DungeonFloorDoorClass;

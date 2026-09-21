@@ -1,9 +1,14 @@
 #include "Actors/ProjectLevelDoor.h"
 
+#include "Calysto/EFCalystoDirectorSettings.h"
+#include "Calysto/EFCalystoDirectorSubsystem.h"
+#include "Calysto/EFCalystoDungeonHarnessSettings.h"
+#include "Calysto/EFCalystoDungeonSubsystem.h"
 #include "Components/ACFInteractableComponent.h"
 #include "Components/ACFInteractionComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/PackageName.h"
@@ -58,6 +63,12 @@ void AProjectLevelDoor::BeginPlay()
 	SetEnabled(IsEnabled);
 }
 
+void AProjectLevelDoor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnbindCalystoTravelFailure();
+	Super::EndPlay(EndPlayReason);
+}
+
 void AProjectLevelDoor::SetEnabled(bool bEnabled)
 {
 	IsEnabled = bEnabled;
@@ -108,6 +119,79 @@ void AProjectLevelDoor::OnInteractedByPawn_Implementation(APawn* Pawn, const FSt
 	bTravelRequested = true;
 	SetEnabled(IsEnabled);
 	EndPawnInteraction(Pawn);
+
+	const FString DestinationPackage =
+		DestinationLevel.ToSoftObjectPath().GetLongPackageName();
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		const auto* DirectorSettings = GetDefault<UEFCalystoDirectorSettings>();
+		const FString DirectorDungeonPackage = DirectorSettings->DungeonMap.ToSoftObjectPath().GetLongPackageName();
+		if (DestinationPackage.Equals(DirectorDungeonPackage, ESearchCase::IgnoreCase))
+		{
+			UEFCalystoDirectorSubsystem* Director = World->GetGameInstance()
+				? World->GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>() : nullptr;
+			UnbindCalystoTravelFailure();
+			if (Director)
+			{
+				BoundCalystoDirector = Director;
+				CalystoTravelFailureHandle = Director->RequestFailed.AddUObject(this, &ThisClass::HandleDirectorTravelFailed);
+				if (Director->RequestStartNewRun()) return;
+			}
+			UnbindCalystoTravelFailure();
+			bTravelRequested = false;
+			SetEnabled(IsEnabled);
+			UE_LOG(LogProjectLevelDoor, Error, TEXT("%s could not start the dungeon request."), *GetName());
+			return;
+		}
+		// The enabled Director exclusively owns its configured dungeon destination.
+		UGameplayStatics::OpenLevelBySoftObjectPtr(this, DestinationLevel, bAbsoluteTravel, TravelOptions);
+		return;
+	}
+	const UEFCalystoDungeonHarnessSettings* DungeonSettings =
+		UEFCalystoDungeonHarnessSettings::Get();
+	const FString ConfiguredDungeonPackage = DungeonSettings &&
+		!DungeonSettings->DungeonMap.IsNull()
+		? DungeonSettings->DungeonMap.ToSoftObjectPath().GetLongPackageName()
+		: FString();
+	const bool bTargetsConfiguredCalystoDungeon =
+		!ConfiguredDungeonPackage.IsEmpty() &&
+		DestinationPackage.Equals(ConfiguredDungeonPackage, ESearchCase::IgnoreCase);
+	if (bTargetsConfiguredCalystoDungeon)
+	{
+		UGameInstance* GameInstance = World->GetGameInstance();
+		UEFCalystoDungeonSubsystem* DungeonSubsystem = GameInstance
+			? GameInstance->GetSubsystem<UEFCalystoDungeonSubsystem>()
+			: nullptr;
+		if (DungeonSubsystem)
+		{
+			UnbindCalystoTravelFailure();
+			BoundCalystoDungeonSubsystem = DungeonSubsystem;
+			CalystoTravelFailureHandle = DungeonSubsystem->OnFloorTravelFailed().AddUObject(
+				this,
+				&AProjectLevelDoor::HandleCalystoTravelFailed);
+		}
+		if (DungeonSubsystem && DungeonSubsystem->RequestStartNewRun())
+		{
+			UE_LOG(
+				LogProjectLevelDoor,
+				Log,
+				TEXT("%s submitted the configured Calysto dungeon to the V6 travel transaction (%s)."),
+				*GetName(),
+				*ConfiguredDungeonPackage);
+			return;
+		}
+
+		UnbindCalystoTravelFailure();
+		bTravelRequested = false;
+		SetEnabled(IsEnabled);
+		UE_LOG(
+			LogProjectLevelDoor,
+			Error,
+			TEXT("%s could not submit the configured Calysto dungeon to the V6 travel transaction; the door was re-enabled for retry."),
+			*GetName());
+		return;
+	}
+
 	UE_LOG(
 		LogProjectLevelDoor,
 		Log,
@@ -118,6 +202,50 @@ void AProjectLevelDoor::OnInteractedByPawn_Implementation(APawn* Pawn, const FSt
 		*TravelOptions);
 
 	UGameplayStatics::OpenLevelBySoftObjectPtr(this, DestinationLevel, bAbsoluteTravel, TravelOptions);
+}
+
+void AProjectLevelDoor::HandleCalystoTravelFailed()
+{
+	UnbindCalystoTravelFailure();
+	bTravelRequested = false;
+	SetEnabled(IsEnabled);
+	UE_LOG(
+		LogProjectLevelDoor,
+		Warning,
+		TEXT("%s re-enabled after the V6 Calysto travel transaction failed before world teardown."),
+		*GetName());
+}
+
+void AProjectLevelDoor::UnbindCalystoTravelFailure()
+{
+	if (UEFCalystoDirectorSubsystem* Director = BoundCalystoDirector.Get())
+	{
+		Director->RequestFailed.Remove(CalystoTravelFailureHandle);
+	}
+	BoundCalystoDirector.Reset();
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		CalystoTravelFailureHandle.Reset();
+		return;
+	}
+	if (UEFCalystoDungeonSubsystem* DungeonSubsystem =
+		BoundCalystoDungeonSubsystem.Get())
+	{
+		if (CalystoTravelFailureHandle.IsValid())
+		{
+			DungeonSubsystem->OnFloorTravelFailed().Remove(CalystoTravelFailureHandle);
+		}
+	}
+	CalystoTravelFailureHandle.Reset();
+	BoundCalystoDungeonSubsystem.Reset();
+}
+
+void AProjectLevelDoor::HandleDirectorTravelFailed(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	(void)Snapshot;
+	UnbindCalystoTravelFailure();
+	bTravelRequested = false;
+	SetEnabled(IsEnabled);
 }
 
 void AProjectLevelDoor::OnLocalInteractedByPawn_Implementation(APawn* Pawn, const FString& InteractionType)

@@ -2,10 +2,11 @@
 
 #include "ALSSaveTypes.h"
 #include "Actors/ACFCharacter.h"
+#include "Calysto/EFCalystoDirectorSettings.h"
+#include "Calysto/EFCalystoDirectorSubsystem.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
-#include "Calysto/EFCalystoDungeonDirectorMathV4.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
-#include "Calysto/ProjectCalystoPopulationBridgeV4.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
+#include "Calysto/ProjectCalystoPopulationBridge.h"
 #include "Companions/ProjectCompanionDeathProxyComponent.h"
 #include "Companions/ProjectCompanionRevivalConsumable.h"
 #include "Companions/ProjectCompanionRevivalMenuWidget.h"
@@ -22,6 +23,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Items/ACFItem.h"
 #include "Items/ACFItemFragment.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Social/ProjectSocialSubsystem.h"
 #include "Social/ProjectSocialTypes.h"
 #include "Serialization/MemoryReader.h"
@@ -97,7 +100,7 @@ namespace ProjectRunCompanionPrivate
 		InOutCanonical += TEXT("}");
 	}
 
-	EEFCalystoCompanionRosterStateV4 ToDirectorState(
+	EEFCalystoCompanionRosterStateV6 ToDirectorState(
 		const EProjectCompanionRunState State,
 		const bool bActiveParty)
 	{
@@ -105,64 +108,40 @@ namespace ProjectRunCompanionPrivate
 		{
 		case EProjectCompanionRunState::Alive:
 			return bActiveParty
-				? EEFCalystoCompanionRosterStateV4::ActiveParty
-				: EEFCalystoCompanionRosterStateV4::RecruitedInactive;
+				? EEFCalystoCompanionRosterStateV6::ActiveParty
+				: EEFCalystoCompanionRosterStateV6::RecruitedInactive;
 		case EProjectCompanionRunState::PendingDead:
 		case EProjectCompanionRunState::PendingRevival:
-			return EEFCalystoCompanionRosterStateV4::PendingDead;
+			return EEFCalystoCompanionRosterStateV6::PendingDead;
 		case EProjectCompanionRunState::Dead:
 		default:
-			return EEFCalystoCompanionRosterStateV4::Dead;
+			return EEFCalystoCompanionRosterStateV6::Dead;
 		}
 	}
 
-	EEFCalystoGenderV4 ToDirectorGender(const FName Gender)
+	EEFCalystoGenderV6 ToDirectorGender(const FName Gender)
 	{
 		if (Gender.IsEqual(TEXT("Female"), ENameCase::IgnoreCase))
 		{
-			return EEFCalystoGenderV4::Female;
+			return EEFCalystoGenderV6::Female;
 		}
 		if (Gender.IsEqual(TEXT("Male"), ENameCase::IgnoreCase))
 		{
-			return EEFCalystoGenderV4::Male;
+			return EEFCalystoGenderV6::Male;
 		}
-		return EEFCalystoGenderV4::Any;
+		return EEFCalystoGenderV6::Any;
 	}
 
-	EEFCalystoRarityTierV4 ToDirectorGrade(const EProjectCompanionDifficultyGrade Grade)
+	EEFCalystoRarityTierV6 ToDirectorGrade(const EProjectCompanionDifficultyGrade Grade)
 	{
 		switch (Grade)
 		{
-		case EProjectCompanionDifficultyGrade::Uncommon: return EEFCalystoRarityTierV4::Uncommon;
-		case EProjectCompanionDifficultyGrade::Rare: return EEFCalystoRarityTierV4::Rare;
-		case EProjectCompanionDifficultyGrade::Epic: return EEFCalystoRarityTierV4::Epic;
-		case EProjectCompanionDifficultyGrade::Winter: return EEFCalystoRarityTierV4::Winter;
+		case EProjectCompanionDifficultyGrade::Uncommon: return EEFCalystoRarityTierV6::Uncommon;
+		case EProjectCompanionDifficultyGrade::Rare: return EEFCalystoRarityTierV6::Rare;
+		case EProjectCompanionDifficultyGrade::Epic: return EEFCalystoRarityTierV6::Epic;
+		case EProjectCompanionDifficultyGrade::Winter: return EEFCalystoRarityTierV6::Winter;
 		case EProjectCompanionDifficultyGrade::Common:
-		default: return EEFCalystoRarityTierV4::Common;
-		}
-	}
-
-	EProjectCompanionDifficultyGrade FromDirectorGrade(const EEFCalystoRarityTierV4 Grade)
-	{
-		switch (Grade)
-		{
-		case EEFCalystoRarityTierV4::Uncommon: return EProjectCompanionDifficultyGrade::Uncommon;
-		case EEFCalystoRarityTierV4::Rare: return EProjectCompanionDifficultyGrade::Rare;
-		case EEFCalystoRarityTierV4::Epic: return EProjectCompanionDifficultyGrade::Epic;
-		case EEFCalystoRarityTierV4::Winter: return EProjectCompanionDifficultyGrade::Winter;
-		case EEFCalystoRarityTierV4::Common:
-		default: return EProjectCompanionDifficultyGrade::Common;
-		}
-	}
-
-	FName FromDirectorGender(const EEFCalystoGenderV4 Gender)
-	{
-		switch (Gender)
-		{
-		case EEFCalystoGenderV4::Female: return TEXT("Female");
-		case EEFCalystoGenderV4::Male: return TEXT("Male");
-		case EEFCalystoGenderV4::Any:
-		default: return TEXT("Any");
+		default: return EEFCalystoRarityTierV6::Common;
 		}
 	}
 
@@ -223,7 +202,9 @@ namespace ProjectRunCompanionPrivate
 void UProjectRunCompanionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	Collection.InitializeDependency<UEFCalystoDungeonSubsystem>();
+	bUsesUnversionedDirector = UEFCalystoDirectorSettings::IsEnabled();
+	if (bUsesUnversionedDirector) Collection.InitializeDependency<UEFCalystoDirectorSubsystem>();
+	else Collection.InitializeDependency<UEFCalystoDungeonSubsystem>();
 	BindDirectorEvents();
 }
 
@@ -244,6 +225,18 @@ void UProjectRunCompanionSubsystem::BindDirectorEvents()
 	{
 		return;
 	}
+	if (bUsesUnversionedDirector)
+	{
+		BoundDirector = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+		if (auto* Director = BoundDirector.Get())
+		{
+			Director->BeforeTravel.AddUObject(this, &ThisClass::HandleDirectorRequestPreparing);
+			Director->FloorReady.AddUObject(this, &ThisClass::HandleDirectorContextReady);
+			Director->RequestFailed.AddUObject(this, &ThisClass::HandleDirectorContextFailed);
+			bDirectorEventsBound = true;
+		}
+		return;
+	}
 	UEFCalystoDungeonSubsystem* Director = GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>();
 	if (!Director)
 	{
@@ -260,6 +253,18 @@ void UProjectRunCompanionSubsystem::BindDirectorEvents()
 
 void UProjectRunCompanionSubsystem::UnbindDirectorEvents()
 {
+	if (bUsesUnversionedDirector)
+	{
+		if (auto* Director = BoundDirector.Get())
+		{
+			Director->BeforeTravel.RemoveAll(this);
+			Director->FloorReady.RemoveAll(this);
+			Director->RequestFailed.RemoveAll(this);
+		}
+		BoundDirector.Reset();
+		bDirectorEventsBound = false;
+		return;
+	}
 	if (!bDirectorEventsBound || !GetGameInstance())
 	{
 		return;
@@ -275,11 +280,54 @@ void UProjectRunCompanionSubsystem::UnbindDirectorEvents()
 	bDirectorEventsBound = false;
 }
 
+void UProjectRunCompanionSubsystem::HandleDirectorRequestPreparing(const int64 FloorNumber)
+{
+	(void)FloorNumber;
+	// Request context binding does not manufacture a legacy intent, capture a new
+	// inventory baseline per retry, or commit recruitment/outcome state.
+	if (RevivalTransaction.bActive)
+		FinishRevivalTransaction(false, LOCTEXT("DirectorTravelCancelledRevival", "Travel cancelled the revival without consuming the item."));
+	bGenerationOrTravelActive = true;
+	bFloorReady = false;
+	SetRosterReady(false);
+}
+
+void UProjectRunCompanionSubsystem::HandleDirectorContextReady(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	if (Snapshot.State != EEFCalystoDirectorState::Ready || !Snapshot.bNativeFloorVerified
+		|| !Snapshot.bGameplayVerified) return;
+	bGenerationOrTravelActive = false;
+	bFloorReady = false;
+	FString ReconstructionError;
+	if (!ValidateV7TravelReconstruction(ReconstructionError))
+	{
+		UE_LOG(LogProjectRunCompanions, Error,
+			TEXT("V7 gameplay committed without a valid companion reconstruction: %s"),
+			*ReconstructionError);
+		SetRosterReady(false);
+		return;
+	}
+	RunEpoch = Snapshot.RunEpoch;
+	CurrentFloor = Snapshot.LastCommittedFloorNumber;
+	bFloorReady = true;
+	SetRosterReady(true);
+}
+
+void UProjectRunCompanionSubsystem::HandleDirectorContextFailed(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	(void)Snapshot;
+	bGenerationOrTravelActive = false;
+	bFloorReady = false;
+	SetRosterReady(false);
+}
+
 bool UProjectRunCompanionSubsystem::RegisterRecruitedCompanion(
 	const FProjectCompanionDefinition& Definition,
 	AACFCharacter* LiveActor,
 	const bool bJoinActiveParty)
 {
+	// The candidate cannot accept a recruit until its real gameplay commit bridge exists.
+	if (bUsesUnversionedDirector) return false;
 	FString DefinitionError;
 	if (!Definition.IsValid(DefinitionError)
 		|| Definition.Lifecycle != EProjectCompanionLifecycle::Recruitable
@@ -441,11 +489,19 @@ FProjectCompanionRunSnapshot UProjectRunCompanionSubsystem::GetRunRosterSnapshot
 	return BuildSnapshot();
 }
 
-FEFCalystoCompanionSnapshotV4 UProjectRunCompanionSubsystem::BuildDirectorSnapshot(
+FEFCalystoCompanionRosterSnapshotV6 UProjectRunCompanionSubsystem::BuildDirectorSnapshot(
 	const FProjectCompanionRunSnapshot& Source) const
 {
-	FEFCalystoCompanionSnapshotV4 Result;
+	FEFCalystoCompanionRosterSnapshotV6 Result;
+	Result.bIsValid = true;
+	Result.RunEpoch = Source.RunEpoch;
 	Result.bPlayerOwnsWintersRecall = PlayerOwnsWintersRecall(ResolveLocalPlayerPawn());
+	Result.ActiveParty = Source.ActiveParty;
+	Result.ActiveParty.Sort([](const FGuid& Left, const FGuid& Right)
+	{
+		return ProjectRunCompanionPrivate::GuidKey(Left)
+			< ProjectRunCompanionPrivate::GuidKey(Right);
+	});
 
 	TArray<FProjectCompanionRunEntrySnapshot> SortedEntries = Source.Entries;
 	SortedEntries.Sort([](const FProjectCompanionRunEntrySnapshot& Left, const FProjectCompanionRunEntrySnapshot& Right)
@@ -457,7 +513,7 @@ FEFCalystoCompanionSnapshotV4 UProjectRunCompanionSubsystem::BuildDirectorSnapsh
 	{
 		const bool bActiveParty = Source.ActiveParty.Contains(SourceEntry.Definition.StableCompanionId)
 			&& SourceEntry.State == EProjectCompanionRunState::Alive;
-		FEFCalystoCompanionRecordV4& Entry = Result.Records.AddDefaulted_GetRef();
+		FEFCalystoCompanionRecordV6& Entry = Result.Records.AddDefaulted_GetRef();
 		Entry.StableCompanionId = SourceEntry.Definition.StableCompanionId;
 		Entry.SourceSpawnId = SourceEntry.Definition.SourceSpawnId;
 		Entry.SourceCatalogId = SourceEntry.Definition.ContentId;
@@ -467,21 +523,25 @@ FEFCalystoCompanionSnapshotV4 UProjectRunCompanionSubsystem::BuildDirectorSnapsh
 		Entry.Gender = ProjectRunCompanionPrivate::ToDirectorGender(SourceEntry.Definition.Gender);
 		Entry.Grade = ProjectRunCompanionPrivate::ToDirectorGrade(SourceEntry.Definition.DifficultyGrade);
 		Entry.State = ProjectRunCompanionPrivate::ToDirectorState(SourceEntry.State, bActiveParty);
+		Entry.DeathFloor = SourceEntry.DeathFloor;
+		Entry.DeathGenerationSerial = SourceEntry.DeathGenerationSerial;
 	}
+	Result.SnapshotHash = FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(Result);
 	return Result;
 }
 
-FEFCalystoCompanionSnapshotV4
+FEFCalystoCompanionRosterSnapshotV6
 UProjectRunCompanionSubsystem::BuildAcceptedRosterValidationSnapshot(
 	const FProjectCompanionRunSnapshot& Source) const
 {
-	FEFCalystoCompanionSnapshotV4 Result = BuildDirectorSnapshot(Source);
+	FEFCalystoCompanionRosterSnapshotV6 Result = BuildDirectorSnapshot(Source);
 	// bPlayerOwnsWintersRecall is an input to chest eligibility, not companion
 	// roster topology. Replay intentionally keeps the original FloorIntent while
 	// the independent typed ACF inventory capsule preserves items obtained or
 	// consumed during play. Retain the accepted bit only for intent-hash
 	// validation; the inventory capsule validates the live ownership separately.
 	Result.bPlayerOwnsWintersRecall = bAcceptedIntentPlayerOwnsWintersRecall;
+	Result.SnapshotHash = FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(Result);
 	return Result;
 }
 
@@ -559,12 +619,12 @@ void UProjectRunCompanionSubsystem::BroadcastAcceptedRosterChanges(
 }
 
 bool UProjectRunCompanionSubsystem::ApplyResolvedCompanionLevels(
-	const FEFCalystoResolvedFloorIntentV4& Intent,
+	const FEFCalystoResolvedFloorIntentV6& Intent,
 	FString& OutError)
 {
 	OutError.Reset();
-	if (!Intent.bIsValid || Intent.FloorNumber != CurrentFloor
-		|| Intent.GenerationSerial != CurrentGenerationSerial
+	if (!Intent.bIsValid || Intent.GenerationContext.FloorNumber != CurrentFloor
+		|| Intent.GenerationContext.GenerationSerial != CurrentGenerationSerial
 		|| Intent.ResolvedCompanionLevels.Num() != Roster.Num())
 	{
 		OutError = TEXT("The accepted intent does not provide exactly one frozen level for every roster record.");
@@ -573,7 +633,7 @@ bool UProjectRunCompanionSubsystem::ApplyResolvedCompanionLevels(
 
 	TMap<FGuid, int32> ValidatedLevels;
 	ValidatedLevels.Reserve(Intent.ResolvedCompanionLevels.Num());
-	for (const FEFCalystoResolvedCompanionLevelV4& Level : Intent.ResolvedCompanionLevels)
+	for (const FEFCalystoResolvedCompanionLevelV6& Level : Intent.ResolvedCompanionLevels)
 	{
 		const FRuntimeCompanionRecord* Record = Roster.Find(Level.StableCompanionId);
 		if (!Level.StableCompanionId.IsValid() || !Record
@@ -608,27 +668,27 @@ bool UProjectRunCompanionSubsystem::ApplyResolvedCompanionLevels(
 
 bool UProjectRunCompanionSubsystem::ResolveActiveIntentCompanionLevel(
 	const FGuid StableCompanionId,
-	FEFCalystoResolvedCompanionLevelV4& OutLevel,
+	FEFCalystoResolvedCompanionLevelV6& OutLevel,
 	FString& OutError) const
 {
-	OutLevel = FEFCalystoResolvedCompanionLevelV4();
+	OutLevel = FEFCalystoResolvedCompanionLevelV6();
 	OutError.Reset();
 	const UEFCalystoDungeonSubsystem* Director = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
-	const FEFCalystoResolvedFloorIntentV4 Intent = Director
+	const FEFCalystoResolvedFloorIntentV6 Intent = Director
 		? Director->GetResolvedFloorIntent()
-		: FEFCalystoResolvedFloorIntentV4();
+		: FEFCalystoResolvedFloorIntentV6();
 	if (!StableCompanionId.IsValid() || !Intent.bIsValid
-		|| Intent.FloorNumber != CurrentFloor
-		|| Intent.GenerationSerial != CurrentGenerationSerial)
+		|| Intent.GenerationContext.FloorNumber != CurrentFloor
+		|| Intent.GenerationContext.GenerationSerial != CurrentGenerationSerial)
 	{
-		OutError = TEXT("The active V4 intent does not match the current companion floor identity.");
+		OutError = TEXT("The active V6 intent does not match the current companion floor identity.");
 		return false;
 	}
 
 	int32 MatchCount = 0;
-	for (const FEFCalystoResolvedCompanionLevelV4& Candidate : Intent.ResolvedCompanionLevels)
+	for (const FEFCalystoResolvedCompanionLevelV6& Candidate : Intent.ResolvedCompanionLevels)
 	{
 		if (Candidate.StableCompanionId == StableCompanionId)
 		{
@@ -642,33 +702,40 @@ bool UProjectRunCompanionSubsystem::ResolveActiveIntentCompanionLevel(
 		|| ProjectRunCompanionPrivate::ToDirectorGrade(
 			Record->Snapshot.Definition.DifficultyGrade) != OutLevel.Grade)
 	{
-		OutError = TEXT("The selected companion has no unique, valid frozen level in the active V4 intent.");
+		OutError = TEXT("The selected companion has no unique, valid frozen level in the active V6 intent.");
 		return false;
 	}
 	return true;
 }
 
 bool UProjectRunCompanionSubsystem::ResolveSameFloorRecruitedRevivalLevel(
-	const FEFCalystoResolvedFloorIntentV4& Intent,
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoPopulationPlanV6& PopulationPlan,
 	const FProjectCompanionRunSnapshot& FloorStart,
 	const FProjectCompanionRunEntrySnapshot& CurrentRecord,
-	FEFCalystoResolvedCompanionLevelV4& OutLevel,
+	FEFCalystoResolvedCompanionLevelV6& OutLevel,
 	FString& OutError)
 {
-	OutLevel = FEFCalystoResolvedCompanionLevelV4();
+	OutLevel = FEFCalystoResolvedCompanionLevelV6();
 	OutError.Reset();
 	FString DefinitionError;
 	FString FloorStartError;
 	const FGuid StableId = CurrentRecord.Definition.StableCompanionId;
-	if (!Intent.bIsValid || Intent.GeneratorVersion != 4
+	if (!Intent.bIsValid
+		|| Intent.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion
+		|| PopulationPlan.PopulationHash.IsEmpty()
+		|| PopulationPlan.FloorNumber != Intent.GenerationContext.FloorNumber
+		|| PopulationPlan.FloorSeed != Intent.FloorPlan.FloorSeed
+		|| PopulationPlan.StyleId != Intent.StyleId
+		|| PopulationPlan.FloorPlanHash != Intent.FloorPlan.FloorPlanHash
 		|| !StableId.IsValid()
 		|| !CurrentRecord.Definition.IsValid(DefinitionError)
 		|| !FloorStart.IsValid(FloorStartError)
-		|| FloorStart.FloorNumber != Intent.FloorNumber
-		|| FloorStart.GenerationSerial != Intent.GenerationSerial
+		|| FloorStart.FloorNumber != Intent.GenerationContext.FloorNumber
+		|| FloorStart.GenerationSerial != Intent.GenerationContext.GenerationSerial
 		|| CurrentRecord.State != EProjectCompanionRunState::PendingDead
-		|| CurrentRecord.DeathFloor != Intent.FloorNumber
-		|| CurrentRecord.DeathGenerationSerial != Intent.GenerationSerial
+		|| CurrentRecord.DeathFloor != Intent.GenerationContext.FloorNumber
+		|| CurrentRecord.DeathGenerationSerial != Intent.GenerationContext.GenerationSerial
 		|| CurrentRecord.Definition.Lifecycle != EProjectCompanionLifecycle::Recruitable)
 	{
 		OutError = TEXT("The same-floor revival record, floor-start snapshot or intent identity is invalid.");
@@ -680,13 +747,13 @@ bool UProjectRunCompanionSubsystem::ResolveSameFloorRecruitedRevivalLevel(
 		{
 			return Entry.Definition.StableCompanionId == StableId;
 		});
-	const bool bWasSubmittedInIntent = Intent.CompanionSnapshot.Records.ContainsByPredicate(
-		[StableId](const FEFCalystoCompanionRecordV4& Entry)
+	const bool bWasSubmittedInIntent = Intent.CompanionRoster.Records.ContainsByPredicate(
+		[StableId](const FEFCalystoCompanionRecordV6& Entry)
 		{
 			return Entry.StableCompanionId == StableId;
 		});
 	const bool bHasFrozenRosterLevel = Intent.ResolvedCompanionLevels.ContainsByPredicate(
-		[StableId](const FEFCalystoResolvedCompanionLevelV4& Entry)
+		[StableId](const FEFCalystoResolvedCompanionLevelV6& Entry)
 		{
 			return Entry.StableCompanionId == StableId;
 		});
@@ -697,76 +764,77 @@ bool UProjectRunCompanionSubsystem::ResolveSameFloorRecruitedRevivalLevel(
 	}
 
 	int32 MatchingDirectiveCount = 0;
-	FEFCalystoSpawnInstanceDirectiveV4 MatchingDirective;
+	FEFCalystoPopulationDecisionV6 MatchingDecision;
 	FProjectCompanionDefinition MatchingDefinition;
-	for (const FEFCalystoSpawnInstanceDirectiveV4& Directive : Intent.SpawnDirectives)
+	for (const FEFCalystoRoomPopulationPlanV6& RoomPlan : PopulationPlan.Rooms)
 	{
-		if (Directive.Category != EEFCalystoContentCategoryV4::NPC
-			|| Directive.Lifecycle != EEFCalystoLifecycleV4::Recruitable
-			|| Directive.StableCompanionId.IsValid())
+		for (const FEFCalystoPopulationDecisionV6& Decision : RoomPlan.Decisions)
 		{
-			continue;
-		}
+			if (Decision.Kind != EEFCalystoPopulationDecisionKindV6::Actor
+				|| !Decision.CategoryId.IsEqual(TEXT("NPC"), ENameCase::IgnoreCase)
+				|| Decision.Lifecycle != EEFCalystoLifecycleV6::Recruitable)
+			{
+				continue;
+			}
 
-		FProjectCompanionDefinition CandidateDefinition;
-		FString CandidateError;
-		if (!FProjectCalystoPopulationBridgeV4::BuildRandomNPCDefinitionFromIntent(
-			Intent, Directive, CandidateDefinition, CandidateError))
-		{
-			OutError = CandidateError.IsEmpty()
-				? TEXT("A recruitable NPC directive in the active intent is invalid.")
-				: CandidateError;
-			return false;
-		}
-		if (CandidateDefinition.StableCompanionId == StableId)
-		{
-			++MatchingDirectiveCount;
-			MatchingDirective = Directive;
-			MatchingDefinition = MoveTemp(CandidateDefinition);
+			FProjectCompanionDefinition CandidateDefinition;
+			FString CandidateError;
+			if (!FProjectCalystoPopulationBridge::BuildRandomNPCDefinition(
+				PopulationPlan, Decision, CandidateDefinition, CandidateError))
+			{
+				OutError = CandidateError.IsEmpty()
+					? TEXT("A recruitable NPC decision in the active V6 population plan is invalid.")
+					: CandidateError;
+				return false;
+			}
+			if (CandidateDefinition.StableCompanionId == StableId)
+			{
+				++MatchingDirectiveCount;
+				MatchingDecision = Decision;
+				MatchingDefinition = MoveTemp(CandidateDefinition);
+			}
 		}
 	}
 
 	if (MatchingDirectiveCount != 1
 		|| !ProjectRunCompanionPrivate::DefinitionsMatchExactly(
 			CurrentRecord.Definition, MatchingDefinition)
-		|| MatchingDirective.LogicalLevel < 1
-		|| MatchingDirective.PhysicalACFLevel
-			!= FMath::Min(MatchingDirective.LogicalLevel, 100))
+		|| MatchingDefinition.ResolvedLevel < 1)
 	{
-		OutError = TEXT("The same-floor recruit does not match exactly one frozen NPC directive.");
+		OutError = TEXT("The same-floor recruit does not match exactly one frozen V6 NPC decision.");
 		return false;
 	}
 
 	OutLevel.StableCompanionId = StableId;
-	OutLevel.Grade = MatchingDirective.Tier;
-	OutLevel.LogicalLevel = MatchingDirective.LogicalLevel;
-	OutLevel.PhysicalACFLevel = MatchingDirective.PhysicalACFLevel;
+	OutLevel.Grade = MatchingDecision.Tier;
+	OutLevel.LogicalLevel = MatchingDefinition.ResolvedLevel;
+	OutLevel.PhysicalACFLevel = FMath::Min(MatchingDefinition.ResolvedLevel, 100);
 	return true;
 }
 
 bool UProjectRunCompanionSubsystem::ResolveFrozenRevivalCompanionLevel(
 	const FGuid StableCompanionId,
-	FEFCalystoResolvedCompanionLevelV4& OutLevel,
+	FEFCalystoResolvedCompanionLevelV6& OutLevel,
 	FString& OutError) const
 {
-	OutLevel = FEFCalystoResolvedCompanionLevelV4();
+	OutLevel = FEFCalystoResolvedCompanionLevelV6();
 	OutError.Reset();
 	const UEFCalystoDungeonSubsystem* Director = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
-	const FEFCalystoResolvedFloorIntentV4 Intent = Director
+	const FEFCalystoResolvedFloorIntentV6 Intent = Director
 		? Director->GetResolvedFloorIntent()
-		: FEFCalystoResolvedFloorIntentV4();
+		: FEFCalystoResolvedFloorIntentV6();
 	if (!StableCompanionId.IsValid() || !Intent.bIsValid
-		|| Intent.FloorNumber != CurrentFloor
-		|| Intent.GenerationSerial != CurrentGenerationSerial)
+		|| Intent.GenerationContext.FloorNumber != CurrentFloor
+		|| Intent.GenerationContext.GenerationSerial != CurrentGenerationSerial)
 	{
-		OutError = TEXT("The active V4 intent does not match the current revival floor identity.");
+		OutError = TEXT("The active V6 intent does not match the current revival floor identity.");
 		return false;
 	}
 
 	int32 FrozenRosterMatches = 0;
-	for (const FEFCalystoResolvedCompanionLevelV4& Candidate : Intent.ResolvedCompanionLevels)
+	for (const FEFCalystoResolvedCompanionLevelV6& Candidate : Intent.ResolvedCompanionLevels)
 	{
 		FrozenRosterMatches += Candidate.StableCompanionId == StableCompanionId ? 1 : 0;
 	}
@@ -776,7 +844,7 @@ bool UProjectRunCompanionSubsystem::ResolveFrozenRevivalCompanionLevel(
 	}
 	if (FrozenRosterMatches != 0)
 	{
-		OutError = TEXT("The active V4 intent contains duplicate frozen levels for the revival companion.");
+		OutError = TEXT("The active V6 intent contains duplicate frozen levels for the revival companion.");
 		return false;
 	}
 
@@ -787,10 +855,15 @@ bool UProjectRunCompanionSubsystem::ResolveFrozenRevivalCompanionLevel(
 		return false;
 	}
 	return ResolveSameFloorRecruitedRevivalLevel(
-		Intent, FloorStartSnapshot, Record->Snapshot, OutLevel, OutError);
+		Intent,
+		Director->GetPopulationPlanV6(),
+		FloorStartSnapshot,
+		Record->Snapshot,
+		OutLevel,
+		OutError);
 }
 
-void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoDungeonTravelKindV4 TravelKind)
+void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoDungeonTravelKindV6 TravelKind)
 {
 	UEFCalystoDungeonSubsystem* Director = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
@@ -812,7 +885,8 @@ void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoD
 			TEXT("The project companion adapter received an unsupported Director travel kind."));
 		return;
 	}
-	if (TravelKind != EEFCalystoDungeonTravelKindV4::NewRun)
+	if (TravelKind != EEFCalystoDungeonTravelKindV6::NewRun
+		&& TravelKind != EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		FString RecruitmentError;
 		if (!SynchronizeRecruitmentsBeforeTravel(RecruitmentError))
@@ -827,13 +901,14 @@ void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoD
 	PreTravelSnapshot = BuildSnapshot();
 	PendingDestinationSnapshot = PreTravelSnapshot;
 
-	if (TravelKind == EEFCalystoDungeonTravelKindV4::Replay
-		|| TravelKind == EEFCalystoDungeonTravelKindV4::Reroll)
+	if (TravelKind == EEFCalystoDungeonTravelKindV6::Replay
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::Reroll
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::Retry)
 	{
 		PendingDestinationSnapshot = FloorStartSnapshot;
 	}
-	else if (TravelKind == EEFCalystoDungeonTravelKindV4::Advance
-		|| TravelKind == EEFCalystoDungeonTravelKindV4::DebugJump)
+	else if (TravelKind == EEFCalystoDungeonTravelKindV6::Advance
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::DevelopmentJump)
 	{
 		for (FProjectCompanionRunEntrySnapshot& Entry : PendingDestinationSnapshot.Entries)
 		{
@@ -856,7 +931,8 @@ void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoD
 		PendingDestinationSnapshot.RefreshHash();
 	}
 
-	if (TravelKind != EEFCalystoDungeonTravelKindV4::NewRun)
+	if (TravelKind != EEFCalystoDungeonTravelKindV6::NewRun
+		&& TravelKind != EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		FString SnapshotError;
 		if (!PendingDestinationSnapshot.IsValid(SnapshotError))
@@ -873,13 +949,17 @@ void UProjectRunCompanionSubsystem::HandleBeforeDirectorTravel(const EEFCalystoD
 	bGenerationOrTravelActive = true;
 	SetRosterReady(false);
 
-	FEFCalystoCompanionSnapshotV4 DirectorSnapshot;
-	if (TravelKind == EEFCalystoDungeonTravelKindV4::NewRun)
+	FEFCalystoCompanionRosterSnapshotV6 DirectorSnapshot;
+	if (TravelKind == EEFCalystoDungeonTravelKindV6::NewRun
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		// New Run deliberately freezes an empty destination roster and no Recall.
 		// The current run/inventory remain untouched until the destination world is
 		// accepted, so a failed request can still restore the pre-travel state.
-		DirectorSnapshot = FEFCalystoCompanionSnapshotV4();
+		DirectorSnapshot.bIsValid = true;
+		DirectorSnapshot.RunEpoch = 0;
+		DirectorSnapshot.SnapshotHash =
+			FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(DirectorSnapshot);
 	}
 	else
 	{
@@ -909,8 +989,8 @@ void UProjectRunCompanionSubsystem::HandleNewRunInitialized(const int64 NewRunEp
 
 void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 	const int64 AcceptedRunEpoch,
-	const EEFCalystoDungeonTravelKindV4 TravelKind,
-	const FEFCalystoResolvedFloorIntentV4& Intent)
+	const EEFCalystoDungeonTravelKindV6 TravelKind,
+	const FEFCalystoResolvedFloorIntentV6& Intent)
 {
 	UEFCalystoDungeonSubsystem* Director = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
@@ -921,16 +1001,23 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 	}
 	const FProjectCompanionRunSnapshot PreviousSnapshot = BuildSnapshot();
 
-	const FEFCalystoResolvedFloorIntentV4& IntentV4 = Intent;
-	if (!IntentV4.bIsValid || AcceptedRunEpoch <= 0 || IntentV4.CompanionSnapshotHash.IsEmpty())
+	const FEFCalystoResolvedFloorIntentV6& IntentV6 = Intent;
+	FString IntentValidationError;
+	if (!IntentV6.bIsValid || AcceptedRunEpoch <= 0
+		|| IntentV6.CompanionRoster.SnapshotHash.IsEmpty()
+		|| !FEFCalystoDungeonRuntimeMathV6::ValidateResolvedFloorIntent(
+			IntentV6, IntentValidationError))
 	{
 		Director->NotifyGenerationFailed(
-			TEXT("COMPANION_V4_INTENT_MISSING"),
-			TEXT("The accepted world has no valid V4 intent or companion snapshot hash."));
+			TEXT("COMPANION_V6_INTENT_MISSING"),
+			FString::Printf(
+				TEXT("The accepted world has no valid V6 intent or companion snapshot hash: %s"),
+				*IntentValidationError));
 		return;
 	}
 
-	if (TravelKind != EEFCalystoDungeonTravelKindV4::NewRun)
+	if (TravelKind != EEFCalystoDungeonTravelKindV6::NewRun
+		&& TravelKind != EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		// A watchdog/recovery retry re-accepts the frozen intent without issuing a
 		// new external travel-preparation event. Reuse the already frozen floor
@@ -949,11 +1036,11 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 		}
 	}
 	RunEpoch = AcceptedRunEpoch;
-	CurrentFloor = IntentV4.FloorNumber;
-	CurrentGenerationSerial = IntentV4.GenerationSerial;
-	CurrentCompanionSnapshotHash = IntentV4.CompanionSnapshotHash;
+	CurrentFloor = IntentV6.GenerationContext.FloorNumber;
+	CurrentGenerationSerial = IntentV6.GenerationContext.GenerationSerial;
+	CurrentCompanionSnapshotHash = IntentV6.CompanionRoster.SnapshotHash;
 	bAcceptedIntentPlayerOwnsWintersRecall =
-		IntentV4.CompanionSnapshot.bPlayerOwnsWintersRecall;
+		IntentV6.CompanionRoster.bPlayerOwnsWintersRecall;
 	bGenerationOrTravelActive = true;
 	bFloorReady = false;
 	SetRosterReady(false);
@@ -964,7 +1051,8 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 		Director->NotifyGenerationFailed(TEXT("INVENTORY_TRAVEL_RESTORE_FAILED"), InventoryError);
 		return;
 	}
-	if (TravelKind == EEFCalystoDungeonTravelKindV4::NewRun)
+	if (TravelKind == EEFCalystoDungeonTravelKindV6::NewRun
+		|| TravelKind == EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		APawn* PlayerPawn = ResolveLocalPlayerPawn();
 		if (!PurgeWintersRecallFromInventory(PlayerPawn, InventoryError))
@@ -975,7 +1063,7 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 	}
 
 	FString CompanionLevelError;
-	if (!ApplyResolvedCompanionLevels(IntentV4, CompanionLevelError))
+	if (!ApplyResolvedCompanionLevels(IntentV6, CompanionLevelError))
 	{
 		Director->NotifyGenerationFailed(
 			TEXT("COMPANION_LEVEL_CONTRACT_INVALID"),
@@ -983,16 +1071,18 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 		return;
 	}
 
-	const FEFCalystoCompanionSnapshotV4 RealizedSnapshot =
+	const FEFCalystoCompanionRosterSnapshotV6 RealizedSnapshot =
 		BuildAcceptedRosterValidationSnapshot(BuildSnapshot());
-	const FString RealizedSnapshotHash = FEFCalystoDungeonDirectorMathV4::GetCompanionSnapshotHash(RealizedSnapshot);
-	if (RealizedSnapshotHash.IsEmpty() || RealizedSnapshotHash != IntentV4.CompanionSnapshotHash)
+	const FString RealizedSnapshotHash =
+		FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(RealizedSnapshot);
+	if (RealizedSnapshotHash.IsEmpty()
+		|| RealizedSnapshotHash != IntentV6.CompanionRoster.SnapshotHash)
 	{
 		DestroyLiveRosterProjections();
 		Director->NotifyGenerationFailed(
 			TEXT("COMPANION_SNAPSHOT_DRIFT"),
 			FString::Printf(TEXT("Expected companion snapshot %s but restored %s."),
-				*IntentV4.CompanionSnapshotHash, *RealizedSnapshotHash));
+				*IntentV6.CompanionRoster.SnapshotHash, *RealizedSnapshotHash));
 		return;
 	}
 
@@ -1008,7 +1098,8 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 	FloorStartSnapshot = AcceptedSnapshot;
 	PendingDestinationSnapshot = FProjectCompanionRunSnapshot();
 	PendingTravelMode = EProjectCompanionDirectorTravelMode::None;
-	if (TravelKind != EEFCalystoDungeonTravelKindV4::NewRun)
+	if (TravelKind != EEFCalystoDungeonTravelKindV6::NewRun
+		&& TravelKind != EEFCalystoDungeonTravelKindV6::RestartSameSeed)
 	{
 		BroadcastAcceptedRosterChanges(PreviousSnapshot, AcceptedSnapshot);
 	}
@@ -1017,13 +1108,30 @@ void UProjectRunCompanionSubsystem::HandleDirectorWorldAccepted(
 void UProjectRunCompanionSubsystem::HandleFloorReady(
 	const int64 FloorNumber,
 	const int32 PCGSeed,
-	const FEFCalystoResolvedFloorIntentV4& Intent,
-	const FEFCalystoRealizedFloorManifestV4& Manifest)
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoRealizedFloorManifestV6& Manifest)
 {
 	(void)PCGSeed;
-	(void)Intent;
-	(void)Manifest;
-	if (FloorNumber == CurrentFloor && bCompanionRosterReady)
+	if (FloorNumber == CurrentFloor
+		&& (Intent.SchemaVersion != EFCalystoDungeonRuntimeSchemaV6::SchemaVersion
+			|| Manifest.SchemaVersion != EFCalystoDungeonRuntimeSchemaV6::SchemaVersion
+			|| Intent.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion
+			|| Manifest.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion))
+	{
+		if (UEFCalystoDungeonSubsystem* Director = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
+			: nullptr)
+		{
+			Director->NotifyGenerationFailed(
+				TEXT("COMPANION_SCHEMA_MISMATCH"),
+				TEXT("Companion floor readiness received an intent or manifest from a different V6 schema."));
+		}
+		return;
+	}
+	if (FloorNumber == CurrentFloor && bCompanionRosterReady
+		&& Intent.GenerationContext.FloorNumber == FloorNumber
+		&& Manifest.FloorNumber == FloorNumber
+		&& Manifest.CompanionSnapshotHash == CurrentCompanionSnapshotHash)
 	{
 		bFloorReady = true;
 		bGenerationOrTravelActive = false;
@@ -1133,9 +1241,10 @@ bool UProjectRunCompanionSubsystem::IsReadyForDirectorSnapshot(
 			*ExpectedSnapshotHash, *CurrentCompanionSnapshotHash);
 		return false;
 	}
-	const FEFCalystoCompanionSnapshotV4 Current =
+	const FEFCalystoCompanionRosterSnapshotV6 Current =
 		BuildAcceptedRosterValidationSnapshot(BuildSnapshot());
-	if (FEFCalystoDungeonDirectorMathV4::GetCompanionSnapshotHash(Current) != ExpectedSnapshotHash)
+	if (FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(Current)
+		!= ExpectedSnapshotHash)
 	{
 		OutError = TEXT("The live project roster drifted after world acceptance.");
 		return false;
@@ -1143,59 +1252,326 @@ bool UProjectRunCompanionSubsystem::IsReadyForDirectorSnapshot(
 	return true;
 }
 
-bool UProjectRunCompanionSubsystem::ResolveFrozenRosterProjection(
-	const FEFCalystoSpawnInstanceDirectiveV4& Directive,
-	FProjectCompanionDefinition& OutDefinition,
-	FString& OutError) const
+bool UProjectRunCompanionSubsystem::MaterializeActivePartyProjectionsForFloor(
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	FString& OutError)
 {
-	OutDefinition = FProjectCompanionDefinition();
 	OutError.Reset();
-	if (Directive.Category != EEFCalystoContentCategoryV4::NPC
-		|| !Directive.StableCompanionId.IsValid()
-		|| Directive.Lifecycle != EEFCalystoLifecycleV4::Recruitable
-		|| Directive.LogicalLevel < 1)
+	if (!Intent.bIsValid
+		|| Intent.GenerationContext.FloorNumber != CurrentFloor
+		|| Intent.GenerationContext.GenerationSerial != CurrentGenerationSerial
+		|| Intent.CompanionRoster.SnapshotHash != CurrentCompanionSnapshotHash)
 	{
-		OutError = TEXT("The directive is not a valid active-party NPC projection.");
+		OutError = TEXT("The accepted V6 intent does not match the active companion transaction.");
 		return false;
 	}
 
-	const FRuntimeCompanionRecord* Record = Roster.Find(Directive.StableCompanionId);
-	if (!Record || !Record->bDesiredActiveParty
-		|| Record->Snapshot.State != EProjectCompanionRunState::Alive)
+	const FEFCalystoCompanionRosterSnapshotV6 CurrentRoster =
+		BuildAcceptedRosterValidationSnapshot(BuildSnapshot());
+	FString RosterError;
+	if (!FEFCalystoDungeonRuntimeMathV6::ValidateCompanionRoster(CurrentRoster, RosterError)
+		|| CurrentRoster.SnapshotHash != Intent.CompanionRoster.SnapshotHash)
 	{
-		OutError = TEXT("The stable companion is absent, inactive or not alive in the frozen roster.");
-		return false;
-	}
-	FEFCalystoResolvedCompanionLevelV4 FrozenLevel;
-	if (!ResolveActiveIntentCompanionLevel(
-		Directive.StableCompanionId, FrozenLevel, OutError))
-	{
-		return false;
-	}
-
-	const FProjectCompanionDefinition& Frozen = Record->Snapshot.Definition;
-	if (Frozen.ContentId != Directive.CatalogId
-		|| Frozen.CatalogVariantId != Directive.VariantId
-		|| Frozen.CharacterClass.ToSoftObjectPath() != Directive.ActorClass.ToSoftObjectPath()
-		|| Frozen.Archetype != Directive.Archetype
-		|| ProjectRunCompanionPrivate::ToDirectorGender(Frozen.Gender) != Directive.Gender
-		|| ProjectRunCompanionPrivate::ToDirectorGrade(Frozen.DifficultyGrade) != Directive.Tier
-		|| FrozenLevel.Grade != Directive.Tier
-		|| FrozenLevel.LogicalLevel != Directive.LogicalLevel
-		|| FrozenLevel.PhysicalACFLevel != Directive.PhysicalACFLevel)
-	{
-		OutError = TEXT("The roster projection directive drifted from its frozen companion record.");
+		OutError = RosterError.IsEmpty()
+			? TEXT("The active companion roster drifted from the accepted V6 snapshot.")
+			: RosterError;
 		return false;
 	}
 
-	OutDefinition = Frozen;
-	OutDefinition.CharacterClass = TSoftClassPtr<AACFCharacter>(Directive.ActorClass.ToSoftObjectPath());
-	OutDefinition.Archetype = Directive.Archetype;
-	OutDefinition.Gender = ProjectRunCompanionPrivate::FromDirectorGender(Directive.Gender);
-	OutDefinition.DifficultyGrade = ProjectRunCompanionPrivate::FromDirectorGrade(Directive.Tier);
-	OutDefinition.ResolvedLevel = FrozenLevel.LogicalLevel;
-	OutDefinition.Lifecycle = EProjectCompanionLifecycle::Recruitable;
-	return OutDefinition.IsValid(OutError);
+	for (const TPair<FGuid, FRuntimeCompanionRecord>& Pair : Roster)
+	{
+		if (Pair.Value.LiveActor.IsValid())
+		{
+			OutError = TEXT("A companion projection already exists before the V6 population commit.");
+			return false;
+		}
+	}
+
+	if (CurrentRoster.ActiveParty.IsEmpty())
+	{
+		return true;
+	}
+
+	APawn* PlayerPawn = ResolveLocalPlayerPawn();
+	UACFCompanionGroupAIComponent* Group =
+		UProjectCompanionRuntimeAdapter::ResolveCompanionGroup(PlayerPawn);
+	if (!PlayerPawn || !Group)
+	{
+		OutError = TEXT("The player or typed ACF companion group is unavailable for V6 roster projection.");
+		return false;
+	}
+
+	TArray<FVector> ReservedLocations;
+	for (const FGuid& StableId : CurrentRoster.ActiveParty)
+	{
+		FRuntimeCompanionRecord* Record = Roster.Find(StableId);
+		FEFCalystoResolvedCompanionLevelV6 FrozenLevel;
+		if (!Record || !Record->bDesiredActiveParty
+			|| Record->Snapshot.State != EProjectCompanionRunState::Alive
+			|| !ResolveActiveIntentCompanionLevel(StableId, FrozenLevel, OutError))
+		{
+			DestroyLiveRosterProjections();
+			if (OutError.IsEmpty())
+			{
+				OutError = TEXT("An active-party record is missing, inactive, dead, or lacks its frozen V6 level.");
+			}
+			return false;
+		}
+
+		FProjectCompanionDefinition Definition = Record->Snapshot.Definition;
+		Definition.ResolvedLevel = FrozenLevel.LogicalLevel;
+		UClass* CharacterClass = Definition.CharacterClass.Get();
+		FString DefinitionError;
+		if (!Definition.IsValid(DefinitionError) || !IsValid(CharacterClass))
+		{
+			DestroyLiveRosterProjections();
+			OutError = DefinitionError.IsEmpty()
+				? TEXT("An active-party class was not retained by the asynchronous V6 preload lease.")
+				: DefinitionError;
+			return false;
+		}
+
+		FTransform SpawnTransform;
+		if (!UProjectCompanionRuntimeAdapter::FindDeterministicSafeSpawnTransform(
+				GetWorld(), PlayerPawn, StableId, CharacterClass,
+				ReservedLocations, SpawnTransform, OutError))
+		{
+			DestroyLiveRosterProjections();
+			return false;
+		}
+		ReservedLocations.Add(SpawnTransform.GetLocation());
+
+		const FProjectCompanionSpawnResult Spawn =
+			UProjectCompanionRuntimeAdapter::SpawnAndRegisterCompanion(
+				this, Definition, SpawnTransform, Group);
+		if (!Spawn.bSucceeded || !Spawn.SpawnedCharacter
+			|| !AdoptDirectorRosterProjection(
+				Spawn.SpawnedCharacter, Definition, OutError))
+		{
+			if (Spawn.SpawnedCharacter)
+			{
+				UProjectCompanionRuntimeAdapter::RollbackSpawnedCompanion(
+					Spawn.SpawnedCharacter, Group);
+			}
+			DestroyLiveRosterProjections();
+			if (OutError.IsEmpty())
+			{
+				OutError = Spawn.Diagnostic.IsEmpty()
+					? TEXT("The active-party V6 projection failed validation.")
+					: Spawn.Diagnostic;
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UProjectRunCompanionSubsystem::BuildV7TravelInventoryDestinations(const FGuid& RequestId,
+	UWorld* DestinationWorld, const TConstArrayView<FProjectCalystoInventoryDestinationRequirement> Requirements,
+	TArray<FProjectCalystoInventoryDestination>& OutDestinations, FString& OutError)
+{
+	OutDestinations.Reset(); OutError.Reset();
+	if (!RequestId.IsValid() || GameplaySnapshotRequest != RequestId || !IsValid(DestinationWorld)
+		|| DestinationWorld->GetGameInstance() != GetGameInstance() || !DestinationWorld->IsGameWorld()
+		|| Requirements.IsEmpty())
+	{
+		OutError = TEXT("V7 destination reconstruction requires the exact active snapshot lease, game world and projection requirements.");
+		return false;
+	}
+	int32 PlayerRequirements = 0;
+	TSet<FGuid> RequestedCompanions;
+	for (const FProjectCalystoInventoryDestinationRequirement& Requirement : Requirements)
+	{
+		if (!Requirement.CompanionId.IsValid())
+		{
+			if (Requirement.bCorpse || ++PlayerRequirements != 1)
+			{
+				OutError = TEXT("The V7 destination requirements do not contain exactly one live player projection.");
+				return false;
+			}
+			continue;
+		}
+		// A corpse contains a distinct native death/AI lifecycle and cannot be
+		// represented by a live ACF group projection. Reject before any spawn;
+		// never erase it or substitute a living companion.
+		if (Requirement.bCorpse)
+		{
+			OutError = TEXT("A detached companion corpse requires the native corpse travel lifecycle, which is unavailable for V7.");
+			return false;
+		}
+		const FRuntimeCompanionRecord* Record = Roster.Find(Requirement.CompanionId);
+		if (RequestedCompanions.Contains(Requirement.CompanionId) || !Record || !Record->bDesiredActiveParty
+			|| Record->Snapshot.State != EProjectCompanionRunState::Alive || Record->LiveActor.IsValid())
+		{
+			OutError = TEXT("A V7 live companion destination is duplicated, inactive, dead, missing or already projected.");
+			return false;
+		}
+		RequestedCompanions.Add(Requirement.CompanionId);
+		FString DefinitionError;
+		if (!Record->Snapshot.Definition.IsValid(DefinitionError) || !Record->Snapshot.Definition.CharacterClass.Get())
+		{
+			OutError = DefinitionError.IsEmpty()
+				? TEXT("A V7 companion class is not retained for destination reconstruction.") : DefinitionError;
+			return false;
+		}
+	}
+	if (PlayerRequirements != 1)
+	{
+		OutError = TEXT("The V7 destination requirements omit the player inventory owner.");
+		return false;
+	}
+	int32 ActiveCount = 0;
+	for (const TPair<FGuid, FRuntimeCompanionRecord>& Pair : Roster)
+	{
+		const FRuntimeCompanionRecord& Record = Pair.Value;
+		const bool bMustProject = Record.bDesiredActiveParty && Record.Snapshot.State == EProjectCompanionRunState::Alive;
+		if (bMustProject)
+		{
+			++ActiveCount;
+			if (!RequestedCompanions.Contains(Pair.Key))
+			{
+				OutError = TEXT("A living active-party companion is absent from the detached V7 projection requirements.");
+				return false;
+			}
+		}
+		else if (RequestedCompanions.Contains(Pair.Key))
+		{
+			OutError = TEXT("A detached V7 projection requests an inactive or nonliving companion.");
+			return false;
+		}
+	}
+	if (ActiveCount > ProjectRunCompanionPrivate::MaximumActiveParty)
+	{
+		OutError = TEXT("The detached V7 active party exceeds the supported native party capacity.");
+		return false;
+	}
+	APlayerController* Controller = DestinationWorld->GetFirstPlayerController();
+	APawn* PlayerPawn = Controller ? Controller->GetPawn() : nullptr;
+	UACFCompanionGroupAIComponent* Group = UProjectCompanionRuntimeAdapter::ResolveCompanionGroup(PlayerPawn);
+	if (!IsValid(PlayerPawn) || PlayerPawn->GetWorld() != DestinationWorld || !PlayerPawn->HasAuthority() || !Group)
+	{
+		OutError = TEXT("The destination player or native ACF companion group is unavailable for V7 reconstruction.");
+		return false;
+	}
+	FProjectCalystoInventoryDestination PlayerDestination;
+	PlayerDestination.Actor = PlayerPawn;
+	OutDestinations.Add(PlayerDestination);
+	TArray<TPair<FGuid, AACFCharacter*>> Spawned;
+	TArray<FVector> ReservedLocations;
+	auto Rollback = [&]()
+	{
+		for (int32 Index = Spawned.Num() - 1; Index >= 0; --Index)
+		{
+			const TPair<FGuid, AACFCharacter*>& Projection = Spawned[Index];
+			if (FRuntimeCompanionRecord* Record = Roster.Find(Projection.Key))
+			{
+				if (Record->LiveActor.Get() == Projection.Value) Record->LiveActor.Reset();
+				if (Record->CorpseActor.Get() == Projection.Value) Record->CorpseActor.Reset();
+			}
+			UProjectCompanionRuntimeAdapter::RollbackSpawnedCompanion(Projection.Value, Group);
+		}
+		OutDestinations.Reset(); SetRosterReady(false);
+		return false;
+	};
+	for (const FProjectCalystoInventoryDestinationRequirement& Requirement : Requirements)
+	{
+		if (!Requirement.CompanionId.IsValid()) continue;
+		FRuntimeCompanionRecord* Record = Roster.Find(Requirement.CompanionId);
+		check(Record);
+		const FProjectCompanionDefinition Definition = Record->Snapshot.Definition;
+		TSubclassOf<AACFCharacter> CharacterClass = Definition.CharacterClass.Get();
+		FTransform SpawnTransform;
+		if (!UProjectCompanionRuntimeAdapter::FindDeterministicSafeSpawnTransform(DestinationWorld, PlayerPawn,
+			Requirement.CompanionId, CharacterClass, ReservedLocations, SpawnTransform, OutError)) return Rollback();
+		ReservedLocations.Add(SpawnTransform.GetLocation());
+		const FProjectCompanionSpawnResult Result = UProjectCompanionRuntimeAdapter::SpawnAndRegisterCompanion(
+			this, Definition, SpawnTransform, Group);
+		if (!Result.bSucceeded || !Result.SpawnedCharacter || !AdoptDirectorRosterProjection(Result.SpawnedCharacter, Definition, OutError))
+		{
+			if (Result.SpawnedCharacter) UProjectCompanionRuntimeAdapter::RollbackSpawnedCompanion(Result.SpawnedCharacter, Group);
+			if (OutError.IsEmpty()) OutError = Result.Diagnostic.IsEmpty()
+				? TEXT("A V7 companion projection failed native validation.") : Result.Diagnostic;
+			return Rollback();
+		}
+		Spawned.Emplace(Requirement.CompanionId, Result.SpawnedCharacter);
+		FProjectCalystoInventoryDestination Destination;
+		Destination.CompanionId = Requirement.CompanionId;
+		Destination.Actor = Result.SpawnedCharacter;
+		OutDestinations.Add(Destination);
+	}
+	return true;
+}
+
+bool UProjectRunCompanionSubsystem::ValidateV7TravelReconstruction(FString& OutError) const
+{
+	OutError.Reset();
+	if (!bUsesUnversionedDirector || !GetWorld() || !GetWorld()->IsGameWorld()
+		|| !GameplaySnapshotRequest.IsValid() || RevivalTransaction.bActive)
+	{
+		OutError = TEXT("The V7 roster is not in a publishable post-reconstruction state.");
+		return false;
+	}
+	APawn* PlayerPawn = ResolveLocalPlayerPawn();
+	UACFCompanionGroupAIComponent* Group = UProjectCompanionRuntimeAdapter::ResolveCompanionGroup(PlayerPawn);
+	if (!IsValid(PlayerPawn) || PlayerPawn->GetWorld() != GetWorld() || !PlayerPawn->HasAuthority() || !Group)
+	{
+		OutError = TEXT("The destination player or native companion group is unavailable after V7 reconstruction.");
+		return false;
+	}
+	TSet<const AACFCharacter*> SeenActors;
+	int32 ActiveCount = 0;
+	for (const TPair<FGuid, FRuntimeCompanionRecord>& Pair : Roster)
+	{
+		const FRuntimeCompanionRecord& Record = Pair.Value;
+		const bool bMustProject = Record.bDesiredActiveParty
+			&& Record.Snapshot.State == EProjectCompanionRunState::Alive;
+		AACFCharacter* Actor = Record.LiveActor.Get();
+		if (bMustProject)
+		{
+			++ActiveCount;
+			FString DefinitionError;
+			UClass* RequiredClass = Record.Snapshot.Definition.CharacterClass.Get();
+			if (!IsValid(Actor) || Actor->GetWorld() != GetWorld() || SeenActors.Contains(Actor)
+				|| !Record.Snapshot.Definition.IsValid(DefinitionError) || !RequiredClass || !Actor->IsA(RequiredClass)
+				|| !Actor->FindComponentByClass<UProjectCompanionDeathProxyComponent>()
+				|| !Group->IsAlreadyInGroup(Actor))
+			{
+				OutError = TEXT("A live V7 companion projection is missing, duplicated or detached from its native group.");
+				return false;
+			}
+			SeenActors.Add(Actor);
+		}
+		else if (IsValid(Actor) || Record.CorpseActor.IsValid())
+		{
+			OutError = TEXT("An inactive or nonliving companion has an untracked V7 destination projection.");
+			return false;
+		}
+	}
+	if (ActiveCount > ProjectRunCompanionPrivate::MaximumActiveParty)
+	{
+		OutError = TEXT("The reconstructed V7 active party exceeds the native capacity.");
+		return false;
+	}
+	return true;
+}
+
+void UProjectRunCompanionSubsystem::RollbackV7TravelDestinationProjections(const FGuid& RequestId, UWorld* DestinationWorld)
+{
+	if (!RequestId.IsValid() || GameplaySnapshotRequest != RequestId || !IsValid(DestinationWorld)) return;
+	APawn* PlayerPawn = DestinationWorld->GetFirstPlayerController()
+		? DestinationWorld->GetFirstPlayerController()->GetPawn() : nullptr;
+	UACFCompanionGroupAIComponent* Group = UProjectCompanionRuntimeAdapter::ResolveCompanionGroup(PlayerPawn);
+	for (TPair<FGuid, FRuntimeCompanionRecord>& Pair : Roster)
+	{
+		AACFCharacter* Character = Pair.Value.LiveActor.Get();
+		if (IsValid(Character) && Character->GetWorld() == DestinationWorld)
+		{
+			Pair.Value.LiveActor.Reset();
+			if (Pair.Value.CorpseActor.Get() == Character) Pair.Value.CorpseActor.Reset();
+			UProjectCompanionRuntimeAdapter::RollbackSpawnedCompanion(Character, Group);
+		}
+	}
+	SetRosterReady(false);
 }
 
 bool UProjectRunCompanionSubsystem::AdoptDirectorRosterProjection(
@@ -1260,6 +1636,12 @@ void UProjectRunCompanionSubsystem::RollbackUncommittedDirectorRecruitment(
 	SetRosterReady(false);
 }
 
+void UProjectRunCompanionSubsystem::RollbackDirectorRosterProjections()
+{
+	DestroyLiveRosterProjections();
+	SetRosterReady(false);
+}
+
 bool UProjectRunCompanionSubsystem::FinalizeDirectorRosterReadiness(
 	const FString& ExpectedSnapshotHash,
 	FString& OutError)
@@ -1267,14 +1649,14 @@ bool UProjectRunCompanionSubsystem::FinalizeDirectorRosterReadiness(
 	OutError.Reset();
 	if (ExpectedSnapshotHash.IsEmpty() || ExpectedSnapshotHash != CurrentCompanionSnapshotHash)
 	{
-		OutError = TEXT("The post-population companion hash does not match the accepted V4 intent.");
+		OutError = TEXT("The post-population companion hash does not match the accepted V6 intent.");
 		return false;
 	}
-	const FString LiveHash = FEFCalystoDungeonDirectorMathV4::GetCompanionSnapshotHash(
+	const FString LiveHash = FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(
 		BuildAcceptedRosterValidationSnapshot(BuildSnapshot()));
 	if (LiveHash != ExpectedSnapshotHash)
 	{
-		OutError = TEXT("The actor-independent roster drifted during V4 population.");
+		OutError = TEXT("The actor-independent roster drifted during V6 population.");
 		return false;
 	}
 
@@ -1369,7 +1751,7 @@ bool UProjectRunCompanionSubsystem::SynchronizeRecruitmentsBeforeTravel(FString&
 			if (Pair.Value.bDesiredActiveParty
 				&& Pair.Value.Snapshot.State == EProjectCompanionRunState::Alive)
 			{
-				OutError = TEXT("The active V4 roster exists but the typed ACF companion group is unavailable.");
+				OutError = TEXT("The active V6 roster exists but the typed ACF companion group is unavailable.");
 				return false;
 			}
 		}
@@ -1411,7 +1793,7 @@ bool UProjectRunCompanionSubsystem::SynchronizeRecruitmentsBeforeTravel(FString&
 		}
 		if (!bFoundStableRecord)
 		{
-			OutError = TEXT("A live ACF group actor has no living active-party record in the V4 roster.");
+			OutError = TEXT("A live ACF group actor has no living active-party record in the V6 roster.");
 			return false;
 		}
 	}
@@ -1474,7 +1856,7 @@ FString UProjectRunCompanionSubsystem::ComputeInventoryHash(const UACFInventoryC
 		return FString();
 	}
 	FString Canonical = FString::Printf(
-		TEXT("ProjectACFInventoryTravelV4|currency=%08X|weight=%08X|maxSlots=%d|maxWeight=%d|"),
+		TEXT("ProjectACFInventoryTravelV6|currency=%08X|weight=%08X|maxSlots=%d|maxWeight=%d|"),
 		ProjectRunCompanionPrivate::FloatBits(Currency),
 		ProjectRunCompanionPrivate::FloatBits(Weight),
 		MaxSlots,
@@ -1539,7 +1921,8 @@ bool UProjectRunCompanionSubsystem::RestoreTypedEquipmentCapsule(
 	UACFEquipmentComponent* Equipment,
 	const TArray<uint8>& FrozenBytes,
 	const FString& ExpectedInventoryHash,
-	FString& OutError) const
+	FString& OutError,
+	const bool bPublishEvents) const
 {
 	OutError.Reset();
 	if (!Equipment || !Equipment->GetOwner() || !Equipment->GetOwner()->HasAuthority()
@@ -1649,8 +2032,11 @@ bool UProjectRunCompanionSubsystem::RestoreTypedEquipmentCapsule(
 		return false;
 	}
 
-	Equipment->OnInventoryChanged.Broadcast();
-	Equipment->SetCurrency(Equipment->GetCurrentCurrencyAmount());
+	if (bPublishEvents)
+	{
+		Equipment->OnInventoryChanged.Broadcast();
+		Equipment->SetCurrency(Equipment->GetCurrentCurrencyAmount());
+	}
 	return true;
 }
 
@@ -1716,7 +2102,7 @@ bool UProjectRunCompanionSubsystem::CaptureInventoryForTravel(
 	InventoryTravelGenerationSerial = CurrentGenerationSerial;
 	const FString BytesHash = ProjectRunCompanionPrivate::HashBytes(InventoryTravelCapsule);
 	InventoryTravelCapsuleHash = UEFCalystoDungeonSubsystem::ComputeCanonicalHash(FString::Printf(
-		TEXT("ProjectACFEquipmentTravelV4|%lld|%lld|%lld|%d|%s|%s|%s"),
+		TEXT("ProjectACFEquipmentTravelV6|%lld|%lld|%lld|%d|%s|%s|%s"),
 		InventoryTravelRunEpoch,
 		InventoryTravelFloor,
 		InventoryTravelGenerationSerial,
@@ -1751,7 +2137,7 @@ bool UProjectRunCompanionSubsystem::RestoreAndVerifyInventoryAfterTravel(FString
 
 	const FString BytesHash = ProjectRunCompanionPrivate::HashBytes(InventoryTravelCapsule);
 	const FString ExpectedCapsuleHash = UEFCalystoDungeonSubsystem::ComputeCanonicalHash(FString::Printf(
-		TEXT("ProjectACFEquipmentTravelV4|%lld|%lld|%lld|%d|%s|%s|%s"),
+		TEXT("ProjectACFEquipmentTravelV6|%lld|%lld|%lld|%d|%s|%s|%s"),
 		InventoryTravelRunEpoch,
 		InventoryTravelFloor,
 		InventoryTravelGenerationSerial,
@@ -2125,6 +2511,11 @@ bool UProjectRunCompanionSubsystem::CanBeginRevival(
 	FString& OutError) const
 {
 	OutError.Reset();
+	if (bUsesUnversionedDirector)
+	{
+		OutError = TEXT("Companion revival is unavailable until the Director gameplay bridge is ready.");
+		return false;
+	}
 	UEFCalystoDungeonSubsystem* Director = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr;
@@ -2325,7 +2716,7 @@ bool UProjectRunCompanionSubsystem::ConfirmPendingRevival(
 		FinishRevivalTransaction(false, FText::FromString(Error));
 		return false;
 	}
-	FEFCalystoResolvedCompanionLevelV4 FrozenLevel;
+	FEFCalystoResolvedCompanionLevelV6 FrozenLevel;
 	if (!ResolveFrozenRevivalCompanionLevel(StableCompanionId, FrozenLevel, Error))
 	{
 		FinishRevivalTransaction(false, FText::FromString(Error));
@@ -2464,7 +2855,7 @@ bool UProjectRunCompanionSubsystem::ConfirmPendingRevival(
 	Record.Snapshot.DeathGenerationSerial = 0;
 	Record.LiveActor = Spawn.SpawnedCharacter;
 	Record.CorpseActor.Reset();
-	CurrentCompanionSnapshotHash = FEFCalystoDungeonDirectorMathV4::GetCompanionSnapshotHash(
+	CurrentCompanionSnapshotHash = FEFCalystoDungeonRuntimeMathV6::ComputeCompanionRosterHash(
 		BuildDirectorSnapshot(BuildSnapshot()));
 	OnDeathStateChanged.Broadcast(StableCompanionId, EProjectCompanionRunState::Alive);
 	OnRosterChanged.Broadcast();
@@ -2604,15 +2995,19 @@ void UProjectRunCompanionSubsystem::RestoreMenuInputCapture()
 }
 
 EProjectCompanionDirectorTravelMode UProjectRunCompanionSubsystem::ConvertTravelMode(
-	const EEFCalystoDungeonTravelKindV4 Kind)
+	const EEFCalystoDungeonTravelKindV6 Kind)
 {
 	switch (Kind)
 	{
-	case EEFCalystoDungeonTravelKindV4::NewRun: return EProjectCompanionDirectorTravelMode::NewRun;
-	case EEFCalystoDungeonTravelKindV4::Replay: return EProjectCompanionDirectorTravelMode::Replay;
-	case EEFCalystoDungeonTravelKindV4::Reroll: return EProjectCompanionDirectorTravelMode::Reroll;
-	case EEFCalystoDungeonTravelKindV4::Advance: return EProjectCompanionDirectorTravelMode::Advance;
-	case EEFCalystoDungeonTravelKindV4::DebugJump: return EProjectCompanionDirectorTravelMode::DebugJump;
+	case EEFCalystoDungeonTravelKindV6::NewRun:
+	case EEFCalystoDungeonTravelKindV6::RestartSameSeed:
+		return EProjectCompanionDirectorTravelMode::NewRun;
+	case EEFCalystoDungeonTravelKindV6::Replay:
+	case EEFCalystoDungeonTravelKindV6::Retry:
+		return EProjectCompanionDirectorTravelMode::Replay;
+	case EEFCalystoDungeonTravelKindV6::Reroll: return EProjectCompanionDirectorTravelMode::Reroll;
+	case EEFCalystoDungeonTravelKindV6::Advance: return EProjectCompanionDirectorTravelMode::Advance;
+	case EEFCalystoDungeonTravelKindV6::DevelopmentJump: return EProjectCompanionDirectorTravelMode::DebugJump;
 	default: return EProjectCompanionDirectorTravelMode::None;
 	}
 }

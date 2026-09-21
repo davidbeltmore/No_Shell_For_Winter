@@ -1,0 +1,1084 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-08-31T02:41:46.0456478Z",
+    "baseline":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\Phase0_Target_Invariant_Hashes.json",
+    "result":  "FAIL",
+    "sets":  [
+                 {
+                     "Name":  "ACFU_4_3_5",
+                     "Root":  "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5",
+                     "ExpectedFileCount":  5043,
+                     "CurrentFileCount":  5043,
+                     "MismatchCount":  1,
+                     "Result":  "FAIL"
+                 },
+                 {
+                     "Name":  "DazToUnreal_5_8_0_491",
+                     "Root":  "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\DazToUnreal",
+                     "ExpectedFileCount":  213,
+                     "CurrentFileCount":  213,
+                     "MismatchCount":  0,
+                     "Result":  "PASS"
+                 },
+                 {
+                     "Name":  "Target_Daz_Assets",
+                     "Root":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal",
+                     "ExpectedFileCount":  189,
+                     "CurrentFileCount":  260,
+                     "MismatchCount":  140,
+                     "Result":  "FAIL"
+                 }
+             ],
+    "authoritative_assets":  [
+                                 {
+                                     "Path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\Player.uasset",
+                                     "ExpectedLength":  124646,
+                                     "ActualLength":  124709,
+                                     "ExpectedSHA256":  "0614B40D06F04F64E71C95E218F905C494AC9C5B161F6ABE280BDB366747DA14",
+                                     "ActualSHA256":  "E7EDE80A927A34004014F497141097AC64597AD826C9EE85B0077EE7EA33891D",
+                                     "Result":  "FAIL"
+                                 },
+                                 {
+                                     "Path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female.uasset",
+                                     "ExpectedLength":  62494640,
+                                     "ActualLength":  62494999,
+                                     "ExpectedSHA256":  "B3BC3B6AEDF79C025F826305EFB219F827E3BE487DF7F2F7A4DC31FF17377BAB",
+                                     "ActualSHA256":  "8C333C85F218B9858CB3BF67E7B9B15ABB071A08689917A90A18965A5A75AF13",
+                                     "Result":  "FAIL"
+                                 },
+                                 {
+                                     "Path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple.uasset",
+                                     "ExpectedLength":  15185307,
+                                     "ActualLength":  15185847,
+                                     "ExpectedSHA256":  "350B862EC2CC547BC1820F17559880C25ACCCC063A669906E8FE6F1F8C17F780",
+                                     "ActualSHA256":  "3FC4E53877C2EA61A766761E12095FA5F9AF48993A2ECE6CE131CFCCA6BF9583",
+                                     "Result":  "FAIL"
+                                 },
+                                 {
+                                     "Path":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male.uasset",
+                                     "ExpectedLength":  170735765,
+                                     "ActualLength":  170736396,
+                                     "ExpectedSHA256":  "97D7CBD410788F02D6CC7AAEBE80ADCDC167C9BFB1FB6E3CA56B8DDBCBFE55DC",
+                                     "ActualSHA256":  "AD03E3417CE42997EAEBF1B28189692A62BC2126CF707FA75F8C373587DD629C",
+                                     "Result":  "FAIL"
+                                 }
+                             ],
+    "mismatch_count":  145,
+    "mismatches":  [
+                       {
+                           "Set":  "ACFU_4_3_5",
+                           "RelativePath":  "Content\\UITools\\Widgets\\ANS_LoadingScreen_WB.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  154025,
+                           "Actual":  152525
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Female\\Female.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  62494640,
+                           "Actual":  62494999
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  170735765,
+                           "Actual":  170736396
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Male_CR.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "ADFFAF5E293588441F64EE6057D538F3118972ED6C7D81523C2184E593EC97D4",
+                           "Actual":  "9C0B211CC32C5BB26BCFF4FF9717F1BF5473B697C70494762BCB135B8A8D71C2"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Male_PhysicsAsset.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  68700,
+                           "Actual":  68760
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Male_Skeleton.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "C6ECD76A7CF80BB8623B20550AAA28072D45E6D7F62E9E7FDC45B0C04D169E06",
+                           "Actual":  "E4554269F025014D578D86E65EEA582591F1123B4CC87424304DAA47DFA7C240"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\DicktatorG9\\DicktatorG9_Torso_Back.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  41313,
+                           "Actual":  41553
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\DicktatorG9_Torso_Back\\DicktatorG9_Torso_Back_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "AE2989A6C67BD5D7159C211F6E9B258353715AF20CFB2FFAC75A4087BE883F70",
+                           "Actual":  "12C50C9B0FEAFBB117F80854548B3E3CA2E2A9AC586FD76481D9521EA07F93A2"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Primary.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  9522,
+                           "Actual":  7743
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Primary_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "AA7913DF5F44F25AD1E30A4387F337FC51E3E872A02E8A9707390EC77029DDB5",
+                           "Actual":  "4E04ADA0D3B683DABF0038FD1A98FF47BC9AB2583F4B0CF1E4EF3DF22A920501"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Secondary.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  9538,
+                           "Actual":  8604
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Secondary_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "09AAE1263B4B43DC10FE1A281D99D07338D1824B3F6A7352F1145F37F10FC66B",
+                           "Actual":  "C133A3C798E0494A07B5C97F88716847FB9846899319DBED3F89D5C42C5A2EB8"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\G9EyebrowsFiberStyle06_BaseMat.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  58461,
+                           "Actual":  58572
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_Arms.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12377,
+                           "Actual":  12727
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_Body.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12321,
+                           "Actual":  12724
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_Fingernails.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12497,
+                           "Actual":  12903
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_Head.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12548,
+                           "Actual":  13393
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_Legs.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12195,
+                           "Actual":  12516
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9\\Genesis9_MouthCavity.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  11399,
+                           "Actual":  12067
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9_BaseMat.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  40418,
+                           "Actual":  40965
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9_Body_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "8BC65913329D25CEC7FF0F7C93C8FD7E41EFD616DC4069CFA27FF0511E9B99B1",
+                           "Actual":  "F1581ED50757D128CB9B9DEC591EA3A1B1017B86FFCCF0C1ECCA39B17CB866D6"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyelashes\\Genesis9Eyelashes_EyelashesLower.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  58665,
+                           "Actual":  58947
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyelashes_EyelashesLower\\Genesis9Eyelashes_EyelashesLower_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "45C0ED4AE76325DFF59994BB9C910F58929AD2216859708A2325B66C2EEE8871",
+                           "Actual":  "C79E96CB141405E87B2EB219B644F60A6DC6DE9FD49C359A9DD21AF03D969A73"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeLeft.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  26848,
+                           "Actual":  27365
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  58896,
+                           "Actual":  58866
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "707C70959A06C2DF48DD4D81B2F1B0BAA0F414BC077068A4E1962EB5A94A5CD1",
+                           "Actual":  "472B3C71125CC88F97E2DEFCDF1BCB23B6451AC953DEBD981EA6BFCFFCDA55F7"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Eyes_BaseMat.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  23817,
+                           "Actual":  23767
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Mouth.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  12786,
+                           "Actual":  14641
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  13176,
+                           "Actual":  14749
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "4F5D1CF0797281AFF5757D1AFF044CF327C7C43977FC8E2343678B6A68DDF933",
+                           "Actual":  "ED4DEBCB99B58F5B93602EAB4D9AE9ED4E57D2FEE56B89BEF25FC21A4213C794"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Mouth_BaseMat.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  38870,
+                           "Actual":  40448
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Tear\\Genesis9Tear_Tear.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  58945,
+                           "Actual":  59005
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Materials\\Genesis9Tear_Tear\\Genesis9Tear_Tear_Profile.uasset",
+                           "Kind":  "HASH_CHANGED",
+                           "Expected":  "8AFBBE2A7A529F3D690AEBD2300BFC8D6B9528FC046FF09CAC7BB6E015972612",
+                           "Actual":  "E831C01F107727D866DDBD1182A32E39761739979AE9ED7AFEFD9F4C2BD6686B"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\d2_EyeNormal-3_0b77f76a-19c9-415a-4149-d26956fbf6a6_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  21089453,
+                           "Actual":  21089701
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\d3_EyeColor-1_d7362add-2df2-c6b8-f461-9decad540cf9_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  4243388,
+                           "Actual":  4243836
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\d4_EyeTranslucency-1_d7362add-2df2-c6b8-f461-9decad540cf9_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  4243542,
+                           "Actual":  4243990
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9_Eyes_SLW_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  89326,
+                           "Actual":  89324
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Arms_D_1004_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1164524,
+                           "Actual":  1164997
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Arms_NM_1004_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  3494713,
+                           "Actual":  3494711
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Arms_R_1004_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  3705856,
+                           "Actual":  3706377
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Arms_SO_1004_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  4676559,
+                           "Actual":  4676557
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Arms_SSS_1004_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  2273419,
+                           "Actual":  2273858
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Body_D_1002_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1668629,
+                           "Actual":  1668930
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Body_NM_1002_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  4699476,
+                           "Actual":  4699469
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Body_R_1002_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  6156515,
+                           "Actual":  6156891
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Body_SO_1002_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  7511346,
+                           "Actual":  7511344
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Body_SSS_1002_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  2108988,
+                           "Actual":  2109212
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Head_D_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  2337015,
+                           "Actual":  2337693
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Head_NM_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  7394711,
+                           "Actual":  7394700
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Head_R_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  7579617,
+                           "Actual":  7580862
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Head_SO_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  9020644,
+                           "Actual":  9020642
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Head_SSS_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  2224922,
+                           "Actual":  2225574
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Legs_D_1003_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1675384,
+                           "Actual":  1675758
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Legs_NM_1003_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  3876527,
+                           "Actual":  3876516
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Legs_R_1003_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  5888453,
+                           "Actual":  5889006
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Legs_SO_1003_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  7206520,
+                           "Actual":  7206517
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Legs_SSS_1003_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1533316,
+                           "Actual":  1533653
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Nails_D_1005_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  114059,
+                           "Actual":  114585
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Nails_R_1005_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  256489,
+                           "Actual":  257960
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Nails_SO_1005_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  337979,
+                           "Actual":  337976
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9Masculine01_Nails_SSS_1005_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  112602,
+                           "Actual":  113112
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9TearNormal_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  189717,
+                           "Actual":  190123
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\G9TearOpacity_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  139053,
+                           "Actual":  139216
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Genesis9_Eyelashes01_C_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1565657,
+                           "Actual":  1572862
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Genesis9_Eyelashes01_NM_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  1558619,
+                           "Actual":  1558617
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Genesis9_Mouth_D_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  2348556,
+                           "Actual":  2351530
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Genesis9_Mouth_NM_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  8394826,
+                           "Actual":  8395392
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Genesis9_Mouth_R_1001_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  3464370,
+                           "Actual":  3467006
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Male\\Textures\\Skin_SLW_00_Male.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  27925,
+                           "Actual":  27921
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Multiple\\Multiple.uasset",
+                           "Kind":  "LENGTH_CHANGED",
+                           "Expected":  15185307,
+                           "Actual":  15185847
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Bikini.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "7A52B60FB4A948A68B9378D7EFA83D1144CE79F40B09B9C71F02091945692526"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Bikini_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "5B3330AF4809A1275327D11FC2E66DD7F901E06D19265E25FDD161970B67706C"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Bikini_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "0BEB59E6FDF4992CBA27083A53AE03BD91D7A8DA6191210BAB867C7925F54AA1"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Bikini_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E4EB383F743C2621B500DB83B2F6022B4CD12F937FCBD0F91097568FFC50CA2C"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Materials\\TainaCatwalkBikiniBottom\\TainaCatwalkBikiniBottom_Cords.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E142525FE451D2893EB910558CE28A7B49FE5B3D49B3788B6327502CFDE12EB2"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Materials\\TainaCatwalkBikiniBottom_Cords\\TainaCatwalkBikiniBottom_Cords_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "6A8364C5BC1670E8B0C4AA7F45296030D840C4A25D57D9808108B568178113F6"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Textures\\bikini_1001_BaseColor_00_Bikini.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "1B089C7AB8941E0B2DC79B8DEBF2FB5DB9AF5D5D1CE6C94EFA902417F1B4819E"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Textures\\bikini_1001_Height_00_Bikini.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "1C89B891642CC7692ED1717CA9721F08BE20794B66E89654B06AEF3AA96318F9"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Textures\\bikini_1001_Normal_00_Bikini.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "9AFAD05194403F43310458A695A3C49188F64D3476D7D5EFED201F5D46D18470"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Bikini\\Textures\\bikini_1001_Roughness_00_Bikini.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E3BD4D533240129798CAE53BA26240EEE5D0E526CBC06AA3EA7BC3751A2C6758"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "Deformers\\MDC_DazDualQuatMorph.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "42BFCCB78B6CA83EF4C8AC0852D0128F947842C24DB5C30FC05C2C2F6687DAA2"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\RagFootWraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "3DDE63BF49963D6A90D3228E39F20637B364DCBD510671B7CC6BE50D569BA2C2"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\RagFootWraps_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "960E754318D92B9875C04FFE48DD1D2F8386A099B01FD733814DA79C76A3B2D1"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\RagFootWraps_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "9904E1044A97414720DAACAEB5A405285F3D44B5CCD1771C85627B15BE7B3E9E"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\RagFootWraps_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "F6D39D7CD3F9F12827B87EABE6351DF614A990FF2A1D410D932CF3FA496C3C89"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Materials\\SYDFR9RagFootWrapsG9\\SYDFR9RagFootWrapsG9_Wraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "29E67EBE4C43A7AF2F4A3B22EB3757A3372A1DD44248E85899232272A4275F5F"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Materials\\SYDFR9RagFootWrapsG9_Wraps\\SYDFR9RagFootWrapsG9_Wraps_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "586F75D20843039344A3710B20265577553B804EB2AD1156DA0F9A478291A768"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Textures\\sydfr_shirtpantsshoes_DM_00_RagFootWraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "C705F1EF99134F3974DCBD5AED75C94056F9DB3B00B0B00D38F3F55B793AC279"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Textures\\sydfr_shirtpantsshoes_GM_00_RagFootWraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "773502FDC8E2763B8C391839AC1154E55DF34B9C2C0A8B72EBF815C80BA78D2E"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Textures\\sydfr_shirtpantsshoes_NM_00_RagFootWraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "C7D2761453D58F7748ADABCAAA7025C37066DE9546824453C92585DE9C3BDAAC"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagFootWraps\\Textures\\sydfr_shirtpantsshoes_TM_00_RagFootWraps.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "9B0CCE89F4B6C8BBC009CA9538F6FF9DEA9ABB40C33307CDF050F91EB1258678"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\RagPants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "009036C24F18674D7267E0C78396A24C7D121481089B1FB9ED1E68349B3D9855"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\RagPants_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "009AE7D1B79E6F23E36669C496B8116CF14657282E50D8FC2AEC37E0D946405B"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\RagPants_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "3A0F6CDA6FEC62805D341E878DCC17AC3C2742F0D7CFF68B624B23BFFB09D32E"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\RagPants_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "CA6E5F272D57B1E380CB85E09DB6D103ECF58009822FEBDCF525ECDEFEC6E69A"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Materials\\SYDFR9RagPantsG9\\SYDFR9RagPantsG9_Pants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E68C932E1D6FC3853ABBF7A843FB36373B158E954B8706536B640E3FFF7A151E"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Materials\\SYDFR9RagPantsG9_Pants\\SYDFR9RagPantsG9_Pants_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "BEFF65BE7C178C8F77524607B458E3C094788888A7D05669DB9E85A147E10745"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Textures\\sydfr_shirtpantsshoes_DM_00_RagPants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "7B0388FA99976642806E61592FDA0FB83FA913471F285C68FEA586656C7B2B08"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Textures\\sydfr_shirtpantsshoes_GM_00_RagPants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E7181A44B074AF6BDCCAF0FD7C7381E510A8D05BD7A66FC8173000F875FEE56A"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Textures\\sydfr_shirtpantsshoes_NM_00_RagPants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "981B293DDDE0D2380BF25571A09E1FF0118ACBA1B8E479C40BA2B381C6E80F86"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagPants\\Textures\\sydfr_shirtpantsshoes_TM_00_RagPants.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E4F7A6CA2E0372310299888C11261F30C527E39AEEED58A94F182C423FAE0632"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\RagShirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "20FBDCF7EC4378E642E5CD08A11BDDD54785C3E11622847C9276881ACA5CB216"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\RagShirt_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "1D2BD3C5E20CF3BD1F5265192BF05571A69445C79630A81B9B295186884CDBAF"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\RagShirt_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "8863C69BC5C41505D807DA30FE355D38F8CFE844BD03F925503F4A852867EDBC"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\RagShirt_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "84A9FC84F13B22D8AA94CB5A9BD2940E88E03B7CA1E658D552E610559536E846"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Materials\\SYDFR9RagShirtG9\\SYDFR9RagShirtG9_Shirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "469C449A9A8C1FC5630D084B211AAB91DA5385DB20B1A57B576135B32058A401"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Materials\\SYDFR9RagShirtG9_Shirt\\SYDFR9RagShirtG9_Shirt_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "539A3F2C0008F41E660718BA287AD095D9D74FA8F96A74811EFFB94C202D029F"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Textures\\sydfr_shirtpantsshoes_DM_00_RagShirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "7410FEBE53B90DEA0B2B831AE0105E0FE1D85EB6EA67EFC1981C9FD90F26A52F"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Textures\\sydfr_shirtpantsshoes_GM_00_RagShirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "D10057FAFA56862C8AD10914496901DC53DC0FA851DCC340403830D257327A18"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Textures\\sydfr_shirtpantsshoes_NM_00_RagShirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "A29A3EC59FC7C11D46AEB4A1E4E20660B2B291DFA818CA9DFFE87B9664F8C0F0"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "RagShirt\\Textures\\sydfr_shirtpantsshoes_TM_00_RagShirt.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "1CAC749F2EEA47969B323218C132A8429C76616E4C56B0C1D2F05EDE5CDA3A43"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "351654297C7F376A093E351552E79074827401CAC832728EB9034FDBB43E4F19"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\UnderWearBra_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "5E63C4570100FC8E5AE329D76CA748C8940AFFECB8065DCD20DCE38745FC9330"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\UnderWearBra_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "F04A26509DF1B814F3CC022EAA26CA122615BF6431D082767CC1697BF260AC53"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\UnderWearBra_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "ED4E35F782799E0A06B94E6ED16C62037B7016350B9D8BAB787A1A17DA629A34"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Materials\\G9BaseBra\\G9BaseBra_Bra_Heart.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "F77C620914C25BDFACF48BAB314B19BAE92CC597F7D23C73713174DB15801F20"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Materials\\G9BaseBra_Bra_Heart\\G9BaseBra_Bra_Heart_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "902231C69268B9904455C542D40F3A1CB4B766647134F0FED2E85109E0450436"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_00_Disp_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "B5A988C2950558755A1686FB306986B3F755E836EBCC708E1309BD7A14D4428B"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_B_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "0CF0561336EF136F434E83CFBFEC25338B88672CA8FE911147870E0E86F2E8C5"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_D_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "D4029E47989C27FEC92B396A16595098E78A7FD2881D28120BB1B90A9B6E601D"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_Gloss_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "9E2E5237C4BF8077764C28C5FFFC0CD2F92154E336950B796329F9D9F1F4F8F0"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_M_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "078358ED8DFE7032242AB5743D02F93FFB6F0B684224F6A31C3935466B677B56"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_N_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "677B070E14CC155E5FC8D379B606B17959459B718CC589EAB094FB460B911C1A"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_Specular_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "AF9BFF339C68D719C277C7E9C3C3E0AE8A068BEE412986DBCF579719F91E26F9"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_S_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "9AED03EB6A1C98A65188759E63232F504E4B25121DD8B3A67F6D0165E6106B42"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearBra\\Textures\\G9SE_Bra_01_T_00_UnderWearBra.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "B8320DFE65F3CDD84D8E8894BD00B696383DE0F1149EF5FE192A6A640E44A657"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "8E97986573CA2935C17089B8B67D6F15AF1A14482BBD66580B1047D105214C18"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\UnderWearPanty_CR.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "736DC57439506319FB0C1DE2CED12F75E5FB59506E9A3601E99DEE7E290077A4"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\UnderWearPanty_PhysicsAsset.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "69EA09DF747EC016DBB48DFA790B4DA6F8322F9A6395778E3374D6613036BA9A"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\UnderWearPanty_Skeleton.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "B6FE320DCF9C03AF4534AE65630DECFCBFB00078F816B8709E14E80C2063FFAD"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Materials\\G9BaseBikini\\G9BaseBikini_Undies_Heart.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "110A9483307D9E6C9A0187969758FA669DC83FAD9C6B1C47B2986462A1FE0D5C"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Materials\\G9BaseBikini_Undies_Heart\\G9BaseBikini_Undies_Heart_Profile.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "65006E888C2062F2E34924ACB2C117F552140F1CF833E0EC1BDF3C0D7755E75B"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_00_Disp_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "7A06300C798D25D68789EDA4C8AAB722A60BB315C75B570CDDC313C66103FBD0"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_B_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "5CEA70890297C9B96F8CC980E43FF2E78E03DDFF0BB3B1A30F9664A90E1DE285"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_D_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "C4F85AA3DF62AB18919BF06AAC37D9C41E024D8F9277A9E5F0AFC95091A3EE59"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_Gloss_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "E74659790B826B8181A9E90ABD8768BAB243BCC64C8EBA298B065E7034CA25FF"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_M_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "DFDA42B5C5C76046DF38A5E23F1524A69961D0E8A37759006CEC69B1D36BF6DB"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_N_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "6824D0C7A96BB31A0467F78438A7E396A69A4E4A730131D9B7831176F061ABB6"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_Specular_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "20ABBA5F52E0A0D29C6561026CA21057124429AC4DDA967C8F17E487B02C4EDE"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_S_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "41370AEC36D805A5E55E0D677C129537837522BB4CD6F96D34E4688849D3E24D"
+                       },
+                       {
+                           "Set":  "Target_Daz_Assets",
+                           "RelativePath":  "UnderWearPanty\\Textures\\G9SE_Bikini_01_T_00_UnderWearPanty.uasset",
+                           "Kind":  "UNEXPECTED_FILE",
+                           "Expected":  null,
+                           "Actual":  "F9C1094C08A0CF1C3E7AF9DEC7503B0DBB2A9E0AC1DF7D195172DBDCC23BFB4B"
+                       },
+                       {
+                           "Set":  "authoritative_assets",
+                           "RelativePath":  "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\Player.uasset",
+                           "Kind":  "AUTHORITATIVE_ASSET_CHANGED",
+                           "Expected":  "0614B40D06F04F64E71C95E218F905C494AC9C5B161F6ABE280BDB366747DA14",
+                           "Actual":  "E7EDE80A927A34004014F497141097AC64597AD826C9EE85B0077EE7EA33891D"
+                       },
+                       {
+                           "Set":  "authoritative_assets",
+                           "RelativePath":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female.uasset",
+                           "Kind":  "AUTHORITATIVE_ASSET_CHANGED",
+                           "Expected":  "B3BC3B6AEDF79C025F826305EFB219F827E3BE487DF7F2F7A4DC31FF17377BAB",
+                           "Actual":  "8C333C85F218B9858CB3BF67E7B9B15ABB071A08689917A90A18965A5A75AF13"
+                       },
+                       {
+                           "Set":  "authoritative_assets",
+                           "RelativePath":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple.uasset",
+                           "Kind":  "AUTHORITATIVE_ASSET_CHANGED",
+                           "Expected":  "350B862EC2CC547BC1820F17559880C25ACCCC063A669906E8FE6F1F8C17F780",
+                           "Actual":  "3FC4E53877C2EA61A766761E12095FA5F9AF48993A2ECE6CE131CFCCA6BF9583"
+                       },
+                       {
+                           "Set":  "authoritative_assets",
+                           "RelativePath":  "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male.uasset",
+                           "Kind":  "AUTHORITATIVE_ASSET_CHANGED",
+                           "Expected":  "97D7CBD410788F02D6CC7AAEBE80ADCDC167C9BFB1FB6E3CA56B8DDBCBFE55DC",
+                           "Actual":  "AD03E3417CE42997EAEBF1B28189692A62BC2126CF707FA75F8C373587DD629C"
+                       }
+                   ]
+}

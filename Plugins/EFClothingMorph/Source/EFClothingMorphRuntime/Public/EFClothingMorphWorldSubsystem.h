@@ -19,6 +19,7 @@ public:
 
 private:
 	void HandleActorSpawned(AActor* Actor);
+	void HandleAppearanceMeshStateChanged(AActor* Actor);
 	void ObservePawn(APawn* Pawn);
 	void AttachToPawn(APawn* Pawn);
 	void ScanForEligiblePawns();

@@ -1,14 +1,17 @@
 #include "EFClothingMorphV3RuntimeComponent.h"
+#include "EFCharacterCreationAppearanceHooks.h"
 
 #include "Animation/MeshDeformer.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "EFClothingFitProfile.h"
 #include "EFClothingGarmentCatalog.h"
 #include "EFClothingMorphDirectorPolicy.h"
+#include "EFClothingMorphSettings.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EFClothingSkeletonFingerprint.h"
 #include "EFClothingSurfaceBinding.h"
 #include "EFClothingSurfaceDeformerProducer.h"
+#include "EFClothingSystemManifest.h"
 #include "Engine/AssetManager.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StreamableManager.h"
@@ -32,11 +35,101 @@ namespace EFClothingMorphV3RuntimePrivate
 {
 	constexpr double TransientRetrySeconds = 0.25;
 	constexpr double StaleRetrySeconds = 2.0;
+	constexpr double MinimumWatchdogSeconds = 0.25;
+	constexpr double InitialBindingLoadRetrySeconds = 0.5;
+	constexpr double MaximumBindingLoadRetrySeconds = 8.0;
+	constexpr int32 MaximumBindingLoadBackoffExponent = 4;
+
+	double ResolveWatchdogIntervalSeconds(const float ConfiguredIntervalSeconds)
+	{
+		if (!FMath::IsFinite(ConfiguredIntervalSeconds) || ConfiguredIntervalSeconds <= 0.0f)
+		{
+			return 0.0;
+		}
+		return FMath::Max(
+			static_cast<double>(ConfiguredIntervalSeconds),
+			MinimumWatchdogSeconds);
+	}
+
+	void GatherLayerRegionIds(
+		const FEFClothingGarmentRow& Row,
+		TSet<FName>& OutRegionIds)
+	{
+		OutRegionIds.Reset();
+		for (const FName RegionId : Row.CoveredBodyRegionIds)
+		{
+			if (!RegionId.IsNone())
+			{
+				OutRegionIds.Add(RegionId);
+			}
+		}
+		for (const FEFClothingRegionOccupancyRule& Occupancy : Row.LayerRule.OccupiedRegions)
+		{
+			if (!Occupancy.RegionId.IsNone())
+			{
+				OutRegionIds.Add(Occupancy.RegionId);
+			}
+		}
+	}
+
+	float ResolveLayerStackClearanceCm(
+		const FEFClothingGarmentRow& TargetRow,
+		const UEFClothingMorphDirectorPolicy* Director,
+		const TSet<FName>& EquippedGarmentIds)
+	{
+		if (!IsValid(Director))
+		{
+			return 0.0f;
+		}
+		TSet<FName> TargetRegions;
+		GatherLayerRegionIds(TargetRow, TargetRegions);
+		if (TargetRegions.IsEmpty())
+		{
+			return 0.0f;
+		}
+
+		float StackClearanceCm = 0.0f;
+		for (const FEFClothingGarmentRow& InnerRow : Director->Garments)
+		{
+			if (!InnerRow.bEnabled
+				|| InnerRow.GarmentId == TargetRow.GarmentId
+				|| InnerRow.GarmentId == TargetRow.AuthoredGarmentId
+				|| !EquippedGarmentIds.Contains(InnerRow.GarmentId)
+				|| static_cast<uint8>(InnerRow.LayerRule.Layer)
+					>= static_cast<uint8>(TargetRow.LayerRule.Layer))
+			{
+				continue;
+			}
+
+			float InnerContributionCm = 0.0f;
+			for (const FEFClothingRegionOccupancyRule& Occupancy : InnerRow.LayerRule.OccupiedRegions)
+			{
+				if (TargetRegions.Contains(Occupancy.RegionId))
+				{
+					InnerContributionCm = FMath::Max(
+						InnerContributionCm,
+						FMath::Max(Occupancy.OccupiedThicknessCm, 0.0f)
+							+ FMath::Max(Occupancy.MinimumOuterGapCm, 0.0f));
+				}
+			}
+			StackClearanceCm += InnerContributionCm;
+		}
+		return FMath::Clamp(
+			StackClearanceCm,
+			0.0f,
+			EFClothingMorphV4::MaximumRuntimeClearanceCm);
+	}
 
 	TAutoConsoleVariable<int32> CVarEnabled(
 		TEXT("ef.ClothingMorph.V4.Enabled"),
 		1,
 		TEXT("Enables the independent multi-clothing EF Clothing Morph V4 runtime. 0 leaves every source mesh untouched and visible."),
+		ECVF_Default);
+
+	TAutoConsoleVariable<int32> CVarV5Enabled(
+		TEXT("ef.ClothingMorph.V5.Enabled"),
+		1,
+		TEXT("Enables the single-table, streamable EF Clothing Morph V5.1 runtime. Legacy V4/V3 switches remain rollback aliases."),
 		ECVF_Default);
 
 	TAutoConsoleVariable<int32> CVarLegacyV3Enabled(
@@ -223,25 +316,73 @@ UEFClothingMorphV3RuntimeComponent::UEFClothingMorphV3RuntimeComponent()
 void UEFClothingMorphV3RuntimeComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	EFCharacterCreationGameplayHooks::GetOnBodyMeshesWillChange().AddWeakLambda(this, [this](AActor* Actor)
+	{
+		if (Actor == GetOwner())
+		{
+			ReleaseAllGarments();
+			bReconcileRequested = true;
+		}
+	});
+	if (const UEFClothingMorphSettings* V5Settings = GetDefault<UEFClothingMorphSettings>())
+	{
+		ReconcileWatchdogIntervalSeconds =
+			V5Settings->GetEquipmentReconcileFallbackIntervalSeconds();
+	}
 	bAssetsReady = false;
 	bAssetLoadFailed = false;
+	bUsingV4FallbackRegistry = false;
+	LoadedV4FallbackRegistry = nullptr;
+	RequestedV4FallbackRegistryPath = FSoftObjectPath();
+	bV4FallbackRegistryLoadAttempted = false;
+	bV4FallbackRegistryLoadFailed = false;
+	bReconcileRequested = true;
 	NextReconcileSeconds = 0.0;
-	LastStatus = TEXT("Loading V4 multi-clothing runtime assets; source clothes remain visible.");
+	NextSurfacePassSeconds = 0.0;
+	LastStatus = TEXT("Loading V5 streamable clothing assets; source clothes remain visible.");
 	StartAssetLoad();
 }
 
 void UEFClothingMorphV3RuntimeComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	EFCharacterCreationGameplayHooks::GetOnBodyMeshesWillChange().RemoveAll(this);
 	if (StartupLoadHandle.IsValid())
 	{
 		StartupLoadHandle->CancelHandle();
 		StartupLoadHandle.Reset();
 	}
+	if (V4FallbackRegistryLoadHandle.IsValid())
+	{
+		V4FallbackRegistryLoadHandle->CancelHandle();
+		V4FallbackRegistryLoadHandle.Reset();
+	}
+	for (TPair<FSoftObjectPath, TSharedPtr<FStreamableHandle>>& Pair : V5BindingLoadHandles)
+	{
+		if (Pair.Value.IsValid())
+		{
+			Pair.Value->CancelHandle();
+		}
+	}
+	V5BindingLoadHandles.Reset();
+	V5BindingLoadStartedSeconds.Reset();
+	V5BindingRetryAfterSeconds.Reset();
+	V5BindingFailureCounts.Reset();
 	ReleaseAllGarments();
 	LoadedRegistry = nullptr;
+	LoadedV4FallbackRegistry = nullptr;
 	LoadedDirector = nullptr;
+	LoadedManifest = nullptr;
 	LoadedSurfaceDeformer = nullptr;
+	RequestedRegistryPath = FSoftObjectPath();
+	RequestedV4FallbackRegistryPath = FSoftObjectPath();
+	RequestedDirectorPath = FSoftObjectPath();
+	RequestedManifestPath = FSoftObjectPath();
 	bAssetsReady = false;
+	bUsingV4FallbackRegistry = false;
+	bV4FallbackRegistryLoadAttempted = false;
+	bV4FallbackRegistryLoadFailed = false;
+	bReconcileRequested = false;
+	NextSurfacePassSeconds = 0.0;
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -252,9 +393,13 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
+	const UEFClothingMorphV2Settings* LegacySettings = GetDefault<UEFClothingMorphV2Settings>();
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
 	const bool bRuntimeEnabled = Settings
 		&& Settings->bEnabled
+		&& LegacySettings
+		&& LegacySettings->bEnabled
+		&& EFClothingMorphV3RuntimePrivate::CVarV5Enabled.GetValueOnGameThread() != 0
 		&& EFClothingMorphV3RuntimePrivate::CVarEnabled.GetValueOnGameThread() != 0
 		&& EFClothingMorphV3RuntimePrivate::CVarLegacyV3Enabled.GetValueOnGameThread() != 0;
 	if (!bRuntimeEnabled)
@@ -263,6 +408,9 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 		{
 			ReleaseAllGarments();
 		}
+		// Rediscover immediately if the runtime is enabled again. This avoids
+		// depending on a watchdog deadline while the feature is switched off.
+		bReconcileRequested = true;
 		return;
 	}
 	if (!bAssetsReady)
@@ -271,24 +419,49 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 	}
 
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
-	if (Now >= NextReconcileSeconds)
+	ExpireTimedOutV5BindingLoads(Now);
+	const double WatchdogIntervalSeconds =
+		EFClothingMorphV3RuntimePrivate::ResolveWatchdogIntervalSeconds(
+			ReconcileWatchdogIntervalSeconds);
+	const bool bWatchdogDue = WatchdogIntervalSeconds > 0.0
+		&& Now >= NextReconcileSeconds;
+	if (bReconcileRequested || bWatchdogDue)
 	{
 		ReconcileGarments();
-		NextReconcileSeconds = Now + FMath::Max(
-			static_cast<double>(Settings->ReconcileIntervalSeconds),
-			0.02);
+		bReconcileRequested = false;
+		NextReconcileSeconds = Now + WatchdogIntervalSeconds;
 	}
-	TickSurfacePasses(DeltaTime);
+	const double SurfacePassIntervalSeconds = Settings
+		? static_cast<double>(Settings->GetMorphSyncIntervalSeconds())
+		: 0.0;
+	if (SurfacePassIntervalSeconds <= 0.0 || Now >= NextSurfacePassSeconds)
+	{
+		TickSurfacePasses(DeltaTime);
+		NextSurfacePassSeconds = Now + SurfacePassIntervalSeconds;
+	}
 }
 
 void UEFClothingMorphV3RuntimeComponent::ForceReconcile()
 {
-	NextReconcileSeconds = 0.0;
+	NotifyEquipmentChanged();
 	if (bAssetsReady)
 	{
 		ReconcileGarments();
+		bReconcileRequested = false;
+		const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+		NextReconcileSeconds = Now
+			+ EFClothingMorphV3RuntimePrivate::ResolveWatchdogIntervalSeconds(
+				ReconcileWatchdogIntervalSeconds);
 		TickSurfacePasses(GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f);
 	}
+}
+
+void UEFClothingMorphV3RuntimeComponent::NotifyEquipmentChanged()
+{
+	// Defer until the next tick so callers can finish adding/removing and
+	// registering every SkeletalMeshComponent that belongs to one equip action.
+	bReconcileRequested = true;
+	NextReconcileSeconds = 0.0;
 }
 
 void UEFClothingMorphV3RuntimeComponent::SetGarmentClearanceOffsetCm(
@@ -365,14 +538,20 @@ FString UEFClothingMorphV3RuntimeComponent::GetDebugSummary() const
 		PassthroughCount += State.RuntimeState == EEFClothingMorphV3RuntimeState::Passthrough ? 1 : 0;
 		WarmingUpCount += State.RuntimeState == EEFClothingMorphV3RuntimeState::WarmingUp ? 1 : 0;
 		ReadyCount += State.RuntimeState == EEFClothingMorphV3RuntimeState::Ready ? 1 : 0;
+		const UEFClothingSurfaceDeformerProducer* Producer = State.Producer.Get();
 		GarmentSummaries.Add(FString::Printf(
-			TEXT("%s:%s[gLOD=%d,bLOD=%d,clear=%.3fcm,inflate=%.3fcm]%s"),
+			TEXT("%s:%s[gLOD=%d,bLOD=%d,clear=%.3fcm,stack=%.3fcm,inflate=%.3fcm,morphActivity=%.3f,lowerMorph=%.3f,lowerReserve=%.3fcm,lowerGuardVerts=%d]%s"),
 			*GetNameSafe(Pair.Key.Get()),
 			EFClothingMorphV3RuntimePrivate::StateToString(State.RuntimeState),
 			State.GarmentLODIndex,
 			State.BodyLODIndex,
 			ResolveClearanceCm(Pair.Key.Get(), State),
+			State.LayerStackClearanceCm,
 			ResolveInflateCm(Pair.Key.Get(), State),
+			Producer ? Producer->GetLastBodyMorphActivity() : 0.0f,
+			Producer ? Producer->GetLastLowerBodyMorphActivity() : 0.0f,
+			Producer ? Producer->GetLastLowerBodyReserveCm() : 0.0f,
+			Producer ? Producer->GetLowerBodyMorphGuardVertexCount() : 0,
 			State.PassthroughReason.IsEmpty()
 				? TEXT("")
 				: *FString::Printf(TEXT(" reason=%s"), *State.PassthroughReason)));
@@ -384,8 +563,9 @@ FString UEFClothingMorphV3RuntimeComponent::GetDebugSummary() const
 			? TEXT("Ready")
 			: TEXT("Degraded"));
 	return FString::Printf(
-		TEXT("EFClothingMorphV4 state=%s managed=%d ready=%d warming=%d passthrough=%d issues=%d | %s | %s | %s"),
+		TEXT("EFClothingMorphV5 state=%s registry=%s managed=%d ready=%d warming=%d passthrough=%d issues=%d | %s | %s | %s"),
 		*SystemState,
+		bUsingV4FallbackRegistry ? TEXT("V4Fallback") : TEXT("V5Streamable"),
 		ManagedGarments.Num(),
 		ReadyCount,
 		WarmingUpCount,
@@ -398,30 +578,50 @@ FString UEFClothingMorphV3RuntimeComponent::GetDebugSummary() const
 
 void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 {
-	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
-	if (!Settings || !Settings->bEnabled)
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
+	const UEFClothingMorphV2Settings* LegacySettings = GetDefault<UEFClothingMorphV2Settings>();
+	if (!Settings || !Settings->bEnabled || !LegacySettings || !LegacySettings->bEnabled)
 	{
-		LastStatus = TEXT("V4 disabled by project settings; source clothes remain visible.");
+		LastStatus = TEXT("V5 disabled by project settings; source clothes remain visible.");
 		return;
 	}
 
+	RequestedRegistryPath = !Settings->V5Registry.IsNull()
+		? Settings->V5Registry.ToSoftObjectPath()
+		: (Settings->bAllowV4Fallback
+			? Settings->V4FallbackRegistry.ToSoftObjectPath()
+			: FSoftObjectPath());
+	RequestedDirectorPath = !Settings->Director.IsNull()
+		? Settings->Director.ToSoftObjectPath()
+		: LegacySettings->DirectorPolicy.ToSoftObjectPath();
+	bUsingV4FallbackRegistry = RequestedRegistryPath
+		== Settings->V4FallbackRegistry.ToSoftObjectPath();
+	RequestedManifestPath = !bUsingV4FallbackRegistry && !Settings->V5SystemManifest.IsNull()
+		? Settings->V5SystemManifest.ToSoftObjectPath()
+		: FSoftObjectPath();
+
 	TArray<FSoftObjectPath> AssetsToLoad;
-	if (!Settings->Registry.IsNull())
+	if (!RequestedRegistryPath.IsNull())
 	{
-		AssetsToLoad.AddUnique(Settings->Registry.ToSoftObjectPath());
+		AssetsToLoad.AddUnique(RequestedRegistryPath);
 	}
-	if (!Settings->DirectorPolicy.IsNull())
+	if (!RequestedDirectorPath.IsNull())
 	{
-		AssetsToLoad.AddUnique(Settings->DirectorPolicy.ToSoftObjectPath());
+		AssetsToLoad.AddUnique(RequestedDirectorPath);
 	}
-	if (!Settings->SurfaceConstraintDeformer.IsNull())
+	if (!LegacySettings->SurfaceConstraintDeformer.IsNull())
 	{
-		AssetsToLoad.AddUnique(Settings->SurfaceConstraintDeformer.ToSoftObjectPath());
+		AssetsToLoad.AddUnique(LegacySettings->SurfaceConstraintDeformer.ToSoftObjectPath());
 	}
-	if (AssetsToLoad.Num() != 3)
+	if (!RequestedManifestPath.IsNull())
+	{
+		AssetsToLoad.AddUnique(RequestedManifestPath);
+	}
+	const int32 ExpectedStartupAssetCount = bUsingV4FallbackRegistry ? 3 : 4;
+	if (AssetsToLoad.Num() != ExpectedStartupAssetCount)
 	{
 		bAssetLoadFailed = true;
-		LastStatus = TEXT("V4 registry, Director or surface graph is not configured; source clothes remain visible.");
+		LastStatus = TEXT("V5 manifest, registry, Director or surface graph is not configured; source clothes remain visible.");
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 		return;
 	}
@@ -433,7 +633,7 @@ void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 	if (!StartupLoadHandle.IsValid())
 	{
 		bAssetLoadFailed = true;
-		LastStatus = TEXT("V4 asynchronous asset request could not start; source clothes remain visible.");
+		LastStatus = TEXT("V5 asynchronous asset request could not start; source clothes remain visible.");
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 	}
 }
@@ -441,30 +641,333 @@ void UEFClothingMorphV3RuntimeComponent::StartAssetLoad()
 void UEFClothingMorphV3RuntimeComponent::HandleAssetsReady()
 {
 	StartupLoadHandle.Reset();
-	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
-	LoadedRegistry = Settings ? Settings->Registry.Get() : nullptr;
-	LoadedDirector = Settings ? Settings->DirectorPolicy.Get() : nullptr;
-	LoadedSurfaceDeformer = Settings ? Settings->SurfaceConstraintDeformer.Get() : nullptr;
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
+	const UEFClothingMorphV2Settings* LegacySettings = GetDefault<UEFClothingMorphV2Settings>();
+	LoadedRegistry = Cast<UEFClothingFitRegistry>(RequestedRegistryPath.ResolveObject());
+	LoadedDirector = Cast<UEFClothingMorphDirectorPolicy>(RequestedDirectorPath.ResolveObject());
+	LoadedManifest = Cast<UEFClothingSystemManifest>(RequestedManifestPath.ResolveObject());
+	LoadedSurfaceDeformer = LegacySettings ? LegacySettings->SurfaceConstraintDeformer.Get() : nullptr;
+
+	FString ManifestError;
+	const bool bV5ManifestUsable = bUsingV4FallbackRegistry
+		|| (IsValid(LoadedManifest)
+			&& LoadedManifest->Validate(ManifestError)
+			&& LoadedManifest->BindingRegistry.ToSoftObjectPath() == RequestedRegistryPath);
+	const bool bV5RegistryUsable = IsValid(LoadedRegistry)
+		&& (!LoadedRegistry->V5StreamableBindings.IsEmpty()
+			|| !LoadedRegistry->NativeSourceBindings.IsEmpty())
+		&& bV5ManifestUsable;
+	if (!bV5RegistryUsable
+		&& Settings
+		&& Settings->bAllowV4Fallback
+		&& !Settings->V4FallbackRegistry.IsNull()
+		&& RequestedRegistryPath != Settings->V4FallbackRegistry.ToSoftObjectPath())
+	{
+		LoadedRegistry = Settings->V4FallbackRegistry.LoadSynchronous();
+		bUsingV4FallbackRegistry = IsValid(LoadedRegistry);
+		if (bUsingV4FallbackRegistry)
+		{
+			LoadedManifest = nullptr;
+		}
+	}
 
 	FString DirectorError;
 	if (!IsValid(LoadedRegistry)
 		|| !IsValid(LoadedDirector)
 		|| !IsValid(LoadedSurfaceDeformer)
+		|| (!bUsingV4FallbackRegistry && !bV5ManifestUsable)
 		|| !LoadedDirector->ValidateIdentity(DirectorError))
 	{
 		bAssetLoadFailed = true;
 		bAssetsReady = false;
 		LastStatus = FString::Printf(
-			TEXT("V4 startup validation failed; source clothes remain visible. %s"),
-			*DirectorError);
+			TEXT("V5 startup validation failed; source clothes remain visible. %s"),
+			*(DirectorError.IsEmpty() ? ManifestError : DirectorError));
 		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
 		return;
 	}
 
 	bAssetLoadFailed = false;
 	bAssetsReady = true;
-	LastStatus = TEXT("V4 multi-clothing assets loaded; each clothing entry will be resolved independently.");
+	LastStatus = bUsingV4FallbackRegistry
+		? TEXT("V5 started with the V4 rollback registry; each clothing entry remains isolated and visible on failure.")
+		: TEXT("V5 streamable registry loaded; binding payloads will load only for equipped garments.");
 	ForceReconcile();
+}
+
+void UEFClothingMorphV3RuntimeComponent::RequestV4FallbackRegistryLoad()
+{
+	if (bUsingV4FallbackRegistry
+		|| IsValid(LoadedV4FallbackRegistry)
+		|| bV4FallbackRegistryLoadAttempted)
+	{
+		return;
+	}
+
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
+	if (!Settings || !Settings->bAllowV4Fallback || Settings->V4FallbackRegistry.IsNull())
+	{
+		return;
+	}
+
+	// The attempt flag is permanent for this component lifetime. A corrupt or
+	// missing compatibility registry therefore cannot create an async retry loop.
+	bV4FallbackRegistryLoadAttempted = true;
+	bV4FallbackRegistryLoadFailed = false;
+	RequestedV4FallbackRegistryPath = Settings->V4FallbackRegistry.ToSoftObjectPath();
+	V4FallbackRegistryLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		RequestedV4FallbackRegistryPath,
+		FStreamableDelegate::CreateUObject(
+			this,
+			&UEFClothingMorphV3RuntimeComponent::HandleV4FallbackRegistryLoadComplete),
+		FStreamableManager::AsyncLoadHighPriority);
+	if (!V4FallbackRegistryLoadHandle.IsValid())
+	{
+		bV4FallbackRegistryLoadFailed = true;
+		LastStatus = TEXT("V5 could not start the lazy V4 fallback registry request; source clothing remains visible.");
+		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
+		return;
+	}
+
+	LastStatus = TEXT("V5 has no exact binding metadata for an equipped garment; the V4 fallback registry is streaming while source clothing remains visible.");
+}
+
+void UEFClothingMorphV3RuntimeComponent::HandleV4FallbackRegistryLoadComplete()
+{
+	TSharedPtr<FStreamableHandle> CompletedHandle = V4FallbackRegistryLoadHandle;
+	V4FallbackRegistryLoadHandle.Reset();
+	UObject* LoadedObject = CompletedHandle.IsValid()
+		? CompletedHandle->GetLoadedAsset()
+		: RequestedV4FallbackRegistryPath.ResolveObject();
+	LoadedV4FallbackRegistry = Cast<UEFClothingFitRegistry>(LoadedObject);
+	bV4FallbackRegistryLoadFailed = !IsValid(LoadedV4FallbackRegistry);
+
+	if (bV4FallbackRegistryLoadFailed)
+	{
+		LastStatus = TEXT("The lazy V4 fallback registry did not load; source clothing remains visible.");
+		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
+	}
+	else
+	{
+		LastStatus = TEXT("The lazy V4 fallback registry is available for garments without exact V5 metadata.");
+	}
+	NotifyEquipmentChanged();
+}
+
+void UEFClothingMorphV3RuntimeComponent::RequestV5BindingLoad(
+	const FSoftObjectPath& BindingPath)
+{
+	if (BindingPath.IsNull())
+	{
+		return;
+	}
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	if (const double* RetryAfterSeconds = V5BindingRetryAfterSeconds.Find(BindingPath))
+	{
+		if (Now < *RetryAfterSeconds)
+		{
+			return;
+		}
+	}
+	if (UEFClothingSurfaceBinding* LoadedBinding =
+		Cast<UEFClothingSurfaceBinding>(BindingPath.ResolveObject()))
+	{
+		FString IntegrityFailure;
+		if (!ValidateV5BindingPayload(BindingPath, LoadedBinding, IntegrityFailure))
+		{
+			UE_LOG(
+				LogEFClothingMorphV3,
+				Warning,
+				TEXT("V5 rejected loaded binding payload %s: %s"),
+				*BindingPath.ToString(),
+				*IntegrityFailure);
+			RecordV5BindingLoadFailure(BindingPath);
+			return;
+		}
+		RetainedRuntimeObjects.AddUnique(LoadedBinding);
+		V5BindingRetryAfterSeconds.Remove(BindingPath);
+		V5BindingFailureCounts.Remove(BindingPath);
+		return;
+	}
+	if (V5BindingLoadHandles.Contains(BindingPath))
+	{
+		return;
+	}
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
+	const int32 MaximumConcurrentLoads = Settings
+		? Settings->GetMaximumConcurrentBindingLoads()
+		: 2;
+	if (V5BindingLoadHandles.Num() >= MaximumConcurrentLoads)
+	{
+		return;
+	}
+
+	TSharedPtr<FStreamableHandle> LoadHandle =
+		UAssetManager::GetStreamableManager().RequestAsyncLoad(
+			BindingPath,
+			FStreamableDelegate::CreateUObject(
+				this,
+				&UEFClothingMorphV3RuntimeComponent::HandleV5BindingLoadComplete,
+				BindingPath),
+			FStreamableManager::AsyncLoadHighPriority);
+	if (!LoadHandle.IsValid())
+	{
+		RecordV5BindingLoadFailure(BindingPath);
+		return;
+	}
+
+	V5BindingLoadHandles.Add(BindingPath, MoveTemp(LoadHandle));
+	V5BindingLoadStartedSeconds.Add(BindingPath, Now);
+	LastStatus = FString::Printf(
+		TEXT("V5 streaming clothing binding %s; the source garment remains visible."),
+		*BindingPath.ToString());
+}
+
+void UEFClothingMorphV3RuntimeComponent::HandleV5BindingLoadComplete(
+	FSoftObjectPath BindingPath)
+{
+	TSharedPtr<FStreamableHandle> CompletedHandle;
+	if (TSharedPtr<FStreamableHandle>* Handle = V5BindingLoadHandles.Find(BindingPath))
+	{
+		CompletedHandle = *Handle;
+	}
+	V5BindingLoadHandles.Remove(BindingPath);
+	V5BindingLoadStartedSeconds.Remove(BindingPath);
+
+	UObject* LoadedObject = CompletedHandle.IsValid()
+		? CompletedHandle->GetLoadedAsset()
+		: BindingPath.ResolveObject();
+	UEFClothingSurfaceBinding* LoadedBinding = Cast<UEFClothingSurfaceBinding>(LoadedObject);
+	FString IntegrityFailure;
+	if (!IsValid(LoadedBinding)
+		|| !ValidateV5BindingPayload(BindingPath, LoadedBinding, IntegrityFailure))
+	{
+		if (IsValid(LoadedBinding))
+		{
+			UE_LOG(
+				LogEFClothingMorphV3,
+				Warning,
+				TEXT("V5 rejected streamed binding payload %s: %s"),
+				*BindingPath.ToString(),
+				*IntegrityFailure);
+		}
+		RecordV5BindingLoadFailure(BindingPath);
+		NotifyEquipmentChanged();
+		return;
+	}
+
+	// The registry deliberately owns only a soft reference. Retain the resolved
+	// payload for as long as this runtime component can have producers using it.
+	RetainedRuntimeObjects.AddUnique(LoadedBinding);
+	V5BindingRetryAfterSeconds.Remove(BindingPath);
+	V5BindingFailureCounts.Remove(BindingPath);
+	LastStatus = FString::Printf(
+		TEXT("V5 clothing binding streamed: %s."),
+		*BindingPath.ToString());
+	NotifyEquipmentChanged();
+}
+
+bool UEFClothingMorphV3RuntimeComponent::ValidateV5BindingPayload(
+	const FSoftObjectPath& BindingPath,
+	const UEFClothingSurfaceBinding* LoadedBinding,
+	FString& OutFailureReason) const
+{
+	OutFailureReason.Reset();
+	if (!IsValid(LoadedRegistry) || BindingPath.IsNull() || !IsValid(LoadedBinding))
+	{
+		OutFailureReason = TEXT("Registry, payload path, or loaded binding is invalid.");
+		return false;
+	}
+
+	bool bFoundRecord = false;
+	for (const FEFClothingV5StreamableBinding& Record : LoadedRegistry->V5StreamableBindings)
+	{
+		if (Record.Binding.ToSoftObjectPath() != BindingPath)
+		{
+			continue;
+		}
+		bFoundRecord = true;
+		FString RecordFailure;
+		if (!Record.ValidateLoadedPayload(LoadedBinding, &RecordFailure))
+		{
+			OutFailureReason = FString::Printf(
+				TEXT("record %s failed integrity validation: %s"),
+				*Record.StableBindingId.ToString(),
+				*RecordFailure);
+			return false;
+		}
+	}
+	if (!bFoundRecord)
+	{
+		OutFailureReason = TEXT("No V5 registry record owns this payload path.");
+		return false;
+	}
+	return true;
+}
+
+void UEFClothingMorphV3RuntimeComponent::RecordV5BindingLoadFailure(
+	const FSoftObjectPath& BindingPath)
+{
+	int32& FailureCount = V5BindingFailureCounts.FindOrAdd(BindingPath);
+	FailureCount = FMath::Min(
+		FailureCount + 1,
+		EFClothingMorphV3RuntimePrivate::MaximumBindingLoadBackoffExponent + 1);
+	const int32 BackoffExponent = FMath::Clamp(
+		FailureCount - 1,
+		0,
+		EFClothingMorphV3RuntimePrivate::MaximumBindingLoadBackoffExponent);
+	const double RetryDelaySeconds = FMath::Min(
+		EFClothingMorphV3RuntimePrivate::InitialBindingLoadRetrySeconds
+			* static_cast<double>(1 << BackoffExponent),
+		EFClothingMorphV3RuntimePrivate::MaximumBindingLoadRetrySeconds);
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	V5BindingRetryAfterSeconds.Add(BindingPath, Now + RetryDelaySeconds);
+	LastStatus = FString::Printf(
+		TEXT("V5 clothing binding load failed for %s; visible passthrough will retry in %.1f seconds."),
+		*BindingPath.ToString(),
+		RetryDelaySeconds);
+	if (FailureCount <= 3)
+	{
+		UE_LOG(LogEFClothingMorphV3, Warning, TEXT("%s"), *LastStatus);
+	}
+}
+
+void UEFClothingMorphV3RuntimeComponent::ExpireTimedOutV5BindingLoads(
+	const double NowSeconds)
+{
+	if (V5BindingLoadHandles.IsEmpty())
+	{
+		return;
+	}
+	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
+	const double TimeoutSeconds = Settings
+		? static_cast<double>(Settings->GetBindingLoadTimeoutSeconds())
+		: 5.0;
+	TArray<FSoftObjectPath> TimedOutPaths;
+	for (const TPair<FSoftObjectPath, double>& Pair : V5BindingLoadStartedSeconds)
+	{
+		if (NowSeconds - Pair.Value >= TimeoutSeconds)
+		{
+			TimedOutPaths.Add(Pair.Key);
+		}
+	}
+	for (const FSoftObjectPath& BindingPath : TimedOutPaths)
+	{
+		if (TSharedPtr<FStreamableHandle>* Handle = V5BindingLoadHandles.Find(BindingPath))
+		{
+			if (Handle->IsValid())
+			{
+				(*Handle)->CancelHandle();
+			}
+		}
+		V5BindingLoadHandles.Remove(BindingPath);
+		V5BindingLoadStartedSeconds.Remove(BindingPath);
+		RecordV5BindingLoadFailure(BindingPath);
+	}
+	if (!TimedOutPaths.IsEmpty())
+	{
+		NotifyEquipmentChanged();
+	}
 }
 
 USkeletalMeshComponent* UEFClothingMorphV3RuntimeComponent::ResolveExactBodyComponent(
@@ -505,15 +1008,51 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 	}
 
 	TInlineComponentArray<USkeletalMeshComponent*> MeshComponents(GetOwner());
+	TSet<FName> EquippedGarmentIds;
+	for (const FEFClothingGarmentRow& CandidateRow : LoadedDirector->Garments)
+	{
+		USkeletalMesh* CandidateMesh = CandidateRow.bEnabled
+			? CandidateRow.SourceGarment.Get()
+			: nullptr;
+		if (!IsValid(CandidateMesh))
+		{
+			continue;
+		}
+		for (USkeletalMeshComponent* CandidateComponent : MeshComponents)
+		{
+			if (IsValid(CandidateComponent)
+				&& CandidateComponent->GetSkeletalMeshAsset() == CandidateMesh
+				&& CandidateComponent->IsRegistered()
+				&& CandidateComponent->IsVisible()
+				&& CandidateComponent->bRenderInMainPass
+				&& !CandidateComponent->bHiddenInGame)
+			{
+				EquippedGarmentIds.Add(CandidateRow.GarmentId);
+				break;
+			}
+		}
+	}
+	// A component can change mesh in place. Release every old-body owner first,
+	// otherwise material indices/bone ownership can leak into the new body.
+	for (auto It = ManagedGarments.CreateIterator(); It; ++It)
+	{
+		USkeletalMeshComponent* Body = It.Value().BodyComponent.Get();
+		if (!IsValid(Body) || Body->GetSkeletalMeshAsset() != It.Value().BodyAsset.Get())
+		{
+			ReleaseGarment(It.Key().Get(), It.Value());
+			It.RemoveCurrent();
+		}
+	}
+	const TArray<FEFClothingGarmentRow> BodyVariants = LoadedDirector->BuildBodyVariants();
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> ObservedGarments;
 	TSet<FName> ObservedClothingIds;
 	TSet<FString> ObservedSourceBodyPairs;
 	ClothingRowIssues.Reset();
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 
-	for (int32 ClothingIndex = 0; ClothingIndex < LoadedDirector->Garments.Num(); ++ClothingIndex)
+	for (int32 ClothingIndex = 0; ClothingIndex < BodyVariants.Num(); ++ClothingIndex)
 	{
-		const FEFClothingGarmentRow& CatalogRow = LoadedDirector->Garments[ClothingIndex];
+		const FEFClothingGarmentRow& CatalogRow = BodyVariants[ClothingIndex];
 		if (!CatalogRow.bEnabled)
 		{
 			continue;
@@ -534,6 +1073,7 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 				*CatalogRow.GarmentId.ToString()));
 			continue;
 		}
+		if (!ResolveExactBodyComponent(CatalogRow.BodySurface.Get())) { continue; }
 		if (ObservedClothingIds.Contains(CatalogRow.GarmentId))
 		{
 			ClothingRowIssues.Add(FString::Printf(
@@ -563,10 +1103,6 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 			continue;
 		}
 
-		const UEFClothingSurfaceBinding* Binding = LoadedRegistry->FindNativeSourceBinding(
-			CatalogRow.GarmentId,
-			SourceMesh,
-			BodyMesh);
 		for (USkeletalMeshComponent* GarmentComponent : MeshComponents)
 		{
 			if (!IsValid(GarmentComponent)
@@ -581,6 +1117,51 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 			}
 			ObservedGarments.Add(GarmentComponent);
 
+			// V5 publishes one soft payload record per explicitly requested garment
+			// LOD. Current content is LOD0, but selecting from the component state
+			// here keeps future chunks independent and streamable.
+			const int32 RequestedBindingLODIndex =
+				FMath::Max(GarmentComponent->GetPredictedLODLevel(), 0);
+			const FEFClothingV5StreamableBinding* V5BindingRecord =
+				LoadedRegistry->FindV5StreamableBinding(
+					CatalogRow.GarmentId,
+					SourceMesh,
+					BodyMesh,
+					RequestedBindingLODIndex);
+			const bool bUsesV5StreamableBinding = V5BindingRecord != nullptr;
+			FSoftObjectPath BindingAssetPath;
+			const UEFClothingSurfaceBinding* Binding = nullptr;
+			if (bUsesV5StreamableBinding)
+			{
+				BindingAssetPath = V5BindingRecord->Binding.ToSoftObjectPath();
+				RequestV5BindingLoad(BindingAssetPath);
+				Binding = V5BindingRecord->Binding.Get();
+			}
+			else
+			{
+				// Exact V4 compatibility is lazy when V5 is healthy. The secondary
+				// hard-reference registry is requested only after an equipped garment
+				// lacks V5 metadata for its requested LOD, never during healthy startup.
+				const UEFClothingFitRegistry* NativeBindingRegistry = bUsingV4FallbackRegistry
+					? LoadedRegistry.Get()
+					: LoadedV4FallbackRegistry.Get();
+				if (!bUsingV4FallbackRegistry && !IsValid(NativeBindingRegistry))
+				{
+					RequestV4FallbackRegistryLoad();
+					NativeBindingRegistry = LoadedV4FallbackRegistry.Get();
+				}
+				Binding = IsValid(NativeBindingRegistry)
+					? NativeBindingRegistry->FindNativeSourceBinding(
+						CatalogRow.GarmentId,
+						SourceMesh,
+						BodyMesh)
+					: nullptr;
+				if (IsValid(Binding))
+				{
+					BindingAssetPath = FSoftObjectPath(Binding);
+				}
+			}
+
 			FManagedGarmentState* Existing = ManagedGarments.Find(GarmentComponent);
 			const FString CompileFingerprint = CatalogRow.BuildCompileFingerprint();
 			const bool bIdentityChanged = Existing
@@ -588,6 +1169,9 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 					|| Existing->BodyComponent.Get() != BodyComponent
 					|| Existing->Binding.Get() != Binding
 					|| Existing->GarmentId != CatalogRow.GarmentId
+					|| Existing->BindingAssetPath != BindingAssetPath
+					|| Existing->RequestedBindingLODIndex != RequestedBindingLODIndex
+					|| Existing->bUsesV5StreamableBinding != bUsesV5StreamableBinding
 					|| Existing->CompileFingerprint != CompileFingerprint);
 			if (bIdentityChanged)
 			{
@@ -601,17 +1185,34 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 				FManagedGarmentState NewState;
 				NewState.SourceMesh = SourceMesh;
 				NewState.BodyComponent = BodyComponent;
+				NewState.BodyAsset = BodyMesh;
+				NewState.CatalogRow = CatalogRow;
 				NewState.Binding = Binding;
 				NewState.GarmentId = CatalogRow.GarmentId;
+				NewState.BindingAssetPath = BindingAssetPath;
 				NewState.CompileFingerprint = CompileFingerprint;
+				NewState.RequestedBindingLODIndex = RequestedBindingLODIndex;
+				NewState.bUsesV5StreamableBinding = bUsesV5StreamableBinding;
 				NewState.RuntimeState = EEFClothingMorphV3RuntimeState::Loading;
 				Existing = &ManagedGarments.Add(GarmentComponent, MoveTemp(NewState));
 				AcquireBodyCoverage(*Existing, CatalogRow);
 			}
 
+			if (Existing->CatalogRow.BodySectionsToExclude != CatalogRow.BodySectionsToExclude
+				|| Existing->CatalogRow.BodyBoneBranchesToHide != CatalogRow.BodyBoneBranchesToHide)
+			{
+				ReleaseBodyCoverage(*Existing);
+				AcquireBodyCoverage(*Existing, CatalogRow);
+			}
+			Existing->CatalogRow = CatalogRow;
+			Existing->LayerStackClearanceCm =
+				EFClothingMorphV3RuntimePrivate::ResolveLayerStackClearanceCm(
+					CatalogRow,
+					LoadedDirector,
+					EquippedGarmentIds);
 			Existing->DirectorClearanceCm = FMath::Clamp(
 				FMath::IsFinite(CatalogRow.AdditionalClearanceCm)
-					? CatalogRow.AdditionalClearanceCm
+					? CatalogRow.AdditionalClearanceCm + Existing->LayerStackClearanceCm
 					: 0.0f,
 				0.0f,
 				EFClothingMorphV4::MaximumRuntimeClearanceCm);
@@ -638,10 +1239,45 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 			}
 			if (!IsValid(Binding))
 			{
+				FString MissingBindingReason =
+					TEXT("No V5 metadata or V4 fallback binding is published for this clothing name/source/body/LOD combination.");
+				if (bUsesV5StreamableBinding)
+				{
+					if (V5BindingLoadHandles.Contains(BindingAssetPath))
+					{
+						MissingBindingReason = FString::Printf(
+							TEXT("V5 binding payload for requested garment LOD %d is streaming; source clothing remains visible."),
+							RequestedBindingLODIndex);
+					}
+					else if (V5BindingRetryAfterSeconds.Contains(BindingAssetPath))
+					{
+						MissingBindingReason = FString::Printf(
+							TEXT("V5 binding payload load failed for requested garment LOD %d; visible passthrough is waiting for its bounded retry."),
+							RequestedBindingLODIndex);
+					}
+					else
+					{
+						MissingBindingReason = FString::Printf(
+							TEXT("V5 binding payload for requested garment LOD %d is unavailable; visible passthrough will retry."),
+							RequestedBindingLODIndex);
+					}
+				}
+				else if (V4FallbackRegistryLoadHandle.IsValid())
+				{
+					MissingBindingReason = FString::Printf(
+						TEXT("No exact V5 metadata exists for requested garment LOD %d; the V4 fallback registry is streaming and source clothing remains visible."),
+						RequestedBindingLODIndex);
+				}
+				else if (bV4FallbackRegistryLoadFailed)
+				{
+					MissingBindingReason = FString::Printf(
+						TEXT("No exact V5 metadata exists for requested garment LOD %d and the one-shot V4 fallback registry load failed; source clothing remains visible."),
+						RequestedBindingLODIndex);
+				}
 				SetPassthrough(
 					GarmentComponent,
 					*Existing,
-					TEXT("No V4 binding is published for this clothing name/source/body combination."),
+					MissingBindingReason,
 					EFClothingMorphV3RuntimePrivate::StaleRetrySeconds);
 				continue;
 			}
@@ -686,6 +1322,25 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 			It.RemoveCurrent();
 		}
 	}
+	EvictUnusedV5BindingPayloads();
+}
+
+void UEFClothingMorphV3RuntimeComponent::EvictUnusedV5BindingPayloads()
+{
+	TSet<FSoftObjectPath> ActiveBindingPaths;
+	for (const TPair<TWeakObjectPtr<USkeletalMeshComponent>, FManagedGarmentState>& Pair : ManagedGarments)
+	{
+		if (Pair.Value.bUsesV5StreamableBinding && !Pair.Value.BindingAssetPath.IsNull())
+		{
+			ActiveBindingPaths.Add(Pair.Value.BindingAssetPath);
+		}
+	}
+	RetainedRuntimeObjects.RemoveAll([&ActiveBindingPaths](const TObjectPtr<UObject>& Object)
+	{
+		const UEFClothingSurfaceBinding* Binding = Cast<UEFClothingSurfaceBinding>(Object.Get());
+		return IsValid(Binding)
+			&& !ActiveBindingPaths.Contains(FSoftObjectPath(Binding));
+	});
 }
 
 bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
@@ -709,9 +1364,10 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 		|| Binding->GarmentCompileFingerprint != CatalogRow.BuildCompileFingerprint()
 		|| Binding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceMesh)
 		|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodyMesh)
+		|| Binding->ReferenceBodySurface != CatalogRow.ReferenceBodySurface
 		|| !Binding->FittedGarment.IsNull())
 	{
-		OutFailureReason = TEXT("Binding is not a V28/schema-8 multi-clothing contract for this exact Director entry.");
+		OutFailureReason = TEXT("Binding is not a V30/schema-10 multi-clothing contract for this exact Director entry.");
 		return false;
 	}
 	if (SourceMesh->GetSkeleton() != BodyMesh->GetSkeleton()
@@ -928,9 +1584,7 @@ void UEFClothingMorphV3RuntimeComponent::TickSurfacePasses(const float DeltaTime
 		{
 			if (Now >= State.NextInstallAttemptSeconds)
 			{
-				const FEFClothingGarmentRow* Row = LoadedDirector
-					? LoadedDirector->FindGarmentById(State.GarmentId)
-					: nullptr;
+				const FEFClothingGarmentRow* Row = &State.CatalogRow;
 				FString InstallFailure;
 				if (!Row || !TryInstallSurfaceConstraint(GarmentComponent, State, *Row, InstallFailure))
 				{
@@ -1163,9 +1817,15 @@ bool UEFClothingMorphV3RuntimeComponent::ApplyReservedSurfaceBounds(
 	MaximumSurfaceCorrectionCm = FMath::Clamp(MaximumSurfaceCorrectionCm, 0.0f, 10.0f);
 
 	const FBoxSphereBounds SourceBounds = SourceMesh->GetImportedBounds();
+	// CollisionOnly is intentionally the stable V4 default, but the late GPU pass
+	// can now transport a close garment with a body surface that expands under a
+	// large morph. Reserve that bounded automatic travel up front so an otherwise
+	// correct breast/body-shape correction cannot be culled by the source mesh's
+	// much smaller imported bounds.
 	const float ReservedOutwardTravelCm = MaximumSurfaceCorrectionCm
 		+ EFClothingMorphV4::MaximumRuntimeClearanceCm
-		+ EFClothingMorphV4::MaximumRuntimeInflateCm;
+		+ EFClothingMorphV4::MaximumRuntimeInflateCm
+		+ EFClothingMorphV4::MaximumAutomaticBodyShapeTravelCm;
 	const float PreviousBoundsScale = FMath::IsFinite(GarmentComponent->BoundsScale)
 		? GarmentComponent->BoundsScale
 		: 1.0f;
@@ -1261,6 +1921,8 @@ void UEFClothingMorphV3RuntimeComponent::ReleaseAllGarments()
 	ClearanceOverridesCm.Reset();
 	InflateOverridesCm.Reset();
 	BodyMaterialCoverage.Reset();
+	BodyBoneCoverage.Reset();
+	BodyDeformerCoverage.Reset();
 	RetainedRuntimeObjects.Reset();
 }
 
@@ -1273,6 +1935,60 @@ void UEFClothingMorphV3RuntimeComponent::AcquireBodyCoverage(
 	if (!IsValid(BodyComponent) || !IsValid(BodyAsset))
 	{
 		return;
+	}
+
+	// A follower cannot own bone visibility: Unreal consumes its pose leader's
+	// visibility instead. Keep the actual owner so a body swap releases the
+	// same component that was modified, even when the visible mesh has changed.
+	USkeletalMeshComponent* BoneOwner = BodyComponent;
+	TSet<USkinnedMeshComponent*> Visited;
+	while (BoneOwner && BoneOwner->LeaderPoseComponent.IsValid())
+	{
+		if (Visited.Contains(BoneOwner)) { BoneOwner = nullptr; break; }
+		Visited.Add(BoneOwner);
+		BoneOwner = Cast<USkeletalMeshComponent>(BoneOwner->LeaderPoseComponent.Get());
+	}
+	State.BoneCoverageComponent = BoneOwner;
+	if (!CatalogRow.BodyBoneBranchesToHide.IsEmpty() && !CatalogRow.BoneCoverageDeformer.IsNull()
+		&& !State.bOwnsBodyCoverageDeformer)
+	{
+		FBodyDeformerCoverageState* Existing = BodyDeformerCoverage.Find(BodyComponent);
+		if (!Existing)
+		{
+			bool bOverride = false;
+			const bool bKnownOverride = EFClothingMorphV3RuntimePrivate::ReadComponentDeformerOverrideFlag(BodyComponent, bOverride);
+			UMeshDeformer* Active = bOverride ? BodyComponent->GetComponentMeshDeformer().Get() : BodyAsset->GetDefaultMeshDeformer();
+			if (bKnownOverride && Active
+				&& FSoftObjectPath(Active) == CatalogRow.BoneCoverageDeformerSource.ToSoftObjectPath())
+			{
+				if (UMeshDeformer* Adapter = CatalogRow.BoneCoverageDeformer.LoadSynchronous())
+				{
+					FBodyDeformerCoverageState NewCoverage;
+					FString Error;
+					if (CaptureComponentDeformerOverride(BodyComponent, NewCoverage.Snapshot, Error))
+					{
+						NewCoverage.Snapshot.bOwnsFallbackDeformerOverride = true;
+						NewCoverage.Snapshot.FallbackDeformerAssignedByV3 = Adapter;
+						BodyComponent->SetMeshDeformer(Adapter);
+						Existing = &BodyDeformerCoverage.Add(BodyComponent, MoveTemp(NewCoverage));
+					}
+				}
+			}
+		}
+		if (Existing) { ++Existing->RefCount; State.bOwnsBodyCoverageDeformer = true; }
+	}
+	for (const FName Bone : CatalogRow.BodyBoneBranchesToHide)
+	{
+		if (!BoneOwner || BoneOwner->GetBoneIndex(Bone) == INDEX_NONE || State.CoveredBodyBones.Contains(Bone)) { continue; }
+		FBodyBoneCoverageState& Coverage = BodyBoneCoverage.FindOrAdd(BoneOwner).FindOrAdd(Bone);
+		if (Coverage.RefCount == 0)
+		{
+			Coverage.BodyAsset = BoneOwner->GetSkeletalMeshAsset();
+			Coverage.bPreviouslyHidden = BoneOwner->IsBoneHiddenByName(Bone);
+			BoneOwner->HideBoneByName(Bone, EPhysBodyOp::PBO_None);
+		}
+		++Coverage.RefCount;
+		State.CoveredBodyBones.Add(Bone);
 	}
 
 	// Geometry exclusions belong only to the compiler/binding.  Runtime section
@@ -1323,6 +2039,37 @@ void UEFClothingMorphV3RuntimeComponent::ReleaseBodyCoverage(FManagedGarmentStat
 {
 	const TWeakObjectPtr<USkeletalMeshComponent> BodyKey = State.BodyComponent;
 	USkeletalMeshComponent* BodyComponent = BodyKey.Get();
+	const TWeakObjectPtr<USkeletalMeshComponent> BoneKey = State.BoneCoverageComponent;
+	USkeletalMeshComponent* BoneOwner = BoneKey.Get();
+	if (TMap<FName, FBodyBoneCoverageState>* Bones = BodyBoneCoverage.Find(BoneKey))
+	{
+		for (const FName Bone : State.CoveredBodyBones)
+		{
+			FBodyBoneCoverageState* Coverage = Bones->Find(Bone);
+			if (!Coverage || --Coverage->RefCount > 0) { continue; }
+			if (IsValid(BoneOwner) && BoneOwner->GetSkeletalMeshAsset() == Coverage->BodyAsset.Get()
+				&& !Coverage->bPreviouslyHidden)
+			{
+				BoneOwner->UnHideBoneByName(Bone);
+			}
+			Bones->Remove(Bone);
+		}
+		if (Bones->IsEmpty()) { BodyBoneCoverage.Remove(BoneKey); }
+	}
+	State.CoveredBodyBones.Reset();
+	State.BoneCoverageComponent.Reset();
+	if (State.bOwnsBodyCoverageDeformer)
+	{
+		if (FBodyDeformerCoverageState* Coverage = BodyDeformerCoverage.Find(BodyKey))
+		{
+			if (--Coverage->RefCount <= 0)
+			{
+				ReleaseFallbackDeformerOverride(BodyComponent, Coverage->Snapshot);
+				BodyDeformerCoverage.Remove(BodyKey);
+			}
+		}
+		State.bOwnsBodyCoverageDeformer = false;
+	}
 	TMap<int32, FBodyMaterialCoverageState>* BodySlots = BodyMaterialCoverage.Find(BodyKey);
 	if (!BodySlots)
 	{

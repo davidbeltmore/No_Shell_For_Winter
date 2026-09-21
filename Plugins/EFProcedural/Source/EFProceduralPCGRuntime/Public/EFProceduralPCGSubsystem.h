@@ -4,21 +4,29 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "TimerManager.h"
 #include "UObject/ObjectKey.h"
+#include "UObject/StrongObjectPtr.h"
 
 #include "Interfaces/LevelReadinessProvider.h"
 #include "Interfaces/PlayerStartResolver.h"
 #include "Interfaces/SpawnPostProcessor.h"
+#include "Calysto/EFCalystoPopulationPlannerV6.h"
 
 #include "EFProceduralPCGSubsystem.generated.h"
 
 class AActor;
+class AEFCalystoDecalPoolOwnerV6;
 class ANavMeshBoundsVolume;
 class APawn;
 class UWorld;
 class UPCGComponent;
-struct FStreamableHandle;
-struct FEFCalystoResolvedFloorIntentV4;
-enum class EEFCalystoDungeonTravelKindV4 : uint8;
+struct FEFCalystoPCGRuntimeGraphResultV6;
+struct FEFCalystoResolvedFloorPlanV6;
+struct FEFCalystoRoomIdentityInputV6;
+struct FEFCalystoRoomManifestV6;
+struct FEFCalystoRoomThemeGenerationConfigV6;
+class FEFCalystoPCGSingleGenerationGateV6;
+struct FEFCalystoResolvedFloorIntentV6;
+enum class EEFCalystoDungeonTravelKindV6 : uint8;
 
 UCLASS()
 class EFPROCEDURALPCGRUNTIME_API UEFProceduralPCGSubsystem
@@ -30,6 +38,7 @@ class EFPROCEDURALPCGRUNTIME_API UEFProceduralPCGSubsystem
 	GENERATED_BODY()
 
 public:
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
@@ -63,18 +72,26 @@ private:
 	{
 		TWeakObjectPtr<UWorld> World;
 		TWeakObjectPtr<AActor> DungeonActor;
+		TMap<FName, TObjectPtr<UObject>> ThemeRoomTypes;
+		TArray<TStrongObjectPtr<UObject>> ThemeArchitectureLeases;
 		TWeakObjectPtr<UPCGComponent> ControlledPCGComponent;
 		TWeakObjectPtr<ANavMeshBoundsVolume> NavBoundsVolume;
 		TArray<TWeakObjectPtr<APawn>> SpawnedPawns;
 		TSet<TObjectKey<UPCGComponent>> PendingPCGComponents;
-		TSharedPtr<FStreamableHandle> DungeonPreloadHandle;
-		TArray<FSoftObjectPath> DungeonPreloadPaths;
+		TSharedPtr<FEFCalystoPCGSingleGenerationGateV6> GenerationGateV6;
+		TWeakObjectPtr<AEFCalystoDecalPoolOwnerV6> DecalPoolOwnerV6;
 		TArray<FName> ReadinessTrace;
 		FString DirectorIntentHash;
+		FString V6FloorPlanHash;
+		FString V6GraphConfigurationFingerprint;
+		FEFCalystoPopulationPlanV6 PopulationPlanV6;
+		FString V6PopulationMaterializationHash;
 		FVector TopologyRepairApproachLocation = FVector::ZeroVector;
 		double BootstrapStartTimeSeconds = 0.0;
 		bool bDirectorWorldAccepted = false;
-		bool bDungeonPreloadVerified = false;
+		bool bFloorVisualLoadRequested = false;
+		bool bFloorVisualLoadCompletionObserved = false;
+		bool bFloorVisualAssetsReady = false;
 		bool bBootstrapStarted = false;
 		bool bPCGGenerationTriggered = false;
 		bool bPCGGenerationFinished = false;
@@ -87,6 +104,13 @@ private:
 		bool bTopologyRepairApplied = false;
 		bool bTopologyRepairAwaitingNavRebuild = false;
 		bool bTopologyReady = false;
+		bool bRoomManifestReady = false;
+		bool bPopulationPlanReady = false;
+		bool bPostTopologyLoadRequested = false;
+		bool bPostTopologyAssetsReady = false;
+		bool bVisualsReady = false;
+		bool bDecalPoolReady = false;
+		bool bDecalsRealized = false;
 		bool bSpawnedPawnsRevalidatedAfterNav = false;
 		bool bPopulationMaterializationStarted = false;
 		bool bPopulationReady = false;
@@ -96,6 +120,7 @@ private:
 		bool bFloorReadyNotified = false;
 		bool bFailureReported = false;
 		int32 GenerateLocalRequestCount = 0;
+		int32 RealizedDecalCount = 0;
 		uint64 ControlledGenerationTaskId = MAX_uint64;
 		int32 NavigationPreparationAttempts = 0;
 		int32 NavigationPathValidationAttempts = 0;
@@ -108,21 +133,36 @@ private:
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandleDirectorWorldAccepted(
 		int64 RunEpoch,
-		EEFCalystoDungeonTravelKindV4 TravelKind,
-		const FEFCalystoResolvedFloorIntentV4& Intent);
+		EEFCalystoDungeonTravelKindV6 TravelKind,
+		const FEFCalystoResolvedFloorIntentV6& Intent);
 
 	void BootstrapDungeon(TWeakObjectPtr<UWorld> WorldPtr, int32 AttemptIndex);
-	void HandleDungeonPreloadComplete(
+	void HandleFloorVisualAssetsReadyV6(
 		TWeakObjectPtr<UWorld> WorldPtr,
 		int32 AttemptIndex,
 		FString ExpectedIntentHash);
 	AActor* FindDungeonActor(UWorld* World, int32& OutDungeonActorCount) const;
 	bool ApplyCalystoHarnessAndGenerate(UWorld* World, AActor* DungeonActor, bool bDestroyActorOnFailure);
+	bool BuildRoomThemeGenerationConfigV6(
+		const FEFCalystoResolvedFloorPlanV6& FloorPlan,
+		const TMap<FName, TObjectPtr<UObject>>& ThemeRoomTypes,
+		const FTransform& DungeonTransform,
+		FEFCalystoRoomThemeGenerationConfigV6& OutConfig,
+		FString& OutError) const;
+	bool FreezeRoomManifestFromPCGOutputV6(
+		UWorld* World,
+		UPCGComponent* PCGComponent,
+		FDungeonRuntimeState& RuntimeState,
+		FString& OutError);
+	bool EnsureDecalPoolV6(UWorld* World, FDungeonRuntimeState& RuntimeState, FString& OutError);
+	bool RealizeDecalsV6(UWorld* World, FDungeonRuntimeState& RuntimeState, FString& OutError);
 	void TrackDungeonActor(UWorld* World, AActor* DungeonActor, UPCGComponent* ControlledPCGComponent);
 
 	FDungeonRuntimeState& FindOrAddRuntimeState(UWorld* World);
 	FDungeonRuntimeState* FindRuntimeState(UWorld* World);
-	bool RecordReadinessMilestone(FDungeonRuntimeState& RuntimeState, FName Milestone) const;
+	static bool RecordReadinessMilestone(FDungeonRuntimeState& RuntimeState, FName Milestone);
+	static bool ArmGenerateLocalRequestV6(FDungeonRuntimeState& RuntimeState, FString& OutError);
+	static void RollbackGenerationLaunchStateV6(FDungeonRuntimeState& RuntimeState);
 	void RefreshDungeonRuntimeState(UWorld* World, FDungeonRuntimeState& RuntimeState);
 	void HandlePCGComponentGenerated(UPCGComponent* PCGComponent);
 	void HandlePCGComponentCancelled(UPCGComponent* PCGComponent);
@@ -139,6 +179,7 @@ private:
 		FVector& OutDoorLocation,
 		const FVector* RequiredApproachLocation = nullptr) const;
 	bool TryMaterializePopulation(UWorld* World, FDungeonRuntimeState& RuntimeState);
+	void RollbackMaterializedPopulationV6(UWorld* World, FDungeonRuntimeState& RuntimeState);
 	FBox CollectDungeonBounds(UWorld* World, const FDungeonRuntimeState& RuntimeState) const;
 	bool EnsureNavMeshBoundsVolume(UWorld* World, const FBox& DungeonBounds, FDungeonRuntimeState& RuntimeState);
 	void RegisterDungeonNavigationInvoker(AActor* DungeonActor, const FBox& DungeonBounds) const;
@@ -165,5 +206,9 @@ private:
 	mutable TSet<TObjectKey<UWorld>> WarnedMissingDungeonConfigWorlds;
 #if !UE_BUILD_SHIPPING
 	bool bDevelopmentSuppressStartPointOnceForAutomation = false;
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FEFCalystoPCGSynchronousCompletionOrderingV6Test;
 #endif
 };

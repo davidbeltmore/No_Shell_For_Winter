@@ -1,5 +1,7 @@
 #include "EFLevelFlowSubsystem.h"
 
+#include "Calysto/EFCalystoDirectorSettings.h"
+#include "Calysto/EFCalystoDirectorSubsystem.h"
 #include "Calysto/EFCalystoDungeonSubsystem.h"
 
 #include "Blueprint/UserWidget.h"
@@ -10,6 +12,7 @@
 #include "EFProceduralRuntimeSubsystem.h"
 #include "ACFAIController.h"
 #include "Components/ACFThreatManagerComponent.h"
+#include "Components/ACFDamageHandlerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
@@ -24,6 +27,7 @@
 #include "Styling/CoreStyle.h"
 #include "TimerManager.h"
 #include "Widgets/Images/SThrobber.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
@@ -121,6 +125,15 @@ void UEFLevelFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Collection.InitializeDependency<UEFProceduralRuntimeSubsystem>();
 	Super::Initialize(Collection);
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		Collection.InitializeDependency<UEFCalystoDirectorSubsystem>();
+		if (auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>())
+		{
+			Director->BeforeTravel.AddUObject(this, &ThisClass::HandleDirectorBeforeTravel);
+			Director->RequestFailed.AddUObject(this, &ThisClass::HandleDirectorRequestFailed);
+		}
+	}
 	WorldBeginPlayHandle = FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UEFLevelFlowSubsystem::HandlePostWorldInitialization);
 	WorldCleanupHandle = FWorldDelegates::OnWorldCleanup.AddUObject(this, &UEFLevelFlowSubsystem::HandleWorldCleanup);
 	LoadingThemeChangedHandle = EFLevelFlowLoadingTheme::OnThemeChanged().AddUObject(
@@ -130,6 +143,12 @@ void UEFLevelFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UEFLevelFlowSubsystem::Deinitialize()
 {
+	if (GetGameInstance())
+		if (auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>())
+		{
+			Director->BeforeTravel.RemoveAll(this);
+			Director->RequestFailed.RemoveAll(this);
+		}
 	if (LoadingThemeChangedHandle.IsValid())
 	{
 		EFLevelFlowLoadingTheme::OnThemeChanged().Remove(LoadingThemeChangedHandle);
@@ -144,7 +163,7 @@ void UEFLevelFlowSubsystem::Deinitialize()
 
 void UEFLevelFlowSubsystem::HandlePostWorldInitialization(UWorld* World, const UWorld::InitializationValues InitializationValues)
 {
-	if (!IsValid(World) || !World->IsGameWorld())
+	if (!IsValid(World) || !World->IsGameWorld() || World->GetGameInstance() != GetGameInstance())
 	{
 		return;
 	}
@@ -213,6 +232,9 @@ bool UEFLevelFlowSubsystem::ShouldDelaySpawnForWorld(const UWorld* World) const
 	}
 
 	const UEFLevelFlowSettings* Settings = UEFLevelFlowSettings::Get();
+	if (UEFCalystoDirectorSettings::IsEnabled())
+		if (const auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>())
+			if (Director->IsDungeonWorld(World)) return true;
 	const FString WorldPackageName = World->GetPackage()->GetName();
 	const FString ShortMapName = EFLevelFlowPrivate::NormalizeMapName(WorldPackageName);
 
@@ -253,23 +275,43 @@ void UEFLevelFlowSubsystem::StartLevelLoadingSequence(UWorld* World, APlayerCont
 
 	LoadingSnapshot = FLevelLoadingSessionSnapshot();
 	LoadingSnapshot.bIsActive = true;
+	LoadingSnapshot.DirectorLoadingRequest = FGuid::NewGuid();
 	LoadingSnapshot.ActiveWorld = World;
 	LoadingSnapshot.PlayerController = PlayerController;
 	LoadingSnapshot.Pawn = Pawn;
-	LoadingSnapshot.LoadingStartTimeSeconds = World->GetTimeSeconds();
+	LoadingSnapshot.LoadingStartTimeSeconds = FPlatformTime::Seconds();
+	const auto* Director = UEFCalystoDirectorSettings::IsEnabled()
+		? GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>() : nullptr;
+	LoadingSnapshot.bDirectorManaged = UEFCalystoDirectorSettings::IsEnabled()
+		&& ((!Director) || Director->IsDungeonWorld(World) || Director->IsTravelRequestPending()
+			|| Director->GetSnapshot().State == EEFCalystoDirectorState::Failed
+			|| Director->GetSnapshot().State == EEFCalystoDirectorState::Cancelled);
 
 	EFLevelFlowPrivate::ClearHeldCameraFade(PlayerController);
 
-	if (Settings->bBlockPlayerInputDuringLoading)
+	if (Settings->bBlockPlayerInputDuringLoading || LoadingSnapshot.bDirectorManaged)
 	{
 		ApplyLoadingInputState(PlayerController, true);
+		LoadingSnapshot.bInputBlocked = true;
 	}
 
-	if (Settings->bFreezePawnDuringLoading)
+	if (Settings->bFreezePawnDuringLoading || LoadingSnapshot.bDirectorManaged)
 	{
 		FreezePawn(Pawn, true);
+		LoadingSnapshot.bPawnFrozen = true;
 	}
 
+	if (LoadingSnapshot.bDirectorManaged)
+	{
+		LoadingSnapshot.bPreviousCanBeDamaged = Pawn->CanBeDamaged();
+		Pawn->SetCanBeDamaged(false);
+		if (auto* DamageHandler = Pawn->FindComponentByClass<UACFDamageHandlerComponent>())
+		{
+			LoadingSnapshot.ProtectedDamageHandler = DamageHandler;
+			LoadingSnapshot.bPreviousAcfImmortal = DamageHandler->GetIsImmortal();
+			DamageHandler->SetIsImmortal(true);
+		}
+	}
 	ShowLoadingScreen(PlayerController);
 
 	World->GetTimerManager().SetTimer(
@@ -291,6 +333,18 @@ void UEFLevelFlowSubsystem::TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld>
 	UWorld* World = WorldPtr.Get();
 	APawn* Pawn = LoadingSnapshot.Pawn.Get();
 	APlayerController* PlayerController = LoadingSnapshot.PlayerController.Get();
+	if (LoadingSnapshot.bDirectorManaged)
+	{
+		if (!IsValid(World) || World != LoadingSnapshot.ActiveWorld.Get()) return;
+		if (!IsValid(Pawn) || !IsValid(PlayerController))
+		{
+			if (auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>()) Director->RequestCancel();
+			ShowDirectorFailure(NSLOCTEXT("EFLevelFlow", "DirectorPlayerUnavailable", "The player is unavailable. Return to HUB to continue."));
+			return;
+		}
+		TryFinishDirectorLoading(World, PlayerController, Pawn);
+		return;
+	}
 
 	if (!IsValid(World) || !IsValid(Pawn) || !IsValid(PlayerController))
 	{
@@ -312,20 +366,19 @@ void UEFLevelFlowSubsystem::TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld>
 		return;
 	}
 
-	if (const UEFCalystoDungeonSubsystem* DungeonSubsystem = GetGameInstance()
+	if (const UEFCalystoDungeonSubsystem* DungeonSubsystem = !UEFCalystoDirectorSettings::IsEnabled() && GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UEFCalystoDungeonSubsystem>()
 		: nullptr)
 	{
-		const FEFCalystoDungeonSnapshotV4 DungeonSnapshot = DungeonSubsystem->GetSnapshot();
-		if (DungeonSnapshot.State == EEFCalystoDungeonRunStateV4::Failed)
+		const FEFCalystoDungeonSnapshotV6 DungeonSnapshot = DungeonSubsystem->GetSnapshot();
+		if (DungeonSnapshot.State == EEFCalystoDungeonTravelStateV6::Failed)
 		{
 			const FString Diagnostic = FString::Printf(
-				TEXT("Dungeon failure [%s] %s | intent=%s | attempt=%d/%d"),
-				*DungeonSnapshot.FailureCode.ToString(),
-				*DungeonSnapshot.FailureMessage,
-				*DungeonSnapshot.IntentHash,
-				DungeonSnapshot.CurrentAttempt,
-				DungeonSnapshot.MaximumAttempts);
+				TEXT("Dungeon failure: %s | intent=%s | floor=%lld | serial=%lld"),
+				*DungeonSnapshot.FailureReason,
+				*DungeonSnapshot.FloorIntentHash,
+				DungeonSnapshot.FloorNumber,
+				DungeonSnapshot.GenerationSerial);
 			UE_LOG(LogEFLevelFlow, Error, TEXT("%s"), *Diagnostic);
 			if (GEngine)
 			{
@@ -367,7 +420,7 @@ void UEFLevelFlowSubsystem::TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld>
 		&& bRuntimeReady
 		&& IsDungeonEntryVisualReady(World, PlayerController, Pawn);
 
-	const double LoadingElapsedSeconds = World->GetTimeSeconds() - LoadingSnapshot.LoadingStartTimeSeconds;
+	const double LoadingElapsedSeconds = FPlatformTime::Seconds() - LoadingSnapshot.LoadingStartTimeSeconds;
 	const bool bMinimumLoadingTimeReached = LoadingElapsedSeconds >= Settings->MinimumLoadingScreenSeconds;
 
 	if (!bVisualReady && LoadingSnapshot.bPawnPositioned && bRuntimeReady)
@@ -409,6 +462,239 @@ void UEFLevelFlowSubsystem::TryFinishLevelLoadingSequence(TWeakObjectPtr<UWorld>
 	ResetLevelLoadingSequence(true);
 }
 
+void UEFLevelFlowSubsystem::HandleDirectorBeforeTravel(const int64 FloorNumber)
+{
+	(void)FloorNumber;
+	UWorld* World = GetWorld();
+	if (!World || !World->IsGameWorld()) return;
+	if (LoadingSnapshot.bIsActive)
+	{
+		if (!LoadingSnapshot.bDirectorManaged)
+		{
+			// An existing HUB loading session may have started before the request.
+			// Promote its ownership once, preserving every state we must restore.
+			LoadingSnapshot.bDirectorManaged = true;
+			if (auto* Controller = LoadingSnapshot.PlayerController.Get())
+			{
+				if (!LoadingSnapshot.bInputBlocked)
+				{
+					ApplyLoadingInputState(Controller, true);
+					LoadingSnapshot.bInputBlocked = true;
+				}
+			}
+			if (auto* Pawn = LoadingSnapshot.Pawn.Get())
+			{
+				if (!LoadingSnapshot.bPawnFrozen)
+				{
+					FreezePawn(Pawn, true);
+					LoadingSnapshot.bPawnFrozen = true;
+				}
+				LoadingSnapshot.bPreviousCanBeDamaged = Pawn->CanBeDamaged();
+				Pawn->SetCanBeDamaged(false);
+				if (auto* DamageHandler = Pawn->FindComponentByClass<UACFDamageHandlerComponent>())
+				{
+					LoadingSnapshot.ProtectedDamageHandler = DamageHandler;
+					LoadingSnapshot.bPreviousAcfImmortal = DamageHandler->GetIsImmortal();
+					DamageHandler->SetIsImmortal(true);
+				}
+			}
+		}
+		LoadingSnapshot.DirectorLoadingRequest = FGuid::NewGuid();
+		LoadingSnapshot.bPawnPositioned = false;
+		LoadingSnapshot.bFailureVisible = false;
+		LoadingSnapshot.VisualRepairAttemptCount = 0;
+		LoadingSnapshot.LoadingStartTimeSeconds = FPlatformTime::Seconds();
+		HideLoadingScreen();
+		if (auto* Controller = LoadingSnapshot.PlayerController.Get())
+		{
+			Controller->bShowMouseCursor = false;
+			ShowLoadingScreen(Controller);
+		}
+		World->GetTimerManager().SetTimer(LoadingTimerHandle,
+			FTimerDelegate::CreateUObject(this, &ThisClass::TryFinishLevelLoadingSequence, TWeakObjectPtr<UWorld>(World), 0), 0.1f, false);
+		return;
+	}
+	ClearDungeonEntryGracePeriod(true);
+	TryStartLevelLoadingSequence(World, 0);
+}
+
+void UEFLevelFlowSubsystem::HandleDirectorRequestFailed(const FEFCalystoDirectorSnapshot& Snapshot)
+{
+	(void)Snapshot;
+	if (!LoadingSnapshot.bIsActive) TryStartLevelLoadingSequence(GetWorld(), 0);
+	if (LoadingSnapshot.bDirectorManaged)
+		ShowDirectorFailure(NSLOCTEXT("EFLevelFlow", "DirectorRequestFailed", "The dungeon could not be prepared. Retry or return to HUB."));
+}
+
+void UEFLevelFlowSubsystem::TryFinishDirectorLoading(UWorld* World, APlayerController* PlayerController, APawn* Pawn)
+{
+	auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+	if (!Director)
+	{
+		ShowDirectorFailure(NSLOCTEXT("EFLevelFlow", "DirectorUnavailable", "The dungeon is unavailable. Return to HUB to continue."));
+		return;
+	}
+	const auto State = Director->GetSnapshot().State;
+	if (State == EEFCalystoDirectorState::Failed || State == EEFCalystoDirectorState::Cancelled || State == EEFCalystoDirectorState::Idle)
+	{
+		ShowDirectorFailure(NSLOCTEXT("EFLevelFlow", "DirectorRequestFailed", "The dungeon could not be prepared. Retry or return to HUB."));
+		return;
+	}
+	const FGuid LoadingRequest = LoadingSnapshot.DirectorLoadingRequest;
+	const FEFCalystoAttemptToken ObservedToken = Director->GetTransaction()
+		? Director->GetTransaction()->GetToken() : FEFCalystoAttemptToken();
+	const auto StillOwnsLoading = [this, Director, World, Pawn, LoadingRequest, ObservedToken]
+	{
+		return LoadingSnapshot.bIsActive && LoadingSnapshot.DirectorLoadingRequest == LoadingRequest
+			&& LoadingSnapshot.ActiveWorld.Get() == World && LoadingSnapshot.Pawn.Get() == Pawn
+			&& Director->GetTransaction() && Director->GetTransaction()->Owns(ObservedToken);
+	};
+	const auto RejectEntry = [this, Director, World, StillOwnsLoading](const FName Code, const FString& Message)
+	{
+		if (!StillOwnsLoading()) return;
+		Director->RejectPlayerRelease(World, Code, Message);
+		if (!StillOwnsLoading()) return;
+		LoadingSnapshot.bPawnPositioned = false;
+		LoadingSnapshot.VisualRepairAttemptCount = 0;
+		World->GetTimerManager().SetTimer(LoadingTimerHandle,
+			FTimerDelegate::CreateUObject(this, &ThisClass::TryFinishLevelLoadingSequence, TWeakObjectPtr<UWorld>(World), 0), 0.1f, false);
+	};
+	if (State == EEFCalystoDirectorState::Generating || State == EEFCalystoDirectorState::Recovering)
+	{
+		LoadingSnapshot.bPawnPositioned = false;
+		LoadingSnapshot.VisualRepairAttemptCount = 0;
+	}
+	// The transaction publishes one exact capsule-center transform after native
+	// verification. Position and view must succeed before atomic commitment.
+	if ((State == EEFCalystoDirectorState::AwaitingPlayerRelease || State == EEFCalystoDirectorState::Ready)
+		&& Director->IsDungeonWorld(World))
+	{
+		FTransform Entry;
+		if (!Director->ResolvePlayerStartTransform(World, Entry))
+		{
+			RejectEntry(TEXT("EntryUnavailable"), TEXT("The dungeon entrance is unavailable."));
+			return;
+		}
+		if (!LoadingSnapshot.bPawnPositioned)
+		{
+			Pawn->SetActorLocationAndRotation(Entry.GetLocation(), Entry.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
+			if (!Pawn->GetActorLocation().Equals(Entry.GetLocation(), 0.1)
+				|| !Pawn->GetActorQuat().Equals(Entry.GetRotation(), 0.001))
+			{
+				RejectEntry(TEXT("EntryPlacementFailed"), TEXT("The player could not enter the dungeon."));
+				return;
+			}
+			PlayerController->SetControlRotation(Entry.Rotator());
+			LoadingSnapshot.bPawnPositioned = true;
+		}
+		if (IsDungeonEntryVisualReady(World, PlayerController, Pawn))
+		{
+			FString Error;
+			if (State == EEFCalystoDirectorState::AwaitingPlayerRelease)
+			{
+				const auto Release = Director->ConfirmPlayerRelease(World, Pawn, Error);
+				if (Release == EEFCalystoPlayerReleaseResult::Pending)
+				{
+					// This observer uses a one-shot timer. Pending must schedule its next
+					// observation while retaining the same protected pawn/request ownership.
+					if (StillOwnsLoading()) World->GetTimerManager().SetTimer(LoadingTimerHandle,
+						FTimerDelegate::CreateUObject(this, &ThisClass::TryFinishLevelLoadingSequence, TWeakObjectPtr<UWorld>(World), 0), 0.1f, false);
+					return;
+				}
+				if (Release == EEFCalystoPlayerReleaseResult::Rejected)
+				{
+					RejectEntry(TEXT("PlayerReleaseRejected"), Error);
+					return;
+				}
+			}
+			// FloorReady listeners may synchronously request another floor or HUB.
+			// The old confirmation must never release the new request's protection.
+			if (!StillOwnsLoading() || Director->IsTravelRequestPending()
+				|| Director->GetSnapshot().State != EEFCalystoDirectorState::Ready
+				|| !Director->IsLevelRuntimeReady(World)) return;
+			BeginDungeonEntryGracePeriod(World, Pawn);
+			ResetLevelLoadingSequence(true);
+			return;
+		}
+		if (++LoadingSnapshot.VisualRepairAttemptCount > 3)
+		{
+			RejectEntry(TEXT("PlayerViewUnavailable"), TEXT("The player view is unavailable."));
+			return;
+		}
+		RepairDungeonEntryVisualState(World, PlayerController, Pawn);
+	}
+	// The Director owns the shared 30-second deadline and cleanup. This watchdog
+	// catches a disconnected owner without releasing the protected pawn.
+	if (FPlatformTime::Seconds() - LoadingSnapshot.LoadingStartTimeSeconds > 35.0)
+	{
+		if (State == EEFCalystoDirectorState::AwaitingPlayerRelease)
+			Director->RejectPlayerRelease(World, TEXT("PlayerReleaseTimeout"), TEXT("The player could not enter before the loading deadline."));
+		else Director->RequestCancel();
+		ShowDirectorFailure(NSLOCTEXT("EFLevelFlow", "DirectorLoadingTimeout", "The dungeon did not finish loading. Return to HUB to continue."));
+		return;
+	}
+	World->GetTimerManager().SetTimer(LoadingTimerHandle,
+		FTimerDelegate::CreateUObject(this, &ThisClass::TryFinishLevelLoadingSequence, TWeakObjectPtr<UWorld>(World), 0), 0.1f, false);
+}
+
+void UEFLevelFlowSubsystem::ShowDirectorFailure(const FText& Message)
+{
+	if (LoadingSnapshot.bFailureVisible) return;
+	LoadingSnapshot.bFailureVisible = true;
+	if (UWorld* World = LoadingSnapshot.ActiveWorld.Get()) World->GetTimerManager().ClearTimer(LoadingTimerHandle);
+	HideLoadingScreen();
+	if (!GEngine || !GEngine->GameViewport) return;
+	const TWeakObjectPtr<UEFCalystoDirectorSubsystem> Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+	TSharedPtr<SButton> ReturnHubButton;
+	EFLevelFlowPrivate::ActiveLoadingOverlay = SNew(SBorder)
+		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+		.BorderBackgroundColor(FLinearColor(0.025f, 0.025f, 0.035f, 1.0f))
+		.HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(32.0f)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.0f, 0.0f, 0.0f, 20.0f)
+			[SNew(STextBlock).Text(Message).AutoWrapText(true).Font(FCoreStyle::GetDefaultFontStyle("Regular", 20))]
+			+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().Padding(8.0f)
+				[SNew(SButton).Text(NSLOCTEXT("EFLevelFlow", "DirectorRetry", "Retry"))
+					.IsEnabled_Lambda([Director] { return Director.IsValid() && Director->GetSnapshot().bCanRetry; })
+					.OnClicked_UObject(this, &ThisClass::RetryDirectorLoading)]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(8.0f)
+				[SAssignNew(ReturnHubButton, SButton).Text(NSLOCTEXT("EFLevelFlow", "DirectorReturnHub", "Return to HUB"))
+					.IsEnabled_Lambda([Director] { return Director.IsValid() && Director->GetSnapshot().bCanReturnToHub; })
+					.OnClicked_UObject(this, &ThisClass::ReturnDirectorToHub)]
+			]
+		];
+	GEngine->GameViewport->AddViewportWidgetContent(EFLevelFlowPrivate::ActiveLoadingOverlay.ToSharedRef(), 10000);
+	if (auto* Controller = LoadingSnapshot.PlayerController.Get())
+	{
+		Controller->bShowMouseCursor = true;
+		FInputModeUIOnly InputMode;
+		InputMode.SetWidgetToFocus(ReturnHubButton);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		Controller->SetInputMode(InputMode);
+	}
+}
+
+FReply UEFLevelFlowSubsystem::RetryDirectorLoading()
+{
+	if (auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>()) Director->RequestRetry();
+	return FReply::Handled();
+}
+
+FReply UEFLevelFlowSubsystem::ReturnDirectorToHub()
+{
+	if (auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>())
+		if (Director->RequestReturnToHub())
+		{
+			HideLoadingScreen();
+			if (auto* Controller = LoadingSnapshot.PlayerController.Get()) ShowLoadingScreen(Controller);
+		}
+	return FReply::Handled();
+}
+
 bool UEFLevelFlowSubsystem::TryResolveDungeonEntryTransform(UWorld* World, APawn* Pawn, FTransform& OutTransform) const
 {
 	if (!IsValid(World) || !IsValid(Pawn))
@@ -416,6 +702,11 @@ bool UEFLevelFlowSubsystem::TryResolveDungeonEntryTransform(UWorld* World, APawn
 		return false;
 	}
 
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		const auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+		return Director && Director->ResolvePlayerStartTransform(World, OutTransform);
+	}
 	const UEFProceduralRuntimeSubsystem* ProceduralSubsystem =
 		GetGameInstance() ? GetGameInstance()->GetSubsystem<UEFProceduralRuntimeSubsystem>() : nullptr;
 	if (!ProceduralSubsystem)
@@ -557,6 +848,26 @@ bool UEFLevelFlowSubsystem::IsDungeonEntryVisualReady(UWorld* World, APlayerCont
 		return false;
 	}
 
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+		FTransform Entry;
+		// Structural floor, capsule and route evidence belongs to the Director.
+		// Visual readiness checks the actual protected player at its published entry.
+		return Director && World == GetWorld() && World->GetGameInstance() == GetGameInstance()
+			&& PlayerController->GetWorld() == World && Pawn->GetWorld() == World
+			&& CameraManager->GetWorld() == World && ViewTarget == Pawn
+			&& UGameplayStatics::GetPlayerController(World, 0) == PlayerController
+			&& Pawn->GetController() == PlayerController
+			&& LoadingSnapshot.bIsActive && LoadingSnapshot.bDirectorManaged
+			&& LoadingSnapshot.ActiveWorld.Get() == World && LoadingSnapshot.Pawn.Get() == Pawn
+			&& LoadingSnapshot.PlayerController.Get() == PlayerController
+			&& Director->IsLevelRuntimeReady(World)
+			&& Director->ResolvePlayerStartTransform(World, Entry)
+			&& PawnLocation.Equals(Entry.GetLocation(), 0.1)
+			&& Pawn->GetActorQuat().Equals(Entry.GetRotation(), 0.001);
+	}
+
 	FTransform FloorAdjustedTransform;
 	if (FindFloorAdjustedDungeonTransform(World, Pawn, Pawn->GetActorTransform(), FloorAdjustedTransform))
 	{
@@ -575,6 +886,25 @@ void UEFLevelFlowSubsystem::RepairDungeonEntryVisualState(UWorld* World, APlayer
 {
 	if (!IsValid(World) || !IsValid(PlayerController) || !IsValid(Pawn))
 	{
+		return;
+	}
+
+	if (UEFCalystoDirectorSettings::IsEnabled())
+	{
+		auto* Director = GetGameInstance()->GetSubsystem<UEFCalystoDirectorSubsystem>();
+		FTransform Entry;
+		if (!Director || World != GetWorld() || !LoadingSnapshot.bIsActive || !LoadingSnapshot.bDirectorManaged
+			|| LoadingSnapshot.ActiveWorld.Get() != World || LoadingSnapshot.Pawn.Get() != Pawn
+			|| LoadingSnapshot.PlayerController.Get() != PlayerController
+			|| PlayerController->GetWorld() != World || Pawn->GetWorld() != World
+			|| UGameplayStatics::GetPlayerController(World, 0) != PlayerController
+			|| PlayerController->GetPawn() != Pawn || Pawn->GetController() != PlayerController
+			|| !Director->IsLevelRuntimeReady(World) || !Director->ResolvePlayerStartTransform(World, Entry)) return;
+		// Positioning happens once in the current attempt's release handshake.
+		// Camera repair must never move the pawn or resolve another floor location.
+		EFLevelFlowPrivate::ClearHeldCameraFade(PlayerController);
+		PlayerController->SetControlRotation(Entry.Rotator());
+		PlayerController->SetViewTarget(Pawn);
 		return;
 	}
 
@@ -625,10 +955,15 @@ void UEFLevelFlowSubsystem::RefreshDungeonEntryVisualState(
 	TWeakObjectPtr<APawn> PawnPtr,
 	int32 AttemptIndex)
 {
+	// This delayed legacy callback has no attempt token. Candidate visual work is
+	// completed synchronously by its owned loading poll before player release.
+	if (UEFCalystoDirectorSettings::IsEnabled()) return;
 	UWorld* World = WorldPtr.Get();
 	APlayerController* PlayerController = PlayerControllerPtr.Get();
 	APawn* Pawn = PawnPtr.Get();
-	if (!IsValid(World) || !IsValid(PlayerController) || !IsValid(Pawn))
+	if (!IsValid(World) || !IsValid(PlayerController) || !IsValid(Pawn)
+		|| LoadingSnapshot.bIsActive || World != GetWorld() || PlayerController->GetWorld() != World
+		|| Pawn->GetWorld() != World || PlayerController->GetPawn() != Pawn)
 	{
 		return;
 	}
@@ -667,8 +1002,6 @@ void UEFLevelFlowSubsystem::RefreshDungeonEntryVisualState(
 
 void UEFLevelFlowSubsystem::ResetLevelLoadingSequence(bool bRestoreGameplayState)
 {
-	const UEFLevelFlowSettings* Settings = UEFLevelFlowSettings::Get();
-
 	if (UWorld* World = LoadingSnapshot.ActiveWorld.Get())
 	{
 		World->GetTimerManager().ClearTimer(LoadingTimerHandle);
@@ -680,7 +1013,7 @@ void UEFLevelFlowSubsystem::ResetLevelLoadingSequence(bool bRestoreGameplayState
 		{
 			EFLevelFlowPrivate::ClearHeldCameraFade(PlayerController);
 
-			if (Settings->bBlockPlayerInputDuringLoading)
+			if (LoadingSnapshot.bInputBlocked)
 			{
 				ApplyLoadingInputState(PlayerController, false);
 			}
@@ -688,13 +1021,17 @@ void UEFLevelFlowSubsystem::ResetLevelLoadingSequence(bool bRestoreGameplayState
 
 		if (APawn* Pawn = LoadingSnapshot.Pawn.Get())
 		{
-			if (Settings->bFreezePawnDuringLoading)
+			if (LoadingSnapshot.bPawnFrozen)
 			{
 				FreezePawn(Pawn, false);
 			}
+			if (LoadingSnapshot.bDirectorManaged) Pawn->SetCanBeDamaged(LoadingSnapshot.bPreviousCanBeDamaged);
 		}
 	}
 
+	if (bRestoreGameplayState)
+		if (auto* DamageHandler = LoadingSnapshot.ProtectedDamageHandler.Get())
+			DamageHandler->SetIsImmortal(LoadingSnapshot.bPreviousAcfImmortal);
 	HideLoadingScreen();
 	LoadingTimerHandle.Invalidate();
 	LoadingSnapshot = FLevelLoadingSessionSnapshot();
@@ -832,8 +1169,8 @@ void UEFLevelFlowSubsystem::ApplyLoadingInputState(APlayerController* PlayerCont
 	}
 
 	PlayerController->EnableInput(PlayerController);
-	PlayerController->SetIgnoreMoveInput(LoadingSnapshot.bWasMoveInputIgnored);
-	PlayerController->SetIgnoreLookInput(LoadingSnapshot.bWasLookInputIgnored);
+	PlayerController->SetIgnoreMoveInput(false);
+	PlayerController->SetIgnoreLookInput(false);
 	PlayerController->bShowMouseCursor = LoadingSnapshot.bWasMouseCursorVisible;
 
 	FInputModeGameOnly InputMode;
@@ -909,7 +1246,12 @@ void UEFLevelFlowSubsystem::ShowLoadingScreen(APlayerController* PlayerControlle
 		return;
 	}
 
-	if (UClass* LoadingScreenClass = Settings->LoadingScreenWidgetClass.LoadSynchronous())
+	// Travel must never synchronously load UI. Use the configured class when it
+	// is already resident and fall back to the lightweight Slate overlay below
+	// while any broader session preload is still completing.
+	if (UClass* LoadingScreenClass = Settings && !LoadingSnapshot.bDirectorManaged
+		? Settings->LoadingScreenWidgetClass.Get()
+		: nullptr)
 	{
 		if (UUserWidget* LoadingWidget = CreateWidget<UUserWidget>(PlayerController, LoadingScreenClass))
 		{
@@ -944,7 +1286,7 @@ void UEFLevelFlowSubsystem::ShowLoadingScreen(APlayerController* PlayerControlle
 					.Padding(FMargin(24.0f, 18.0f, 24.0f, 8.0f))
 					[
 						SAssignNew(EFLevelFlowPrivate::ActiveLoadingTitle, STextBlock)
-						.Text(NSLOCTEXT("EFLevelFlow", "DungeonLoadingTitle", "Generando dungeon..."))
+						.Text(NSLOCTEXT("EFLevelFlow", "DungeonLoadingTitle", "Generating dungeon..."))
 						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 24))
 						.ColorAndOpacity(LoadingTheme.TitleText)
 					]
@@ -954,7 +1296,7 @@ void UEFLevelFlowSubsystem::ShowLoadingScreen(APlayerController* PlayerControlle
 					.Padding(FMargin(24.0f, 0.0f, 24.0f, 16.0f))
 					[
 						SAssignNew(EFLevelFlowPrivate::ActiveLoadingSubtitle, STextBlock)
-						.Text(NSLOCTEXT("EFLevelFlow", "DungeonLoadingSubtitle", "Preparando el punto de inicio"))
+						.Text(NSLOCTEXT("EFLevelFlow", "DungeonLoadingSubtitle", "Preparing your arrival"))
 						.Font(FCoreStyle::GetDefaultFontStyle("Regular", 14))
 						.ColorAndOpacity(LoadingTheme.SecondaryText)
 					]

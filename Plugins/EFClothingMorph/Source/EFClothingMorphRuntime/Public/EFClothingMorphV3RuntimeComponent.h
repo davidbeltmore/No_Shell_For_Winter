@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "EFClothingGarmentCatalog.h"
 #include "EFClothingMorphV3RuntimeComponent.generated.h"
 
 class UEFClothingFitRegistry;
 class UEFClothingMorphDirectorPolicy;
+class UEFClothingSystemManifest;
 class UEFClothingSurfaceBinding;
 class UEFClothingSurfaceDeformerProducer;
 class UMeshDeformer;
@@ -41,7 +43,7 @@ enum class EEFClothingMorphV3RuntimeState : uint8
  * whenever a V3 binding cannot be used.
  */
 UCLASS(ClassGroup = (EF), meta = (BlueprintSpawnableComponent))
-class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphV3RuntimeComponent final : public UActorComponent
+class EFCLOTHINGMORPHRUNTIME_API UEFClothingMorphV3RuntimeComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -58,6 +60,22 @@ public:
 	/** Re-evaluates the owner's exact source/body component pairs immediately. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V4")
 	void ForceReconcile();
+
+	/**
+	 * Marks the owner's equipment composition as changed. Reconciliation runs
+	 * on the next component tick, after the equipment system has finished its
+	 * own component mutations. The watchdog remains only as a low-frequency
+	 * fallback for integrations that cannot emit this notification yet.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V5.1|Equipment")
+	void NotifyEquipmentChanged();
+
+	/**
+	 * Low-frequency fallback for missed equipment notifications, in seconds.
+	 * Set to 0 to make reconciliation fully event-driven.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EF Clothing Morph V5.1|Equipment", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "s"))
+	float ReconcileWatchdogIntervalSeconds = 2.0f;
 
 	/**
 	 * Overrides this component's Director-authored additional clearance in cm.
@@ -90,12 +108,18 @@ private:
 	struct FManagedGarmentState
 	{
 		TWeakObjectPtr<USkeletalMesh> SourceMesh;
+		TWeakObjectPtr<USkeletalMesh> BodyAsset;
+		FEFClothingGarmentRow CatalogRow;
 		TWeakObjectPtr<USkeletalMeshComponent> BodyComponent;
 		TWeakObjectPtr<const UEFClothingSurfaceBinding> Binding;
 		TWeakObjectPtr<UEFClothingSurfaceDeformerProducer> Producer;
 		FName GarmentId = NAME_None;
+		FSoftObjectPath BindingAssetPath;
 		FString CompileFingerprint;
+		int32 RequestedBindingLODIndex = INDEX_NONE;
+		bool bUsesV5StreamableBinding = false;
 		float DirectorClearanceCm = 0.0f;
+		float LayerStackClearanceCm = 0.0f;
 		float DirectorInflateCm = 0.0f;
 		float MaximumCorrectionCm = -1.0f;
 		int32 GarmentLODIndex = INDEX_NONE;
@@ -122,7 +146,25 @@ private:
 
 		/** Exact material sections hidden on the body while this garment is equipped. */
 		TArray<int32> CoveredBodyMaterialIndices;
+		TArray<FName> CoveredBodyBones;
+		TWeakObjectPtr<USkeletalMeshComponent> BoneCoverageComponent;
+		bool bOwnsBodyCoverageDeformer = false;
 	};
+	struct FBodyDeformerCoverageState
+	{
+		// Reuse the exact component override capture/restore contract.
+		FManagedGarmentState Snapshot;
+		int32 RefCount = 0;
+	};
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FBodyDeformerCoverageState> BodyDeformerCoverage;
+
+	struct FBodyBoneCoverageState
+	{
+		TWeakObjectPtr<USkeletalMesh> BodyAsset;
+		int32 RefCount = 0;
+		bool bPreviouslyHidden = false;
+	};
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<FName, FBodyBoneCoverageState>> BodyBoneCoverage;
 
 	struct FBodyMaterialCoverageState
 	{
@@ -134,6 +176,17 @@ private:
 
 	void StartAssetLoad();
 	void HandleAssetsReady();
+	void RequestV4FallbackRegistryLoad();
+	void HandleV4FallbackRegistryLoadComplete();
+	void RequestV5BindingLoad(const FSoftObjectPath& BindingPath);
+	void HandleV5BindingLoadComplete(FSoftObjectPath BindingPath);
+	bool ValidateV5BindingPayload(
+		const FSoftObjectPath& BindingPath,
+		const UEFClothingSurfaceBinding* LoadedBinding,
+		FString& OutFailureReason) const;
+	void RecordV5BindingLoadFailure(const FSoftObjectPath& BindingPath);
+	void ExpireTimedOutV5BindingLoads(double NowSeconds);
+	void EvictUnusedV5BindingPayloads();
 	void ReconcileGarments();
 	void TickSurfacePasses(float DeltaTimeSeconds);
 	USkeletalMeshComponent* ResolveExactBodyComponent(const USkeletalMesh* ExpectedBody) const;
@@ -189,8 +242,15 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UEFClothingFitRegistry> LoadedRegistry;
 
+	/** Lazily loaded only when a healthy V5 registry lacks an exact garment/LOD record. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEFClothingFitRegistry> LoadedV4FallbackRegistry;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UEFClothingMorphDirectorPolicy> LoadedDirector;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UEFClothingSystemManifest> LoadedManifest;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UOptimusDeformer> LoadedSurfaceDeformer;
@@ -200,6 +260,15 @@ private:
 	TArray<TObjectPtr<UObject>> RetainedRuntimeObjects;
 
 	TSharedPtr<FStreamableHandle> StartupLoadHandle;
+	TSharedPtr<FStreamableHandle> V4FallbackRegistryLoadHandle;
+	FSoftObjectPath RequestedRegistryPath;
+	FSoftObjectPath RequestedV4FallbackRegistryPath;
+	FSoftObjectPath RequestedDirectorPath;
+	FSoftObjectPath RequestedManifestPath;
+	TMap<FSoftObjectPath, TSharedPtr<FStreamableHandle>> V5BindingLoadHandles;
+	TMap<FSoftObjectPath, double> V5BindingLoadStartedSeconds;
+	TMap<FSoftObjectPath, double> V5BindingRetryAfterSeconds;
+	TMap<FSoftObjectPath, int32> V5BindingFailureCounts;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FManagedGarmentState> ManagedGarments;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> ClearanceOverridesCm;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> InflateOverridesCm;
@@ -207,6 +276,11 @@ private:
 	TArray<FString> ClothingRowIssues;
 	bool bAssetsReady = false;
 	bool bAssetLoadFailed = false;
+	bool bUsingV4FallbackRegistry = false;
+	bool bV4FallbackRegistryLoadAttempted = false;
+	bool bV4FallbackRegistryLoadFailed = false;
+	bool bReconcileRequested = true;
 	double NextReconcileSeconds = 0.0;
+	double NextSurfacePassSeconds = 0.0;
 	FString LastStatus;
 };

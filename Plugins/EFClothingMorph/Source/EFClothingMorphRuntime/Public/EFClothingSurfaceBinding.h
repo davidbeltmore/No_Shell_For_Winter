@@ -48,13 +48,31 @@ namespace EFClothingMorphV3
  */
 namespace EFClothingMorphV4
 {
-	inline constexpr int32 CompilerVersion = 28;
-	inline constexpr int32 SurfaceBindingSchemaVersion = 8;
+	inline constexpr int32 CompilerVersion = 35;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 15;
 	inline constexpr TCHAR CompiledOutputRoot[] = TEXT("/EFClothingMorph/_Internal/Compiled/V4");
 	inline constexpr float DefaultCollisionClearanceCm = 0.0f;
 	inline constexpr float CompiledClearanceReserveCm = 0.0f;
 	inline constexpr float MaximumRuntimeClearanceCm = 2.0f;
 	inline constexpr float MaximumRuntimeInflateCm = 2.0f;
+	/**
+	 * Maximum runtime-only reserve in the automatically detected inframammary
+	 * domain. The compiler assigns a continuous zero-to-one weight from the body
+	 * geometry and breast-affecting morph deltas, so clothing outside that compact
+	 * surface band is unchanged. Source meshes and the shared skeleton are never
+	 * modified.
+	 */
+	inline constexpr float MaximumAutomaticUnderBreastClearanceCm = 0.28f;
+	/** Hard ceiling for the row-configured lower-body morph guard. */
+	inline constexpr float MaximumAutomaticLowerBodyMorphClearanceCm = 0.35f;
+	/**
+	 * Hard safety ceiling for automatic body-shape transport. This is not a
+	 * per-frame push target: it bounds the bidirectional, confidence-weighted
+	 * transport from the final animated body surface. It covers authored DAZ
+	 * shape extremes without letting corrupt surface data displace clothing by an
+	 * unbounded amount.
+	 */
+	inline constexpr float MaximumAutomaticBodyShapeTravelCm = 32.0f;
 }
 
 /** Per-vertex behavior selected automatically by the V26 compiler. */
@@ -164,9 +182,30 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceVertexBinding
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float TargetClearanceCm = EFClothingMorphV26::DefaultBaseClearanceCm;
 
-	/** Surface-anchor blend. CollisionOnly normally stores zero. */
+	/**
+	 * Surface-anchor blend. In V4 CollisionOnly this stores a compiler-generated
+	 * body-shape-follow confidence and is consumed only while body morphs are
+	 * active; ordinary animation remains CollisionOnly.
+	 */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	float FollowWeight = 0.0f;
+
+	/**
+	 * Continuous compiler-generated coverage for the fold below the breast.
+	 * Zero is an exact pass-through. A positive value enables only the small
+	 * breast-morph clearance reserve and is independent of clothing names.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	float UnderBreastGuardWeight = 0.0f;
+
+	/**
+	 * Continuous compiler-generated coverage for an explicitly configured
+	 * lower-body morph guard. Unlike the inframammary guard, this weight may be
+	 * non-zero in PreserveUpstream: runtime consumes it only along the garment's
+	 * already-deformed upstream normal and never samples excluded anatomy there.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	float LowerBodyMorphGuardWeight = 0.0f;
 
 	/** Certified one-frame outward correction delta; not an absolute body-gap target. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
@@ -189,6 +228,21 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceVertexBinding
 	/** Range into FEFClothingSurfaceLODPairBinding::NeighborRenderVertexIndices. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	FEFClothingSurfaceIndexRange NeighborRange;
+
+	/**
+	 * Shared range into FEFClothingSurfaceLODPairBinding::WeldRenderVertexIndices.
+	 * A zero count means this render vertex has no split twin. Multi-member ranges
+	 * include this vertex and every exact render split of the same import vertex.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	FEFClothingSurfaceIndexRange WeldRange;
+
+	/**
+	 * Smallest positive altitude of an incident rest-pose render triangle, in cm.
+	 * Runtime uses this topology-derived scale to bound local shape corrections.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	float LocalFeatureSizeCm = 0.001f;
 
 	/** Range into FEFClothingSurfaceLODPairBinding::CandidateTriangles. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
@@ -250,8 +304,28 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceBindingMetrics
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 PreserveUpstreamVertexCount = 0;
 
+	/** Vertices receiving a non-zero automatic inframammary guard weight. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 UnderBreastGuardVertexCount = 0;
+
+	/** Vertices receiving a non-zero configured lower-body morph guard weight. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 LowerBodyMorphGuardVertexCount = 0;
+
+	/** Largest lower-body morph guard weight in this exact LOD pair. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	float MaximumLowerBodyMorphGuardWeight = 0.0f;
+
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 NeighborReferenceCount = 0;
+
+	/** Members stored across all non-singleton exact render-split weld groups. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 WeldReferenceCount = 0;
+
+	/** Number of non-singleton exact render-split weld groups. */
+	UPROPERTY(VisibleAnywhere, Category = "Metrics")
+	int32 WeldGroupCount = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Metrics")
 	int32 CandidateTriangleCount = 0;
@@ -313,6 +387,13 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingSurfaceLODPairBinding
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	TArray<int32> NeighborRenderVertexIndices;
 
+	/**
+	 * Deterministically sorted exact render-split groups addressed by WeldRange.
+	 * Singleton import vertices are omitted and receive a zero-count range.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	TArray<int32> WeldRenderVertexIndices;
+
 	/** Flat fallback triangle pool addressed by each vertex binding's CandidateRange. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	TArray<FEFClothingSurfaceCandidateTriangle> CandidateTriangles;
@@ -360,6 +441,13 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
 	TSoftObjectPtr<USkeletalMesh> BodySurface;
 
+	/** Optional reference shape transported onto BodySurface without mesh replacement. */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	TSoftObjectPtr<USkeletalMesh> ReferenceBodySurface;
+
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	FString ReferenceBodyContentFingerprint;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Identity")
 	FGuid BuildGuid;
 
@@ -393,6 +481,18 @@ public:
 	/** Surface material slots omitted from every compiled body query. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	TArray<FName> ExcludedBodySurfaceMaterialSlots;
+
+	/** Whether this immutable binding carries an authored lower-body morph guard. */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	bool bLowerBodyMorphGuardEnabled = false;
+
+	/** Canonical exact body morph names used by runtime to evaluate guard activity. */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	TArray<FName> LowerBodyMorphGuardExactBodyMorphNames;
+
+	/** Maximum runtime clearance authorized for the lower-body guard, in cm. */
+	UPROPERTY(VisibleAnywhere, Category = "Surface")
+	float LowerBodyMorphGuardMaximumClearanceCm = 0.0f;
 
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	TArray<FEFClothingSurfaceLODPairBinding> LODPairBindings;

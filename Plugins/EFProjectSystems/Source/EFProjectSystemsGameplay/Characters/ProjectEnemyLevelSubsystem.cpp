@@ -1,6 +1,7 @@
 #include "Characters/ProjectEnemyLevelSubsystem.h"
 
 #include "Characters/ProjectEnemyLevelComponent.h"
+#include "Calysto/ProjectCalystoActorAssignmentComponent.h"
 #include "Characters/ProjectEnemyLevelContextProvider.h"
 #include "Characters/ProjectEnemyLevelLogic.h"
 #include "Characters/ProjectEnemyLevelSettings.h"
@@ -20,8 +21,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectEnemyLevelSubsystem, Log, All);
 
 namespace ProjectEnemyLevelSubsystemPrivate
 {
-	static const FName DirectorAssignedLevelTag(TEXT("EF.Calysto.V4.DirectorAssignedLevel"));
-	static const FString DirectorLogicalLevelPrefix(TEXT("EF.Calysto.V4.LogicalLevel."));
+	static const FName DirectorAssignedLevelTag(TEXT("EF.Calysto.V6.DirectorAssignedLevel"));
+	static const FString DirectorLogicalLevelPrefix(TEXT("EF.Calysto.V6.LogicalLevel."));
 
 	enum class EDirectorLevelTagResult : uint8
 	{
@@ -38,10 +39,20 @@ namespace ProjectEnemyLevelSubsystemPrivate
 	static EDirectorLevelTagResult TryResolveDirectorLogicalLevel(const APawn* Pawn, int32& OutLogicalLevel)
 	{
 		OutLogicalLevel = 0;
-		if (!IsValid(Pawn) || !Pawn->ActorHasTag(DirectorAssignedLevelTag))
+		if (!IsValid(Pawn))
 		{
 			return EDirectorLevelTagResult::Absent;
 		}
+		TArray<UProjectCalystoActorAssignmentComponent*> Assignments;
+		Pawn->GetComponents(Assignments);
+		if (!Assignments.IsEmpty())
+		{
+			if (Assignments.Num()!=1 || !Assignments[0]->HasValidFrozenAssignment())
+				return EDirectorLevelTagResult::Invalid;
+			OutLogicalLevel=Assignments[0]->GetLogicalLevel();
+			return EDirectorLevelTagResult::Valid;
+		}
+		if (!Pawn->ActorHasTag(DirectorAssignedLevelTag)) return EDirectorLevelTagResult::Absent;
 
 		int32 MatchingLevelTags = 0;
 		for (const FName& Tag : Pawn->Tags)
@@ -453,30 +464,37 @@ bool UProjectEnemyLevelSubsystem::InitializeDirectorEnemySynchronously(
 		return FailClosed(TEXT("Could not create the ProjectEnemyLevelComponent."));
 	}
 
-	if (LevelComponent->HasAssignedLevel())
+	if (LevelComponent->HasAssignedLevel()
+		&& LevelComponent->GetAssignedLevel() != ExpectedLogicalLevel)
 	{
-		if (LevelComponent->GetAssignedLevel() != ExpectedLogicalLevel)
-		{
-			return FailClosed(FString::Printf(
-				TEXT("Existing logical level %d conflicts with Director level %d."),
-				LevelComponent->GetAssignedLevel(),
-				ExpectedLogicalLevel));
-		}
+		return FailClosed(FString::Printf(
+			TEXT("Existing logical level %d conflicts with Director level %d."),
+			LevelComponent->GetAssignedLevel(),
+			ExpectedLogicalLevel));
 	}
-	else
+
+	// Spawn notifications can have allocated generic map-tier metadata before the
+	// deferred Director token is consumed.  Equal AssignedLevel alone is not proof
+	// that all of the immutable Director projection won that race: its WorldTier,
+	// range and normalized value must be written as one exact set before any
+	// gameplay scaling baseline is captured.  A previously scaled component is a
+	// transactional violation, since rebasing it would compound gameplay effects.
+	if (LevelComponent->HasGameplayScalingBaseline())
 	{
-		const int32 PhysicalLevel = UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(ExpectedLogicalLevel);
-		const float NormalizedLevel = FMath::Clamp(
-			(static_cast<float>(PhysicalLevel) - 1.0f) / 99.0f,
-			0.0f,
-			1.0f);
-		LevelComponent->SetAssignedLevelData(
-			ExpectedLogicalLevel,
-			ExpectedLogicalLevel,
-			ExpectedLogicalLevel,
-			ExpectedLogicalLevel,
-			NormalizedLevel);
+		return FailClosed(TEXT("Director enemy reached generic gameplay scaling before its immutable level projection was established."));
 	}
+
+	const int32 PhysicalLevel = UProjectEnemyLevelComponent::ResolvePhysicalAscentLevel(ExpectedLogicalLevel);
+	const float NormalizedLevel = FMath::Clamp(
+		(static_cast<float>(PhysicalLevel) - 1.0f) / 99.0f,
+		0.0f,
+		1.0f);
+	LevelComponent->SetAssignedLevelData(
+		ExpectedLogicalLevel,
+		ExpectedLogicalLevel,
+		ExpectedLogicalLevel,
+		ExpectedLogicalLevel,
+		NormalizedLevel);
 
 	FString AscentSyncDiagnostic;
 	LevelComponent->SyncAssignedLevelToAscent(AscentSyncDiagnostic);
@@ -524,7 +542,7 @@ bool UProjectEnemyLevelSubsystem::InitializeDirectorEnemySynchronously(
 	UE_LOG(
 		LogProjectEnemyLevelSubsystem,
 		Verbose,
-		TEXT("Synchronously initialized V4 Director enemy %s -> logical=%d physical=%d. %s"),
+		TEXT("Synchronously initialized V6 Director enemy %s -> logical=%d physical=%d. %s"),
 		*GetNameSafe(Pawn),
 		ExpectedLogicalLevel,
 		LevelComponent->GetPhysicalAscentLevel(),
@@ -814,7 +832,7 @@ void UProjectEnemyLevelSubsystem::PrepareEnemyInitialization(
 		ProjectEnemyLevelSubsystemPrivate::TryResolveDirectorLogicalLevel(Pawn, DirectorLogicalLevel);
 	if (DirectorLevelResult == ProjectEnemyLevelSubsystemPrivate::EDirectorLevelTagResult::Invalid)
 	{
-		RetryOrWarn(TEXT("The V4 Director level marker is present but its logical-level tag is missing, duplicated, or invalid."));
+		RetryOrWarn(TEXT("The V6 Director level marker is present but its logical-level tag is missing, duplicated, or invalid."));
 		TryLogCompletedInitializationCohort();
 		return;
 	}
@@ -843,7 +861,7 @@ void UProjectEnemyLevelSubsystem::PrepareEnemyInitialization(
 		}
 	}
 
-	// Non-Director actors preserve the old next-tick roll. V4 actors instead
+	// Non-Director actors preserve the old next-tick roll. V6 actors instead
 	// consume the immutable level already frozen in FloorIntent.
 	LevelComponent->SetAssignedLevelData(
 		RollResult.WorldTier,

@@ -1,0 +1,1870 @@
+{
+    "blocked_candidate_count":  0,
+    "project_descriptor":  "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+    "mode":  "APPLY",
+    "candidates":  [
+                       {
+                           "relative_path":  "Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Binaries",
+                           "allowlist_rule":  "root generated build output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  6,
+                                           "file_count":  19,
+                                           "byte_count":  1825020729,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\QA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\QA",
+                           "allowlist_rule":  "temporary QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  10,
+                                           "file_count":  29,
+                                           "byte_count":  12647236,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Logs",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs",
+                           "allowlist_rule":  "temporary runtime/build logs",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  5,
+                                           "file_count":  100,
+                                           "byte_count":  35268460,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Temp",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Temp",
+                           "allowlist_rule":  "temporary Saved output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  181,
+                                           "file_count":  130,
+                                           "byte_count":  981764,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "__pycache__",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\__pycache__",
+                           "allowlist_rule":  "root Python bytecode cache",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Intermediate",
+                           "allowlist_rule":  "root generated build/intermediate output, including PipInstall/torch",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  4649,
+                                           "file_count":  30756,
+                                           "byte_count":  11964821969,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Cooked",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Cooked",
+                           "allowlist_rule":  "cooked output cache",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  15,
+                                           "file_count":  46,
+                                           "byte_count":  375155749,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Build\\Windows",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Build\\Windows",
+                           "allowlist_rule":  "Windows-only generated build output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  2,
+                                           "byte_count":  3509693,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Crashes",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Crashes",
+                           "allowlist_rule":  "crash dump output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  48,
+                                           "file_count":  192,
+                                           "byte_count":  175854375,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Shaders",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Shaders",
+                           "allowlist_rule":  "shader cache output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  7,
+                                           "file_count":  16,
+                                           "byte_count":  183220173,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "DerivedDataCache",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\DerivedDataCache",
+                           "allowlist_rule":  "root derived data cache",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  43,
+                                           "byte_count":  26275116,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Automation",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Automation",
+                           "allowlist_rule":  "Unreal automation output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  156,
+                                           "file_count":  275,
+                                           "byte_count":  5744370157,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\StagedBuilds",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\StagedBuilds",
+                           "allowlist_rule":  "staged package output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  52,
+                                           "file_count":  49,
+                                           "byte_count":  3450538332,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\TattooShopQA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\TattooShopQA",
+                           "allowlist_rule":  "temporary TattooShop QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  19,
+                                           "file_count":  134,
+                                           "byte_count":  125522141,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\ShaderDebugInfo",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ShaderDebugInfo",
+                           "allowlist_rule":  "shader debug output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  20,
+                                           "file_count":  14,
+                                           "byte_count":  13073713,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\ClothingMorphV2QA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV2QA",
+                           "allowlist_rule":  "temporary Clothing Morph V2 QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  74,
+                                           "file_count":  1022,
+                                           "byte_count":  167206269,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\ClothingMorphV3QA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV3QA",
+                           "allowlist_rule":  "temporary Clothing Morph V3 QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  13,
+                                           "file_count":  138,
+                                           "byte_count":  58170251,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\ClothingMorphV4QA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA",
+                           "allowlist_rule":  "temporary Clothing Morph V4 QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  27,
+                                           "file_count":  394,
+                                           "byte_count":  385237537,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\Package",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Package",
+                           "allowlist_rule":  "historical migration package archive",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  702,
+                                           "file_count":  589,
+                                           "byte_count":  46728628939,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFBlink\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFBlink\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  3,
+                                           "byte_count":  61837930,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\Packages",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Packages",
+                           "allowlist_rule":  "historical migration package archive",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\CharacterCreationQA",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\CharacterCreationQA",
+                           "allowlist_rule":  "temporary character-creation QA output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  4,
+                                           "file_count":  8,
+                                           "byte_count":  7627271,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFBlink\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFBlink\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  20,
+                                           "file_count":  64,
+                                           "byte_count":  4976819,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFLevelFlow\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFLevelFlow\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  3,
+                                           "byte_count":  70375538,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFProcedural\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProcedural\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  9,
+                                           "byte_count":  278376262,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFClothingMorph\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFClothingMorph\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  5,
+                                           "byte_count":  151147200,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFLevelFlow\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFLevelFlow\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  20,
+                                           "file_count":  75,
+                                           "byte_count":  52193580,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\DirtyPawnRuntime\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\DirtyPawnRuntime\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  5,
+                                           "byte_count":  124882614,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFProcedural\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProcedural\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  37,
+                                           "file_count":  509,
+                                           "byte_count":  232153634,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFProjectSystems\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  9,
+                                           "byte_count":  348054858,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Artifacts\\PendingValidation",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation",
+                           "allowlist_rule":  "unvalidated temporary package artifacts",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FailedCookDerived",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FailedCookDerived",
+                           "allowlist_rule":  "historical failed cook output",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\ACFTrainingSystem\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\ACFTrainingSystem\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  3,
+                                           "byte_count":  64860272,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\PackageEnabledGuard",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\PackageEnabledGuard",
+                           "allowlist_rule":  "historical package-enabled guard output",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreation\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreation\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  5,
+                                           "byte_count":  129799888,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFClothingMorph\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFClothingMorph\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  23,
+                                           "file_count":  244,
+                                           "byte_count":  144196002,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\DirtyPawnRuntime\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\DirtyPawnRuntime\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  21,
+                                           "file_count":  134,
+                                           "byte_count":  22531717,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFProjectSystems\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  37,
+                                           "file_count":  2873,
+                                           "byte_count":  1447036572,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\ACFTrainingSystem\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\ACFTrainingSystem\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  20,
+                                           "file_count":  126,
+                                           "byte_count":  31122865,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreation\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreation\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  21,
+                                           "file_count":  153,
+                                           "byte_count":  51566356,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\CodeWidgetDesignerBridge\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\CodeWidgetDesignerBridge\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  5,
+                                           "byte_count":  128365782,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\CodeWidgetDesignerBridge\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\CodeWidgetDesignerBridge\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  23,
+                                           "file_count":  99,
+                                           "byte_count":  10975188,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreationDazBridge\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationDazBridge\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  3,
+                                           "byte_count":  68465298,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreationACFUBridge\\Binaries",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationACFUBridge\\Binaries",
+                           "allowlist_rule":  "project-owned source plugin generated Binaries",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  2,
+                                           "file_count":  3,
+                                           "byte_count":  63048330,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreationDazBridge\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationDazBridge\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  7,
+                                           "file_count":  15,
+                                           "byte_count":  8797472,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV3\\Packages",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV3\\Packages",
+                           "allowlist_rule":  "V3 historical package archive",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  769,
+                                           "file_count":  646,
+                                           "byte_count":  50330604716,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV4\\Packages",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV4\\Packages",
+                           "allowlist_rule":  "V4 historical package archive",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  702,
+                                           "file_count":  615,
+                                           "byte_count":  43337391181,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\FoodKit81Harness57",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\FoodKit81Harness57",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  41,
+                                           "file_count":  711,
+                                           "byte_count":  1867889031,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  699
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Plugins\\EFCharacterCreationACFUBridge\\Intermediate",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreationACFUBridge\\Intermediate",
+                           "allowlist_rule":  "project-owned source plugin generated Intermediate",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  12,
+                                           "file_count":  39,
+                                           "byte_count":  8333959,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042014",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042014",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  3,
+                                           "byte_count":  143,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042142",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042142",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  4,
+                                           "byte_count":  1635,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042255",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042255",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  4,
+                                           "byte_count":  1444,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042432",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042432",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  15,
+                                           "byte_count":  6027215,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042820",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_042820",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  15,
+                                           "byte_count":  6264236,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043014",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043014",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  15,
+                                           "byte_count":  4874105,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043242",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043242",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  15,
+                                           "byte_count":  5060899,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043644",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\PIE_20260802_043644",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  11,
+                                           "byte_count":  2346497,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\DayCycleHUD_Package_20260821_220937",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\DayCycleHUD_Package_20260821_220937",
+                           "allowlist_rule":  "historical migration package or package-enabled guard output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  55,
+                                           "file_count":  51,
+                                           "byte_count":  3982586933,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV3\\PackagedRuns",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV3\\PackagedRuns",
+                           "allowlist_rule":  "V3 packaged runtime artifacts",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  13,
+                                           "file_count":  34,
+                                           "byte_count":  6769338,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV4\\PackagedRuns",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV4\\PackagedRuns",
+                           "allowlist_rule":  "V4 packaged runtime artifacts",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  22,
+                                           "file_count":  81,
+                                           "byte_count":  11638775,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV3\\FailedCookDerived",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV3\\FailedCookDerived",
+                           "allowlist_rule":  "V3 failed cook output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  61,
+                                           "file_count":  56,
+                                           "byte_count":  3896414755,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV4\\FailedCookDerived",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV4\\FailedCookDerived",
+                           "allowlist_rule":  "V4 failed cook output",
+                           "exists":  false,
+                           "metrics":  null,
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "MISSING",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\Automation_Status_20260802_040912",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\Automation_Status_20260802_040912",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  2,
+                                           "byte_count":  26954,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\FoodKitAlcohol\\Automation_Status_20260802_041125",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\FoodKitAlcohol\\Automation_Status_20260802_041125",
+                           "allowlist_rule":  "FoodKit generated harness or temporary test output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  1,
+                                           "file_count":  2,
+                                           "byte_count":  26956,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       },
+                       {
+                           "relative_path":  "Saved\\Migration\\CalystoDungeonDirectorV4\\PackageEnabledGuard_20260821_232700",
+                           "full_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV4\\PackageEnabledGuard_20260821_232700",
+                           "allowlist_rule":  "V4 historical package-enabled guard output",
+                           "exists":  true,
+                           "metrics":  {
+                                           "directory_count":  67,
+                                           "file_count":  61,
+                                           "byte_count":  3983977726,
+                                           "reparse_point_count":  0,
+                                           "asset_like_file_count":  0
+                                       },
+                           "git":  {
+                                       "result":  "PASS",
+                                       "tracked_file_count":  0,
+                                       "local_change_count":  0,
+                                       "local_changes":  [
+
+                                                         ]
+                                   },
+                           "validation":  [
+
+                                          ],
+                           "validation_result":  "PASS",
+                           "result":  "PURGE_PASS",
+                           "error":  null
+                       }
+                   ],
+    "completed_utc":  "2026-08-31T02:51:33.9895836Z",
+    "generated_utc":  "2026-08-31T02:50:57.8483085Z",
+    "result":  "APPLY_PASS",
+    "unreal_process_gate":  "PASS_NO_UNREAL_OR_GAME_PROCESS",
+    "git_status_before_manifest":  {
+                                       "available":  true,
+                                       "repository":  true,
+                                       "reason":  "PASS",
+                                       "executable":  "C:\\Program Files\\Git\\cmd\\git.exe",
+                                       "head":  "f8d07043f7b5cab30dd72f43c7f1c29e93392306",
+                                       "status_entry_count":  95,
+                                       "status_porcelain":  [
+                                                                " M Config/DefaultGame.ini",
+                                                                " M Config/DefaultGameplayTags.ini",
+                                                                " M Content/_Game/Clothes/Bra.uasset",
+                                                                " M Content/_Game/Clothes/Panty.uasset",
+                                                                " M Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset",
+                                                                " M Content/_Game/Hub/HUB.umap",
+                                                                " M Plugins/DirtyPawnRuntime/Source/DirtyPawnRuntime/Public/DirtyPawnComponent.h",
+                                                                " M Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset",
+                                                                " M Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_EFClothingFitRegistry.uasset",
+                                                                " D Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_UnderWearBra_Female_759333BC_Female_1FCC5E1D_EFV4Surface_9E64E0C4423A7BAE7AABBCA03AB43EC9.uasset",
+                                                                " D Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV4Surface_0AD20C0A437B696CC82A16A2C948C82A.uasset",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingFitCompilerLibrary.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingGarmentRowCustomization.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingMorphDirectorDetails.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingMorphEditorModule.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingNativeSourceEditorGate.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingSurfaceDeformerBuilderLibrary.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Scripts/Build-EFGarmentSurfaceConstraint58.py",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.h",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Public/EFClothingGarmentCatalog.h",
+                                                                " M Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Public/EFClothingSurfaceBinding.h",
+                                                                " M Tools/ClothingMorphV4/Compile-EFClothingMorphV4Catalog58.ps1",
+                                                                " M Tools/ClothingMorphV4/Compile-EFClothingMorphV4Catalog58.py",
+                                                                " M Tools/ClothingMorphV4/Run-EFClothingMorphV4RuntimeSmokePIE58.ps1",
+                                                                " M Tools/ClothingMorphV4/Test-EFClothingMorphV4PackagedStartup58.ps1",
+                                                                " M Tools/ClothingMorphV4/Validate-EFClothingMorphV4Blueprints58.py",
+                                                                " M Tools/ClothingMorphV4/Validate-EFClothingMorphV4RuntimeSmokePIE58.py",
+                                                                " M Tools/Migration/Package-NoShellForWinter58.ps1",
+                                                                "?? Content/DazToUnreal/Bikini/Bikini.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Bikini_CR.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Bikini_PhysicsAsset.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Bikini_Skeleton.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Materials/TainaCatwalkBikiniBottom/TainaCatwalkBikiniBottom_Cords.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Materials/TainaCatwalkBikiniBottom_Cords/TainaCatwalkBikiniBottom_Cords_Profile.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Textures/bikini_1001_BaseColor_00_Bikini.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Textures/bikini_1001_Height_00_Bikini.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Textures/bikini_1001_Normal_00_Bikini.uasset",
+                                                                "?? Content/DazToUnreal/Bikini/Textures/bikini_1001_Roughness_00_Bikini.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Materials/SYDFR9RagFootWrapsG9/SYDFR9RagFootWrapsG9_Wraps.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Materials/SYDFR9RagFootWrapsG9_Wraps/SYDFR9RagFootWrapsG9_Wraps_Profile.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/RagFootWraps_CR.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/RagFootWraps_PhysicsAsset.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/RagFootWraps_Skeleton.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Textures/sydfr_shirtpantsshoes_DM_00_RagFootWraps.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Textures/sydfr_shirtpantsshoes_GM_00_RagFootWraps.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Textures/sydfr_shirtpantsshoes_NM_00_RagFootWraps.uasset",
+                                                                "?? Content/DazToUnreal/RagFootWraps/Textures/sydfr_shirtpantsshoes_TM_00_RagFootWraps.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Materials/SYDFR9RagPantsG9/SYDFR9RagPantsG9_Pants.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Materials/SYDFR9RagPantsG9_Pants/SYDFR9RagPantsG9_Pants_Profile.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/RagPants.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/RagPants_CR.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/RagPants_PhysicsAsset.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/RagPants_Skeleton.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Textures/sydfr_shirtpantsshoes_DM_00_RagPants.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Textures/sydfr_shirtpantsshoes_GM_00_RagPants.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Textures/sydfr_shirtpantsshoes_NM_00_RagPants.uasset",
+                                                                "?? Content/DazToUnreal/RagPants/Textures/sydfr_shirtpantsshoes_TM_00_RagPants.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Materials/SYDFR9RagShirtG9/SYDFR9RagShirtG9_Shirt.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Materials/SYDFR9RagShirtG9_Shirt/SYDFR9RagShirtG9_Shirt_Profile.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/RagShirt.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/RagShirt_CR.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/RagShirt_PhysicsAsset.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/RagShirt_Skeleton.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Textures/sydfr_shirtpantsshoes_DM_00_RagShirt.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Textures/sydfr_shirtpantsshoes_GM_00_RagShirt.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Textures/sydfr_shirtpantsshoes_NM_00_RagShirt.uasset",
+                                                                "?? Content/DazToUnreal/RagShirt/Textures/sydfr_shirtpantsshoes_TM_00_RagShirt.uasset",
+                                                                "?? Content/_Game/Clothes/Bikini01/Bikini.uasset",
+                                                                "?? Content/_Game/Clothes/Rags01/RagFootWrap.uasset",
+                                                                "?? Content/_Game/Clothes/Rags01/RagPant.uasset",
+                                                                "?? Content/_Game/Clothes/Rags01/RagPants.uasset",
+                                                                "?? Content/_Game/Clothes/Rags01/RagShirt.uasset",
+                                                                "?? Content/_Game/Clothes/StaticMeshes/BikiniStaticMesh.uasset",
+                                                                "?? Content/_Game/Clothes/StaticMeshes/BraStaticMesh.uasset",
+                                                                "?? Content/_Game/Clothes/StaticMeshes/PantyStaticMesh.uasset",
+                                                                "?? Content/_Game/Clothes/UnderWear01/Bra.uasset",
+                                                                "?? Content/_Game/Clothes/UnderWear01/Panty.uasset",
+                                                                "?? Docs/Migration/Evidence/DirtyPawn_Sweat_Effort_20260828.md",
+                                                                "?? Docs/Migration/Evidence/GeneratedCleanup58_20260830_215016_576.json",
+                                                                "?? Docs/Migration/Evidence/ProjectFootprintCleanup_PreInvariant_20260830_214124.json",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_10A7B1E947F32294A2CA27AFEF9F2029.uasset",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_093B7EE442E4E0993C215EBA5EA6F3F2.uasset",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_8C585D0A4C85C5D6642D839B83D63A5F.uasset",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_UnderWearBikini_Female_5919F4ED_Female_1FCC5E1D_EFV4Surface_B91EB6154CDC41175E858A9018AE6B15.uasset",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_UnderWearBra_Female_759333BC_Female_1FCC5E1D_EFV4Surface_1771DE5246E17B347B1D218053097169.uasset",
+                                                                "?? Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV4Surface_59ED388B479BB6A14CB8AE8E341872D3.uasset",
+                                                                "?? Tools/ClothingMorphV4/Validate-EFClothingMorphV4AutoBinding58.py",
+                                                                "?? Tools/Migration/Clear-NoShellForWinterGenerated58.ps1",
+                                                                "?? Tools/Migration/Invoke-NoShellForWinterPackageValidation58.ps1",
+                                                                "?? Tools/Migration/Run-AllProjectBlueprintCompile58.ps1",
+                                                                "?? Tools/Migration/Test-AllProjectBlueprints58.py",
+                                                                "?? Tools/QA/Run-HubInputContractPIE58.ps1"
+                                                            ]
+                                   },
+    "recorded_protected_invariant_state":  {
+                                               "source_path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\Evidence\\ProtectedInvariantVerification.json",
+                                               "status":  "FAIL",
+                                               "mismatch_count":  74,
+                                               "generated_utc":  "2026-08-02T21:47:36.5311999Z",
+                                               "classification":  "PRE_EXISTING_DRIFT_NOT_A_PURGE_CANDIDATE"
+                                           },
+    "protected_boundaries":  [
+                                 "Content (entire tree)",
+                                 "Config (entire tree)",
+                                 "Source (entire tree)",
+                                 "Tools (entire tree)",
+                                 ".git (entire tree, never queried for deletion)",
+                                 "Plugins except Binaries/Intermediate under direct plugins with Source and a .uplugin",
+                                 "Saved/SaveGames",
+                                 "Saved/Config",
+                                 "Saved/Screenshots",
+                                 "Saved/Autosaves",
+                                 "Saved/Quarantine",
+                                 "Saved/CodexUser",
+                                 "Saved/Migration/Reports",
+                                 "Saved/Migration/Evidence",
+                                 "Saved/Migration/Logs",
+                                 "Saved/Migration/Phase*"
+                             ],
+    "removed_gib":  169.713,
+    "potential_reclaim_gib":  169.713,
+    "manifest_path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\GeneratedCleanup58_20260830_215057_846.json",
+    "schema_version":  1,
+    "pre_purge_validation":  "PASS",
+    "ready_candidate_count":  59,
+    "removed_bytes":  182228130549,
+    "project_root":  "D:\\Projects UE5\\NoShellForWinter",
+    "potential_reclaim_bytes":  182228130549,
+    "candidate_count":  65
+}

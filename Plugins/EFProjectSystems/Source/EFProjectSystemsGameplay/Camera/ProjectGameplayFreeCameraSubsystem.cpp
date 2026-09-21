@@ -6,10 +6,12 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Survival/ProjectSurvivalNeedsSubsystem.h"
 #include "UI/ProjectEmoteSubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectGameplayFreeCamera, Log, All);
@@ -23,6 +25,11 @@ namespace ProjectGameplayFreeCameraPrivate
 	constexpr float RotationSpeedDegrees = 90.0f;
 	constexpr float MinPitchDegrees = -89.0f;
 	constexpr float MaxPitchDegrees = 89.0f;
+
+	struct FSetHudEnabledParams
+	{
+		bool bEnabled = false;
+	};
 
 	float ResolveSignedInput(const bool bPositivePressed, const bool bNegativePressed)
 	{
@@ -41,6 +48,11 @@ void UProjectGameplayFreeCameraSubsystem::Initialize(FSubsystemCollectionBase& C
 	ActiveFreeCameraActor = nullptr;
 	SavedViewTarget = nullptr;
 	bNeedsMaintenanceTick = true;
+	bHasSavedProjectHudVisibility = false;
+	bWasProjectHudVisible = false;
+	bHasSavedPlayerHudVisibility = false;
+	bWasPlayerHudVisible = true;
+	bAppliedAcfHudDisable = false;
 	ClearFreeCameraInput();
 }
 
@@ -161,6 +173,7 @@ bool UProjectGameplayFreeCameraSubsystem::StartGameplayFreeCamera()
 		return false;
 	}
 
+	ApplyHudSuppression();
 	PlayerController->SetViewTargetWithBlend(ActiveFreeCameraActor, ProjectGameplayFreeCameraPrivate::BlendTime);
 	UE_LOG(
 		LogProjectGameplayFreeCamera,
@@ -176,8 +189,9 @@ void UProjectGameplayFreeCameraSubsystem::StopGameplayFreeCamera()
 {
 	const bool bHadActiveCamera = ActiveFreeCameraActor != nullptr;
 	const bool bHadInputCapture = FreeCameraInputComponent != nullptr;
+	const bool bHadHudSuppression = bHasSavedProjectHudVisibility || bHasSavedPlayerHudVisibility;
 	ClearFreeCameraInput();
-	if (!bHadActiveCamera && !bHadInputCapture)
+	if (!bHadActiveCamera && !bHadInputCapture && !bHadHudSuppression)
 	{
 		return;
 	}
@@ -206,11 +220,92 @@ void UProjectGameplayFreeCameraSubsystem::StopGameplayFreeCamera()
 
 	SavedViewTarget = nullptr;
 	ScheduleDeferredViewTargetRestore(PlayerController);
+	RestoreHudSuppression();
 }
 
 bool UProjectGameplayFreeCameraSubsystem::IsGameplayFreeCameraActive() const
 {
 	return ActiveFreeCameraActor != nullptr;
+}
+
+void UProjectGameplayFreeCameraSubsystem::ApplyHudSuppression()
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (UProjectSurvivalNeedsSubsystem* NeedsSubsystem = World->GetSubsystem<UProjectSurvivalNeedsSubsystem>())
+		{
+			if (!bHasSavedProjectHudVisibility)
+			{
+				bHasSavedProjectHudVisibility = true;
+				bWasProjectHudVisible = NeedsSubsystem->IsNeedsHudVisible();
+			}
+
+			NeedsSubsystem->SetNeedsHudVisible(false);
+		}
+	}
+
+	if (AHUD* HudActor = TrackedPlayerController ? TrackedPlayerController->GetHUD() : nullptr)
+	{
+		if (!bHasSavedPlayerHudVisibility)
+		{
+			bHasSavedPlayerHudVisibility = true;
+			bWasPlayerHudVisible = HudActor->bShowHUD;
+		}
+
+		HudActor->bShowHUD = false;
+		bAppliedAcfHudDisable = TrySetReflectedHudEnabled(HudActor, false) || bAppliedAcfHudDisable;
+	}
+}
+
+void UProjectGameplayFreeCameraSubsystem::RestoreHudSuppression()
+{
+	if (TrackedPlayerController && bHasSavedPlayerHudVisibility)
+	{
+		if (AHUD* HudActor = TrackedPlayerController->GetHUD())
+		{
+			HudActor->bShowHUD = bWasPlayerHudVisible;
+			if (bAppliedAcfHudDisable)
+			{
+				TrySetReflectedHudEnabled(HudActor, bWasPlayerHudVisible);
+			}
+		}
+	}
+
+	if (bHasSavedProjectHudVisibility)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (UProjectSurvivalNeedsSubsystem* NeedsSubsystem = World->GetSubsystem<UProjectSurvivalNeedsSubsystem>())
+			{
+				NeedsSubsystem->SetNeedsHudVisible(bWasProjectHudVisible);
+			}
+		}
+	}
+
+	bHasSavedProjectHudVisibility = false;
+	bWasProjectHudVisible = false;
+	bHasSavedPlayerHudVisibility = false;
+	bWasPlayerHudVisible = true;
+	bAppliedAcfHudDisable = false;
+}
+
+bool UProjectGameplayFreeCameraSubsystem::TrySetReflectedHudEnabled(AHUD* HudActor, const bool bEnabled) const
+{
+	if (!HudActor)
+	{
+		return false;
+	}
+
+	UFunction* Function = HudActor->FindFunction(TEXT("SetHudEnabled"));
+	if (!Function)
+	{
+		return false;
+	}
+
+	ProjectGameplayFreeCameraPrivate::FSetHudEnabledParams Params;
+	Params.bEnabled = bEnabled;
+	HudActor->ProcessEvent(Function, &Params);
+	return true;
 }
 
 bool UProjectGameplayFreeCameraSubsystem::TryResolveRuntimeContext()
@@ -269,6 +364,7 @@ void UProjectGameplayFreeCameraSubsystem::DetachFromTrackedPlayerController(cons
 	{
 		RestoreFreeCameraInputCapture();
 		ClearFreeCameraInput();
+		RestoreHudSuppression();
 	}
 
 	if (UWorld* World = GetWorld())
@@ -365,6 +461,7 @@ bool UProjectGameplayFreeCameraSubsystem::ApplyFreeCameraInputCapture()
 
 	const UEFProjectInputSettings* InputSettings = UEFProjectInputSettings::Get();
 	BindCameraKey(InputSettings ? InputSettings->ToggleGameplayFreeCameraKey : EKeys::O, IE_Pressed, &ThisClass::HandleTogglePressed);
+	BindCameraKey(InputSettings ? InputSettings->ToggleNeedsHudKey : EKeys::Comma, IE_Pressed, &ThisClass::HandleSuppressedNeedsHudTogglePressed);
 	BindCameraKey(EKeys::NumPadEight, IE_Pressed, &ThisClass::HandlePitchUpPressed);
 	BindCameraKey(EKeys::NumPadEight, IE_Released, &ThisClass::HandlePitchUpReleased);
 	BindCameraKey(EKeys::NumPadTwo, IE_Pressed, &ThisClass::HandlePitchDownPressed);
@@ -704,4 +801,9 @@ void UProjectGameplayFreeCameraSubsystem::HandleRollRightPressed()
 void UProjectGameplayFreeCameraSubsystem::HandleRollRightReleased()
 {
 	bRollRightPressed = false;
+}
+
+void UProjectGameplayFreeCameraSubsystem::HandleSuppressedNeedsHudTogglePressed()
+{
+	UE_LOG(LogProjectGameplayFreeCamera, Verbose, TEXT("[ProjectGameplayFreeCamera] Ignored Needs HUD toggle while free camera is active."));
 }

@@ -40,13 +40,12 @@ foreach ($pluginName in $requiredProjectPluginNames) {
 
 if (
     !$VerifyOnly -and
-    $TargetName -eq "NoShellForWinter" -and
     ![Regex]::IsMatch($updated, '(?m)^\s*"Plugins"\s*:')
 ) {
     $buildPluginsPattern = '(?m)^(?<indent>\s*)"BuildPlugins"\s*:\s*\['
     $buildPluginsMatch = [Regex]::Match($updated, $buildPluginsPattern)
     if (!$buildPluginsMatch.Success) {
-        throw "Game receipt has neither Plugins nor BuildPlugins insertion point: $receiptPath"
+        throw "Receipt has neither Plugins nor BuildPlugins insertion point: $receiptPath"
     }
     $indent = $buildPluginsMatch.Groups['indent'].Value
     $pluginBlock = $indent + '"Plugins": [' + [Environment]::NewLine +
@@ -61,6 +60,34 @@ if (
         $indent + '],' + [Environment]::NewLine +
         $indent + '"BuildPlugins": ['
     $updated = [Regex]::Replace($updated, $buildPluginsPattern, $pluginBlock, 1)
+}
+
+# A build with the precompiled Daz module temporarily disabled can emit only
+# DazToUnreal in the receipt's Plugins array.  Restore a concrete state for
+# both required Daz integrations before any editor launch.  Do this with a
+# narrowly scoped text insertion so the generated receipt otherwise remains
+# byte-stable.
+if (!$VerifyOnly) {
+    foreach ($pluginName in $pluginNames) {
+        $pluginStatePattern = '(?s)"Name"\s*:\s*"' + [Regex]::Escape($pluginName) + '"\s*,\s*"Enabled"\s*:\s*(true|false)'
+        if (![Regex]::IsMatch($updated, $pluginStatePattern)) {
+            $pluginsArrayPattern = '(?m)^(?<indent>[ \t]*)"Plugins"\s*:\s*\['
+            $pluginsArrayMatch = [Regex]::Match($updated, $pluginsArrayPattern)
+            if (!$pluginsArrayMatch.Success) {
+                throw "Receipt has no Plugins array for required $pluginName state: $receiptPath"
+            }
+
+            $indent = $pluginsArrayMatch.Groups['indent'].Value
+            $itemIndent = $indent + "`t"
+            $fieldIndent = $itemIndent + "`t"
+            $pluginEntry = $pluginsArrayMatch.Value + [Environment]::NewLine +
+                $itemIndent + '{' + [Environment]::NewLine +
+                $fieldIndent + '"Name": "' + $pluginName + '",' + [Environment]::NewLine +
+                $fieldIndent + '"Enabled": true' + [Environment]::NewLine +
+                $itemIndent + '},'
+            $updated = [Regex]::Replace($updated, $pluginsArrayPattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $pluginEntry }, 1)
+        }
+    }
 }
 
 foreach ($pluginName in $pluginNames) {
@@ -81,7 +108,8 @@ foreach ($pluginName in $pluginNames) {
 # A Game target has no Daz editor modules to link, so UBT does not emit either
 # descriptor while the temporary exclusion is active. They are still required
 # at packaged startup: DazToUnreal owns cooked content mount points and the
-# project bridge declares the dependency. Stage only the descriptors as UFS;
+# project descriptor and receipt require both integrations. Stage only the
+# descriptors as UFS;
 # no vendor source, binary or descriptor is modified.
 $gameDescriptorDependencies = [ordered]@{
     "DazToUnreal" = '$(EngineDir)/Plugins/DazToUnreal/DazToUnreal.uplugin'

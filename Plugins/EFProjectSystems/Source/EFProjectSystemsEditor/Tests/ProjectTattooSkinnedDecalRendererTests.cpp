@@ -2,9 +2,11 @@
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Editor.h"
+#include "EFCharacterCustomizationComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "Materials/MaterialInterface.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
@@ -177,6 +179,54 @@ namespace ProjectTattooSkinnedDecalRendererTestsPrivate
 			Character->GetMesh()->SetSkeletalMeshAsset(FemaleMesh);
 			Character->GetMesh()->SetVisibility(true, true);
 			Character->GetMesh()->SetHiddenInGame(false, true);
+			Character->GetMesh()->SetTranslucentSortPriority(3);
+
+			// Character Creation reserves one compatible follower as hair and
+			// classifies the remaining attached follower as clothing. This fixture
+			// reproduces an AfterDOF Daz garment sharing the body's sort priority.
+			HairMesh = NewObject<USkeletalMeshComponent>(Character.Get(), TEXT("Hair"));
+			ClothingMesh = NewObject<USkeletalMeshComponent>(Character.Get(), TEXT("RagShirtClothing"));
+			Customization = NewObject<UEFCharacterCustomizationComponent>(
+				Character.Get(),
+				TEXT("TattooOcclusionCharacterCustomization"));
+			if (!HairMesh.IsValid() || !ClothingMesh.IsValid() || !Customization.IsValid())
+			{
+				Test->AddError(TEXT("Tattoo renderer fixture could not create its clothing occlusion components."));
+				Advance(ERendererTestStep::Done);
+				return false;
+			}
+
+			for (USkeletalMeshComponent* Follower : { HairMesh.Get(), ClothingMesh.Get() })
+			{
+				Character->AddInstanceComponent(Follower);
+				Follower->SetSkeletalMeshAsset(FemaleMesh);
+				Follower->SetupAttachment(Character->GetMesh());
+				Follower->RegisterComponent();
+				Follower->AttachToComponent(
+					Character->GetMesh(),
+					FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				Follower->SetLeaderPoseComponent(Character->GetMesh());
+				Follower->SetTranslucentSortPriority(3);
+			}
+			UMaterialInterface* RagShirtMaterial = LoadObject<UMaterialInterface>(
+				nullptr,
+				TEXT("/Game/DazToUnreal/RagShirt/Materials/SYDFR9RagShirtG9/SYDFR9RagShirtG9_Shirt.SYDFR9RagShirtG9_Shirt"));
+			if (!IsValid(RagShirtMaterial) || ClothingMesh->GetNumMaterials() <= 0)
+			{
+				Test->AddError(TEXT("Tattoo renderer fixture could not load the translucent rag shirt material."));
+				Advance(ERendererTestStep::Done);
+				return false;
+			}
+			ClothingMesh->SetMaterial(0, RagShirtMaterial);
+			Character->AddInstanceComponent(Customization.Get());
+			Customization->RegisterComponent();
+			if (!Customization->InitializeForActor(Character.Get())
+				|| !Customization->GetClothingMeshComponents().Contains(ClothingMesh.Get()))
+			{
+				Test->AddError(TEXT("Tattoo renderer fixture did not classify the rag shirt as Character Creation clothing."));
+				Advance(ERendererTestStep::Done);
+				return false;
+			}
 			Controller->Possess(Character.Get());
 
 			OpaqueTexture.Reset(CreateTestTexture(Renderer.Get(), TEXT("TattooOpaqueCard"), false));
@@ -251,6 +301,15 @@ namespace ProjectTattooSkinnedDecalRendererTestsPrivate
 				&& Second.MaximumAlpha == 255);
 			Test->TestTrue(TEXT("Manual layers coexist while an automatic layer is active"),
 				ForcedAutomaticRow.IsNone() || Renderer->HasActiveAutomaticTattoo(Character.Get()));
+			Test->TestTrue(
+				TEXT("Translucent clothing renders after the tattoo-bearing skin overlay"),
+				ClothingMesh.IsValid()
+					&& ClothingMesh->TranslucencySortPriority > Character->GetMesh()->TranslucencySortPriority);
+			Test->TestTrue(
+				TEXT("DAZ alpha clothing receives a depth-writing masked material"),
+				ClothingMesh.IsValid()
+					&& IsValid(ClothingMesh->GetMaterial(0))
+					&& ClothingMesh->GetMaterial(0)->GetBlendMode() == BLEND_Masked);
 
 			InitialFirst = First;
 			InitialSecond = Second;
@@ -311,6 +370,9 @@ namespace ProjectTattooSkinnedDecalRendererTestsPrivate
 		double StepStartedAt = FPlatformTime::Seconds();
 		TWeakObjectPtr<UWorld> World;
 		TWeakObjectPtr<ACharacter> Character;
+		TWeakObjectPtr<USkeletalMeshComponent> HairMesh;
+		TWeakObjectPtr<USkeletalMeshComponent> ClothingMesh;
+		TWeakObjectPtr<UEFCharacterCustomizationComponent> Customization;
 		TWeakObjectPtr<UProjectDefaultTattooSkinnedDecalSubsystem> Renderer;
 		TStrongObjectPtr<UTexture2D> OpaqueTexture;
 		TStrongObjectPtr<UTexture2D> TransparentTexture;

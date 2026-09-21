@@ -34,6 +34,9 @@ public:
 	const TArray<FEFCalystoStyle>& GetStyles() const { return Styles; }
 	const TArray<FEFCalystoTheme>& GetThemes() const { return Themes; }
 	const TArray<FSoftObjectPath>& GetVisualDependencies() const { return VisualDependencies; }
+	/** Selected Style/depth-eligible visuals plus potential world-actor CDOs required for pre-Chance collision feasibility.
+	 * Selected gameplay payloads and decals still use their own frozen post-selection leases. */
+	bool GetReachableVisualDependencies(const FEFCalystoRandomKey& Key, TArray<FSoftObjectPath>& Paths, FString& Error) const;
 	const FEFCalystoStyle* FindStyle(const FGuid& Id) const;
 	const FEFCalystoTheme* FindTheme(const FGuid& Id) const;
 	bool SelectStyle(const FEFCalystoRandomKey& Key, TConstArrayView<FGuid> CoolingDownIds,

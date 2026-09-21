@@ -19,6 +19,12 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoContentSurface
 	/** Empty is an empty compatibility set, never an implicit wildcard. */
 	TSet<FGuid> CompatibleEntryIds;
 	bool bCollisionValidated = false;
+	/** The loaded ActorClass CDO collision contract was resolved before Chance/Amount/Weight. */
+	bool bCollisionContractValidated = false;
+	/** Actor-local conservative reservation envelope, including authored clearance but excluding jitter. */
+	FBox ReservedLocalBounds = FBox(ForceInit);
+	/** Hash of the exact loaded ActorClass CDO root-collision descriptor. */
+	FString CollisionContractHash;
 	/** Must cover the entire placement/jitter region when an entry requires navigation. */
 	bool bNavigationValidated = false;
 	bool bProtectsDoorway = false;
@@ -70,14 +76,28 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoContentBudgetUsage
 struct EFPROCEDURALRUNTIME_API FEFCalystoContentPlannerLimits
 {
 	int32 MaximumRooms = 2048;
-	int32 MaximumSurfaces = 4096;
+	/** Matches the complete native 100 cm floor lattice supported by the V7
+	 * surface adapter. This is a finite contract, never a post-selection cap. */
+	int32 MaximumSurfaces = 16384;
 	int32 MaximumEntriesPerGroup = 256;
-	int32 MaximumCompatiblePairs = 16384;
+	/** Matches the complete V7 surface compatibility ceiling. Entries are never
+	 * truncated after feasibility has been established. */
+	int32 MaximumCompatiblePairs = 32768;
 	int32 MaximumAmount = 32;
 	int32 MaximumReservations = 512;
 	int32 MaximumContainers = 256;
 	/** Counts compatibility/search/spacing work across the complete floor; no wall-clock polling. */
 	int64 MaximumWorkUnits = 500000;
+};
+
+/** Result of the attempt-owned exact world predicate for an already deterministic
+ * placement transform. The planner invokes it before Chance/Amount/Weight; it
+ * never changes a transform or turns an unavailable class into another entry. */
+enum class EEFCalystoExactPlacementPreflight : uint8
+{
+	Feasible,
+	SpatiallyBlocked,
+	Invalid
 };
 
 struct EFPROCEDURALRUNTIME_API FEFCalystoContentReservationRequest
@@ -96,9 +116,15 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoContentReservationRequest
 	FEFCalystoContentBudgetUsage InitialUsage;
 	/** An authored nonzero ResourceCost requires an explicit finite resource budget. */
 	TOptional<double> ResourceBudget;
-	/** Explicit floor input in [-1,1]. Disabled adaptation ignores this value exactly.
-	 * Enabled adaptation changes Chance by the authored bounded multiplier only. */
-	double NormalizedAdaptationInput = 0.0;
+	/** Captured once by the caller with the immutable floor request, never inferred from labels or live state.
+	 * Required only by a matching enabled Snapshot binding; disabled adaptation ignores it exactly. */
+	TOptional<FEFCalystoTraits> TraitSnapshot;
+	/** Production world requests supply this read-only CDO predicate so the exact
+	 * jittered transform receives the same collision preflight as deferred spawn.
+	 * Pure fixture requests may omit it unless bRequireExactPlacementPreflight is set. */
+	bool bRequireExactPlacementPreflight = false;
+	TFunction<EEFCalystoExactPlacementPreflight(const FEFCalystoContentEntry& Entry,
+		const FTransform& Transform, const FString& CollisionContractHash, FString& OutError)> ExactPlacementPreflight;
 	FEFCalystoContentPlannerLimits Limits;
 };
 
@@ -117,6 +143,9 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoContentOpportunityReport
 	EEFCalystoContentOpportunityOutcome Outcome = EEFCalystoContentOpportunityOutcome::NoCompatibleEntries;
 	double RequestedChancePercent = 0.0;
 	double EffectiveChancePercent = 0.0;
+	double ChanceMultiplier = 1.0;
+	/** Effective weights used before feasibility and conditional entry selection; authored payloads stay intact. */
+	TArray<FEFCalystoWeightedAlternative> EffectiveEntryWeights;
 	/** PMF mass removed by feasibility is reported; it is not another Chance roll. */
 	double FeasibleAmountProbabilityMass = 0.0;
 	TArray<int32> FeasibleAmounts;
@@ -154,6 +183,7 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoReservedContent
 	FEFCalystoContentEntry Entry;
 	FTransform Transform = FTransform::Identity;
 	FBox ReservedBounds = FBox(ForceInit);
+	FString CollisionContractHash;
 };
 
 /** No mutating getters: a materializer consumes precisely these selected identities and payloads. */

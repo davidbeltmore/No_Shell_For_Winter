@@ -92,8 +92,8 @@ if (($compileExitCode -ne 0 -and $compileExitCode -ne 1) -or
     $result.status -ne 'UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE_PASS' -or
     -not [bool]$result.success -or
     [int]$result.schema_version -ne 1 -or
-    [int]$result.compiler_version -ne 28 -or
-    [int]$result.binding_schema_version -ne 8 -or
+    [int]$result.compiler_version -ne 35 -or
+    [int]$result.binding_schema_version -ne 15 -or
     [int]$result.director_schema_version -ne 5 -or
     $result.director_id -ne 'EFClothingMorphV4' -or
     $result.output_root -ne '/EFClothingMorph/_Internal/Compiled/V4' -or

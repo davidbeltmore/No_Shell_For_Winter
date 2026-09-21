@@ -11,6 +11,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
+#include "Survival/ProjectSurvivalNeedsSubsystem.h"
 #include "UI/ProjectWidgetClassResolver.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectDayCycle, Log, All);
@@ -187,6 +188,8 @@ void UProjectDayCycleSubsystem::EnsureHudWidget()
 {
 	const UProjectDayCycleSettings* Settings = UProjectDayCycleSettings::Get();
 	const UWorld* World = GetWorld();
+	const UProjectSurvivalNeedsSubsystem* NeedsSubsystem =
+		World ? World->GetSubsystem<UProjectSurvivalNeedsSubsystem>() : nullptr;
 	const UEFCharacterCreationSubsystem* CharacterCreationSubsystem =
 		World && World->GetGameInstance()
 			? World->GetGameInstance()->GetSubsystem<UEFCharacterCreationSubsystem>()
@@ -195,6 +198,8 @@ void UProjectDayCycleSubsystem::EnsureHudWidget()
 	if (!LocalPlayerController
 		|| !LocalPlayerController->IsLocalController()
 		|| (Settings && !Settings->bShowDayCycleHud)
+		|| !NeedsSubsystem
+		|| !NeedsSubsystem->IsNeedsHudVisible()
 		|| (CharacterCreationSubsystem && CharacterCreationSubsystem->IsCharacterCreationActive()))
 	{
 		RemoveHudWidget();

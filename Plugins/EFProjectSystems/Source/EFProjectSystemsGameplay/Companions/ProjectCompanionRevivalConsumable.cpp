@@ -23,9 +23,10 @@ UProjectCompanionRevivalConsumable::UProjectCompanionRevivalConsumable()
 
 	IconSource = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(
 		TEXT("/Game/FullSample/UI/Icons/T_SM_Potion_C_Blu_Icon.T_SM_Potion_C_Blu_Icon")));
-	// The class itself is loaded only when selected/owned. Resolving its tiny UI
-	// icon here keeps ACF's non-virtual GetThumbnailImage contract functional.
-	ItemInfo.ThumbNail = IconSource.LoadSynchronous();
+	// Never synchronously load UI while a dungeon content class is being
+	// constructed by the post-topology async phase. The inventory UI may use the
+	// resident texture when its UI bundle has already loaded it.
+	ItemInfo.ThumbNail = IconSource.Get();
 }
 
 FName UProjectCompanionRevivalConsumable::GetStableItemId()

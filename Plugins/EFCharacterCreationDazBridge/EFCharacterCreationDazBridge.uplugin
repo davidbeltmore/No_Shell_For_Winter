@@ -11,10 +11,6 @@
 		{
 			"Name": "EFCharacterCreation",
 			"Enabled": true
-		},
-		{
-			"Name": "DazToUnreal",
-			"Enabled": true
 		}
 	],
 	"Modules": [

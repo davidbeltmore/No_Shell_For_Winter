@@ -17,11 +17,24 @@ if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
 }
 $ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
 $ArchiveRoot = (Resolve-Path -LiteralPath $ArchiveRoot).Path
-$expectedArchiveParent = [IO.Path]::GetFullPath(
-    (Join-Path $ProjectRoot 'Saved\Migration\CalystoDungeonDirectorV4\Packages')
+$approvedArchiveParents = @(
+    [IO.Path]::GetFullPath(
+        (Join-Path $ProjectRoot 'Saved\Migration\CalystoDungeonDirectorV4\Packages')
+    ).TrimEnd('\'),
+    [IO.Path]::GetFullPath(
+        (Join-Path $ProjectRoot 'Saved\Artifacts\PendingValidation')
+    ).TrimEnd('\')
 )
-if (-not ($ArchiveRoot + '\').StartsWith($expectedArchiveParent + '\', [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Archive escaped the validated project package root: $ArchiveRoot"
+$archiveParent = [IO.Path]::GetFullPath(
+    [IO.Path]::GetDirectoryName($ArchiveRoot)
+).TrimEnd('\')
+if (@($approvedArchiveParents | Where-Object {
+        [string]::Equals($archiveParent, $_, [StringComparison]::OrdinalIgnoreCase)
+    }).Count -ne 1) {
+    throw (@(
+        "Archive must be a direct child of an approved project package root: $ArchiveRoot",
+        "Approved roots: $($approvedArchiveParents -join '; ')"
+    ) -join ' ')
 }
 
 $executable = Join-Path $ArchiveRoot 'Windows\NoShellForWinter\Binaries\Win64\NoShellForWinter.exe'

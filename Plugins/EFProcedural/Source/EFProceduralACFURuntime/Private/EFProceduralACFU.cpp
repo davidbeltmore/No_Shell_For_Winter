@@ -4,6 +4,8 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogEFProceduralACFU, Log, All);
+
 namespace EFProceduralACFUPrivate
 {
 	static bool MatchesAnyHint(const FString& Source, const TArray<FString>& Hints)
@@ -58,9 +60,15 @@ void FEFProceduralACFU::ApplyFallbackAIControllerClass(APawn* Pawn, const UEFPro
 		Settings->GetRangedEnemyClassPathHintsResolved(),
 		Settings->GetRangedEnemyClassNameHintsResolved()))
 	{
-		if (UClass* RangedControllerClass = Settings->GetRangedAIControllerClassResolved().LoadSynchronous())
+		if (UClass* RangedControllerClass = Settings->GetRangedAIControllerClassResolved().Get())
 		{
 			Pawn->AIControllerClass = RangedControllerClass;
+		}
+		else
+		{
+			UE_LOG(LogEFProceduralACFU, Error,
+				TEXT("The ranged fallback AI controller was not resident before Calysto population materialization for %s."),
+				*GetPathNameSafe(Pawn));
 		}
 		return;
 	}
@@ -70,9 +78,15 @@ void FEFProceduralACFU::ApplyFallbackAIControllerClass(APawn* Pawn, const UEFPro
 		Settings->GetMeleeEnemyClassPathHintsResolved(),
 		Settings->GetMeleeEnemyClassNameHintsResolved()))
 	{
-		if (UClass* MeleeControllerClass = Settings->GetMeleeAIControllerClassResolved().LoadSynchronous())
+		if (UClass* MeleeControllerClass = Settings->GetMeleeAIControllerClassResolved().Get())
 		{
 			Pawn->AIControllerClass = MeleeControllerClass;
+		}
+		else
+		{
+			UE_LOG(LogEFProceduralACFU, Error,
+				TEXT("The melee fallback AI controller was not resident before Calysto population materialization for %s."),
+				*GetPathNameSafe(Pawn));
 		}
 	}
 }

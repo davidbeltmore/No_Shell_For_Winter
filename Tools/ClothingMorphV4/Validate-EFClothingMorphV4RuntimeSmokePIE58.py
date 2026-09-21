@@ -54,13 +54,53 @@ DIRECTOR_PATH = "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector"
 REGISTRY_PATH = "/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry"
 COMPATIBILITY_PATH = "/Game/DazToUnreal/Multiple/Multiple"
 EXPECTED_DIRECTOR_SCHEMA = 5
-EXPECTED_COMPILER_VERSION = 28
-EXPECTED_BINDING_SCHEMA = 8
+EXPECTED_COMPILER_VERSION = 35
+EXPECTED_BINDING_SCHEMA = 15
 OFFSET_TEST_CM = 0.2
 SMOKE_EQUIP_UNEQUIP_CYCLES = 3
+MORPH_STRESS_MODE = os.environ.get(
+    "CODEX_EF_CLOTHING_V4_MORPH_STRESS", "0"
+).strip().lower() in {"1", "true", "yes"}
+TARGET_CLOTHING_FILTER = os.environ.get(
+    "CODEX_EF_CLOTHING_V4_TARGET_CLOTHING", "UnderWearBra"
+).strip()
+MORPH_STRESS_ITEM_CLASS_PATH = os.environ.get(
+    "CODEX_EF_CLOTHING_V4_TARGET_ITEM_CLASS",
+    "/Game/_Game/Clothes/UnderWear01/Bra.Bra_C",
+).strip()
 MIN_SIMULTANEOUS_CLOTHES = 2
+if MORPH_STRESS_MODE:
+    MIN_SIMULTANEOUS_CLOTHES = 1
 SCREENSHOT_WAIT_SECONDS = 2.25
 CERTIFIED_PASS_STATE = "Ready"
+
+# These are QA inputs, not runtime special cases. The production solver only
+# receives final body geometry plus a scalar saying that at least one body morph
+# is active; it never receives or branches on these names.
+MORPH_STRESS_CASES = (
+    {"name": "baseline", "weights": {}},
+    {"name": "breasts_large_1_0", "weights": {"Breasts Large": 1.0}},
+    {"name": "breasts_large_1_85", "weights": {"Breasts Large": 1.85}},
+    {"name": "breasts_small_2_98", "weights": {"Breasts Small": 2.98}},
+    {"name": "breasts_width_positive_3_0", "weights": {"Breasts Width": 3.0}},
+    {"name": "breasts_width_negative_3_0", "weights": {"Breasts Width": -3.0}},
+    {"name": "breasts_shape_04_1_9", "weights": {"Breasts Shape 04": 1.9}},
+    {"name": "breasts_gone_2_4", "weights": {"Breasts Gone": 2.4}},
+    {
+        "name": "breasts_fullness_lower_negative_3_0",
+        "weights": {"Breasts Fullness Lower": -3.0},
+    },
+    {
+        "name": "breasts_cleavage_negative_2_42",
+        "weights": {"Breasts Cleavage": -2.42},
+    },
+    {"name": "body_voluptuous_1_0", "weights": {"Body Voluptuous": 1.0}},
+    {
+        "name": "breasts_large_1_85_body_voluptuous_1_0",
+        "weights": {"Breasts Large": 1.85, "Body Voluptuous": 1.0},
+        "walk": True,
+    },
+)
 
 LEVEL_EDITOR = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 UNREAL_EDITOR = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
@@ -209,6 +249,46 @@ def require(condition, message):
 def safe_slug(text):
     value = re.sub(r"[^A-Za-z0-9]+", "_", str(text)).strip("_").lower()
     return value or "garment"
+
+
+def parse_morph_target_names(mesh):
+    """Enumerate the cooked body's real morph targets without editing assets."""
+    names = set()
+    direct_getter = getattr(mesh, "get_morph_target_names", None)
+    if callable(direct_getter):
+        try:
+            names.update(str(name) for name in (direct_getter() or []) if str(name))
+        except Exception:
+            pass
+    if not names:
+        try:
+            morphs = get_property(mesh, "morph_targets", "MorphTargets", default=[]) or []
+            names.update(str(morph.get_name()) for morph in morphs if morph)
+        except Exception:
+            pass
+    if not names:
+        asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+        asset_data = asset_registry.get_asset_by_object_path(object_path(mesh))
+        if asset_data:
+            raw = str(asset_data.get_tag_value("MorphTargetNames") or "")
+            names.update(token.strip() for token in raw.split(";") if token.strip())
+    require(names, f"Could not enumerate cooked morph targets for {object_path(mesh)}")
+    return sorted(names, key=str.lower)
+
+
+def read_body_morph(component, morph_name):
+    getter = getattr(component, "get_morph_target", None)
+    if callable(getter):
+        try:
+            value = float(getter(morph_name))
+            return value if math.isfinite(value) else None
+        except Exception:
+            pass
+    return None
+
+
+def set_body_morph(component, morph_name, value):
+    call(component, "set_morph_target", morph_name, float(value), False)
 
 
 def emit(message):
@@ -479,6 +559,7 @@ def load_catalog_contract():
         len(bindings) == len(rows),
         f"V4 registry/valid-clothes count mismatch: valid={len(rows)} bindings={len(bindings)}",
     )
+    all_valid_row_count = len(rows)
     # Exercise a geometry-only fit exclusion first, then a normal visual hider.
     # This proves the former remains visible on its own and that a later
     # independently equipped clothing row can claim the same slot. Plain rows
@@ -498,6 +579,25 @@ def load_catalog_contract():
             row["row_name"].lower(),
         )
     )
+    if MORPH_STRESS_MODE:
+        target_token = re.sub(r"[^a-z0-9]+", "", TARGET_CLOTHING_FILTER.lower())
+        require(target_token, "Morph stress target clothing filter is empty")
+        targeted_rows = [
+            row
+            for row in rows
+            if target_token
+            in re.sub(
+                r"[^a-z0-9]+",
+                "",
+                f"{row['row_name']} {row['source']}".lower(),
+            )
+        ]
+        require(
+            len(targeted_rows) == 1,
+            f"Morph stress expected exactly one target clothing row for "
+            f"'{TARGET_CLOTHING_FILTER}'; found {[row['row_name'] for row in targeted_rows]}",
+        )
+        rows = targeted_rows
     STATE.rows = rows
     STATE.director = director
     STATE.registry = registry
@@ -509,6 +609,9 @@ def load_catalog_contract():
         "registry": object_path(registry),
         "enabled_row_count": len(enabled),
         "valid_row_count": len(rows),
+        "all_valid_row_count": all_valid_row_count,
+        "targeted_morph_stress": MORPH_STRESS_MODE,
+        "target_clothing_filter": TARGET_CLOTHING_FILTER if MORPH_STRESS_MODE else "",
         "ignored_row_count": len(ignored_rows),
         "ignored_rows": ignored_rows,
         "native_binding_count": len(bindings),
@@ -592,7 +695,7 @@ def parse_runtime_values(component):
     name = re.escape(str(component.get_name()))
     match = re.search(
         name
-        + r":[^\[]*\[[^\]]*clear=([-+0-9.eE]+)cm,inflate=([-+0-9.eE]+)cm\]",
+        + r":[^\[]*\[[^\]]*clear=([-+0-9.eE]+)cm,inflate=([-+0-9.eE]+)cm(?:,[^\]]*)?\]",
         summary,
     )
     require(match is not None, f"V4 debug summary does not contain managed garment {component.get_name()}: {summary}")
@@ -953,7 +1056,27 @@ def associate_acf_item(candidate, garment):
     equipped = current_equipment_entries()
     inventory_rows = [item_snapshot(item) for item in inventory]
     equipment_rows = [item_snapshot(item) for item in equipped]
-    if candidate is not None:
+    if (
+        candidate is None
+        and STATE.current_candidate_result
+        and STATE.current_candidate_result.get("transient_pie_inventory_fixture", False)
+    ):
+        before_guids = {
+            row["guid"]
+            for row in STATE.current_candidate_result.get("inventory_before", [])
+            if row.get("guid")
+        }
+        matched_rows = [
+            row
+            for row in equipment_rows
+            if row["guid"] and row["guid"] not in before_guids
+        ]
+        require(
+            len(matched_rows) == 1,
+            f"Transient ACF fixture did not produce one new equipped GUID: "
+            f"before={sorted(before_guids)} equipment={equipment_rows}",
+        )
+    elif candidate is not None:
         pickup_guids = candidate["guids"]
         acquired = pickup_guids.intersection({row["guid"] for row in inventory_rows})
         equipped_from_pickup = pickup_guids.intersection(
@@ -1226,6 +1349,10 @@ def position_camera(view, distance=115.0):
     elif view == "inferior":
         radial = vector_add(vector_scale(forward, -0.85), vector_scale(right, 0.35))
         height, target_height, distance = -62.0, -8.0, 95.0
+    elif view == "torso_front":
+        radial, height, target_height, distance = forward, 38.0, 34.0, 105.0
+    elif view == "torso_right":
+        radial, height, target_height, distance = right, 38.0, 34.0, 105.0
     else:
         raise RuntimeError(f"Unknown camera view: {view}")
     camera_location = vector_add(
@@ -1568,6 +1695,37 @@ def begin_row():
         return
 
     STATE.candidates = get_world_item_candidates(STATE.active_row)
+    if MORPH_STRESS_MODE and not STATE.candidates:
+        item_class = unreal.load_class(None, MORPH_STRESS_ITEM_CLASS_PATH)
+        require(
+            item_class is not None,
+            f"Unable to load transient ACF morph-stress item class: "
+            f"{MORPH_STRESS_ITEM_CLASS_PATH}",
+        )
+        evidence = {
+            "candidate": "TRANSIENT_PIE_ACF_INVENTORY_FIXTURE",
+            "score": None,
+            "pickup_items": [],
+            "inventory_before": [item_snapshot(item) for item in inventory_entries()],
+            "interact_invoked": False,
+            "transient_pie_inventory_fixture": True,
+            "item_class": MORPH_STRESS_ITEM_CLASS_PATH,
+            "route": [
+                "UACFInventoryComponent.AddItemToInventoryByClass",
+                "bAutoEquip=true",
+                "UACFEquipmentComponent.HandleItemAdded/EquipItemFromInventory",
+                "UACFEquipmentComponent.AddSkeletalMeshComponent",
+            ],
+        }
+        STATE.active_test["acf_candidates"].append(evidence)
+        STATE.current_candidate_result = evidence
+        call(STATE.equipment, "add_item_to_inventory_by_class", item_class, 1, True)
+        emit(
+            f"row={STATE.active_row['row_name']} "
+            f"transient_acf_inventory_fixture={MORPH_STRESS_ITEM_CLASS_PATH}"
+        )
+        transition("wait_initial_equip")
+        return
     require(
         STATE.candidates,
         f"No token-matched real ACF world-item fixture exists for {STATE.active_row['row_name']}",
@@ -1619,6 +1777,12 @@ class RuntimeState:
         self.acf_item_class_hints = {}
         self.free_camera_subsystem = None
         self.camera = None
+        self.body = None
+        self.body_morph_names = []
+        self.morph_baseline_values = {}
+        self.morph_case_index = -1
+        self.active_morph_case = None
+        self.active_morph_case_result = None
         self.capture_path = None
         self.capture_next_phase = None
         self.capture_motion = ""
@@ -1631,12 +1795,34 @@ class RuntimeState:
         self.result = {
             "schema_version": 1,
             "status": "UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_IN_PROGRESS",
+            "mode": "MORPH_STRESS" if MORPH_STRESS_MODE else "RUNTIME_SMOKE",
             "project": str(PROJECT_DIR),
             "map": TARGET_MAP,
             "renderer_required": "D3D12_SM6_VISIBLE",
             "expected_compiler_version": EXPECTED_COMPILER_VERSION,
             "expected_binding_schema": EXPECTED_BINDING_SCHEMA,
             "test_scope": "Certified V4 smoke requires Ready; visible Passthrough is diagnostic failure. No V26 GPU readback or geometric certification claim.",
+            "morph_stress": {
+                "status": "PENDING" if MORPH_STRESS_MODE else "NOT_REQUESTED",
+                "target_clothing_filter": TARGET_CLOTHING_FILTER
+                if MORPH_STRESS_MODE
+                else "",
+                "body_component": "",
+                "body_mesh": "",
+                "enumerated_morph_count": 0,
+                "required_morphs": sorted(
+                    {
+                        morph_name
+                        for case in MORPH_STRESS_CASES
+                        for morph_name in case["weights"]
+                    }
+                )
+                if MORPH_STRESS_MODE
+                else [],
+                "cases": [],
+                "runtime_special_cases": False,
+                "visual_review": "PENDING_HUMAN_REVIEW",
+            },
             "passthrough_policy": {
                 "runtime_behavior": "SourceGarment remains visible and unmodified",
                 "certified_fixture_acceptance": "FAIL_WITH_DEBUG_SUMMARY",
@@ -1692,7 +1878,17 @@ def cleanup_runtime_state():
     cleanup = {
         "offset_components_cleared": [],
         "acf_guids_unequipped": [],
+        "body_morphs_restored": [],
     }
+    if STATE.body and object_is_valid(STATE.body):
+        for morph_name, baseline_value in STATE.morph_baseline_values.items():
+            try:
+                set_body_morph(STATE.body, morph_name, baseline_value)
+                cleanup["body_morphs_restored"].append(
+                    {"name": morph_name, "value": baseline_value}
+                )
+            except Exception:
+                pass
     components = []
     for record in STATE.retained_clothes:
         if object_is_valid(record["component"]):
@@ -1753,9 +1949,17 @@ def finish(success, failure=None):
     builtins._codex_ef_clothing_morph_v4_runtime_smoke = None
     cleanup_runtime_state()
     STATE.result["status"] = (
-        "UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_PASS"
+        (
+            "UE58_EF_CLOTHING_MORPH_V4_MORPH_STRESS_PASS"
+            if MORPH_STRESS_MODE
+            else "UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_PASS"
+        )
         if success
-        else "UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_FAIL"
+        else (
+            "UE58_EF_CLOTHING_MORPH_V4_MORPH_STRESS_FAIL"
+            if MORPH_STRESS_MODE
+            else "UE58_EF_CLOTHING_MORPH_V4_RUNTIME_SMOKE_FAIL"
+        )
     )
     STATE.result["failure"] = failure
     STATE.result["finished_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1794,6 +1998,122 @@ def record_offset_checkpoint(label, expected_clearance, expected_inflate):
                 "status": "PASS_RETAINED_CLOTHES_UNCHANGED_READY",
             }
         )
+
+
+def prepare_morph_stress():
+    require(MORPH_STRESS_MODE, "Morph stress preparation was called in smoke mode")
+    STATE.body = exact_visible_body(STATE.active_row)
+    body_mesh = mesh_asset(STATE.body)
+    STATE.body_morph_names = parse_morph_target_names(body_mesh)
+    required = sorted(
+        {
+            morph_name
+            for case in MORPH_STRESS_CASES
+            for morph_name in case["weights"]
+        }
+    )
+    missing = [name for name in required if name not in STATE.body_morph_names]
+    require(
+        not missing,
+        f"Required real body morph targets are missing: {missing}; "
+        f"available Breast/Voluptuous candidates="
+        f"{[name for name in STATE.body_morph_names if 'breast' in name.lower() or 'volupt' in name.lower()]}",
+    )
+    STATE.morph_baseline_values = {}
+    for morph_name in required:
+        current = read_body_morph(STATE.body, morph_name)
+        STATE.morph_baseline_values[morph_name] = 0.0 if current is None else current
+    stress = STATE.result["morph_stress"]
+    stress["body_component"] = object_path(STATE.body)
+    stress["body_mesh"] = mesh_path(STATE.body)
+    stress["enumerated_morph_count"] = len(STATE.body_morph_names)
+    stress["baseline_values"] = dict(STATE.morph_baseline_values)
+    stress["runtime_solver_contract"] = (
+        "Morph names exist only in this QA matrix. Runtime follows final body "
+        "triangle geometry and receives only aggregate morph activity."
+    )
+
+
+def apply_next_morph_case():
+    STATE.morph_case_index += 1
+    if STATE.morph_case_index >= len(MORPH_STRESS_CASES):
+        return False
+    STATE.active_morph_case = MORPH_STRESS_CASES[STATE.morph_case_index]
+    for morph_name, baseline_value in STATE.morph_baseline_values.items():
+        set_body_morph(STATE.body, morph_name, baseline_value)
+    for morph_name, requested_value in STATE.active_morph_case["weights"].items():
+        set_body_morph(STATE.body, morph_name, requested_value)
+    call(STATE.runtime, "force_reconcile")
+    STATE.active_morph_case_result = {
+        "name": STATE.active_morph_case["name"],
+        "requested_weights": dict(STATE.active_morph_case["weights"]),
+        "readback_weights": {},
+        "runtime_state": "PENDING",
+        "runtime_debug_summary": "",
+        "morph_activity": None,
+        "motion": {},
+        "screenshots": [],
+        "screenshot_start_index": len(STATE.active_test["screenshots"]),
+        "status": "IN_PROGRESS",
+    }
+    STATE.result["morph_stress"]["cases"].append(STATE.active_morph_case_result)
+    return True
+
+
+def record_active_morph_case():
+    case = STATE.active_morph_case
+    result = STATE.active_morph_case_result
+    require(case is not None and result is not None, "No active morph stress case")
+    snapshot = validate_terminal_visible(f"morph_{case['name']}_settled")
+    debug_summary = str(call(STATE.runtime, "get_debug_summary"))
+    activity_values = [
+        float(value)
+        for value in re.findall(r"morphActivity=([0-9]+(?:\.[0-9]+)?)", debug_summary)
+    ]
+    require(activity_values, f"V4 debug summary exposes no morphActivity: {debug_summary}")
+    observed_activity = max(activity_values)
+    readbacks = {}
+    for morph_name in STATE.morph_baseline_values:
+        observed = read_body_morph(STATE.body, morph_name)
+        readbacks[morph_name] = observed
+        expected = case["weights"].get(
+            morph_name, STATE.morph_baseline_values[morph_name]
+        )
+        if observed is not None:
+            require(
+                abs(observed - expected) <= 0.01,
+                f"Body morph readback mismatch for {morph_name}: {observed} != {expected}",
+            )
+    if case["weights"]:
+        require(
+            observed_activity >= 0.99,
+            f"V4 did not detect active body morphs for {case['name']}: "
+            f"activity={observed_activity}; debug={debug_summary}",
+        )
+    result.update(
+        {
+            "readback_weights": readbacks,
+            "runtime_state": snapshot["state"],
+            "runtime_debug_summary": debug_summary,
+            "morph_activity": observed_activity,
+            "component": snapshot["component"],
+            "garment_mesh": snapshot["mesh"],
+            "visible": snapshot["visible"],
+            "status": "READY_AWAITING_CAPTURES",
+        }
+    )
+
+
+def complete_active_morph_case():
+    result = STATE.active_morph_case_result
+    require(result is not None, "No active morph case result to complete")
+    start_index = int(result.pop("screenshot_start_index"))
+    result["screenshots"] = list(STATE.active_test["screenshots"][start_index:])
+    require(
+        len(result["screenshots"]) >= 2,
+        f"Morph case {result['name']} has incomplete visual evidence",
+    )
+    result["status"] = "PASS_READY_MORPH_ACTIVITY_AND_GAMEPLAY_CAPTURES"
 
 
 def tick(delta_time):
@@ -1900,15 +2220,33 @@ def tick(delta_time):
                 initial
             )
             STATE.active_test["acf_real_equip"] = {
-                "status": "PASS_REAL_WORLD_INTERACT_TO_ACF_EQUIPMENT",
-                "acquisition_mode": "PRIOR_MULTI_ITEM_WORLD_PICKUP"
-                if STATE.current_candidate is None
-                else "DIRECT_WORLD_PICKUP_INTERACTION",
+                "status": (
+                    "PASS_TRANSIENT_PIE_ACF_INVENTORY_TO_EQUIPMENT"
+                    if STATE.current_candidate_result.get(
+                        "transient_pie_inventory_fixture", False
+                    )
+                    else "PASS_REAL_WORLD_INTERACT_TO_ACF_EQUIPMENT"
+                ),
+                "acquisition_mode": (
+                    "TRANSIENT_PIE_ACF_AUTO_EQUIP"
+                    if STATE.current_candidate_result.get(
+                        "transient_pie_inventory_fixture", False
+                    )
+                    else (
+                        "PRIOR_MULTI_ITEM_WORLD_PICKUP"
+                        if STATE.current_candidate is None
+                        else "DIRECT_WORLD_PICKUP_INTERACTION"
+                    )
+                ),
                 "candidate": STATE.current_candidate_result,
                 "guid": STATE.acf_item_guid,
                 "guid_length": len(STATE.acf_item_guid),
                 "direct_mesh_assignment": False,
-                "direct_equipment_shortcut_for_initial_acquisition": False,
+                "direct_equipment_shortcut_for_initial_acquisition": bool(
+                    STATE.current_candidate_result.get(
+                        "transient_pie_inventory_fixture", False
+                    )
+                ),
             }
             STATE.active_test["source_mesh_gate"] = {
                 "status": "PASS_EXACT_SOURCE_GARMENT_READY_NO_FITTED_NO_EF_AUTOFIT",
@@ -1965,7 +2303,112 @@ def tick(delta_time):
             sequence["component_identity_preserved"] = STATE.garment_identity
             sequence["source_mesh_preserved"] = STATE.active_row["source"]
             stop_motion()
-            transition("idle_settle")
+            transition("morph_prepare" if MORPH_STRESS_MODE else "idle_settle")
+            return
+
+        if STATE.phase == "morph_prepare":
+            prepare_morph_stress()
+            transition("morph_apply")
+            return
+
+        if STATE.phase == "morph_apply":
+            if not apply_next_morph_case():
+                transition("final_morph_checks")
+                return
+            transition("morph_settle")
+            return
+
+        if STATE.phase == "morph_settle":
+            if STATE.phase_elapsed < 2.5:
+                return
+            record_active_morph_case()
+            position_camera("torso_right")
+            begin_capture(
+                "torso_right",
+                STATE.active_morph_case["name"],
+                "morph_capture_front",
+            )
+            return
+
+        if STATE.phase == "morph_capture_front":
+            position_camera("torso_front")
+            next_phase = (
+                "morph_start_walk"
+                if STATE.active_morph_case.get("walk", False)
+                else "morph_case_complete"
+            )
+            begin_capture(
+                "torso_front",
+                STATE.active_morph_case["name"],
+                next_phase,
+            )
+            return
+
+        if STATE.phase == "morph_start_walk":
+            call(STATE.locomotion, "set_crawl_mode_enabled", False)
+            call(STATE.locomotion, "set_walk_mode_enabled", True)
+            transition("morph_walk_motion")
+            return
+
+        if STATE.phase == "morph_walk_motion":
+            STATE.player.add_movement_input(
+                STATE.player.get_actor_forward_vector(), 1.0, True
+            )
+            if STATE.phase_elapsed < 2.0:
+                return
+            motion = record_motion("morph_combo_walk")
+            require(
+                motion["speed_cm_s"] > 5.0,
+                f"Morph stress walk did not move the player: {motion}",
+            )
+            STATE.active_morph_case_result["motion"] = motion
+            position_camera("torso_right")
+            begin_capture("torso_right", "walk", "morph_case_complete")
+            return
+
+        if STATE.phase == "morph_case_complete":
+            stop_motion()
+            complete_active_morph_case()
+            transition("morph_apply")
+            return
+
+        if STATE.phase == "final_morph_checks":
+            stress = STATE.result["morph_stress"]
+            require(
+                len(stress["cases"]) == len(MORPH_STRESS_CASES),
+                "Morph stress case coverage is incomplete",
+            )
+            require(
+                all(
+                    case.get("status")
+                    == "PASS_READY_MORPH_ACTIVITY_AND_GAMEPLAY_CAPTURES"
+                    for case in stress["cases"]
+                ),
+                "At least one morph stress case did not finish Ready",
+            )
+            validate_terminal_visible("final_morph_stress")
+            stress["status"] = (
+                "PASS_BREASTS_VOLUPTUOUS_COMBINED_AND_MOVING_READY"
+            )
+            STATE.active_test["status"] = "PASS_MORPH_STRESS"
+            character_gate = STATE.result["hub_character_creation_gate"]
+            require(
+                character_gate["sample_count"] > 0 and not character_gate["violations"],
+                "Character Creation appeared during HUB morph stress",
+            )
+            character_gate["status"] = "PASS_ABSENT_FROM_ALL_OBSERVED_HUB_PIE_TICKS"
+            visibility_gate = STATE.result["source_visibility_gate"]
+            require(
+                visibility_gate["sample_count"] > 0
+                and not visibility_gate["violations"]
+                and not visibility_gate["passthrough_observations"],
+                "Source garment visibility/Ready gate failed during morph stress",
+            )
+            visibility_gate["status"] = "PASS_EXACT_SOURCE_READY_NEVER_HIDDEN_WHILE_EXPECTED"
+            STATE.result["multi_clothing_gate"]["status"] = (
+                "NOT_APPLICABLE_TARGETED_MORPH_STRESS"
+            )
+            finish(True)
             return
 
         if STATE.phase == "idle_settle":

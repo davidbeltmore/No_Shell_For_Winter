@@ -1,6 +1,6 @@
 #include "Calysto/EFCalystoDungeonHarnessSettings.h"
 
-#include "Calysto/EFCalystoDungeonDirectorPolicyV4.h"
+#include "Calysto/EFCalystoDungeonDirectorPolicyV6.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -13,14 +13,16 @@ UEFCalystoDungeonHarnessSettings::UEFCalystoDungeonHarnessSettings()
 
 	DungeonMap = TSoftObjectPtr<UWorld>(
 		FSoftObjectPath(TEXT("/Game/Procedural/Maps/DungeonGeneration.DungeonGeneration")));
-	DirectorPolicy = TSoftObjectPtr<UEFCalystoDungeonDirectorPolicyV4>(
-		FSoftObjectPath(TEXT("/Game/_Game/Data/CalystoDungeon/V4/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy")));
+	DirectorPolicy = TSoftObjectPtr<UEFCalystoDungeonDirectorPolicyV6Asset>(
+		FSoftObjectPath(TEXT("/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy")));
 	DungeonMeshDataAsset = TSoftObjectPtr<UObject>(
 		FSoftObjectPath(TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMesh.DA_DungeonMesh")));
 	SpawnerDataAsset = TSoftObjectPtr<UObject>(
 		FSoftObjectPath(TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Spawner/DA_DemoSpawner.DA_DemoSpawner")));
 	RoomThemeDataAsset = TSoftObjectPtr<UObject>(
 		FSoftObjectPath(TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_RoomTheme.DA_RoomTheme")));
+	DungeonMaterialDataAsset = TSoftObjectPtr<UObject>(
+		FSoftObjectPath(TEXT("/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMaterial.DA_DungeonMaterial")));
 	DungeonFloorDoorClass = TSoftClassPtr<AActor>(
 		FSoftObjectPath(TEXT("/Script/EFProceduralACFURuntime.EFCalystoFloorDoor")));
 	DungeonFloorDoorMesh = TSoftObjectPtr<UStaticMesh>(

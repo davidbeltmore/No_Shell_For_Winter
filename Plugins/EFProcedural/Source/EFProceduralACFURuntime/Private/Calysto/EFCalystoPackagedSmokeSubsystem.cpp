@@ -1,17 +1,15 @@
 #include "Calysto/EFCalystoPackagedSmokeSubsystem.h"
 
-#include "Calysto/EFCalystoDungeonSubsystem.h"
-#include "Calysto/EFCalystoDungeonDirectorPolicyV4.h"
-#include "Calysto/EFCalystoFloorDoor.h"
+#include "Calysto/EFCalystoDungeonDirectorPolicyV6.h"
 #include "Calysto/EFCalystoDungeonHarnessSettings.h"
+#include "Calysto/EFCalystoDungeonSubsystem.h"
+#include "Calysto/EFCalystoFloorDoor.h"
 #include "Components/ACFInteractionComponent.h"
-#include "CoreGlobals.h"
 #include "Dom/JsonObject.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
-#include "GameFramework/PlayerController.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProperties.h"
@@ -22,111 +20,133 @@
 #include "Misc/DateTime.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Guid.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEFCalystoPackagedSmoke, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogEFCalystoV6PackagedSmoke, Log, All);
 
-namespace EFCalystoPackagedSmokePrivate
+namespace EFCalystoV6PackagedSmokePrivate
 {
-	static const FName NaturalScenario(TEXT("Natural"));
-	static const FName ZeroScenario(TEXT("Zero"));
-	static const FName EnemyCap25Scenario(TEXT("EnemyCap25"));
-	static const FName ResourceMaxScenario(TEXT("ResourceMax"));
-	static const FName ResourceMinScenario(TEXT("ResourceMin"));
-	static const FName NPCTotal4Scenario(TEXT("NPCTotal4"));
-	static const FName SpecialEvents6Scenario(TEXT("SpecialEvents6"));
-	static const FName PopulationTag(TEXT("EF.Calysto.Population.V4"));
-	static constexpr int32 EnemyHardCap = 25;
-	static constexpr int32 NPCHardCap = 4;
-	static constexpr int32 FoodHardCap = 30;
-	static constexpr int32 ChestHardCap = 10;
-	static constexpr int32 LooseLootHardCap = 4;
-	static constexpr int32 ClothingHardCap = 10;
-	static constexpr int32 SpecialEventHardCap = 6;
-	static constexpr int32 InitialActorHardCap = 89;
+static const FName NaturalScenario(TEXT("Natural"));
+static const FName NoThemeId(TEXT("NoTheme"));
+static const FName PopulationActorTag(TEXT("EF.Calysto.Population"));
+static const FName PopulationAnchorTag(TEXT("EF.Calysto.PopulationAnchor"));
+static constexpr const TCHAR* ExpectedPolicyPath =
+	TEXT("/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy");
+static constexpr const TCHAR* ExpectedPolicyClass =
+	TEXT("/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV6Asset");
+static constexpr const TCHAR* EntranceDoorClass =
+	TEXT("/Game/Procedural/DoorToLevel.DoorToLevel_C");
 
-	static bool ParseInt64Option(const TCHAR* Key, int64& OutValue)
+static bool ParseInt64Option(const TCHAR* Key, int64& OutValue)
+{
+	FString Text;
+	return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
+}
+
+static bool ParseInt32Option(const TCHAR* Key, int32& OutValue)
+{
+	FString Text;
+	return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
+}
+
+static bool ParseFloatOption(const TCHAR* Key, float& OutValue)
+{
+	FString Text;
+	return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
+}
+
+static bool HasOption(const TCHAR* Key)
+{
+	FString Ignored;
+	return FParse::Value(FCommandLine::Get(), Key, Ignored);
+}
+
+static bool HasSha256(const FString& Value)
+{
+	if (Value.Len() != 64)
 	{
-		FString Text;
-		return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
+		return false;
 	}
-
-	static bool ParseInt32Option(const TCHAR* Key, int32& OutValue)
+	for (const TCHAR Character : Value)
 	{
-		FString Text;
-		return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
-	}
-
-	static bool ParseFloatOption(const TCHAR* Key, float& OutValue)
-	{
-		FString Text;
-		return FParse::Value(FCommandLine::Get(), Key, Text) && LexTryParseString(OutValue, *Text);
-	}
-
-	static bool HasSha256(const FString& Value)
-	{
-		if (Value.Len() != 64)
+		if (!FChar::IsHexDigit(Character))
 		{
 			return false;
 		}
-		for (const TCHAR Character : Value)
-		{
-			if (!FChar::IsHexDigit(Character))
-			{
-				return false;
-			}
-		}
-		return true;
 	}
+	return true;
+}
 
-	static bool IsSafeRunTag(const FString& Value)
+static bool IsSafeToken(const FString& Value, const int32 MaximumLength)
+{
+	if (Value.IsEmpty() || Value.Len() > MaximumLength || !FChar::IsAlnum(Value[0]))
 	{
-		if (Value.IsEmpty() || Value.Len() > 96 || !FChar::IsAlnum(Value[0]))
+		return false;
+	}
+	for (const TCHAR Character : Value)
+	{
+		if (!FChar::IsAlnum(Character) && Character != TEXT('_') && Character != TEXT('-'))
 		{
 			return false;
 		}
-		for (const TCHAR Character : Value)
-		{
-			if (!FChar::IsAlnum(Character) && Character != TEXT('_') && Character != TEXT('-'))
-			{
-				return false;
-			}
-		}
-		return true;
 	}
+	return true;
+}
 
-	static FString MakeRunTag()
-	{
-		return FString::Printf(
-			TEXT("%s_%s"),
-			*FDateTime::UtcNow().ToString(TEXT("%Y%m%dT%H%M%SZ")),
-			*FGuid::NewGuid().ToString(EGuidFormats::Digits).Left(8));
-	}
+static FString MakeRunTag()
+{
+	return FString::Printf(
+		TEXT("%s_%s"),
+		*FDateTime::UtcNow().ToString(TEXT("%Y%m%dT%H%M%SZ")),
+		*FGuid::NewGuid().ToString(EGuidFormats::Digits).Left(8));
+}
 
-	static const TCHAR* DescribeStyle(const EEFCalystoStyleV4 Style)
+static FString JoinNames(const TArray<FName>& Names)
+{
+	TArray<FString> Values;
+	Values.Reserve(Names.Num());
+	for (const FName Name : Names)
 	{
-		switch (Style)
+		Values.Add(Name.ToString());
+	}
+	return FString::Join(Values, TEXT(","));
+}
+
+static bool ValidateReadinessTrace(const TArray<FName>& Trace, FString& OutError)
+{
+	static const FName ExpectedTrace[] = {
+		TEXT("GenerateLocal"),
+		TEXT("PCGComplete"),
+		TEXT("ManifestReady"),
+		TEXT("VisualsReady"),
+		TEXT("NavigationPathReady"),
+		TEXT("EnemyLevelsReady"),
+		TEXT("PopulationRealized"),
+		TEXT("CompanionRosterReady"),
+		TEXT("DoorEnabled")};
+	if (Trace.Num() != UE_ARRAY_COUNT(ExpectedTrace))
+	{
+		OutError = TEXT("READINESS_TRACE_CARDINALITY_INVALID");
+		return false;
+	}
+	for (int32 Index = 0; Index < UE_ARRAY_COUNT(ExpectedTrace); ++Index)
+	{
+		if (Trace[Index] != ExpectedTrace[Index])
 		{
-		case EEFCalystoStyleV4::Standard: return TEXT("Standard");
-		case EEFCalystoStyleV4::Compact: return TEXT("Compact");
-		case EEFCalystoStyleV4::Branching: return TEXT("Branching");
-		default: return TEXT("Invalid");
+			OutError = FString::Printf(
+				TEXT("READINESS_TRACE_ORDER_INVALID:%d:%s:%s"),
+				Index,
+				*ExpectedTrace[Index].ToString(),
+				*Trace[Index].ToString());
+			return false;
 		}
 	}
-
-	static const TCHAR* DescribeTheme(const EEFCalystoThemeV4 Theme)
-	{
-		switch (Theme)
-		{
-		case EEFCalystoThemeV4::Default: return TEXT("Default");
-		case EEFCalystoThemeV4::Forge: return TEXT("Forge");
-		case EEFCalystoThemeV4::Shrine: return TEXT("Shrine");
-		default: return TEXT("Invalid");
-		}
-	}
+	return true;
+}
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -135,10 +155,10 @@ bool UEFCalystoPackagedSmokeSubsystem::ShouldCreateSubsystem(UObject* Outer) con
 	(void)Outer;
 	return false;
 #else
-	return Super::ShouldCreateSubsystem(Outer)
-		&& FPlatformProperties::RequiresCookedData()
-		&& FApp::IsUnattended()
-		&& FParse::Param(FCommandLine::Get(), TEXT("CalystoV4PackagedSmoke"));
+	return Super::ShouldCreateSubsystem(Outer) &&
+		FPlatformProperties::RequiresCookedData() &&
+		FApp::IsUnattended() &&
+		FParse::Param(FCommandLine::Get(), TEXT("CalystoV6PackagedSmoke"));
 #endif
 }
 
@@ -151,15 +171,10 @@ void UEFCalystoPackagedSmokeSubsystem::Initialize(FSubsystemCollectionBase& Coll
 		: nullptr;
 	StartedAtSeconds = FPlatformTime::Seconds();
 
-	FString ConfigurationError;
-	if (!ConfigureFromCommandLine(ConfigurationError))
+	FString Error;
+	if (!ConfigureFromCommandLine(Error) || !InitializeProjectTelemetry(Error))
 	{
-		Finish(false, ConfigurationError);
-		return;
-	}
-	if (!InitializeProjectTelemetry(ConfigurationError))
-	{
-		Finish(false, ConfigurationError);
+		Finish(false, Error);
 		return;
 	}
 	if (!DungeonSubsystem)
@@ -168,7 +183,19 @@ void UEFCalystoPackagedSmokeSubsystem::Initialize(FSubsystemCollectionBase& Coll
 		return;
 	}
 
-	DungeonSubsystem->OnFloorReady().AddUObject(this, &UEFCalystoPackagedSmokeSubsystem::HandleFloorReady);
+#if WITH_DEV_AUTOMATION_TESTS
+	if (ForcedDungeonEdge > 0)
+	{
+		DungeonSubsystem->SetForcedDungeonEdgeForAutomation(ForcedDungeonEdge);
+	}
+	if (Scenario != EFCalystoV6PackagedSmokePrivate::NaturalScenario)
+	{
+		DungeonSubsystem->SetPopulationScenarioForAutomation(Scenario);
+	}
+#endif
+
+	DungeonSubsystem->OnFloorReady().AddUObject(
+		this, &UEFCalystoPackagedSmokeSubsystem::HandleFloorReady);
 	DungeonSubsystem->OnFloorTravelFailed().AddUObject(
 		this, &UEFCalystoPackagedSmokeSubsystem::HandleFloorTravelFailed);
 	BootstrapTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
@@ -189,6 +216,10 @@ void UEFCalystoPackagedSmokeSubsystem::Deinitialize()
 	{
 		DungeonSubsystem->OnFloorReady().RemoveAll(this);
 		DungeonSubsystem->OnFloorTravelFailed().RemoveAll(this);
+#if WITH_DEV_AUTOMATION_TESTS
+		DungeonSubsystem->ClearForcedDungeonEdgeForAutomation();
+		DungeonSubsystem->ClearPopulationScenarioForAutomation();
+#endif
 	}
 	DungeonSubsystem = nullptr;
 	Super::Deinitialize();
@@ -196,17 +227,18 @@ void UEFCalystoPackagedSmokeSubsystem::Deinitialize()
 
 bool UEFCalystoPackagedSmokeSubsystem::ConfigureFromCommandLine(FString& OutError)
 {
-	using namespace EFCalystoPackagedSmokePrivate;
+	using namespace EFCalystoV6PackagedSmokePrivate;
 	OutError.Reset();
 #if UE_BUILD_SHIPPING
 	ConfigurationName = TEXT("Shipping");
 #else
 	ConfigurationName = TEXT("Development");
 #endif
+
 	FString ParsedRunTag;
-	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV4SmokeRunTag="), ParsedRunTag))
+	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV6SmokeRunTag="), ParsedRunTag))
 	{
-		if (!IsSafeRunTag(ParsedRunTag))
+		if (!IsSafeToken(ParsedRunTag, 96))
 		{
 			RunTag = MakeRunTag();
 			OutError = TEXT("INVALID_RUN_TAG");
@@ -219,129 +251,83 @@ bool UEFCalystoPackagedSmokeSubsystem::ConfigureFromCommandLine(FString& OutErro
 		RunTag = MakeRunTag();
 	}
 
-	int64 ParsedSeed = RunSeed;
-	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV4SmokeSeed="), OutError))
+	if (HasOption(TEXT("CalystoV6SmokeSeed=")) &&
+		(!ParseInt64Option(TEXT("CalystoV6SmokeSeed="), RunSeed) || RunSeed <= 0))
 	{
-		if (!ParseInt64Option(TEXT("CalystoV4SmokeSeed="), ParsedSeed) || ParsedSeed <= 0)
-		{
-			OutError = TEXT("INVALID_RUN_SEED");
-			return false;
-		}
-		RunSeed = ParsedSeed;
+		OutError = TEXT("INVALID_RUN_SEED");
+		return false;
 	}
-
-	int32 ParsedMaximumFloor = MaximumFloor;
-	FString IgnoredMaximumFloor;
-	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV4SmokeMaxFloor="), IgnoredMaximumFloor))
+	if (HasOption(TEXT("CalystoV6SmokeMaxFloor=")) &&
+		(!ParseInt32Option(TEXT("CalystoV6SmokeMaxFloor="), MaximumFloor) ||
+		 MaximumFloor < 1 || MaximumFloor > 100))
 	{
-		if (!ParseInt32Option(TEXT("CalystoV4SmokeMaxFloor="), ParsedMaximumFloor)
-			|| ParsedMaximumFloor < 1 || ParsedMaximumFloor > 100)
-		{
-			OutError = TEXT("INVALID_MAXIMUM_FLOOR");
-			return false;
-		}
-		MaximumFloor = ParsedMaximumFloor;
+		OutError = TEXT("INVALID_MAXIMUM_FLOOR");
+		return false;
 	}
-
-	float ParsedTimeout = TimeoutSeconds;
-	FString IgnoredTimeout;
-	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV4SmokeTimeout="), IgnoredTimeout))
+	if (HasOption(TEXT("CalystoV6SmokeTimeout=")) &&
+		(!ParseFloatOption(TEXT("CalystoV6SmokeTimeout="), TimeoutSeconds) ||
+		 !FMath::IsFinite(TimeoutSeconds) || TimeoutSeconds < 60.0f || TimeoutSeconds > 1800.0f))
 	{
-		if (!ParseFloatOption(TEXT("CalystoV4SmokeTimeout="), ParsedTimeout)
-			|| !FMath::IsFinite(ParsedTimeout) || ParsedTimeout < 60.0f || ParsedTimeout > 1800.0f)
-		{
-			OutError = TEXT("INVALID_TIMEOUT");
-			return false;
-		}
-		TimeoutSeconds = ParsedTimeout;
+		OutError = TEXT("INVALID_TIMEOUT");
+		return false;
+	}
+	if (HasOption(TEXT("CalystoV6SmokeForcedEdge=")) &&
+		(!ParseInt32Option(TEXT("CalystoV6SmokeForcedEdge="), ForcedDungeonEdge) ||
+		 (ForcedDungeonEdge != 0 &&
+		  (ForcedDungeonEdge < EFCalystoDungeonRuntimeSchemaV6::MinimumDungeonEdge ||
+		   ForcedDungeonEdge > EFCalystoDungeonRuntimeSchemaV6::MaximumDungeonEdge))))
+	{
+		OutError = TEXT("INVALID_FORCED_DUNGEON_EDGE");
+		return false;
 	}
 
 	FString ScenarioText;
-	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV4SmokeScenario="), ScenarioText))
+	if (FParse::Value(FCommandLine::Get(), TEXT("CalystoV6SmokeScenario="), ScenarioText))
 	{
-		if (ScenarioText.Equals(TEXT("Natural"), ESearchCase::IgnoreCase))
+		if (!IsSafeToken(ScenarioText, 64))
 		{
-			Scenario = NaturalScenario;
-		}
-		else if (ScenarioText.Equals(TEXT("Zero"), ESearchCase::IgnoreCase))
-		{
-			Scenario = ZeroScenario;
-		}
-		else if (ScenarioText.Equals(TEXT("EnemyCap25"), ESearchCase::IgnoreCase))
-		{
-			Scenario = EnemyCap25Scenario;
-		}
-		else if (ScenarioText.Equals(TEXT("ResourceMax"), ESearchCase::IgnoreCase))
-		{
-			Scenario = ResourceMaxScenario;
-		}
-		else if (ScenarioText.Equals(TEXT("ResourceMin"), ESearchCase::IgnoreCase))
-		{
-			Scenario = ResourceMinScenario;
-		}
-		else if (ScenarioText.Equals(TEXT("NPCTotal4"), ESearchCase::IgnoreCase))
-		{
-			Scenario = NPCTotal4Scenario;
-		}
-		else if (ScenarioText.Equals(TEXT("SpecialEvents6"), ESearchCase::IgnoreCase))
-		{
-			Scenario = SpecialEvents6Scenario;
-		}
-		else
-		{
-			OutError = TEXT("UNKNOWN_POPULATION_SCENARIO");
+			OutError = TEXT("INVALID_POPULATION_SCENARIO");
 			return false;
 		}
+		Scenario = FName(*ScenarioText);
 	}
 
-	bOutcomeTelemetryDisabled = FParse::Param(
-		FCommandLine::Get(),
-		TEXT("CalystoV4DisableOutcomeTelemetry"));
+	const bool bHasDevelopmentOverride =
+		ForcedDungeonEdge > 0 || Scenario != NaturalScenario;
 #if UE_BUILD_SHIPPING
-	if (bOutcomeTelemetryDisabled)
+	if (bHasDevelopmentOverride)
 	{
-		OutError = TEXT("NEUTRAL_OUTCOME_FIXTURE_NOT_AVAILABLE_IN_SHIPPING");
+		OutError = TEXT("SHIPPING_DEVELOPMENT_OVERRIDE_REJECTED");
 		return false;
 	}
-#else
-	if (bOutcomeTelemetryDisabled && Scenario != NaturalScenario)
+#elif !WITH_DEV_AUTOMATION_TESTS
+	if (bHasDevelopmentOverride)
 	{
-		OutError = TEXT("NEUTRAL_OUTCOME_FIXTURE_REQUIRES_NATURAL_SCENARIO");
+		OutError = TEXT("DEVELOPMENT_AUTOMATION_HOOKS_NOT_COMPILED");
 		return false;
 	}
 #endif
 
-	bCaptureVisual = FParse::Param(FCommandLine::Get(), TEXT("CalystoV4SmokeCapture"));
-	if (bCaptureVisual)
-	{
-		const FString SafeScenario = Scenario.ToString().Replace(TEXT("/"), TEXT("_")).Replace(TEXT("\\"), TEXT("_"));
-		const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CalystoDungeonDirectorV4"));
-		IFileManager::Get().MakeDirectory(*Directory, true);
-		ScreenshotPath = FPaths::Combine(
-			Directory,
-			FString::Printf(
-				TEXT("PackagedSmokeVisual_%s_%s_%s.png"),
-				*ConfigurationName,
-				*SafeScenario,
-				*RunTag));
-	}
-	const FString SafeScenario = Scenario.ToString().Replace(TEXT("/"), TEXT("_")).Replace(TEXT("\\"), TEXT("_"));
-	const FString EvidenceDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CalystoDungeonDirectorV4"));
+	bCaptureVisual = FParse::Param(FCommandLine::Get(), TEXT("CalystoV6SmokeCapture"));
+	const FString EvidenceDirectory = FPaths::Combine(
+		FPaths::ProjectSavedDir(), TEXT("CalystoDungeonDirectorV6"));
 	IFileManager::Get().MakeDirectory(*EvidenceDirectory, true);
+	const FString SafeScenario = Scenario.ToString();
 	ReceiptPath = FPaths::Combine(
 		EvidenceDirectory,
-		FString::Printf(
-			TEXT("PackagedSmokeReceipt_%s_%s_%s.json"),
-			*ConfigurationName,
-			*SafeScenario,
-			*RunTag));
+		FString::Printf(TEXT("PackagedSmokeReceipt_%s_%s_%s.json"),
+			*ConfigurationName, *SafeScenario, *RunTag));
 	ProjectTelemetryPath = FPaths::Combine(
 		EvidenceDirectory,
-		FString::Printf(
-			TEXT("PackagedSmokeTelemetry_%s_%s_%s.log"),
-			*ConfigurationName,
-			*SafeScenario,
-			*RunTag));
+		FString::Printf(TEXT("PackagedSmokeTelemetry_%s_%s_%s.log"),
+			*ConfigurationName, *SafeScenario, *RunTag));
+	if (bCaptureVisual)
+	{
+		ScreenshotPath = FPaths::Combine(
+			EvidenceDirectory,
+			FString::Printf(TEXT("PackagedSmokeVisual_%s_%s_%s.png"),
+				*ConfigurationName, *SafeScenario, *RunTag));
+	}
 	return true;
 }
 
@@ -359,15 +345,15 @@ bool UEFCalystoPackagedSmokeSubsystem::InitializeProjectTelemetry(FString& OutEr
 		return false;
 	}
 	const FString Header = FString::Printf(
-		TEXT("CALYSTO_V4_PROJECT_TELEMETRY schema=%d runTag=%s configuration=%s scenario=%s"),
+		TEXT("CALYSTO_V6_PROJECT_TELEMETRY schema=%d runTag=%s configuration=%s scenario=%s"),
 		ProjectTelemetrySchemaVersion,
 		*RunTag,
 		*ConfigurationName,
 		*Scenario.ToString());
 	if (!FFileHelper::SaveStringToFile(
-			Header + LINE_TERMINATOR,
-			*ProjectTelemetryPath,
-			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
+		Header + LINE_TERMINATOR,
+		*ProjectTelemetryPath,
+		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
 	{
 		OutError = TEXT("PROJECT_TELEMETRY_CREATE_FAILED");
 		return false;
@@ -379,24 +365,23 @@ bool UEFCalystoPackagedSmokeSubsystem::InitializeProjectTelemetry(FString& OutEr
 
 bool UEFCalystoPackagedSmokeSubsystem::AppendProjectTelemetry(const FString& EventPayload)
 {
-	if (!bProjectTelemetryInitialized || !bProjectTelemetryHealthy
-		|| ProjectTelemetryPath.IsEmpty() || EventPayload.IsEmpty())
+	if (!bProjectTelemetryInitialized || !bProjectTelemetryHealthy || EventPayload.IsEmpty())
 	{
 		bProjectTelemetryHealthy = false;
 		return false;
 	}
 	const uint64 NextSequence = ProjectTelemetrySequence + 1;
 	const FString Line = FString::Printf(
-		TEXT("CALYSTO_V4_PROJECT_TELEMETRY schema=%d sequence=%llu %s"),
+		TEXT("CALYSTO_V6_PROJECT_TELEMETRY schema=%d sequence=%llu %s"),
 		ProjectTelemetrySchemaVersion,
 		static_cast<unsigned long long>(NextSequence),
 		*EventPayload.ReplaceCharWithEscapedChar());
 	if (!FFileHelper::SaveStringToFile(
-			Line + LINE_TERMINATOR,
-			*ProjectTelemetryPath,
-			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,
-			&IFileManager::Get(),
-			FILEWRITE_Append))
+		Line + LINE_TERMINATOR,
+		*ProjectTelemetryPath,
+		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,
+		&IFileManager::Get(),
+		FILEWRITE_Append))
 	{
 		bProjectTelemetryHealthy = false;
 		return false;
@@ -406,28 +391,28 @@ bool UEFCalystoPackagedSmokeSubsystem::AppendProjectTelemetry(const FString& Eve
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::AppendReadyFloorProjectTelemetry(
-	const int64 FloorNumber,
-	const FEFCalystoResolvedFloorIntentV4& Intent,
-	const FEFCalystoRealizedFloorManifestV4& Manifest)
+	const FReadyFloorRecord& Record,
+	const FEFCalystoRoomManifestV6& RoomManifest)
 {
-	const FString Identity = FString::Printf(
-		TEXT("floor=%lld serial=%lld intent=%s manifest=%s"),
-		static_cast<long long>(FloorNumber),
-		static_cast<long long>(Intent.GenerationSerial),
-		*Intent.IntentHash,
-		*Manifest.ManifestHash);
 	return AppendProjectTelemetry(FString::Printf(
-			TEXT("event=FloorReady status=PASS tag=%s %s enemies=%d npcs=%d food=%d chests=%d loose=%d clothing=%d special=%d actors=%d"),
-			*RunTag,
-			*Identity,
-			Manifest.EnemyCount,
-			Manifest.NPCCount,
-			Manifest.FoodCount,
-			Manifest.ChestCount,
-			Manifest.LooseLootCount,
-			Manifest.ClothingCount,
-			Manifest.SpecialEventCount,
-			Manifest.SpawnedActorCount));
+		TEXT("event=FloorReady status=PASS floor=%lld serial=%lld styleId=%s "
+			 "rooms=%d eligibleRooms=%d themedRooms=%d roomThemeIds=%s "
+			 "actorDecisions=%d chestContentDecisions=%d actors=%d intent=%s "
+			 "roomManifest=%s populationPlan=%s realizedManifest=%s"),
+		static_cast<long long>(Record.FloorNumber),
+		static_cast<long long>(Record.GenerationSerial),
+		*Record.StyleId.ToString(),
+		RoomManifest.Rooms.Num(),
+		RoomManifest.EligibleRoomCount,
+		RoomManifest.ThemedRoomCount,
+		*EFCalystoV6PackagedSmokePrivate::JoinNames(Record.RoomThemeIds),
+		Record.ActorDecisionCount,
+		Record.ChestContentDecisionCount,
+		Record.SpawnedActorCount,
+		*Record.IntentHash,
+		*Record.RoomManifestHash,
+		*Record.PopulationPlanHash,
+		*Record.RealizedManifestHash));
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::RecordRuntimeReadinessTrace(
@@ -436,580 +421,762 @@ bool UEFCalystoPackagedSmokeSubsystem::RecordRuntimeReadinessTrace(
 	const int64 GenerationSerial,
 	const TArray<FName>& ReadinessTrace)
 {
-	static const FName ExpectedTrace[] =
+	if (bFinished || !IsValid(World) || !IsConfiguredDungeonWorld(World))
 	{
-		TEXT("GenerateLocal"),
-		TEXT("PCGComplete"),
-		TEXT("NavigationPathReady"),
-		TEXT("EnemyLevelsReady"),
-		TEXT("PopulationRealized"),
-		TEXT("CompanionRosterReady"),
-		TEXT("DoorEnabled")
-	};
-	if (bFinished || !IsValid(World) || FloorNumber != ExpectedFloor
-		|| GenerationSerial != FloorNumber || ReadinessTrace.Num() != UE_ARRAY_COUNT(ExpectedTrace))
-	{
-		AppendProjectTelemetry(FString::Printf(
-			TEXT("event=ReadinessTraceRejected floor=%lld serial=%lld entries=%d reason=identity_or_cardinality"),
-			static_cast<long long>(FloorNumber),
-			static_cast<long long>(GenerationSerial),
-			ReadinessTrace.Num()));
-		Finish(false, TEXT("PROJECT_TELEMETRY_READINESS_TRACE_INVALID"));
 		return false;
 	}
-	for (int32 Index = 0; Index < UE_ARRAY_COUNT(ExpectedTrace); ++Index)
+	FString Error;
+	if (!EFCalystoV6PackagedSmokePrivate::ValidateReadinessTrace(ReadinessTrace, Error))
 	{
-		if (ReadinessTrace[Index] != ExpectedTrace[Index])
+		AppendProjectTelemetry(FString::Printf(
+			TEXT("event=ReadinessTraceRejected floor=%lld serial=%lld reason=%s"),
+			static_cast<long long>(FloorNumber),
+			static_cast<long long>(GenerationSerial),
+			*Error));
+		Finish(false, Error);
+		return false;
+	}
+
+	const bool bEntryProbeTrace = !bSeededRunRequested;
+	if (bEntryProbeTrace)
+	{
+		if (!bEntryDoorInteracted || FloorNumber != 1 || GenerationSerial != 0 ||
+			EntryProbeReadinessTraceCount != 0)
 		{
-			AppendProjectTelemetry(FString::Printf(
-				TEXT("event=ReadinessTraceRejected floor=%lld serial=%lld index=%d expected=%s observed=%s reason=order"),
-				static_cast<long long>(FloorNumber),
-				static_cast<long long>(GenerationSerial),
-				Index,
-				*ExpectedTrace[Index].ToString(),
-				*ReadinessTrace[Index].ToString()));
-			Finish(false, TEXT("PROJECT_TELEMETRY_READINESS_TRACE_ORDER_INVALID"));
+			Finish(false, TEXT("ENTRY_PROBE_READINESS_IDENTITY_INVALID"));
 			return false;
 		}
+		++EntryProbeReadinessTraceCount;
 	}
-	for (const FName& Stage : ReadinessTrace)
+	else
+	{
+		if (FloorNumber != ExpectedFloor || GenerationSerial != FloorNumber - 1 ||
+			ProjectTelemetryReadySequenceCount != CompletedFloorCount)
+		{
+			Finish(false, TEXT("SEEDED_READINESS_IDENTITY_INVALID"));
+			return false;
+		}
+		++ProjectTelemetryReadySequenceCount;
+	}
+
+	const TCHAR* Phase = bEntryProbeTrace ? TEXT("EntryProbe") : TEXT("SeededRun");
+	for (const FName Stage : ReadinessTrace)
 	{
 		if (!AppendProjectTelemetry(FString::Printf(
-				TEXT("event=%s source=PCGRuntimeTrace floor=%lld serial=%lld world=%s"),
-				*Stage.ToString(),
-				static_cast<long long>(FloorNumber),
-				static_cast<long long>(GenerationSerial),
-				*World->GetName())))
+			TEXT("event=%s source=PCGRuntimeTrace phase=%s floor=%lld serial=%lld world=%s"),
+			*Stage.ToString(),
+			Phase,
+			static_cast<long long>(FloorNumber),
+			static_cast<long long>(GenerationSerial),
+			*World->GetPathName())))
 		{
 			Finish(false, TEXT("PROJECT_TELEMETRY_READINESS_TRACE_WRITE_FAILED"));
 			return false;
 		}
 	}
-	++ProjectTelemetryReadySequenceCount;
 	return true;
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::HandleBootstrapTick(float DeltaTime)
 {
 	(void)DeltaTime;
-	if (bFinished || bBootstrapDispatched)
+	if (bFinished)
 	{
 		BootstrapTickerHandle.Reset();
 		return false;
 	}
-	if (FPlatformTime::Seconds() - StartedAtSeconds < 1.0)
-	{
-		return true;
-	}
+
 	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
-	if (!IsValid(World) || !World->IsGameWorld() || World->WorldType != EWorldType::Game
-		|| !World->HasBegunPlay())
+	if (!IsValid(World) || !World->IsGameWorld() || World->WorldType != EWorldType::Game ||
+		!World->HasBegunPlay() || World->bIsTearingDown)
 	{
 		return true;
 	}
-	// ACF's cooked Shipping frontend can normalize the process' explicit startup
-	// URL back to MenuMap and possess DefaultPawn.  The production Director
-	// intentionally refuses travel without the authoritative Player equipment
-	// component, so this explicit smoke-only driver materializes the same project
-	// Player class before requesting the run.  Normal Shipping launches never
-	// create this subsystem because -CalystoV4PackagedSmoke is absent.
-	APawn* BootstrapPawn = UGameplayStatics::GetPlayerPawn(World, 0);
-	const FString BootstrapPawnClassPath = BootstrapPawn
-		? BootstrapPawn->GetClass()->GetPathName()
-		: FString();
-	const bool bHasProjectGameplayPawn =
-		BootstrapPawnClassPath.StartsWith(TEXT("/Game/FullSample/Player.Player_C"));
-	if (!bHasProjectGameplayPawn)
+
+	if (bEntryProbeAccepted && !bSeededRunRequested)
 	{
-		if (!bBootstrapGameplayPawnRequested)
+		ExpectedFloor = 1;
+		PreviousGenerationSerial = -1;
+		bSeededRunRequested = true;
+		if (!DungeonSubsystem || !DungeonSubsystem->RequestStartNewRunWithSeed(RunSeed))
 		{
-			APlayerController* Controller = World->GetFirstPlayerController();
-			UClass* PlayerClass = StaticLoadClass(
-				APawn::StaticClass(),
-				nullptr,
-				TEXT("/Game/FullSample/Player.Player_C"));
-			if (!Controller || !PlayerClass)
+			bSeededRunRequested = false;
+			Finish(false, TEXT("SEEDED_NEW_RUN_REJECTED"));
+			BootstrapTickerHandle.Reset();
+			return false;
+		}
+		if (!AppendProjectTelemetry(FString::Printf(
+			TEXT("event=SeededRunRequested seed=%lld maxFloor=%d"),
+			static_cast<long long>(RunSeed), MaximumFloor)))
+		{
+			Finish(false, TEXT("PROJECT_TELEMETRY_SEEDED_RUN_WRITE_FAILED"));
+			BootstrapTickerHandle.Reset();
+			return false;
+		}
+		BootstrapTickerHandle.Reset();
+		return false;
+	}
+
+	if (bEntryDoorInteracted)
+	{
+		if (IsConfiguredDungeonWorld(World))
+		{
+			if (!bDungeonWorldObserved)
 			{
-				Finish(false, TEXT("PACKAGED_SMOKE_PLAYER_BOOTSTRAP_UNAVAILABLE"));
-				BootstrapTickerHandle.Reset();
-				return false;
+				bDungeonWorldObserved = true;
+				if (!AppendProjectTelemetry(FString::Printf(
+					TEXT("event=DungeonWorldObserved source=DoorToLevel world=%s"),
+					*World->GetPathName())))
+				{
+					Finish(false, TEXT("PROJECT_TELEMETRY_DUNGEON_WORLD_WRITE_FAILED"));
+					return false;
+				}
 			}
-			const FTransform SpawnTransform = BootstrapPawn
-				? BootstrapPawn->GetActorTransform()
-				: FTransform::Identity;
-			FActorSpawnParameters SpawnParameters;
-			SpawnParameters.Owner = Controller;
-			SpawnParameters.SpawnCollisionHandlingOverride =
-				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			APawn* ProjectPawn = World->SpawnActor<APawn>(
-				PlayerClass,
-				SpawnTransform,
-				SpawnParameters);
-			if (!ProjectPawn)
-			{
-				Finish(false, TEXT("PACKAGED_SMOKE_PLAYER_BOOTSTRAP_SPAWN_FAILED"));
-				BootstrapTickerHandle.Reset();
-				return false;
-			}
-			Controller->Possess(ProjectPawn);
-			if (BootstrapPawn && BootstrapPawn != ProjectPawn)
-			{
-				BootstrapPawn->Destroy();
-			}
-			bBootstrapGameplayPawnRequested = true;
-			BootstrapGameplayPawnReadyNotBeforeSeconds = FPlatformTime::Seconds() + 1.0;
+			return true;
+		}
+		if (World->GetPathName() != EntranceWorldPath)
+		{
+			Finish(false, TEXT("DOOR_TO_LEVEL_OPENED_UNEXPECTED_WORLD"));
+			return false;
+		}
+		if (FPlatformTime::Seconds() - EntranceDoorInteractionAtSeconds > 15.0)
+		{
+			Finish(false, TEXT("DOOR_TO_LEVEL_TRAVEL_TIMEOUT"));
+			return false;
 		}
 		return true;
 	}
-	if (bBootstrapGameplayPawnRequested
-		&& FPlatformTime::Seconds() < BootstrapGameplayPawnReadyNotBeforeSeconds)
+
+	if (IsConfiguredDungeonWorld(World))
+	{
+		Finish(false, TEXT("DUNGEON_ENTRY_BYPASSED_DOOR_TO_LEVEL"));
+		return false;
+	}
+
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
+	if (!Snapshot.PolicyError.IsEmpty())
+	{
+		Finish(false, FString::Printf(TEXT("POLICY_INVALID:%s"), *Snapshot.PolicyError));
+		return false;
+	}
+	if (!Snapshot.bPolicyValid)
 	{
 		return true;
 	}
-	const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
-	if (!Snapshot.bPolicyValid || !Snapshot.PolicyError.IsEmpty())
+
+	const UEFCalystoDungeonHarnessSettings* Harness = UEFCalystoDungeonHarnessSettings::Get();
+	const UEFCalystoDungeonDirectorPolicyV6Asset* Policy = Harness ? Harness->DirectorPolicy.Get() : nullptr;
+	if (!Policy)
 	{
-		Finish(false, FString::Printf(TEXT("POLICY_INVALID:%s"), *Snapshot.PolicyError));
-		BootstrapTickerHandle.Reset();
+		return true;
+	}
+	const FString GameplayHash = Policy->GetGameplayHash();
+	const FString AuthoringHash = Policy->GetAuthoringHash();
+	const FString MaterialHash = Policy->GetMaterialHash();
+	const FString DecalHash = Policy->GetDecalHash();
+	if (!Policy->ValidatePolicy() || Policy->GetPathName() != EFCalystoV6PackagedSmokePrivate::ExpectedPolicyPath ||
+		Policy->GetClass()->GetPathName() != EFCalystoV6PackagedSmokePrivate::ExpectedPolicyClass ||
+		!EFCalystoV6PackagedSmokePrivate::HasSha256(GameplayHash) ||
+		!EFCalystoV6PackagedSmokePrivate::HasSha256(AuthoringHash) ||
+		!EFCalystoV6PackagedSmokePrivate::HasSha256(MaterialHash) ||
+		!EFCalystoV6PackagedSmokePrivate::HasSha256(DecalHash))
+	{
+		Finish(false, TEXT("V6_AUTHORITY_IDENTITY_INVALID"));
 		return false;
 	}
-	const UEFCalystoDungeonHarnessSettings* HarnessSettings = UEFCalystoDungeonHarnessSettings::Get();
-	const UEFCalystoDungeonDirectorPolicyV4* AuthorityPolicy = HarnessSettings
-		? HarnessSettings->DirectorPolicy.Get()
-		: nullptr;
-	static const FString ExpectedPolicyPath =
-		TEXT("/Game/_Game/Data/CalystoDungeon/V4/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy");
-	static const FString ExpectedPolicyClass =
-		TEXT("/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV4");
-	if (!AuthorityPolicy || AuthorityPolicy->SchemaVersion != 4 || AuthorityPolicy->GeneratorVersion != 4
-		|| AuthorityPolicy->GetPathName() != ExpectedPolicyPath
-		|| AuthorityPolicy->GetClass()->GetPathName() != ExpectedPolicyClass
-		|| !EFCalystoPackagedSmokePrivate::HasSha256(Snapshot.PolicyHash))
+
+	if (!bAuthorityValidated)
 	{
-		Finish(false, TEXT("V4_AUTHORITY_IDENTITY_INVALID"));
-		BootstrapTickerHandle.Reset();
-		return false;
-	}
-	FString EffectivePolicyHash = Snapshot.PolicyHash;
-	if (DungeonSubsystem->HasActiveRun() || DungeonSubsystem->IsTravelRequestPending())
-	{
-		Finish(false, TEXT("BOOTSTRAP_REQUIRES_IDLE_GAME_INSTANCE"));
-		BootstrapTickerHandle.Reset();
-		return false;
-	}
-	if (!AppendProjectTelemetry(FString::Printf(
-			TEXT("event=Begin tag=%s configuration=%s scenario=%s seed=%lld maxFloor=%d timeout=%.1f outcomeMode=%s world=%s pawnClass=%s"),
+		if (DungeonSubsystem->HasActiveRun() || DungeonSubsystem->IsTravelRequestPending())
+		{
+			Finish(false, TEXT("ENTRANCE_REQUIRES_IDLE_DIRECTOR"));
+			return false;
+		}
+		if (!AppendProjectTelemetry(FString::Printf(
+			TEXT("event=Begin tag=%s configuration=%s scenario=%s forcedEdge=%d seed=%lld "
+				 "maxFloor=%d timeout=%.1f world=%s"),
 			*RunTag,
 			*ConfigurationName,
 			*Scenario.ToString(),
+			ForcedDungeonEdge,
 			static_cast<long long>(RunSeed),
 			MaximumFloor,
 			TimeoutSeconds,
-			bOutcomeTelemetryDisabled ? TEXT("neutral_missing_telemetry") : TEXT("live"),
-			*World->GetPathName(),
-			BootstrapPawn ? *BootstrapPawn->GetClass()->GetPathName() : TEXT("NONE"))))
-	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_BEGIN_WRITE_FAILED"));
-		BootstrapTickerHandle.Reset();
-		return false;
-	}
-
-#if UE_BUILD_SHIPPING
-	const bool bRejectShippingOverride =
-		Scenario != EFCalystoPackagedSmokePrivate::NaturalScenario;
-#else
-	const bool bRejectShippingOverride = false;
-	if (Scenario != EFCalystoPackagedSmokePrivate::NaturalScenario)
-	{
-		FString ScenarioPolicyHash;
-		FString ScenarioError;
-		if (!DungeonSubsystem->SetDevelopmentPopulationScenarioForAutomation(
-				Scenario, ScenarioPolicyHash, ScenarioError, true)
-			|| !DungeonSubsystem->SetDevelopmentForcedDungeonEdgeForAutomation(30, true))
+			*World->GetPathName())) ||
+			!AppendProjectTelemetry(FString::Printf(
+				TEXT("event=Authority policyPath=%s policyClass=%s schema=6 generator=6 "
+					 "gameplayHash=%s authoringHash=%s materialHash=%s decalHash=%s"),
+				*Policy->GetPathName(),
+				*Policy->GetClass()->GetPathName(),
+				*GameplayHash,
+				*AuthoringHash,
+				*MaterialHash,
+				*DecalHash)))
 		{
-			Finish(false, FString::Printf(TEXT("DEVELOPMENT_SCENARIO_REJECTED:%s"), *ScenarioError));
-			BootstrapTickerHandle.Reset();
+			Finish(false, TEXT("PROJECT_TELEMETRY_BEGIN_WRITE_FAILED"));
 			return false;
 		}
-		UE_LOG(
-			LogEFCalystoPackagedSmoke,
-			Log,
-			TEXT("CALYSTO_PACKAGED_SMOKE_SCENARIO scenario=%s edge=30 transient=true policy=%s"),
-			*Scenario.ToString(),
-			*ScenarioPolicyHash);
-		EffectivePolicyHash = ScenarioPolicyHash;
+		bAuthorityValidated = true;
+	}
+
+	FString DoorError;
+	AActor* EntranceDoor = FindUniqueEntranceDoor(World, DoorError);
+	if (!DoorError.IsEmpty())
+	{
+		Finish(false, DoorError);
+		return false;
+	}
+	if (!EntranceDoor)
+	{
+		return true;
+	}
+	if (!TrySelectDoor(World, EntranceDoor, DoorError))
+	{
+		if (!DoorError.IsEmpty())
+		{
+			Finish(false, DoorError);
+			return false;
+		}
+		return true;
+	}
+
+	if (!bEntryDoorSelected)
+	{
 		if (!AppendProjectTelemetry(FString::Printf(
-				TEXT("event=DevelopmentScenarioConfigured scenario=%s edge=30 policy=%s"),
-				*Scenario.ToString(),
-				*ScenarioPolicyHash)))
+			TEXT("event=DoorToLevelSelected class=%s world=%s"),
+			*EntranceDoor->GetClass()->GetPathName(),
+			*World->GetPathName())))
 		{
-			Finish(false, TEXT("PROJECT_TELEMETRY_SCENARIO_WRITE_FAILED"));
-			BootstrapTickerHandle.Reset();
+			Finish(false, TEXT("PROJECT_TELEMETRY_ENTRY_DOOR_SELECTION_WRITE_FAILED"));
 			return false;
 		}
+		bEntryDoorSelected = true;
+		++ProjectTelemetryEntryDoorSelectedCount;
 	}
-#endif
-	if (!AppendProjectTelemetry(FString::Printf(
-			TEXT("event=Authority policyPath=%s policyClass=%s schema=4 generator=4 policyHash=%s legacyAuthorityLoaded=false"),
-			*ExpectedPolicyPath,
-			*ExpectedPolicyClass,
-			*EffectivePolicyHash)))
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	UACFInteractionComponent* Interaction =
+		PlayerPawn ? PlayerPawn->FindComponentByClass<UACFInteractionComponent>() : nullptr;
+	if (!Interaction)
 	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_AUTHORITY_WRITE_FAILED"));
-		BootstrapTickerHandle.Reset();
+		return true;
+	}
+	EntranceWorldPath = World->GetPathName();
+	Interaction->Interact(TEXT("CalystoV6PackagedSmoke"));
+	bEntryDoorInteracted = true;
+	EntranceDoorInteractionAtSeconds = FPlatformTime::Seconds();
+	++ProjectTelemetryEntryDoorInteractedCount;
+	if (!AppendProjectTelemetry(FString::Printf(
+		TEXT("event=DoorToLevelInteracted sourceWorld=%s"), *EntranceWorldPath)))
+	{
+		Finish(false, TEXT("PROJECT_TELEMETRY_ENTRY_DOOR_INTERACTION_WRITE_FAILED"));
 		return false;
 	}
-	if (bRejectShippingOverride)
+	return true;
+}
+
+bool UEFCalystoPackagedSmokeSubsystem::IsConfiguredDungeonWorld(const UWorld* World) const
+{
+	const UEFCalystoDungeonHarnessSettings* Harness = UEFCalystoDungeonHarnessSettings::Get();
+	if (!IsValid(World) || !Harness || Harness->DungeonMap.IsNull() || !World->GetPackage())
 	{
-		Finish(false, TEXT("SHIPPING_OVERRIDE_REJECTED"));
-		BootstrapTickerHandle.Reset();
+		return false;
+	}
+	return World->GetPackage()->GetFName() ==
+		FName(*Harness->DungeonMap.ToSoftObjectPath().GetLongPackageName());
+}
+
+AActor* UEFCalystoPackagedSmokeSubsystem::FindUniqueEntranceDoor(
+	UWorld* World,
+	FString& OutError) const
+{
+	OutError.Reset();
+	AActor* Result = nullptr;
+	int32 Count = 0;
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Actor = *It;
+		if (IsValid(Actor) && !Actor->IsActorBeingDestroyed() &&
+			Actor->GetClass()->GetPathName() == EFCalystoV6PackagedSmokePrivate::EntranceDoorClass)
+		{
+			Result = Actor;
+			++Count;
+		}
+	}
+	if (Count > 1)
+	{
+		OutError = TEXT("DOOR_TO_LEVEL_CARDINALITY_INVALID");
+		return nullptr;
+	}
+	return Result;
+}
+
+bool UEFCalystoPackagedSmokeSubsystem::TrySelectDoor(
+	UWorld* World,
+	AActor* Door,
+	FString& OutError)
+{
+	OutError.Reset();
+	if (!IsValid(World) || !IsValid(Door))
+	{
+		OutError = TEXT("DOOR_SELECTION_INPUT_INVALID");
+		return false;
+	}
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	UACFInteractionComponent* Interaction =
+		PlayerPawn ? PlayerPawn->FindComponentByClass<UACFInteractionComponent>() : nullptr;
+	if (!PlayerPawn || !Interaction)
+	{
 		return false;
 	}
 
-	bBootstrapDispatched = true;
-	UE_LOG(
-		LogEFCalystoPackagedSmoke,
-		Log,
-		TEXT("CALYSTO_PACKAGED_SMOKE_BEGIN tag=%s configuration=%s scenario=%s seed=%lld maxFloor=%d timeout=%.1f outcomeMode=%s"),
-		*RunTag,
-		*ConfigurationName,
-		*Scenario.ToString(),
-		static_cast<long long>(RunSeed),
-		MaximumFloor,
-		TimeoutSeconds,
-		bOutcomeTelemetryDisabled ? TEXT("neutral_missing_telemetry") : TEXT("live"));
-	if (!DungeonSubsystem->RequestStartNewRunWithSeed(RunSeed))
+	bool& bPositioned = Door->IsA<AEFCalystoFloorDoor>()
+		? bFloorDoorPositioned
+		: bEntryDoorPositioned;
+	if (!bPositioned)
 	{
-		Finish(false, TEXT("NEW_RUN_REJECTED"));
+		const FVector DoorLocation = Door->GetActorLocation();
+		const FVector SelectionLocation(DoorLocation.X - 80.0, DoorLocation.Y - 80.0, DoorLocation.Z);
+		PlayerPawn->SetActorLocation(
+			SelectionLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		Interaction->EnableDetection(false);
+		Interaction->EnableDetection(true);
+		bPositioned = true;
 	}
-	BootstrapTickerHandle.Reset();
-	return false;
+
+	Interaction->RefreshInteractions();
+	TArray<AActor*> OverlappingActors;
+	Interaction->GetOverlappingActors(OverlappingActors);
+	return Interaction->GetCurrentBestInteractableActor() == Door &&
+		OverlappingActors.Contains(Door);
 }
 
 void UEFCalystoPackagedSmokeSubsystem::HandleFloorReady(
 	const int64 FloorNumber,
 	const int32 PCGSeed,
-	const FEFCalystoResolvedFloorIntentV4& Intent,
-	const FEFCalystoRealizedFloorManifestV4& Manifest)
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoRealizedFloorManifestV6& Manifest)
 {
 	if (bFinished)
 	{
 		return;
 	}
-	FString ValidationError;
-	if (!ValidateReadyFloor(FloorNumber, PCGSeed, Intent, Manifest, ValidationError))
+
+	FString Error;
+	if (!bSeededRunRequested)
 	{
-		Finish(false, ValidationError);
+		// The generated floor can become ready before the quarter-second bootstrap
+		// ticker observes the post-travel world. The ready callback itself is
+		// authoritative evidence that DoorToLevel reached the configured map.
+		UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+		if (bEntryDoorInteracted && IsConfiguredDungeonWorld(World) && !bDungeonWorldObserved)
+		{
+			bDungeonWorldObserved = true;
+			if (!AppendProjectTelemetry(FString::Printf(
+				TEXT("event=DungeonWorldObserved source=DoorToLevel world=%s"),
+				*World->GetPathName())))
+			{
+				Finish(false, TEXT("PROJECT_TELEMETRY_DUNGEON_WORLD_WRITE_FAILED"));
+				return;
+			}
+		}
+		if (!ValidateEntryProbe(FloorNumber, PCGSeed, Intent, Manifest, Error))
+		{
+			Finish(false, Error);
+			return;
+		}
+		bEntryProbeAccepted = true;
+		if (!AppendProjectTelemetry(FString::Printf(
+			TEXT("event=DoorToLevelEntryProbeReady floor=%lld serial=%lld styleId=%s "
+				 "intent=%s manifest=%s"),
+			static_cast<long long>(FloorNumber),
+			static_cast<long long>(Intent.GenerationContext.GenerationSerial),
+			*Intent.StyleId.ToString(),
+			*Intent.IntentHash,
+			*Manifest.ManifestHash)))
+		{
+			Finish(false, TEXT("PROJECT_TELEMETRY_ENTRY_PROBE_WRITE_FAILED"));
+		}
 		return;
 	}
+
+	const FEFCalystoRoomManifestV6 RoomManifest = DungeonSubsystem->GetRoomManifestV6();
+	const FEFCalystoPopulationPlanV6& PopulationPlan = DungeonSubsystem->GetPopulationPlanV6();
+	if (!ValidateReadyFloor(
+		FloorNumber, PCGSeed, Intent, Manifest, RoomManifest, PopulationPlan, Error))
+	{
+		Finish(false, Error);
+		return;
+	}
+
+	FReadyFloorRecord& Record = ReadyFloorRecords.AddDefaulted_GetRef();
+	Record.SchemaVersion = Intent.SchemaVersion;
+	Record.GeneratorVersion = Intent.GeneratorVersion;
+	Record.FloorNumber = FloorNumber;
+	Record.GenerationSerial = Intent.GenerationContext.GenerationSerial;
+	Record.PCGSeed = PCGSeed;
+	Record.StyleId = Intent.StyleId;
+	Record.DungeonSize = Intent.DungeonSize;
+	Record.RoomCount = RoomManifest.Rooms.Num();
+	Record.EligibleRoomCount = RoomManifest.EligibleRoomCount;
+	Record.ThemedRoomCount = RoomManifest.ThemedRoomCount;
+	TSet<FName> UniqueThemeIds;
+	for (const FEFCalystoRoomContextV6& Room : RoomManifest.Rooms)
+	{
+		UniqueThemeIds.Add(Room.ThemeId);
+	}
+	for (const FName ThemeId : UniqueThemeIds)
+	{
+		Record.RoomThemeIds.Add(ThemeId);
+	}
+	Record.RoomThemeIds.Sort([](const FName A, const FName B)
+	{
+		return A.ToString() < B.ToString();
+	});
+	Record.CandidateAnchorCount = Manifest.CandidateAnchorCount;
+	Record.ActorDecisionCount = PopulationPlan.ActorDecisionCount;
+	Record.ChestContentDecisionCount = PopulationPlan.ChestContentDecisionCount;
+	Record.EnemyCount = PopulationPlan.EnemyCount;
+	Record.LooseFoodCount = PopulationPlan.LooseFoodCount;
+	Record.ChestCount = PopulationPlan.ChestCount;
+	Record.LootActorCount = PopulationPlan.LootActorCount;
+	Record.SpecialEventCount = PopulationPlan.SpecialEventCount;
+	Record.SpawnedActorCount = Manifest.SpawnedActorCount;
+	Record.RealizedThreatCost = Manifest.RealizedThreatCost;
+	Record.RealizedResourceCost = Manifest.RealizedResourceCost;
+	Record.PolicyHash = Intent.GenerationContext.PolicyHash;
+	Record.EcologyHash = Intent.EcologyHash;
+	Record.IntentHash = Intent.IntentHash;
+	Record.FloorPlanHash = Intent.FloorPlan.FloorPlanHash;
+	Record.RoomManifestHash = RoomManifest.ManifestHash;
+	Record.PopulationPlanHash = PopulationPlan.PopulationHash;
+	Record.AnchorTopologyHash = Manifest.AnchorTopologyHash;
+	Record.CompanionSnapshotHash = Manifest.CompanionSnapshotHash;
+	Record.RealizedManifestHash = Manifest.ManifestHash;
 
 	++CompletedFloorCount;
-	PreviousGenerationSerial = Intent.GenerationSerial;
-	FReadyFloorRecord& FloorRecord = ReadyFloorRecords.AddDefaulted_GetRef();
-	FloorRecord.GeneratorVersion = Intent.GeneratorVersion;
-	FloorRecord.FloorNumber = FloorNumber;
-	FloorRecord.GenerationSerial = Intent.GenerationSerial;
-	FloorRecord.PCGSeed = PCGSeed;
-	FloorRecord.Style = Intent.Style;
-	FloorRecord.Theme = Intent.Theme;
-	FloorRecord.DungeonSize = Intent.DungeonSize;
-	FloorRecord.CandidateAnchorCount = Manifest.CandidateAnchorCount;
-	FloorRecord.EnemyCount = Manifest.EnemyCount;
-	FloorRecord.NPCCount = Manifest.NPCCount;
-	FloorRecord.FoodCount = Manifest.FoodCount;
-	FloorRecord.ChestCount = Manifest.ChestCount;
-	FloorRecord.LooseLootCount = Manifest.LooseLootCount;
-	FloorRecord.ClothingCount = Manifest.ClothingCount;
-	FloorRecord.SpecialEventCount = Manifest.SpecialEventCount;
-	FloorRecord.SpawnedActorCount = Manifest.SpawnedActorCount;
-	FloorRecord.RealizedThreatCost = Manifest.RealizedThreatCost;
-	FloorRecord.RealizedResourceCost = Manifest.RealizedResourceCost;
-	FloorRecord.PolicyHash = Intent.PolicyHash;
-	FloorRecord.EcologyHash = Intent.EcologyHash;
-	FloorRecord.OutcomeHash = Intent.OutcomeHash;
-	FloorRecord.bHasFrozenOutcome = Intent.bHasFrozenOutcome;
-	FloorRecord.FrozenOutcome = Intent.FrozenOutcome;
-	FloorRecord.IntentHash = Intent.IntentHash;
-	FloorRecord.AnchorTopologyHash = Manifest.AnchorTopologyHash;
-	FloorRecord.PopulationHash = Manifest.PopulationHash;
-	FloorRecord.ResourceHash = Manifest.ResourceHash;
-	FloorRecord.CompanionSnapshotHash = Manifest.CompanionSnapshotHash;
-	FloorRecord.ManifestHash = Manifest.ManifestHash;
-	if (!AppendReadyFloorProjectTelemetry(FloorNumber, Intent, Manifest))
+	PreviousGenerationSerial = Record.GenerationSerial;
+	if (!AppendReadyFloorProjectTelemetry(Record, RoomManifest))
 	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_READY_SEQUENCE_WRITE_FAILED"));
+		Finish(false, TEXT("PROJECT_TELEMETRY_FLOOR_READY_WRITE_FAILED"));
 		return;
 	}
-	UE_LOG(
-		LogEFCalystoPackagedSmoke,
-		Log,
-		TEXT("CALYSTO_PACKAGED_SMOKE_FLOOR tag=%s status=PASS configuration=%s scenario=%s generator=%d floor=%lld serial=%lld pcgSeed=%d style=%s theme=%s size=%dx%dx%d anchors=%d enemies=%d npcs=%d food=%d chests=%d loose=%d clothing=%d special=%d actors=%d threat=%.3f resources=%.3f intent=%s companion=%s manifest=%s"),
-		*RunTag,
-		*ConfigurationName,
-		*Scenario.ToString(),
-		Intent.GeneratorVersion,
-		static_cast<long long>(FloorNumber),
-		static_cast<long long>(Intent.GenerationSerial),
-		PCGSeed,
-		EFCalystoPackagedSmokePrivate::DescribeStyle(Intent.Style),
-		EFCalystoPackagedSmokePrivate::DescribeTheme(Intent.Theme),
-		Intent.DungeonSize.X,
-		Intent.DungeonSize.Y,
-		Intent.DungeonSize.Z,
-		Manifest.CandidateAnchorCount,
-		Manifest.EnemyCount,
-		Manifest.NPCCount,
-		Manifest.FoodCount,
-		Manifest.ChestCount,
-		Manifest.LooseLootCount,
-		Manifest.ClothingCount,
-		Manifest.SpecialEventCount,
-		Manifest.SpawnedActorCount,
-		Manifest.RealizedThreatCost,
-		Manifest.RealizedResourceCost,
-		*Intent.IntentHash,
-		*Manifest.CompanionSnapshotHash,
-		*Manifest.ManifestHash);
+	ScheduleFloorDoorInspection();
+}
 
-	DoorSelectionStartedAtSeconds = FPlatformTime::Seconds();
-	// Floor 1 can still be covered by the startup movie. Capture the final
-	// realized floor only after a rendered settle window, then wait for the PNG
-	// before allowing the packaged process to finish.
-	DoorInspectionNotBeforeSeconds = DoorSelectionStartedAtSeconds
-		+ (bCaptureVisual && FloorNumber == MaximumFloor ? 3.0 : 0.25);
-	bDoorPositioned = false;
-	CancelTicker(DoorSelectionTickerHandle);
-	DoorSelectionTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
-		FTickerDelegate::CreateUObject(this, &UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick),
-		0.10f);
+bool UEFCalystoPackagedSmokeSubsystem::ValidateEntryProbe(
+	const int64 FloorNumber,
+	const int32 PCGSeed,
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoRealizedFloorManifestV6& Manifest,
+	FString& OutError) const
+{
+	OutError.Reset();
+	if (!bEntryDoorInteracted || !bDungeonWorldObserved || EntryProbeReadinessTraceCount != 1)
+	{
+		OutError = TEXT("DOOR_TO_LEVEL_ENTRY_EVIDENCE_INCOMPLETE");
+		return false;
+	}
+	if (FloorNumber != 1 || Intent.GenerationContext.FloorNumber != 1 ||
+		Intent.GenerationContext.GenerationSerial != 0 || Manifest.FloorNumber != 1 ||
+		Manifest.GenerationSerial != 0 || PCGSeed != Intent.PCGSeed ||
+		Intent.GenerationContext.RunSeed <= 0 ||
+		Manifest.RunSeed != Intent.GenerationContext.RunSeed)
+	{
+		OutError = TEXT("DOOR_TO_LEVEL_ENTRY_IDENTITY_INVALID");
+		return false;
+	}
+	if (!FEFCalystoDungeonRuntimeMathV6::ValidateResolvedFloorIntent(Intent, OutError) ||
+		!FEFCalystoDungeonRuntimeMathV6::ValidateRealizedFloorManifest(Manifest, OutError))
+	{
+		OutError = FString::Printf(TEXT("DOOR_TO_LEVEL_ENTRY_CONTRACT_INVALID:%s"), *OutError);
+		return false;
+	}
+	if (Intent.IntentHash != FEFCalystoDungeonRuntimeMathV6::ComputeResolvedFloorIntentHash(Intent) ||
+		Manifest.ManifestHash != FEFCalystoDungeonRuntimeMathV6::ComputeRealizedFloorManifestHash(Manifest) ||
+		Intent.StyleId.IsNone() || Intent.StyleId != Manifest.StyleId ||
+		Intent.IntentHash != Manifest.IntentHash ||
+		Intent.FloorPlan.FloorPlanHash != Manifest.FloorPlanHash)
+	{
+		OutError = TEXT("DOOR_TO_LEVEL_ENTRY_MANIFEST_INVALID");
+		return false;
+	}
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
+	if (Snapshot.State != EEFCalystoDungeonTravelStateV6::Ready || !Snapshot.bDoorEnabled ||
+		!Snapshot.bPCGComplete || !Snapshot.bRoomManifestReady || !Snapshot.bPopulationReady ||
+		!Snapshot.bVisualsReady || !Snapshot.bNavigationPathReady ||
+		Snapshot.RunSeed != Intent.GenerationContext.RunSeed || Snapshot.FloorNumber != 1 ||
+		Snapshot.GenerationSerial != 0 || Snapshot.StyleId != Intent.StyleId ||
+		Snapshot.FloorIntentHash != Intent.IntentHash ||
+		Snapshot.PopulationManifestHash != Manifest.ManifestHash)
+	{
+		OutError = TEXT("DOOR_TO_LEVEL_ENTRY_NOT_READY");
+		return false;
+	}
+	return true;
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::ValidateReadyFloor(
 	const int64 FloorNumber,
 	const int32 PCGSeed,
-	const FEFCalystoResolvedFloorIntentV4& Intent,
-	const FEFCalystoRealizedFloorManifestV4& Manifest,
+	const FEFCalystoResolvedFloorIntentV6& Intent,
+	const FEFCalystoRealizedFloorManifestV6& Manifest,
+	const FEFCalystoRoomManifestV6& RoomManifest,
+	const FEFCalystoPopulationPlanV6& PopulationPlan,
 	FString& OutError) const
 {
-	using namespace EFCalystoPackagedSmokePrivate;
+	using namespace EFCalystoV6PackagedSmokePrivate;
 	OutError.Reset();
-	if (FloorNumber != ExpectedFloor || FloorNumber < 1 || FloorNumber > MaximumFloor
-		|| PCGSeed <= 0 || !Intent.bIsValid || !Manifest.bIsValid
-		|| Intent.GeneratorVersion != 4
-		|| Intent.RunSeed != RunSeed || Manifest.RunSeed != RunSeed
-		|| Intent.FloorNumber != FloorNumber || Manifest.FloorNumber != FloorNumber
-		|| Intent.GenerationSerial != Manifest.GenerationSerial || Intent.PCGSeed != PCGSeed
-		|| Intent.IntentHash != Manifest.IntentHash)
+	if (ProjectTelemetryReadySequenceCount != CompletedFloorCount + 1)
 	{
-		OutError = TEXT("FLOOR_IDENTITY_MISMATCH");
+		OutError = TEXT("READY_CALLBACK_PRECEDED_BY_INVALID_TRACE_COUNT");
 		return false;
 	}
-	if (Intent.CompanionSnapshotHash != Manifest.CompanionSnapshotHash)
+	if (!FEFCalystoDungeonRuntimeMathV6::ValidateResolvedFloorIntent(Intent, OutError) ||
+		!FEFCalystoDungeonRuntimeMathV6::ValidateRealizedFloorManifest(Manifest, OutError))
 	{
-		OutError = TEXT("COMPANION_SNAPSHOT_HASH_MISMATCH");
+		OutError = FString::Printf(TEXT("V6_RUNTIME_CONTRACT_INVALID:%s"), *OutError);
 		return false;
 	}
-	if ((Intent.Style != EEFCalystoStyleV4::Standard
-			&& Intent.Style != EEFCalystoStyleV4::Compact
-			&& Intent.Style != EEFCalystoStyleV4::Branching)
-		|| (Intent.Theme != EEFCalystoThemeV4::Default
-			&& Intent.Theme != EEFCalystoThemeV4::Forge
-			&& Intent.Theme != EEFCalystoThemeV4::Shrine))
+	if (!Intent.bIsValid || !Manifest.bIsValid ||
+		Intent.SchemaVersion != EFCalystoDungeonRuntimeSchemaV6::SchemaVersion ||
+		Intent.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion ||
+		Manifest.SchemaVersion != EFCalystoDungeonRuntimeSchemaV6::SchemaVersion ||
+		Manifest.GeneratorVersion != EFCalystoDungeonRuntimeSchemaV6::GeneratorVersion)
 	{
-		OutError = TEXT("STYLE_OR_THEME_INVALID");
+		OutError = TEXT("V6_SCHEMA_OR_VALIDITY_INVALID");
 		return false;
 	}
-	if ((FloorNumber == 1 && Intent.GenerationSerial != 1)
-		|| (FloorNumber > 1 && Intent.GenerationSerial != PreviousGenerationSerial + 1))
+	const int64 Serial = Intent.GenerationContext.GenerationSerial;
+	if (FloorNumber != ExpectedFloor || FloorNumber != Intent.GenerationContext.FloorNumber ||
+		FloorNumber != Manifest.FloorNumber || Serial != FloorNumber - 1 ||
+		Manifest.GenerationSerial != Serial || Serial <= PreviousGenerationSerial ||
+		Intent.GenerationContext.RunSeed != RunSeed || Manifest.RunSeed != RunSeed ||
+		PCGSeed != Intent.PCGSeed)
 	{
-		OutError = TEXT("GENERATION_SERIAL_SEQUENCE_MISMATCH");
+		OutError = TEXT("SEEDED_FLOOR_IDENTITY_INVALID");
 		return false;
 	}
-	if (Intent.DungeonSize.X < 26 || Intent.DungeonSize.X > 30
-		|| Intent.DungeonSize.Y != Intent.DungeonSize.X || Intent.DungeonSize.Z != 1)
+	const FName ExpectedScenario = Scenario == NaturalScenario ? NAME_None : Scenario;
+	if (Intent.GenerationContext.DevelopmentForcedDungeonEdge != ForcedDungeonEdge ||
+		Intent.GenerationContext.DevelopmentPopulationScenario != ExpectedScenario ||
+		(ForcedDungeonEdge > 0 &&
+		 (Intent.DungeonSize.X != ForcedDungeonEdge || Intent.DungeonSize.Y != ForcedDungeonEdge)))
 	{
-		OutError = TEXT("DUNGEON_SIZE_OUTSIDE_CERTIFIED_SET");
+		OutError = TEXT("DEVELOPMENT_HOOK_IDENTITY_INVALID");
 		return false;
 	}
-#if !UE_BUILD_SHIPPING
-	if (Scenario != NaturalScenario
-		&& (Intent.DevelopmentPopulationScenario != Scenario
-			|| Intent.DevelopmentForcedDungeonEdge != 30
-			|| Intent.DungeonSize.X != 30))
+
+	const FName StyleId = Intent.StyleId;
+	if (StyleId.IsNone() || Intent.FloorPlan.StyleId != StyleId ||
+		RoomManifest.StyleId != StyleId || PopulationPlan.StyleId != StyleId ||
+		Manifest.StyleId != StyleId)
 	{
-		OutError = TEXT("DEVELOPMENT_SCENARIO_INTENT_MISMATCH");
+		OutError = TEXT("FLOOR_STYLE_ID_NOT_UNIQUE");
 		return false;
 	}
-#endif
-	if (Manifest.EnemyCount < 0 || Manifest.EnemyCount > EnemyHardCap
-		|| Manifest.NPCCount < 0 || Manifest.NPCCount > NPCHardCap
-		|| Manifest.FoodCount < 0 || Manifest.FoodCount > FoodHardCap
-		|| Manifest.ChestCount < 0 || Manifest.ChestCount > ChestHardCap
-		|| Manifest.LooseLootCount < 0 || Manifest.LooseLootCount > LooseLootHardCap
-		|| Manifest.ClothingCount < 0 || Manifest.ClothingCount > ClothingHardCap
-		|| Manifest.SpecialEventCount < 0 || Manifest.SpecialEventCount > SpecialEventHardCap
-		|| Manifest.SpawnedActorCount < 0 || Manifest.SpawnedActorCount > InitialActorHardCap
-		|| Manifest.SpawnedActorCount != Manifest.EnemyCount + Manifest.NPCCount
-			+ Manifest.FoodCount + Manifest.ChestCount + Manifest.LooseLootCount
-			+ Manifest.ClothingCount + Manifest.SpecialEventCount)
+	if (Intent.FloorPlan.FloorSeed != RoomManifest.FloorSeed ||
+		PopulationPlan.FloorSeed != RoomManifest.FloorSeed ||
+		PopulationPlan.FloorNumber != FloorNumber ||
+		Intent.FloorPlan.FloorPlanHash != RoomManifest.FloorPlanHash ||
+		Intent.FloorPlan.FloorPlanHash != PopulationPlan.FloorPlanHash ||
+		Intent.FloorPlan.FloorPlanHash != Manifest.FloorPlanHash ||
+		RoomManifest.ManifestHash != PopulationPlan.RoomManifestHash ||
+		RoomManifest.ManifestHash != Manifest.RoomManifestHash ||
+		PopulationPlan.PopulationHash != Manifest.PopulationPlanHash ||
+		Intent.IntentHash != Manifest.IntentHash ||
+		Intent.CompanionRoster.SnapshotHash != Manifest.CompanionSnapshotHash)
 	{
-		OutError = TEXT("REALIZED_COUNT_CAP_OR_SUM_MISMATCH");
+		OutError = TEXT("IMMUTABLE_MANIFEST_LINK_INVALID");
 		return false;
 	}
-	const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
-	if (Snapshot.State != EEFCalystoDungeonRunStateV4::Ready
-		|| !Snapshot.bHasActiveRun || !Snapshot.bDoorReady || !Snapshot.bCompanionReady
-		|| Snapshot.FloorNumber != FloorNumber
-		|| Snapshot.GenerationSerial != Intent.GenerationSerial
-		|| Snapshot.IntentHash != Intent.IntentHash
-		|| Snapshot.ManifestHash != Manifest.ManifestHash
-		|| Snapshot.CompanionSnapshotHash != Manifest.CompanionSnapshotHash)
+	if (Intent.IntentHash != FEFCalystoDungeonRuntimeMathV6::ComputeResolvedFloorIntentHash(Intent) ||
+		Manifest.ManifestHash != FEFCalystoDungeonRuntimeMathV6::ComputeRealizedFloorManifestHash(Manifest))
 	{
-		OutError = TEXT("PUBLIC_V4_READY_SNAPSHOT_MISMATCH");
+		OutError = TEXT("CANONICAL_RUNTIME_HASH_MISMATCH");
 		return false;
 	}
-	if (Manifest.Instances.Num() != Manifest.SpawnedActorCount
-		|| Intent.SpawnDirectives.Num() != Manifest.SpawnedActorCount)
+	const FString Hashes[] = {
+		Intent.GenerationContext.PolicyHash,
+		Intent.EcologyHash,
+		Intent.IntentHash,
+		Intent.FloorPlan.FloorPlanHash,
+		RoomManifest.ManifestHash,
+		PopulationPlan.PopulationHash,
+		Manifest.AnchorTopologyHash,
+		Manifest.CompanionSnapshotHash,
+		Manifest.ManifestHash};
+	for (const FString& Hash : Hashes)
 	{
-		OutError = TEXT("DIRECTIVE_OR_INSTANCE_CARDINALITY_MISMATCH");
-		return false;
-	}
-	int32 InstanceEnemyCount = 0;
-	int32 InstanceNPCCount = 0;
-	int32 InstanceFoodCount = 0;
-	int32 InstanceChestCount = 0;
-	int32 InstanceLooseLootCount = 0;
-	int32 InstanceClothingCount = 0;
-	int32 InstanceSpecialEventCount = 0;
-	for (const FEFCalystoRealizedInstanceV4& Instance : Manifest.Instances)
-	{
-		if (Instance.StableInstanceId.IsNone() || Instance.CatalogId.IsNone()
-			|| Instance.ActorClass.IsNull())
+		if (!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(Hash))
 		{
-			OutError = TEXT("REALIZED_INSTANCE_IDENTITY_INVALID");
-			return false;
-		}
-		switch (Instance.Category)
-		{
-		case EEFCalystoContentCategoryV4::Enemy: ++InstanceEnemyCount; break;
-		case EEFCalystoContentCategoryV4::NPC: ++InstanceNPCCount; break;
-		case EEFCalystoContentCategoryV4::Food: ++InstanceFoodCount; break;
-		case EEFCalystoContentCategoryV4::Chest: ++InstanceChestCount; break;
-		case EEFCalystoContentCategoryV4::LooseLoot: ++InstanceLooseLootCount; break;
-		case EEFCalystoContentCategoryV4::Clothing: ++InstanceClothingCount; break;
-		case EEFCalystoContentCategoryV4::SpecialEvent: ++InstanceSpecialEventCount; break;
-		default:
-			OutError = TEXT("DIRECTOR_MATERIALIZED_NON_GAMEPLAY_CATEGORY");
+			OutError = TEXT("NON_CANONICAL_RUNTIME_HASH");
 			return false;
 		}
 	}
-	if (InstanceEnemyCount != Manifest.EnemyCount
-		|| InstanceNPCCount != Manifest.NPCCount
-		|| InstanceFoodCount != Manifest.FoodCount
-		|| InstanceChestCount != Manifest.ChestCount
-		|| InstanceLooseLootCount != Manifest.LooseLootCount
-		|| InstanceClothingCount != Manifest.ClothingCount
-		|| InstanceSpecialEventCount != Manifest.SpecialEventCount)
+
+	if (Intent.FloorPlan.StyleMaterials.FloorMaterial.IsNull() ||
+		Intent.FloorPlan.StyleMaterials.WallMaterial.IsNull() ||
+		Intent.FloorPlan.StyleMaterials.RoofMaterial.IsNull() ||
+		RoomManifest.Rooms.IsEmpty() || RoomManifest.Rooms.Num() > Intent.FloorPlan.MaximumRoomRecords)
 	{
-		OutError = TEXT("REALIZED_INSTANCE_CATEGORY_COUNT_MISMATCH");
+		OutError = TEXT("STYLE_MATERIAL_OR_ROOM_CARDINALITY_INVALID");
 		return false;
 	}
-	if (!FMath::IsFinite(Manifest.RealizedThreatCost) || Manifest.RealizedThreatCost < 0.0f
-		|| !FMath::IsFinite(Manifest.RealizedResourceCost) || Manifest.RealizedResourceCost < 0.0f)
+	TSet<FName> ReachableThemeIds;
+	ReachableThemeIds.Add(NoThemeId);
+	for (const FEFCalystoResolvedThemeProfileV6& Theme : Intent.FloorPlan.Themes)
 	{
-		OutError = TEXT("REALIZED_COST_INVALID");
+		if (Theme.ThemeId.IsNone() || Theme.ThemeId == NoThemeId || ReachableThemeIds.Contains(Theme.ThemeId))
+		{
+			OutError = TEXT("REACHABLE_THEME_ID_INVALID");
+			return false;
+		}
+		ReachableThemeIds.Add(Theme.ThemeId);
+	}
+
+	TSet<int64> RoomIds;
+	TMap<int64, FName> ThemeByRoom;
+	int32 EligibleRoomCount = 0;
+	int32 ThemedRoomCount = 0;
+	for (const FEFCalystoRoomContextV6& Room : RoomManifest.Rooms)
+	{
+		const bool bProtected = FEFCalystoDungeonDirectorMathV6::IsProtectedRoom(Room.RoomFlags);
+		if (Room.StableRoomId == 0 || RoomIds.Contains(Room.StableRoomId) ||
+			Room.StyleId != StyleId || !ReachableThemeIds.Contains(Room.ThemeId) ||
+			!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(Room.RoomContextHash) ||
+			Room.EffectiveMaterials.FloorMaterial.IsNull() ||
+			Room.EffectiveMaterials.WallMaterial.IsNull() ||
+			Room.EffectiveMaterials.RoofMaterial.IsNull() ||
+			(bProtected && Room.bIsThemed) ||
+			(Room.bIsThemed && (Room.ThemeId.IsNone() || Room.ThemeId == NoThemeId)) ||
+			(!Room.bIsThemed && Room.ThemeId != NoThemeId))
+		{
+			OutError = TEXT("ROOM_LOCAL_STYLE_THEME_OR_MATERIAL_INVALID");
+			return false;
+		}
+		RoomIds.Add(Room.StableRoomId);
+		ThemeByRoom.Add(Room.StableRoomId, Room.ThemeId);
+		EligibleRoomCount += bProtected ? 0 : 1;
+		ThemedRoomCount += Room.bIsThemed ? 1 : 0;
+	}
+	if (EligibleRoomCount != RoomManifest.EligibleRoomCount ||
+		ThemedRoomCount != RoomManifest.ThemedRoomCount)
+	{
+		OutError = TEXT("ROOM_THEME_STATISTICS_INVALID");
 		return false;
 	}
-	if (!HasSha256(Intent.PolicyHash) || !HasSha256(Intent.EcologyHash)
-		|| !HasSha256(Intent.CompanionSnapshotHash) || !HasSha256(Intent.OutcomeHash)
-		|| !HasSha256(Intent.IntentHash) || !HasSha256(Manifest.AnchorTopologyHash)
-		|| !HasSha256(Manifest.PopulationHash) || !HasSha256(Manifest.ResourceHash)
-		|| !HasSha256(Manifest.CompanionSnapshotHash)
-		|| !HasSha256(Manifest.ManifestHash))
+
+	int32 ActorDecisionCount = 0;
+	int32 ChestContentDecisionCount = 0;
+	TSet<int64> PopulationRoomIds;
+	for (const FEFCalystoRoomPopulationPlanV6& RoomPlan : PopulationPlan.Rooms)
 	{
-		OutError = TEXT("REALIZED_HASH_INVALID");
+		const FName* RoomTheme = ThemeByRoom.Find(RoomPlan.StableRoomId);
+		if (!RoomTheme || PopulationRoomIds.Contains(RoomPlan.StableRoomId) ||
+			*RoomTheme != RoomPlan.ThemeId ||
+			!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(RoomPlan.RoomPopulationHash) ||
+			!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(RoomPlan.EffectiveCatalogHash))
+		{
+			OutError = TEXT("ROOM_POPULATION_PLAN_INVALID");
+			return false;
+		}
+		PopulationRoomIds.Add(RoomPlan.StableRoomId);
+		for (const FEFCalystoPopulationDecisionV6& Decision : RoomPlan.Decisions)
+		{
+			if (Decision.StableRoomId != RoomPlan.StableRoomId || Decision.StyleId != StyleId ||
+				Decision.ThemeId != RoomPlan.ThemeId || Decision.CategoryId.IsNone() ||
+				Decision.EntryId.IsNone() || Decision.ClassPath.IsNull() ||
+				!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(Decision.DecisionId))
+			{
+				OutError = TEXT("POPULATION_DECISION_INVALID");
+				return false;
+			}
+			if (Decision.Kind == EEFCalystoPopulationDecisionKindV6::Actor)
+			{
+				++ActorDecisionCount;
+			}
+			else
+			{
+				++ChestContentDecisionCount;
+			}
+		}
+	}
+	if (ActorDecisionCount != PopulationPlan.ActorDecisionCount ||
+		ChestContentDecisionCount != PopulationPlan.ChestContentDecisionCount ||
+		Manifest.SpawnedActorCount != PopulationPlan.ActorDecisionCount ||
+		Manifest.Actors.Num() != Manifest.SpawnedActorCount)
+	{
+		OutError = TEXT("POPULATION_DECISION_OR_REALIZATION_COUNT_INVALID");
 		return false;
 	}
-	if (bOutcomeTelemetryDisabled
-		&& (!FMath::IsNearlyEqual(Intent.FrozenOutcome.Combat, 0.5f)
-			|| !FMath::IsNearlyEqual(Intent.FrozenOutcome.Survival, 0.5f)
-			|| !FMath::IsNearlyEqual(Intent.FrozenOutcome.Resources, 0.5f)
-			|| !FMath::IsNearlyEqual(Intent.FrozenOutcome.Pace, 0.5f)
-			|| !FMath::IsNearlyZero(Intent.FrozenOutcome.DeathsAndFailures)))
+
+	TSet<FName> RealizedActorIds;
+	for (const FEFCalystoRealizedPopulationActorRecordV6& Actor : Manifest.Actors)
 	{
-		OutError = TEXT("NEUTRAL_OUTCOME_FIXTURE_DRIFT");
-		return false;
+		if (Actor.StableActorId.IsNone() || RealizedActorIds.Contains(Actor.StableActorId) ||
+			!RoomIds.Contains(Actor.StableRoomId) || Actor.CategoryId.IsNone() ||
+			Actor.CatalogEntryId.IsNone() || Actor.ActorClass.IsNull())
+		{
+			OutError = TEXT("REALIZED_POPULATION_ACTOR_INVALID");
+			return false;
+		}
+		RealizedActorIds.Add(Actor.StableActorId);
 	}
-	if ((Scenario == ZeroScenario || Scenario == ResourceMinScenario)
-		&& (Manifest.EnemyCount != 0 || Manifest.NPCCount != 0 || Manifest.FoodCount != 0
-			|| Manifest.ChestCount != 0 || Manifest.LooseLootCount != 0
-			|| Manifest.ClothingCount != 0 || Manifest.SpecialEventCount != 0
-			|| Manifest.SpawnedActorCount != 0))
+
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem->GetSnapshot();
+	if (Snapshot.State != EEFCalystoDungeonTravelStateV6::Ready || !Snapshot.bHasActiveRun ||
+		!Snapshot.bPolicyValid || !Snapshot.PolicyError.IsEmpty() || !Snapshot.FailureReason.IsEmpty() ||
+		!Snapshot.bPCGComplete || !Snapshot.bNavigationPathReady ||
+		!Snapshot.bRoomManifestReady || !Snapshot.bPopulationReady ||
+		!Snapshot.bVisualsReady || !Snapshot.bDoorEnabled ||
+		Snapshot.RunSeed != RunSeed || Snapshot.FloorNumber != FloorNumber ||
+		Snapshot.GenerationSerial != Serial || Snapshot.StyleId != StyleId ||
+		Snapshot.PCGSeed != PCGSeed || Snapshot.FloorPlanHash != Intent.FloorPlan.FloorPlanHash ||
+		Snapshot.FloorIntentHash != Intent.IntentHash ||
+		Snapshot.RoomManifestHash != RoomManifest.ManifestHash ||
+		Snapshot.PopulationManifestHash != Manifest.ManifestHash ||
+		!FEFCalystoDungeonRuntimeMathV6::IsCanonicalHash(Snapshot.SnapshotHash))
 	{
-		OutError = TEXT("ZERO_SCENARIO_NOT_EXACT");
-		return false;
-	}
-	if (Scenario == EnemyCap25Scenario
-		&& (Manifest.EnemyCount != 25 || Manifest.NPCCount != 0 || Manifest.FoodCount != 0
-			|| Manifest.ChestCount != 0 || Manifest.LooseLootCount != 0
-			|| Manifest.ClothingCount != 0 || Manifest.SpecialEventCount != 0
-			|| Manifest.SpawnedActorCount != 25))
-	{
-		OutError = TEXT("ENEMY_CAP_25_SCENARIO_NOT_EXACT");
-		return false;
-	}
-	if (Scenario == ResourceMaxScenario
-		&& (Manifest.EnemyCount != 0 || Manifest.NPCCount != 0
-			|| Manifest.FoodCount != 30 || Manifest.ChestCount != 10
-			|| Manifest.LooseLootCount != 0 || Manifest.ClothingCount != 0
-			|| Manifest.SpecialEventCount != 0 || Manifest.SpawnedActorCount != 40))
-	{
-		OutError = TEXT("RESOURCE_MAX_SCENARIO_NOT_EXACT");
-		return false;
-	}
-	if (Scenario == NPCTotal4Scenario
-		&& (Manifest.EnemyCount != 0 || Manifest.NPCCount != 4
-			|| Manifest.FoodCount != 0 || Manifest.ChestCount != 0
-			|| Manifest.LooseLootCount != 0 || Manifest.ClothingCount != 0
-			|| Manifest.SpecialEventCount != 0 || Manifest.SpawnedActorCount != 4))
-	{
-		OutError = TEXT("NPC_TOTAL_4_SCENARIO_NOT_EXACT");
-		return false;
-	}
-	if (Scenario == SpecialEvents6Scenario
-		&& (Manifest.EnemyCount != 0 || Manifest.NPCCount != 0
-			|| Manifest.FoodCount != 0 || Manifest.ChestCount != 0
-			|| Manifest.LooseLootCount != 0 || Manifest.ClothingCount != 0
-			|| Manifest.SpecialEventCount != 6 || Manifest.SpawnedActorCount != 6))
-	{
-		OutError = TEXT("SPECIAL_EVENTS_6_SCENARIO_NOT_EXACT");
+		OutError = TEXT("READY_SNAPSHOT_INVALID");
 		return false;
 	}
 
 	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
-	if (!IsValid(World))
+	if (!IsConfiguredDungeonWorld(World))
 	{
-		OutError = TEXT("READY_WORLD_MISSING");
+		OutError = TEXT("READY_WORLD_NOT_CONFIGURED_DUNGEON");
 		return false;
 	}
-	int32 LivePopulationActors = 0;
-	int32 RemainingAnchorActors = 0;
-	for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+	int32 LivePopulationActorCount = 0;
+	int32 RemainingAnchorCount = 0;
+	for (TActorIterator<AActor> It(World); It; ++It)
 	{
-		const AActor* Actor = *ActorIt;
+		const AActor* Actor = *It;
 		if (!IsValid(Actor) || Actor->IsActorBeingDestroyed())
 		{
 			continue;
 		}
-		LivePopulationActors += Actor->ActorHasTag(PopulationTag) ? 1 : 0;
-		RemainingAnchorActors += Actor->GetClass()->GetName().Contains(TEXT("EFCalystoPopulationAnchor")) ? 1 : 0;
+		LivePopulationActorCount += Actor->ActorHasTag(PopulationActorTag) ? 1 : 0;
+		RemainingAnchorCount += Actor->ActorHasTag(PopulationAnchorTag) ? 1 : 0;
 	}
-	if (LivePopulationActors != Manifest.SpawnedActorCount || RemainingAnchorActors != 0)
+	if (LivePopulationActorCount != Manifest.SpawnedActorCount || RemainingAnchorCount != 0)
 	{
-		OutError = TEXT("LIVE_POPULATION_OR_ANCHOR_COUNT_MISMATCH");
+		OutError = TEXT("LIVE_POPULATION_OR_ANCHOR_COUNT_INVALID");
 		return false;
 	}
 	return true;
+}
+
+void UEFCalystoPackagedSmokeSubsystem::ScheduleFloorDoorInspection()
+{
+	CancelTicker(DoorSelectionTickerHandle);
+	bFloorDoorPositioned = false;
+	DoorSelectionStartedAtSeconds = FPlatformTime::Seconds();
+	DoorInspectionNotBeforeSeconds = DoorSelectionStartedAtSeconds + 0.25;
+	DoorSelectionTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
+		FTickerDelegate::CreateUObject(this, &UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick),
+		0.10f);
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick(float DeltaTime)
@@ -1025,28 +1192,20 @@ bool UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick(float DeltaTime)
 	{
 		return true;
 	}
-	if (Now - DoorSelectionStartedAtSeconds > 10.0)
+	if (Now - DoorSelectionStartedAtSeconds > 15.0)
 	{
-		Finish(false, TEXT("ACF_DOOR_SELECTION_TIMEOUT"));
+		Finish(false, TEXT("FLOOR_DOOR_SELECTION_TIMEOUT"));
 		DoorSelectionTickerHandle.Reset();
 		return false;
 	}
+
 	if (bCaptureVisual && ExpectedFloor >= MaximumFloor)
 	{
 		if (!bScreenshotRequested)
 		{
-			// Capture the realized world render target, not EFLevelFlow's temporary
-			// Slate/UMG loading overlay. The overlay remains part of normal gameplay;
-			// only acceptance evidence omits UI.
 			FScreenshotRequest::RequestScreenshot(ScreenshotPath, false, false);
 			bScreenshotRequested = true;
 			DoorInspectionNotBeforeSeconds = Now + 0.50;
-			UE_LOG(
-				LogEFCalystoPackagedSmoke,
-				Log,
-				TEXT("CALYSTO_PACKAGED_SMOKE_SCREENSHOT requested=true floor=%lld path=%s"),
-				static_cast<long long>(ExpectedFloor),
-				*ScreenshotPath);
 			return true;
 		}
 		if (IFileManager::Get().FileSize(*ScreenshotPath) <= 1024)
@@ -1056,70 +1215,51 @@ bool UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick(float DeltaTime)
 	}
 
 	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
-	if (!IsValid(World) || World->WorldType != EWorldType::Game || World->bIsTearingDown)
+	if (!IsConfiguredDungeonWorld(World) || World->bIsTearingDown)
 	{
 		return true;
 	}
 	TArray<AEFCalystoFloorDoor*> Doors;
-	for (TActorIterator<AEFCalystoFloorDoor> DoorIt(World); DoorIt; ++DoorIt)
+	for (TActorIterator<AEFCalystoFloorDoor> It(World); It; ++It)
 	{
-		if (IsValid(*DoorIt) && !DoorIt->IsActorBeingDestroyed())
+		if (IsValid(*It) && !It->IsActorBeingDestroyed())
 		{
-			Doors.Add(*DoorIt);
+			Doors.Add(*It);
 		}
 	}
-	if (Doors.Num() == 0)
+	if (Doors.IsEmpty())
 	{
 		return true;
 	}
 	if (Doors.Num() != 1 || !Doors[0]->bIsEnabled)
 	{
-		Finish(false, Doors.Num() == 1 ? TEXT("FLOOR_DOOR_NOT_ENABLED") : TEXT("FLOOR_DOOR_CARDINALITY"));
+		Finish(false, Doors.Num() == 1
+			? TEXT("FLOOR_DOOR_NOT_ENABLED")
+			: TEXT("FLOOR_DOOR_CARDINALITY_INVALID"));
 		DoorSelectionTickerHandle.Reset();
 		return false;
 	}
 
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
-	UACFInteractionComponent* InteractionComponent = PlayerPawn
-		? PlayerPawn->FindComponentByClass<UACFInteractionComponent>()
-		: nullptr;
-	if (!PlayerPawn || !InteractionComponent)
+	FString Error;
+	if (!TrySelectDoor(World, Doors[0], Error))
 	{
+		if (!Error.IsEmpty())
+		{
+			Finish(false, Error);
+			return false;
+		}
 		return true;
 	}
-	if (!bDoorPositioned)
-	{
-		const FVector DoorLocation = Doors[0]->GetActorLocation();
-		const FVector SelectionLocation(DoorLocation.X - 80.0, DoorLocation.Y - 80.0, DoorLocation.Z);
-		PlayerPawn->SetActorLocation(SelectionLocation, false, nullptr, ETeleportType::TeleportPhysics);
-		InteractionComponent->EnableDetection(false);
-		InteractionComponent->EnableDetection(true);
-		bDoorPositioned = true;
-	}
-	InteractionComponent->RefreshInteractions();
-	TArray<AActor*> OverlappingActors;
-	InteractionComponent->GetOverlappingActors(OverlappingActors);
-	if (InteractionComponent->GetCurrentBestInteractableActor() != Doors[0]
-		|| !OverlappingActors.Contains(Doors[0]))
-	{
-		return true;
-	}
-
-	UE_LOG(
-		LogEFCalystoPackagedSmoke,
-		Log,
-		TEXT("CALYSTO_PACKAGED_SMOKE_DOOR status=SELECTED floor=%lld label=%s"),
-		static_cast<long long>(ExpectedFloor),
-		*Doors[0]->GetInteractableName_Implementation().ToString());
 	if (!AppendProjectTelemetry(FString::Printf(
-			TEXT("event=DoorSelected floor=%lld"),
-			static_cast<long long>(ExpectedFloor))))
+		TEXT("event=FloorDoorSelected floor=%lld styleId=%s"),
+		static_cast<long long>(ExpectedFloor),
+		ReadyFloorRecords.IsEmpty() ? TEXT("NONE") : *ReadyFloorRecords.Last().StyleId.ToString())))
 	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_DOOR_SELECTION_WRITE_FAILED"));
-		DoorSelectionTickerHandle.Reset();
+		Finish(false, TEXT("PROJECT_TELEMETRY_FLOOR_DOOR_SELECTION_WRITE_FAILED"));
 		return false;
 	}
-	++ProjectTelemetryDoorSelectedCount;
+	++ProjectTelemetryFloorDoorSelectedCount;
+
 	if (ExpectedFloor >= MaximumFloor)
 	{
 		Finish(true, TEXT("PASS"));
@@ -1127,75 +1267,50 @@ bool UEFCalystoPackagedSmokeSubsystem::HandleDoorSelectionTick(float DeltaTime)
 		return false;
 	}
 
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	UACFInteractionComponent* Interaction =
+		PlayerPawn ? PlayerPawn->FindComponentByClass<UACFInteractionComponent>() : nullptr;
+	if (!Interaction)
+	{
+		Finish(false, TEXT("FLOOR_DOOR_INTERACTION_COMPONENT_MISSING"));
+		return false;
+	}
 	const int64 SourceFloor = ExpectedFloor;
 	ExpectedFloor = SourceFloor + 1;
-	InteractionComponent->Interact(TEXT("CalystoV4PackagedSmoke"));
+	Interaction->Interact(TEXT("CalystoV6PackagedSmoke"));
 	if (!DungeonSubsystem->IsTravelRequestPending())
 	{
 		ExpectedFloor = SourceFloor;
-		Finish(false, TEXT("ACF_DOOR_INTERACTION_DID_NOT_REQUEST_TRAVEL"));
-		DoorSelectionTickerHandle.Reset();
+		Finish(false, TEXT("FLOOR_DOOR_DID_NOT_REQUEST_ADVANCE"));
 		return false;
 	}
-	++DoorInteractionCount;
+	++FloorDoorInteractionCount;
+	++ProjectTelemetryFloorDoorInteractedCount;
 	if (!AppendProjectTelemetry(FString::Printf(
-			TEXT("event=DoorInteracted floor=%lld destination=%lld"),
-			static_cast<long long>(SourceFloor),
-			static_cast<long long>(ExpectedFloor))))
-	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_DOOR_INTERACTION_WRITE_FAILED"));
-		DoorSelectionTickerHandle.Reset();
-		return false;
-	}
-	++ProjectTelemetryDoorInteractedCount;
-	if (bOutcomeTelemetryDisabled
-		&& !AppendProjectTelemetry(FString::Printf(
-			TEXT("event=OutcomeTelemetrySuppressed floor=%lld destination=%lld"),
-			static_cast<long long>(SourceFloor),
-			static_cast<long long>(ExpectedFloor))))
-	{
-		Finish(false, TEXT("PROJECT_TELEMETRY_OUTCOME_WRITE_FAILED"));
-		DoorSelectionTickerHandle.Reset();
-		return false;
-	}
-	UE_LOG(LogEFCalystoPackagedSmoke, Log,
-		TEXT("CALYSTO_PACKAGED_SMOKE_DOOR status=INTERACTED floor=%lld destination=%lld"),
+		TEXT("event=FloorDoorInteracted floor=%lld destination=%lld"),
 		static_cast<long long>(SourceFloor),
-		static_cast<long long>(ExpectedFloor));
+		static_cast<long long>(ExpectedFloor))))
+	{
+		Finish(false, TEXT("PROJECT_TELEMETRY_FLOOR_DOOR_INTERACTION_WRITE_FAILED"));
+		return false;
+	}
 	DoorSelectionTickerHandle.Reset();
 	return false;
 }
 
 void UEFCalystoPackagedSmokeSubsystem::HandleFloorTravelFailed()
 {
-	if (!bFinished)
+	if (bFinished)
 	{
-		const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem
-			? DungeonSubsystem->GetSnapshot()
-			: FEFCalystoDungeonSnapshotV4();
-		const FString FailureCode = Snapshot.FailureCode.IsNone()
-			? TEXT("UNKNOWN")
-			: Snapshot.FailureCode.ToString();
-		const FString FailureMessageHash = Snapshot.FailureMessage.IsEmpty()
-			? TEXT("NONE")
-			: UEFCalystoDungeonSubsystem::ComputeCanonicalHash(Snapshot.FailureMessage);
-		FString FailureDetail = Snapshot.FailureMessage.IsEmpty()
-			? TEXT("NONE")
-			: Snapshot.FailureMessage;
-		FailureDetail.ReplaceInline(TEXT(" "), TEXT("_"));
-		FailureDetail.ReplaceInline(TEXT("\t"), TEXT("_"));
-		FailureDetail.ReplaceInline(TEXT("\r"), TEXT("_"));
-		FailureDetail.ReplaceInline(TEXT("\n"), TEXT("_"));
-		FailureDetail.ReplaceInline(TEXT("="), TEXT("-"));
-		AppendProjectTelemetry(FString::Printf(
-			TEXT("event=DirectorTravelFailure code=%s detail=%s messageHash=%s"),
-			*FailureCode,
-			*FailureDetail,
-			*FailureMessageHash));
-		Finish(false, FString::Printf(
-			TEXT("FLOOR_TRAVEL_FAILED:%s"),
-			*FailureCode));
+		return;
 	}
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem
+		? DungeonSubsystem->GetSnapshot()
+		: FEFCalystoDungeonSnapshotV6();
+	const FString Detail = Snapshot.FailureReason.IsEmpty()
+		? TEXT("UNKNOWN")
+		: Snapshot.FailureReason;
+	Finish(false, FString::Printf(TEXT("FLOOR_TRAVEL_FAILED:%s"), *Detail));
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::HandleTimeoutTick(float DeltaTime)
@@ -1226,70 +1341,71 @@ void UEFCalystoPackagedSmokeSubsystem::Finish(const bool bSuccess, const FString
 	CancelTicker(DoorSelectionTickerHandle);
 	CancelTicker(TimeoutTickerHandle);
 	const double ElapsedSeconds = FPlatformTime::Seconds() - StartedAtSeconds;
-	const bool bTraceAndDoorTotalsValid = ProjectTelemetryReadySequenceCount == CompletedFloorCount
-		&& ProjectTelemetryDoorSelectedCount == CompletedFloorCount
-		&& ProjectTelemetryDoorInteractedCount == FMath::Max(0, CompletedFloorCount - 1);
-	const bool bPreliminarySuccess = bSuccess && bProjectTelemetryHealthy
-		&& bTraceAndDoorTotalsValid;
+
+	bool bContractSuccess = bSuccess && bAuthorityValidated && bEntryDoorSelected &&
+		bEntryDoorInteracted && bDungeonWorldObserved && bEntryProbeAccepted &&
+		bSeededRunRequested && EntryProbeReadinessTraceCount == 1 &&
+		CompletedFloorCount == MaximumFloor && ReadyFloorRecords.Num() == MaximumFloor &&
+		ProjectTelemetryReadySequenceCount == MaximumFloor &&
+		FloorDoorInteractionCount == FMath::Max(0, MaximumFloor - 1) &&
+		ProjectTelemetryEntryDoorSelectedCount == 1 &&
+		ProjectTelemetryEntryDoorInteractedCount == 1 &&
+		ProjectTelemetryFloorDoorSelectedCount == MaximumFloor &&
+		ProjectTelemetryFloorDoorInteractedCount == FMath::Max(0, MaximumFloor - 1);
 	FString EffectiveReason = Reason;
-	if (bSuccess && !bPreliminarySuccess)
+	if (bSuccess && !bContractSuccess)
 	{
-		EffectiveReason = bProjectTelemetryHealthy
-			? TEXT("PROJECT_TELEMETRY_EVENT_TOTALS_INVALID")
-			: TEXT("PROJECT_TELEMETRY_WRITE_FAILED");
+		EffectiveReason = TEXT("COMPLETION_INVARIANTS_INVALID");
 	}
-	if (!bPreliminarySuccess
-		&& AppendProjectTelemetry(FString::Printf(
-			TEXT("event=Failure code=PACKAGED_SMOKE_FAILURE status=FAIL reason=%s"),
-			*EffectiveReason.ReplaceCharWithEscapedChar())))
+	if (!bContractSuccess)
 	{
-		++ProjectTelemetryFailureEventCount;
+		if (AppendProjectTelemetry(FString::Printf(
+			TEXT("event=Failure status=FAIL reason=%s floors=%d expectedFloor=%lld"),
+			*EffectiveReason,
+			CompletedFloorCount,
+			static_cast<long long>(ExpectedFloor))))
+		{
+			++ProjectTelemetryFailureEventCount;
+		}
 	}
-	const bool bCompletionTelemetryWritten = AppendProjectTelemetry(FString::Printf(
-		TEXT("event=Complete status=%s tag=%s configuration=%s scenario=%s seed=%lld floors=%d interactions=%d maxFloor=%d elapsed=%.3f reason=%s"),
-		bPreliminarySuccess ? TEXT("PASS") : TEXT("FAIL"),
+	const bool bCompletionWritten = AppendProjectTelemetry(FString::Printf(
+		TEXT("event=Complete status=%s tag=%s seed=%lld floors=%d floorDoorInteractions=%d "
+			 "elapsed=%.3f reason=%s"),
+		bContractSuccess ? TEXT("PASS") : TEXT("FAIL"),
 		*RunTag,
-		*ConfigurationName,
-		*Scenario.ToString(),
 		static_cast<long long>(RunSeed),
 		CompletedFloorCount,
-		DoorInteractionCount,
-		MaximumFloor,
+		FloorDoorInteractionCount,
 		ElapsedSeconds,
-		*EffectiveReason.ReplaceCharWithEscapedChar()));
-	if (bCompletionTelemetryWritten)
+		*EffectiveReason));
+	if (bCompletionWritten)
 	{
 		++ProjectTelemetryCompleteEventCount;
 	}
-	const bool bEffectiveSuccess = bPreliminarySuccess && bCompletionTelemetryWritten
-		&& bProjectTelemetryHealthy;
-	if (bPreliminarySuccess && !bEffectiveSuccess)
+	bFinalSuccess = bContractSuccess && bCompletionWritten && bProjectTelemetryHealthy;
+	if (bContractSuccess && !bFinalSuccess)
 	{
 		EffectiveReason = TEXT("PROJECT_TELEMETRY_COMPLETION_WRITE_FAILED");
 	}
+	const bool bReceiptWritten = WriteReceipt(bFinalSuccess, EffectiveReason, ElapsedSeconds);
 	const FString CompletionLine = FString::Printf(
-		TEXT("CALYSTO_PACKAGED_SMOKE_COMPLETE tag=%s status=%s configuration=%s scenario=%s seed=%lld floors=%d interactions=%d maxFloor=%d receipt=%s screenshot=%s elapsed=%.3f reason=%s"),
+		TEXT("CALYSTO_V6_PACKAGED_SMOKE_COMPLETE status=%s tag=%s seed=%lld floors=%d "
+			 "entryDoor=true floorDoorInteractions=%d receipt=%s elapsed=%.3f reason=%s"),
+		bFinalSuccess && bReceiptWritten ? TEXT("PASS") : TEXT("FAIL"),
 		*RunTag,
-		bEffectiveSuccess ? TEXT("PASS") : TEXT("FAIL"),
-		*ConfigurationName,
-		*Scenario.ToString(),
 		static_cast<long long>(RunSeed),
 		CompletedFloorCount,
-		DoorInteractionCount,
-		MaximumFloor,
-		ReceiptPath.IsEmpty() ? TEXT("none") : *ReceiptPath,
-		ScreenshotPath.IsEmpty() ? TEXT("none") : *ScreenshotPath,
+		FloorDoorInteractionCount,
+		*ReceiptPath,
 		ElapsedSeconds,
-		*EffectiveReason.ReplaceCharWithEscapedChar());
-	const bool bReceiptWritten = WriteReceipt(bEffectiveSuccess, EffectiveReason, ElapsedSeconds);
-	if (bEffectiveSuccess && bReceiptWritten)
+		*EffectiveReason);
+	if (bFinalSuccess && bReceiptWritten)
 	{
-		UE_LOG(LogEFCalystoPackagedSmoke, Log, TEXT("%s"), *CompletionLine);
+		UE_LOG(LogEFCalystoV6PackagedSmoke, Log, TEXT("%s"), *CompletionLine);
 	}
 	else
 	{
-		UE_LOG(LogEFCalystoPackagedSmoke, Error, TEXT("%s receiptWritten=%s"),
-			*CompletionLine, bReceiptWritten ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogEFCalystoV6PackagedSmoke, Error, TEXT("%s"), *CompletionLine);
 	}
 	ExitTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
 		FTickerDelegate::CreateUObject(this, &UEFCalystoPackagedSmokeSubsystem::HandleExitTick),
@@ -1301,179 +1417,183 @@ bool UEFCalystoPackagedSmokeSubsystem::WriteReceipt(
 	const FString& Reason,
 	const double ElapsedSeconds)
 {
+	using namespace EFCalystoV6PackagedSmokePrivate;
 	if (ReceiptPath.IsEmpty())
 	{
-		const FString SafeConfiguration = ConfigurationName.IsEmpty() ? TEXT("Unknown") : ConfigurationName;
-		if (!EFCalystoPackagedSmokePrivate::IsSafeRunTag(RunTag))
+		if (!IsSafeToken(RunTag, 96))
 		{
-			RunTag = EFCalystoPackagedSmokePrivate::MakeRunTag();
+			RunTag = MakeRunTag();
 		}
-		const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("CalystoDungeonDirectorV4"));
+		const FString Directory = FPaths::Combine(
+			FPaths::ProjectSavedDir(), TEXT("CalystoDungeonDirectorV6"));
 		IFileManager::Get().MakeDirectory(*Directory, true);
-		ReceiptPath = FPaths::Combine(Directory,
-			FString::Printf(
-				TEXT("PackagedSmokeReceipt_%s_Invalid_%s.json"),
-				*SafeConfiguration,
-				*RunTag));
+		ReceiptPath = FPaths::Combine(
+			Directory,
+			FString::Printf(TEXT("PackagedSmokeReceipt_Invalid_%s.json"), *RunTag));
 	}
 
+	const UEFCalystoDungeonHarnessSettings* Harness = UEFCalystoDungeonHarnessSettings::Get();
+	const UEFCalystoDungeonDirectorPolicyV6Asset* Policy = Harness ? Harness->DirectorPolicy.Get() : nullptr;
+	const FString GameplayHash = Policy ? Policy->GetGameplayHash() : FString();
+	const FString AuthoringHash = Policy ? Policy->GetAuthoringHash() : FString();
+	const FString MaterialHash = Policy ? Policy->GetMaterialHash() : FString();
+	const FString DecalHash = Policy ? Policy->GetDecalHash() : FString();
+	const FEFCalystoDungeonSnapshotV6 Snapshot = DungeonSubsystem
+		? DungeonSubsystem->GetSnapshot()
+		: FEFCalystoDungeonSnapshotV6();
+
 	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
-	Root->SetNumberField(TEXT("schema_version"), 4);
-	Root->SetNumberField(TEXT("artifact_schema_version"), 3);
-	Root->SetNumberField(TEXT("generator_version"), 4);
+	Root->SetNumberField(TEXT("schema_version"), 6);
+	Root->SetNumberField(TEXT("artifact_schema_version"), 1);
+	Root->SetNumberField(TEXT("generator_version"), 6);
 	Root->SetStringField(TEXT("generated_utc"), FDateTime::UtcNow().ToIso8601());
 	Root->SetStringField(TEXT("status"), bSuccess ? TEXT("PASS") : TEXT("FAIL"));
+	Root->SetStringField(TEXT("reason"), Reason);
 	Root->SetStringField(TEXT("configuration"), ConfigurationName);
 	Root->SetStringField(TEXT("scenario"), Scenario.ToString());
+	Root->SetNumberField(TEXT("forced_dungeon_edge"), ForcedDungeonEdge);
 	Root->SetStringField(TEXT("run_tag"), RunTag);
-	Root->SetStringField(
-		TEXT("outcome_mode"),
-		bOutcomeTelemetryDisabled ? TEXT("neutral_missing_telemetry") : TEXT("live"));
-	Root->SetBoolField(TEXT("outcome_telemetry_disabled"), bOutcomeTelemetryDisabled);
-	Root->SetStringField(TEXT("engine_version"), FEngineVersion::Current().ToString());
-	const UEFCalystoDungeonHarnessSettings* HarnessSettings = UEFCalystoDungeonHarnessSettings::Get();
-	const UEFCalystoDungeonDirectorPolicyV4* AuthorityPolicy = HarnessSettings
-		? HarnessSettings->DirectorPolicy.Get()
-		: nullptr;
-	Root->SetStringField(
-		TEXT("policy_path"),
-		HarnessSettings ? HarnessSettings->DirectorPolicy.ToSoftObjectPath().ToString() : FString());
-	Root->SetStringField(
-		TEXT("policy_class"),
-		AuthorityPolicy ? AuthorityPolicy->GetClass()->GetPathName() : FString());
-	Root->SetNumberField(TEXT("policy_schema_version"), AuthorityPolicy ? AuthorityPolicy->SchemaVersion : 0);
-	Root->SetNumberField(TEXT("policy_generator_version"), AuthorityPolicy ? AuthorityPolicy->GeneratorVersion : 0);
-	Root->SetBoolField(TEXT("legacy_authority_loaded"), false);
-	Root->SetStringField(TEXT("reason"), Reason);
-	Root->SetStringField(TEXT("receipt_path"), ReceiptPath);
-	Root->SetNumberField(TEXT("project_telemetry_schema_version"), ProjectTelemetrySchemaVersion);
-	Root->SetStringField(TEXT("project_telemetry_path"), ProjectTelemetryPath);
-	Root->SetStringField(TEXT("project_telemetry_sequence_count"), LexToString(ProjectTelemetrySequence));
-	Root->SetNumberField(TEXT("project_telemetry_ready_sequence_count"), ProjectTelemetryReadySequenceCount);
-	Root->SetNumberField(TEXT("project_telemetry_door_selected_count"), ProjectTelemetryDoorSelectedCount);
-	Root->SetNumberField(TEXT("project_telemetry_door_interacted_count"), ProjectTelemetryDoorInteractedCount);
-	Root->SetNumberField(TEXT("project_telemetry_failure_event_count"), ProjectTelemetryFailureEventCount);
-	Root->SetNumberField(TEXT("project_telemetry_complete_event_count"), ProjectTelemetryCompleteEventCount);
-	Root->SetBoolField(TEXT("project_telemetry_initialized"), bProjectTelemetryInitialized);
-	Root->SetBoolField(TEXT("project_telemetry_healthy"), bProjectTelemetryHealthy);
-	Root->SetStringField(TEXT("screenshot_path"), ScreenshotPath);
-	Root->SetNumberField(TEXT("screenshot_floor"), bScreenshotRequested ? MaximumFloor : 0);
-	Root->SetStringField(TEXT("visual_capture_mode"), TEXT("SceneRenderTargetNoSlate"));
-	Root->SetBoolField(TEXT("screenshot_show_ui"), false);
 	Root->SetStringField(TEXT("run_seed"), LexToString(RunSeed));
 	Root->SetNumberField(TEXT("maximum_floor"), MaximumFloor);
 	Root->SetNumberField(TEXT("completed_floor_count"), CompletedFloorCount);
-	Root->SetNumberField(TEXT("door_interaction_count"), DoorInteractionCount);
+	Root->SetNumberField(TEXT("floor_door_interaction_count"), FloorDoorInteractionCount);
 	Root->SetNumberField(TEXT("elapsed_seconds"), ElapsedSeconds);
+	Root->SetStringField(TEXT("engine_version"), FEngineVersion::Current().ToString());
 	Root->SetBoolField(TEXT("unattended"), FApp::IsUnattended());
 	Root->SetBoolField(TEXT("requires_cooked_data"), FPlatformProperties::RequiresCookedData());
-#if UE_BUILD_SHIPPING
-	Root->SetBoolField(TEXT("shipping_build"), true);
-	Root->SetBoolField(TEXT("exact_population_controls_compiled"), false);
-#else
-	Root->SetBoolField(TEXT("shipping_build"), false);
-	Root->SetBoolField(TEXT("exact_population_controls_compiled"), true);
-#endif
-	if (DungeonSubsystem)
-	{
-		const FEFCalystoDungeonSnapshotV4 Snapshot = DungeonSubsystem->GetSnapshot();
-		Root->SetStringField(TEXT("policy_hash"), Snapshot.PolicyHash);
-		Root->SetStringField(TEXT("ecology_hash"), Snapshot.EcologyHash);
-	}
+	Root->SetStringField(TEXT("receipt_path"), ReceiptPath);
+	Root->SetStringField(TEXT("project_telemetry_path"), ProjectTelemetryPath);
+	Root->SetNumberField(TEXT("project_telemetry_schema_version"), ProjectTelemetrySchemaVersion);
+	Root->SetStringField(TEXT("project_telemetry_sequence_count"), LexToString(ProjectTelemetrySequence));
+	Root->SetStringField(TEXT("screenshot_path"), ScreenshotPath);
+	Root->SetBoolField(TEXT("screenshot_requested"), bScreenshotRequested);
+
+	Root->SetStringField(TEXT("policy_path"),
+		Harness ? Harness->DirectorPolicy.ToSoftObjectPath().ToString() : FString());
+	Root->SetStringField(TEXT("policy_class"),
+		Policy ? Policy->GetClass()->GetPathName() : FString());
+	Root->SetNumberField(TEXT("policy_schema_version"), Policy ? Policy->SchemaVersion : 0);
+	Root->SetNumberField(TEXT("policy_generator_version"), Policy ? Policy->RuntimeGeneratorVersion : 0);
+	Root->SetNumberField(TEXT("policy_hash_schema_version"),
+		Policy ? UEFCalystoDungeonDirectorPolicyV6Asset::HashSchemaVersion : 0);
+	Root->SetStringField(TEXT("policy_gameplay_hash"), GameplayHash);
+	Root->SetStringField(TEXT("policy_authoring_hash"), AuthoringHash);
+	Root->SetStringField(TEXT("policy_material_hash"), MaterialHash);
+	Root->SetStringField(TEXT("policy_decal_hash"), DecalHash);
+
+	TSharedRef<FJsonObject> Entrance = MakeShared<FJsonObject>();
+	Entrance->SetStringField(TEXT("actor_class"), EntranceDoorClass);
+	Entrance->SetStringField(TEXT("source_world"), EntranceWorldPath);
+	Entrance->SetBoolField(TEXT("selected"), bEntryDoorSelected);
+	Entrance->SetBoolField(TEXT("interacted"), bEntryDoorInteracted);
+	Entrance->SetBoolField(TEXT("dungeon_world_observed"), bDungeonWorldObserved);
+	Entrance->SetBoolField(TEXT("entry_probe_ready"), bEntryProbeAccepted);
+	Entrance->SetNumberField(TEXT("entry_probe_readiness_trace_count"), EntryProbeReadinessTraceCount);
+	Root->SetObjectField(TEXT("door_to_level"), Entrance);
 
 	TArray<TSharedPtr<FJsonValue>> FloorValues;
 	FloorValues.Reserve(ReadyFloorRecords.Num());
 	for (const FReadyFloorRecord& Record : ReadyFloorRecords)
 	{
-		TSharedRef<FJsonObject> FloorObject = MakeShared<FJsonObject>();
-		FloorObject->SetNumberField(TEXT("generator_version"), Record.GeneratorVersion);
-		FloorObject->SetStringField(TEXT("floor_number"), LexToString(Record.FloorNumber));
-		FloorObject->SetStringField(TEXT("generation_serial"), LexToString(Record.GenerationSerial));
-		FloorObject->SetNumberField(TEXT("pcg_seed"), Record.PCGSeed);
-		FloorObject->SetStringField(TEXT("style"), EFCalystoPackagedSmokePrivate::DescribeStyle(Record.Style));
-		FloorObject->SetStringField(TEXT("theme"), EFCalystoPackagedSmokePrivate::DescribeTheme(Record.Theme));
-		FloorObject->SetNumberField(TEXT("size_x"), Record.DungeonSize.X);
-		FloorObject->SetNumberField(TEXT("size_y"), Record.DungeonSize.Y);
-		FloorObject->SetNumberField(TEXT("size_z"), Record.DungeonSize.Z);
-		FloorObject->SetNumberField(TEXT("candidate_anchor_count"), Record.CandidateAnchorCount);
-		FloorObject->SetNumberField(TEXT("enemy_count"), Record.EnemyCount);
-		FloorObject->SetNumberField(TEXT("npc_count"), Record.NPCCount);
-		FloorObject->SetNumberField(TEXT("food_count"), Record.FoodCount);
-		FloorObject->SetNumberField(TEXT("chest_count"), Record.ChestCount);
-		FloorObject->SetNumberField(TEXT("loose_loot_count"), Record.LooseLootCount);
-		FloorObject->SetNumberField(TEXT("clothing_count"), Record.ClothingCount);
-		FloorObject->SetNumberField(TEXT("special_event_count"), Record.SpecialEventCount);
-		FloorObject->SetNumberField(TEXT("spawned_actor_count"), Record.SpawnedActorCount);
-		FloorObject->SetNumberField(TEXT("realized_threat_cost"), Record.RealizedThreatCost);
-		FloorObject->SetNumberField(TEXT("realized_resource_cost"), Record.RealizedResourceCost);
-		FloorObject->SetStringField(TEXT("policy_hash"), Record.PolicyHash);
-		FloorObject->SetStringField(TEXT("ecology_hash"), Record.EcologyHash);
-		FloorObject->SetStringField(TEXT("outcome_hash"), Record.OutcomeHash);
-		TSharedRef<FJsonObject> FrozenOutcomeObject = MakeShared<FJsonObject>();
-		FrozenOutcomeObject->SetBoolField(TEXT("is_frozen"), Record.bHasFrozenOutcome);
-		FrozenOutcomeObject->SetNumberField(TEXT("combat"), Record.FrozenOutcome.Combat);
-		FrozenOutcomeObject->SetNumberField(TEXT("survival"), Record.FrozenOutcome.Survival);
-		FrozenOutcomeObject->SetNumberField(TEXT("resources"), Record.FrozenOutcome.Resources);
-		FrozenOutcomeObject->SetNumberField(TEXT("pace"), Record.FrozenOutcome.Pace);
-		FrozenOutcomeObject->SetNumberField(
-			TEXT("deaths_and_failures"), Record.FrozenOutcome.DeathsAndFailures);
-		FloorObject->SetObjectField(TEXT("frozen_outcome"), FrozenOutcomeObject);
-		FloorObject->SetStringField(TEXT("intent_hash"), Record.IntentHash);
-		FloorObject->SetStringField(TEXT("anchor_topology_hash"), Record.AnchorTopologyHash);
-		FloorObject->SetStringField(TEXT("population_hash"), Record.PopulationHash);
-		FloorObject->SetStringField(TEXT("resource_hash"), Record.ResourceHash);
-		FloorObject->SetStringField(TEXT("companion_snapshot_hash"), Record.CompanionSnapshotHash);
-		FloorObject->SetStringField(TEXT("manifest_hash"), Record.ManifestHash);
-		FloorValues.Add(MakeShared<FJsonValueObject>(FloorObject));
+		TSharedRef<FJsonObject> Floor = MakeShared<FJsonObject>();
+		Floor->SetNumberField(TEXT("schema_version"), Record.SchemaVersion);
+		Floor->SetNumberField(TEXT("generator_version"), Record.GeneratorVersion);
+		Floor->SetStringField(TEXT("floor_number"), LexToString(Record.FloorNumber));
+		Floor->SetStringField(TEXT("generation_serial"), LexToString(Record.GenerationSerial));
+		Floor->SetNumberField(TEXT("pcg_seed"), Record.PCGSeed);
+		Floor->SetStringField(TEXT("style_id"), Record.StyleId.ToString());
+		Floor->SetNumberField(TEXT("size_x"), Record.DungeonSize.X);
+		Floor->SetNumberField(TEXT("size_y"), Record.DungeonSize.Y);
+		Floor->SetNumberField(TEXT("size_z"), Record.DungeonSize.Z);
+		Floor->SetNumberField(TEXT("room_count"), Record.RoomCount);
+		Floor->SetNumberField(TEXT("eligible_room_count"), Record.EligibleRoomCount);
+		Floor->SetNumberField(TEXT("themed_room_count"), Record.ThemedRoomCount);
+		TArray<TSharedPtr<FJsonValue>> ThemeValues;
+		for (const FName ThemeId : Record.RoomThemeIds)
+		{
+			ThemeValues.Add(MakeShared<FJsonValueString>(ThemeId.ToString()));
+		}
+		Floor->SetArrayField(TEXT("room_theme_ids"), ThemeValues);
+		Floor->SetNumberField(TEXT("candidate_anchor_count"), Record.CandidateAnchorCount);
+		Floor->SetNumberField(TEXT("actor_decision_count"), Record.ActorDecisionCount);
+		Floor->SetNumberField(TEXT("chest_content_decision_count"), Record.ChestContentDecisionCount);
+		Floor->SetNumberField(TEXT("enemy_count"), Record.EnemyCount);
+		Floor->SetNumberField(TEXT("loose_food_count"), Record.LooseFoodCount);
+		Floor->SetNumberField(TEXT("chest_count"), Record.ChestCount);
+		Floor->SetNumberField(TEXT("loot_actor_count"), Record.LootActorCount);
+		Floor->SetNumberField(TEXT("special_event_count"), Record.SpecialEventCount);
+		Floor->SetNumberField(TEXT("spawned_actor_count"), Record.SpawnedActorCount);
+		Floor->SetNumberField(TEXT("realized_threat_cost"), Record.RealizedThreatCost);
+		Floor->SetNumberField(TEXT("realized_resource_cost"), Record.RealizedResourceCost);
+		Floor->SetStringField(TEXT("policy_hash"), Record.PolicyHash);
+		Floor->SetStringField(TEXT("ecology_hash"), Record.EcologyHash);
+		Floor->SetStringField(TEXT("intent_hash"), Record.IntentHash);
+		Floor->SetStringField(TEXT("floor_plan_hash"), Record.FloorPlanHash);
+		Floor->SetStringField(TEXT("room_manifest_hash"), Record.RoomManifestHash);
+		Floor->SetStringField(TEXT("population_plan_hash"), Record.PopulationPlanHash);
+		Floor->SetStringField(TEXT("anchor_topology_hash"), Record.AnchorTopologyHash);
+		Floor->SetStringField(TEXT("companion_snapshot_hash"), Record.CompanionSnapshotHash);
+		Floor->SetStringField(TEXT("realized_manifest_hash"), Record.RealizedManifestHash);
+		FloorValues.Add(MakeShared<FJsonValueObject>(Floor));
 	}
 	Root->SetArrayField(TEXT("floors"), FloorValues);
 
+	bool bAllFloorHashesCanonical = !ReadyFloorRecords.IsEmpty();
+	bool bOneStylePerFloor = !ReadyFloorRecords.IsEmpty();
+	bool bRoomLocalThemesValidated = !ReadyFloorRecords.IsEmpty();
+	bool bActivePolicyMatches = !ReadyFloorRecords.IsEmpty();
+	for (const FReadyFloorRecord& Record : ReadyFloorRecords)
+	{
+		bAllFloorHashesCanonical &= HasSha256(Record.PolicyHash) && HasSha256(Record.EcologyHash) &&
+			HasSha256(Record.IntentHash) && HasSha256(Record.FloorPlanHash) &&
+			HasSha256(Record.RoomManifestHash) && HasSha256(Record.PopulationPlanHash) &&
+			HasSha256(Record.AnchorTopologyHash) && HasSha256(Record.CompanionSnapshotHash) &&
+			HasSha256(Record.RealizedManifestHash);
+		bOneStylePerFloor &= !Record.StyleId.IsNone();
+		bRoomLocalThemesValidated &= !Record.RoomThemeIds.IsEmpty() &&
+			Record.EligibleRoomCount >= Record.ThemedRoomCount;
+		bActivePolicyMatches &= Record.PolicyHash == GameplayHash;
+	}
+
 	TSharedRef<FJsonObject> Checks = MakeShared<FJsonObject>();
+	Checks->SetBoolField(TEXT("v6_authority_identity_exact"),
+		Policy && Policy->ValidatePolicy() && Policy->GetPathName() == ExpectedPolicyPath &&
+		Policy->GetClass()->GetPathName() == ExpectedPolicyClass &&
+		HasSha256(GameplayHash) && HasSha256(AuthoringHash) &&
+		HasSha256(MaterialHash) && HasSha256(DecalHash));
+	Checks->SetBoolField(TEXT("active_policy_matches_authority"), bActivePolicyMatches);
+	Checks->SetBoolField(TEXT("door_to_level_traversal_complete"),
+		bEntryDoorSelected && bEntryDoorInteracted && bDungeonWorldObserved && bEntryProbeAccepted);
 	Checks->SetBoolField(TEXT("all_requested_floors_ready"), CompletedFloorCount == MaximumFloor);
-	Checks->SetBoolField(TEXT("real_acf_door_interaction_count"),
-		DoorInteractionCount == FMath::Max(0, MaximumFloor - 1));
-	Checks->SetBoolField(TEXT("floor_records_complete"), ReadyFloorRecords.Num() == CompletedFloorCount);
-	Checks->SetBoolField(TEXT("project_owned_telemetry_available"),
-		bProjectTelemetryInitialized && bProjectTelemetryHealthy
-			&& IFileManager::Get().FileSize(*ProjectTelemetryPath) > 0);
-	Checks->SetBoolField(TEXT("pcg_runtime_trace_matches_ready_floors"),
-		ProjectTelemetryReadySequenceCount == CompletedFloorCount);
-	Checks->SetBoolField(TEXT("project_telemetry_door_totals_match"),
-		ProjectTelemetryDoorSelectedCount == CompletedFloorCount
-			&& ProjectTelemetryDoorInteractedCount == FMath::Max(0, CompletedFloorCount - 1));
-	Checks->SetBoolField(TEXT("project_telemetry_complete_event_exact"),
-		ProjectTelemetryCompleteEventCount == 1);
-	Checks->SetBoolField(TEXT("project_telemetry_failure_events_match_status"),
-		bSuccess ? ProjectTelemetryFailureEventCount == 0 : ProjectTelemetryFailureEventCount == 1);
-	Checks->SetBoolField(TEXT("v4_authority_identity_exact"),
-		AuthorityPolicy && AuthorityPolicy->SchemaVersion == 4 && AuthorityPolicy->GeneratorVersion == 4
-			&& AuthorityPolicy->GetPathName()
-				== TEXT("/Game/_Game/Data/CalystoDungeon/V4/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy")
-			&& AuthorityPolicy->GetClass()->GetPathName()
-				== TEXT("/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV4"));
-	Checks->SetBoolField(TEXT("legacy_authority_absent"), true);
+	Checks->SetBoolField(TEXT("one_style_id_per_floor"), bOneStylePerFloor);
+	Checks->SetBoolField(TEXT("room_local_theme_ids_validated"), bRoomLocalThemesValidated);
+	Checks->SetBoolField(TEXT("all_floor_hashes_canonical"), bAllFloorHashesCanonical);
+	Checks->SetBoolField(TEXT("readiness_trace_exact"),
+		EntryProbeReadinessTraceCount == 1 && ProjectTelemetryReadySequenceCount == MaximumFloor);
+	Checks->SetBoolField(TEXT("floor_door_traversal_exact"),
+		ProjectTelemetryFloorDoorSelectedCount == MaximumFloor &&
+		ProjectTelemetryFloorDoorInteractedCount == FMath::Max(0, MaximumFloor - 1));
+	Checks->SetBoolField(TEXT("project_telemetry_complete"),
+		bProjectTelemetryInitialized && bProjectTelemetryHealthy &&
+		ProjectTelemetryCompleteEventCount == 1 &&
+		(bSuccess ? ProjectTelemetryFailureEventCount == 0 : ProjectTelemetryFailureEventCount == 1));
+	Checks->SetBoolField(TEXT("final_snapshot_ready"),
+		bSuccess && Snapshot.State == EEFCalystoDungeonTravelStateV6::Ready &&
+		Snapshot.RunSeed == RunSeed && Snapshot.FloorNumber == MaximumFloor && Snapshot.bDoorEnabled);
 	Checks->SetBoolField(TEXT("shipping_natural_only"),
-		ConfigurationName != TEXT("Shipping") || Scenario == EFCalystoPackagedSmokePrivate::NaturalScenario);
-	Checks->SetBoolField(TEXT("neutral_fixture_scope_valid"),
-		!bOutcomeTelemetryDisabled
-			|| (ConfigurationName == TEXT("Development")
-				&& Scenario == EFCalystoPackagedSmokePrivate::NaturalScenario
-				&& FApp::IsUnattended()));
-	Checks->SetBoolField(TEXT("visual_capture_matches_final_floor"),
-		!bCaptureVisual
-			|| (bScreenshotRequested && IFileManager::Get().FileSize(*ScreenshotPath) > 1024));
+		ConfigurationName != TEXT("Shipping") ||
+		(Scenario == NaturalScenario && ForcedDungeonEdge == 0));
+	Checks->SetBoolField(TEXT("visual_capture_complete"),
+		!bCaptureVisual || (bScreenshotRequested && IFileManager::Get().FileSize(*ScreenshotPath) > 1024));
 	Root->SetObjectField(TEXT("checks"), Checks);
 
 	FString JsonText;
 	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonText);
-	if (!FJsonSerializer::Serialize(Root, Writer))
-	{
-		return false;
-	}
-	return FFileHelper::SaveStringToFile(
-		JsonText + LINE_TERMINATOR,
-		*ReceiptPath,
-		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+	return FJsonSerializer::Serialize(Root, Writer) &&
+		FFileHelper::SaveStringToFile(
+			JsonText + LINE_TERMINATOR,
+			*ReceiptPath,
+			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 }
 
 bool UEFCalystoPackagedSmokeSubsystem::HandleExitTick(float DeltaTime)

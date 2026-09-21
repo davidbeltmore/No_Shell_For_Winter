@@ -3,6 +3,7 @@
 #include "Animation/MorphTarget.h"
 #include "Animation/Skeleton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "EFCharacterCreationAppearanceHooks.h"
 #include "EFCharacterCreationGameplayHooks.h"
 #include "EFCharacterCreationSettings.h"
 #include "EFMorphPresentation.h"
@@ -19,6 +20,34 @@
 
 namespace CharacterCustomizationComponentPrivate
 {
+	// Initial player appearance is an absolute morph state, not a slider default.
+	// Saved/customized states and NPCs retain their own values.
+	static void InitializeMalePlayerMorphState(AActor* Actor, FCharacterCustomizationState& State)
+	{
+		const APawn* Pawn = Cast<APawn>(Actor);
+		if (State.Gender != ECharacterCreationGender::Male || !Pawn || !Pawn->IsPlayerControlled())
+		{
+			return;
+		}
+
+		const auto SetInitialValue = [&State](const FName MorphName, const float Value)
+		{
+			FCharacterMorphValue* Morph = State.MorphValues.FindByPredicate([MorphName](const FCharacterMorphValue& Item)
+			{
+				return Item.MorphName == MorphName && Item.Target == ECharacterCustomizationTarget::Body;
+			});
+			if (!Morph)
+			{
+				Morph = &State.MorphValues.AddDefaulted_GetRef();
+				Morph->MorphName = MorphName;
+				Morph->Target = ECharacterCustomizationTarget::Body;
+			}
+			Morph->Value = Value;
+		};
+		SetInitialValue(TEXT("DK_Erection"), 0.0f);
+		SetInitialValue(TEXT("DK_Flacid 03"), 1.0f);
+	}
+
 	static FString NormalizeForMatching(const FString& Value)
 	{
 		return Value.ToLower();
@@ -92,13 +121,19 @@ bool UEFCharacterCustomizationComponent::InitializeForActor(AActor* InOwningActo
 		}
 		else
 		{
-			ApplyStateInternal(BuildDefaultState(), true);
+			FCharacterCustomizationState InitialState = BuildDefaultState();
+			CharacterCustomizationComponentPrivate::InitializeMalePlayerMorphState(InOwningActor, InitialState);
+			ApplyStateInternal(InitialState, true);
 		}
 	}
 	else
 	{
 		BroadcastIdentityChanged();
 	}
+
+	// InitializeForActor is the project-owned point where the complete body,
+	// hair and clothing component set has been rediscovered and restored.
+	EFCharacterCreationGameplayHooks::NotifyAppearanceMeshStateChanged(InOwningActor);
 
 	return true;
 }
@@ -422,6 +457,7 @@ float UEFCharacterCustomizationComponent::GetCurrentMorphValue(const FMorphSlide
 
 void UEFCharacterCustomizationComponent::SetShowClothes(bool bInShowClothes)
 {
+	const bool bVisibilityChanged = bShowClothes != bInShowClothes;
 	bShowClothes = bInShowClothes;
 
 	for (USkeletalMeshComponent* ClothingMeshComponent : ClothingMeshComponents)
@@ -433,6 +469,11 @@ void UEFCharacterCustomizationComponent::SetShowClothes(bool bInShowClothes)
 
 		ClothingMeshComponent->SetVisibility(bShowClothes, true);
 		ClothingMeshComponent->SetHiddenInGame(!bShowClothes, true);
+	}
+
+	if (bVisibilityChanged)
+	{
+		EFCharacterCreationGameplayHooks::NotifyAppearanceMeshStateChanged(OwningActor.Get());
 	}
 }
 
@@ -509,6 +550,7 @@ bool UEFCharacterCustomizationComponent::SelectGender(ECharacterCreationGender I
 	State.bHasSelectedBodyMesh = true;
 	State.SelectedBodyMeshAsset = FSoftObjectPath(GenderMesh);
 	State.MorphValues.Reset();
+	CharacterCustomizationComponentPrivate::InitializeMalePlayerMorphState(OwningActor.Get(), State);
 	ApplyState(State);
 	return CurrentGender == InGender && GetActiveBodyMeshComponent() && GetActiveBodyMeshComponent()->GetSkeletalMeshAsset() == GenderMesh;
 }
@@ -1540,6 +1582,9 @@ bool UEFCharacterCustomizationComponent::ApplyBodySkeletalMesh(USkeletalMesh* Sk
 	}
 
 	const ECharacterCreationGender PreviousGender = CurrentGender;
+	// Visibility overrides belong to the old mesh. Consumers must restore them
+	// while the original material and bone indices are still valid.
+	EFCharacterCreationGameplayHooks::GetOnBodyMeshesWillChange().Broadcast(OwningActor.Get());
 	for (USkeletalMeshComponent* BodyComponent : BodyComponentsToUpdate)
 	{
 		BodyComponent->SetSkeletalMeshAsset(SkeletalMesh);

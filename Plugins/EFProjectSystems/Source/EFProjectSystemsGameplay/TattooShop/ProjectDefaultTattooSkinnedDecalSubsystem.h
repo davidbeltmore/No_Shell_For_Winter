@@ -154,6 +154,7 @@ private:
 	void ClearTattooLayer(APawn* Pawn, int32 DecalIndex);
 	USkeletalMeshComponent* ResolveTargetMesh(APawn* Pawn) const;
 	USkinnedDecalSampler* ResolveOrCreateSampler(APawn* Pawn) const;
+	void EnsureClothingOccludesTattooOverlay(APawn* Pawn, USkeletalMeshComponent* TargetMesh) const;
 	bool ConfigureSampler(USkinnedDecalSampler* Sampler, USkeletalMeshComponent* TargetMesh);
 	bool ConfigureOverlayMaterial(USkinnedDecalSampler* Sampler, const TArray<FName>& RowNames, const TArray<const FProjectAutomaticTattooTableRow*>& TattooRows);
 	bool IsAutomaticTattooRowActive(FName RowName, const FProjectAutomaticTattooTableRow* TattooRow) const;

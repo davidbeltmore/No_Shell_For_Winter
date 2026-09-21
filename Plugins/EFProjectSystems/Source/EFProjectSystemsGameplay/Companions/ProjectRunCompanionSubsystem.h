@@ -1,7 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
+#include "Calysto/ProjectCalystoGameplaySnapshot.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
+#include "Calysto/EFCalystoPopulationPlannerV6.h"
 #include "Companions/ProjectRunCompanionTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ProjectRunCompanionSubsystem.generated.h"
@@ -13,7 +15,9 @@ class UACFEquipmentComponent;
 class UACFInventoryComponent;
 class UProjectCompanionRevivalConsumable;
 class UProjectCompanionRevivalMenuWidget;
-struct FEFCalystoResolvedFloorIntentV4;
+class UEFCalystoDirectorSubsystem;
+struct FEFCalystoDirectorSnapshot;
+struct FEFCalystoResolvedFloorIntentV6;
 
 /**
  * Emitted after the destination ACF component and frozen capsule pass
@@ -43,7 +47,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	bool, bReady);
 
 /**
- * GameInstance authority for the V4 companion roster. It stores actor-independent
+ * GameInstance authority for the V6 companion roster. It stores actor-independent
  * run state, while ACF remains authoritative for live AI groups and inventory.
  */
 UCLASS()
@@ -76,8 +80,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Project|Companions")
 	bool IsCompanionRosterReady() const { return bCompanionRosterReady; }
 
-	/** Read-only bridge gate used after V4 population realization. */
+	/** Read-only bridge gate used after V6 population realization. */
 	bool IsReadyForDirectorSnapshot(const FString& ExpectedSnapshotHash, FString& OutError) const;
+
+	/** V7 source-world snapshot restoration asks this project-owned owner for
+	 * exact destination projections only after native navigation is usable. It
+	 * never derives identities from labels or a V6 intent. Corpse projections
+	 * remain an explicit unsupported preflight failure until their ACF lifecycle
+	 * has an equally reversible implementation. */
+	bool BuildV7TravelInventoryDestinations(const FGuid& RequestId, UWorld* DestinationWorld,
+		TConstArrayView<FProjectCalystoInventoryDestinationRequirement> Requirements,
+		TArray<FProjectCalystoInventoryDestination>& OutDestinations, FString& OutError);
+	/** Used only if snapshot reconstruction rejects before it mutates persistent
+	 * state. It removes the just-created destination actors and retains the
+	 * detached portable graph for a bounded retry. */
+	void RollbackV7TravelDestinationProjections(const FGuid& RequestId, UWorld* DestinationWorld);
 
 	/**
 	 * Project-owned Development fixture bridge.  It deliberately reuses the
@@ -96,17 +113,17 @@ public:
 
 	/** Pure fail-closed validator for a recruit created and killed in this intent. */
 	static bool ResolveSameFloorRecruitedRevivalLevel(
-		const FEFCalystoResolvedFloorIntentV4& Intent,
+		const FEFCalystoResolvedFloorIntentV6& Intent,
+		const FEFCalystoPopulationPlanV6& PopulationPlan,
 		const FProjectCompanionRunSnapshot& FloorStart,
 		const FProjectCompanionRunEntrySnapshot& CurrentRecord,
-		FEFCalystoResolvedCompanionLevelV4& OutLevel,
+		FEFCalystoResolvedCompanionLevelV6& OutLevel,
 		FString& OutError);
 
-	/** Resolve one active-party directive against the frozen local roster. */
-	bool ResolveFrozenRosterProjection(
-		const FEFCalystoSpawnInstanceDirectiveV4& Directive,
-		FProjectCompanionDefinition& OutDefinition,
-		FString& OutError) const;
+	/** Materializes the accepted active party from resident V6 roster classes. */
+	bool MaterializeActivePartyProjectionsForFloor(
+		const FEFCalystoResolvedFloorIntentV6& Intent,
+		FString& OutError);
 
 	/** Adopt the already-finished bridge actor as the sole live projection for its stable ID. */
 	bool AdoptDirectorRosterProjection(
@@ -114,9 +131,10 @@ public:
 		const FProjectCompanionDefinition& Definition,
 		FString& OutError);
 
-	/** Rollback hook used when any later V4 population slot fails. */
+	/** Rollback hook used when any later V6 population slot fails. */
 	void ReleaseDirectorRosterProjection(FGuid StableCompanionId, AACFCharacter* Character);
 	void RollbackUncommittedDirectorRecruitment(FGuid StableCompanionId, AACFCharacter* Character);
+	void RollbackDirectorRosterProjections();
 
 	/** Final post-population roster validation; this is the only path that marks readiness. */
 	bool FinalizeDirectorRosterReadiness(const FString& ExpectedSnapshotHash, FString& OutError);
@@ -165,6 +183,10 @@ public:
 	FProjectCompanionRosterReadySignature OnCompanionRosterReady;
 
 private:
+	friend class FProjectCalystoGameplaySnapshot;
+	friend class FProjectCalystoGameplaySnapshotTest;
+	/** Project-native snapshot lease. Routing identity only, never gameplay state or random identity. */
+	FGuid GameplaySnapshotRequest;
 	struct FRuntimeCompanionRecord
 	{
 		FProjectCompanionRunEntrySnapshot Snapshot;
@@ -201,47 +223,54 @@ private:
 
 	void BindDirectorEvents();
 	void UnbindDirectorEvents();
-	void HandleBeforeDirectorTravel(EEFCalystoDungeonTravelKindV4 TravelKind);
+	void HandleDirectorRequestPreparing(int64 FloorNumber);
+	void HandleDirectorContextReady(const FEFCalystoDirectorSnapshot& Snapshot);
+	void HandleDirectorContextFailed(const FEFCalystoDirectorSnapshot& Snapshot);
+	void HandleBeforeDirectorTravel(EEFCalystoDungeonTravelKindV6 TravelKind);
 	void HandleDirectorWorldAccepted(
 		int64 AcceptedRunEpoch,
-		EEFCalystoDungeonTravelKindV4 TravelKind,
-		const FEFCalystoResolvedFloorIntentV4& Intent);
+		EEFCalystoDungeonTravelKindV6 TravelKind,
+		const FEFCalystoResolvedFloorIntentV6& Intent);
 	void HandleNewRunInitialized(int64 NewRunEpoch);
 	void HandleFloorReady(
 		int64 FloorNumber,
 		int32 PCGSeed,
-		const FEFCalystoResolvedFloorIntentV4& Intent,
-		const FEFCalystoRealizedFloorManifestV4& Manifest);
+		const FEFCalystoResolvedFloorIntentV6& Intent,
+		const FEFCalystoRealizedFloorManifestV6& Manifest);
 	void HandleFloorTravelFailed();
 
 	FProjectCompanionRunSnapshot BuildSnapshot() const;
-	FEFCalystoCompanionSnapshotV4 BuildDirectorSnapshot(
+	FEFCalystoCompanionRosterSnapshotV6 BuildDirectorSnapshot(
 		const FProjectCompanionRunSnapshot& Source) const;
 	/**
 	 * Rebuilds the live roster while retaining the inventory-eligibility bit
 	 * frozen by the accepted FloorIntent. Inventory has its own typed travel
 	 * capsule and may legitimately change after that intent was compiled.
 	 */
-	FEFCalystoCompanionSnapshotV4 BuildAcceptedRosterValidationSnapshot(
+	FEFCalystoCompanionRosterSnapshotV6 BuildAcceptedRosterValidationSnapshot(
 		const FProjectCompanionRunSnapshot& Source) const;
 	bool RestoreSnapshot(const FProjectCompanionRunSnapshot& Snapshot, FString& OutError);
 	void BroadcastAcceptedRosterChanges(
 		const FProjectCompanionRunSnapshot& Previous,
 		const FProjectCompanionRunSnapshot& Accepted);
 	bool ApplyResolvedCompanionLevels(
-		const FEFCalystoResolvedFloorIntentV4& Intent,
+		const FEFCalystoResolvedFloorIntentV6& Intent,
 		FString& OutError);
 	bool ResolveActiveIntentCompanionLevel(
 		FGuid StableCompanionId,
-		FEFCalystoResolvedCompanionLevelV4& OutLevel,
+		FEFCalystoResolvedCompanionLevelV6& OutLevel,
 		FString& OutError) const;
 	bool ResolveFrozenRevivalCompanionLevel(
 		FGuid StableCompanionId,
-		FEFCalystoResolvedCompanionLevelV4& OutLevel,
+		FEFCalystoResolvedCompanionLevelV6& OutLevel,
 		FString& OutError) const;
 	void ResetRunState(int64 NewRunEpoch);
 	void DestroyLiveRosterProjections();
 	bool AttachDeathProxy(AACFCharacter* Character, FGuid StableCompanionId);
+	/** V7 post-commit check. Snapshot reconstruction already verified the typed
+	 * inventory graph; this validates the live companion/ACF projections before
+	 * this subsystem publishes roster readiness. */
+	bool ValidateV7TravelReconstruction(FString& OutError) const;
 	void SetRosterReady(bool bReady);
 
 	APawn* ResolveLocalPlayerPawn() const;
@@ -261,7 +290,8 @@ private:
 		UACFEquipmentComponent* Equipment,
 		const TArray<uint8>& FrozenBytes,
 		const FString& ExpectedInventoryHash,
-		FString& OutError) const;
+		FString& OutError,
+		bool bPublishEvents = true) const;
 	bool RestoreRevivalInventoryCapsule(
 		UACFEquipmentComponent* Equipment,
 		const TArray<uint8>& FrozenBytes,
@@ -293,7 +323,7 @@ private:
 	void ApplyMenuInputCapture(APawn* PlayerPawn);
 	void RestoreMenuInputCapture();
 
-	static EProjectCompanionDirectorTravelMode ConvertTravelMode(EEFCalystoDungeonTravelKindV4 Kind);
+	static EProjectCompanionDirectorTravelMode ConvertTravelMode(EEFCalystoDungeonTravelKindV6 Kind);
 
 private:
 	TMap<FGuid, FRuntimeCompanionRecord> Roster;
@@ -330,5 +360,7 @@ private:
 	bool bFloorReady = false;
 	bool bGenerationOrTravelActive = false;
 	bool bDirectorEventsBound = false;
+	bool bUsesUnversionedDirector = false;
+	TWeakObjectPtr<UEFCalystoDirectorSubsystem> BoundDirector;
 	FProjectBeforeTypedInventoryRestoreSignature BeforeTypedInventoryRestoreEvent;
 };

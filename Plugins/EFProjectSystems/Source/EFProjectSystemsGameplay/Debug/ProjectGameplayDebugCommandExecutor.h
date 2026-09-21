@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Calysto/EFCalystoDungeonTypesV4.h"
+#include "Calysto/EFCalystoDungeonRuntimeV6.h"
 #include "InnerDoctrine/ProjectInnerDoctrineTypes.h"
 
 class AActor;
@@ -25,8 +25,7 @@ public:
 	static FText GetDungeonHarnessStatusLabel(AActor* OwnerActor);
 	static FText GetDungeonHarnessStatusDescription(AActor* OwnerActor);
 	static FText GetDungeonHarnessFloorChoiceLabel(AActor* OwnerActor, int64 FloorNumber);
-	static FText GetDungeonHarnessStyleChoiceLabel(AActor* OwnerActor, bool bAuto, EEFCalystoStyleV4 Style);
-	static FText GetDungeonHarnessThemeChoiceLabel(AActor* OwnerActor, bool bAuto, EEFCalystoThemeV4 Theme);
+	static FText GetDungeonHarnessStyleChoiceLabel(AActor* OwnerActor, bool bAuto, FName StyleId);
 	static FText GetDungeonHarnessBiasChoiceLabel(AActor* OwnerActor, FName BiasName, float Bias);
 	static FText GetDungeonHarnessVolatilityChoiceLabel(AActor* OwnerActor, float Volatility);
 	static bool RefreshDungeonHarnessStatus(AActor* OwnerActor);
@@ -36,8 +35,7 @@ public:
 	static bool RequestRerollDungeonFloor(AActor* OwnerActor);
 	static bool RequestStartNewDungeonRun(AActor* OwnerActor);
 	static bool RequestStartDungeonTestRun(AActor* OwnerActor);
-	static bool SetDungeonHarnessPreferredStyle(AActor* OwnerActor, bool bAuto, EEFCalystoStyleV4 Style);
-	static bool SetDungeonHarnessPreferredTheme(AActor* OwnerActor, bool bAuto, EEFCalystoThemeV4 Theme);
+	static bool SetDungeonHarnessPreferredStyle(AActor* OwnerActor, bool bAuto, FName StyleId);
 	static bool SetDungeonHarnessIntentBias(AActor* OwnerActor, FName BiasName, float Bias);
 	static bool SetDungeonHarnessIntentVolatility(AActor* OwnerActor, float Volatility);
 	static bool ClearDungeonHarnessDirectorIntent(AActor* OwnerActor);

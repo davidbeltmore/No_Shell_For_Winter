@@ -2,10 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Actors/ACFBaseInteractableActor.h"
+#include "Calysto/EFCalystoDirectorPortal.h"
 #include "EFCalystoFloorDoor.generated.h"
 
 class USphereComponent;
 class UStaticMeshComponent;
+class UStaticMesh;
+struct FEFCalystoDirectorSnapshot;
 
 /**
  * Project-owned Calysto endpoint door. It advances the unbounded run counter and reloads
@@ -13,7 +16,7 @@ class UStaticMeshComponent;
  * EFProceduralPCGRuntime keeps the interaction disabled until PCG and navigation are ready.
  */
 UCLASS(BlueprintType, Blueprintable)
-class EFPROCEDURALACFURUNTIME_API AEFCalystoFloorDoor : public AACFBaseInteractableActor
+class EFPROCEDURALACFURUNTIME_API AEFCalystoFloorDoor : public AACFBaseInteractableActor, public IEFCalystoDirectorPortal
 {
 	GENERATED_BODY()
 
@@ -25,6 +28,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "EF|Calysto Dungeon")
 	void SetEnabled(bool bEnabled);
+	virtual FVector GetDirectorApproachWorld() const override;
+	virtual void SetDirectorInteractionEnabled(bool bEnabled) override;
+	virtual bool SetDirectorAppearance(UStaticMesh* Mesh) override;
 
 	virtual void OnInteractedByPawn_Implementation(APawn* Pawn, const FString& InteractionType) override;
 	virtual void OnLocalInteractedByPawn_Implementation(APawn* Pawn, const FString& InteractionType) override;
@@ -47,6 +53,7 @@ protected:
 private:
 	void EndPawnInteraction(APawn* Pawn) const;
 	void HandleFloorTravelFailed();
+	void HandleDirectorStateChanged(const FEFCalystoDirectorSnapshot& Snapshot);
 	void RefreshInteractionState();
 
 	bool bTravelRequested = false;

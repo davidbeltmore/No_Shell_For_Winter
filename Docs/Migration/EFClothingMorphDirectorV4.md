@@ -17,6 +17,12 @@ Open it and add one element to **Clothes** for every clothing mesh/body pair. Th
 
 An unfinished element is a draft. It cannot disable, remove or invalidate clothes that are already working. Several clothing components may be equipped simultaneously; each resolves its own binding and runtime controls.
 
+## Automatic opaque clothing materials (V4.5)
+
+Adding or changing a **Clothing Mesh** now schedules an editor-only catalog refresh after 0.75 seconds. Every Material Instance Constant assigned to that mesh and stored under `/Game` receives an explicit `Blend Mode = Opaque` base-property override and is saved automatically. This prevents skin and tattoo overlays from rendering through clothing and keeps the result independent from later changes to a shared parent material.
+
+Parent materials and assets mounted outside `/Game` are never edited. If a clothing slot uses a direct Material instead of a Material Instance Constant, the editor leaves it unchanged and emits a warning asking for a project-owned material instance.
+
 ## Live Fit
 
 - **Skin Gap (cm)** adds non-destructive space between this clothing and the final animated skin.

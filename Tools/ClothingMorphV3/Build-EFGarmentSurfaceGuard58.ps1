@@ -14,7 +14,7 @@ $editorCmd = Join-Path $engineRootPath 'Engine\Binaries\Win64\UnrealEditor-Cmd.e
 $builder = Join-Path $projectRootPath `
     'Plugins\EFClothingMorph\Source\EFClothingMorphEditor\Scripts\Build-EFGarmentSurfaceConstraint58.py'
 $receiptGuard = Join-Path $projectRootPath 'Tools\Migration\Repair-DazPluginReceipt58.ps1'
-$receiptDirectory = Join-Path $projectRootPath 'Saved\ClothingMorphV3QA\GraphBuilder'
+$receiptDirectory = Join-Path $projectRootPath 'Saved\ClothingMorphV4QA\GraphBuilder'
 $logDirectory = Join-Path $projectRootPath 'Saved\Migration\Logs'
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $log = Join-Path $logDirectory "EFClothingMorphV3SurfaceGuard_$stamp.log"
@@ -86,7 +86,7 @@ if (-not $receipt) {
 }
 $result = Get-Content -LiteralPath $receipt.FullName -Raw | ConvertFrom-Json
 if (-not [bool]$result.success -or
-    $result.schema -ne 'EFClothingMorph.SurfaceGraph.27.0') {
+    $result.schema -ne 'EFClothingMorph.SurfaceGraph.35.0') {
     throw "Surface Guard graph receipt is stale or failed: $($receipt.FullName)"
 }
 

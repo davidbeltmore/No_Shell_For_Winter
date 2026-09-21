@@ -223,8 +223,13 @@ FEFClothingNativeSourceEditorGate::ValidateOrRefresh(
 		EFClothingNativeSourceEditorGatePrivate::CleanupOrphanBindings(
 			CompileResult.Registry,
 			CleanupReport);
-	Result.bSuccess = true;
-	Result.bRefreshed = CompileResult.PublishedRowCount > 0;
+	const int32 NewlyBuiltBindingCount = FMath::Max(
+		CompileResult.CompiledRowCount - CompileResult.ReusedFreshRowCount,
+		0);
+	Result.bSuccess = CompileResult.FailedRowCount == 0
+		&& PostRefresh.InvalidRowCount == 0
+		&& PostRefresh.StaleRowCount == 0;
+	Result.bRefreshed = NewlyBuiltBindingCount > 0;
 	Result.bDegraded = CompileResult.DraftRowCount > 0
 		|| CompileResult.FailedRowCount > 0
 		|| PostRefresh.InvalidRowCount > 0

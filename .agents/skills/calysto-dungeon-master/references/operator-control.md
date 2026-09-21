@@ -1,9 +1,123 @@
 # Director operator control cookbook
 
 Use this reference for exact commands, runtime controls and their evidence limits.
-The inventory was read from the target on 2026-09-05. Reinspect changed files and
-the loaded class before using it. V6 commands below remain V6 even when a V7
+The legacy inventory was read on 2026-09-05; the four project MCP operations below
+were discovered and exercised on 2026-09-08. Reinspect changed files and the
+loaded class before using them. V6 commands below remain V6 even when a V7
 candidate exists. Never rewrite a version in a command and assume it works.
+
+## Implemented V7 candidate interfaces — validation pending
+
+The unversioned candidate now has source implementations. Its cold build,
+three-floor traversal, complete gameplay bridges and release gates must be
+checked against current receipts; API existence is not a passing gate.
+
+`UEFCalystoDirectorSettings::IsEnabled()` selects the candidate from its
+`bEnabled` configuration setting. Development/Editor also accepts
+`-CalystoDirectorCandidate` or `-CalystoDirectorNativeParity`; these command-line
+switches do not enable Shipping. Native parity uses an explicitly transient
+fixture and is not the authored production asset or a release candidate.
+Never enable the candidate in a running GameInstance: subsystem creation and
+provider registration happen during GameInstance initialization.
+
+The source-defined Blueprint-callable run controls on
+`UEFCalystoDirectorSubsystem` are:
+
+| Operation | Exact native API | Constraint |
+| --- | --- | --- |
+| New run | `RequestStartNewRun()` | Returns acceptance of the request, not floor success. |
+| Seeded run | `RequestStartNewRunWithSeed(int64 Seed)` | Seed is a run seed, not the generated topology seed. |
+| Advance | `RequestAdvanceFloor()` | Requires the current floor to be Ready. |
+| Replay | `RequestReplayCurrentFloor()` | Retains current floor/reroll identity and selected Style. |
+| Reroll | `RequestRerollCurrentFloor()` | Increments reroll identity, retains selected Style. |
+| Explicit retry | `RequestRetry()` | Requires current snapshot `bCanRetry`; preserves failed floor/Style. |
+| Explicit HUB return | `RequestReturnToHub()` | Requests owned cleanup before travel. |
+| Cancel | `RequestCancel()` | Cancels unfinished work; never means successful generation. |
+| Read state | `GetSnapshot()`, `IsTravelRequestPending()` | Observe the request under its one 30-second deadline. |
+
+Use the live MCP discovery schema to access these reflected functions; there is
+no assumed generic V7 console alias. `GetSnapshot()` exposes requested versus
+last committed floor, run epoch, seed, reroll, Style ID, topology seed, attempts,
+failure text, retry/HUB capabilities, and separate native/gameplay verification
+flags. `Ready` in the native parity milestone does not imply
+`bGameplayVerified=true` or full catalog/companion/outcome acceptance.
+
+`AwaitingPlayerRelease` keeps the transaction open after native verification.
+EFLevelFlow consumes `ResolvePlayerStartTransform` exactly, positions the pawn,
+checks its view and calls the **native-only** `ConfirmPlayerRelease` handshake.
+Only that owned handshake commits and publishes `FloorReady`. Entry/view failure
+calls `RejectPlayerRelease`, rejecting the whole spatial attempt. Operators must
+not forge these callbacks to satisfy a test. Failure preserves movement/input
+and damage protection and presents Retry / Return to HUB. LevelFlow has a
+35-second disconnected-owner watchdog; it does not extend the Director's
+30-second generation deadline or release an invalid floor.
+
+`AEFCalystoFloorDoor` implements `IEFCalystoDirectorPortal`. Its explicit approach
+is local `(0,-90,0)` transformed by the owned door actor, and its selected mesh
+comes from the Style's `Architecture.ProgressionDoorMesh`. Navigation verifies
+that point's designated room, floor contact, capsule clearance and complete
+route. Door interaction requires the Director's committed Ready state and
+native verification. The enabled branch does not consult V6 Harness settings.
+
+Source entrypoints are under:
+
+- `Plugins/EFProcedural/Source/EFProceduralRuntime/{Public,Private}/Calysto/EFCalystoDirectorSubsystem.*`
+- `Plugins/EFProcedural/Source/EFProceduralRuntime/{Public,Private}/Calysto/EFCalystoDirectorSettings.*`
+- `Plugins/EFLevelFlow/Source/EFLevelFlowRuntime/Private/EFLevelFlowSubsystem.cpp`
+- `Plugins/EFProcedural/Source/EFProceduralACFURuntime/Private/Calysto/EFCalystoFloorDoor.cpp`
+
+The bounded native suite runner is now
+`Tools/Migration/Run-CalystoDirectorNative58.ps1 -ExpectedTestsFile <reviewed-file> -TimeoutSeconds 180`.
+Create the exact inventory from current registered tests and review it before
+running; never reuse a pinned legacy count. The runner selects the exact reviewed
+names using UE 5.8's `^Name$` anchors joined by `+` in one process. It compares every test name and
+aggregate result, requires zero warnings/errors and successful process exit,
+and rejects missing or malformed reports. Optional `-TestPrefix` accepts a
+reviewed narrower test prefix; every expected test must belong to that prefix,
+so a focused corrected test does not require rerunning unrelated passing tests.
+`-TestPrefix` constrains the permitted inventory; it does not expand execution
+to every matching test. This also avoids UE's complete-path-token prefix rule,
+which selected zero tests for the former partial `Director.L` filter. Exact
+selection passed in `Native_LightingLifecycleExact_20260908` and
+`Native_RoundedBounds_20260908`, including clean process exits.
+Native automation starts `/Engine/Maps/Entry`; this deliberately excludes cold
+HUB loading from the native unit gate. Cold Editor/HUB and real traversal remain
+separate required gates.
+
+`Tools/Migration/calysto_native_supervisor.py` now owns subprocess waiting and
+strict postprocessing. The protected PowerShell launcher remains the only code
+that starts Unreal Editor. `SupervisorStatus.json` records driver PID/stage and
+`StrictSummary.json` records the exact exit code and complete inventory result.
+Timeout uses an exact project/log match to stop only the owned editor (four
+seconds maximum for that query), then caps driver cleanup waits at seven
+additional seconds. Log/report byte limits and a ten-second log-scan deadline
+prevent unbounded postprocessing. Preserve unsaved editor work before using the
+wrapper: it requires all editors closed.
+
+The superseded PowerShell supervisor stalled after its child exited, including
+after redirected parent pipes were removed. Its precise internal stall was not
+established; the 415,950-byte failure log scan was independently ruled out at
+0.107 seconds. Do not restore that supervisor based on passing isolated waits.
+The Python replacement was tested with fake exit 0, exit 7, forced timeout and
+malformed/incomplete reports without launching Unreal; see
+`Saved/Migration/CalystoDungeonDirectorV7/SupervisorSelfTest_20260905/SelfTest.json`.
+
+The structural fixture no longer calls `InitializeNewWorld` after `CreateWorld`:
+UE 5.8 already initializes it. Reintroducing that call duplicates WorldSettings
+and crashes the suite. A report emitted before an engine crash is a failed gate.
+
+The candidate production decision test is
+`NoShellForWinter.CalystoDungeon.Director.Probability.100000Trials` in
+`EFProceduralRuntime/Private/Tests/EFCalystoDirectorFoundationTests.cpp`. It
+performs 100,000 in-memory trials covering 37% opportunity presence,
+conditional Forge/Shrine weights 5:3, five eligible rooms with
+`1 + Binomial(4,0.25)`, fair guaranteed-room ranking, all five populated rarity
+tiers including Winter, inclusive uniform amounts, rounded triangular amounts,
+continuous triangular mean and count feasibility conditioning. The separate
+`Director.Probability.BoundariesAndIdentity` covers exact boundaries and stable
+identity behavior. Read actual assertions after changes. Neither suite proves
+accepted-world probabilities or materialization; those need runtime receipts
+including rejected attempts.
 
 ## Live discovery and JSON transport
 
@@ -48,6 +162,120 @@ If MCP is unavailable, run the project connection probe once, inspect the exact
 UnrealEditor executable and command line, and distinguish an absent server from
 the wrong project. Mark live conclusions PENDING. File inspection does not prove
 loaded state. Re-discover tools after Editor restart.
+
+### Verified project-owned Calysto MCP operations
+
+Describe `EFProceduralEditor.EFCalystoDirectorToolset` after each Editor restart.
+The discovered fully qualified tool names use that prefix plus the operation
+below. Status operations return an object whose required `returnValue` is a
+**JSON string**. Read its `status` and `message`; transport success does not mean
+operation success. `CaptureAuthoringDetails` instead returns the native image
+object directly in `returnValue`, containing `mimeType` and base64 `data`.
+
+Live authoring staging and the pending-mapping save guard were executed on
+2026-09-08 in `AuthoringStage_20260908_G24567` and
+`AuthoringSaveGuard_20260908_G24567`. Staging verified 2,912 records in 0.39 seconds,
+with 31 unmapped leaves, zero authoring errors and unchanged V6. That historical
+receipt proves the staging/refusal guard. The later `AuthoringMasterSave_20260908`
+resolved every original mapping decision, verified 2,913 records and saved the
+exact unversioned master. `AuthoringReloadIdempotence_20260908` verified the
+saved master again in a fresh Editor in 0.407 seconds: zero saves, zero authoring
+errors and unchanged V6. The original saving session crashed during shutdown;
+the corrective fresh reload session `Resume_20260908/LiveMasterReload_2000`
+closed normally with actual exit 0. These are authoring/operator gates only;
+the full master runtime still has explicit capability gates. Authoring output uses
+the fixed evidence directory with archived `ImportDirectorStaged.json`; its
+operation does not arm PIE. Use a fresh evidence name and the 10-second MCP call
+budget; if it times out, inspect its receipt before considering another call.
+
+| Operation | Exact input object | Observed behavior and constraints |
+| --- | --- | --- |
+| `ReadEditorContext` | `{}` | Reports actual project/file, engine version, Editor/PIE worlds, active or queued PIE, dirty content/maps, Python availability and pending shutdown. `OK` confirms the target context only. |
+| `MigrateAuthoring` | `{"evidenceName":"<fresh_name>","saveMaster":false}` | Executes the fixed importer, archives previous/current receipts, exports V6 read-only and roundtrips current native authored structs. `saveMaster:true` permits only the exact unversioned master after complete mappings; pending mappings return `AUTHORING_STAGED` with `save_permitted:false`. Requires stopped PIE and no dirty packages. Never switches runtime authority. |
+| `ArmTraversal` | `{"evidenceName":"<fresh_name>","mode":"native_parity"}` or mode `full` | Requires the exact target, UE 5.8, loaded `/Game/_Game/Hub/HUB.HUB`, stopped PIE, no queued shutdown and matching native-parity launch flag. Runs only the fixed project traversal harness. Returns `ARMED` after verifying its fresh receipt. |
+| `ReadDirectorDiagnostics` | `{}` | Reads the existing Director from the sole actual PIE GameInstance. Returns `pie_world`, `game_instance` and `diagnostics_json`; fails for absent or ambiguous PIE ownership. It creates no run. |
+| `CaptureAuthoringDetails` | `{}` | Captures the already-open exact master asset window at its actual resolution, up to 16 megapixels. Requires stopped PIE. It neither opens/expands UI nor edits/saves assets. Verified as a readable 2560×1392 PNG in `LiveMasterReload_2000/MasterDetails.png`; inspect the image itself. |
+| `RequestEditorShutdown` | `{}` | Requires no active/queued PIE and zero dirty content/map packages. Returns `SHUTDOWN_PENDING`; after two seconds, closes native asset editors while Editor services are alive, observes at least two frames and no remaining open asset editors, then requests graceful exit. Dirty state, PIE or a 10-second asset-window timeout cancels closure. Actual exit 0 with the master window open was verified in `LiveMasterReload_2000/Exit.json`. |
+
+`evidenceName` accepts 1-80 ASCII letters, digits, `_` or `-`. For `ArmTraversal`, output is fixed to
+`Saved/Migration/CalystoDungeonDirectorV7/<evidenceName>/traversal.json`; an existing
+directory or file is rejected. Prepare the fresh name and discover StartPIE
+**before** arming. After returned `ARMED` and the exact matching receipt, immediately
+call `EditorToolset.EditorAppToolset.StartPIE` with the discovered options:
+
+```json
+{"options":{"bSimulate":false,"playMode":"PlayMode_InViewPort","warmupSeconds":0}}
+```
+
+The harness allows 30 seconds for external PIE startup and 150 seconds total.
+After verified arming, its owned performance scope temporarily disables Editor
+background CPU throttling in memory, including the separate rendering setting.
+It saves no configuration. The scope restores the original setting and removes
+only its own delegate on terminal receipt, EndPIE, cancelled startup, shutdown
+or the 150-second deadline; at 145 seconds it requests owned PIE cleanup.
+`ReadEditorContext` reports focus, actual throttling, frame cadence, active scope
+and restoration reason. Do not disable throttling globally or extend floor
+deadlines to compensate for background Editor cadence. Live restoration was
+verified in `Resume_20260908/LiveBoundsObservation/Editor.log` and its context
+receipts; lifecycle assertions passed in `Native_RoundedBounds_20260908`.
+Do not insert discovery, unrelated inspection or a pause between arming and
+StartPIE. The harness and Director deadlines continue independently of an MCP
+call. A StartPIE acknowledgment supplies no floor acceptance. Observe the receipt
+and actual Director, then `EditorToolset.EditorAppToolset.IsPIERunning` (`{}`);
+use `StopPIE` (`{}`) only if the owned session still needs cleanup.
+
+Preserve `diagnostics_json` verbatim in evidence. Decode that string with an
+integer-preserving parser, such as Python `json.loads`, when inspecting int64
+run/floor identities. Do not round-trip it through JavaScript `Number` or an
+Unreal JSON numeric object: the run seeds exceed exact IEEE-754 integer range.
+Distinguish `actual_root_generation_requests` from transaction authorization;
+null remains unknown. A measured actual count of one does not prove accepted
+geometry, navigation, gameplay or traversal.
+
+Before shutdown, confirm `pie_active_or_queued=false`, empty `pie_worlds`, and
+empty dirty package arrays. After `SHUTDOWN_PENDING`, retain the owned launch
+handle, verify its actual child exit code and audit the final log. A pending
+response or disappearance of MCP is not exit evidence. Preserve unsaved work if
+the tool rejects closure; it never saves packages or forces process termination.
+
+For a native authoring screenshot, first discover/use
+`EditorToolset.EditorAppToolset.OpenEditorForAsset` with
+`{"assetPath":"/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector"}`.
+Then call `CaptureAuthoringDetails`, decode `returnValue.data` to a fresh PNG
+under `Saved/Migration/CalystoDungeonDirectorV7`, and inspect it at original
+resolution. The stock `CaptureEditorImage` composites all desktop windows and
+shrinks to 1280 pixels; it did not produce readable master Details on this
+multi-monitor setup. The scoped capture proves visible UI only, not runtime
+effects, expanded nested controls, Undo/Redo or complete authoring acceptance.
+
+This path worked when Computer Use reported `native pipe` missing. It requires
+no generic Python/console MCP tool or UI command entry; the project tool owns
+the fixed Editor Python invocation. Its success proves operator access only.
+The cold and warm traversal receipts from this discovery run are **FAIL**.
+
+Evidence under `Saved/Migration/CalystoDungeonDirectorV7/Resume_20260908/`:
+`NativeFixToolset0.txt` (four exact schemas), `NativeFixToolset1.txt` (PIE schema),
+`McpNativeContext.json`, `McpArmNativeCold.json`, `McpArmNativeWarm.json`,
+`McpLiveNativeWarmObservation.json`, and `LiveMcpNative/Exit.json` with its
+`Editor.log` (shutdown dispatch, `CloseEditor`, final exit). The
+[durable checkpoint](../../../../Docs/Migration/Evidence/Calysto_Director_V7_Acceptance.json)
+records their hashes and scope.
+
+### V7 replay seeds for known native topology
+
+For the transient native-parity Style `43414C59-5354-4F4E-4154-495645535459`,
+Floor 1, reroll 0 and attempt 0, launch through the protected wrapper with
+`-CalystoDirectorNativeParity -CalystoDirectorRunSeed=<signed_int64>`:
+
+| V7 run seed | First topology seed | Evidence scope |
+| --- | --- | --- |
+| `1219803037753221267` | `1779679224` | Confirmed in actual diagnostics in `Traversal_20260908_LightObservationSeed177/traversal.json` and its `Warm` counterpart; both traversal receipts FAIL. |
+| `-3003287693235273058` | `1190737158` | Mathematically derived; live topology confirmation and traversal PENDING. |
+
+The derivation is `Resume_20260908/DeriveNativeReplaySeeds.py` under the evidence
+root. These mappings depend on that Style/floor/reroll/attempt identity. The old
+V6 run seed `2959332854660340481` instead produces V7 topology `2068023713`;
+copying a historical run seed does not preserve topology across random domains.
 
 ## Establish the current authority
 
@@ -182,7 +410,7 @@ Implementation reference:
 `HandleBootstrapTick`, `TrySelectDoor`, `HandleFloorReady`,
 `HandleDoorSelectionTick`, `HandleTimeoutTick`, `WriteReceipt`.
 
-## Probability suite: what actually runs
+## Historical V6 probability suite
 
 The existing native automation prefix is
 `NoShellForWinter.CalystoDungeon.V6`. The 38 pinned tests include
@@ -243,6 +471,68 @@ after all checks PASS. It is unsuitable as the routine three-floor command;
 use explicit individual runners while building the concise V7 release binding.
 
 ## Required V7 operator capabilities
+
+Current candidate inspection additions (authoring/diagnostics only):
+
+- `UEFCalystoDungeonDirectorAsset::GetAuthoringErrors()` returns exact field
+  errors directly, including in Python. `validate_authoring()` uses Unreal's
+  bool-success/output-array convention; do not assume it returns a tuple.
+- `Import-CalystoDungeonDirector58.py` loaded through `runpy.run_path` supports
+  `main(stage_only=True)`. It validates a transient native candidate and every
+  mapped value without saving. Read `ImportDirectorStaged.json`; this does not
+  create the master asset, complete unsupported mappings or switch authority.
+- To capture native generated instance evidence before rollback, set
+  `builtins.CALYSTO_DIRECTOR_STRUCTURE_OUTPUT` to a new target Saved directory
+  and execute `Tools/Migration/Observe-CalystoDirectorStructure58.py` before PIE.
+  It is read-only, unregisters on a terminal first-floor state or after 60 seconds,
+  bounds snapshots/actors/components/instances, and records its own overhead.
+  Pair it with the real-door traversal harness; it cannot accept a floor.
+- Director diagnostics distinguish `root_generation_requests` (transaction
+  authorization) from retained `actual_root_generation_requests`. The September 8
+  warm observation records actual calls of one; absent measurements remain null.
+  Neither count alone proves an accepted floor.
+- Shared async preparation and per-request visual loading now have separate
+  measured durations and dependency counts. They do not measure PSO readiness,
+  geometry, navigation, gameplay spawning, or total Door-to-FloorReady latency.
+- Critical pending loads temporarily request a shared 5 ms async loading budget;
+  owner release restores the original value and priority, and external writes
+  retain precedence. `async_loading_budget_ms` reports the effective value.
+  This scope does not save settings, enable async loading threads or synchronously
+  flush loading. Its ownership test and live restoration have passed.
+- Arm the traversal through the verified project MCP operation above. Its fresh
+  `ARMED` receipt must precede immediate StartPIE. Stop an accidentally unarmed
+  owned PIE session promptly; it supplies no traversal evidence.
+- UE 5.8 Python exposes `CollisionChannel.ECC_PAWN`; capsule overlap returns an
+  array or None. Native `BreakTaggedData` is not exposed. Use
+  `PCGDataFunctionLibrary.get_typed_inputs(collection)` for matching data/tag arrays.
+  For zero-height native ISM instances, `GetInstanceTransform` loses rotation
+  during singular-matrix decomposition. Exact provenance must compare the stored
+  instance matrix in component world space, not ignore its orientation.
+- Python `HitResult.to_tuple()` executes UE's native break function and supplies
+  the 18-value UE 5.8 contract; `GameplayStatics.break_hit_result` is not exported.
+  Calling a NavigationSystem class-static Python method dispatches through its
+  Within=World CDO and can trigger an ensure. The tested traversal inspects at most
+  64 loaded NavigationSystemV1 objects, requires the exact PIE world outer, and
+  invokes `FindPathToLocationSynchronously` through that instance's `call_method`.
+  This is one independent QA query after runtime acceptance, never a rebuild.
+- `Traversal_20260908_WorldNavTrilogySeed177` completed three real-door floors and
+  short grounded entry walks in 17.985 seconds. `Traversal_20260908_RouteSeed119`
+  completed full protected-route walks and the same three-floor flow in 77.594
+  seconds, with first topology 1190737158 from run -3003287693235273058.
+  The harness now requires each full walk within 35 seconds and its first 75 cm
+  within five seconds, inside the existing 150-second total. It uses normal
+  character input and verifies the actual movement-component floor contact.
+  All three floor-door approach interactions remain explicitly recorded as
+  automated positioning followed by the real ACF interaction contract.
+  These native fixture receipts do not imply full gameplay, final floor-cap
+  return or release acceptance. The fixture's unlit images were black; visual
+  QA remains PENDING. Do not accept PNG existence or a receipt alone as visual QA.
+- The Player-only project Recast subclass uses explicit config resolutions
+  Low 20 / Default 10 / High 10 cm, retaining radius 50 / height 176 cm and the
+  native Default agent's 19 cm resolution. Both failing topologies now have
+  live complete routes. Runtime tile completion is observed through the owned
+  NavigationSystem generation-finished delegate, including late data registration;
+  `Recast.OnNavMeshUpdate` alone does not report ordinary tile completion.
 
 Implement and validate these against the unversioned production interfaces
 before adding executable V7 commands to this cookbook:

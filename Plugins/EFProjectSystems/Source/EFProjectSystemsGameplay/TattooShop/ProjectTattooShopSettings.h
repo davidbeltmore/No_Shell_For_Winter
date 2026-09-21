@@ -6,6 +6,7 @@
 #include "ProjectTattooShopSettings.generated.h"
 
 class UUserWidget;
+class UMaterialInterface;
 
 /**
  * Project-owned switch and safety limits for the Character Creation tattoo
@@ -48,5 +49,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Rendering", meta = (ClampMin = "0.0", ClampMax = "0.25"))
 	float PreviewDebounceSeconds = 0.05f;
-};
 
+	/** Translucent DAZ garment material that needs a depth-writing tattoo occluder. */
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Rendering|Clothing Occlusion")
+	TSoftObjectPtr<UMaterialInterface> RagShirtSourceMaterial;
+
+	/** Project-owned masked equivalent of RagShirtSourceMaterial. */
+	UPROPERTY(EditAnywhere, Config, BlueprintReadOnly, Category = "Rendering|Clothing Occlusion")
+	TSoftObjectPtr<UMaterialInterface> RagShirtTattooOccluderMaterial;
+};

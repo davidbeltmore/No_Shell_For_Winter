@@ -1,6 +1,7 @@
 #include "AbilitySystemComponent.h"
 #include "Actors/ACFCharacter.h"
-#include "Calysto/ProjectCalystoPopulationBridgeV4.h"
+#include "Calysto/ProjectCalystoContentAttemptProvider.h"
+#include "Calysto/ProjectCalystoPopulationBridge.h"
 #include "EFCharacterCreationGameplayHooks.h"
 #include "Features/IModularFeatures.h"
 #include "GameFramework/Pawn.h"
@@ -79,21 +80,33 @@ public:
 	virtual void StartupModule() override
 	{
 		IdentityChangedHandle = EFCharacterCreationGameplayHooks::OnIdentityChanged().AddStatic(&ProjectSystemsGameplayModulePrivate::HandleCharacterCreationIdentityChanged);
-		check(!CalystoPopulationBridgeV4.IsValid());
-		CalystoPopulationBridgeV4 = MakeUnique<FProjectCalystoPopulationBridgeV4>();
+		check(!CalystoPopulationBridge.IsValid());
+		CalystoPopulationBridge = MakeUnique<FProjectCalystoPopulationBridge>();
 		IModularFeatures::Get().RegisterModularFeature(
-			IEFCalystoPopulationBridgeV4::GetModularFeatureName(),
-			CalystoPopulationBridgeV4.Get());
+			IEFCalystoPopulationBridgeV6::GetModularFeatureName(),
+			CalystoPopulationBridge.Get());
+		check(!CalystoContentAttemptProvider.IsValid());
+		CalystoContentAttemptProvider = MakeUnique<FProjectCalystoContentAttemptProvider>();
+		IModularFeatures::Get().RegisterModularFeature(
+			IEFCalystoContentAttemptProvider::GetModularFeatureName(),
+			CalystoContentAttemptProvider.Get());
 	}
 
 	virtual void ShutdownModule() override
 	{
-		if (CalystoPopulationBridgeV4.IsValid())
+		if (CalystoContentAttemptProvider.IsValid())
 		{
 			IModularFeatures::Get().UnregisterModularFeature(
-				IEFCalystoPopulationBridgeV4::GetModularFeatureName(),
-				CalystoPopulationBridgeV4.Get());
-			CalystoPopulationBridgeV4.Reset();
+				IEFCalystoContentAttemptProvider::GetModularFeatureName(),
+				CalystoContentAttemptProvider.Get());
+			CalystoContentAttemptProvider.Reset();
+		}
+		if (CalystoPopulationBridge.IsValid())
+		{
+			IModularFeatures::Get().UnregisterModularFeature(
+				IEFCalystoPopulationBridgeV6::GetModularFeatureName(),
+				CalystoPopulationBridge.Get());
+			CalystoPopulationBridge.Reset();
 		}
 		if (IdentityChangedHandle.IsValid())
 		{
@@ -104,7 +117,8 @@ public:
 
 private:
 	FDelegateHandle IdentityChangedHandle;
-	TUniquePtr<FProjectCalystoPopulationBridgeV4> CalystoPopulationBridgeV4;
+	TUniquePtr<FProjectCalystoPopulationBridge> CalystoPopulationBridge;
+	TUniquePtr<FProjectCalystoContentAttemptProvider> CalystoContentAttemptProvider;
 };
 
 IMPLEMENT_MODULE(FEFProjectSystemsGameplayModule, EFProjectSystemsGameplay)

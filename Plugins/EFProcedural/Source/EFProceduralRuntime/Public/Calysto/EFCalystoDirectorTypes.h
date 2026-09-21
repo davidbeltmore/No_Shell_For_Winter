@@ -320,7 +320,9 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoSurfaceDecoration
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Placement")
 	EEFCalystoPlacementZone Zone = EEFCalystoPlacementZone::Floor;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chance")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chance", meta = (ToolTip = "Use this zone's Chance instead of the selected Style's default optional-decoration Chance. This is one roll, not an additional roll."))
+	bool bOverrideDefaultChance = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chance", meta = (EditCondition = "bOverrideDefaultChance", EditConditionHides))
 	FEFCalystoPercentageCurve Chance;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (TitleProperty = "Selection.DisplayName"))
 	TArray<FEFCalystoArchitectureEntry> Alternatives;
@@ -330,6 +332,10 @@ USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoStyleArchitecture
 {
 	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (ClampMin = "0", ClampMax = "256", ToolTip = "Shared room capacity for optional decorations across all eight zones, including Theme decoration. Required structure and native lights do not consume this capacity."))
+	int32 MaximumDecorationsPerRoom = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (DisplayName = "Default Optional Decoration Chance", ToolTip = "Chance per feasible native optional-decoration opportunity. A zone may explicitly override it; no second Chance roll is introduced."))
+	FEFCalystoPercentageCurve DecorationChance;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (TitleProperty = "Selection.DisplayName"))
 	TArray<FEFCalystoArchitectureEntry> Floor;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (TitleProperty = "Selection.DisplayName"))
@@ -349,8 +355,9 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoStyleArchitecture
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (TitleProperty = "Zone"))
 	TArray<FEFCalystoSurfaceDecoration> Decoration;
 	/** Travel integration owns progression actors; this changes supported mesh appearance only. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (AssetBundles = "CalystoVisuals", DisplayName = "Floor Door Appearance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Architecture", meta = (AssetBundles = "CalystoVisuals", DisplayName = "Floor Door Appearance", ToolTip = "Upright door mesh: height along Z, width along X. Centered on the End marker with its base at floor level and its original size."))
 	TSoftObjectPtr<UStaticMesh> ProgressionDoorMesh;
+	FEFCalystoStyleArchitecture() { DecorationChance.FirstPercent = DecorationChance.LastPercent = 35.0; }
 };
 
 USTRUCT(BlueprintType)
@@ -370,21 +377,73 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoLayout
 	FEFCalystoLayout() { DungeonSize.Value = 24.0; CandidateDensity.Value = 0.32; SidePathPercent.Value = 50.0; }
 };
 
+UENUM(BlueprintType)
+enum class EEFCalystoTileSpacingDistribution : uint8
+{
+	Fixed, Uniform, Triangular, Weighted
+};
+
+USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoTileSpacingChoice
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "1", ClampMax = "100"))
+	int32 Tiles = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "0", ToolTip = "Relative probability among the authored tile counts. Tile counts must be unique."))
+	double Weight = 1.0;
+};
+
+USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoTileSpacing
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing")
+	EEFCalystoTileSpacingDistribution Distribution = EEFCalystoTileSpacingDistribution::Fixed;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "1", ClampMax = "100", EditCondition = "Distribution == EEFCalystoTileSpacingDistribution::Fixed", EditConditionHides))
+	int32 Tiles = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "1", ClampMax = "100", EditCondition = "Distribution == EEFCalystoTileSpacingDistribution::Uniform || Distribution == EEFCalystoTileSpacingDistribution::Triangular", EditConditionHides))
+	int32 Minimum = 9;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "1", ClampMax = "100", EditCondition = "Distribution == EEFCalystoTileSpacingDistribution::Triangular", EditConditionHides, ToolTip = "Peak of a continuous triangular distribution rounded to the nearest tile count."))
+	int32 Mode = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (ClampMin = "1", ClampMax = "100", EditCondition = "Distribution == EEFCalystoTileSpacingDistribution::Uniform || Distribution == EEFCalystoTileSpacingDistribution::Triangular", EditConditionHides))
+	int32 Maximum = 11;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spacing", meta = (EditCondition = "Distribution == EEFCalystoTileSpacingDistribution::Weighted", EditConditionHides, TitleProperty = "Tiles"))
+	TArray<FEFCalystoTileSpacingChoice> Choices;
+};
+
+USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoLightFlicker
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flicker", meta = (ToolTip = "Deterministic smooth changes to light-component intensity. Native torch particle effects remain independent."))
+	bool bEnabled = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flicker", meta = (ClampMin = "0", ClampMax = "1", EditCondition = "bEnabled", EditConditionHides))
+	double MinimumMultiplier = 0.8;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flicker", meta = (ClampMin = "0", ClampMax = "1", EditCondition = "bEnabled", EditConditionHides))
+	double MaximumMultiplier = 1.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flicker", meta = (ClampMin = "0.01", ClampMax = "30", Units = "Hz", EditCondition = "bEnabled", EditConditionHides, ToolTip = "New deterministic intensity target values per second, with smooth interpolation between them."))
+	double FrequencyHz = 6.0;
+};
+
 USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoLighting
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting")
 	FEFCalystoFloatDistribution IntensityMultiplier;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (Units = "cm"))
-	double WallLightHeight = 200.0;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (ClampMin = "1"))
-	int32 WallLightTileDistance = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (ClampMin = "0", ClampMax = "4", ToolTip = "Explicit intensity saturation ceiling. Any sampled value above the ceiling becomes the ceiling, preserving its probability mass."))
+	double IntensityCeiling = 4.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (Units = "cm", ToolTip = "Wall light height distribution in native dungeon centimetres, sampled once per floor."))
+	FEFCalystoFloatDistribution WallLightHeight;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (DisplayName = "Wall Light Tile Spacing", ToolTip = "Distance between native wall-light opportunities in native tile units. Weighted outcomes are an explicit discrete distribution."))
+	FEFCalystoTileSpacing WallLightTileDistance;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (ShowOnlyInnerProperties, DisplayName = "Light Intensity Flicker"))
+	FEFCalystoLightFlicker Flicker;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting")
 	FEFCalystoPlacement Placement;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting", meta = (TitleProperty = "Selection.DisplayName"))
 	TArray<FEFCalystoArchitectureEntry> WallLights;
-	FEFCalystoLighting() { Placement.Zone = EEFCalystoPlacementZone::WallMiddle; }
+	FEFCalystoLighting() { Placement.Zone = EEFCalystoPlacementZone::WallMiddle; WallLightHeight.Value = 200.0; }
 };
 
 USTRUCT(BlueprintType)
@@ -501,6 +560,11 @@ USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoDecals
 {
 	GENERATED_BODY()
+#if WITH_EDITORONLY_DATA
+	/** Archived input to the retired source screen-size approximation, never an active distance-fade control. */
+	UPROPERTY()
+	double SourceFadeStartDistanceCm = 0.0;
+#endif
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Decals")
 	EEFCalystoDecalMode Mode = EEFCalystoDecalMode::Replace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Decals", meta = (ClampMin = "0", ClampMax = "100", Units = "Percent", EditCondition = "Mode == EEFCalystoDecalMode::Replace", EditConditionHides))
@@ -526,6 +590,52 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoDecals
 	FEFCalystoDecals() { SizeCm.Distribution = EEFCalystoDistribution::Uniform; SizeCm.Minimum = 35.0; SizeCm.Maximum = 110.0; }
 };
 
+UENUM(BlueprintType)
+enum class EEFCalystoTrait : uint8 { Mystery, Danger, Safe, Abundance, ClothingInfluence };
+
+UENUM(BlueprintType)
+enum class EEFCalystoTraitSource : uint8 { Style, Theme, Snapshot };
+
+UENUM(BlueprintType)
+enum class EEFCalystoTraitControl : uint8 { Chance, EntryWeight };
+
+/** Normalized authored or explicitly captured context. Names never imply a gameplay target. */
+USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoTraits
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traits", meta = (ClampMin = "0", ClampMax = "1"))
+	double Mystery = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traits", meta = (ClampMin = "0", ClampMax = "1"))
+	double Danger = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traits", meta = (ClampMin = "0", ClampMax = "1"))
+	double Safe = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traits", meta = (ClampMin = "0", ClampMax = "1"))
+	double Abundance = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traits", meta = (ClampMin = "0", ClampMax = "1"))
+	double ClothingInfluence = 0.0;
+};
+
+USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoTraitBinding
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding")
+	EEFCalystoTraitSource Source = EEFCalystoTraitSource::Style;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding")
+	EEFCalystoTrait Trait = EEFCalystoTrait::Mystery;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding")
+	EEFCalystoGameplayRole Role = EEFCalystoGameplayRole::Prop;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding")
+	EEFCalystoTraitControl Control = EEFCalystoTraitControl::Chance;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding", meta = (EditCondition = "Control == EEFCalystoTraitControl::EntryWeight", EditConditionHides, ToolTip = "Required exact persisted content entry identity. Chance bindings must leave this empty."))
+	FGuid EntryId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding", meta = (ClampMin = "-100", ClampMax = "100", Units = "Percent", ToolTip = "Multiplicative percentage change at trait value 0. Linear interpolation to value 1; matching effects sum canonically and clamp once to Maximum Effect Percent."))
+	double EffectAtZeroPercent = 0.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Binding", meta = (ClampMin = "-100", ClampMax = "100", Units = "Percent"))
+	double EffectAtOnePercent = 0.0;
+};
+
 USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoAdaptation
 {
@@ -534,6 +644,8 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoAdaptation
 	bool bEnabled = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Advanced", meta = (ClampMin = "0", ClampMax = "100", Units = "Percent", EditCondition = "bEnabled", EditConditionHides, ToolTip = "Maximum multiplicative change from a normalized input. Disabled adaptation has exactly zero effect."))
 	double MaximumEffectPercent = 20.0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Advanced", meta = (EditCondition = "bEnabled", EditConditionHides, ToolTip = "Explicit trait-to-content bindings, at most 64. Empty means no effect. No binding changes Theme presence, Amount, capacity or resource selection rules."))
+	TArray<FEFCalystoTraitBinding> Bindings;
 };
 
 USTRUCT(BlueprintType)
@@ -556,12 +668,21 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoStyle
 	FEFCalystoDecals Decals;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Advanced")
 	FEFCalystoFloorBudgets FloorBudgets;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Advanced", meta = (ToolTip = "Normalized inputs consumed only by explicit Advanced Adaptation bindings. Adaptation off or no matching binding has exactly zero effect."))
+	FEFCalystoTraits Traits;
 };
 
 USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoTheme
 {
 	GENERATED_BODY()
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Advanced", meta = (MultiLine = "true", ToolTip = "Authoring notes only. Does not change Theme selection, content, or materials."))
+	FString Description;
+	/** Authoring swatch retained for the on-demand inspector; never a surface material override. */
+	UPROPERTY()
+	FLinearColor PreviewColor = FLinearColor::White;
+#endif
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ShowOnlyInnerProperties))
 	FEFCalystoSelection Selection;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room Materials", meta = (ShowOnlyInnerProperties))
@@ -572,6 +693,8 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoTheme
 	TArray<FEFCalystoContentGroup> Content;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Decals", meta = (ShowOnlyInnerProperties))
 	FEFCalystoDecals Decals;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Advanced", meta = (ToolTip = "This room Theme's normalized inputs, used only by explicit Theme-source Adaptation bindings. Never changes Theme presence or material selection."))
+	FEFCalystoTraits Traits;
 	FEFCalystoTheme() { Decals.Mode = EEFCalystoDecalMode::Inherit; }
 };
 
@@ -586,9 +709,29 @@ struct EFPROCEDURALRUNTIME_API FEFCalystoDungeonRules
 };
 
 USTRUCT(BlueprintType)
+struct EFPROCEDURALRUNTIME_API FEFCalystoSafetyCeilings
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 Enemies = 25;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 LooseFood = 8;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 Chests = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 LootActors = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 SpecialEvents = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Safety Ceilings", meta = (ClampMin = "0"))
+	int32 TotalActors = 36;
+};
+
+USTRUCT(BlueprintType)
 struct EFPROCEDURALRUNTIME_API FEFCalystoDirectorAdvanced
 {
 	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Advanced", meta = (DisplayName = "Floor Safety Limits", ToolTip = "Every enabled positive-weight Style capacity must fit these floor-wide safety ceilings. Exceeding one rejects authoring; values are never clamped or used as Chance."))
+	FEFCalystoSafetyCeilings HardCeilings;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Advanced")
 	FEFCalystoAdaptation Adaptation;
 	/** Internal execution limits are hidden until the transaction consumes and verifies them. */

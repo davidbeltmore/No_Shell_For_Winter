@@ -1,0 +1,59 @@
+{
+    "schema_version":  1,
+    "generated_utc":  "2026-08-31T16:52:49.8975764Z",
+    "status":  "FAIL",
+    "target":  "NoShellForWinter",
+    "configuration":  "Development",
+    "validation_mode":  "FinalStrict",
+    "archive_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605",
+    "pending_validation_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation",
+    "package":  {
+                    "mode":  "resume_existing_fresh_archive",
+                    "status":  "PASS",
+                    "exit_code":  0,
+                    "cook_log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605.Package.log",
+                    "cook_log_sha256":  "6595B8DFF64BDCA5A682F32E2D8387C3CDDF657A88F8C57EF402E5583CCF76F6"
+                },
+    "calysto_v5_package_validation":  {
+                                          "status":  "PASS",
+                                          "exit_code":  0,
+                                          "report":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_115139_180_Resume.V5PackageValidation.json",
+                                          "report_sha256":  "B1FED8CD79D832707260E79AAA58BB1994DC3B174FE303DA2C48B7EB011B208F",
+                                          "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_115139_180_Resume.V5PackageValidation.log"
+                                      },
+    "calysto_v5_packaged_smoke":  {
+                                      "status":  "FAIL",
+                                      "expected_case_count":  8,
+                                      "completed_case_count":  1,
+                                      "cases":  [
+                                                    {
+                                                        "name":  "Natural",
+                                                        "scenario":  "Natural",
+                                                        "run_tag":  "gate_Development_Natural_20260831_115139_180",
+                                                        "exit_code":  1,
+                                                        "status":  "FAIL",
+                                                        "receipt":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV5\\PackagedRuns\\gate_Development_Natural_20260831_115139_180\\RunnerReceipt.json",
+                                                        "receipt_sha256":  "34AF9EAC4585C086918BEBC02D12CA1BBF84EFA39F7CD3B4EEC8217D83A67A61",
+                                                        "orchestration_log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_115139_180_Resume.V5Smoke.Natural.log"
+                                                    }
+                                                ]
+                                  },
+    "calysto_v5_packaged_determinism":  {
+                                            "status":  "NOT_RUN",
+                                            "result":  null
+                                        },
+    "clothing_morph_v4_packaged_startup":  {
+                                               "status":  "NOT_RUN",
+                                               "exit_code":  null,
+                                               "summary":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA\\PackagedStartup_20260831_115139_180\\Summary.json",
+                                               "summary_sha256":  "",
+                                               "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_115139_180_Resume.ClothingV4PackagedStartup.log"
+                                           },
+    "cleanup":  {
+                    "status":  "RETAINED_AFTER_GATE_FAILURE",
+                    "archive_removed_after_pass":  false,
+                    "archive_retained":  true,
+                    "error":  ""
+                },
+    "orchestrator_error":  "Calysto V5 packaged smoke \u0027Natural\u0027 failed with exit code 1 and status FAIL. Archive retained: D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_113908_605"
+}

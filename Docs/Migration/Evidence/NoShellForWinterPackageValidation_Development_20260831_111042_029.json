@@ -1,0 +1,49 @@
+{
+    "schema_version":  1,
+    "generated_utc":  "2026-08-31T16:14:44.8549263Z",
+    "status":  "FAIL",
+    "target":  "NoShellForWinter",
+    "configuration":  "Development",
+    "validation_mode":  "FinalStrict",
+    "archive_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_111042_029",
+    "pending_validation_root":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation",
+    "package":  {
+                    "status":  "PASS",
+                    "exit_code":  0,
+                    "cook_log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_111042_029.Package.log",
+                    "cook_log_sha256":  "515DAC239C0FD371A84D333AB2AB46497351E6758DEAAEDE8FF41D9E2A5047B5"
+                },
+    "calysto_v5_package_validation":  {
+                                          "status":  "NOT_RUN",
+                                          "exit_code":  null,
+                                          "report":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_111042_029.V5PackageValidation.json",
+                                          "report_sha256":  "8F34779B3F426D6210256E2DDA86E7E171A838DFB46261945598815C131A10F5",
+                                          "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_111042_029.V5PackageValidation.log"
+                                      },
+    "calysto_v5_packaged_smoke":  {
+                                      "status":  "NOT_RUN",
+                                      "expected_case_count":  8,
+                                      "completed_case_count":  0,
+                                      "cases":  [
+
+                                                ]
+                                  },
+    "calysto_v5_packaged_determinism":  {
+                                            "status":  "NOT_RUN",
+                                            "result":  null
+                                        },
+    "clothing_morph_v4_packaged_startup":  {
+                                               "status":  "NOT_RUN",
+                                               "exit_code":  null,
+                                               "summary":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA\\PackagedStartup_20260831_111042_029\\Summary.json",
+                                               "summary_sha256":  "",
+                                               "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Artifacts\\PendingValidation\\Development_20260831_111042_029.ClothingV4PackagedStartup.log"
+                                           },
+    "cleanup":  {
+                    "status":  "RETAINED_AFTER_GATE_FAILURE",
+                    "archive_removed_after_pass":  false,
+                    "archive_retained":  true,
+                    "error":  ""
+                },
+    "orchestrator_error":  "Dungeon Director V5 Development package validation failed: local_game_binary_is_cold_and_fresh, "
+}

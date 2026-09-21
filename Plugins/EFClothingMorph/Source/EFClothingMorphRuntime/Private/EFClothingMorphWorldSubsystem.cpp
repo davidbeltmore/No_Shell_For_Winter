@@ -1,5 +1,9 @@
 #include "EFClothingMorphWorldSubsystem.h"
 
+#include "EFCharacterCreationAppearanceHooks.h"
+#include "EFClothingRuntimeComponent.h"
+#include "EFClothingEquipmentBridgeComponent.h"
+#include "EFClothingMorphSettings.h"
 #include "EFClothingMorphV3RuntimeComponent.h"
 #include "EFClothingMorphV2Settings.h"
 #include "EngineUtils.h"
@@ -26,6 +30,13 @@ void UEFClothingMorphWorldSubsystem::Initialize(FSubsystemCollectionBase& Collec
 
 	if (UWorld* World = GetWorld())
 	{
+		const UEFClothingMorphSettings* V5Settings = GetDefault<UEFClothingMorphSettings>();
+		if (!V5Settings || V5Settings->bPreferEquipmentEvents)
+		{
+			EFCharacterCreationGameplayHooks::GetOnAppearanceMeshStateChanged().AddUObject(
+				this,
+				&UEFClothingMorphWorldSubsystem::HandleAppearanceMeshStateChanged);
+		}
 		ActorSpawnedHandle = World->AddOnActorSpawnedHandler(
 			FOnActorSpawned::FDelegate::CreateUObject(this, &UEFClothingMorphWorldSubsystem::HandleActorSpawned));
 
@@ -37,18 +48,22 @@ void UEFClothingMorphWorldSubsystem::Initialize(FSubsystemCollectionBase& Collec
 
 		// Possession may happen after OnActorSpawned. A low-frequency scan makes
 		// player-only attachment deterministic without adding V3 to every NPC.
+		const float DiscoveryFallbackSeconds = V5Settings
+			? V5Settings->GetWorldDiscoveryFallbackIntervalSeconds()
+			: 0.5f;
 		World->GetTimerManager().SetTimer(
 			EligiblePawnScanTimer,
 			this,
 			&UEFClothingMorphWorldSubsystem::ScanForEligiblePawns,
-			0.5f,
+			DiscoveryFallbackSeconds,
 			true,
-			0.25f);
+			FMath::Min(DiscoveryFallbackSeconds, 0.25f));
 	}
 }
 
 void UEFClothingMorphWorldSubsystem::Deinitialize()
 {
+	EFCharacterCreationGameplayHooks::GetOnAppearanceMeshStateChanged().RemoveAll(this);
 	for (const TWeakObjectPtr<APawn>& WeakPawn : ControllerObservedPawns)
 	{
 		if (APawn* Pawn = WeakPawn.Get())
@@ -70,6 +85,26 @@ void UEFClothingMorphWorldSubsystem::Deinitialize()
 	}
 	ActorSpawnedHandle.Reset();
 	Super::Deinitialize();
+}
+
+void UEFClothingMorphWorldSubsystem::HandleAppearanceMeshStateChanged(AActor* Actor)
+{
+	APawn* Pawn = Cast<APawn>(Actor);
+	if (!IsValid(Pawn) || Pawn->GetWorld() != GetWorld())
+	{
+		return;
+	}
+	ObservePawn(Pawn);
+	AttachToPawn(Pawn);
+	if (UEFClothingMorphV3RuntimeComponent* Runtime =
+		Pawn->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
+	{
+		Runtime->NotifyEquipmentChanged();
+	}
+	if (UEFClothingEquipmentBridgeComponent* Bridge = Pawn->FindComponentByClass<UEFClothingEquipmentBridgeComponent>())
+	{
+		Bridge->RefreshEquipment();
+	}
 }
 
 void UEFClothingMorphWorldSubsystem::ScanForEligiblePawns()
@@ -135,23 +170,37 @@ void UEFClothingMorphWorldSubsystem::HandlePawnControllerChanged(
 
 void UEFClothingMorphWorldSubsystem::AttachToPawn(APawn* Pawn)
 {
-	if (!IsValid(Pawn) || Pawn->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
+	if (!IsValid(Pawn))
 	{
 		return;
 	}
 	const UEFClothingMorphV2Settings* Settings = GetDefault<UEFClothingMorphV2Settings>();
-	if (!Settings || (!Settings->bEnableForNonPlayerPawns && !Pawn->IsPlayerControlled()))
+	const UEFClothingMorphSettings* V5Settings = GetDefault<UEFClothingMorphSettings>();
+	if (!Settings
+		|| !V5Settings
+		|| !Settings->bEnabled
+		|| !V5Settings->bEnabled
+		|| (!Settings->bEnableForNonPlayerPawns && !Pawn->IsPlayerControlled()))
 	{
 		return;
 	}
 
-	UEFClothingMorphV3RuntimeComponent* Component = NewObject<UEFClothingMorphV3RuntimeComponent>(
-		Pawn,
-		UEFClothingMorphV3RuntimeComponent::StaticClass(),
-		TEXT("EFClothingMorphV3"));
-	if (Component)
+	if (!Pawn->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
 	{
-		Pawn->AddInstanceComponent(Component);
-		Component->RegisterComponent();
+		UEFClothingRuntimeComponent* Component = NewObject<UEFClothingRuntimeComponent>(
+			Pawn,
+			UEFClothingRuntimeComponent::StaticClass(),
+			TEXT("EFClothingRuntime"));
+		if (Component)
+		{
+			Pawn->AddInstanceComponent(Component);
+			Component->RegisterComponent();
+		}
+	}
+	if (V5Settings->bPreferEquipmentEvents && !Pawn->FindComponentByClass<UEFClothingEquipmentBridgeComponent>())
+	{
+		UEFClothingEquipmentBridgeComponent* Bridge = NewObject<UEFClothingEquipmentBridgeComponent>(Pawn, TEXT("EFClothingEquipmentBridge"));
+		Pawn->AddInstanceComponent(Bridge);
+		Bridge->RegisterComponent();
 	}
 }

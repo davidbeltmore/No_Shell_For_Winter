@@ -319,6 +319,10 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingFitCompilerLibrary : public UBlueprin
 	GENERATED_BODY()
 
 public:
+	/** Publish all generated body variants to the streamed runtime registry. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph|Bodies")
+	static FString SyncUnisexRuntimeCatalog(UEFClothingMorphDirectorPolicy* Director);
+
 	/** Editor automation bridge for importing registered coverage tags from the legacy catalog. */
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V2|Compiler")
 	static FGameplayTagContainer MakeGameplayTagContainerFromNames(const TArray<FName>& TagNames);

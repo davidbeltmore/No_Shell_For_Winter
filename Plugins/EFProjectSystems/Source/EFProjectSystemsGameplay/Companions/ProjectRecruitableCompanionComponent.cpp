@@ -95,7 +95,7 @@ bool UProjectRecruitableCompanionComponent::SynchronizeFromACFGroup(FString& Out
 	// ACF accepted a recruitment that would violate the stable roster/party
 	// contract. Remove that actor from the group immediately and fail closed.
 	CompanionGroup->RemoveAgentFromGroup(Character);
-	OutError = TEXT("ACF accepted the live actor, but the stable V4 roster rejected recruitment.");
+	OutError = TEXT("ACF accepted the live actor, but the stable V6 roster rejected recruitment.");
 	return false;
 }
 
@@ -104,6 +104,6 @@ void UProjectRecruitableCompanionComponent::PollACFCompanionGroupMembership()
 	FString Error;
 	if (!SynchronizeFromACFGroup(Error) && !Error.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Calysto V4 recruitment observation failed closed: %s"), *Error);
+		UE_LOG(LogTemp, Warning, TEXT("Calysto V6 recruitment observation failed closed: %s"), *Error);
 	}
 }

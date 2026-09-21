@@ -1,4 +1,5 @@
 #include "EFClothingFitCompilerLibrary.h"
+#include "EFClothingV5EditorBridge.h"
 
 #include "GameplayTagsManager.h"
 
@@ -265,6 +266,13 @@ namespace EFClothingFitCompilerPrivate
 		SlotNames.Remove(NAME_None);
 		SlotNames.Sort(FNameLexicalLess());
 		SlotNames.SetNum(Algo::Unique(SlotNames));
+	}
+
+	static void CanonicalizeExactMorphNames(TArray<FName>& MorphNames)
+	{
+		MorphNames.Remove(NAME_None);
+		MorphNames.Sort(FNameLexicalLess());
+		MorphNames.SetNum(Algo::Unique(MorphNames));
 	}
 
 	static void CanonicalizeBoneBranchNames(TArray<FName>& BoneNames)
@@ -9094,6 +9102,10 @@ namespace EFClothingFitCompilerPrivate
 		TArray<uint32> Indices;
 		TArray<int32> MeshToImportVertexMap;
 		TArray<TMap<int32, float>> SkinWeights;
+		/** Automatic body-surface coverage for the fold below the breast. */
+		TArray<float> UnderBreastGuardWeights;
+		/** Row-configured lower-body morph coverage in exact render-vertex space. */
+		TArray<float> LowerBodyMorphGuardWeights;
 		TBitArray<> ChaosDrivenVertices;
 		FDynamicMesh3 Mesh;
 		TArray<FSurfaceRenderTriangle> DynamicTriangles;
@@ -9158,6 +9170,506 @@ namespace EFClothingFitCompilerPrivate
 			|| ExcludedMaterialSlots.Contains(Material.ImportedMaterialSlotName);
 	}
 
+	static bool IsBreastAffectingMorphName(const FName MorphName)
+	{
+		const FString Name = MorphName.ToString();
+		// DAZ breast controls consistently retain "Breast" after import. Voluptuous
+		// is included because it is a full-body morph with a material breast-volume
+		// contribution even though its public name omits that word.
+		return Name.Contains(TEXT("Breast"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Voluptuous"), ESearchCase::IgnoreCase);
+	}
+
+	/**
+	 * Derive a compact, continuous inframammary mask from body data only.
+	 *
+	 * Morph deltas establish which body vertices can actually participate in a
+	 * breast shape. Rest-pose height and the final oriented surface normal then
+	 * select only the lower/underside band. One adjacency-ring falloff covers the
+	 * crease without turning this into a chest-wide clothing offset. Because the
+	 * result lives in exact render-vertex space, every current or future clothing
+	 * mesh receives it automatically through ordinary surface anchors.
+	 */
+	static void BuildAutomaticUnderBreastGuardWeights(
+		USkeletalMesh* Mesh,
+		const int32 LODIndex,
+		FSurfaceRenderLOD& OutLOD)
+	{
+		const int32 VertexCount = OutLOD.Positions.Num();
+		OutLOD.UnderBreastGuardWeights.Init(0.0f, VertexCount);
+		if (!IsValid(Mesh) || VertexCount <= 0)
+		{
+			return;
+		}
+
+		TArray<float> MaximumBreastDeltaCm;
+		MaximumBreastDeltaCm.Init(0.0f, VertexCount);
+		int32 BreastMorphCount = 0;
+		for (const TObjectPtr<UMorphTarget>& MorphTarget : Mesh->GetMorphTargets())
+		{
+			if (!IsValid(MorphTarget)
+				|| !IsBreastAffectingMorphName(MorphTarget->GetFName())
+				|| !MorphTarget->HasDataForLOD(LODIndex))
+			{
+				continue;
+			}
+			++BreastMorphCount;
+			for (const FMorphTargetDelta& Delta : MorphTarget->GetMorphTargetDeltas(LODIndex))
+			{
+				const int32 RenderVertexIndex = static_cast<int32>(Delta.SourceIdx);
+				if (!MaximumBreastDeltaCm.IsValidIndex(RenderVertexIndex)
+					|| Delta.PositionDelta.ContainsNaN())
+				{
+					continue;
+				}
+				const float DeltaLengthCm = Delta.PositionDelta.Size();
+				if (FMath::IsFinite(DeltaLengthCm))
+				{
+					MaximumBreastDeltaCm[RenderVertexIndex] = FMath::Max(
+						MaximumBreastDeltaCm[RenderVertexIndex],
+						DeltaLengthCm);
+				}
+			}
+		}
+		if (BreastMorphCount <= 0)
+		{
+			return;
+		}
+
+		// Morph deltas and normals can be represented by only one render split. Share
+		// the strongest evidence across the exact import vertex before classification.
+		TMap<int32, float> MaximumDeltaByImportVertex;
+		for (int32 RenderVertexIndex = 0; RenderVertexIndex < VertexCount; ++RenderVertexIndex)
+		{
+			if (!OutLOD.MeshToImportVertexMap.IsValidIndex(RenderVertexIndex))
+			{
+				continue;
+			}
+			float& ImportMaximum = MaximumDeltaByImportVertex.FindOrAdd(
+				OutLOD.MeshToImportVertexMap[RenderVertexIndex]);
+			ImportMaximum = FMath::Max(ImportMaximum, MaximumBreastDeltaCm[RenderVertexIndex]);
+		}
+		for (int32 RenderVertexIndex = 0; RenderVertexIndex < VertexCount; ++RenderVertexIndex)
+		{
+			if (OutLOD.MeshToImportVertexMap.IsValidIndex(RenderVertexIndex))
+			{
+				MaximumBreastDeltaCm[RenderVertexIndex] = MaximumDeltaByImportVertex.FindRef(
+					OutLOD.MeshToImportVertexMap[RenderVertexIndex]);
+			}
+		}
+
+		constexpr float MinimumBreastDeltaCm = 0.02f;
+		TArray<double> ActiveHeights;
+		ActiveHeights.Reserve(VertexCount);
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			if (MaximumBreastDeltaCm[VertexIndex] >= MinimumBreastDeltaCm
+				&& !OutLOD.Positions[VertexIndex].ContainsNaN())
+			{
+				ActiveHeights.Add(OutLOD.Positions[VertexIndex].Z);
+			}
+		}
+		// A tiny or corrupt morph domain must remain an exact no-op.
+		if (ActiveHeights.Num() < 12)
+		{
+			return;
+		}
+		ActiveHeights.Sort();
+		auto HeightQuantile = [&ActiveHeights](const double Quantile)
+		{
+			const int32 Index = FMath::Clamp(
+				FMath::RoundToInt((ActiveHeights.Num() - 1) * Quantile),
+				0,
+				ActiveHeights.Num() - 1);
+			return ActiveHeights[Index];
+		};
+		const double LowerBandHeightCm = HeightQuantile(0.45);
+		const double UpperFadeHeightCm = HeightQuantile(0.72);
+		if (!FMath::IsFinite(LowerBandHeightCm)
+			|| !FMath::IsFinite(UpperFadeHeightCm)
+			|| UpperFadeHeightCm <= LowerBandHeightCm + 0.05)
+		{
+			return;
+		}
+
+		// Build a geometric fallback for finite zero tangent normals at DAZ seams.
+		TArray<FVector3d> GeometricNormalSums;
+		GeometricNormalSums.Init(FVector3d::Zero(), VertexCount);
+		TArray<TSet<int32>> BodyNeighborSets;
+		BodyNeighborSets.SetNum(VertexCount);
+		for (int32 TriangleID : OutLOD.Mesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = OutLOD.Mesh.GetTriangle(TriangleID);
+			const FVector3d AreaNormal = (
+				OutLOD.Positions[Triangle.B] - OutLOD.Positions[Triangle.A]).Cross(
+					OutLOD.Positions[Triangle.C] - OutLOD.Positions[Triangle.A]);
+			if (!AreaNormal.ContainsNaN())
+			{
+				GeometricNormalSums[Triangle.A] += AreaNormal;
+				GeometricNormalSums[Triangle.B] += AreaNormal;
+				GeometricNormalSums[Triangle.C] += AreaNormal;
+			}
+			BodyNeighborSets[Triangle.A].Add(Triangle.B);
+			BodyNeighborSets[Triangle.A].Add(Triangle.C);
+			BodyNeighborSets[Triangle.B].Add(Triangle.A);
+			BodyNeighborSets[Triangle.B].Add(Triangle.C);
+			BodyNeighborSets[Triangle.C].Add(Triangle.A);
+			BodyNeighborSets[Triangle.C].Add(Triangle.B);
+		}
+
+		TArray<float> RawWeights;
+		RawWeights.Init(0.0f, VertexCount);
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			const float MorphWeight = FMath::SmoothStep(
+				MinimumBreastDeltaCm,
+				0.15f,
+				MaximumBreastDeltaCm[VertexIndex]);
+			if (MorphWeight <= 0.0f)
+			{
+				continue;
+			}
+			const float VerticalWeight = 1.0f - FMath::SmoothStep(
+				static_cast<float>(LowerBandHeightCm),
+				static_cast<float>(UpperFadeHeightCm),
+				static_cast<float>(OutLOD.Positions[VertexIndex].Z));
+			FVector3d SurfaceNormal = OutLOD.Normals[VertexIndex];
+			if (!SurfaceNormal.Normalize())
+			{
+				SurfaceNormal = GeometricNormalSums[VertexIndex];
+				SurfaceNormal.Normalize();
+			}
+			// The exact fold points down or horizontally, but clothing that visually
+			// covers it can anchor to the immediately adjacent curved lower cup. Keep a
+			// small floor inside the already-limited lower height band so boundary
+			// anchors cannot fall through a normal-angle classification crack. The upper
+			// breast and chest still fade to zero through VerticalWeight.
+			const float OrientedUndersideWeight = SurfaceNormal.IsNearlyZero()
+				? 0.0f
+				: 1.0f - FMath::SmoothStep(-0.05f, 0.45f, static_cast<float>(SurfaceNormal.Z));
+			const float UndersideWeight = FMath::Max(0.35f, OrientedUndersideWeight);
+			RawWeights[VertexIndex] = FMath::Clamp(
+				MorphWeight * VerticalWeight * UndersideWeight,
+				0.0f,
+				1.0f);
+		}
+
+		// One-ring falloff protects the exact fold between samples while retaining a
+		// compact domain. It cannot spread recursively because it reads RawWeights.
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			float NeighborMaximum = 0.0f;
+			for (const int32 NeighborIndex : BodyNeighborSets[VertexIndex])
+			{
+				NeighborMaximum = FMath::Max(NeighborMaximum, RawWeights[NeighborIndex]);
+			}
+			OutLOD.UnderBreastGuardWeights[VertexIndex] = FMath::Clamp(
+				FMath::Max(RawWeights[VertexIndex], NeighborMaximum * 0.65f),
+				0.0f,
+				1.0f);
+		}
+
+		// Preserve exact equality across render splits for deterministic GPU welding.
+		TMap<int32, float> MaximumGuardByImportVertex;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			float& ImportMaximum = MaximumGuardByImportVertex.FindOrAdd(
+				OutLOD.MeshToImportVertexMap[VertexIndex]);
+			ImportMaximum = FMath::Max(
+				ImportMaximum,
+				OutLOD.UnderBreastGuardWeights[VertexIndex]);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			OutLOD.UnderBreastGuardWeights[VertexIndex] = MaximumGuardByImportVertex.FindRef(
+				OutLOD.MeshToImportVertexMap[VertexIndex]);
+		}
+	}
+
+	static bool IsLowerBodyGuardCoreBoneName(const FName BoneName)
+	{
+		const FString Name = BoneName.ToString();
+		return Name.Contains(TEXT("Pelvis"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Glute"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Buttock"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Butt"), ESearchCase::IgnoreCase);
+	}
+
+	static bool IsLowerBodyGuardThighBoneName(const FName BoneName)
+	{
+		const FString Name = BoneName.ToString();
+		return Name.Contains(TEXT("Thigh"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("UpperLeg"), ESearchCase::IgnoreCase)
+			|| Name.Contains(TEXT("Upper_Leg"), ESearchCase::IgnoreCase);
+	}
+
+	/**
+	 * Builds a compact pelvis/glute/upper-thigh mask from only the exact morphs
+	 * authorized by the Director row. Morph deltas provide the shape evidence;
+	 * semantic skin influences establish the lower-body domain, and the pelvis
+	 * support height restricts thigh influences to their upper band. No garment
+	 * name, layer, coverage tag, or excluded-anatomy position participates.
+	 */
+	static bool BuildConfiguredLowerBodyMorphGuardWeights(
+		USkeletalMesh* Mesh,
+		const int32 LODIndex,
+		const TArray<FName>& ExactBodyMorphNames,
+		FSurfaceRenderLOD& OutLOD,
+		FString& OutError)
+	{
+		OutError.Reset();
+		const int32 VertexCount = OutLOD.Positions.Num();
+		OutLOD.LowerBodyMorphGuardWeights.Init(0.0f, VertexCount);
+		if (!IsValid(Mesh) || VertexCount <= 0)
+		{
+			OutError = TEXT("Lower-body morph guard requires a valid body render LOD.");
+			return false;
+		}
+
+		TSet<FName> RequestedMorphNames;
+		for (const FName MorphName : ExactBodyMorphNames)
+		{
+			if (!MorphName.IsNone())
+			{
+				RequestedMorphNames.Add(MorphName);
+			}
+		}
+		if (RequestedMorphNames.IsEmpty())
+		{
+			return true;
+		}
+
+		TArray<float> MaximumConfiguredDeltaCm;
+		MaximumConfiguredDeltaCm.Init(0.0f, VertexCount);
+		TSet<FName> ResolvedMorphNames;
+		for (const TObjectPtr<UMorphTarget>& MorphTarget : Mesh->GetMorphTargets())
+		{
+			if (!IsValid(MorphTarget)
+				|| !RequestedMorphNames.Contains(MorphTarget->GetFName())
+				|| !MorphTarget->HasDataForLOD(LODIndex))
+			{
+				continue;
+			}
+			ResolvedMorphNames.Add(MorphTarget->GetFName());
+			for (const FMorphTargetDelta& Delta : MorphTarget->GetMorphTargetDeltas(LODIndex))
+			{
+				const int32 RenderVertexIndex = static_cast<int32>(Delta.SourceIdx);
+				if (!MaximumConfiguredDeltaCm.IsValidIndex(RenderVertexIndex)
+					|| Delta.PositionDelta.ContainsNaN())
+				{
+					continue;
+				}
+				const float DeltaLengthCm = Delta.PositionDelta.Size();
+				if (FMath::IsFinite(DeltaLengthCm))
+				{
+					MaximumConfiguredDeltaCm[RenderVertexIndex] = FMath::Max(
+						MaximumConfiguredDeltaCm[RenderVertexIndex],
+						DeltaLengthCm);
+				}
+			}
+		}
+		if (ResolvedMorphNames.Num() != RequestedMorphNames.Num())
+		{
+			TArray<FName> MissingMorphNames;
+			for (const FName MorphName : RequestedMorphNames)
+			{
+				if (!ResolvedMorphNames.Contains(MorphName))
+				{
+					MissingMorphNames.Add(MorphName);
+				}
+			}
+			MissingMorphNames.Sort(FNameLexicalLess());
+			TArray<FString> MissingMorphStrings;
+			for (const FName MorphName : MissingMorphNames)
+			{
+				MissingMorphStrings.Add(MorphName.ToString());
+			}
+			OutError = FString::Printf(
+				TEXT("Body %s LOD %d is missing configured lower-body morph data: %s."),
+				*Mesh->GetPathName(),
+				LODIndex,
+				*FString::Join(MissingMorphStrings, TEXT(", ")));
+			return false;
+		}
+
+		// Morph deltas may be stored on only one render split. Publish the strongest
+		// evidence to every exact import twin before semantic classification.
+		TMap<int32, float> MaximumDeltaByImportVertex;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			if (!OutLOD.MeshToImportVertexMap.IsValidIndex(VertexIndex))
+			{
+				continue;
+			}
+			float& ImportMaximum = MaximumDeltaByImportVertex.FindOrAdd(
+				OutLOD.MeshToImportVertexMap[VertexIndex]);
+			ImportMaximum = FMath::Max(ImportMaximum, MaximumConfiguredDeltaCm[VertexIndex]);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			MaximumConfiguredDeltaCm[VertexIndex] = MaximumDeltaByImportVertex.FindRef(
+				OutLOD.MeshToImportVertexMap[VertexIndex]);
+		}
+
+		const FReferenceSkeleton& ReferenceSkeleton = Mesh->GetRefSkeleton();
+		TArray<uint8> BoneKinds;
+		BoneKinds.Init(0, ReferenceSkeleton.GetRawBoneNum());
+		for (int32 BoneIndex = 0; BoneIndex < BoneKinds.Num(); ++BoneIndex)
+		{
+			const FName BoneName = ReferenceSkeleton.GetBoneName(BoneIndex);
+			if (IsLowerBodyGuardCoreBoneName(BoneName))
+			{
+				BoneKinds[BoneIndex] = 1;
+			}
+			else if (IsLowerBodyGuardThighBoneName(BoneName))
+			{
+				BoneKinds[BoneIndex] = 2;
+			}
+		}
+
+		TArray<float> CoreSupport;
+		TArray<float> ThighSupport;
+		CoreSupport.Init(0.0f, VertexCount);
+		ThighSupport.Init(0.0f, VertexCount);
+		TArray<double> ActiveCoreHeights;
+		ActiveCoreHeights.Reserve(VertexCount);
+		constexpr float MinimumConfiguredDeltaCm = 0.02f;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			for (const TPair<int32, float>& Influence : OutLOD.SkinWeights[VertexIndex])
+			{
+				if (!BoneKinds.IsValidIndex(Influence.Key)
+					|| !FMath::IsFinite(Influence.Value)
+					|| Influence.Value <= 0.0f)
+				{
+					continue;
+				}
+				if (BoneKinds[Influence.Key] == 1)
+				{
+					CoreSupport[VertexIndex] += Influence.Value;
+				}
+				else if (BoneKinds[Influence.Key] == 2)
+				{
+					ThighSupport[VertexIndex] += Influence.Value;
+				}
+			}
+			CoreSupport[VertexIndex] = FMath::Clamp(CoreSupport[VertexIndex], 0.0f, 1.0f);
+			ThighSupport[VertexIndex] = FMath::Clamp(ThighSupport[VertexIndex], 0.0f, 1.0f);
+			if (MaximumConfiguredDeltaCm[VertexIndex] >= MinimumConfiguredDeltaCm
+				&& CoreSupport[VertexIndex] >= 0.05f
+				&& !OutLOD.Positions[VertexIndex].ContainsNaN())
+			{
+				ActiveCoreHeights.Add(OutLOD.Positions[VertexIndex].Z);
+			}
+		}
+		if (ActiveCoreHeights.Num() < 12)
+		{
+			OutError = FString::Printf(
+				TEXT("Body %s LOD %d cannot certify a pelvis/glute support domain for the configured lower-body morph guard."),
+				*Mesh->GetPathName(),
+				LODIndex);
+			return false;
+		}
+
+		ActiveCoreHeights.Sort();
+		auto CoreHeightQuantile = [&ActiveCoreHeights](const double Quantile)
+		{
+			const int32 Index = FMath::Clamp(
+				FMath::RoundToInt((ActiveCoreHeights.Num() - 1) * Quantile),
+				0,
+				ActiveCoreHeights.Num() - 1);
+			return ActiveCoreHeights[Index];
+		};
+		const double LowerCoreHeightCm = CoreHeightQuantile(0.05);
+		const double UpperCoreHeightCm = CoreHeightQuantile(0.95);
+		if (!FMath::IsFinite(LowerCoreHeightCm)
+			|| !FMath::IsFinite(UpperCoreHeightCm)
+			|| UpperCoreHeightCm < LowerCoreHeightCm)
+		{
+			OutError = TEXT("Lower-body morph guard produced a non-finite semantic height domain.");
+			return false;
+		}
+
+		// Pelvis support owns the band; only the immediately adjacent upper thigh is
+		// admitted. Fixed distances are bounded local fades in UE centimeters, not
+		// absolute world-space body coordinates.
+		const float LowerFadeStartCm = static_cast<float>(LowerCoreHeightCm - 12.0);
+		const float LowerFullHeightCm = static_cast<float>(LowerCoreHeightCm - 3.0);
+		const float UpperFullHeightCm = static_cast<float>(UpperCoreHeightCm + 3.0);
+		const float UpperFadeEndCm = static_cast<float>(UpperCoreHeightCm + 10.0);
+		TArray<float> RawWeights;
+		RawWeights.Init(0.0f, VertexCount);
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			const float HeightCm = static_cast<float>(OutLOD.Positions[VertexIndex].Z);
+			const float HeightWeight = FMath::SmoothStep(
+				LowerFadeStartCm,
+				LowerFullHeightCm,
+				HeightCm)
+				* (1.0f - FMath::SmoothStep(
+					UpperFullHeightCm,
+					UpperFadeEndCm,
+					HeightCm));
+			const float SemanticSupport = FMath::Clamp(
+				CoreSupport[VertexIndex]
+					+ ThighSupport[VertexIndex] * HeightWeight,
+				0.0f,
+				1.0f);
+			const float MorphEvidence = FMath::SmoothStep(
+				MinimumConfiguredDeltaCm,
+				0.50f,
+				MaximumConfiguredDeltaCm[VertexIndex]);
+			RawWeights[VertexIndex] = FMath::Clamp(
+				MorphEvidence * SemanticSupport * HeightWeight,
+				0.0f,
+				1.0f);
+		}
+
+		TArray<TSet<int32>> BodyNeighborSets;
+		BodyNeighborSets.SetNum(VertexCount);
+		for (int32 TriangleID : OutLOD.Mesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = OutLOD.Mesh.GetTriangle(TriangleID);
+			BodyNeighborSets[Triangle.A].Add(Triangle.B);
+			BodyNeighborSets[Triangle.A].Add(Triangle.C);
+			BodyNeighborSets[Triangle.B].Add(Triangle.A);
+			BodyNeighborSets[Triangle.B].Add(Triangle.C);
+			BodyNeighborSets[Triangle.C].Add(Triangle.A);
+			BodyNeighborSets[Triangle.C].Add(Triangle.B);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			float NeighborMaximum = 0.0f;
+			for (const int32 NeighborIndex : BodyNeighborSets[VertexIndex])
+			{
+				NeighborMaximum = FMath::Max(NeighborMaximum, RawWeights[NeighborIndex]);
+			}
+			OutLOD.LowerBodyMorphGuardWeights[VertexIndex] = FMath::Clamp(
+				FMath::Max(RawWeights[VertexIndex], NeighborMaximum * 0.60f),
+				0.0f,
+				1.0f);
+		}
+
+		TMap<int32, float> MaximumGuardByImportVertex;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			float& ImportMaximum = MaximumGuardByImportVertex.FindOrAdd(
+				OutLOD.MeshToImportVertexMap[VertexIndex]);
+			ImportMaximum = FMath::Max(
+				ImportMaximum,
+				OutLOD.LowerBodyMorphGuardWeights[VertexIndex]);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			OutLOD.LowerBodyMorphGuardWeights[VertexIndex] = FMath::Clamp(
+				MaximumGuardByImportVertex.FindRef(
+					OutLOD.MeshToImportVertexMap[VertexIndex]),
+				0.0f,
+				1.0f);
+		}
+		return true;
+	}
+
 	static bool BuildSurfaceRenderLOD(
 		USkeletalMesh* Mesh,
 		int32 LODIndex,
@@ -9207,6 +9719,8 @@ namespace EFClothingFitCompilerPrivate
 		OutLOD.Normals.SetNum(RenderVertexCount);
 		OutLOD.MeshToImportVertexMap = ImportedLOD.MeshToImportVertexMap;
 		OutLOD.SkinWeights.SetNum(RenderVertexCount);
+		OutLOD.UnderBreastGuardWeights.Init(0.0f, RenderVertexCount);
+		OutLOD.LowerBodyMorphGuardWeights.Init(0.0f, RenderVertexCount);
 		OutLOD.ChaosDrivenVertices.Init(false, RenderVertexCount);
 		OutLOD.Mesh.Clear();
 		OutLOD.DynamicTriangles.Reset();
@@ -9416,6 +9930,7 @@ namespace EFClothingFitCompilerPrivate
 		OutLOD.Topology.SectionCount = RenderLOD.RenderSections.Num();
 		OutLOD.Topology.TopologyFingerprint = BuildRenderTopologyFingerprint(RenderLOD, ImportedLOD, OutLOD.Indices, LODIndex);
 		OutLOD.Topology.ContentFingerprint = EFClothingSkeleton::BuildContentFingerprint(Mesh);
+		BuildAutomaticUnderBreastGuardWeights(Mesh, LODIndex, OutLOD);
 		return !OutLOD.Topology.TopologyFingerprint.IsEmpty()
 			&& !OutLOD.Topology.ContentFingerprint.IsEmpty();
 	}
@@ -9814,11 +10329,14 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 		double Similarity = 0.0;
-		for (const TPair<int32, float>& Influence : GarmentWeights)
+		TArray<int32> SortedGarmentBoneIndices;
+		GarmentWeights.GetKeys(SortedGarmentBoneIndices);
+		SortedGarmentBoneIndices.Sort();
+		for (const int32 BoneIndex : SortedGarmentBoneIndices)
 		{
 			Similarity += FMath::Min(
-				static_cast<double>(Influence.Value),
-				InterpolatedBodyWeights.FindRef(Influence.Key));
+				static_cast<double>(GarmentWeights.FindChecked(BoneIndex)),
+				InterpolatedBodyWeights.FindRef(BoneIndex));
 		}
 		return FMath::Clamp(Similarity, 0.0, 1.0);
 	}
@@ -9839,6 +10357,141 @@ namespace EFClothingFitCompilerPrivate
 		return 0.0f;
 	}
 
+	static double SmoothUnitRange(double Value, double Minimum, double Maximum)
+	{
+		if (!FMath::IsFinite(Value) || Maximum <= Minimum)
+		{
+			return 0.0;
+		}
+		const double UnitValue = FMath::Clamp(
+			(Value - Minimum) / (Maximum - Minimum),
+			0.0,
+			1.0);
+		return UnitValue * UnitValue * (3.0 - 2.0 * UnitValue);
+	}
+
+	static float ComputeBodyShapeFollowConfidence(
+		double SurfaceDistanceCm,
+		double SignedGapCm,
+		double TargetClearanceCm,
+		double NormalAlignment,
+		double BoneWeightSimilarity,
+		bool bChaosDriven,
+		bool bBoundaryRisk)
+	{
+		// V4 keeps CollisionOnly as its runtime safety mode. This independent,
+		// continuous confidence describes only how strongly a nearby garment point
+		// should inherit the body's animated shape delta while morphs are active.
+		// It is deliberately geometric: no garment, anatomy, sex or morph names.
+		const double ProximityConfidence = 1.0 - SmoothUnitRange(
+			SurfaceDistanceCm,
+			1.0,
+			8.0);
+		const double RestGapExcessCm = FMath::Max(
+			0.0,
+			FMath::Abs(SignedGapCm) - TargetClearanceCm);
+		const double RestGapConfidence = 1.0 - SmoothUnitRange(
+			RestGapExcessCm,
+			0.75,
+			6.0);
+		const double ContactConfidence = FMath::Clamp(
+			ProximityConfidence * 0.65 + RestGapConfidence * 0.35,
+			0.0,
+			1.0);
+		const double OrientationConfidence = FMath::Lerp(
+			0.70,
+			1.0,
+			SmoothUnitRange(FMath::Abs(NormalAlignment), 0.05, 0.80));
+		// Bone similarity is supporting evidence only. A morph may legitimately
+		// move skin that is only approximately represented by garment skin weights.
+		const double SkinningConfidence = FMath::Lerp(
+			0.85,
+			1.0,
+			FMath::Clamp(BoneWeightSimilarity, 0.0, 1.0));
+		double Confidence = ContactConfidence
+			* OrientationConfidence
+			* SkinningConfidence;
+		if (bChaosDriven)
+		{
+			Confidence *= 0.30;
+		}
+		if (bBoundaryRisk)
+		{
+			Confidence *= 0.80;
+		}
+		return static_cast<float>(FMath::Clamp(Confidence, 0.0, 1.0));
+	}
+
+	static void BuildLocalFeatureSizeContract(
+		const FSurfaceRenderLOD& GarmentLOD,
+		TArray<float>& OutLocalFeatureSizeByRenderVertex)
+	{
+		const int32 RenderVertexCount = GarmentLOD.Positions.Num();
+		OutLocalFeatureSizeByRenderVertex.Init(
+			TNumericLimits<float>::Max(),
+			RenderVertexCount);
+		auto AccumulateAltitude = [&OutLocalFeatureSizeByRenderVertex](
+			const int32 RenderVertexIndex,
+			const double TwiceTriangleArea,
+			const double OppositeEdgeLength)
+		{
+			if (!FMath::IsFinite(TwiceTriangleArea)
+				|| !FMath::IsFinite(OppositeEdgeLength)
+				|| TwiceTriangleArea <= UE_DOUBLE_SMALL_NUMBER
+				|| OppositeEdgeLength <= UE_DOUBLE_SMALL_NUMBER)
+			{
+				return;
+			}
+			const double AltitudeCm = TwiceTriangleArea / OppositeEdgeLength;
+			if (FMath::IsFinite(AltitudeCm) && AltitudeCm > UE_DOUBLE_SMALL_NUMBER)
+			{
+				OutLocalFeatureSizeByRenderVertex[RenderVertexIndex] = FMath::Min(
+					OutLocalFeatureSizeByRenderVertex[RenderVertexIndex],
+					static_cast<float>(AltitudeCm));
+			}
+		};
+		for (int32 TriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
+		{
+			const FIndex3i Triangle = GarmentLOD.Mesh.GetTriangle(TriangleID);
+			const FVector3d& A = GarmentLOD.Positions[Triangle.A];
+			const FVector3d& B = GarmentLOD.Positions[Triangle.B];
+			const FVector3d& C = GarmentLOD.Positions[Triangle.C];
+			const double TwiceTriangleArea = (B - A).Cross(C - A).Length();
+			AccumulateAltitude(Triangle.A, TwiceTriangleArea, (C - B).Length());
+			AccumulateAltitude(Triangle.B, TwiceTriangleArea, (A - C).Length());
+			AccumulateAltitude(Triangle.C, TwiceTriangleArea, (B - A).Length());
+		}
+
+		TMap<int32, float> MinimumFeatureSizeByImportVertex;
+		for (int32 RenderVertexIndex = 0;
+			RenderVertexIndex < RenderVertexCount;
+			++RenderVertexIndex)
+		{
+			const float FeatureSizeCm =
+				OutLocalFeatureSizeByRenderVertex[RenderVertexIndex];
+			if (FMath::IsFinite(FeatureSizeCm)
+				&& FeatureSizeCm > 0.0f
+				&& FeatureSizeCm < TNumericLimits<float>::Max())
+			{
+				float& ImportMinimum = MinimumFeatureSizeByImportVertex.FindOrAdd(
+					GarmentLOD.MeshToImportVertexMap[RenderVertexIndex],
+					FeatureSizeCm);
+				ImportMinimum = FMath::Min(ImportMinimum, FeatureSizeCm);
+			}
+		}
+		constexpr float ConservativeLocalFeatureFallbackCm = 0.001f;
+		for (int32 RenderVertexIndex = 0;
+			RenderVertexIndex < RenderVertexCount;
+			++RenderVertexIndex)
+		{
+			const float* ImportMinimum = MinimumFeatureSizeByImportVertex.Find(
+				GarmentLOD.MeshToImportVertexMap[RenderVertexIndex]);
+			OutLocalFeatureSizeByRenderVertex[RenderVertexIndex] = ImportMinimum
+				? *ImportMinimum
+				: ConservativeLocalFeatureFallbackCm;
+		}
+	}
+
 	static bool BuildSurfaceLODPairBinding(
 		const FSurfaceRenderLOD& GarmentLOD,
 		const FSurfaceRenderLOD& BodyLOD,
@@ -9849,7 +10502,8 @@ namespace EFClothingFitCompilerPrivate
 		float DefaultMaximumCorrectionCm,
 		FEFClothingSurfaceLODPairBinding& OutPair,
 		FString& OutError,
-		const bool bAllowCorrectableInitialPenetration = false)
+		const bool bAllowCorrectableInitialPenetration = false,
+		const bool bCompileBodyShapeFollowConfidence = false)
 	{
 		OutError.Reset();
 		OutPair = FEFClothingSurfaceLODPairBinding();
@@ -9887,6 +10541,8 @@ namespace EFClothingFitCompilerPrivate
 		FMeshNormals GarmentNormals(&GarmentLOD.Mesh);
 		GarmentNormals.ComputeVertexNormals();
 		const int32 GarmentVertexCount = GarmentLOD.Positions.Num();
+		TBitArray<> LowerBodyGuardOrientationSafeVertices;
+		LowerBodyGuardOrientationSafeVertices.Init(true, GarmentVertexCount);
 		TArray<TSet<int32>> NeighborSets;
 		NeighborSets.SetNum(GarmentVertexCount);
 		for (int32 TriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
@@ -9899,6 +10555,68 @@ namespace EFClothingFitCompilerPrivate
 			NeighborSets[Triangle.C].Add(Triangle.A);
 			NeighborSets[Triangle.C].Add(Triangle.B);
 		}
+		// Cooked render vertices split at UV, normal and material seams. Build a
+		// deterministic weld contract from the authoritative render-to-import map.
+		// Weld twins are deliberately not topology neighbors: cohesion operates on
+		// true incident edges, while a final exact weld pass owns split continuity.
+		TMap<int32, TArray<int32>> RenderVerticesByImportVertex;
+		for (int32 RenderVertexIndex = 0;
+			RenderVertexIndex < GarmentLOD.MeshToImportVertexMap.Num();
+			++RenderVertexIndex)
+		{
+			RenderVerticesByImportVertex.FindOrAdd(
+				GarmentLOD.MeshToImportVertexMap[RenderVertexIndex]).Add(RenderVertexIndex);
+		}
+		TArray<int32> SortedImportVertexIDs;
+		RenderVerticesByImportVertex.GetKeys(SortedImportVertexIDs);
+		SortedImportVertexIDs.Sort();
+		TArray<TArray<int32>> SortedRenderVertexGroups;
+		SortedRenderVertexGroups.Reserve(SortedImportVertexIDs.Num());
+		TArray<FEFClothingSurfaceIndexRange> WeldRangesByRenderVertex;
+		WeldRangesByRenderVertex.SetNum(GarmentVertexCount);
+		for (const int32 ImportVertexID : SortedImportVertexIDs)
+		{
+			TArray<int32> RenderVertices = RenderVerticesByImportVertex.FindChecked(
+				ImportVertexID);
+			RenderVertices.Sort();
+			SortedRenderVertexGroups.Add(RenderVertices);
+			if (RenderVertices.Num() < 2)
+			{
+				continue;
+			}
+			FEFClothingSurfaceIndexRange WeldRange;
+			WeldRange.Offset = OutPair.WeldRenderVertexIndices.Num();
+			WeldRange.Count = RenderVertices.Num();
+			OutPair.WeldRenderVertexIndices.Append(RenderVertices);
+			++OutPair.Metrics.WeldGroupCount;
+			for (const int32 RenderVertexIndex : RenderVertices)
+			{
+				WeldRangesByRenderVertex[RenderVertexIndex] = WeldRange;
+			}
+		}
+		for (int32 RenderVertexIndex = 0;
+			RenderVertexIndex < GarmentVertexCount;
+			++RenderVertexIndex)
+		{
+			const int32 ImportVertexID =
+				GarmentLOD.MeshToImportVertexMap[RenderVertexIndex];
+			TArray<int32> WeldTwinsToRemove;
+			for (const int32 NeighborIndex : NeighborSets[RenderVertexIndex])
+			{
+				if (GarmentLOD.MeshToImportVertexMap[NeighborIndex] == ImportVertexID)
+				{
+					WeldTwinsToRemove.Add(NeighborIndex);
+				}
+			}
+			for (const int32 WeldTwinIndex : WeldTwinsToRemove)
+			{
+				NeighborSets[RenderVertexIndex].Remove(WeldTwinIndex);
+			}
+		}
+
+		TArray<float> LocalFeatureSizeByRenderVertex;
+		// Independent of body LOD, so every pair receives exactly the same scale.
+		BuildLocalFeatureSizeContract(GarmentLOD, LocalFeatureSizeByRenderVertex);
 
 		// Detect true garment openings in import-vertex space. Render seams may
 		// duplicate vertices for UVs/materials, so treating DynamicMesh boundaries
@@ -10091,6 +10809,9 @@ namespace EFClothingFitCompilerPrivate
 				&& GarmentLOD.ChaosDrivenVertices[GarmentVertexIndex];
 			FEFClothingSurfaceVertexBinding& VertexBinding = OutPair.VertexBindings[GarmentVertexIndex];
 			VertexBinding.GarmentRenderVertexIndex = GarmentVertexIndex;
+			VertexBinding.WeldRange = WeldRangesByRenderVertex[GarmentVertexIndex];
+			VertexBinding.LocalFeatureSizeCm =
+				LocalFeatureSizeByRenderVertex[GarmentVertexIndex];
 			VertexBinding.BodyRenderVertexIndices = OrientedBodyRenderVertexIndices;
 			VertexBinding.BodyBarycentrics = FVector3f(OrientedBarycentrics);
 			VertexBinding.RestTangentFrameOffsetCm = FVector3f(
@@ -10109,7 +10830,76 @@ namespace EFClothingFitCompilerPrivate
 					NormalAlignment,
 					BoneWeightSimilarity,
 					bChaosDriven);
-			VertexBinding.FollowWeight = SurfaceFollowWeight(VertexBinding.Mode, SignedGap, TargetClearanceCm);
+			VertexBinding.FollowWeight = VertexBinding.Mode
+				== EEFClothingSurfaceVertexMode::PreserveUpstream
+				? 0.0f
+				: bCompileBodyShapeFollowConfidence
+					? ComputeBodyShapeFollowConfidence(
+						FMath::Sqrt(FMath::Max(0.0, DistanceSquared)),
+						SignedGap,
+						TargetClearanceCm,
+						NormalAlignment,
+						BoneWeightSimilarity,
+						bChaosDriven,
+						BoundaryRiskVertices[GarmentVertexIndex])
+					: SurfaceFollowWeight(
+						VertexBinding.Mode,
+						SignedGap,
+						TargetClearanceCm);
+			VertexBinding.UnderBreastGuardWeight = VertexBinding.Mode
+				== EEFClothingSurfaceVertexMode::PreserveUpstream
+				? 0.0f
+				: FMath::Clamp(
+					BodyLOD.UnderBreastGuardWeights[OrientedBodyRenderVertexIndices.X]
+						* static_cast<float>(OrientedBarycentrics.X)
+					+ BodyLOD.UnderBreastGuardWeights[OrientedBodyRenderVertexIndices.Y]
+						* static_cast<float>(OrientedBarycentrics.Y)
+					+ BodyLOD.UnderBreastGuardWeights[OrientedBodyRenderVertexIndices.Z]
+						* static_cast<float>(OrientedBarycentrics.Z),
+					0.0f,
+					1.0f);
+
+			// PreserveUpstream cannot use the excluded anatomy's animated position.
+			// It may still receive this scalar mask because runtime applies the guard
+			// only along upstream TangentZ. Certify that direction here against both
+			// the garment geometry and the active body surface; an ambiguous/inverted
+			// seam is deliberately inert.
+			bool bLowerBodyGuardOrientationSafe = true;
+			if (VertexBinding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+			{
+				FVector3d UpstreamNormal = GarmentLOD.Normals[GarmentVertexIndex];
+				FVector3d GeometricGarmentNormal = GarmentNormal;
+				FVector3d OrientedBodyNormal = BodyNormal;
+				bLowerBodyGuardOrientationSafe = UpstreamNormal.Normalize()
+					&& GeometricGarmentNormal.Normalize()
+					&& OrientedBodyNormal.Normalize()
+					&& UpstreamNormal.Dot(GeometricGarmentNormal) >= 0.50
+					&& UpstreamNormal.Dot(OrientedBodyNormal) >= 0.25;
+				FVector3d RestDirection = RestOffset;
+				if (bLowerBodyGuardOrientationSafe
+					&& RestDirection.Length() > 0.05
+					&& RestDirection.Normalize())
+				{
+					// Sign is intentionally irrelevant: a genuinely penetrating cloth
+					// vertex points opposite the outward normal before this guard runs.
+					bLowerBodyGuardOrientationSafe =
+						FMath::Abs(UpstreamNormal.Dot(RestDirection)) >= 0.20;
+				}
+			}
+			LowerBodyGuardOrientationSafeVertices[GarmentVertexIndex] =
+				bLowerBodyGuardOrientationSafe;
+			VertexBinding.LowerBodyMorphGuardWeight =
+				bLowerBodyGuardOrientationSafe
+				? FMath::Clamp(
+					BodyLOD.LowerBodyMorphGuardWeights[OrientedBodyRenderVertexIndices.X]
+						* static_cast<float>(OrientedBarycentrics.X)
+					+ BodyLOD.LowerBodyMorphGuardWeights[OrientedBodyRenderVertexIndices.Y]
+						* static_cast<float>(OrientedBarycentrics.Y)
+					+ BodyLOD.LowerBodyMorphGuardWeights[OrientedBodyRenderVertexIndices.Z]
+						* static_cast<float>(OrientedBarycentrics.Z),
+					0.0f,
+					1.0f)
+				: 0.0f;
 
 			TArray<int32> Neighbors = NeighborSets[GarmentVertexIndex].Array();
 			Neighbors.Sort();
@@ -10172,7 +10962,8 @@ namespace EFClothingFitCompilerPrivate
 
 		// Auto mode is regularized over render adjacency so isolated distance/noise
 		// cannot flip one vertex into a visibly different follow regime.
-		if (CatalogRow.FitPolicy == EEFClothingFitPolicy::Auto)
+		if (!bCompileBodyShapeFollowConfidence
+			&& CatalogRow.FitPolicy == EEFClothingFitPolicy::Auto)
 		{
 			for (int32 Iteration = 0; Iteration < 2; ++Iteration)
 			{
@@ -10218,6 +11009,97 @@ namespace EFClothingFitCompilerPrivate
 						TargetClearanceCm);
 				}
 			}
+		}
+
+		// A clothing vertex immediately beside the anatomical fold can bind to an
+		// adjacent lower-cup triangle whose body mask has already faded. Dilate the
+		// body-derived signal by only two clothing edges so coarse and dense future
+		// meshes receive the same continuous crease protection without a garment name,
+		// slot rule, chest-wide offset or source-mesh edit. PreserveUpstream remains an
+		// exact no-op (for example explicitly excluded anatomy).
+		TArray<float> ExpandedUnderBreastGuardWeights;
+		ExpandedUnderBreastGuardWeights.SetNum(GarmentVertexCount);
+		for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+		{
+			const FEFClothingSurfaceVertexBinding& VertexBinding =
+				OutPair.VertexBindings[VertexIndex];
+			if (VertexBinding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+			{
+				ExpandedUnderBreastGuardWeights[VertexIndex] = 0.0f;
+				continue;
+			}
+			float NeighborMaximum = 0.0f;
+			for (const int32 NeighborIndex : NeighborSets[VertexIndex])
+			{
+				NeighborMaximum = FMath::Max(
+					NeighborMaximum,
+					OutPair.VertexBindings[NeighborIndex].UnderBreastGuardWeight);
+			}
+			ExpandedUnderBreastGuardWeights[VertexIndex] = FMath::Clamp(
+				FMath::Max(VertexBinding.UnderBreastGuardWeight, NeighborMaximum * 0.75f),
+				0.0f,
+				1.0f);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+		{
+			FEFClothingSurfaceVertexBinding& VertexBinding =
+				OutPair.VertexBindings[VertexIndex];
+			if (VertexBinding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+			{
+				VertexBinding.UnderBreastGuardWeight = 0.0f;
+				continue;
+			}
+			float NeighborMaximum = 0.0f;
+			for (const int32 NeighborIndex : NeighborSets[VertexIndex])
+			{
+				NeighborMaximum = FMath::Max(
+					NeighborMaximum,
+					ExpandedUnderBreastGuardWeights[NeighborIndex]);
+			}
+			VertexBinding.UnderBreastGuardWeight = FMath::Clamp(
+				FMath::Max(
+					ExpandedUnderBreastGuardWeights[VertexIndex],
+					NeighborMaximum * 0.50f),
+				0.0f,
+				1.0f);
+		}
+
+		// A single garment-edge falloff bridges coarse lower-body topology without
+		// spreading the rule beyond its body-derived pelvis/upper-thigh anchors.
+		// PreserveUpstream vertices participate only when their upstream normal was
+		// certified above; unsafe seams can neither receive nor propagate weight.
+		TArray<float> ExpandedLowerBodyMorphGuardWeights;
+		ExpandedLowerBodyMorphGuardWeights.SetNum(GarmentVertexCount);
+		for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+		{
+			if (!LowerBodyGuardOrientationSafeVertices[VertexIndex])
+			{
+				ExpandedLowerBodyMorphGuardWeights[VertexIndex] = 0.0f;
+				continue;
+			}
+			float NeighborMaximum = 0.0f;
+			for (const int32 NeighborIndex : NeighborSets[VertexIndex])
+			{
+				if (LowerBodyGuardOrientationSafeVertices[NeighborIndex])
+				{
+					NeighborMaximum = FMath::Max(
+						NeighborMaximum,
+						OutPair.VertexBindings[NeighborIndex].LowerBodyMorphGuardWeight);
+				}
+			}
+			ExpandedLowerBodyMorphGuardWeights[VertexIndex] = FMath::Clamp(
+				FMath::Max(
+					OutPair.VertexBindings[VertexIndex].LowerBodyMorphGuardWeight,
+					NeighborMaximum * 0.60f),
+				0.0f,
+				1.0f);
+		}
+		for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+		{
+			OutPair.VertexBindings[VertexIndex].LowerBodyMorphGuardWeight =
+				LowerBodyGuardOrientationSafeVertices[VertexIndex]
+				? ExpandedLowerBodyMorphGuardWeights[VertexIndex]
+				: 0.0f;
 		}
 
 		if (CatalogRow.bCreateThicknessShell)
@@ -10351,6 +11233,10 @@ namespace EFClothingFitCompilerPrivate
 					VertexBinding.BodyBarycentrics = AuthoritativeBinding.BodyBarycentrics;
 					VertexBinding.Mode = AuthoritativeBinding.Mode;
 					VertexBinding.FollowWeight = AuthoritativeBinding.FollowWeight;
+					VertexBinding.UnderBreastGuardWeight =
+						AuthoritativeBinding.UnderBreastGuardWeight;
+					VertexBinding.LowerBodyMorphGuardWeight =
+						AuthoritativeBinding.LowerBodyMorphGuardWeight;
 					VertexBinding.CandidateRange = AuthoritativeBinding.CandidateRange;
 					VertexBinding.ThicknessReferenceRenderVertexIndex =
 						AuthoritativeInnerRenderVertex;
@@ -10383,6 +11269,7 @@ namespace EFClothingFitCompilerPrivate
 			{
 				VertexBinding.TargetClearanceCm = TargetClearanceCm;
 				VertexBinding.FollowWeight = 0.0f;
+				VertexBinding.UnderBreastGuardWeight = 0.0f;
 				continue;
 			}
 			const bool bNeedsBoundaryReserve = BoundaryRiskVertices[VertexIndex]
@@ -10401,10 +11288,13 @@ namespace EFClothingFitCompilerPrivate
 					VertexIndex);
 				return false;
 			}
-			VertexBinding.FollowWeight = SurfaceFollowWeight(
-				VertexBinding.Mode,
-				VertexBinding.RestSignedGapCm,
-				VertexBinding.TargetClearanceCm);
+			if (!bCompileBodyShapeFollowConfidence)
+			{
+				VertexBinding.FollowWeight = SurfaceFollowWeight(
+					VertexBinding.Mode,
+					VertexBinding.RestSignedGapCm,
+					VertexBinding.TargetClearanceCm);
+			}
 			OutPair.Metrics.MaximumInitialCorrectionCm = FMath::Max(
 				OutPair.Metrics.MaximumInitialCorrectionCm,
 				FMath::Max(
@@ -10413,6 +11303,74 @@ namespace EFClothingFitCompilerPrivate
 			MinimumRestGap = FMath::Min(
 				MinimumRestGap,
 				static_cast<double>(VertexBinding.RestSignedGapCm));
+		}
+
+		if (bCompileBodyShapeFollowConfidence)
+		{
+			// Smooth the continuous shape-follow field, rather than changing the V4
+			// safety mode. A self-biased Laplacian removes isolated high/low samples;
+			// exact split groups are canonicalized together after this true-edge pass.
+			TArray<float> OriginalConfidence;
+			OriginalConfidence.Reserve(GarmentVertexCount);
+			for (const FEFClothingSurfaceVertexBinding& VertexBinding :
+				OutPair.VertexBindings)
+			{
+				OriginalConfidence.Add(VertexBinding.FollowWeight);
+			}
+			TArray<float> CurrentConfidence = OriginalConfidence;
+			for (int32 Iteration = 0; Iteration < 3; ++Iteration)
+			{
+				TArray<float> SmoothedConfidence = CurrentConfidence;
+				for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+				{
+					if (OutPair.VertexBindings[VertexIndex].Mode
+						== EEFClothingSurfaceVertexMode::PreserveUpstream)
+					{
+						SmoothedConfidence[VertexIndex] = 0.0f;
+						continue;
+					}
+					const TSet<int32>& Neighbors = NeighborSets[VertexIndex];
+					if (Neighbors.IsEmpty())
+					{
+						continue;
+					}
+					float WeightedConfidence = CurrentConfidence[VertexIndex] * 2.0f;
+					float WeightSum = 2.0f;
+					TArray<int32> SortedNeighbors = Neighbors.Array();
+					SortedNeighbors.Sort();
+					for (const int32 NeighborIndex : SortedNeighbors)
+					{
+						if (OutPair.VertexBindings[NeighborIndex].Mode
+							== EEFClothingSurfaceVertexMode::PreserveUpstream)
+						{
+							continue;
+						}
+						WeightedConfidence += CurrentConfidence[NeighborIndex];
+						WeightSum += 1.0f;
+					}
+					const float NeighborhoodAverage = WeightedConfidence / WeightSum;
+					const float GeometrySupportCeiling = FMath::Min(
+						1.0f,
+						OriginalConfidence[VertexIndex] + 0.25f);
+					SmoothedConfidence[VertexIndex] = FMath::Clamp(
+						FMath::Lerp(
+							CurrentConfidence[VertexIndex],
+							NeighborhoodAverage,
+							0.50f),
+						0.0f,
+						GeometrySupportCeiling);
+				}
+				CurrentConfidence = MoveTemp(SmoothedConfidence);
+			}
+			for (int32 VertexIndex = 0; VertexIndex < GarmentVertexCount; ++VertexIndex)
+			{
+				FEFClothingSurfaceVertexBinding& VertexBinding =
+					OutPair.VertexBindings[VertexIndex];
+				VertexBinding.FollowWeight = VertexBinding.Mode
+					== EEFClothingSurfaceVertexMode::PreserveUpstream
+					? 0.0f
+					: FMath::Clamp(CurrentConfidence[VertexIndex], 0.0f, 1.0f);
+			}
 		}
 
 		if (CatalogRow.bCreateThicknessShell)
@@ -10456,6 +11414,10 @@ namespace EFClothingFitCompilerPrivate
 					VertexBinding.TargetClearanceCm =
 						AuthoritativeBinding.TargetClearanceCm + SignedLayerHeightCm;
 					VertexBinding.MaximumCorrectionCm = AuthoritativeBinding.MaximumCorrectionCm;
+					VertexBinding.UnderBreastGuardWeight =
+						AuthoritativeBinding.UnderBreastGuardWeight;
+					VertexBinding.LowerBodyMorphGuardWeight =
+						AuthoritativeBinding.LowerBodyMorphGuardWeight;
 					const float RequiredInitialPushCm = FMath::Max(
 						0.0f,
 						VertexBinding.TargetClearanceCm - VertexBinding.RestSignedGapCm);
@@ -10514,6 +11476,97 @@ namespace EFClothingFitCompilerPrivate
 					MinimumRestGap,
 					static_cast<double>(VertexBinding.RestSignedGapCm));
 			}
+		}
+
+		// Every render split of one import vertex must consume one exact surface
+		// anchor. Select the lowest render index as a topology-only authority so the
+		// result is deterministic and identical for every body LOD pair. Preserve is
+		// contagious across a group; otherwise retain the strongest geometric shape
+		// confidence while sharing the authoritative anchor and behavior mode.
+		for (const TArray<int32>& RenderVertices : SortedRenderVertexGroups)
+		{
+			if (RenderVertices.Num() < 2)
+			{
+				continue;
+			}
+			const int32 AuthoritativeRenderVertexIndex = RenderVertices[0];
+			const FEFClothingSurfaceVertexBinding AuthoritativeBinding =
+				OutPair.VertexBindings[AuthoritativeRenderVertexIndex];
+			bool bGroupPreserveUpstream = false;
+			float GroupMaximumFollowWeight = 0.0f;
+			float GroupMaximumLowerBodyMorphGuardWeight = 0.0f;
+			bool bGroupLowerBodyGuardOrientationSafe = true;
+			for (const int32 RenderVertexIndex : RenderVertices)
+			{
+				const FEFClothingSurfaceVertexBinding& Member =
+					OutPair.VertexBindings[RenderVertexIndex];
+				bGroupPreserveUpstream |= Member.Mode
+					== EEFClothingSurfaceVertexMode::PreserveUpstream;
+				GroupMaximumFollowWeight = FMath::Max(
+					GroupMaximumFollowWeight,
+					Member.FollowWeight);
+				GroupMaximumLowerBodyMorphGuardWeight = FMath::Max(
+					GroupMaximumLowerBodyMorphGuardWeight,
+					Member.LowerBodyMorphGuardWeight);
+				bGroupLowerBodyGuardOrientationSafe &=
+					LowerBodyGuardOrientationSafeVertices[RenderVertexIndex];
+			}
+			for (const int32 RenderVertexIndex : RenderVertices)
+			{
+				FEFClothingSurfaceVertexBinding& Member =
+					OutPair.VertexBindings[RenderVertexIndex];
+				Member.BodyRenderVertexIndices =
+					AuthoritativeBinding.BodyRenderVertexIndices;
+				Member.BodyBarycentrics = AuthoritativeBinding.BodyBarycentrics;
+				Member.RestTangentFrameOffsetCm =
+					AuthoritativeBinding.RestTangentFrameOffsetCm;
+				Member.RestSignedGapCm = AuthoritativeBinding.RestSignedGapCm;
+				Member.TargetClearanceCm = AuthoritativeBinding.TargetClearanceCm;
+				Member.MaximumCorrectionCm = AuthoritativeBinding.MaximumCorrectionCm;
+				Member.Mode = bGroupPreserveUpstream
+					? EEFClothingSurfaceVertexMode::PreserveUpstream
+					: AuthoritativeBinding.Mode;
+				Member.FollowWeight = bGroupPreserveUpstream
+					? 0.0f
+					: FMath::Clamp(GroupMaximumFollowWeight, 0.0f, 1.0f);
+				Member.UnderBreastGuardWeight = bGroupPreserveUpstream
+					? 0.0f
+					: AuthoritativeBinding.UnderBreastGuardWeight;
+				Member.LowerBodyMorphGuardWeight =
+					bGroupLowerBodyGuardOrientationSafe
+					? FMath::Clamp(
+						GroupMaximumLowerBodyMorphGuardWeight,
+						0.0f,
+						1.0f)
+					: 0.0f;
+				Member.CandidateRange = AuthoritativeBinding.CandidateRange;
+				Member.ThicknessReferenceRenderVertexIndex =
+					AuthoritativeBinding.ThicknessReferenceRenderVertexIndex;
+				Member.bOuterThicknessLayer =
+					AuthoritativeBinding.bOuterThicknessLayer;
+			}
+		}
+
+		// Canonical weld anchors may replace a split member's independently measured
+		// gap. Recompute the published correction evidence from the final contract.
+		OutPair.Metrics.MaximumInitialCorrectionCm = 0.0f;
+		MinimumRestGap = TNumericLimits<double>::Max();
+		for (const FEFClothingSurfaceVertexBinding& VertexBinding :
+			OutPair.VertexBindings)
+		{
+			if (VertexBinding.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream)
+			{
+				continue;
+			}
+			OutPair.Metrics.MaximumInitialCorrectionCm = FMath::Max(
+				OutPair.Metrics.MaximumInitialCorrectionCm,
+				FMath::Max(
+					0.0f,
+					VertexBinding.TargetClearanceCm
+						- VertexBinding.RestSignedGapCm));
+			MinimumRestGap = FMath::Min(
+				MinimumRestGap,
+				static_cast<double>(VertexBinding.RestSignedGapCm));
 		}
 
 		// Adaptive edge/interior witnesses close the vertex-only loophole. A
@@ -10632,6 +11685,7 @@ namespace EFClothingFitCompilerPrivate
 
 		OutPair.Metrics.BoundRenderVertexCount = GarmentVertexCount;
 		OutPair.Metrics.NeighborReferenceCount = OutPair.NeighborRenderVertexIndices.Num();
+		OutPair.Metrics.WeldReferenceCount = OutPair.WeldRenderVertexIndices.Num();
 		OutPair.Metrics.CandidateTriangleCount = OutPair.CandidateTriangles.Num();
 		OutPair.Metrics.WitnessCount = OutPair.Witnesses.Num();
 		// BuildSurfaceRenderLOD removes zero-area source triangles before it builds
@@ -10648,6 +11702,17 @@ namespace EFClothingFitCompilerPrivate
 			: 0.0f;
 		for (const FEFClothingSurfaceVertexBinding& VertexBinding : OutPair.VertexBindings)
 		{
+			if (VertexBinding.UnderBreastGuardWeight > 1.0e-4f)
+			{
+				++OutPair.Metrics.UnderBreastGuardVertexCount;
+			}
+			if (VertexBinding.LowerBodyMorphGuardWeight > 1.0e-4f)
+			{
+				++OutPair.Metrics.LowerBodyMorphGuardVertexCount;
+			}
+			OutPair.Metrics.MaximumLowerBodyMorphGuardWeight = FMath::Max(
+				OutPair.Metrics.MaximumLowerBodyMorphGuardWeight,
+				VertexBinding.LowerBodyMorphGuardWeight);
 			switch (VertexBinding.Mode)
 			{
 			case EEFClothingSurfaceVertexMode::SurfaceFollow:
@@ -10665,18 +11730,30 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 		const bool bPreserveDomainRequested = ExcludedAnatomyMesh != nullptr;
-		const bool bPreserveDomainValid = !bPreserveDomainRequested
-			? OutPair.Metrics.PreserveUpstreamVertexCount == 0
-				&& OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount == 0
-			: OutPair.Metrics.PreserveUpstreamVertexCount > 0
-				&& OutPair.Metrics.PreserveUpstreamVertexCount * 100
-					<= GarmentVertexCount * 35
-				&& OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount > 0;
+		const bool bPreserveDomainEmpty =
+			OutPair.Metrics.PreserveUpstreamVertexCount == 0
+			&& OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount == 0;
+		const bool bPreserveDomainCompact =
+			OutPair.Metrics.PreserveUpstreamVertexCount > 0
+			&& OutPair.Metrics.PreserveUpstreamVertexCount * 100
+				<= GarmentVertexCount * 35
+			&& OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount > 0;
+		// An optional excluded body surface may be spatially unrelated to this
+		// garment (for example an upper-body item). That is a valid empty preserve
+		// domain, not a binding failure. If contact exists it must remain compact.
+		const bool bPreserveDomainValid = bPreserveDomainRequested
+			? bPreserveDomainEmpty || bPreserveDomainCompact
+			: bPreserveDomainEmpty;
 		const bool bRestGapIsCertifiable = bAllowCorrectableInitialPenetration
 			? FMath::IsFinite(OutPair.Metrics.MinimumRestSignedGapCm)
 			: OutPair.Metrics.MinimumRestSignedGapCm >= -0.02f;
 		OutPair.bCertified = OutPair.Metrics.InvalidAnchorCount == 0
 			&& OutPair.Metrics.BoundRenderVertexCount == GarmentLOD.Topology.RenderVertexCount
+			&& OutPair.Metrics.NeighborReferenceCount
+				== OutPair.NeighborRenderVertexIndices.Num()
+			&& OutPair.Metrics.WeldReferenceCount
+				== OutPair.WeldRenderVertexIndices.Num()
+			&& OutPair.Metrics.WeldGroupCount >= 0
 			// The fitted mesh is independently certified intersection-free. A small
 			// render-normal clearance deficit is legal because SurfaceWrap is hidden
 			// until its first unilateral GPU correction; the exact required push must
@@ -10708,6 +11785,223 @@ namespace EFClothingFitCompilerPrivate
 				OutPair.Metrics.ExcludedPreserveUpstreamGarmentTriangleCount);
 		}
 		return OutPair.bCertified;
+	}
+
+	static bool ValidateCompiledWeldContract(
+		const FEFClothingSurfaceLODPairBinding& Pair,
+		const FSurfaceRenderLOD& GarmentLOD,
+		FString& OutError)
+	{
+		const int32 VertexCount = GarmentLOD.Positions.Num();
+		if (Pair.VertexBindings.Num() != VertexCount
+			|| Pair.Metrics.WeldReferenceCount
+				!= Pair.WeldRenderVertexIndices.Num()
+			|| Pair.Metrics.WeldGroupCount < 0)
+		{
+			OutError = TEXT("Surface binding exact-split weld evidence is incomplete.");
+			return false;
+		}
+
+		TArray<float> ExpectedLocalFeatureSizes;
+		BuildLocalFeatureSizeContract(GarmentLOD, ExpectedLocalFeatureSizes);
+		TMap<int32, TArray<int32>> RenderVerticesByImportVertex;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			RenderVerticesByImportVertex.FindOrAdd(
+				GarmentLOD.MeshToImportVertexMap[VertexIndex]).Add(VertexIndex);
+		}
+		TArray<int32> SortedImportVertexIDs;
+		RenderVerticesByImportVertex.GetKeys(SortedImportVertexIDs);
+		SortedImportVertexIDs.Sort();
+
+		auto NearlyEqualVector3 = [](const FVector3f& A, const FVector3f& B)
+		{
+			return FMath::IsNearlyEqual(A.X, B.X, 1.0e-5f)
+				&& FMath::IsNearlyEqual(A.Y, B.Y, 1.0e-5f)
+				&& FMath::IsNearlyEqual(A.Z, B.Z, 1.0e-5f);
+		};
+		int32 ExpectedWeldOffset = 0;
+		int32 ExpectedWeldGroupCount = 0;
+		for (const int32 ImportVertexID : SortedImportVertexIDs)
+		{
+			TArray<int32> RenderVertices = RenderVerticesByImportVertex.FindChecked(
+				ImportVertexID);
+			RenderVertices.Sort();
+			if (RenderVertices.Num() < 2)
+			{
+				const FEFClothingSurfaceVertexBinding& Singleton =
+					Pair.VertexBindings[RenderVertices[0]];
+				if (Singleton.WeldRange.Offset != 0
+					|| Singleton.WeldRange.Count != 0)
+				{
+					OutError = TEXT("Surface binding singleton has a non-empty exact-weld range.");
+					return false;
+				}
+			}
+			else
+			{
+				if (RenderVertices.Num() > 256)
+				{
+					OutError = TEXT("Surface binding exact-weld group exceeds the shader's 256-member certified limit.");
+					return false;
+				}
+				++ExpectedWeldGroupCount;
+				if (ExpectedWeldOffset > Pair.WeldRenderVertexIndices.Num()
+					|| RenderVertices.Num()
+						> Pair.WeldRenderVertexIndices.Num() - ExpectedWeldOffset)
+				{
+					OutError = TEXT("Surface binding exact-weld pool ended inside a split group.");
+					return false;
+				}
+				const FEFClothingSurfaceVertexBinding& Authority =
+					Pair.VertexBindings[RenderVertices[0]];
+				bool bAnyPreserveUpstream = false;
+				for (int32 LocalIndex = 0; LocalIndex < RenderVertices.Num(); ++LocalIndex)
+				{
+					const int32 VertexIndex = RenderVertices[LocalIndex];
+					if (Pair.WeldRenderVertexIndices[ExpectedWeldOffset + LocalIndex]
+						!= VertexIndex)
+					{
+						OutError = TEXT("Surface binding exact-weld pool is not deterministically sorted by import/render vertex.");
+						return false;
+					}
+					const FEFClothingSurfaceVertexBinding& Member =
+						Pair.VertexBindings[VertexIndex];
+					if (Member.WeldRange.Offset != ExpectedWeldOffset
+						|| Member.WeldRange.Count != RenderVertices.Num())
+					{
+						OutError = TEXT("Surface binding exact-weld member does not reference its complete split group.");
+						return false;
+					}
+					bAnyPreserveUpstream |= Member.Mode
+						== EEFClothingSurfaceVertexMode::PreserveUpstream;
+				}
+				for (const int32 VertexIndex : RenderVertices)
+				{
+					const FEFClothingSurfaceVertexBinding& Member =
+						Pair.VertexBindings[VertexIndex];
+					if (Member.BodyRenderVertexIndices != Authority.BodyRenderVertexIndices
+						|| !NearlyEqualVector3(Member.BodyBarycentrics, Authority.BodyBarycentrics)
+						|| !NearlyEqualVector3(
+							Member.RestTangentFrameOffsetCm,
+							Authority.RestTangentFrameOffsetCm)
+						|| !FMath::IsNearlyEqual(Member.RestSignedGapCm, Authority.RestSignedGapCm, 1.0e-5f)
+						|| !FMath::IsNearlyEqual(Member.TargetClearanceCm, Authority.TargetClearanceCm, 1.0e-5f)
+						|| !FMath::IsNearlyEqual(Member.MaximumCorrectionCm, Authority.MaximumCorrectionCm, 1.0e-5f)
+						|| Member.Mode != Authority.Mode
+						|| !FMath::IsNearlyEqual(Member.FollowWeight, Authority.FollowWeight, 1.0e-6f)
+						|| !FMath::IsNearlyEqual(
+							Member.UnderBreastGuardWeight,
+							Authority.UnderBreastGuardWeight,
+							1.0e-6f)
+						|| !FMath::IsNearlyEqual(
+							Member.LowerBodyMorphGuardWeight,
+							Authority.LowerBodyMorphGuardWeight,
+							1.0e-6f)
+						|| Member.CandidateRange.Offset != Authority.CandidateRange.Offset
+						|| Member.CandidateRange.Count != Authority.CandidateRange.Count
+						|| Member.ThicknessReferenceRenderVertexIndex
+							!= Authority.ThicknessReferenceRenderVertexIndex
+						|| Member.bOuterThicknessLayer != Authority.bOuterThicknessLayer
+						|| (bAnyPreserveUpstream
+							&& (Member.Mode != EEFClothingSurfaceVertexMode::PreserveUpstream
+								|| !FMath::IsNearlyZero(Member.FollowWeight, 1.0e-6f))))
+					{
+						OutError = TEXT("Surface binding exact-weld group is not canonicalized to one safe constraint.");
+						return false;
+					}
+				}
+				ExpectedWeldOffset += RenderVertices.Num();
+			}
+		}
+
+		if (ExpectedWeldOffset != Pair.WeldRenderVertexIndices.Num()
+			|| ExpectedWeldGroupCount != Pair.Metrics.WeldGroupCount)
+		{
+			OutError = TEXT("Surface binding exact-weld group/reference metrics are stale.");
+			return false;
+		}
+		int32 RecomputedUnderBreastGuardVertexCount = 0;
+		int32 RecomputedLowerBodyMorphGuardVertexCount = 0;
+		float RecomputedMaximumLowerBodyMorphGuardWeight = 0.0f;
+		for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+		{
+			const FEFClothingSurfaceVertexBinding& Vertex =
+				Pair.VertexBindings[VertexIndex];
+			if (Vertex.UnderBreastGuardWeight > 1.0e-4f)
+			{
+				++RecomputedUnderBreastGuardVertexCount;
+			}
+			if (Vertex.LowerBodyMorphGuardWeight > 1.0e-4f)
+			{
+				++RecomputedLowerBodyMorphGuardVertexCount;
+			}
+			RecomputedMaximumLowerBodyMorphGuardWeight = FMath::Max(
+				RecomputedMaximumLowerBodyMorphGuardWeight,
+				Vertex.LowerBodyMorphGuardWeight);
+			if (Vertex.NeighborRange.Offset < 0
+				|| Vertex.NeighborRange.Count < 0
+				|| Vertex.NeighborRange.Count > 256
+				|| Vertex.NeighborRange.Offset > Pair.NeighborRenderVertexIndices.Num()
+				|| Vertex.NeighborRange.Count
+					> Pair.NeighborRenderVertexIndices.Num() - Vertex.NeighborRange.Offset
+				|| !FMath::IsFinite(Vertex.LocalFeatureSizeCm)
+				|| Vertex.LocalFeatureSizeCm <= 0.0f
+				|| !FMath::IsFinite(Vertex.UnderBreastGuardWeight)
+				|| Vertex.UnderBreastGuardWeight < 0.0f
+				|| Vertex.UnderBreastGuardWeight > 1.0f
+				|| !FMath::IsFinite(Vertex.LowerBodyMorphGuardWeight)
+				|| Vertex.LowerBodyMorphGuardWeight < 0.0f
+				|| Vertex.LowerBodyMorphGuardWeight > 1.0f
+				|| (Vertex.Mode == EEFClothingSurfaceVertexMode::PreserveUpstream
+					&& !FMath::IsNearlyZero(Vertex.UnderBreastGuardWeight, 1.0e-6f))
+				|| !FMath::IsNearlyEqual(
+					Vertex.LocalFeatureSizeCm,
+					ExpectedLocalFeatureSizes[VertexIndex],
+					1.0e-5f))
+			{
+				OutError = FString::Printf(
+					TEXT("Surface binding vertex %d has a stale local feature size."),
+					VertexIndex);
+				return false;
+			}
+			for (int32 NeighborOffset = 0;
+				NeighborOffset < Vertex.NeighborRange.Count;
+				++NeighborOffset)
+			{
+				const int32 NeighborIndex = Pair.NeighborRenderVertexIndices[
+					Vertex.NeighborRange.Offset + NeighborOffset];
+				if (NeighborIndex < 0
+					|| NeighborIndex >= VertexCount
+					|| NeighborIndex == VertexIndex
+					|| GarmentLOD.MeshToImportVertexMap[NeighborIndex]
+					== GarmentLOD.MeshToImportVertexMap[VertexIndex])
+				{
+					OutError = TEXT("Surface binding cohesion adjacency contains an exact render-split weld twin.");
+					return false;
+				}
+			}
+		}
+		if (RecomputedUnderBreastGuardVertexCount
+			!= Pair.Metrics.UnderBreastGuardVertexCount)
+		{
+			OutError = TEXT("Surface binding inframammary-guard metrics are stale.");
+			return false;
+		}
+		if (RecomputedLowerBodyMorphGuardVertexCount
+				!= Pair.Metrics.LowerBodyMorphGuardVertexCount
+			|| !FMath::IsFinite(Pair.Metrics.MaximumLowerBodyMorphGuardWeight)
+			|| Pair.Metrics.MaximumLowerBodyMorphGuardWeight < 0.0f
+			|| Pair.Metrics.MaximumLowerBodyMorphGuardWeight > 1.0f
+			|| !FMath::IsNearlyEqual(
+				Pair.Metrics.MaximumLowerBodyMorphGuardWeight,
+				RecomputedMaximumLowerBodyMorphGuardWeight,
+				1.0e-6f))
+		{
+			OutError = TEXT("Surface binding lower-body morph-guard metrics are stale.");
+			return false;
+		}
+		return true;
 	}
 
 	static bool BuildSurfaceBindingAsset(
@@ -11055,6 +12349,13 @@ namespace EFClothingFitCompilerPrivate
 				return false;
 			}
 			UniqueLODPairs.Add(PairKey);
+			if (!ValidateCompiledWeldContract(
+				Pair,
+				GarmentLODs.FindChecked(Pair.GarmentTopology.LODIndex),
+				OutError))
+			{
+				return false;
+			}
 			float RecomputedMaximumInitialCorrectionCm = 0.0f;
 			for (int32 VertexIndex = 0; VertexIndex < Pair.VertexBindings.Num(); ++VertexIndex)
 			{
@@ -11318,6 +12619,9 @@ namespace EFClothingFitCompilerPrivate
 			|| Binding->SourceGarment.ToSoftObjectPath() != FSoftObjectPath(SourceGarment)
 			|| !Binding->FittedGarment.IsNull()
 			|| Binding->BodySurface.ToSoftObjectPath() != FSoftObjectPath(BodySurface)
+			|| Binding->ReferenceBodySurface != Row.ReferenceBodySurface
+			|| (!Row.ReferenceBodySurface.IsNull() && Binding->ReferenceBodyContentFingerprint
+				!= EFClothingSkeleton::BuildContentFingerprint(Row.ReferenceBodySurface.LoadSynchronous()))
 			|| Binding->LODPairBindings.IsEmpty())
 		{
 			OutError = TEXT("Native-source binding identity, schema, or clothing fingerprint is stale.");
@@ -11352,6 +12656,32 @@ namespace EFClothingFitCompilerPrivate
 		if (StoredExcludedSlots != ExpectedExcludedSlots)
 		{
 			OutError = TEXT("Native-source binding body-surface exclusions are stale.");
+			return false;
+		}
+		TArray<FName> ExpectedLowerBodyMorphNames;
+		if (Row.LowerBodyMorphGuard.bEnabled)
+		{
+			ExpectedLowerBodyMorphNames =
+				Row.LowerBodyMorphGuard.ExactBodyMorphNames;
+		}
+		CanonicalizeExactMorphNames(ExpectedLowerBodyMorphNames);
+		const float ExpectedLowerBodyMaximumClearanceCm =
+			Row.LowerBodyMorphGuard.bEnabled
+			? FMath::Clamp(
+				Row.LowerBodyMorphGuard.MaximumClearanceCm,
+				0.0f,
+				EFClothingMorphV4::MaximumAutomaticLowerBodyMorphClearanceCm)
+			: 0.0f;
+		if (Binding->bLowerBodyMorphGuardEnabled
+				!= Row.LowerBodyMorphGuard.bEnabled
+			|| Binding->LowerBodyMorphGuardExactBodyMorphNames
+				!= ExpectedLowerBodyMorphNames
+			|| !FMath::IsNearlyEqual(
+				Binding->LowerBodyMorphGuardMaximumClearanceCm,
+				ExpectedLowerBodyMaximumClearanceCm,
+				1.0e-6f))
+		{
+			OutError = TEXT("Native-source binding lower-body morph guard metadata is stale.");
 			return false;
 		}
 
@@ -11422,6 +12752,13 @@ namespace EFClothingFitCompilerPrivate
 				|| Pair.Metrics.MaximumInitialCorrectionCm < 0.0f
 				|| Pair.VertexBindings.Num() != Pair.GarmentTopology.RenderVertexCount
 				|| Pair.Metrics.BoundRenderVertexCount != Pair.VertexBindings.Num()
+				|| (Binding->bLowerBodyMorphGuardEnabled
+					? (Pair.Metrics.LowerBodyMorphGuardVertexCount <= 0
+						|| Pair.Metrics.MaximumLowerBodyMorphGuardWeight <= 0.0f)
+					: (Pair.Metrics.LowerBodyMorphGuardVertexCount != 0
+						|| !FMath::IsNearlyZero(
+							Pair.Metrics.MaximumLowerBodyMorphGuardWeight,
+							1.0e-6f)))
 				|| Pair.CandidateTriangles.IsEmpty()
 				|| Pair.Witnesses.IsEmpty())
 			{
@@ -11461,6 +12798,16 @@ namespace EFClothingFitCompilerPrivate
 				{
 					return false;
 				}
+				if (Binding->bLowerBodyMorphGuardEnabled
+					&& !BuildConfiguredLowerBodyMorphGuardWeights(
+						BodySurface,
+						BodyLODIndex,
+						Binding->LowerBodyMorphGuardExactBodyMorphNames,
+						ActualBodyLOD,
+						OutError))
+				{
+					return false;
+				}
 				BodyLODs.Add(BodyLODIndex, MoveTemp(ActualBodyLOD));
 			}
 			if (!NativeTopologyMatches(Pair.GarmentTopology, GarmentLODs.FindChecked(GarmentLODIndex))
@@ -11472,6 +12819,13 @@ namespace EFClothingFitCompilerPrivate
 					BodyLODIndex);
 				return false;
 			}
+			if (!ValidateCompiledWeldContract(
+				Pair,
+				GarmentLODs.FindChecked(GarmentLODIndex),
+				OutError))
+			{
+				return false;
+			}
 
 			for (int32 VertexIndex = 0; VertexIndex < Pair.VertexBindings.Num(); ++VertexIndex)
 			{
@@ -11481,7 +12835,22 @@ namespace EFClothingFitCompilerPrivate
 					+ Vertex.BodyBarycentrics.Y + Vertex.BodyBarycentrics.Z;
 				if (Vertex.GarmentRenderVertexIndex != VertexIndex
 					|| (!bPreserve && Vertex.Mode != EEFClothingSurfaceVertexMode::CollisionOnly)
-					|| !FMath::IsNearlyZero(Vertex.FollowWeight, 1.e-6f)
+					|| !FMath::IsFinite(Vertex.FollowWeight)
+					|| Vertex.FollowWeight < 0.0f
+					|| Vertex.FollowWeight > 1.0f
+					|| !FMath::IsFinite(Vertex.UnderBreastGuardWeight)
+					|| Vertex.UnderBreastGuardWeight < 0.0f
+					|| Vertex.UnderBreastGuardWeight > 1.0f
+					|| !FMath::IsFinite(Vertex.LowerBodyMorphGuardWeight)
+					|| Vertex.LowerBodyMorphGuardWeight < 0.0f
+					|| Vertex.LowerBodyMorphGuardWeight > 1.0f
+					|| (!Binding->bLowerBodyMorphGuardEnabled
+						&& !FMath::IsNearlyZero(
+							Vertex.LowerBodyMorphGuardWeight,
+							1.0e-6f))
+					|| (bPreserve
+						&& (!FMath::IsNearlyZero(Vertex.FollowWeight, 1.e-6f)
+							|| !FMath::IsNearlyZero(Vertex.UnderBreastGuardWeight, 1.e-6f)))
 					|| Vertex.ThicknessReferenceRenderVertexIndex != INDEX_NONE
 					|| Vertex.bOuterThicknessLayer
 					|| Vertex.BodyRenderVertexIndices.X < 0
@@ -11556,6 +12925,8 @@ namespace EFClothingFitCompilerPrivate
 		}
 		return true;
 	}
+
+#include "EFClothingUnisexSurface.inl"
 
 	static bool BuildNativeSourceBindingAsset(
 		const FEFClothingGarmentRow& Row,
@@ -11659,6 +13030,9 @@ namespace EFClothingFitCompilerPrivate
 		Binding->SourceGarment = SourceGarment;
 		Binding->FittedGarment.Reset();
 		Binding->BodySurface = BodySurface;
+		Binding->ReferenceBodySurface = Row.ReferenceBodySurface;
+		Binding->ReferenceBodyContentFingerprint = Row.ReferenceBodySurface.IsNull() ? FString()
+			: EFClothingSkeleton::BuildContentFingerprint(Row.ReferenceBodySurface.LoadSynchronous());
 		Binding->BuildGuid = BuildGuid;
 		Binding->CompilerVersion = Contract->CompilerVersion;
 		Binding->SchemaVersion = Contract->SurfaceBindingSchemaVersion;
@@ -11671,6 +13045,29 @@ namespace EFClothingFitCompilerPrivate
 		Binding->SharedSkeletonFingerprint =
 			EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton());
 		Binding->ExcludedBodySurfaceMaterialSlots = ExcludedSurfaceSlots;
+		Binding->bLowerBodyMorphGuardEnabled = Row.LowerBodyMorphGuard.bEnabled;
+		Binding->LowerBodyMorphGuardExactBodyMorphNames.Reset();
+		if (Binding->bLowerBodyMorphGuardEnabled)
+		{
+			Binding->LowerBodyMorphGuardExactBodyMorphNames =
+				Row.LowerBodyMorphGuard.ExactBodyMorphNames;
+		}
+		CanonicalizeExactMorphNames(
+			Binding->LowerBodyMorphGuardExactBodyMorphNames);
+		Binding->LowerBodyMorphGuardMaximumClearanceCm =
+			Binding->bLowerBodyMorphGuardEnabled
+			? FMath::Clamp(
+				Row.LowerBodyMorphGuard.MaximumClearanceCm,
+				0.0f,
+				EFClothingMorphV4::MaximumAutomaticLowerBodyMorphClearanceCm)
+			: 0.0f;
+		if (Binding->bLowerBodyMorphGuardEnabled
+			&& (Binding->LowerBodyMorphGuardExactBodyMorphNames.IsEmpty()
+				|| Binding->LowerBodyMorphGuardMaximumClearanceCm <= 0.0f))
+		{
+			OutError = TEXT("Enabled lower-body morph guard has no exact morph names or positive certified clearance.");
+			return false;
+		}
 		Binding->LODPairBindings.Reset();
 
 		FEFClothingGarmentRow CollisionOnlyRow = Row;
@@ -11705,6 +13102,23 @@ namespace EFClothingFitCompilerPrivate
 					NAME_None,
 					BodyLOD,
 					OutError))
+				{
+					return false;
+				}
+				ExcludeFitBoneBranches(BodySurface, Row.ExcludedBodyBoneBranches, BodyLOD);
+				if (!Row.ReferenceBodySurface.IsNull())
+				{
+					USkeletalMesh* Reference = Row.ReferenceBodySurface.LoadSynchronous();
+					if (!Reference || Reference->GetSkeleton() != BodySurface->GetSkeleton()
+						|| !BuildUnisexReferenceShape(BodySurface, Reference, BodyLOD, OutError)) { return false; }
+				}
+				if (Binding->bLowerBodyMorphGuardEnabled
+					&& !BuildConfiguredLowerBodyMorphGuardWeights(
+						BodySurface,
+						BodyLODIndex,
+						Binding->LowerBodyMorphGuardExactBodyMorphNames,
+						BodyLOD,
+						OutError))
 				{
 					return false;
 				}
@@ -11749,6 +13163,7 @@ namespace EFClothingFitCompilerPrivate
 					MaximumCorrectionCm,
 					Pair,
 					OutError,
+					true,
 					true))
 				{
 					return false;
@@ -11756,11 +13171,6 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 
-		Binding->MarkPackageDirty();
-		if (!SaveAsset(Binding, OutError))
-		{
-			return false;
-		}
 		if (!ValidateNativeSourceBindingInternal(
 			Binding,
 			Row,
@@ -11769,6 +13179,13 @@ namespace EFClothingFitCompilerPrivate
 			CompatibilityReference,
 			Options,
 			OutError))
+		{
+			return false;
+		}
+		// Candidate assets remain memory-only until their complete identity,
+		// topology and per-vertex contracts have passed final validation.
+		Binding->MarkPackageDirty();
+		if (!SaveAsset(Binding, OutError))
 		{
 			return false;
 		}
@@ -14375,9 +15792,11 @@ UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 		return FailGlobal(TEXT("the V4 native-source registry contains legacy generated fit profiles"));
 	}
 
+	const TArray<FEFClothingGarmentRow> BodyVariants = Director->BuildBodyVariants();
+
 	TMap<FName, int32> ClothingNameCounts;
 	TMap<FString, int32> SourceBodyPairCounts;
-	for (const FEFClothingGarmentRow& Clothing : Director->Garments)
+	for (const FEFClothingGarmentRow& Clothing : BodyVariants)
 	{
 		if (!Clothing.bEnabled || !Clothing.HasCompleteClothingSetup())
 		{
@@ -14388,13 +15807,40 @@ UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 			+ TEXT("|") + Clothing.BodySurface.ToSoftObjectPath().ToString();
 		++SourceBodyPairCounts.FindOrAdd(PairKey);
 	}
+	auto BindingBelongsToEnabledCatalogEntry = [&BodyVariants](
+		const UEFClothingSurfaceBinding* Binding)
+	{
+		if (!IsValid(Binding))
+		{
+			return false;
+		}
+		for (const FEFClothingGarmentRow& Clothing : BodyVariants)
+		{
+			if (!Clothing.bEnabled || Clothing.GarmentId != Binding->GarmentId)
+			{
+				continue;
+			}
+			// Keep the last good publication while an enabled row is temporarily
+			// incomplete in the Details panel. A disabled/deleted row has no owner.
+			if (!Clothing.HasCompleteClothingSetup()
+				|| (Clothing.SourceGarment.ToSoftObjectPath()
+						== Binding->SourceGarment.ToSoftObjectPath()
+					&& Clothing.BodySurface.ToSoftObjectPath()
+						== Binding->BodySurface.ToSoftObjectPath()))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
 
 	bool bTargetFound = Options.TargetClothingName.IsNone();
 	TArray<FString> Issues;
-	for (const FEFClothingGarmentRow& Clothing : Director->Garments)
+	for (const FEFClothingGarmentRow& Clothing : BodyVariants)
 	{
 		if (!Options.TargetClothingName.IsNone()
-			&& Clothing.GarmentId != Options.TargetClothingName)
+			&& Clothing.GarmentId != Options.TargetClothingName
+			&& Clothing.AuthoredGarmentId != Options.TargetClothingName)
 		{
 			continue;
 		}
@@ -14481,6 +15927,21 @@ UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 			continue;
 		}
 		++Result.ValidBindingCount;
+	}
+	int32 UnownedBindingCount = 0;
+	for (const UEFClothingSurfaceBinding* Binding : Registry->NativeSourceBindings)
+	{
+		if (!BindingBelongsToEnabledCatalogEntry(Binding))
+		{
+			++UnownedBindingCount;
+		}
+	}
+	if (UnownedBindingCount > 0)
+	{
+		Result.StaleRowCount += UnownedBindingCount;
+		Issues.Add(FString::Printf(
+			TEXT("registry has %d binding(s) whose clothing entry was disabled, removed, or replaced"),
+			UnownedBindingCount));
 	}
 
 	if (!bTargetFound)
@@ -14597,9 +16058,11 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 		*RegistryObjectPath);
 	Result.Registry = Registry;
 
+	const TArray<FEFClothingGarmentRow> BodyVariants = Director->BuildBodyVariants();
+
 	TMap<FName, int32> ClothingNameCounts;
 	TMap<FString, int32> SourceBodyPairCounts;
-	for (const FEFClothingGarmentRow& Clothing : Director->Garments)
+	for (const FEFClothingGarmentRow& Clothing : BodyVariants)
 	{
 		if (!Clothing.bEnabled || !Clothing.HasCompleteClothingSetup())
 		{
@@ -14610,6 +16073,30 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 			+ TEXT("|") + Clothing.BodySurface.ToSoftObjectPath().ToString();
 		++SourceBodyPairCounts.FindOrAdd(PairKey);
 	}
+	auto BindingBelongsToEnabledCatalogEntry = [&BodyVariants](
+		const UEFClothingSurfaceBinding* Binding)
+	{
+		if (!IsValid(Binding))
+		{
+			return false;
+		}
+		for (const FEFClothingGarmentRow& Clothing : BodyVariants)
+		{
+			if (!Clothing.bEnabled || Clothing.GarmentId != Binding->GarmentId)
+			{
+				continue;
+			}
+			if (!Clothing.HasCompleteClothingSetup()
+				|| (Clothing.SourceGarment.ToSoftObjectPath()
+						== Binding->SourceGarment.ToSoftObjectPath()
+					&& Clothing.BodySurface.ToSoftObjectPath()
+						== Binding->BodySurface.ToSoftObjectPath()))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
 
 	struct FResolvedClothingRow
 	{
@@ -14620,10 +16107,11 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 	};
 	TArray<FResolvedClothingRow> ResolvedRows;
 	bool bTargetFound = Options.TargetClothingName.IsNone();
-	for (const FEFClothingGarmentRow& Clothing : Director->Garments)
+	for (const FEFClothingGarmentRow& Clothing : BodyVariants)
 	{
 		if (!Options.TargetClothingName.IsNone()
-			&& Clothing.GarmentId != Options.TargetClothingName)
+			&& Clothing.GarmentId != Options.TargetClothingName
+			&& Clothing.AuthoredGarmentId != Options.TargetClothingName)
 		{
 			continue;
 		}
@@ -14829,11 +16317,18 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 			{
 				++Result.FailedRowCount;
 				RowResult.Report = FString::Printf(TEXT("FAILED: %s"), *BuildError);
+				UE_LOG(
+					LogEFClothingFitCompiler,
+					Error,
+					TEXT("V4 clothing row '%s' binding compilation failed: %s"),
+					*Resolved.Clothing->GarmentId.ToString(),
+					*BuildError);
 				if (Options.bStrictCatalogCertification)
 				{
 					return FailGlobal(FString::Printf(
-						TEXT("%s failed strict binding compilation; the registry was not changed"),
-						*Resolved.Clothing->GarmentId.ToString()));
+						TEXT("%s failed strict binding compilation; the registry was not changed: %s"),
+						*Resolved.Clothing->GarmentId.ToString(),
+						*BuildError));
 				}
 				continue;
 			}
@@ -14864,12 +16359,36 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 			Result.CompiledRowCount,
 			Result.FailedRowCount));
 	}
-	if (SuccessfulBindings.IsEmpty())
+	const bool bHasUnownedPublishedBindings = IsValid(Registry)
+		&& Registry->NativeSourceBindings.ContainsByPredicate(
+			[&BindingBelongsToEnabledCatalogEntry](
+				const TObjectPtr<UEFClothingSurfaceBinding>& Binding)
+			{
+				return !BindingBelongsToEnabledCatalogEntry(Binding);
+			});
+	if (SuccessfulBindings.IsEmpty()
+		&& (Options.bStrictCatalogCertification || !bHasUnownedPublishedBindings))
 	{
+		TArray<FString> ExactRowFailures;
+		for (const FEFClothingNativeSourceCompileRowResult& RowResult : Result.Rows)
+		{
+			if (RowResult.Report.StartsWith(TEXT("FAILED:"), ESearchCase::CaseSensitive))
+			{
+				ExactRowFailures.Add(FString::Printf(
+					TEXT("%s: %s"),
+					*RowResult.GarmentId.ToString(),
+					*RowResult.Report));
+			}
+		}
+		const FString ExactFailureReport = FString::Join(
+			ExactRowFailures,
+			TEXT(" | "));
 		return FailGlobal(FString::Printf(
-			TEXT("no ready clothing bindings were produced; the existing registry was left unchanged (drafts=%d failed=%d)"),
+			TEXT("no ready clothing bindings were produced; the existing registry was left unchanged (drafts=%d failed=%d)%s%s"),
 			Result.DraftRowCount,
-			Result.FailedRowCount));
+			Result.FailedRowCount,
+			ExactFailureReport.IsEmpty() ? TEXT("") : TEXT(" | "),
+			*ExactFailureReport));
 	}
 
 	if (!IsValid(Registry))
@@ -14891,6 +16410,11 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 	MergedBindings.RemoveAll([](const TObjectPtr<UEFClothingSurfaceBinding>& Binding)
 	{
 		return !IsValid(Binding);
+	});
+	MergedBindings.RemoveAll([&BindingBelongsToEnabledCatalogEntry](
+		const TObjectPtr<UEFClothingSurfaceBinding>& Binding)
+	{
+		return !BindingBelongsToEnabledCatalogEntry(Binding);
 	});
 	for (UEFClothingSurfaceBinding* SuccessfulBinding : SuccessfulBindings)
 	{
@@ -15911,4 +17435,12 @@ FEFClothingFitValidationResult UEFClothingFitCompilerLibrary::ValidateCompiledPr
 	FEFClothingFitValidationResult Result;
 	Result.bSuccess = ValidateCompiledProfile(Profile, Result.Report);
 	return Result;
+}
+
+FString UEFClothingFitCompilerLibrary::SyncUnisexRuntimeCatalog(UEFClothingMorphDirectorPolicy* Director)
+{
+	UEFClothingFitRegistry* Registry = LoadObject<UEFClothingFitRegistry>(nullptr,
+		TEXT("/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry"));
+	const FEFClothingV5EditorSyncResult Result = FEFClothingV5EditorBridge::SyncFromV4(Director, Registry, true);
+	return (Result.bSuccess ? TEXT("PASS: ") : TEXT("FAIL: ")) + Result.Report;
 }

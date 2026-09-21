@@ -125,6 +125,17 @@ bool FProjectEnemyDirectorPhysicalLevelContractTest::RunTest(const FString& Para
 	TestEqual(TEXT("The project logical level remains unbounded"), Component->GetAssignedLevel(), 125);
 	TestEqual(TEXT("The ACF-facing physical level is capped"), Component->GetPhysicalAscentLevel(), 100);
 
+	// A generic map-tier assignment may exist when a deferred Director actor is
+	// first observed. The Director must overwrite the complete frozen projection,
+	// rather than accepting a matching AssignedLevel with stale tier metadata.
+	Component->SetAssignedLevelData(1, 3, 3, 3, 2.0f / 99.0f);
+	TestEqual(TEXT("The generic map tier is observable before the Director projection"), Component->GetWorldTier(), 1);
+	Component->SetAssignedLevelData(3, 3, 3, 3, 2.0f / 99.0f);
+	TestEqual(TEXT("The Director overwrites the tier with its exact logical level"), Component->GetWorldTier(), 3);
+	TestEqual(TEXT("The Director overwrites the minimum range endpoint"), Component->GetMinRolledLevel(), 3);
+	TestEqual(TEXT("The Director overwrites the maximum range endpoint"), Component->GetMaxRolledLevel(), 3);
+	TestEqual(TEXT("The Director retains the exact assigned logical level"), Component->GetAssignedLevel(), 3);
+
 	return true;
 }
 
