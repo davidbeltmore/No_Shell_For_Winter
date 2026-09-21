@@ -7,6 +7,16 @@
 #include "InputCoreTypes.h"
 #include "Engine/World.h"
 
+bool UEFEquipmentAuthoringLibrary::SendInventoryBackKey(UWidget* Target)
+{
+    if (!Target || !Target->GetWorld() || Target->GetWorld()->WorldType != EWorldType::PIE || !FSlateApplication::IsInitialized()) return false;
+    const auto Widget = Target->GetCachedWidget(); if (!Widget) return false;
+    auto& Slate = FSlateApplication::Get();
+    if (!Slate.SetKeyboardFocus(Widget, EFocusCause::SetDirectly)) return false;
+    const FKeyEvent Event(EKeys::BackSpace, FModifierKeysState(), 0, false, 0, 0);
+    const bool Handled = Slate.ProcessKeyDownEvent(Event); Slate.ProcessKeyUpEvent(Event); return Handled;
+}
+
 UWidget* UEFEquipmentAuthoringLibrary::FindInventoryWidget(UUserWidget* Root, FName Name)
 {
     return Root && Root->WidgetTree ? Root->WidgetTree->FindWidget(Name) : nullptr;

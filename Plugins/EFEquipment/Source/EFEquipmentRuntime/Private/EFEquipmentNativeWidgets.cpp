@@ -12,7 +12,6 @@
 
 void UEFEquipmentSatchelWindowWidget::NativeConstruct()
 {
-    SetIsFocusable(true);
     Super::NativeConstruct();
     if (CloseButton) CloseButton->OnClicked.AddUniqueDynamic(this, &ThisClass::CloseWindow);
 }

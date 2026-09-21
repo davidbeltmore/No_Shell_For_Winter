@@ -10,6 +10,7 @@ OUT = pathlib.Path(unreal.Paths.project_dir()) / 'Saved/EquipmentQA' / os.enviro
 OUT.mkdir(parents=True, exist_ok=True)
 S = {'phase': 'load', 'due': 0, 'start': time.perf_counter(), 'busy': False}
 R = {'status': 'PENDING', 'scope': 'Real HUB player, native menu, no asset writes; dedicated QA slots with isolated native save metadata', 'checks': []}
+DEATH_REPEATS = max(1, min(32, int(os.environ.get('EF_EQUIPMENT_QA_DEATH_REPEATS', '1'))))
 LE = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 ED = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 
@@ -26,6 +27,18 @@ def check(condition, name):
     R['checks'].append({'name': name, 'pass': bool(condition)})
     write()
     assert condition, name
+
+def death_snapshot():
+    return {
+        'message': str(S['coordinator'].get_last_message()),
+        'root': [i.get_editor_property('item_guid').to_string() for i in S['native'].get_inventory()],
+        'pickups': [{'actor': a.get_path_name(), 'items': [i.get_editor_property('item_guid').to_string() for i in a.get_items()]}
+                    for a in unreal.GameplayStatics.get_all_actors_of_class(S['world'], unreal.EFEquipmentWorldItem)]}
+
+def begin_death():
+    check(unreal.EFEquipmentAuthoringLibrary.trigger_death_fixture(S['world']), 'Real player enters native ACF death through zero-health callback')
+    R.setdefault('death_cycles', []).append({'immediate': death_snapshot()})
+    advance('death_verify', 0.3)
 
 def finish(error=None):
     if not unreal.EFEquipmentAuthoringLibrary.end_save_fixture():
@@ -64,6 +77,7 @@ def tick(dt):
             S['world'], S['pawn'] = world, pawn
             S['coordinator'] = unreal.EFEquipmentFunctionLibrary.get_equipment_coordinator(pawn)
             check(S['coordinator'] is not None, 'Player receives composed equipment coordinator')
+            check(S['coordinator'].has_native_death_adapter(), 'Player native death callback is routed without changing the Player asset')
             native = S['coordinator'].get_native_equipment()
             check(native is not None, 'Coordinator uses player ACF inventory')
             S['native'] = native
@@ -294,15 +308,105 @@ def tick(dt):
             check(any(i.get_editor_property('item_guid').to_string() == guid for i in S['native'].get_inventory()), 'Extract click restores the original GUID to root')
             check(S['bag_rows'].get_children_count() == 0, 'Extraction removes the content row')
             check(abs(S['coordinator'].get_weight_summary().get_editor_property('effective_weight') - S['before_weight']) < 0.0001, 'Round trip conserves original effective weight')
+            S['close_button'] = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(S['bag_window'], 'CloseButton')
+            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['close_button'], 'Down'), 'Back to inventory accepts pointer press')
+            advance('bag_close', 0.1)
+        elif phase == 'bag_close':
+            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['close_button'], 'Up')
+            advance('bag_close_verify', 0.5)
+        elif phase == 'bag_close_verify':
+            check(not S['bag_window'].is_activated(), 'Back to inventory closes the satchel window')
+            check(S['menu'].is_activated(), 'Native inventory navigation resumes after closing satchel')
+            S['vendor'] = unreal.EFEquipmentAuthoringLibrary.create_vendor_fixture(S['world'])
+            check(S['vendor'] is not None, 'PIE vendor uses the native trade component')
+            S['trade_bag'] = S['items']['Satchel'].get_editor_property('item_guid')
+            S['trade_child'] = S['stored_item'].get_editor_property('item_guid')
+            check(S['coordinator'].move_to_container(S['trade_child'], S['trade_bag'], 1).get_editor_property('success'), 'Sale fixture contains a unique item')
+            S['trade_currency'] = S['native'].get_current_currency_amount()
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
+            advance('trade_cancel_press', 0.5)
+        elif phase in ('trade_cancel_press', 'trade_sell_press', 'trade_buy_press'):
+            windows = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentSaleWidget, False) if w.is_activated()]
+            check(len(windows) == 1, 'Trade opens exactly one active confirmation')
+            S['trade_window'] = windows[0]
+            find = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget
+            label = str(find(windows[0], 'BreakdownLabel').get_text())
+            check('Total:' in label and ('Buy this' if phase == 'trade_buy_press' else 'Sell this') in label, 'Confirmation shows aggregate price and operation')
+            check('Satchel' in label and label.replace('×', 'x').count('x 1:') >= 2, 'Confirmation breaks down bag and contained item')
+            S['trade_button'] = find(windows[0], 'CancelButton' if phase == 'trade_cancel_press' else 'ConfirmButton')
+            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['trade_button'], 'Down'), 'Trade button accepts pointer press')
+            advance(phase.replace('_press', '_release'), 0.1)
+        elif phase in ('trade_cancel_release', 'trade_sell_release', 'trade_buy_release'):
+            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['trade_button'], 'Up')
+            advance(phase.replace('_release', '_verify'), 0.5)
+        elif phase == 'trade_cancel_verify':
+            check(not S['trade_window'].is_activated(), 'Cancel closes the trade confirmation')
+            check(S['native'].get_current_currency_amount() == S['trade_currency'], 'Cancelled sale leaves player currency unchanged')
+            check(any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()), 'Cancelled sale retains original full bag')
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
+            advance('trade_back', 0.5)
+        elif phase == 'trade_back':
+            windows = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentSaleWidget, False) if w.is_activated()]
+            check(len(windows) == 1, 'Keyboard cancel fixture has one active confirmation')
+            S['trade_window'] = windows[0]
+            target = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(windows[0], 'CancelButton')
+            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_back_key(target), 'Native Slate Backspace event is handled by the dialog')
+            advance('trade_back_verify', 0.5)
+        elif phase == 'trade_back_verify':
+            check(not S['trade_window'].is_activated(), 'Backspace cancels the confirmation')
+            check(S['native'].get_current_currency_amount() == S['trade_currency'], 'Keyboard cancellation preserves currency')
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
+            advance('trade_sell_press', 0.5)
+        elif phase == 'trade_sell_verify':
+            check(not S['trade_window'].is_activated(), 'Confirmed sale closes its native navigation window')
+            check(not any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()), 'Confirmed sale removes bag from player')
+            stock = S['vendor'].get_inventory()
+            check(len(stock) == 1 and stock[0].get_editor_property('item_guid').to_string() == S['trade_bag'].to_string(), 'Vendor receives original bag without duplicate loose contents')
+            unreal.EFEquipmentFunctionLibrary.buy_items(S['vendor'], stock[0], S['pawn'])
+            advance('trade_buy_press', 0.5)
+        elif phase == 'trade_buy_verify':
+            check(not S['trade_window'].is_activated(), 'Confirmed purchase closes its native navigation window')
+            contents = S['coordinator'].get_container_items(S['trade_bag'])
+            check(len(contents) == 1 and contents[0].get_editor_property('item_guid').to_string() == S['trade_child'].to_string(), 'Sell and buy UI preserves original contained GUID')
+            check(len(S['vendor'].get_inventory()) == 0, 'Purchase removes the whole set from vendor stock')
+            check(S['coordinator'].move_from_container(S['trade_bag'], S['trade_child'], 1).get_editor_property('success'), 'Bought bag contents remain extractable')
+            check(S['coordinator'].request_equip(S['trade_bag'], unreal.GameplayTag()).get_editor_property('success'), 'Bought bag remains equipable')
             R['status'] = 'AWAITING_VISUAL_REVIEW'
             write()
             advance('review')
         elif phase == 'review':
             if (OUT / 'visual_done.txt').exists():
                 review = (OUT / 'visual_done.txt').read_text().strip()
-                finish(R.get('input_failure') or (review if review.startswith('FAIL:') else None))
+                error = R.get('input_failure') or (review if review.startswith('FAIL:') else None)
+                if error:
+                    finish(error)
+                else:
+                    check(S['coordinator'].move_to_container(S['trade_child'], S['trade_bag'], 1).get_editor_property('success'), 'Death fixture contains a unique item')
+                    S['menu'].deactivate_widget()
+                    begin_death()
+        elif phase == 'death_verify':
+            R['death_cycles'][-1]['delayed'] = death_snapshot()
+            pickups = [a for a in unreal.GameplayStatics.get_all_actors_of_class(S['world'], unreal.EFEquipmentWorldItem)
+                       if any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in a.get_items())]
+            check(len(pickups) == 1 and len(pickups[0].get_items()) == 1, 'Real death emits one original full-bag pickup')
+            check(not any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()), 'Real death removes dropped bag from player')
+            all_loot = [i for a in unreal.GameplayStatics.get_all_actors_of_class(S['world'], unreal.EFEquipmentWorldItem) for i in a.get_items()]
+            check(not any(i.get_editor_property('item_guid').to_string() == S['trade_child'].to_string() for i in all_loot), 'Real death creates no duplicate loose child loot')
+            pickups[0].on_interacted_by_pawn(S['pawn'], '')
+            contents = S['coordinator'].get_container_items(S['trade_bag'])
+            check(len(contents) == 1 and contents[0].get_editor_property('item_guid').to_string() == S['trade_child'].to_string(), 'Real death and native pickup preserve contained GUID')
+            if len(R['death_cycles']) < DEATH_REPEATS:
+                # Reuse the native revive API only in this opt-in repetition fixture.
+                # Each cycle keeps the same real player, bag and contained GUID.
+                S['pawn'].get_damage_handler_component().revive()
+                check(S['coordinator'].request_equip(S['trade_bag'], unreal.GameplayTag()).get_editor_property('success'), 'Recovered bag reequips between native death cycles')
+                advance('death_repeat', 0.3)
+            else:
+                finish()
+        elif phase == 'death_repeat':
+            begin_death()
     except Exception:
-        if S['phase'].startswith('bag_') or S['phase'] in ('wheel_down', 'wheel_up', 'drag_start', 'drag_move', 'drag_drop', 'drag_verify'):
+        if S['phase'].startswith(('bag_', 'trade_')) or S['phase'] in ('wheel_down', 'wheel_up', 'drag_start', 'drag_move', 'drag_drop', 'drag_verify'):
             R['input_failure'] = traceback.format_exc()
             R['status'] = 'FAILED_INPUT_AWAITING_VISUAL_REVIEW'
             advance('review')

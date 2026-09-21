@@ -3,7 +3,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-UEFEquipmentSaleWidget::UEFEquipmentSaleWidget() { bIsBackHandler = true; }
 void UEFEquipmentSaleWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -13,6 +12,10 @@ void UEFEquipmentSaleWidget::NativeConstruct()
 void UEFEquipmentSaleWidget::SetQuote(UEFEquipmentCoordinatorComponent* Owner, const FEFEquipmentSaleQuote& Quote)
 {
     Coordinator = Owner; QuoteId = Quote.QuoteId; bPurchase = Quote.bPurchase;
+    if (auto* Heading = Cast<UTextBlock>(GetWidgetFromName(TEXT("SaleHeading"))))
+        Heading->SetText(FText::FromString(bPurchase ? TEXT("Confirm purchase") : TEXT("Confirm sale")));
+    if (auto* Action = Cast<UTextBlock>(GetWidgetFromName(TEXT("ConfirmLabel"))))
+        Action->SetText(FText::FromString(bPurchase ? TEXT("Buy all") : TEXT("Sell all")));
     FString Breakdown;
     for (const FText& Line : Quote.Lines) Breakdown += Line.ToString() + TEXT("\n");
     Breakdown += FString::Printf(TEXT("\nTotal: %.2f\n\n%s this item and everything inside it?"), Quote.TotalPrice, bPurchase ? TEXT("Buy") : TEXT("Sell"));

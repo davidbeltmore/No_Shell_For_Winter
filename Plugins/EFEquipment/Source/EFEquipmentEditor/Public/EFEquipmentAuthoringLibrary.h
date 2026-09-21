@@ -5,6 +5,7 @@
 
 class UWidget;
 class UUserWidget;
+class UACFVendorComponent;
 
 UCLASS()
 class EFEQUIPMENTEDITOR_API UEFEquipmentAuthoringLibrary : public UBlueprintFunctionLibrary
@@ -27,7 +28,11 @@ public:
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool SaveWorldFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool LoadWorldFixture(UObject* WorldContextObject);
     UFUNCTION(BlueprintPure, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool IsSaveFixtureBusy(UObject* WorldContextObject);
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static UACFVendorComponent* CreateVendorFixture(UObject* WorldContextObject);
+    /** PIE-only: trigger the real native zero-health callback with bag drop enabled. */
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA", meta=(WorldContext="WorldContextObject")) static bool TriggerDeathFixture(UObject* WorldContextObject);
     /** PIE-only Slate input fixtures. No OS input injection or asset writes. */
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static UWidget* FindInventoryWidget(UUserWidget* Root, FName Name);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendInventoryPointer(UWidget* Target, FName Action, float WheelDelta = 0, FVector2D LocalOffset = FVector2D::ZeroVector);
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendInventoryBackKey(UWidget* Target);
 };

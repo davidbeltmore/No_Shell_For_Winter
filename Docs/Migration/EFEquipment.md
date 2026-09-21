@@ -325,3 +325,53 @@ PENDING until explicitly checked in the real menu.
   already differed before this work (`historical_protected_pretravel.json`);
   those pre-existing changes were not reverted or rebaselined.
 - Real floor traversal, death, final Game/cook/package remain PENDING.
+
+### Native player death composition and UI interaction follow-up
+
+- Travel/storage/purchase checkpoint: `5882844`. BuildEditor54 PASS and
+  NativeEquipment15 PASS (both exact suites). A composed death callback preserves
+  the original multicast observer order and restores that order on teardown.
+  Tests cover keep policy, zero drop chance, a protected child rejecting the whole
+  bag, original full-bag death drop and pickup, all contained GUIDs/counts, native
+  callback execution once per death, and clearing stale managed reservations.
+- The adapter temporarily suppresses only native class-only bag drops after
+  attempting the complete identity-preserving set operation. The original ACF
+  callback still handles animation, movement, currency, ordinary loot and OnDeath.
+  No protected Player or native plugin edits are required. Evidence:
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment15/Report/index.json`.
+- BuildEditor55/56 PASS. PIE_19 verified the real Player death binding, save/world
+  reload, native wheel/drag/drop/Store/Extract and Back to inventory clicks. It is
+  FAIL overall because the new trade fixture expected ASCII `x` while the actual
+  sale correctly renders `×`; screenshot `PIE_19/trade_confirmation.png`. The
+  fixture now normalizes that presentation marker. Seven existing user save files
+  were restored/verified by the launcher (`PIE_19/user_save_after.json`).
+- PIE_20 gameplay assertions PASS (103): real cancellation/sale/purchase button clicks, full content/price
+  breakdown, original child GUID retained, return to native inventory, and actual
+  Player zero-health death callback. Death emits exactly one original full-bag
+  pickup, no separate child loot, and native pickup retains the contained GUID.
+  Screenshot `PIE_20/native_inventory_after_trade.png` verifies the requested wider
+  frontal full-body preview, narrow item card and five visible native slots.
+  `PIE_20/result.json` is the complete assertion receipt; `user_save_after.json`
+  verifies restoration of all seven existing user save files after editor exit.
+- Its log exposed a separate dialog defect: `bIsBackHandler` registered an empty
+  CommonUI action three times. The dialogs now share `UEFEquipmentModalWidget`,
+  with explicit Backspace/Escape/gamepad-back behavior in the ACF navigation stack.
+  A fresh keyboard cancellation and clean dialog-log regression is PENDING.
+- BuildEditor57 PASS. PIE_21 keyboard cancellation and modal log regression PASS
+  (no empty CommonUI back-action error), but overall FAIL: the delayed death pickup
+  assertion did not find exactly one original full bag. PIE_20 had passed the same
+  death path. Immediate/delayed inventory diagnostics are being added; death remains
+  unaccepted until that intermittent result is understood. User-save restoration PASS.
+- Protected task comparison is recorded in `protected_death_result.json`. Final
+  Game/cook/package, real floor traversal and body/latency QA remain PENDING.
+- BuildEditor58 PASS. PIE_22 PASS with immediate/delayed death diagnostics; no
+  empty CommonUI action errors. PIE_23 then passed 221 assertions including 20
+  consecutive native death/Revive/drop/pickup cycles on the same real Player,
+  bag GUID and contained GUID. All twenty drop receipts succeeded, with no loose
+  child duplication. This bounded repetition did not reproduce PIE_21; its cause
+  remains undetermined and final lifecycle acceptance remains PENDING. Evidence:
+  `Saved/EquipmentQA/PIE_23/result.json`, `editor.log`, `native_inventory.png`.
+  The screenshot confirms the widened native character preview, narrow readable
+  item card and five visible scrolling native slots. Both runs restored/verified
+  all seven pre-existing user saves. Updated protected comparison:
+  `Saved/EquipmentQA/protected_death_modal_result.json`.

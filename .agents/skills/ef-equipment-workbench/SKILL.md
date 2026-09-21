@@ -2,7 +2,7 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # EF Equipment workbench
@@ -70,6 +70,12 @@ The fixed right column has Underwear Torso, Underwear Legs and Satchel.
 Keep manual Designer layout/styles intact; do not restore the rejected text rows.
 Dynamic instances must use unique generated names, not a fixed widget name.
 
+Use `UEFEquipmentModalWidget` for project dialogs hosted by ACF's native navigation
+stack. It supplies focus and explicit Backspace/Escape/gamepad-back behavior. Do
+not enable CommonUI's `bIsBackHandler` without valid action data: this project uses
+ACF navigation and an empty CommonUI action produces a runtime binding error.
+Keep explicit Cancel/Back buttons and verify both pointer clicks and keyboard back.
+
 ## Satchel variant and transfers
 
 Use a unique, non-stackable ACF item at `ItemSlot.Satchel`, with a container rule
@@ -89,6 +95,22 @@ the native float through the validated adapter, not the truncating integer sette
 Do not use the projected native limit as the UI's total carry capacity.
 
 ## Persistence, trade and failure handling
+
+`InstallOwnerDeathAdapter` composes with ACF's existing zero-health event. It
+replaces only the player's `HandleCharacterDeath` binding at its original position
+through the public reflected multicast serialization contract. Keep other
+listeners and their order intact; restore the native binding on teardown and
+reinstall after character initialization. Do not edit Player or native ACF classes.
+
+`ProcessOwnerDeath` gives each bag its native container drop policy before the
+native death callback. A retained or rejected bag temporarily has zero native drop
+chance to prevent ACF's class-only recreation; its original chance is restored.
+Contained objects never receive separate rolls or duplicate loot. Native animation,
+movement, ordinary loot and currency continue through the original callback.
+Managed equipment entries are retired after native effect/visual teardown. Test
+keep/drop/zero chance/protected child and original GUID recovery after pickup.
+`TriggerDeathFixture` is editor-only and PIE-only: it explicitly enables bag drops
+and invokes the native zero-health callback. Never use it as runtime gameplay logic.
 
 Use `PreviewPurchase`/`ConfirmPurchase` for vendor admissions and the corresponding
 sale APIs for outgoing sets. Quotes are single-use and revalidate contents, price,
@@ -157,7 +179,7 @@ content. `Author-InventoryUI.py` preserves existing Designer trees.
 Native automation lives under `EF.Equipment`. `Validate-InventoryPIE.py` opens
 the real ACF menu with the real HUB player and retains it for visual review.
 Use a fresh run directory via `Launch-InventoryPIE.ps1 -RunName <unique-name>`.
-It writes no assets or save slots. Supply its visual completion marker only after
+It writes dedicated isolated QA save slots but no assets. Supply its visual completion marker only after
 actually inspecting the UI. Keep logs, JSON and screenshots in `Saved/EquipmentQA`
 and record the snapshot/commit and gate result in `Docs/Migration/EFEquipment.md`.
 

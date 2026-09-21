@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "CommonActivatableWidget.h"
+#include "EFEquipmentModalWidget.h"
 #include "EFEquipmentTypes.h"
 #include "EFEquipmentSaleWidget.generated.h"
 
@@ -9,11 +9,10 @@ class UButton;
 class UTextBlock;
 
 UCLASS(Abstract, Blueprintable)
-class EFEQUIPMENTRUNTIME_API UEFEquipmentSaleWidget : public UCommonActivatableWidget
+class EFEQUIPMENTRUNTIME_API UEFEquipmentSaleWidget : public UEFEquipmentModalWidget
 {
     GENERATED_BODY()
 public:
-    UEFEquipmentSaleWidget();
     void SetQuote(UEFEquipmentCoordinatorComponent* Owner, const FEFEquipmentSaleQuote& Quote);
 protected:
     virtual void NativeConstruct() override;

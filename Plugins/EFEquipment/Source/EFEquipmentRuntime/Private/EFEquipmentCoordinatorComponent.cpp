@@ -48,6 +48,7 @@ void UEFEquipmentCoordinatorComponent::BeginPlay()
 
 void UEFEquipmentCoordinatorComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
+    RemoveOwnerDeathAdapter();
     FString Error; FlushContainers(Error);
     if (auto* Save = GetOwner()->FindComponentByClass<UALSLoadAndSaveComponent>()) Save->OnActorLoaded.RemoveDynamic(this, &UEFEquipmentCoordinatorComponent::HandleActorLoaded);
     if (Equipment)
@@ -81,11 +82,12 @@ bool UEFEquipmentCoordinatorComponent::InitializeEquipment(UEFEquipmentSlotRegis
     Equipment->OnInventoryChanged.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleInventoryChanged);
     Equipment->OnEquipmentChanged.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleEquipmentChanged);
     if (auto* Save = GetOwner()->FindComponentByClass<UALSLoadAndSaveComponent>()) Save->OnActorLoaded.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleActorLoaded);
-    bInitialized = true; RefreshState(); return true;
+    bInitialized = true; InstallOwnerDeathAdapter(); RefreshState(); return true;
 }
 
 void UEFEquipmentCoordinatorComponent::PollEquipment()
 {
+    InstallOwnerDeathAdapter();
     if (!InitializeEquipment() || bOperation) return;
     if (auto* Game = GetWorld()->GetGameInstance())
         if (auto* Save = Game->GetSubsystem<UEFEquipmentSaveSubsystem>(); Save && Save->IsBusy()) return;

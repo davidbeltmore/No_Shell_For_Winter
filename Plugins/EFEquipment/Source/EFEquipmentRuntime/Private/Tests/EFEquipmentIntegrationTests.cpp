@@ -19,6 +19,8 @@
 #include "EFEquipmentPersistence.h"
 #include "EFEquipmentSaveFiles.h"
 #include "Misc/FileHelper.h"
+#include "EFEquipmentDeathRouting.h"
+#include "Tests/EFEquipmentDeathTestTypes.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -392,6 +394,54 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
         TestNull(TEXT("A future save version is preserved and rejected"), EFEquipmentPersistence::ConvertSlot(World, Converted, Registry, Error));
     }
     LegacyInventory->DestroyComponent();
+    auto* Observer = NewObject<UEFEquipmentDeathTestObserver>();
+    Observer->OnOwnerDeath.AddDynamic(Observer, &UEFEquipmentDeathTestObserver::First);
+    Observer->OnOwnerDeath.AddDynamic(Observer, &UEFEquipmentDeathTestObserver::Native);
+    Observer->OnOwnerDeath.AddDynamic(Observer, &UEFEquipmentDeathTestObserver::Last);
+    TestTrue(TEXT("Death route replaces exactly the native callback"), EFEquipmentDeathRouting::Replace(Observer, TEXT("OnOwnerDeath"), Observer, TEXT("Native"), Observer, TEXT("Routed")));
+    Observer->OnOwnerDeath.Broadcast();
+    TestTrue(TEXT("Death route preserves callback position and all other observers"), Observer->Calls == TArray<int32>{1, 8, 2, 9, 3});
+    Observer->Calls.Reset();
+    TestTrue(TEXT("Death route is reversible at component teardown"), EFEquipmentDeathRouting::Replace(Observer, TEXT("OnOwnerDeath"), Observer, TEXT("Routed"), Observer, TEXT("Native")));
+    Observer->OnOwnerDeath.Broadcast(); TestTrue(TEXT("Original event order is restored"), Observer->Calls == TArray<int32>{1, 2, 3});
+
+    Coordinator->SetBaseCarryCapacity(180.125);
+    auto* DropPolicy = FindFProperty<FBoolProperty>(Native->GetClass(), TEXT("bDropItemsOnDeath"));
+    if (!TestNotNull(TEXT("Native death policy contract"), DropPolicy)) return false;
+    Native->GetItemByGuid(Bag.GetItemGuid(), Live); Live.DropChancePercentage = 100; EFEquipmentACF::Inventory(Native)->ChangeEntry(Live);
+    const auto DeathChildren = Coordinator->GetContainerItems(Bag.GetItemGuid());
+    int32 NativeDeathCalls = 0;
+    auto DeathCallback = [&]() { ++NativeDeathCalls; Native->OnEntityOwnerDeath(); };
+    DropPolicy->SetPropertyValue_InContainer(Native, false);
+    Coordinator->ProcessOwnerDeath(DeathCallback);
+    TestEqual(TEXT("Death policy keep executes native lifecycle once"), NativeDeathCalls, 1);
+    TestTrue(TEXT("Death keep retains bag GUID, payload and original chance"), Native->GetItemByGuid(Bag.GetItemGuid(), Live)
+        && Live.DropChancePercentage == 100 && Coordinator->GetContainerItems(Bag.GetItemGuid()).Num() == DeathChildren.Num());
+    TestFalse(TEXT("Death clears stale managed reservations"), Coordinator->GetSlotViews().ContainsByPredicate([](const auto& View) { return View.bReserved; }));
+    DropPolicy->SetPropertyValue_InContainer(Native, true);
+    auto* DeathContainer = Coordinator->ResolveContainer(Bag.GetItemGuid(), Error);
+    const auto ProtectedChild = DeathContainer->GetInventory()[0]; auto ProtectedInfo = ProtectedChild.Item->GetItemInfo();
+    const auto OriginalInfo = ProtectedInfo; ProtectedInfo.bDroppable = false; ProtectedChild.Item->SetItemDescriptor(ProtectedInfo);
+    Coordinator->ProcessOwnerDeath(DeathCallback);
+    TestTrue(TEXT("Protected child prevents the whole death drop"), Native->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.DropChancePercentage == 100);
+    ProtectedChild.Item->SetItemDescriptor(OriginalInfo);
+    Live.DropChancePercentage = 0; EFEquipmentACF::Inventory(Native)->ChangeEntry(Live);
+    Coordinator->ProcessOwnerDeath(DeathCallback);
+    TestTrue(TEXT("Zero native death chance retains a full bag"), Native->GetItemByGuid(Bag.GetItemGuid(), Live));
+    Live.DropChancePercentage = 100; EFEquipmentACF::Inventory(Native)->ChangeEntry(Live);
+    Coordinator->RequestEquip(Bag.GetItemGuid(), FGameplayTag());
+    Coordinator->ProcessOwnerDeath(DeathCallback);
+    TestEqual(TEXT("Each death invokes the native pipeline exactly once"), NativeDeathCalls, 4);
+    TestFalse(TEXT("Death drop removes the bag from player inventory"), Native->GetItemByGuid(Bag.GetItemGuid(), Live));
+    auto* DeathPickup = FindWorldItem(Bag.GetItemGuid());
+    if (TestNotNull(TEXT("Death emits one original full satchel pickup"), DeathPickup))
+    {
+        TestEqual(TEXT("Death does not create separate loose content entries"), DeathPickup->GetItems().Num(), 1);
+        DeathPickup->DispatchBeginPlay(); DeathPickup->OnInteractedByPawn_Implementation(Pawn, TEXT(""));
+        const auto AfterDeath = Coordinator->GetContainerItems(Bag.GetItemGuid());
+        for (const auto& Child : DeathChildren) TestTrue(TEXT("Every contained GUID and quantity survives death and pickup"), AfterDeath.ContainsByPredicate(
+            [&](const auto& Current) { return Current.GetItemGuid() == Child.GetItemGuid() && Current.Count == Child.Count; }));
+    }
     return !HasAnyErrors();
 }
 #endif

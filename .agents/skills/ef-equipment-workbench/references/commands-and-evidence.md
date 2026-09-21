@@ -77,7 +77,8 @@ not a substitute for visible PIE or a packaged run.
 
 The PIE script creates transient fixture items on the real HUB player, opens the
 original ACF menu through `ANSUIPlayerSubsystem`, and writes
-`Saved/EquipmentQA/<stamp>/result.json`. It never saves packages or save slots.
+`Saved/EquipmentQA/<stamp>/result.json`. It writes isolated dedicated QA save slots
+and restores pre-existing user-save bytes after editor exit; it never saves packages.
 It tests exact slot counts, wheel direction and actual Slate pointer drag/drop.
 `AWAITING_VISUAL_REVIEW` means inspect the menu before completing the fixture.
 A pending result after an editor crash is a failed run; inspect its log.
@@ -148,6 +149,14 @@ ALS actor-loaded fires before component-loaded; do not restore effects there
 while the adapter is busy. Restore them after all native component callbacks.
 World pickups must expose their native storage through GetComponentsToSave.
 The actual level-reload fixture preserves a dropped full bag through native ALS.
+
+For a focused intermittent death regression, set `EF_EQUIPMENT_QA_DEATH_REPEATS`
+to 2..32 before launching PIE (default 1). After the actual menu review, each
+cycle invokes the real native zero-health callback, verifies one original bag
+pickup and no loose child duplicate, picks it up, then uses native Revive and
+reequips that same bag. `death_cycles` records immediate and delayed ownership.
+This opt-in fixture is not a production respawn flow. Always inspect `result.json`:
+the launcher can exit successfully even when assertions report FAIL.
 
 Storage/trade authoring and the bounded native travel regression:
 ```powershell

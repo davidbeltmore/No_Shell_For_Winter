@@ -3,7 +3,7 @@
 #include "ANSNavWidget.h"
 #include "GameplayTagContainer.h"
 #include "Blueprint/DragDropOperation.h"
-#include "CommonActivatableWidget.h"
+#include "EFEquipmentModalWidget.h"
 #include "EFEquipmentNativeWidgets.generated.h"
 
 class UEFEquipmentCoordinatorComponent;
@@ -12,7 +12,7 @@ class UACFEquipmentComponent;
 class UButton;
 
 UCLASS()
-class EFEQUIPMENTRUNTIME_API UEFEquipmentSatchelWindowWidget : public UCommonActivatableWidget
+class EFEQUIPMENTRUNTIME_API UEFEquipmentSatchelWindowWidget : public UEFEquipmentModalWidget
 {
     GENERATED_BODY()
 protected:

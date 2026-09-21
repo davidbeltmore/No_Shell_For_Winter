@@ -62,6 +62,9 @@ public:
     void ResetDerivedContainers();
     double GetEffectiveContainerWeight() const;
     bool IsBusy() const { return bOperation; }
+    /** Composition adapter around the existing ACF death callback; leaves NPCs native. */
+    void ProcessOwnerDeath(TFunction<void()> NativeDeath);
+    UFUNCTION(BlueprintPure, Category="Equipment") bool HasNativeDeathAdapter() const;
 #if WITH_DEV_AUTOMATION_TESTS
     // One-shot fault injection: 1 after displacement, 2 after native effects, 3 after sale settlement.
     int32 TestFailurePoint = 0;
@@ -83,10 +86,16 @@ private:
     bool bCheckingRequirements = false;
     bool bInitialized = false;
     bool bInitialItemsHandled = false;
+    bool bDeathInProgress = false;
+    bool bDeathDeferred = false;
+    UPROPERTY(Transient) TWeakObjectPtr<UActorComponent> DeathSource;
     FTimerHandle DiscoveryTimer;
     UFUNCTION() void HandleInventoryChanged();
     UFUNCTION() void HandleEquipmentChanged(const FEquipment& Current);
     void PollEquipment();
+    UFUNCTION() void InstallOwnerDeathAdapter();
+    UFUNCTION() void HandleNativeOwnerDeath();
+    void RemoveOwnerDeathAdapter();
     TArray<FGameplayTag> Occupancy(const UACFItem* Item, FGameplayTag Primary) const;
     bool VerifyEquipped(FGuid Guid, FGameplayTag Slot) const;
     FEFEquipmentResult Publish(FEFEquipmentResult Result);
