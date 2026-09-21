@@ -8,6 +8,11 @@
 #include "GameFramework/Pawn.h"
 #include "Misc/AutomationTest.h"
 #include "ACFVendorComponent.h"
+#include "EFEquipmentWorldItem.h"
+#include "Components/ACFStorageComponent.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -185,6 +190,53 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestFalse(TEXT("Repeated confirmation cannot duplicate the sale"), Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
     TestTrue(TEXT("Reacquiring the bag preserves its payload"), Coordinator->TakeFromInventory(Vendor, Bag.GetItemGuid(), 1, false).bSuccess);
     TestEqual(TEXT("Rehosted satchel restores both content GUIDs"), Coordinator->GetContainerItems(Bag.GetItemGuid()).Num(), SaleContents.Num());
+
+    auto* Controller = World->SpawnActor<APlayerController>();
+    // This minimal world has no level/game-mode initialization. Register its
+    // controller explicitly, as normal PostInitializeComponents would do.
+    World->AddController(Controller); Controller->Possess(Pawn);
+    TestEqual(TEXT("Native drop can resolve the fixture player controller"), UGameplayStatics::GetPlayerController(Pawn, 0), Controller);
+    auto FindWorldItem = [&](FGuid Guid) -> AEFEquipmentWorldItem*
+    {
+        for (TActorIterator<AEFEquipmentWorldItem> It(World); It; ++It)
+            if (!It->IsActorBeingDestroyed() && It->GetItems().ContainsByPredicate([&](const auto& Item) { return Item.GetItemGuid() == Guid; })) return *It;
+        return nullptr;
+    };
+    const auto BagDrop = Coordinator->RequestDrop(Bag.GetItemGuid());
+    TestTrue(TEXT("Full satchel drops through a verified native storage transfer: ") + BagDrop.Message.ToString(), BagDrop.bSuccess && BagDrop.DestinationGuid == Bag.GetItemGuid());
+    auto* BagPickup = FindWorldItem(Bag.GetItemGuid());
+    if (TestNotNull(TEXT("Dropped satchel has one project-owned native pickup"), BagPickup))
+    {
+        BagPickup->DispatchBeginPlay();
+        TestEqual(TEXT("Only the bag is a world entry; contents remain attached"), BagPickup->GetItems().Num(), 1);
+        TestFalse(TEXT("Dropped bag is absent from player inventory"), Native->GetItemByGuid(Bag.GetItemGuid(), Live));
+        Coordinator->BaseCarryCapacity = Coordinator->GetWeightSummary().EffectiveWeight;
+        Coordinator->RefreshState();
+        BagPickup->OnInteractedByPawn_Implementation(Pawn, TEXT(""));
+        TestTrue(TEXT("Rejected full-bag pickup remains available in the world"), !BagPickup->WasPickupCompleted() && !BagPickup->IsActorBeingDestroyed()
+            && BagPickup->GetItems().Num() == 1 && BagPickup->GetItems()[0].GetItemGuid() == Bag.GetItemGuid());
+        Coordinator->BaseCarryCapacity = 180.125; Coordinator->RefreshState();
+        BagPickup->OnInteractedByPawn_Implementation(Pawn, TEXT(""));
+        TestTrue(TEXT("Accepted pickup completes once and removes the empty world actor"), BagPickup->WasPickupCompleted() && BagPickup->IsActorBeingDestroyed());
+        TestTrue(TEXT("Pickup retains the original bag GUID and object"), Native->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
+        const auto RestoredContents = Coordinator->GetContainerItems(Bag.GetItemGuid());
+        for (const auto& Child : SaleContents)
+            TestTrue(TEXT("Every contained GUID and quantity survives the world round trip"), RestoredContents.ContainsByPredicate([&](const auto& Restored)
+                { return Restored.GetItemGuid() == Child.GetItemGuid() && Restored.Count == Child.Count; }));
+    }
+    Native->GetItemByGuid(Stack.GetItemGuid(), Live);
+    const int32 BeforeDrop = Live.Count;
+    const auto StackDrop = Coordinator->RequestDrop(Stack.GetItemGuid(), 2);
+    TestTrue(TEXT("Partial drop reports a new destination identity: ") + StackDrop.Message.ToString(), StackDrop.bSuccess && StackDrop.SourceGuid == Stack.GetItemGuid()
+        && StackDrop.DestinationGuid != Stack.GetItemGuid() && StackDrop.MovedQuantity == 2 && StackDrop.SourceRemainingQuantity == BeforeDrop - 2);
+    TestTrue(TEXT("Partial drop preserves the remaining source stack"), Native->GetItemByGuid(Stack.GetItemGuid(), Live) && Live.Count == BeforeDrop - 2);
+    if (auto* StackPickup = FindWorldItem(StackDrop.DestinationGuid))
+    {
+        StackPickup->DispatchBeginPlay(); StackPickup->OnInteractedByPawn_Implementation(Pawn, TEXT(""));
+        TestTrue(TEXT("Dropped stack returns with its recorded GUID"), Native->GetItemByGuid(StackDrop.DestinationGuid, Live) && Live.Count == 2);
+        TestEqual(TEXT("World round trips conserve all original stack units"), Quantity(Native) + Quantity(Coordinator->ResolveContainer(Bag.GetItemGuid(), Error)), 8);
+    }
+    else AddError(TEXT("Partial stack drop did not create a world pickup."));
     return !HasAnyErrors();
 }
 #endif

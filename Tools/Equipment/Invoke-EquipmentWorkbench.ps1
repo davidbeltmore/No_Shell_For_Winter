@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory)][ValidateSet('BuildEditor','InspectUI','AuthorUI','NativeTests','PIE')][string]$Action,
+    [Parameter(Mandatory)][ValidateSet('BuildEditor','InspectUI','AuthorUI','AuthorWorld','NativeTests','PIE')][string]$Action,
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Stamp = (Get-Date -Format 'yyyyMMdd_HHmmss')
 )
 $ErrorActionPreference = 'Stop'
@@ -37,6 +37,15 @@ try {
         }
         'NativeTests' {
             & (Join-Path $PSScriptRoot 'Run-EquipmentNativeTests.ps1') -Stamp $Stamp -TimeoutSeconds 120 *> (Join-Path $runDirectory 'automation.log')
+        }
+        'AuthorWorld' {
+            $actionStarted = Get-Date
+            & 'Tools/Migration/Launch-NoShellForWinterEditor58.ps1' -PythonScript (Join-Path $PSScriptRoot 'Author-WorldActors.py') *> (Join-Path $runDirectory 'author.log')
+            if ((Get-Item -LiteralPath 'Saved/EquipmentQA/author_world_actors.json').LastWriteTime -lt $actionStarted) { throw 'World authoring did not publish a fresh receipt.' }
+            $receipt = Get-Content -Raw -LiteralPath 'Saved/EquipmentQA/author_world_actors.json' | ConvertFrom-Json
+            Copy-Item -LiteralPath 'Saved/EquipmentQA/author_world_actors.json' -Destination $runDirectory
+            Copy-Item -LiteralPath 'Saved/Logs/NoShellForWinter.log' -Destination (Join-Path $runDirectory 'UnrealEditor.log')
+            if ($receipt.result -notlike 'PASS:*') { throw "World authoring failed: $($receipt.result)" }
         }
         'PIE' {
             & (Join-Path $PSScriptRoot 'Launch-InventoryPIE.ps1') -RunName $Stamp

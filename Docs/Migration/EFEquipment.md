@@ -174,3 +174,37 @@ PENDING until explicitly checked in the real menu.
   `Saved/EquipmentQA/NativeAutomation_NativeEquipment05/Report/index.json`.
   Actual vendor UI confirmation, world drop/pickup, save migration, travel/death
   and packaged checks remain PENDING.
+
+### World pickup and prototype integration
+
+- World authoring 01 stopped when inspection found an unconditional native Blueprint
+  interaction continuation. World authoring 02 PASS: the project-owned copy retains
+  its cue and interaction behavior, gated by `WasPickupCompleted`. Original ACFU
+  content is unchanged. Evidence: `Saved/EquipmentQA/author_world_02.log` and
+  `author_world_actors.json`; native graph inspection in `native_world_pickup_graph.txt`.
+- The four prototype items now reference project-owned visual actor Blueprints and
+  a simple world mesh. These remain temporary functional art; body/drop visual
+  assessment is PENDING.
+- NativeEquipment06/07 FAIL exposed a circular startup dependency when the native
+  hard WorldItemClass config pointed to the project subclass. PreDefault did not
+  resolve it. The original hard setting is retained; the game-world subsystem now
+  resolves `UEFEquipmentSettings::WorldPickupClass` after class registration.
+- NativeEquipment08 reached world execution but FAIL because the minimal test world
+  had not registered its player controller. The fixture now performs the registration
+  normally supplied by actor initialization and asserts native controller lookup.
+- BuildEditor38 and NativeEquipment09 PASS. Full-bag drop/rejected admission/accepted
+  pickup preserve bag and child GUIDs/counts; partial stack drops record their new
+  GUID and conserve all eight units through pickup. Only one bag world entry is
+  emitted. Evidence: `Saved/EquipmentQA/BuildEditor38/build.log` and
+  `Saved/EquipmentQA/NativeAutomation_NativeEquipment09/Report/index.json`.
+- PIE_15 PASS for the existing native menu and Store/Extract round trip after transfer
+  receipts and commerce recovery changes. Screenshot: `PIE_15/satchel_after_receipts.png`.
+  PIE_16 PASS adds the real player/Blueprint world-interaction path, followed by
+  native wheel/drag/drop and Store/Extract regression. Screenshot:
+  `Saved/EquipmentQA/PIE_16/satchel_world_round_trip.png`; assertions in `result.json`.
+- Protected comparison PASS: all 5,260 baseline files unchanged, artifact
+  `Saved/EquipmentQA/protected_world_result.json`.
+- Rejected UI retirement PASS: 17 exact untracked task-created gray panel/slot
+  packages were backed up and deleted through the editor after reference checks.
+  Receipt and hashes: `Saved/EquipmentQA/RejectedUIRetirement01/receipt.json`.
+  Original native widgets and user HUB changes are retained.

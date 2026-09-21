@@ -24,6 +24,7 @@ Use a fresh `Stamp` for every run; it prevents stale log/receipt reuse.
 Tools/Equipment/Invoke-EquipmentWorkbench.ps1 -Action BuildEditor -Stamp EquipmentBuild01
 Tools/Equipment/Invoke-EquipmentWorkbench.ps1 -Action InspectUI -Stamp EquipmentInspect01
 Tools/Equipment/Invoke-EquipmentWorkbench.ps1 -Action AuthorUI -Stamp EquipmentAuthor01
+Tools/Equipment/Invoke-EquipmentWorkbench.ps1 -Action AuthorWorld -Stamp EquipmentWorld01
 ```
 
 These call the protected migration wrappers, which restore the Daz receipt.
@@ -39,6 +40,26 @@ missing icon assets. Existing imported textures remain designer-owned.
 `Set-PrototypeThumbnails.py` is a separate explicit bootstrap migration affecting
 the six catalog garments and three satchels. Ordinary AuthorUI does not run it or
 overwrite later item artwork.
+
+`AuthorWorld` creates missing project-owned prototype visuals and the native pickup
+copy, preserving existing prototype assignments. It does not change the ACF plugin.
+`UEFEquipmentSettings::WorldPickupClass` points to
+`/Game/_Game/Items/Equipment/BP_EquipmentWorldItem`. The game-world subsystem resolves
+this soft class and assigns the runtime `UACFInventorySettings::WorldItemClass`.
+Keep the original native hard reference in `Config/DefaultPlugins.ini`: pointing it
+at our subclass creates a circular script-registration dependency while ACF loads
+its settings CDO. Moving EFEquipment to PreDefault did not resolve that cycle.
+The pickup copy gates the original sound/unregister/end-interaction continuation on
+`WasPickupCompleted`, after calling the native parent. Otherwise a rejected pickup
+would disappear from the interaction list. Test rejection and acceptance separately.
+Use the deferred `SpawnWorldItem` plus verified inventory transfer for drops;
+`SpawnWorldItemWithInstance` can reconstruct stackable items and lose their GUID.
+Prototype visuals are functional temporary geometry, not final art.
+
+`Retire-RejectedUI.py` is a one-time migration, not routine authoring. It accepts
+only its exact untracked rejected widgets, checks editor referencers, creates an
+exclusive backup/receipt, and deletes through EditorAssetLibrary. Never generalize
+it to recursive filesystem asset deletion or rerun it against later authored UI.
 
 ## Native ACF tests and visible inventory
 

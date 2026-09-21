@@ -91,6 +91,31 @@ def tick(dt):
             views = S['coordinator'].get_slot_views()
             check(len(views) == 14, 'Registry exposes all 14 slots')
             check(any(v.get_editor_property('reserved') for v in views), 'Bikini reserves an additional slot')
+            coordinator = S['coordinator']
+            bag_guid = S['items']['Satchel'].get_editor_property('item_guid')
+            child_guid = S['items']['Panty'].get_editor_property('item_guid')
+            original_capacity = coordinator.get_weight_summary().get_editor_property('base_capacity')
+            check(coordinator.move_to_container(child_guid, bag_guid, 1).get_editor_property('success'), 'World fixture stores Panty inside the equipped satchel')
+            drop = coordinator.request_drop(bag_guid, 1)
+            check(drop.get_editor_property('success'), 'Real player drops the full satchel: ' + str(drop.get_editor_property('message')))
+            pickups = [actor for actor in unreal.GameplayStatics.get_all_actors_of_class(S['world'], unreal.EFEquipmentWorldItem)
+                       if any(i.get_editor_property('item_guid').to_string() == bag_guid.to_string() for i in actor.get_items())]
+            check(len(pickups) == 1, 'Exactly one native world pickup owns the full satchel')
+            pickup = pickups[0]
+            R['world_pickup_class'] = pickup.get_class().get_path_name()
+            R['world_pickup_location'] = str(pickup.get_actor_location())
+            check(len(pickup.get_items()) == 1, 'Contained clothing is not duplicated as loose world loot')
+            coordinator.set_base_carry_capacity(coordinator.get_weight_summary().get_editor_property('effective_weight'))
+            pickup.on_interacted_by_pawn(S['pawn'], '')
+            check(not pickup.was_pickup_completed() and len(pickup.get_items()) == 1, 'Blueprint interaction rejects overweight pickup without destroying the bag')
+            coordinator.set_base_carry_capacity(original_capacity)
+            pickup.on_interacted_by_pawn(S['pawn'], '')
+            check(any(i.get_editor_property('item_guid').to_string() == bag_guid.to_string() for i in S['native'].get_inventory()), 'Second Blueprint interaction recovers the same bag GUID')
+            check(any(i.get_editor_property('item_guid').to_string() == child_guid.to_string() for i in coordinator.get_container_items(bag_guid)), 'Contained item GUID survives the real world round trip')
+            check(coordinator.move_from_container(bag_guid, child_guid, 1).get_editor_property('success'), 'Clothing can be extracted after the world round trip')
+            check(coordinator.request_equip(bag_guid, unreal.GameplayTag()).get_editor_property('success'), 'Recovered bag equips again')
+            advance('open_menu', 0.5)
+        elif phase == 'open_menu':
             controller = unreal.GameplayStatics.get_player_controller(S['world'], 0)
             instance = unreal.GameplayStatics.get_game_instance(S['world'])
             candidates = [obj for obj in unreal.ObjectIterator(unreal.ANSUIPlayerSubsystem) if obj.get_outer() == instance]

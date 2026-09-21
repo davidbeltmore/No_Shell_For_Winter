@@ -10,4 +10,9 @@ class EFEQUIPMENTRUNTIME_API AEFEquipmentWorldItem : public AACFWorldItem
     GENERATED_BODY()
 public:
     virtual void OnInteractedByPawn_Implementation(APawn* Pawn, const FString& InteractionType) override;
+    UFUNCTION(BlueprintPure, Category="Equipment|Pickup") bool WasPickupCompleted() const { return bPickupCompleted; }
+protected:
+    virtual void BeginPlay() override;
+private:
+    bool bPickupCompleted = false;
 };

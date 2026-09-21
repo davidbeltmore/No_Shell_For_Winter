@@ -12,6 +12,8 @@
 #include "ALSLoadAndSaveComponent.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Engine/GameInstance.h"
+#include "Components/ACFStorageComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 UEFEquipmentCoordinatorComponent::UEFEquipmentCoordinatorComponent()
 { PrimaryComponentTick.bCanEverTick = false; }
@@ -272,28 +274,40 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::RequestDrop(FGuid Guid, int
     if (Count < Entry.Count && !Entry.Item->Fragments.IsEmpty()) return Publish(FEFEquipmentResult::Failure(TEXT("Drop this stateful stack as a whole.")));
     const FGameplayTag PreviousSlot = Entry.EquipmentSlot;
     if (Entry.bIsEquipped && !RequestUnequip(Guid).bSuccess) return Publish(FEFEquipmentResult::Failure(TEXT("The item could not be unequipped.")));
-    bool bDropped = false;
+    bool bDropped = false; FEFEquipmentResult Receipt;
     {
         TGuardValue<bool> Operation(bOperation, true);
-        Equipment->GetItemByGuid(Guid, Entry);
-        FInventoryItem Drop = Entry; Drop.Count = Count;
-        if (Count < Entry.Count) { Drop.ResetGuid(); Drop.Item = DuplicateObject<UACFItem>(Entry.Item, GetOwner()); }
         FVector Location = GetOwner()->GetActorLocation();
         if (const auto* Character = Cast<ACharacter>(GetOwner())) Location.Z -= Character->GetSimpleCollisionHalfHeight();
-        if (AACFWorldItem* WorldItem = UACFItemSystemFunctionLibrary::SpawnWorldItemWithInstance(this, Drop, Location))
+        // ACF's instance-spawn helper reconstructs stackable items by class. Populate
+        // its deferred actor through the same identity-preserving transfer as bags.
+        if (AACFWorldItem* WorldItem = UACFItemSystemFunctionLibrary::SpawnWorldItem(this, Location))
         {
-            bDropped = WorldItem->GetItems().ContainsByPredicate([&](const auto& Item) { return Item.GetItemGuid() == Drop.GetItemGuid() && Item.Count == Count; });
-            if (bDropped)
+            auto* Storage = WorldItem->FindComponentByClass<UACFStorageComponent>();
+            if (Storage && EFEquipmentACF::Inventory(Storage) && Storage->GetInventory().IsEmpty())
             {
-                Equipment->RemoveItem(Entry, Count);
-                if (Rules && IsValid(Rules->RuntimeInventory)) { Rules->RuntimeInventory->DestroyComponent(); Rules->RuntimeInventory = nullptr; }
+                EFEquipmentACF::Inventory(Storage)->Init(WorldItem); Storage->SetIsInitialized(true);
+                bDropped = EFEquipmentACF::Transfer(Equipment, Storage, Guid, Count, true, Error, &Receipt,
+                    [&](FString& Failure)
+                    {
+                        const auto Before = Storage->GetInventory();
+                        const FTransform Transform = WorldItem->GetActorTransform();
+                        UGameplayStatics::FinishSpawningActor(WorldItem, Transform);
+                        const auto After = Storage->GetInventory();
+                        if (!IsValid(WorldItem) || WorldItem->IsActorBeingDestroyed() || Before.Num() != 1 || After.Num() != 1
+                            || Before[0].GetItemGuid() != After[0].GetItemGuid() || Before[0].Item != After[0].Item || After[0].Count != Count)
+                        { Failure = TEXT("The world pickup changed while spawning."); return false; }
+                        return true;
+                    });
             }
-            else WorldItem->Destroy();
+            if (!bDropped) WorldItem->Destroy();
+            else if (Rules && IsValid(Rules->RuntimeInventory))
+            { Rules->RuntimeInventory->DestroyComponent(); Rules->RuntimeInventory = nullptr; }
         }
     }
     if (!bDropped && PreviousSlot.IsValid()) RequestEquip(Guid, PreviousSlot);
     RefreshState();
-    return Publish(bDropped ? FEFEquipmentResult::Success() : FEFEquipmentResult::Failure(TEXT("Drop failed. The item remains in your inventory.")));
+    return Publish(bDropped ? Receipt : FEFEquipmentResult::Failure(TEXT("Drop failed. The item remains in your inventory. ") + Error));
 }
 
 TArray<FEFEquipmentSlotView> UEFEquipmentCoordinatorComponent::GetSlotViews() const
