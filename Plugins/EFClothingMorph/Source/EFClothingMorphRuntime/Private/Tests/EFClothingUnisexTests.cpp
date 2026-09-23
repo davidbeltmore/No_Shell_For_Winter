@@ -1,5 +1,8 @@
 #include "EFClothingMorphDirectorPolicy.h"
 #include "Misc/AutomationTest.h"
+#include "EFClothingSkeletonFingerprint.h"
+#include "Engine/SkeletalMesh.h"
+#include "ReferenceSkeleton.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFClothingUnisexVariantsTest,
@@ -7,6 +10,25 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFClothingUnisexVariantsTest,
 
 bool FEFClothingUnisexVariantsTest::RunTest(const FString& Parameters)
 {
+	auto MakeMesh = [](const TCHAR* RootName, const TCHAR* ChildName, int32 Parent, double Translation)
+	{
+		auto* Mesh = NewObject<USkeletalMesh>();
+		FReferenceSkeletonModifier Modifier(Mesh->GetRefSkeleton(), nullptr);
+		Modifier.Add(FMeshBoneInfo(FName(RootName), RootName, INDEX_NONE), FTransform::Identity);
+		Modifier.Add(FMeshBoneInfo(FName(ChildName), ChildName, 0), FTransform(FVector(Translation, 0, 0)));
+		Modifier.Add(FMeshBoneInfo(TEXT("audit_tip"), TEXT("audit_tip"), Parent), FTransform::Identity);
+		return Mesh;
+	};
+	const auto* Lower = MakeMesh(TEXT("audit_root"), TEXT("audit_head"), 0, 1.0);
+	const FString Identity = EFClothingSkeleton::BuildFingerprint(Lower);
+	TestEqual(TEXT("Cook display-name case does not change skeleton identity"), Identity,
+		EFClothingSkeleton::BuildFingerprint(MakeMesh(TEXT("AUDIT_ROOT"), TEXT("AUDIT_HEAD"), 0, 1.0)));
+	TestNotEqual(TEXT("Renamed bone remains incompatible"), Identity,
+		EFClothingSkeleton::BuildFingerprint(MakeMesh(TEXT("audit_root"), TEXT("audit_neck"), 0, 1.0)));
+	TestNotEqual(TEXT("Changed reference pose remains incompatible"), Identity,
+		EFClothingSkeleton::BuildFingerprint(MakeMesh(TEXT("audit_root"), TEXT("audit_head"), 0, 1.1)));
+	TestNotEqual(TEXT("Changed parent relation remains incompatible"), Identity,
+		EFClothingSkeleton::BuildFingerprint(MakeMesh(TEXT("audit_root"), TEXT("audit_head"), 1, 1.0)));
 	UEFClothingMorphDirectorPolicy* Director = NewObject<UEFClothingMorphDirectorPolicy>();
 	FEFClothingGarmentRow Row;
 	Row.GarmentId = TEXT("OneUnisexGarment");

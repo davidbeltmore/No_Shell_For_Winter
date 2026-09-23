@@ -1370,16 +1370,21 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 		OutFailureReason = TEXT("Binding is not a V30/schema-10 multi-clothing contract for this exact Director entry.");
 		return false;
 	}
+	const FString SourceIdentity = EFClothingSkeleton::BuildFingerprint(SourceMesh);
+	const FString BodyIdentity = EFClothingSkeleton::BuildFingerprint(BodyMesh);
+	const FString SharedIdentity = EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceMesh->GetSkeleton());
 	if (SourceMesh->GetSkeleton() != BodyMesh->GetSkeleton()
 		|| Binding->SourceSkeletonFingerprint.IsEmpty()
 		|| Binding->BodySkeletonFingerprint.IsEmpty()
 		|| Binding->SharedSkeletonFingerprint.IsEmpty()
-		|| EFClothingSkeleton::BuildFingerprint(SourceMesh) != Binding->SourceSkeletonFingerprint
-		|| EFClothingSkeleton::BuildFingerprint(BodyMesh) != Binding->BodySkeletonFingerprint
-		|| EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceMesh->GetSkeleton())
-			!= Binding->SharedSkeletonFingerprint)
+		|| SourceIdentity != Binding->SourceSkeletonFingerprint
+		|| BodyIdentity != Binding->BodySkeletonFingerprint
+		|| SharedIdentity != Binding->SharedSkeletonFingerprint)
 	{
-		OutFailureReason = TEXT("Clothing/body skeleton identity changed after the V4 binding was built.");
+		OutFailureReason = FString::Printf(TEXT("Clothing/body skeleton identity changed after the V4 binding was built. Source=%s saved=%s calculated=%s bones=%d; Body=%s saved=%s calculated=%s bones=%d; Shared=%s saved=%s calculated=%s; sameSkeleton=%d"),
+			*SourceMesh->GetPathName(), *Binding->SourceSkeletonFingerprint, *SourceIdentity, SourceMesh->GetRefSkeleton().GetNum(),
+			*BodyMesh->GetPathName(), *Binding->BodySkeletonFingerprint, *BodyIdentity, BodyMesh->GetRefSkeleton().GetNum(),
+			*GetPathNameSafe(SourceMesh->GetSkeleton()), *Binding->SharedSkeletonFingerprint, *SharedIdentity, SourceMesh->GetSkeleton() == BodyMesh->GetSkeleton());
 		return false;
 	}
 #if WITH_EDITOR

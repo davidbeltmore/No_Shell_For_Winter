@@ -7,6 +7,9 @@ class USkeleton;
 
 namespace EFClothingSkeleton
 {
+	/** FName identity is case-insensitive. Its display spelling is not stable
+	 * between Editor (case-preserving names) and cooked Game. Preserve every
+	 * hierarchy/pose field, canonicalizing names and object paths to lowercase. */
 	EFCLOTHINGMORPHRUNTIME_API FString BuildFingerprint(const USkeletalMesh* Mesh);
 
 	/** Cook-stable hierarchy, GUID, virtual-bone, compatibility and translation-retarget signature. */

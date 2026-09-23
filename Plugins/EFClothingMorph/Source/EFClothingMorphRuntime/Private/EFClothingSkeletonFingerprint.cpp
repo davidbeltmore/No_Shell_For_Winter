@@ -5,6 +5,10 @@
 #include "ReferenceSkeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/SecureHash.h"
+#include "EFClothingFitProfile.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 namespace
 {
@@ -29,6 +33,67 @@ namespace
 	}
 }
 
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+namespace
+{
+	// Explicit diagnostic only. At most 32 bindings and 32 unique meshes; never
+	// save assets or print the skeleton payload to the game log.
+	FAutoConsoleCommand IdentityAuditCommand(TEXT("EF.Clothing.IdentityAudit"),
+		TEXT("Write bounded stored/calculated skeleton identities to Saved/ClothingIdentityAudit.txt."),
+		FConsoleCommandDelegate::CreateLambda([]()
+	{
+		auto* Registry = LoadObject<UEFClothingFitRegistry>(nullptr,
+			TEXT("/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry"));
+		if (!Registry || Registry->NativeSourceBindings.Num() > 32) return;
+		FString Report; TSet<const USkeletalMesh*> Meshes; TSet<const USkeleton*> Skeletons;
+		for (const auto& Binding : Registry->NativeSourceBindings)
+		{
+			if (!Binding) continue;
+			auto* Source = Binding->SourceGarment.LoadSynchronous();
+			auto* Body = Binding->BodySurface.LoadSynchronous();
+			if (!Source || !Body) continue;
+			Report += FString::Printf(TEXT("Binding\t%s\tSource=%s/%s\tBody=%s/%s\tShared=%s/%s\n"),
+				*Binding->GetPathName(), *Binding->SourceSkeletonFingerprint, *EFClothingSkeleton::BuildFingerprint(Source),
+				*Binding->BodySkeletonFingerprint, *EFClothingSkeleton::BuildFingerprint(Body),
+				*Binding->SharedSkeletonFingerprint, *EFClothingSkeleton::BuildSharedSkeletonFingerprint(Source->GetSkeleton()));
+			Meshes.Add(Source); Meshes.Add(Body);
+		}
+		if (Meshes.Num() > 32) return;
+		auto AppendBones = [&Report](const FString& Path, const FReferenceSkeleton& Ref, const USkeleton* Shared)
+		{
+			Report += FString::Printf(TEXT("Count\t%s\t%d\tRaw=%d\n"), *Path, Ref.GetNum(), Ref.GetRawBoneNum());
+			for (int32 Index = 0; Index < Ref.GetNum(); ++Index)
+			{
+				FString Bone = FString::Printf(TEXT("Bone\t%s\t%d\t%s\t%d\tRT=%d"), *Path, Index,
+					*Ref.GetBoneName(Index).ToString(), Ref.GetParentIndex(Index),
+					Shared ? static_cast<int32>(Shared->GetBoneTranslationRetargetingMode(Index)) : -1);
+				AppendTransform(Bone, Ref.GetRefBonePose()[Index]); Report += Bone + TEXT("\n");
+			}
+		};
+		for (const USkeletalMesh* Mesh : Meshes)
+		{
+			Report += FString::Printf(TEXT("Mesh\t%s\tSkeleton=%s\n"), *Mesh->GetPathName(), *GetPathNameSafe(Mesh->GetSkeleton()));
+			AppendBones(Mesh->GetPathName(), Mesh->GetRefSkeleton(), nullptr); Skeletons.Add(Mesh->GetSkeleton());
+		}
+		for (const USkeleton* Skeleton : Skeletons)
+		{
+			if (!Skeleton) continue;
+			Report += FString::Printf(TEXT("Shared\t%s\tGuid=%s\tVirtualBoneGuid=%s\tUseCompatibleRetarget=%d\n"),
+				*Skeleton->GetPathName(), *Skeleton->GetGuid().ToString(EGuidFormats::Digits),
+				*Skeleton->GetVirtualBoneGuid().ToString(EGuidFormats::Digits), Skeleton->GetUseRetargetModesFromCompatibleSkeleton());
+			AppendBones(Skeleton->GetPathName(), Skeleton->GetReferenceSkeleton(), Skeleton);
+			for (const auto& Bone : Skeleton->GetVirtualBones())
+				Report += FString::Printf(TEXT("VB\t%s\t%s>%s:%s\n"), *Skeleton->GetPathName(), *Bone.SourceBoneName.ToString(), *Bone.TargetBoneName.ToString(), *Bone.VirtualBoneName.ToString());
+			for (const auto& Compatible : Skeleton->GetCompatibleSkeletons())
+				Report += FString::Printf(TEXT("CS\t%s\t%s\n"), *Skeleton->GetPathName(), *Compatible.ToSoftObjectPath().ToString());
+		}
+		const FString Path = FPaths::ProjectSavedDir() / TEXT("ClothingIdentityAudit.txt");
+		if (FFileHelper::SaveStringToFile(Report, *Path))
+			UE_LOG(LogTemp, Display, TEXT("Clothing identity audit: %d bindings, %d meshes, %d shared skeletons. %s"), Registry->NativeSourceBindings.Num(), Meshes.Num(), Skeletons.Num(), *Path);
+	}));
+}
+#endif
+
 FString EFClothingSkeleton::BuildFingerprint(const USkeletalMesh* Mesh)
 {
 	if (!IsValid(Mesh))
@@ -46,7 +111,7 @@ FString EFClothingSkeleton::BuildFingerprint(const USkeletalMesh* Mesh)
 		Canonical += FString::Printf(
 			TEXT("|%d:%s:%d"),
 			BoneIndex,
-			*RefSkeleton.GetBoneName(BoneIndex).ToString(),
+			*RefSkeleton.GetBoneName(BoneIndex).ToString().ToLower(),
 			RefSkeleton.GetParentIndex(BoneIndex));
 		AppendTransform(Canonical, RefSkeleton.GetRefBonePose()[BoneIndex]);
 	}
@@ -64,7 +129,7 @@ FString EFClothingSkeleton::BuildSharedSkeletonFingerprint(const USkeleton* Skel
 	const FReferenceSkeleton& Reference = Skeleton->GetReferenceSkeleton();
 	FString Canonical = FString::Printf(
 		TEXT("Path=%s|Guid=%s|VirtualBoneGuid=%s|UseCompatibleRetarget=%d|Bones=%d"),
-		*Skeleton->GetPathName(),
+		*Skeleton->GetPathName().ToLower(),
 		*Skeleton->GetGuid().ToString(EGuidFormats::Digits),
 		*Skeleton->GetVirtualBoneGuid().ToString(EGuidFormats::Digits),
 		Skeleton->GetUseRetargetModesFromCompatibleSkeleton() ? 1 : 0,
@@ -75,7 +140,7 @@ FString EFClothingSkeleton::BuildSharedSkeletonFingerprint(const USkeleton* Skel
 		Canonical += FString::Printf(
 			TEXT("|B%d:%s:%d:RT%d"),
 			BoneIndex,
-			*Reference.GetBoneName(BoneIndex).ToString(),
+			*Reference.GetBoneName(BoneIndex).ToString().ToLower(),
 			Reference.GetParentIndex(BoneIndex),
 			static_cast<int32>(Skeleton->GetBoneTranslationRetargetingMode(BoneIndex)));
 		AppendTransform(Canonical, Reference.GetRefBonePose()[BoneIndex]);
@@ -85,15 +150,15 @@ FString EFClothingSkeleton::BuildSharedSkeletonFingerprint(const USkeleton* Skel
 	{
 		Canonical += FString::Printf(
 			TEXT("|VB=%s>%s:%s"),
-			*VirtualBone.SourceBoneName.ToString(),
-			*VirtualBone.TargetBoneName.ToString(),
-			*VirtualBone.VirtualBoneName.ToString());
+			*VirtualBone.SourceBoneName.ToString().ToLower(),
+			*VirtualBone.TargetBoneName.ToString().ToLower(),
+			*VirtualBone.VirtualBoneName.ToString().ToLower());
 	}
 
 	TArray<FString> CompatibleSkeletonPaths;
 	for (const TSoftObjectPtr<USkeleton>& CompatibleSkeleton : Skeleton->GetCompatibleSkeletons())
 	{
-		CompatibleSkeletonPaths.Add(CompatibleSkeleton.ToSoftObjectPath().ToString());
+		CompatibleSkeletonPaths.Add(CompatibleSkeleton.ToSoftObjectPath().ToString().ToLower());
 	}
 	CompatibleSkeletonPaths.Sort();
 	for (const FString& CompatibleSkeletonPath : CompatibleSkeletonPaths)

@@ -42,7 +42,7 @@ $additionalArguments = @(
     '-DisablePlugins=BpGeneratorUltimate,MCPClientToolset,ModelContextProtocol'
     '-stdout'
     '-FullStdOutLogOutput'
-    ('-ExecCmds="Automation RunTests {0};Quit"' -f $TestPath)
+    ('-ExecCmds="Automation RunTests ^{0}$;Quit"' -f $TestPath)
     '-TestExit="Automation Test Queue Empty"'
     "-ReportExportPath=`"$reportRoot`""
     "-ABSLOG=`"$logPath`""
@@ -74,6 +74,7 @@ if (-not $process) {
     throw 'Protected launcher returned but no V5.1 Automation editor process appeared.'
 }
 
+$null = $process.Handle
 $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 if (-not $completed) {
     [void]$process.CloseMainWindow()
@@ -112,12 +113,13 @@ $summary = [pscustomobject]@{
 }
 $summary | Format-List
 
-if ($summary.Succeeded -ne 1 -or
+if ($process.ExitCode -ne 0 -or $summary.Succeeded -ne 1 -or
     $summary.SucceededWithWarnings -ne 0 -or
     $summary.Failed -ne 0 -or
     $summary.NotRun -ne 0 -or
     $summary.Tests -ne 1 -or
-    [string]$tests[0].FullTestPath -ne $TestPath) {
+    [int]$results.InProcess -ne 0 -or [string]$tests[0].State -cne 'Success' -or
+    [string]$tests[0].FullTestPath -cne $TestPath) {
     throw 'EF Clothing Morph V5.1 strict native Automation gate failed.'
 }
 

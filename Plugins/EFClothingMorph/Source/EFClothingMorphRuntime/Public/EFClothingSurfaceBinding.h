@@ -48,8 +48,9 @@ namespace EFClothingMorphV3
  */
 namespace EFClothingMorphV4
 {
-	inline constexpr int32 CompilerVersion = 35;
-	inline constexpr int32 SurfaceBindingSchemaVersion = 15;
+	// V36/schema16 uses FName comparison identity rather than display spelling.
+	inline constexpr int32 CompilerVersion = 36;
+	inline constexpr int32 SurfaceBindingSchemaVersion = 16;
 	inline constexpr TCHAR CompiledOutputRoot[] = TEXT("/EFClothingMorph/_Internal/Compiled/V4");
 	inline constexpr float DefaultCollisionClearanceCm = 0.0f;
 	inline constexpr float CompiledClearanceReserveCm = 0.0f;
