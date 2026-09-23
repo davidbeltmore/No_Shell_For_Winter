@@ -4,6 +4,16 @@ Target: `D:/Projects UE5/NoShellForWinter`, UE 5.8.2, installed ACF Ultimate **4
 Source `D:/Projects UE5/LustAsDeadlySin` remains read-only. Starting commit:
 `5084dcbd1212e9cb124d719d5bb94ae605cde9a8`.
 
+## Final continuation
+
+**Equipment closure COMPLETE.** The authorized terminal-recovery correction
+`0121220` passed all six lifecycle/snapshot suites and a fresh 39-check real travel
+run. Editor/Game, 36 Blueprints, fresh cook/package and all three packaged modes
+passed on `Archive_FINAL3`. All 7,642 protected hashes match and Daz receipts are
+restored. See [EquipmentTerminalRecoveryClosure.md](EquipmentTerminalRecoveryClosure.md)
+for the final executable hash, exact evidence and final Git receipt.
+The Archive_FINAL/FINAL2 results below remain historical phase evidence.
+
 ## Preservation and scope
 
 The initial index, worktree, untracked inventory and byte copies are preserved at
@@ -107,10 +117,9 @@ archive is required after validating the lifetime fix.
 
 ## Validation ledger
 
-All evidence paths below are relative to the target project. The corrected
-Development archive and its three modes passed. Overall closure remains
-**PENDING** solely for the failing detached-snapshot recovery case and the
-requested EFProcedural scope clarification; that failure is not release-accepted.
+All evidence paths below are relative to the target project. The phase-two corrected
+Development archive and its three modes passed. Its remaining terminal-recovery
+failure was subsequently fixed and verified by the final continuation above.
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
@@ -139,7 +148,7 @@ requested EFProcedural scope clarification; that failure is not release-accepted
 | HUB inventory, save/load, legacy migration, drop, trade, death (100 checks) | PASS | `Saved/EquipmentQA/MasterInventory01/result.json`, `inventory-review.png`, `visual_done.txt` |
 | Deposit, bag capacity/stacks/nesting, lockpick input, chest save/load (64 checks) | PASS | `Saved/EquipmentQA/LockpickInput_Master02/result.json`, `bag-review.png`, `minigame-slate.png` |
 | Actual HUB → floor 1 → floor 2 → HUB (39 checks) | PASS | `Saved/EquipmentQA/MasterTravel03/result.json`; original bag/child GUIDs, overload, reservations and one starter bag at every destination |
-| Lifecycle/snapshot batch | FAIL, 5/6 passed; scope clarification pending | `Saved/Migration/CalystoDungeonDirectorV7/Native_MasterTravelFinal01/Report/index.json` |
+| Historical lifecycle/snapshot batch | FAIL, 5/6; superseded by EquipmentTerminalRecovery01 PASS 6/6 | `Saved/Migration/CalystoDungeonDirectorV7/Native_MasterTravelFinal01/Report/index.json` |
 | Protected files after clothing | PASS, 7,642 unchanged | `Saved/EquipmentQA/MasterClosure/protected-clothing36.log` |
 | Protected files after all PIE runs | PASS, 7,642 unchanged | `Saved/EquipmentQA/MasterClosure/protected-after-pie.log` |
 | Final protected comparison against the requested storage baseline | PASS, 7,642 unchanged; HUB matches initial bytes | `Saved/EquipmentQA/MasterClosure/protected-final-comparison.json`, `protected-final.log` |
@@ -157,11 +166,12 @@ made after the final builds/package; the commits preserve those tested bytes.
 The failing lifecycle case is `DetachedSnapshotTerminalRecovery`. The runtime
 returns false for the expected rejected detached snapshot; the Director then
 returns before reconstruction. A narrow runtime-reference handoff is proposed
-in `Saved/EquipmentQA/MasterClosure/proposed-terminal-recovery.md`. Because this
-extends beyond the user's EFProcedural reference/validator limit, implementation
-awaits explicit scope clarification. The failure is not hidden or accepted.
+in `Saved/EquipmentQA/MasterClosure/proposed-terminal-recovery.md`. The user subsequently
+authorized this narrow exception with ?Continua?. Commit `0121220` implements
+the explicit runtime handoff; EquipmentTerminalRecovery01 passed all six tests.
+The original failed receipt remains unchanged.
 
-## Corrected archive and reviewed image
+## Historical Archive_FINAL2 and reviewed image
 
 Archive: `A:/NoShellForWinterMasterClosure/Archive_FINAL2`.
 Executable: `Windows/NoShellForWinter/Binaries/Win64/NoShellForWinter.exe`.
@@ -190,8 +200,10 @@ claim of uncached disk or GPU presentation latency.
 - `5a76c24`: equipment travel/persistence, real fixtures and strict packaged QA.
 - The documentation/skill commit following these records this ledger and recipes.
 
-`Saved/EquipmentQA/MasterClosure/final_git.json` records the final post-commit HEAD,
+`Saved/EquipmentQA/MasterClosure/final_git.json` records the first closure phase's post-commit HEAD,
 empty `git status --short`, and `git diff --check` result. Generated packages,
-Saved evidence, logs and backups are not tracked. The initial EFProcedural runtime
-edits are byte-identical to their starting copies, proven in
-`preserved-procedural-runtime.json`; no unapproved recovery fix was applied.
+Saved evidence, logs and backups are not tracked. At that first closure phase,
+the initial EFProcedural runtime edits remained byte-identical to their starting
+copies, as recorded in `preserved-procedural-runtime.json`. The subsequent
+authorized correction is separately committed in `0121220` and documented in
+the final continuation; no unapproved recovery fix was applied.

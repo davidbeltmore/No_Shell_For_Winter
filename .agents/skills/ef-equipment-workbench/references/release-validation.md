@@ -17,6 +17,13 @@ The HUB return must call the project provider's PreservePlayerForHubTravel
 immediately before OpenLevel. This uses CaptureTravelForMap and an exact-destination
 PostLoadMap restore; the HUB's current startup does not invoke LoadTraveledPlayer.
 The snapshot is single-use, and a failed restore retains it with a visible error.
+After rejected native cleanup, `FinishRuntimeSnapshot` relinquishes only the
+runtime's local reference to an owned detached graph. The Director retains the
+same graph and reconstructs it before finishing the request. Do not call the
+provider's final release before that reconstruction, or convert its ordinary
+release failures to success. The six exact tests in
+`Tools/Equipment/Expected-TravelLifecycleTests.txt` cover terminal recovery,
+failed recovery/retry and the portable equipment snapshot contracts.
 Other explicit native callers retain their existing LoadTraveledPlayer adapter.
 The floor's Player class may return into the HUB GameMode's authored derived
 BP_TSChar class. Only in-memory travel admits that exact authored subclass;

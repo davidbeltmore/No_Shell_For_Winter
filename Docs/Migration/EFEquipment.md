@@ -13,11 +13,13 @@ Female/Male/Female layering checks passed. All 7,642 protected hashes match and
 Daz receipts are restored. Exact receipts and limits are in
 [EquipmentMasterClosure.md](EquipmentMasterClosure.md).
 
-**Overall closure remains PENDING:** `DetachedSnapshotTerminalRecovery` still
-fails (lifecycle batch 5/6). Correcting its EFProcedural runtime handoff exceeds
-the explicit reference/validator-only scope; the proposed exception awaits the
-user's answer. Normal HUB/floor travel passed independently. No failure was
-converted to PASS.
+**Equipment closure COMPLETE:** the user authorized the narrow recovery exception.
+Commit `0121220` fixes the handoff; the lifecycle batch now passes 6/6 and the
+fresh real travel run passes 39 checks. Final builds, cook and three packaged
+modes passed on `Archive_FINAL3`. See
+[EquipmentTerminalRecoveryClosure.md](EquipmentTerminalRecoveryClosure.md)
+for the exact final artifacts and clean Git evidence. The prior failed batch
+remains historical evidence, superseded by the successful corrected run.
 
 ## Current closure
 
