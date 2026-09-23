@@ -1,0 +1,61 @@
+{
+  "implementation_commit": "388feff3",
+  "head": "388feff3106d032228076b0efe13cbb7fe1a34e8",
+  "artifacts": [
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/build-final.log",
+      "copy": "build.log",
+      "sha256": "1be6f2e56053588f1fb06dcde0ae5ec99115a9c1ce0535e22ea92f849f088b3b"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetailsPIE01/result.json",
+      "copy": "pie.json",
+      "sha256": "806aad9d1544a8cfd6644e01e8f5d25c33c64c960d699391b4892981743054a9"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetailsPIE01/user_save_after.json",
+      "copy": "user-saves.json",
+      "sha256": "158bc9867465bdb3890c38c15601cae1f2870f1b99b3f0f582bc57079b168d7d"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/protected-final.json",
+      "copy": "protected.json",
+      "sha256": "d6cec80f93ca69394b10e085d4dfe07b7c369a17adc0fd086f72c68ff8ec8fa5"
+    },
+    {
+      "source": "Saved/EquipmentQA/Packaged_ChestActorDetails01/launch.json",
+      "copy": "packaged.json",
+      "sha256": "ce86465da4db1aa5050de8068874572107f4b649e6aa82b014e58ffca414f6bb"
+    },
+    {
+      "source": "Saved/EquipmentQA/Packaged_ChestActorDetails01/Report/index.json",
+      "copy": "packaged-tests.json",
+      "sha256": "d4797720cc1abe3c7e1d56604689be44a2885afd438185edea8f3ce925321256"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/final-deposit.png",
+      "copy": "deposit.png",
+      "sha256": "475c453ec4673855e39531ef05f59de241472eb6cffe942b44b4d854e2a69b59"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/final-locked.png",
+      "copy": "locked.png",
+      "sha256": "c863fa8ccc83735126f56314ab8016058408466b69c6e5569fb0bd25161f77df"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/final-overrides.png",
+      "copy": "overrides.png",
+      "sha256": "a741a7c4018596606b494028b8a8e6a69dcb981c6b303569c8529446d112a349"
+    },
+    {
+      "source": "Saved/EquipmentQA/ChestActorDetails/editor-context.json",
+      "copy": "editor-context.json",
+      "sha256": "0b2b02c61d03d7da58505fdc4d2bd0b08b127d57c7622c9e96b8649fed617390"
+    },
+    {
+      "source": "Saved\\EquipmentQA\\ChestActorDetails\\package.log",
+      "sha256": "e64007f204737151994c460cc9684d6af9871a06103fc5d41b3de4c12cc39c7b",
+      "summary": "package-summary.txt"
+    }
+  ]
+}

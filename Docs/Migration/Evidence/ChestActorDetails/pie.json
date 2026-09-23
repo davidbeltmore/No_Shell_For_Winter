@@ -1,0 +1,171 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "Existing HUB actor for BP_EquipmentDeposit",
+      "pass": true
+    },
+    {
+      "name": "Selected actor uses existing procedural component: BP_EquipmentDeposit",
+      "pass": true
+    },
+    {
+      "name": "Actual Details screenshot reviewed: details_deposit_review",
+      "pass": true
+    },
+    {
+      "name": "Existing HUB actor for BP_EquipmentLockedChest",
+      "pass": true
+    },
+    {
+      "name": "Selected actor uses existing procedural component: BP_EquipmentLockedChest",
+      "pass": true
+    },
+    {
+      "name": "Actual Details screenshot reviewed: details_locked_review",
+      "pass": true
+    },
+    {
+      "name": "Test map contains no dungeon generator",
+      "pass": true
+    },
+    {
+      "name": "Three authored chest types exist in generator-free PIE",
+      "pass": true
+    },
+    {
+      "name": "Stable instance identity: BP_EquipmentDeposit_C_0",
+      "pass": true
+    },
+    {
+      "name": "Real catalog validates: Wealth Valid: percentages total 100%; all counts and tiers supported. Instances require a stable identity. Inventory unchanged.",
+      "pass": true
+    },
+    {
+      "name": "No BeginPlay generation: Wealth",
+      "pass": true
+    },
+    {
+      "name": "Valid opening generated: Wealth",
+      "pass": true
+    },
+    {
+      "name": "Real catalog produced inventory: Wealth",
+      "pass": true
+    },
+    {
+      "name": "Reopening retains exact GUIDs/counts: Wealth",
+      "pass": true
+    },
+    {
+      "name": "Empty chest never refills: Wealth",
+      "pass": true
+    },
+    {
+      "name": "Stable instance identity: BP_EquipmentDeposit_C_1",
+      "pass": true
+    },
+    {
+      "name": "Real catalog validates: Armament Valid: percentages total 100%; all counts and tiers supported. Instances require a stable identity. Inventory unchanged.",
+      "pass": true
+    },
+    {
+      "name": "No BeginPlay generation: Armament",
+      "pass": true
+    },
+    {
+      "name": "Valid opening generated: Armament",
+      "pass": true
+    },
+    {
+      "name": "Real catalog produced inventory: Armament",
+      "pass": true
+    },
+    {
+      "name": "Reopening retains exact GUIDs/counts: Armament",
+      "pass": true
+    },
+    {
+      "name": "Empty chest never refills: Armament",
+      "pass": true
+    },
+    {
+      "name": "Stable instance identity: BP_EquipmentDeposit_C_2",
+      "pass": true
+    },
+    {
+      "name": "Real catalog validates: Ammunition Valid: percentages total 100%; all counts and tiers supported. Instances require a stable identity. Inventory unchanged.",
+      "pass": true
+    },
+    {
+      "name": "No BeginPlay generation: Ammunition",
+      "pass": true
+    },
+    {
+      "name": "Valid opening generated: Ammunition",
+      "pass": true
+    },
+    {
+      "name": "Real catalog produced inventory: Ammunition",
+      "pass": true
+    },
+    {
+      "name": "Reopening retains exact GUIDs/counts: Ammunition",
+      "pass": true
+    },
+    {
+      "name": "Empty chest never refills: Ammunition",
+      "pass": true
+    },
+    {
+      "name": "Fresh game session has no stale process-global generation cache",
+      "pass": true
+    }
+  ],
+  "phase": "fresh",
+  "contents": [
+    {
+      "chest": "Wealth",
+      "profile": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth.DA_Chest_Wealth",
+      "items": [
+        [
+          "/Game/FullSample/Blueprints/Items/Materials/ACFMetalBP.ACFMetalBP_C",
+          1,
+          "357D21F94229846B051D62997AA10AA2"
+        ]
+      ]
+    },
+    {
+      "chest": "Armament",
+      "profile": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Armament.DA_Chest_Armament",
+      "items": [
+        [
+          "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          1,
+          "DF70BD7746D34E2B0FE128A024537660"
+        ],
+        [
+          "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          1,
+          "17A0F9D247A4774D9F24DE8E65FAD953"
+        ]
+      ]
+    },
+    {
+      "chest": "Ammunition",
+      "profile": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Ammunition.DA_Chest_Ammunition",
+      "items": [
+        [
+          "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          7,
+          "1AD8F62944AD03DA6DCF5F8A93E031A0"
+        ]
+      ]
+    }
+  ],
+  "previews": [
+    "(<Array object at 0x0000020B4960BA30>, '')",
+    "(<Array object at 0x0000020B49639AB0>, '')",
+    "(<Array object at 0x0000020B4963AE30>, '')"
+  ]
+}
