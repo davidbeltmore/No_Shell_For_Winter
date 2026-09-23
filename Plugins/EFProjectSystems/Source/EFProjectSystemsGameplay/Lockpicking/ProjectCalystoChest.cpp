@@ -39,7 +39,7 @@ void AProjectCalystoChest::GetDeferredMeshBoundsBindings(TArray<FEFCalystoDeferr
 }
 
 bool AProjectCalystoChest::ConfigureResolvedLoot(
-	const TConstArrayView<FProjectCalystoResolvedChestEntry> Entries,
+	const TConstArrayView<FProjectChestResolvedEntry> Entries,
 	FString& OutError)
 {
 	OutError.Reset();
@@ -77,7 +77,7 @@ bool AProjectCalystoChest::ConfigureResolvedLoot(
 	ChestVisual->SetSkeletalMeshAsset(ResolvedVisual);
 
 	TSet<FName> AttemptIds;
-	for (const FProjectCalystoResolvedChestEntry& Entry : Entries)
+	for (const FProjectChestResolvedEntry& Entry : Entries)
 	{
 		if (Entry.StableAttemptId.IsNone() || Entry.ContentCatalogId.IsNone()
 			|| !Entry.ItemClass || Entry.Quantity != 1 || AttemptIds.Contains(Entry.StableAttemptId))
@@ -104,7 +104,7 @@ bool AProjectCalystoChest::ConfigureResolvedLoot(
 
 	FrozenResolvedLoot.Reset(Entries.Num());
 	FrozenResolvedLoot.Append(Entries.GetData(), Entries.Num());
-	for (const FProjectCalystoResolvedChestEntry& Entry : FrozenResolvedLoot)
+	for (const FProjectChestResolvedEntry& Entry : FrozenResolvedLoot)
 	{
 		StorageComponent->AddItem(FBaseItem(Entry.ItemClass, Entry.Quantity));
 	}
@@ -120,7 +120,7 @@ bool AProjectCalystoChest::ConfigureResolvedLoot(
 bool AProjectCalystoChest::VerifyFrozenLootStorage(FString& OutError) const
 {
 	TMap<UClass*, int32> ExpectedCounts;
-	for (const FProjectCalystoResolvedChestEntry& Entry : FrozenResolvedLoot)
+	for (const FProjectChestResolvedEntry& Entry : FrozenResolvedLoot)
 	{
 		ExpectedCounts.FindOrAdd(*Entry.ItemClass) += Entry.Quantity;
 	}
@@ -164,7 +164,7 @@ bool AProjectCalystoChest::FinalizeAndVerifyResolvedLoot(
 	{
 		return false;
 	}
-	for (const FProjectCalystoResolvedChestEntry& Entry : FrozenResolvedLoot)
+	for (const FProjectChestResolvedEntry& Entry : FrozenResolvedLoot)
 	{
 		OutVerifiedContentIds.Add(Entry.ContentCatalogId);
 	}

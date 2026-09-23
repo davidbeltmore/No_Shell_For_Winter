@@ -195,7 +195,7 @@ bool FProjectCalystoContentGameplayBridge::PrepareDeferredActor(const FEFCalysto
 	{
 		UProjectChestInventoryComponent* Chest = Actor->FindComponentByClass<UProjectChestInventoryComponent>();
 		if (!Chest) { Error=TEXT("A selected container does not provide the project native deposit storage contract."); return false; }
-		TArray<FProjectCalystoResolvedChestEntry> Entries; TSet<FGuid> Ids;
+		TArray<FProjectChestResolvedEntry> Entries; TSet<FGuid> Ids;
 		for (const FEFCalystoReservedContent& Item : ContainerContents)
 		{
 			UClass* ItemClass=Cast<UClass>(Item.Entry.InventoryClass.ToSoftObjectPath().ResolveObject());
@@ -203,7 +203,7 @@ bool FProjectCalystoContentGameplayBridge::PrepareDeferredActor(const FEFCalysto
 				|| Item.InventorySlot<0 || !ItemClass || !ItemClass->IsChildOf(UACFItem::StaticClass()) || Ids.Contains(Item.Id))
 			{ Error=TEXT("A selected chest content entry is not an exact typed inventory item."); return false; }
 			Ids.Add(Item.Id); Stage.ContentReservations.Add(Item.Id);
-			FProjectCalystoResolvedChestEntry& Entry=Entries.AddDefaulted_GetRef();
+			FProjectChestResolvedEntry& Entry=Entries.AddDefaulted_GetRef();
 			Entry.StableAttemptId=FName(*ProjectCalystoContentBridgePrivate::Guid(Item.Id));
 			Entry.ContentCatalogId=FName(*ProjectCalystoContentBridgePrivate::Guid(Item.Entry.Selection.Id));
 			Entry.ItemClass=ItemClass; Entry.Quantity=1;

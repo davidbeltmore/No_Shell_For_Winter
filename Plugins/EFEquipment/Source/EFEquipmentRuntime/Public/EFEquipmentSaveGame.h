@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "ALSSaveGame.h"
 #include "GameplayTagContainer.h"
+#include "EFWorldStoragePersistence.h"
 #include "EFEquipmentSaveGame.generated.h"
 
 /** Restoration intent, not a second inventory. ACF retains all object/fragment bytes. */
@@ -26,4 +27,5 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentSaveGame : public UALSSaveGame
 public:
     UPROPERTY(SaveGame) int32 EquipmentVersion = 1;
     UPROPERTY(SaveGame) FEFEquipmentSavedPlayer EquipmentPlayer;
+    UPROPERTY(SaveGame) TMap<FString, FEFWorldStorageRecord> WorldStorage;
 };

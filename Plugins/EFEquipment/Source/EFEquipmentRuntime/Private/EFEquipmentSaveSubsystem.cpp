@@ -156,6 +156,7 @@ bool UEFEquipmentSaveSubsystem::Save(const FString& Slot, bool bWorld, bool bLoc
     if (bLocalPlayer && !CaptureLocal(GetWorld(), Candidate.Get(), LastError)) return false;
     if (bWorld)
     {
+        if (!GetGameInstance()->GetSubsystem<UEFWorldStoragePersistence>()->Capture(Candidate->WorldStorage, LastError)) return false;
         const FString LevelName = UGameplayStatics::GetCurrentLevelName(GetWorld(), true);
         FALSLevelData Level; Candidate->TryGetLevelData(LevelName, Level); Level.CleanActors();
         TArray<TWeakObjectPtr<AActor>> Actors;
@@ -294,6 +295,11 @@ void UEFEquipmentSaveSubsystem::LoadWorld(const FString& Slot, const FOnLoadFini
 
 void UEFEquipmentSaveSubsystem::CompleteNativeLoad(bool bSuccess)
 {
+    if (bSuccess)
+    {
+        auto* Loaded = Cast<UEFEquipmentSaveGame>(Native()->GetCurrentSaveGame());
+        bSuccess = Loaded && GetGameInstance()->GetSubsystem<UEFWorldStoragePersistence>()->Restore(Loaded->WorldStorage, LastError);
+    }
     if (bSuccess && bReloadPlayer)
     {
         auto* Loaded = Cast<UEFEquipmentSaveGame>(Native()->GetCurrentSaveGame());

@@ -3,30 +3,12 @@
 #include "CoreMinimal.h"
 #include "Lockpicking/ProjectLockedWorldItem.h"
 #include "Calysto/EFCalystoDeferredMeshBoundsProvider.h"
+#include "Storage/ProjectChestContent.h"
 #include "ProjectCalystoChest.generated.h"
 
 class UACFItem;
 class USkeletalMesh;
 class USkeletalMeshComponent;
-
-/** Immutable content entry selected by the Dungeon Director before actor materialization. */
-USTRUCT()
-struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectCalystoResolvedChestEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FName StableAttemptId = NAME_None;
-
-	UPROPERTY()
-	FName ContentCatalogId = NAME_None;
-
-	UPROPERTY()
-	TSubclassOf<UACFItem> ItemClass;
-
-	UPROPERTY()
-	int32 Quantity = 1;
-};
 
 /**
  * Project-owned ACF storage bridge for Calysto. Geometry and placement remain
@@ -44,7 +26,7 @@ public:
 
 	/** Called exclusively while the actor is deferred, before BeginPlay. */
 	bool ConfigureResolvedLoot(
-		TConstArrayView<FProjectCalystoResolvedChestEntry> Entries,
+		TConstArrayView<FProjectChestResolvedEntry> Entries,
 		FString& OutError);
 
 	/** Seeds ACF storage and returns the exact frozen catalog IDs after verification. */
@@ -62,7 +44,7 @@ private:
 	bool VerifyFrozenLootStorage(FString& OutError) const;
 
 	UPROPERTY(Transient)
-	TArray<FProjectCalystoResolvedChestEntry> FrozenResolvedLoot;
+	TArray<FProjectChestResolvedEntry> FrozenResolvedLoot;
 
 	bool bConfiguredByDirector = false;
 	bool bFrozenLootSeeded = false;

@@ -362,7 +362,7 @@ bool FProjectCalystoPopulationBridge::PrepareDeferredActor(
 		OutError = TEXT("The selected Calysto chest actor or content count violates the frozen contract.");
 		return false;
 	}
-	TArray<FProjectCalystoResolvedChestEntry> ResolvedEntries;
+	TArray<FProjectChestResolvedEntry> ResolvedEntries;
 	ResolvedEntries.Reserve(ChestContents.Num());
 	TSet<FString> DecisionIds;
 	for (const FEFCalystoPopulationDecisionV6& Content : ChestContents)
@@ -380,7 +380,7 @@ bool FProjectCalystoPopulationBridge::PrepareDeferredActor(
 			return false;
 		}
 		DecisionIds.Add(Content.DecisionId);
-		FProjectCalystoResolvedChestEntry& Entry = ResolvedEntries.AddDefaulted_GetRef();
+		FProjectChestResolvedEntry& Entry = ResolvedEntries.AddDefaulted_GetRef();
 		Entry.StableAttemptId = FName(*Content.DecisionId);
 		Entry.ContentCatalogId = Content.EntryId;
 		Entry.ItemClass = ContentClass;

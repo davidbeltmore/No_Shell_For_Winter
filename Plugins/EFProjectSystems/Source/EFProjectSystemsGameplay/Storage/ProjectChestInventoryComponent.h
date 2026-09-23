@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #include "ACFVendorComponent.h"
 #include "Engine/DataAsset.h"
-#include "Lockpicking/ProjectCalystoChest.h"
+#include "Storage/ProjectChestContent.h"
 #include "ProjectChestInventoryComponent.generated.h"
 
 /** Uses ACF's existing item catalog and rule format. Empty rule rarity inherits ChestRarity. */
@@ -29,17 +29,20 @@ public:
     UFUNCTION(BlueprintPure, Category="Chest") bool HasGeneratedContents() const { return bGenerated; }
     /** Called by the child deposit interaction gate before its native parent. */
     UFUNCTION(BlueprintCallable, Category="Chest", meta=(DefaultToSelf="Owner")) static bool PrepareInteraction(AActor* Owner);
-    bool ConfigureResolvedLoot(TConstArrayView<FProjectCalystoResolvedChestEntry> Entries, FString& Error);
+    bool ConfigureResolvedLoot(TConstArrayView<FProjectChestResolvedEntry> Entries, FString& Error);
     bool FinalizeAndVerifyResolvedLoot(TArray<FName>& Verified, FString& Error);
 protected:
     virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void OnComponentSaved_Implementation() override;
     virtual void OnComponentLoaded_Implementation() override;
 private:
+    FString PersistenceKey;
+    FString PersistenceError;
     UPROPERTY(SaveGame) bool bGenerated = false;
     UPROPERTY(SaveGame) bool bSavedLockState = false;
     UPROPERTY(SaveGame) bool bSavedLocked = false;
-    UPROPERTY(Transient) TArray<FProjectCalystoResolvedChestEntry> FrozenContents;
+    UPROPERTY(Transient) TArray<FProjectChestResolvedEntry> FrozenContents;
     bool bDirectorOwnsContents = false;
     bool bDirectorVerified = false;
     bool bGenerating = false;
