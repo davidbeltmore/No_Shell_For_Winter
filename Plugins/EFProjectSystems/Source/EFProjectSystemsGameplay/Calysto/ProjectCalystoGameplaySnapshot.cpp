@@ -1383,8 +1383,23 @@ bool FProjectCalystoGameplaySnapshot::ReconstructInWorld(FGuid RequestId, UWorld
 			if (Coordinator)
 			{
 				const auto Result = Coordinator->RequestEquip(Item->GetItemGuid(), Intent.EquipmentSlot);
-				if (!Result.bSuccess || !Result.DisplacedItems.IsEmpty())
-				{ Error = TEXT("Player travel equipment could not restore its frozen selection. ") + Result.Message.ToString(); return Undo(); }
+				// Native ranged weapons may auto-select compatible ammunition during
+				// equip. The frozen ammo intent must then replace that incidental
+				// selection, just as the native restoration lifecycle did. Never
+				// displace another frozen selection; the complete realized set and
+				// canonical inventory are still verified below before publication.
+				const bool bDisplacedFrozenSelection = Result.DisplacedItems.ContainsByPredicate([&](const FGuid& Guid)
+				{
+					return OrderedIds.Contains(Guid);
+				});
+				if (!Result.bSuccess || bDisplacedFrozenSelection)
+				{
+					Error = FString::Printf(TEXT("Player travel equipment could not restore its frozen selection: guid=%s class=%s slot=%s success=%d displaced=%d. %s Frozen=[%s] Realized=[%s]"),
+						*Intent.GetItemGuid().ToString(), *GetNameSafe(Intent.ItemClass.Get()), *Intent.EquipmentSlot.ToString(),
+						Result.bSuccess, Result.DisplacedItems.Num(), *Result.Message.ToString(), *FrozenEquipIntentTrace.FindChecked(I.Key),
+						*DescribeEquipmentProjection(NativeEquipped(Component)));
+					return Undo();
+				}
 			}
 			else Component->EquipItemFromInventoryInSlot(*Item, Intent.EquipmentSlot);
 		}

@@ -18,11 +18,13 @@ public:
     bool LoadLocal(const FString& Slot, bool bTransform);
     void LoadWorld(const FString& Slot, const FOnLoadFinished& Callback, bool bPlayer);
     bool CaptureTravel();
+    /** Opt-in native travel route without a Blueprint startup load callback. */
+    bool CaptureTravelForMap(const FString& DestinationPackage);
     bool RestoreTravel();
     FString GetActiveSlot() const;
     FText GetLastError() const { return FText::FromString(LastError); }
     UFUNCTION(BlueprintPure, Category="Equipment|Save") FText GetLastMigrationSummary() const { return LastMigrationSummary; }
-    bool IsBusy() const { return bBusy; }
+    bool IsBusy() const { return bBusy || TravelArrivalWorld.IsValid(); }
     bool HasGrantedStarterBag() const { return bStarterBagGranted; }
     void MarkStarterBagGranted() { bStarterBagGranted = true; }
 private:
@@ -36,9 +38,17 @@ private:
     bool bBusy = false;
     bool bReloadPlayer = true;
     bool bStarterBagGranted = false;
+    FString AutomaticTravelDestination;
+    FDelegateHandle PostLoadMapHandle;
+    TWeakObjectPtr<UWorld> TravelArrivalWorld;
+    FTimerHandle TravelArrivalTimer;
+    double TravelArrivalDeadline = 0;
+    void HandlePostLoadMap(UWorld* World);
+    void PollTravelArrival();
+    void ClearTravelArrival();
     UALSLoadAndSaveSubsystem* Native() const;
     UEFEquipmentSaveGame* PrepareLoad(const FString& Slot);
-    bool RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform);
+    bool RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform, bool bTravel = false);
     void PublishMigrationSummary(UEFEquipmentSaveGame* Loaded);
     UFUNCTION() void CompleteNativeLoad(bool bSuccess);
     UFUNCTION() void HandlePlayerPossessed(APawn* Pawn, AController* Controller);

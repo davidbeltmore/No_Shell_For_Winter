@@ -10,6 +10,7 @@ class EFPROJECTSYSTEMSGAMEPLAY_API FProjectCalystoContentAttemptProvider final
 	: public IEFCalystoContentAttemptProvider
 {
 public:
+	virtual bool PreservePlayerForHubTravel(UWorld* SourceWorld, FString& Error) override;
 	virtual bool CapturePreTravelSnapshot(const FGuid& RequestId, UWorld* SourceWorld,
 		TSharedPtr<IEFCalystoGameplaySnapshot>& OutSnapshot, FString& Error) override;
 	virtual bool CanHandleSnapshot(const TSharedPtr<IEFCalystoGameplaySnapshot>& Snapshot) const override;

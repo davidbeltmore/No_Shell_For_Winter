@@ -11,6 +11,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'EquipmentAutomationReport.ps1')
 
 $root = (Resolve-Path -LiteralPath $ProjectRoot).Path
 $launcher = Join-Path $root 'Tools\Migration\Launch-NoShellForWinterEditor58.ps1'
@@ -32,6 +33,9 @@ if (Test-Path -LiteralPath $runRoot) {
 }
 [void][IO.Directory]::CreateDirectory($runRoot)
 
+$requiredTests = @('EF.Equipment.Native.Vertical', 'EF.Equipment.Policy.Contracts')
+if ($TestPath -cne 'EF.Equipment') { throw 'This gate requires the exact two-test equipment suite.' }
+$exactFilter = (@($requiredTests | ForEach-Object { '^' + $_ + '$' }) -join '+')
 $additionalArguments = @(
     '/Engine/Maps/Entry'
     '-unattended'
@@ -42,7 +46,7 @@ $additionalArguments = @(
     '-DisablePlugins=BpGeneratorUltimate,MCPClientToolset,ModelContextProtocol'
     '-stdout'
     '-FullStdOutLogOutput'
-    ('-ExecCmds="Automation RunTests {0};Quit"' -f $TestPath)
+    ('-ExecCmds="Automation RunTests {0};Quit"' -f $exactFilter)
     '-TestExit="Automation Test Queue Empty"'
     "-ReportExportPath=`"$reportRoot`""
     "-ABSLOG=`"$logPath`""
@@ -74,6 +78,7 @@ if (-not $process) {
     throw 'Protected launcher returned but no Equipment Automation editor process appeared.'
 }
 
+$null = $process.Handle
 $completed = $process.WaitForExit($TimeoutSeconds * 1000)
 if (-not $completed) {
     [void]$process.CloseMainWindow()
@@ -112,12 +117,7 @@ $summary = [pscustomobject]@{
 }
 $summary | Format-List
 
-$requiredTests = @('EF.Equipment.Native.Vertical', 'EF.Equipment.Policy.Contracts')
-$missing = @($requiredTests | Where-Object { $_ -notin @($tests.FullTestPath) })
-if ($summary.Tests -lt 1 -or $summary.Succeeded -ne $summary.Tests -or
-    $summary.SucceededWithWarnings -ne 0 -or $summary.Failed -ne 0 -or
-    $summary.NotRun -ne 0 -or [int]$results.InProcess -ne 0 -or $missing.Count -ne 0 -or
-    @($tests | Where-Object { [string]$_.FullTestPath -notlike ($TestPath + '.*') }).Count -ne 0) {
+if ($process.ExitCode -ne 0 -or -not (Test-ExactEquipmentAutomationReport -Report $results -Expected $requiredTests)) {
     throw 'EFEquipment native Automation gate failed or required tests are missing.'
 }
 

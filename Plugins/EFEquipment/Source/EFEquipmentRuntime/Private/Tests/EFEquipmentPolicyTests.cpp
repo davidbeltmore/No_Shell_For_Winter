@@ -1,9 +1,11 @@
 #include "EFEquipmentData.h"
 #include "EFEquipmentTypes.h"
+#include "EFEquipmentTravelPolicy.h"
+#include "GameFramework/Character.h"
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentPolicyTest, "EF.Equipment.Policy.Contracts", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentPolicyTest, "EF.Equipment.Policy.Contracts", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
 bool FEFEquipmentPolicyTest::RunTest(const FString&)
 {
     const auto Torso = FGameplayTag::RequestGameplayTag(TEXT("ItemSlot.Underwear.Torso"));
@@ -32,6 +34,14 @@ bool FEFEquipmentPolicyTest::RunTest(const FString&)
     TestFalse(TEXT("Authoring beyond ceiling is rejected, not silently certified"), Profile->Validate(Error));
     Profile->WeightReduction = 0.2; Profile->ContentCapacity = 0;
     TestFalse(TEXT("Zero capacity is rejected"), Profile->Validate(Error));
+    using EFEquipmentTravelPolicy::IsPawnClassCompatible;
+    const UClass* Pawn = APawn::StaticClass(); const UClass* Character = ACharacter::StaticClass();
+    TestTrue(TEXT("Travel accepts the authored derived destination pawn"), IsPawnClassCompatible(Pawn, Character, Character, true));
+    TestTrue(TEXT("Exact saved pawn class remains valid"), IsPawnClassCompatible(Pawn, Pawn, nullptr, false));
+    TestFalse(TEXT("Disk save loading still rejects a different pawn class"), IsPawnClassCompatible(Pawn, Character, Character, false));
+    TestFalse(TEXT("Travel rejects an unauthored subclass"), IsPawnClassCompatible(Pawn, Character, Pawn, true));
+    TestFalse(TEXT("Travel cannot narrow a saved subclass to its parent"), IsPawnClassCompatible(Character, Pawn, Pawn, true));
+    TestFalse(TEXT("Travel rejects a missing saved class"), IsPawnClassCompatible(nullptr, Character, Character, true));
     return true;
 }
 #endif

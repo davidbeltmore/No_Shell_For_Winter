@@ -77,6 +77,18 @@ def tick(dt):
             unreal.EFEquipmentFunctionLibrary.buy_items(S['vendor'],item,S['pawn'],find(S['page'],'ACF_Buy_WB'))
             check(contains(S['inv'],guid(item)) and not contains(S['vendor'],guid(item)),'Withdrawal returns original GUID')
             check(S['inv'].get_current_currency_amount()==S['currency'],'Withdrawal does not change currency')
+            stack_class=unreal.load_class(None,'/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C')
+            S['inv'].add_item_to_inventory_by_class(stack_class,4,False)
+            stack=next(i for i in S['inv'].get_all_items_of_class_in_inventory(stack_class) if i.get_editor_property('count')>=4)
+            if stack.get_editor_property('is_equipped'): S['c'].request_unequip(guid(stack))
+            stack_count=stack.get_editor_property('count'); stack_guid=guid(stack)
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'],stack,S['pawn'],stack_count,panel)
+            deposited=next(i for i in S['vendor'].get_inventory() if guid(i).to_string()==stack_guid.to_string())
+            check(deposited.get_editor_property('count')==stack_count and not contains(S['inv'],stack_guid),'Native deposit preserves a whole stack GUID and quantity')
+            unreal.EFEquipmentFunctionLibrary.buy_items(S['vendor'],deposited,S['pawn'],find(S['page'],'ACF_Buy_WB'))
+            restored=next(i for i in S['inv'].get_inventory() if guid(i).to_string()==stack_guid.to_string())
+            check(restored.get_editor_property('count')==stack_count and not contains(S['vendor'],stack_guid),'Native withdrawal restores the whole stack GUID and quantity')
+            check(S['inv'].get_current_currency_amount()==S['currency'],'Stack round trip does not change currency')
             S['ui'].remove_in_game_widget(S['page'],True,True)
             cls=unreal.load_class(None,'/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentBag.WBP_EquipmentBag_C')
             S['page']=S['ui'].spawn_in_game_widget(cls,False,True,unreal.GameplayTag())
@@ -95,11 +107,46 @@ def tick(dt):
             # and can leave misleading resized viewport imagery under the UI.
             step('visual',1)
         elif p=='visual':
-            if (OUT/'visual_done.txt').exists(): step('bag_take')
+            if (OUT/'visual_done.txt').exists():
+                assert (OUT/'visual_done.txt').read_text().strip().startswith('PASS:'), 'Bag visual review did not pass'
+                step('bag_take')
         elif p=='bag_take':
             bag=S['page'].get_bag_inventory(); item=bag.get_inventory()[0]
             unreal.EFEquipmentFunctionLibrary.buy_items(bag,item,S['pawn'],find(S['page'],'ACF_Buy_WB'))
             check(contains(S['inv'],guid(item)) and not bag.get_inventory(),'Native bag withdrawal preserves GUID')
+            stack_class=unreal.load_class(None,'/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C')
+            stack=next(i for i in S['inv'].get_all_items_of_class_in_inventory(stack_class) if i.get_editor_property('count')>=4)
+            stack_id=guid(stack); stack_count=stack.get_editor_property('count')
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(bag,stack,S['pawn'],stack_count,find(S['page'],'ACF_Sell_WB'))
+            contained=next(i for i in bag.get_inventory() if guid(i).to_string()==stack_id.to_string())
+            check(contained.get_editor_property('count')==stack_count and not contains(S['inv'],stack_id),'Native bag stores a whole stack with its original GUID and quantity')
+            unreal.EFEquipmentFunctionLibrary.buy_items(bag,contained,S['pawn'],find(S['page'],'ACF_Buy_WB'))
+            restored=next(i for i in S['inv'].get_inventory() if guid(i).to_string()==stack_id.to_string())
+            check(not bag.get_inventory() and restored.get_editor_property('count')==stack_count,'Native bag extracts the same whole stack and quantity')
+            # Exercise the authored capacity through the same native page adapter.
+            capacity=unreal.load_asset('/Game/_Game/Data/Equipment/DA_Satchel2Rules').get_editor_property('content_capacity')
+            item_class=S['item'].get_editor_property('item_class')
+            unit_weight=unreal.get_default_object(item_class).get_item_info().get_editor_property('item_weight')
+            units=round(capacity/unit_weight)
+            check(unit_weight>0 and abs(units*unit_weight-capacity)<0.000001 and 1<=units<=100,'Authored bag capacity has an exact bounded item fixture')
+            original_guids={guid(i).to_string() for i in S['inv'].get_inventory()}
+            S['inv'].add_item_to_inventory_by_class(item_class,units+1,False)
+            added=[i for i in S['inv'].get_inventory() if guid(i).to_string() not in original_guids]
+            check(len(added)==units+1 and all(i.get_editor_property('count')==1 for i in added),'Capacity fixture contains distinct original item GUIDs')
+            for entry in added[:units]:
+                unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(bag,entry,S['pawn'],1,find(S['page'],'ACF_Sell_WB'))
+            check({guid(i).to_string() for i in bag.get_inventory()}=={guid(i).to_string() for i in added[:units]},'Native bag accepts exactly its authored capacity without GUID loss')
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(bag,added[-1],S['pawn'],1,find(S['page'],'ACF_Sell_WB'))
+            check(contains(S['inv'],guid(added[-1])) and len(bag.get_inventory())==units,'Native bag rejects one item above exact capacity')
+            for entry in list(bag.get_inventory()):
+                unreal.EFEquipmentFunctionLibrary.buy_items(bag,entry,S['pawn'],find(S['page'],'ACF_Buy_WB'))
+            check(not bag.get_inventory() and all(contains(S['inv'],guid(i)) for i in added),'Native capacity round trip conserves every GUID and quantity')
+            starter=unreal.load_class(None,'/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C')
+            nested=S['inv'].get_all_items_of_class_in_inventory(starter)[0]
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(bag,nested,S['pawn'],1,find(S['page'],'ACF_Sell_WB'))
+            check(not bag.get_inventory() and contains(S['inv'],guid(nested)),'Native bag page rejects container nesting without ownership loss')
+            for entry in added: S['inv'].remove_item(entry,1)
+            check(S['inv'].get_current_currency_amount()==S['currency'],'Capacity and nesting checks preserve currency')
             S['ui'].remove_in_game_widget(S['page'],True,True)
             S['interaction']=S['pawn'].get_component_by_class(unreal.ACFInteractionComponent)
             cls=unreal.load_class(None,'/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C')
@@ -174,6 +221,7 @@ def tick(dt):
                 step('minigame_visual')
         elif p=='minigame_visual':
             if (OUT/'minigame_visual_done.txt').exists():
+                assert (OUT/'minigame_visual_done.txt').read_text().strip().startswith('PASS:'), 'Lockpick visual review did not pass'
                 check(unreal.EFEquipmentAuthoringLibrary.send_focused_inventory_key(S['click_button'],'BackSpace'),'Minigame receives BackSpace through existing Slate focus')
                 check(S['lock'].is_locked() and not S['lock'].is_session_active(),'Keyboard cancellation retains the lock and clears session')
                 check(S['lock'].get_required_lockpick_count(S['pawn'])==S['pick_count'],'Opening and cancellation consume no lockpicks')

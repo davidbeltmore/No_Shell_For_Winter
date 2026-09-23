@@ -182,7 +182,9 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::PreviewEquip(FGuid Guid, FG
     FInventoryItem Item;
     if (!Equipment->GetItemByGuid(Guid, Item) || !Item.Item) return FEFEquipmentResult::Failure(TEXT("The item is no longer in your inventory."));
     auto* Equippable = Cast<UACFEquippableItem>(Item.Item);
-    if (!Equippable || !Equipment->CanBeEquipped(Item.ItemClass)) return FEFEquipmentResult::Failure(TEXT("This item cannot be equipped."));
+    // Native quick-slot consumables are UACFItem subclasses, not necessarily
+    // UACFEquippableItem. ACF's own type policy admits them without consuming.
+    if (!Equipment->CanBeEquipped(Item.ItemClass)) return FEFEquipmentResult::Failure(TEXT("This item cannot be equipped."));
     const auto Possible = Item.Item->GetPossibleItemSlots();
     const bool bManaged = Item.Item->IsA<UEFEquipmentArmor>() || Item.Item->IsA<UEFEquipmentAccessory>();
     auto Available = [&](FGameplayTag Slot)
@@ -209,7 +211,7 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::PreviewEquip(FGuid Guid, FG
         if (Tag != Destination && !Registry->Find(Tag)) return FEFEquipmentResult::Failure(TEXT("The item reserves an unavailable slot."));
     TGuardValue<bool> Checking(bCheckingRequirements, true);
     TGuardValue<TObjectPtr<UACFItem>> Authorized(AuthorizedItem, Item.Item);
-    if (!Equippable->CanBeEquipped(Equipment)) return FEFEquipmentResult::Failure(TEXT("The native equipment requirements are not met."));
+    if (Equippable && !Equippable->CanBeEquipped(Equipment)) return FEFEquipmentResult::Failure(TEXT("The native equipment requirements are not met."));
     FEFEquipmentResult Result = FEFEquipmentResult::Success(); Result.SelectedSlot = Destination; Result.Revision = Revision;
     for (const auto& Current : Equipment->GetCurrentEquipment().GetEquippedItems())
         if (Current.ItemGuid != Guid && FEFEquipmentPolicy::SlotsConflict(Occupancy(Item.Item, Destination), Occupancy(Current.Item, Current.ItemSlot))) Result.DisplacedItems.AddUnique(Current.ItemGuid);

@@ -21,17 +21,35 @@
 #include "Misc/FileHelper.h"
 #include "EFEquipmentDeathRouting.h"
 #include "Tests/EFEquipmentDeathTestTypes.h"
+#include "EnhancedInputDeveloperSettings.h"
+#include "EnhancedInputSubsystems.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEFEquipmentIntegrationTest, "EF.Equipment.Native.Vertical", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
 bool FEFEquipmentIntegrationTest::RunTest(const FString&)
 {
     const auto Init = UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(false)
         .CreateNavigation(false).CreateAISystem(false).RequiresHitProxies(false).ShouldSimulatePhysics(false);
-    UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, NAME_None, nullptr, true, ERHIFeatureLevel::Num, &Init);
+    // Native drop/pickup requires game-world actor construction (None does not
+    // preserve that lifecycle). This synchronous fixture has no local input.
+    // Suppress only this world's input subsystem during creation, restoring the
+    // setting before any assertion or native operation. Never save the CDO.
+    UWorld* World = nullptr;
+    {
+        auto* Settings = GetMutableDefault<UEnhancedInputDeveloperSettings>();
+        struct FInputScope
+        {
+            UEnhancedInputDeveloperSettings* Settings;
+            bool Original;
+            ~FInputScope() { Settings->bEnableWorldSubsystem = Original; }
+        } InputScope{Settings, Settings->bEnableWorldSubsystem != 0};
+        Settings->bEnableWorldSubsystem = false;
+        World = UWorld::CreateWorld(EWorldType::Game, false, NAME_None, nullptr, true, ERHIFeatureLevel::Num, &Init);
+    }
     if (!TestNotNull(TEXT("Native fixture world"), World)) return false;
     GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
     struct FCleanup { UWorld* World; ~FCleanup() { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); World->MarkObjectsPendingKill(); } } Cleanup{World};
+    TestNull(TEXT("Isolated native fixture has no Enhanced Input world subsystem"), World->GetSubsystem<UEnhancedInputWorldSubsystem>());
     auto* Pawn = World->SpawnActor<APawn>();
     auto* Native = NewObject<UACFEquipmentComponent>(Pawn); Pawn->AddInstanceComponent(Native); Native->RegisterComponent();
     EFEquipmentACF::Inventory(Native)->Init(Pawn); Native->SetIsInitialized(true);
@@ -55,6 +73,13 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     if (HasAnyErrors()) return false;
     auto Equip = [&](const FInventoryItem& Entry) { return Coordinator->RequestEquip(Entry.GetItemGuid(), FGameplayTag()); };
     auto IsEquipped = [&](const FInventoryItem& Entry) { FInventoryItem Live; return Native->GetItemByGuid(Entry.GetItemGuid(), Live) && Live.bIsEquipped; };
+    const auto Potion = Add(TEXT("/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C"), 3);
+    const auto QuickSlot = FGameplayTag::RequestGameplayTag(TEXT("ItemSlot.Consumable1"));
+    auto Available = Native->GetAvailableEquipmentSlot(); Available.AddUnique(QuickSlot); Native->SetAvailableEquipmentSlot(Available);
+    TestTrue(TEXT("Native quick-slot consumable equips without an equippable subclass"), Coordinator->RequestEquip(Potion.GetItemGuid(), QuickSlot).bSuccess);
+    FInventoryItem PotionAfter;
+    TestTrue(TEXT("Assigning a quick slot preserves potion GUID and quantity"), Native->GetItemByGuid(Potion.GetItemGuid(), PotionAfter) && PotionAfter.Count == 3);
+    TestTrue(TEXT("Native quick-slot consumable unequips through coordinator"), Coordinator->RequestUnequip(Potion.GetItemGuid()).bSuccess);
     Native->EquipItemFromInventory(Bra);
     TestFalse(TEXT("Direct native caller is vetoed"), IsEquipped(Bra));
     TestTrue(TEXT("Bra equips through coordinator"), Equip(Bra).bSuccess);
@@ -94,7 +119,7 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestTrue(TEXT("Unequipping exposes original content weight"), Coordinator->GetWeightSummary().bOverburdened);
     TestTrue(TEXT("Overburdened extraction is allowed"), Coordinator->MoveFromContainer(Bag.GetItemGuid(), Bra.GetItemGuid(), 1).bSuccess);
     TestTrue(TEXT("Extraction retains item identity"), Native->GetItemByGuid(Bra.GetItemGuid(), Live) && Live.Item == Bra.Item);
-    TestEqual(TEXT("All root GUIDs conserved"), Native->GetInventory().Num(), 7);
+    TestEqual(TEXT("All root GUIDs conserved, including native quick-slot consumable"), Native->GetInventory().Num(), 8);
     FString Error;
     TestTrue(TEXT("Reinsert while overloaded does not increase weight"), Coordinator->MoveToContainer(Bra.GetItemGuid(), Bag.GetItemGuid(), 1).bSuccess);
     auto* Container = Coordinator->ResolveContainer(Bag.GetItemGuid(), Error); TArray<uint8> Bytes;
@@ -433,6 +458,8 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestFalse(TEXT("Death clears stale managed reservations"), Coordinator->GetSlotViews().ContainsByPredicate([](const auto& View) { return View.bReserved; }));
     DropPolicy->SetPropertyValue_InContainer(Native, true);
     auto* DeathContainer = Coordinator->ResolveContainer(Bag.GetItemGuid(), Error);
+    if (!TestNotNull(TEXT("Death policy retains a resolvable bag: ") + Error, DeathContainer)) return false;
+    if (!TestTrue(TEXT("Death policy retains contents"), !DeathContainer->GetInventory().IsEmpty())) return false;
     const auto ProtectedChild = DeathContainer->GetInventory()[0]; auto ProtectedInfo = ProtectedChild.Item->GetItemInfo();
     const auto OriginalInfo = ProtectedInfo; ProtectedInfo.bDroppable = false; ProtectedChild.Item->SetItemDescriptor(ProtectedInfo);
     Coordinator->ProcessOwnerDeath(DeathCallback);

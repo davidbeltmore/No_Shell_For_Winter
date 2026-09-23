@@ -10,6 +10,8 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "EFEquipmentSaveSubsystem.h"
+#include "Calysto/EFCalystoDirectorSettings.h"
 
 namespace ProjectCalystoContentProviderPrivate
 {
@@ -44,6 +46,17 @@ namespace ProjectCalystoContentProviderPrivate
 		const int64 Offset=int64(Minimum)+FMath::Min<int64>(Span-1,FMath::FloorToInt64(Unit*double(Span)));
 		return int32(FMath::Clamp<int64>(Key.FloorNumber+Offset,1,MAX_int32));
 	}
+}
+
+bool FProjectCalystoContentAttemptProvider::PreservePlayerForHubTravel(UWorld* SourceWorld, FString& Error)
+{
+	Error.Reset();
+	auto* Game = IsValid(SourceWorld) && SourceWorld->IsGameWorld() ? SourceWorld->GetGameInstance() : nullptr;
+	auto* Save = Game ? Game->GetSubsystem<UEFEquipmentSaveSubsystem>() : nullptr;
+	if (!Save) { Error = TEXT("Player inventory travel persistence is unavailable."); return false; }
+	const FString Destination = GetDefault<UEFCalystoDirectorSettings>()->HubMap.ToSoftObjectPath().GetLongPackageName();
+	if (!Save->CaptureTravelForMap(Destination)) { Error = Save->GetLastError().ToString(); return false; }
+	return true;
 }
 
 bool FProjectCalystoContentAttemptProvider::CapturePreTravelSnapshot(const FGuid& RequestId, UWorld* SourceWorld,

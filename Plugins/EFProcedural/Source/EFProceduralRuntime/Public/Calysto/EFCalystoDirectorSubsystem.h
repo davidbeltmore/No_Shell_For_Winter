@@ -111,7 +111,7 @@ private:
 	void ReleaseLoads();
 	void InvalidatePendingLoads();
 	bool CanReceiveLoadCallback(FGuid Request) const;
-	void IssueRequestedHubTravel();
+	bool IssueRequestedHubTravel();
 	void PublishFailure();
 	friend class FEFCalystoDirectorLifecycleTests;
 	friend class FEFCalystoDirectorDetachedSnapshotRecoveryTests;

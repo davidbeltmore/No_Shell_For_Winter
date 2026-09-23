@@ -2,6 +2,7 @@
 #include "EFEquipmentSaveGame.h"
 #include "EFEquipmentSaveFiles.h"
 #include "EFEquipmentPersistence.h"
+#include "EFEquipmentTravelPolicy.h"
 #include "EFEquipmentCoordinatorComponent.h"
 #include "EFEquipmentData.h"
 #include "ALSFunctionLibrary.h"
@@ -13,9 +14,12 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
+#include "Misc/PackageName.h"
+#include "TimerManager.h"
 
 namespace EFEquipmentSaveIntegration
 {
@@ -68,16 +72,61 @@ void UEFEquipmentSaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection); Collection.InitializeDependency<UALSLoadAndSaveSubsystem>();
     GetGameInstance()->GetOnPawnControllerChanged().AddUniqueDynamic(this, &ThisClass::HandlePlayerPossessed);
+    PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMap);
 }
 void UEFEquipmentSaveSubsystem::Deinitialize()
 {
     GetGameInstance()->GetOnPawnControllerChanged().RemoveDynamic(this, &ThisClass::HandlePlayerPossessed);
+    ClearTravelArrival();
+    FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
     Super::Deinitialize();
 }
 void UEFEquipmentSaveSubsystem::HandlePlayerPossessed(APawn* Pawn, AController* Controller)
 {
     if (Pawn && Controller && Controller->IsLocalPlayerController() && Pawn->HasAuthority())
         UEFEquipmentCoordinatorComponent::FindOrCreate(Pawn);
+}
+void UEFEquipmentSaveSubsystem::HandlePostLoadMap(UWorld* World)
+{
+    if (!World || World->GetGameInstance() != GetGameInstance() || AutomaticTravelDestination.IsEmpty()
+        || UWorld::RemovePIEPrefix(World->GetOutermost()->GetName()) != AutomaticTravelDestination) return;
+    AutomaticTravelDestination.Reset();
+    // A native caller may already have restored the same single-use snapshot.
+    if (!TravelingPlayer) return;
+    TravelArrivalWorld = World; TravelArrivalDeadline = FPlatformTime::Seconds() + 5.0;
+    World->GetTimerManager().SetTimer(TravelArrivalTimer, this, &ThisClass::PollTravelArrival, .1f, true);
+}
+void UEFEquipmentSaveSubsystem::ClearTravelArrival()
+{
+    if (auto* World = TravelArrivalWorld.Get()) World->GetTimerManager().ClearTimer(TravelArrivalTimer);
+    TravelArrivalWorld.Reset();
+}
+void UEFEquipmentSaveSubsystem::PollTravelArrival()
+{
+    if (!TravelingPlayer) { ClearTravelArrival(); return; }
+    auto* World = TravelArrivalWorld.Get();
+    auto* Controller = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
+    APawn* Pawn = Controller ? Controller->GetPawn() : nullptr;
+    FALSPlayerData Player; TravelingPlayer->GetLocalPlayer(Player);
+    const auto* GameMode = World ? World->GetAuthGameMode() : nullptr;
+    const bool bReady = World && World == GetWorld() && Controller && Pawn && Pawn->HasActorBegunPlay()
+        && EFEquipmentTravelPolicy::IsPawnClassCompatible(Player.Pawn.Class, Pawn->GetClass(),
+            GameMode ? GameMode->DefaultPawnClass.Get() : nullptr, true)
+        && Player.PlayerController.Class == Controller->GetClass()
+        && Native()->GetSystemState() == ELoadingState::EIdle && !bBusy;
+    if (!bReady && FPlatformTime::Seconds() < TravelArrivalDeadline) return;
+    ClearTravelArrival();
+    if (!bReady)
+    {
+        LastError = FString::Printf(TEXT("Travel restoration is waiting for the saved player/controller classes. Expected %s / %s; found %s / %s. The recovery snapshot was retained."),
+            *GetNameSafe(Player.Pawn.Class), *GetNameSafe(Player.PlayerController.Class),
+            *GetNameSafe(Pawn ? Pawn->GetClass() : nullptr), *GetNameSafe(Controller ? Controller->GetClass() : nullptr));
+    }
+    if (!bReady || !RestoreTravel())
+    {
+        if (auto* UI = GetGameInstance()->GetSubsystem<UANSUIPlayerSubsystem>()) UI->BroadcastNotification(GetLastError(), 12.f);
+        UE_LOG(LogTemp, Error, TEXT("EFEquipment travel restore retained its recovery snapshot: %s"), *LastError);
+    }
 }
 
 UALSLoadAndSaveSubsystem* UEFEquipmentSaveSubsystem::Native() const
@@ -90,7 +139,7 @@ bool UEFEquipmentSaveSubsystem::Save(const FString& Slot, bool bWorld, bool bLoc
 {
     using namespace EFEquipmentSaveIntegration;
     LastError.Reset(); auto* ALS = Native();
-    if (bBusy || !ALS || ALS->GetSystemState() != ELoadingState::EIdle)
+    if (IsBusy() || !ALS || ALS->GetSystemState() != ELoadingState::EIdle)
     { LastError = TEXT("A save or load is already in progress."); return false; }
     TGuardValue<bool> Busy(bBusy, true);
     FEFEquipmentSlotBackup Before, BeforeMetadata;
@@ -192,12 +241,16 @@ void UEFEquipmentSaveSubsystem::PublishMigrationSummary(UEFEquipmentSaveGame* Lo
     }
 }
 
-bool UEFEquipmentSaveSubsystem::RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform)
+bool UEFEquipmentSaveSubsystem::RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform, bool bTravel)
 {
     auto* Controller = UGameplayStatics::GetPlayerController(GetWorld(), 0); APawn* Pawn = Controller ? Controller->GetPawn() : nullptr;
     auto* Equipment = UEFEquipmentCoordinatorComponent::FindOrCreate(Pawn);
     FALSPlayerData Player; if (Loaded) Loaded->GetLocalPlayer(Player);
-    if (!Loaded || !Equipment || !Controller || Player.Pawn.Class != Pawn->GetClass() || Player.PlayerController.Class != Controller->GetClass())
+    const auto* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode() : nullptr;
+    if (!Loaded || !Equipment || !Controller || !EFEquipmentTravelPolicy::IsPawnClassCompatible(
+        Player.Pawn.Class, Pawn ? Pawn->GetClass() : nullptr,
+        GameMode ? GameMode->DefaultPawnClass.Get() : nullptr, bTravel)
+        || Player.PlayerController.Class != Controller->GetClass())
     { LastError = TEXT("The saved player or controller class does not match this game."); return false; }
     TStrongObjectPtr<UEFEquipmentSaveGame> Recovery(NewObject<UEFEquipmentSaveGame>());
     if (!EFEquipmentSaveIntegration::CaptureLocal(GetWorld(), Recovery.Get(), LastError)) return false;
@@ -217,7 +270,7 @@ bool UEFEquipmentSaveSubsystem::RestoreLocalState(UEFEquipmentSaveGame* Loaded, 
 bool UEFEquipmentSaveSubsystem::LoadLocal(const FString& Slot, bool bTransform)
 {
     LastError.Reset();
-    if (bBusy || Native()->GetSystemState() != ELoadingState::EIdle) { LastError = TEXT("A save or load is already in progress."); return false; }
+    if (IsBusy() || Native()->GetSystemState() != ELoadingState::EIdle) { LastError = TEXT("A save or load is already in progress."); return false; }
     TGuardValue<bool> Busy(bBusy, true);
     TStrongObjectPtr<UALSSaveGame> Previous(Native()->GetCurrentSaveGame());
     TStrongObjectPtr<UEFEquipmentSaveGame> Loaded(PrepareLoad(Slot));
@@ -230,7 +283,7 @@ bool UEFEquipmentSaveSubsystem::LoadLocal(const FString& Slot, bool bTransform)
 void UEFEquipmentSaveSubsystem::LoadWorld(const FString& Slot, const FOnLoadFinished& Callback, bool bPlayer)
 {
     LastError.Reset();
-    if (bBusy || Native()->GetSystemState() != ELoadingState::EIdle)
+    if (IsBusy() || Native()->GetSystemState() != ELoadingState::EIdle)
     { LastError = TEXT("A save or load is already in progress."); Callback.ExecuteIfBound(false); return; }
     TStrongObjectPtr<UEFEquipmentSaveGame> Loaded(PrepareLoad(Slot));
     if (!Loaded) { Callback.ExecuteIfBound(false); return; }
@@ -256,10 +309,18 @@ void UEFEquipmentSaveSubsystem::CompleteNativeLoad(bool bSuccess)
 bool UEFEquipmentSaveSubsystem::CaptureTravel()
 {
     LastError.Reset();
-    if (bBusy || Native()->GetSystemState() != ELoadingState::EIdle) { LastError = TEXT("A save or load is already in progress."); return false; }
+    if (IsBusy() || Native()->GetSystemState() != ELoadingState::EIdle) { LastError = TEXT("A save or load is already in progress."); return false; }
     auto* Candidate = NewObject<UEFEquipmentSaveGame>();
     if (!EFEquipmentSaveIntegration::CaptureLocal(GetWorld(), Candidate, LastError) || !EFEquipmentPersistence::ValidateSlot(GetWorld(), Candidate, LastError)) return false;
-    TravelingPlayer = Candidate; Native()->SetLoadType(ELoadType::EPlayerOnly); return true;
+    TravelingPlayer = Candidate; AutomaticTravelDestination.Reset(); Native()->SetLoadType(ELoadType::EPlayerOnly); return true;
+}
+
+bool UEFEquipmentSaveSubsystem::CaptureTravelForMap(const FString& DestinationPackage)
+{
+    if (!FPackageName::IsValidLongPackageName(DestinationPackage))
+    { LastError = TEXT("The equipment travel destination is invalid."); return false; }
+    if (!CaptureTravel()) return false;
+    AutomaticTravelDestination = DestinationPackage; return true;
 }
 
 bool UEFEquipmentSaveSubsystem::RestoreTravel()
@@ -268,6 +329,6 @@ bool UEFEquipmentSaveSubsystem::RestoreTravel()
     if (bBusy || Native()->GetSystemState() != ELoadingState::EIdle) { LastError = TEXT("A save or load is already in progress."); return false; }
     TGuardValue<bool> Busy(bBusy, true);
     if (!TravelingPlayer) { LastError = TEXT("No equipment travel snapshot is available."); return false; }
-    if (!RestoreLocalState(TravelingPlayer, false)) return false;
-    TravelingPlayer = nullptr; Native()->SetLoadType(ELoadType::EDontReload); return true;
+    if (!RestoreLocalState(TravelingPlayer, false, true)) return false;
+    TravelingPlayer = nullptr; AutomaticTravelDestination.Reset(); ClearTravelArrival(); Native()->SetLoadType(ELoadType::EDontReload); return true;
 }

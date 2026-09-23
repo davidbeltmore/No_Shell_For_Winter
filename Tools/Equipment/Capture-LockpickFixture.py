@@ -1,4 +1,4 @@
-"""Capture the fixture's real Slate minigame before releasing its visual gate."""
+"""Capture the real Slate minigame; leave its gate pending for actual visual review."""
 import argparse, base64, json, time
 from pathlib import Path
 from UnrealMcp import Client
@@ -18,7 +18,6 @@ while time.monotonic()<deadline:
             assert capture['mimeType']=='image/png'
             path=args.run_directory/'minigame-slate.png'
             path.write_bytes(base64.b64decode(capture['data'],validate=True))
-            (args.run_directory/'minigame_visual_done.txt').write_text('Captured through native MCP; visual review required.')
             print(path);break
         if state.get('status') in ('PASS','FAIL'): raise RuntimeError('Fixture finished before visual gate: '+str(state.get('error','')))
     time.sleep(0.5)

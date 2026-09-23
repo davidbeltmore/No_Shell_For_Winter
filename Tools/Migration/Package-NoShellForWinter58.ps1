@@ -3,7 +3,8 @@ param(
     [string]$EngineRoot = "D:\Unreal Engine 5\Library\UE_5.8",
     [ValidateSet("Development", "Shipping")]
     [string]$Configuration = "Development",
-    [string]$ArchiveRoot
+    [string]$ArchiveRoot,
+    [string]$WorkRoot
 )
 
 $ErrorActionPreference = "Stop"
@@ -109,7 +110,9 @@ $calystoV6CompiledRoots = @(
     "Plugins\EFProcedural\Source\EFProceduralRuntime",
     "Plugins\EFProcedural\Source\EFProceduralPCGRuntime",
     "Plugins\EFProcedural\Source\EFProceduralACFURuntime",
-    "Plugins\EFProjectSystems\Source\EFProjectSystemsGameplay"
+    "Plugins\EFProjectSystems\Source\EFProjectSystemsGameplay",
+    "Plugins\EFEquipment\Source\EFEquipmentRuntime",
+    "Plugins\EFClothingMorph\Source\EFClothingMorphRuntime"
 ) | ForEach-Object { Join-Path $ProjectRoot $_ }
 $calystoV6CompiledInputs = @($calystoV6CompiledRoots | ForEach-Object {
     Get-ChildItem -LiteralPath $_ -Recurse -File | Where-Object {
@@ -276,7 +279,7 @@ $configuredCalystoDirectorLines = @($efProceduralConfigText -split "`r?`n" | Whe
 })
 if ($configuredCalystoDirectorLines.Count -ne 1 -or
     [string]$configuredCalystoDirectorLines[0] -cne "DirectorPolicy=$expectedPolicyObject") {
-    throw "DefaultGame.ini must configure exactly one Calysto Director authority: $expectedPolicyObject"
+    throw "DefaultGame.ini must preserve the exact legacy V6 migration policy: $expectedPolicyObject"
 }
 $requiredPreservedProjectConfigTokens = @(
     '[/Script/EFCharacterCreationRuntime.EFCharacterCreationSettings]',
@@ -408,7 +411,7 @@ if (@(Compare-Object -CaseSensitive -ReferenceObject $expectedBloodPackages `
 }
 Write-Host (@(
     "Calysto V6 packaging preflight: PASS"
-    "authority=V6-primary-data-asset"
+    "scope=preserved-V6-migration-contract"
     "hash_schema=$hashSchemaVersion"
     "blood_closure=T_Splat_04+T_Splat_N_04"
     "runtime_package_tests=PENDING-until-definitive-V6-runners"
@@ -448,7 +451,7 @@ $latestRequiredBuildInputUtc = @(
 foreach ($buildOutput in @($gameBinary, $gameReceipt)) {
     if ((Get-Item -LiteralPath $buildOutput).LastWriteTimeUtc -lt $latestRequiredBuildInputUtc) {
         throw (@(
-            "$Configuration Game output predates the Calysto V6 runtime implementation: $buildOutput."
+            "$Configuration Game output predates the current project runtime implementation: $buildOutput."
             "Run Build-NoShellForWinterGame58.ps1 for $Configuration before packaging."
         ) -join " ")
     }
@@ -491,6 +494,24 @@ if ($clothingCertification.status -ne 'UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE
 }
 Write-Host "EF Clothing Morph V4 pre-package catalog certification: PASS"
 
+# Current equipment and travel authoring are validated separately from the
+# immutable V6 migration contract above. Compile consumers in memory only.
+$equipmentPreflightStarted = Get-Date
+$equipmentPreflightPath = Join-Path $ProjectRoot 'Saved/EquipmentQA/cook_preflight.json'
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot 'Tools/Migration/Launch-NoShellForWinterEditor58.ps1') `
+    -ProjectRoot $ProjectRoot -EngineRoot $EngineRoot `
+    -PythonScript (Join-Path $ProjectRoot 'Tools/Equipment/Validate-EquipmentCookClosure.py')
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $equipmentPreflightPath) -or
+    (Get-Item -LiteralPath $equipmentPreflightPath).LastWriteTime -lt $equipmentPreflightStarted) {
+    throw 'Current equipment cook preflight did not publish a fresh receipt.'
+}
+$equipmentPreflight = Get-Content -Raw -LiteralPath $equipmentPreflightPath | ConvertFrom-Json
+if ($equipmentPreflight.status -cne 'PASS' -or @($equipmentPreflight.assets_saved).Count -ne 0) {
+    throw "Current equipment cook preflight failed: $equipmentPreflightPath"
+}
+$requiredCookSupportPackages = @($requiredCookSupportPackages + @($equipmentPreflight.cook_support_packages) | Sort-Object -Unique)
+$requiredCookPackageArgument = '-map=' + (($requiredCookMaps + $requiredCookSupportPackages) -join '+')
+
 if ([string]::IsNullOrWhiteSpace($ArchiveRoot)) {
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $ArchiveRoot = Join-Path $ProjectRoot `
@@ -501,8 +522,15 @@ if (Test-Path -LiteralPath $archiveFullPath) {
     throw "Fresh package archive already exists; choose a new path: $archiveFullPath"
 }
 $packageLogPath = "$archiveFullPath.Package.log"
+[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($archiveFullPath))
 if (Test-Path -LiteralPath $packageLogPath) {
     throw "Fresh package log already exists; choose a new archive path: $packageLogPath"
+}
+$workArguments = @()
+if (-not [string]::IsNullOrWhiteSpace($WorkRoot)) {
+    $WorkRoot = [IO.Path]::GetFullPath($WorkRoot)
+    if (Test-Path -LiteralPath $WorkRoot) { throw 'The optional cook/stage WorkRoot must be fresh.' }
+    $workArguments = @(('-CookOutputDir=' + (Join-Path $WorkRoot 'Cooked/Windows')), ('-stagingdirectory=' + (Join-Path $WorkRoot 'Staged')))
 }
 
 $originalGameConfigBytes = [IO.File]::ReadAllBytes($gameConfig)
@@ -544,6 +572,7 @@ try {
         -target=NoShellForWinter `
         -nocompileeditor `
         -skipbuild `
+        @workArguments `
         $requiredCookPackageArgument `
         -cook `
         -stage `
@@ -590,7 +619,11 @@ $contractReceipt = [ordered]@{
     generated_utc = [DateTime]::UtcNow.ToString("o")
     target = "NoShellForWinter"
     configuration = $Configuration
+    cook_stage_work_root = $WorkRoot
     authority_schema_version = $authoritySchemaVersion
+    contract_scope = 'Preserved V6 migration inputs; not the active travel authority'
+    active_travel_authority = $equipmentPreflight.travel_authority
+    equipment_preflight_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $equipmentPreflightPath).Hash
     canonical_hash_schema_version = $hashSchemaVersion
     policy_object = $expectedPolicyObject
     policy_class = $expectedPolicyClass
@@ -655,6 +688,7 @@ $contractJson = $contractReceipt | ConvertTo-Json -Depth 5
     [Text.UTF8Encoding]::new($false))
 
 Write-Host "NoShellForWinter $Configuration fresh cook/package: PASS"
+Copy-Item -LiteralPath $equipmentPreflightPath -Destination (Join-Path $archiveFullPath 'EquipmentPackagingPreflight.json')
 Write-Host "Calysto V6 packaging contract: $contractReceiptPath"
 Write-Host "Immutable package log: $packageLogPath"
 Write-Output $archiveFullPath

@@ -212,6 +212,7 @@ def tick(dt):
             candidates = [obj for obj in unreal.ObjectIterator(unreal.ANSUIPlayerSubsystem) if obj.get_outer() == instance]
             check(len(candidates) == 1, 'Exactly one native ACF UI subsystem for this game instance')
             ui = candidates[0]
+            S['ui'] = ui
             menu_class = unreal.load_class(None, '/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_InGameMenu_WB.ACF_InGameMenu_WB_C')
             S['menu'] = ui.spawn_in_game_widget(menu_class, False, True, unreal.GameplayTag())
             check(S['menu'] is not None, 'Existing ACF menu opened through native navigation')
@@ -290,108 +291,68 @@ def tick(dt):
             unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['contents_button'], 'Up')
             advance('bag_ui', 0.5)
         elif phase == 'bag_ui':
-            windows = unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentSatchelWindowWidget, False)
-            check(len(windows) == 1, 'Contents opens one native navigation window')
-            S['bag_window'] = windows[0]
-            panels = unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentPanelWidget, False)
-            check(len(panels) == 1, 'Satchel window has one bound contents panel')
-            S['bag_panel'] = panels[0]
-            find = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget
-            S['root_rows'] = find(panels[0], 'InventoryRows')
-            S['bag_rows'] = find(panels[0], 'ContainerRows')
-            check(S['root_rows'].get_children_count() > 0, 'Store list contains root items')
-            # The first visible row is a whole, unique starting item in this fixture.
-            S['stored_item'] = S['native'].get_inventory()[0]
-            check(S['stored_item'].get_editor_property('count') == 1, 'Whole-item transfer fixture is unique')
-            row = S['root_rows'].get_child_at(0)
-            S['store_button'] = find(row, 'TransferButton')
+            pages = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentStoragePage, False) if w.is_activated()]
+            check(len(pages) == 1, 'Contents opens one approved native storage page')
+            S['bag_window'] = pages[0]
+            S['bag_inventory'] = pages[0].get_bag_inventory()
+            check(S['bag_inventory'] is not None, 'Native storage page resolves the real bag inventory')
+            S['stored_item'] = next(i for i in S['native'].get_inventory() if i.get_editor_property('item_guid').to_string() == S['items']['Panty'].get_editor_property('item_guid').to_string())
             S['before_weight'] = S['coordinator'].get_weight_summary().get_editor_property('effective_weight')
-            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['store_button'], 'Down'), 'Store button accepts pointer press')
-            advance('bag_store', 0.1)
-        elif phase == 'bag_store':
-            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['store_button'], 'Up')
+            panel = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(S['bag_window'], 'ACF_Sell_WB')
+            check(panel is not None, 'Approved bag page retains native deposit controls')
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['bag_inventory'], S['stored_item'], S['pawn'], 1, panel)
             advance('bag_store_verify', 0.5)
         elif phase == 'bag_store_verify':
             contents = S['coordinator'].get_container_items(S['items']['Satchel'].get_editor_property('item_guid'))
-            guid = S['stored_item'].get_editor_property('item_guid').to_string()
-            check(any(i.get_editor_property('item_guid').to_string() == guid for i in contents), 'Store click transfers the original GUID into the satchel')
-            check(not any(i.get_editor_property('item_guid').to_string() == guid for i in S['native'].get_inventory()), 'Stored item is absent from root inventory')
-            check(S['coordinator'].get_weight_summary().get_editor_property('effective_weight') < S['before_weight'], 'Equipped satchel reduces only transferred content weight')
-            check(S['bag_rows'].get_children_count() == 1, 'Contents list refreshes after transfer')
-            S['extract_button'] = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(S['bag_rows'].get_child_at(0), 'TransferButton')
-            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['extract_button'], 'Down')
-            advance('bag_extract', 0.1)
-        elif phase == 'bag_extract':
-            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['extract_button'], 'Up')
+            identity = S['stored_item'].get_editor_property('item_guid').to_string()
+            check(len(contents) == 1 and contents[0].get_editor_property('item_guid').to_string() == identity, 'Native storage action preserves original contained GUID')
+            check(not any(i.get_editor_property('item_guid').to_string() == identity for i in S['native'].get_inventory()), 'Stored item is absent from root inventory')
+            check(S['coordinator'].get_weight_summary().get_editor_property('effective_weight') < S['before_weight'], 'Equipped bag reduces transferred content weight')
+            original_capacity = S['coordinator'].get_weight_summary().get_editor_property('base_capacity')
+            S['coordinator'].set_base_carry_capacity(S['coordinator'].get_weight_summary().get_editor_property('effective_weight'))
+            check(S['coordinator'].request_unequip(S['items']['Satchel'].get_editor_property('item_guid')).get_editor_property('success'), 'Full bag can be unequipped at exact player capacity')
+            check(S['coordinator'].get_weight_summary().get_editor_property('overburdened'), 'Unequipping removes reduction and permits overload')
+            check(abs(S['coordinator'].get_weight_summary().get_editor_property('effective_weight') - S['before_weight']) < 0.0001, 'Unequipped bag has no weight reduction')
+            panel = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(S['bag_window'], 'ACF_Buy_WB')
+            unreal.EFEquipmentFunctionLibrary.buy_items(S['bag_inventory'], contents[0], S['pawn'], panel)
+            check(not S['bag_inventory'].get_inventory(), 'Native bag withdrawal succeeds while overloaded')
+            S['coordinator'].set_base_carry_capacity(original_capacity)
+            check(S['coordinator'].request_equip(S['items']['Satchel'].get_editor_property('item_guid'), unreal.GameplayTag()).get_editor_property('success'), 'Bag reequips after overloaded extraction')
             advance('bag_extract_verify', 0.5)
         elif phase == 'bag_extract_verify':
-            guid = S['stored_item'].get_editor_property('item_guid').to_string()
-            check(any(i.get_editor_property('item_guid').to_string() == guid for i in S['native'].get_inventory()), 'Extract click restores the original GUID to root')
-            check(S['bag_rows'].get_children_count() == 0, 'Extraction removes the content row')
+            identity = S['stored_item'].get_editor_property('item_guid').to_string()
+            check(any(i.get_editor_property('item_guid').to_string() == identity for i in S['native'].get_inventory()), 'Native withdrawal restores original GUID to root')
             check(abs(S['coordinator'].get_weight_summary().get_editor_property('effective_weight') - S['before_weight']) < 0.0001, 'Round trip conserves original effective weight')
-            S['close_button'] = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(S['bag_window'], 'CloseButton')
-            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['close_button'], 'Down'), 'Back to inventory accepts pointer press')
-            advance('bag_close', 0.1)
-        elif phase == 'bag_close':
-            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['close_button'], 'Up')
+            S['ui'].remove_in_game_widget(S['bag_window'], True, True)
             advance('bag_close_verify', 0.5)
         elif phase == 'bag_close_verify':
-            check(not S['bag_window'].is_activated(), 'Back to inventory closes the satchel window')
-            check(S['menu'].is_activated(), 'Native inventory navigation resumes after closing satchel')
+            check(not S['bag_window'].is_activated(), 'Native navigation closes the bag page')
+            check(S['menu'].is_activated(), 'Native inventory navigation resumes after closing bag')
             S['vendor'] = unreal.EFEquipmentAuthoringLibrary.create_vendor_fixture(S['world'])
-            check(S['vendor'] is not None, 'PIE vendor uses the native trade component')
+            check(S['vendor'] is not None, 'PIE merchant uses the native trade component')
             S['trade_bag'] = S['items']['Satchel'].get_editor_property('item_guid')
             S['trade_child'] = S['stored_item'].get_editor_property('item_guid')
-            check(S['coordinator'].move_to_container(S['trade_child'], S['trade_bag'], 1).get_editor_property('success'), 'Sale fixture contains a unique item')
+            check(S['coordinator'].move_to_container(S['trade_child'], S['trade_bag'], 1).get_editor_property('success'), 'Sale fixture owns one full bag')
             S['trade_currency'] = S['native'].get_current_currency_amount()
             unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
-            advance('trade_cancel_press', 0.5)
-        elif phase in ('trade_cancel_press', 'trade_sell_press', 'trade_buy_press'):
-            windows = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentSaleWidget, False) if w.is_activated()]
-            check(len(windows) == 1, 'Trade opens exactly one active confirmation')
-            S['trade_window'] = windows[0]
-            find = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget
-            label = str(find(windows[0], 'BreakdownLabel').get_text())
-            check('Total:' in label and ('Buy this' if phase == 'trade_buy_press' else 'Sell this') in label, 'Confirmation shows aggregate price and operation')
-            check('Satchel' in label and label.replace('×', 'x').count('x 1:') >= 2, 'Confirmation breaks down bag and contained item')
-            S['trade_button'] = find(windows[0], 'CancelButton' if phase == 'trade_cancel_press' else 'ConfirmButton')
-            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['trade_button'], 'Down'), 'Trade button accepts pointer press')
-            advance(phase.replace('_press', '_release'), 0.1)
-        elif phase in ('trade_cancel_release', 'trade_sell_release', 'trade_buy_release'):
-            unreal.EFEquipmentAuthoringLibrary.send_inventory_pointer(S['trade_button'], 'Up')
-            advance(phase.replace('_release', '_verify'), 0.5)
-        elif phase == 'trade_cancel_verify':
-            check(not S['trade_window'].is_activated(), 'Cancel closes the trade confirmation')
-            check(S['native'].get_current_currency_amount() == S['trade_currency'], 'Cancelled sale leaves player currency unchanged')
-            check(any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()), 'Cancelled sale retains original full bag')
-            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
-            advance('trade_back', 0.5)
-        elif phase == 'trade_back':
-            windows = [w for w in unreal.WidgetLibrary.get_all_widgets_of_class(S['world'], unreal.EFEquipmentSaleWidget, False) if w.is_activated()]
-            check(len(windows) == 1, 'Keyboard cancel fixture has one active confirmation')
-            S['trade_window'] = windows[0]
-            target = unreal.EFEquipmentAuthoringLibrary.find_inventory_widget(windows[0], 'CancelButton')
-            check(unreal.EFEquipmentAuthoringLibrary.send_inventory_back_key(target), 'Native Slate Backspace event is handled by the dialog')
-            advance('trade_back_verify', 0.5)
-        elif phase == 'trade_back_verify':
-            check(not S['trade_window'].is_activated(), 'Backspace cancels the confirmation')
-            check(S['native'].get_current_currency_amount() == S['trade_currency'], 'Keyboard cancellation preserves currency')
-            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['items']['Satchel'], S['pawn'], 1)
-            advance('trade_sell_press', 0.5)
+            check(S['native'].get_current_currency_amount() == S['trade_currency'], 'Full bag sale rejection leaves currency unchanged')
+            check(any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()) and len(S['coordinator'].get_container_items(S['trade_bag'])) == 1, 'Rejected sale retains bag and child GUIDs')
+            check(not S['vendor'].get_inventory(), 'Rejected full bag creates no merchant stock')
+            check(S['coordinator'].move_from_container(S['trade_bag'], S['trade_child'], 1).get_editor_property('success'), 'Sale fixture extracts item normally')
+            S['merchant_wallet_total'] = S['native'].get_current_currency_amount() + S['vendor'].get_current_currency_amount()
+            unreal.EFEquipmentFunctionLibrary.sell_items_to_vendor(S['vendor'], S['stored_item'], S['pawn'], 1)
+            advance('trade_sell_verify', 0.5)
         elif phase == 'trade_sell_verify':
-            check(not S['trade_window'].is_activated(), 'Confirmed sale closes its native navigation window')
-            check(not any(i.get_editor_property('item_guid').to_string() == S['trade_bag'].to_string() for i in S['native'].get_inventory()), 'Confirmed sale removes bag from player')
             stock = S['vendor'].get_inventory()
-            check(len(stock) == 1 and stock[0].get_editor_property('item_guid').to_string() == S['trade_bag'].to_string(), 'Vendor receives original bag without duplicate loose contents')
+            check(len(stock) == 1 and stock[0].get_editor_property('item_guid').to_string() == S['trade_child'].to_string(), 'Ordinary native sale preserves the item GUID')
+            check(S['native'].get_current_currency_amount() > S['trade_currency'], 'Ordinary sale uses native pricing and credits player')
+            check(S['native'].get_current_currency_amount() + S['vendor'].get_current_currency_amount() == S['merchant_wallet_total'], 'Sale conserves both native wallets')
             unreal.EFEquipmentFunctionLibrary.buy_items(S['vendor'], stock[0], S['pawn'])
-            advance('trade_buy_press', 0.5)
+            advance('trade_buy_verify', 0.5)
         elif phase == 'trade_buy_verify':
-            check(not S['trade_window'].is_activated(), 'Confirmed purchase closes its native navigation window')
-            contents = S['coordinator'].get_container_items(S['trade_bag'])
-            check(len(contents) == 1 and contents[0].get_editor_property('item_guid').to_string() == S['trade_child'].to_string(), 'Sell and buy UI preserves original contained GUID')
-            check(len(S['vendor'].get_inventory()) == 0, 'Purchase removes the whole set from vendor stock')
-            check(S['coordinator'].move_from_container(S['trade_bag'], S['trade_child'], 1).get_editor_property('success'), 'Bought bag contents remain extractable')
-            check(S['coordinator'].request_equip(S['trade_bag'], unreal.GameplayTag()).get_editor_property('success'), 'Bought bag remains equipable')
+            check(not S['vendor'].get_inventory(), 'Native repurchase removes merchant stock')
+            check(any(i.get_editor_property('item_guid').to_string() == S['trade_child'].to_string() for i in S['native'].get_inventory()), 'Native repurchase restores the same item GUID')
+            check(S['native'].get_current_currency_amount() + S['vendor'].get_current_currency_amount() == S['merchant_wallet_total'], 'Repurchase conserves both native wallets')
             R['status'] = 'AWAITING_VISUAL_REVIEW'
             write()
             advance('review')

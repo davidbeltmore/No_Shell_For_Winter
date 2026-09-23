@@ -954,13 +954,24 @@ void UEFCalystoDirectorSubsystem::InvalidatePendingLoads()
 	{ BakedVisualLease->CancelHandle(); BakedVisualLease.Reset(); }
 }
 
-void UEFCalystoDirectorSubsystem::IssueRequestedHubTravel()
+bool UEFCalystoDirectorSubsystem::IssueRequestedHubTravel()
 {
-	if (!bReturnToHubAfterRelease || bHubTravelIssued || !GetWorld()) return;
+	if (!bReturnToHubAfterRelease || bHubTravelIssued || !GetWorld()) return false;
 	const auto* Settings = GetDefault<UEFCalystoDirectorSettings>();
-	if (Settings->HubMap.IsNull()) return;
+	if (Settings->HubMap.IsNull()) return false;
+	FString Error;
+	auto* Provider = ResolveUniqueContentProvider(Error);
+	if (!Provider || !Provider->PreservePlayerForHubTravel(GetWorld(), Error))
+	{
+		bReturnToHubAfterRelease = false;
+		Snapshot.State = EEFCalystoDirectorState::Failed;
+		Snapshot.FailureMessage = TEXT("Return to HUB could not preserve your inventory. ") + Error;
+		bFailurePublished = false; PublishFailure();
+		return false;
+	}
 	bHubTravelIssued = true;
 	UGameplayStatics::OpenLevelBySoftObjectPtr(GetWorld(), Settings->HubMap, true);
+	return true;
 }
 
 bool UEFCalystoDirectorSubsystem::TickRequest(float)
@@ -1030,7 +1041,7 @@ bool UEFCalystoDirectorSubsystem::TickRequest(float)
 		if (bRuntimeUnregisterPending) { ReleaseSharedDependencies(); AttemptRuntime.Reset(); bRuntimeUnregisterPending = false; }
 		if (bReturnToHubAfterRelease)
 		{
-			IssueRequestedHubTravel();
+			if (!IssueRequestedHubTravel()) return true;
 			bReturnToHubAfterRelease = false; InvalidatePendingLoads(); ReleaseLoads(); Transaction.Reset(); Configuration.Reset();
 			Snapshot = {}; bCleanupFailed = false; return true;
 		}
@@ -1118,7 +1129,8 @@ bool UEFCalystoDirectorSubsystem::RequestReturnToHub()
 	if (Transaction) { Transaction->Cancel(FPlatformTime::Seconds()); BeginRollback(); }
 	else
 	{
-		IssueRequestedHubTravel(); ReleaseLoads(); Configuration.Reset(); Snapshot = {}; bReturnToHubAfterRelease = false;
+		if (!IssueRequestedHubTravel()) return false;
+		ReleaseLoads(); Configuration.Reset(); Snapshot = {}; bReturnToHubAfterRelease = false;
 	}
 	return true;
 }

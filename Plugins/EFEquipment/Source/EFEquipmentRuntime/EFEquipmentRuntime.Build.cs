@@ -9,6 +9,6 @@ public class EFEquipmentRuntime : ModuleRules
             "Core", "CoreUObject", "Engine", "GameplayTags", "InventorySystem",
             "UMG", "DeveloperSettings", "AscentSaveSystem", "CraftingSystem", "CommonUI", "AscentUINavigationSystem"
         });
-        PrivateDependencyModuleNames.AddRange(new[] { "NetCore", "Slate", "SlateCore", "Json", "ActionsSystem", "InputCore" });
+        PrivateDependencyModuleNames.AddRange(new[] { "NetCore", "Slate", "SlateCore", "Json", "ActionsSystem", "InputCore", "AscentCoreInterfaces", "EnhancedInput" });
     }
 }

@@ -62,6 +62,10 @@ class EFPROCEDURALRUNTIME_API IEFCalystoContentAttemptProvider : public IModular
 {
 public:
 	virtual ~IEFCalystoContentAttemptProvider() = default;
+	/** Immediately before HUB OpenLevel, preserve the actual local player using
+	 * the project's existing travel persistence. Failure must retain this world. */
+	virtual bool PreservePlayerForHubTravel(UWorld* SourceWorld, FString& Error)
+	{ Error = TEXT("The project player travel persistence provider is unavailable."); return false; }
 
 	static FName GetModularFeatureName()
 	{
