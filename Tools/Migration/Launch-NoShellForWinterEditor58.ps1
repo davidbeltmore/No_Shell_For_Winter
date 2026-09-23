@@ -5,7 +5,8 @@ param(
     [string]$PythonScript = "",
     [ValidateRange(30, 300)]
     [int]$PythonTimeoutSeconds = 300,
-    [switch]$Wait
+    [switch]$Wait,
+    [switch]$NoAssetRegistryCache
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,8 +42,11 @@ if (-not [string]::IsNullOrWhiteSpace($PythonScript)) {
     }
 
     $launchStarted = Get-Date
+    $cacheArguments = @()
+    if ($NoAssetRegistryCache) { $cacheArguments += '-NoAssetRegistryCache' }
     & $editorExe `
         $projectPath `
+        @cacheArguments `
         "-EnablePlugin=DazToUnreal" `
         "-EnablePlugin=EFCharacterCreationDazBridge" `
         "-run=pythonscript" `
@@ -88,6 +92,7 @@ if (-not [string]::IsNullOrWhiteSpace($PythonScript)) {
 }
 
 $editorArguments = '"' + $projectPath + '" -EnablePlugin=DazToUnreal -EnablePlugin=EFCharacterCreationDazBridge'
+if ($NoAssetRegistryCache) { $editorArguments += ' -NoAssetRegistryCache' }
 if (-not [string]::IsNullOrWhiteSpace($AdditionalArguments)) {
     $editorArguments += ' ' + $AdditionalArguments
 }

@@ -503,7 +503,7 @@ Write-Host "EF Clothing Morph V4 pre-package catalog certification: PASS"
 $equipmentPreflightStarted = Get-Date
 $equipmentPreflightPath = Join-Path $ProjectRoot 'Saved/EquipmentQA/cook_preflight.json'
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot 'Tools/Migration/Launch-NoShellForWinterEditor58.ps1') `
-    -ProjectRoot $ProjectRoot -EngineRoot $EngineRoot `
+    -ProjectRoot $ProjectRoot -EngineRoot $EngineRoot -NoAssetRegistryCache `
     -PythonScript (Join-Path $ProjectRoot 'Tools/Equipment/Validate-EquipmentCookClosure.py')
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $equipmentPreflightPath) -or
     (Get-Item -LiteralPath $equipmentPreflightPath).LastWriteTime -lt $equipmentPreflightStarted) {
