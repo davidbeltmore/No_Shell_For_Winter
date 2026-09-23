@@ -1,12 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ACFInventoryComponent.h"
+#include "ACFVendorComponent.h"
 #include "EFContainerInventoryComponent.generated.h"
 
 /** A real ACF inventory, not a second list of copies in the root inventory. */
 UCLASS(ClassGroup=(Equipment))
-class EFEQUIPMENTRUNTIME_API UEFContainerInventoryComponent : public UACFInventoryComponent
+class EFEQUIPMENTRUNTIME_API UEFContainerInventoryComponent : public UACFVendorComponent
 {
     GENERATED_BODY()
 public:

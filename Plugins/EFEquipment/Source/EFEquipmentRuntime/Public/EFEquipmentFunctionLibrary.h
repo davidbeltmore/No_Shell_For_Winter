@@ -13,6 +13,8 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentFunctionLibrary : public UBlueprintFunc
 {
     GENERATED_BODY()
 public:
+    UFUNCTION(BlueprintPure, Category="Equipment|Storage", meta=(DefaultToSelf="WidgetContext", DeterminesOutputType="ComponentClass")) static UActorComponent* GetStorageComponent(AActor* Target, TSubclassOf<UActorComponent> ComponentClass, UObject* WidgetContext);
+    UFUNCTION(BlueprintPure, Category="Equipment|Storage", meta=(DefaultToSelf="WidgetContext")) static bool CanPawnSellItemFromHisInventory(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, const APawn* seller, int32 count, UObject* WidgetContext);
     UFUNCTION(BlueprintCallable, Category="Equipment") static UEFEquipmentCoordinatorComponent* GetEquipmentCoordinator(AActor* Actor);
     UFUNCTION(BlueprintPure, Category="Equipment", meta=(WorldContext="WorldContextObject")) static UTexture2D* GetIconByTag(const UObject* WorldContextObject, const FGameplayTag& IconTag);
     UFUNCTION(BlueprintCallable, Category="Equipment") static void UseInventoryItem(UACFEquipmentComponent* Target, const FInventoryItem& item);
@@ -27,7 +29,7 @@ public:
     UFUNCTION(BlueprintCallable, Category="Equipment") static void ManagerDropItem(UObject* Target, UACFEquipmentComponent* targetComponent, const FInventoryItem& itemToDrop, int32 count = 1);
     UFUNCTION(BlueprintCallable, Category="Equipment") static void UnequipItemBySlot(UACFEquipmentComponent* Target, FGameplayTag itemSlot);
     UFUNCTION(BlueprintPure, Category="Equipment") static bool GetEquippedItemSlot(UACFEquipmentComponent* Target, FGameplayTag itemSlot, FEquippedItem& outSlot);
-    UFUNCTION(BlueprintCallable, Category="Equipment|Trade") static void SellItemsToVendor(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, APawn* instigator, int32 count = 1);
-    UFUNCTION(BlueprintCallable, Category="Equipment|Trade") static void BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator);
+    UFUNCTION(BlueprintCallable, Category="Equipment|Trade", meta=(DefaultToSelf="WidgetContext")) static void SellItemsToVendor(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, APawn* instigator, int32 count = 1, UObject* WidgetContext = nullptr);
+    UFUNCTION(BlueprintCallable, Category="Equipment|Trade", meta=(DefaultToSelf="WidgetContext")) static void BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator, UObject* WidgetContext = nullptr);
     UFUNCTION(BlueprintCallable, Category="Equipment") static void MoveItemsFromInventory(UACFInventoryComponent* Target, const TArray<FInventoryItem>& inItems, UACFInventoryComponent* sourceInventory);
 };

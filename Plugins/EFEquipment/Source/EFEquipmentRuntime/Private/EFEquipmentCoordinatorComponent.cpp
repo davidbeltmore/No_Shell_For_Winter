@@ -99,6 +99,21 @@ void UEFEquipmentCoordinatorComponent::PollEquipment()
         if (Save && Save->GetCurrentSaveGame()) HandleActorLoaded();
         else
         {
+            // Fresh character only. Loading/travel restores the native inventory
+            // above and must never grant a replacement for a sold or dropped bag.
+            if (const auto* Pawn = Cast<APawn>(GetOwner()); Pawn && Pawn->IsPlayerControlled())
+            {
+                auto* Integration = GetWorld()->GetGameInstance()->GetSubsystem<UEFEquipmentSaveSubsystem>();
+                if (auto BagClass = GetDefault<UEFEquipmentSettings>()->StarterBagClass.LoadSynchronous();
+                    BagClass && Integration && !Integration->HasGrantedStarterBag())
+                {
+                    const bool bHasBag = Equipment->GetInventory().ContainsByPredicate([](const FInventoryItem& Item)
+                    { const auto* Rules = UEFEquipmentRulesFragment::Find(Item.Item); return Rules && Rules->Profile && Rules->Profile->bContainer; });
+                    if (!bHasBag) Equipment->AddItemToInventoryByClass(BagClass, 1, false);
+                    if (bHasBag || Equipment->GetInventory().ContainsByPredicate([BagClass](const FInventoryItem& Item) { return Item.ItemClass == BagClass && Item.Count > 0; }))
+                        Integration->MarkStarterBagGranted();
+                }
+            }
             // ACF's native initial equip was vetoed. Replay only explicit StartingItems
             // auto-equip intent; later ordinary items are routed by their entry points.
             const auto Starting = Equipment->GetStartingItems();

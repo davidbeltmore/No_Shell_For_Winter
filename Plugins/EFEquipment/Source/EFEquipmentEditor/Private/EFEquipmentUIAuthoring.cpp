@@ -150,65 +150,6 @@ FString UEFEquipmentAuthoringLibrary::BuildInventoryUI()
     if (!UPackage::SavePackage(Registry->GetOutermost(), Registry,
         *FPackageName::LongPackageNameToFilename(Registry->GetOutermost()->GetName(), FPackageName::GetAssetPackageExtension()), RegistryArgs))
         return TEXT("FAIL: Accessory labels could not be saved.");
-    auto* SaleBP = Create(TEXT("Global/WBP_EquipmentSaleConfirmation"), UEFEquipmentSaleWidget::StaticClass(), bNew);
-    if (!SaleBP) return TEXT("FAIL: Sale confirmation creation failed.");
-    if (bNew)
-    {
-        auto* Backdrop = Widget<UBorder>(SaleBP, TEXT("ModalBackdrop")); SaleBP->WidgetTree->RootWidget = Backdrop;
-        Backdrop->SetBrushColor(FLinearColor(0.015f, 0.02f, 0.025f, 0.97f)); Backdrop->SetHorizontalAlignment(HAlign_Center); Backdrop->SetVerticalAlignment(VAlign_Center); Backdrop->SetPadding(FMargin(28));
-        auto* Size = Widget<USizeBox>(SaleBP, TEXT("DialogSize")); Size->SetWidthOverride(620); Backdrop->AddChild(Size);
-        auto* Column = Widget<UVerticalBox>(SaleBP, TEXT("DialogContent")); Size->AddChild(Column);
-        Column->AddChild(Label(SaleBP, TEXT("SaleHeading"), TEXT("Confirm sale"), 24));
-        Column->AddChild(Label(SaleBP, TEXT("BreakdownLabel"), TEXT("Item and contents\n\nTotal: 0.00"), 18));
-        auto* Buttons = Widget<UHorizontalBox>(SaleBP, TEXT("DialogActions")); Column->AddChild(Buttons);
-        auto* Confirm = Widget<UButton>(SaleBP, TEXT("ConfirmButton")); Buttons->AddChild(Confirm); Confirm->AddChild(Label(SaleBP, TEXT("ConfirmLabel"), TEXT("Sell all"), 18));
-        auto* Cancel = Widget<UButton>(SaleBP, TEXT("CancelButton")); Buttons->AddChild(Cancel); Cancel->AddChild(Label(SaleBP, TEXT("CancelLabel"), TEXT("Cancel"), 18));
-    }
-    if (!Save(SaleBP)) return TEXT("FAIL: Sale confirmation compile/save failed.");
-    auto* TransferBP = Create(TEXT("Global/WBP_SatchelTransfer"), UEFEquipmentTransferRowWidget::StaticClass(), bNew);
-    if (bNew)
-    {
-        auto* Row = Widget<UHorizontalBox>(TransferBP, TEXT("TransferRow")); TransferBP->WidgetTree->RootWidget = Row;
-        Row->AddChildToHorizontalBox(Label(TransferBP, TEXT("ItemLabel"), TEXT("Item x 1"), 15))->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-        auto* Button = DarkButton(TransferBP, TEXT("TransferButton"), TEXT("Store"));
-        Button->ClearChildren(); Button->AddChild(Label(TransferBP, TEXT("ActionLabel"), TEXT("Store"), 14));
-        Row->AddChildToHorizontalBox(Button)->SetPadding(FMargin(16, 4));
-    }
-    if (!Save(TransferBP)) return TEXT("FAIL: Satchel transfer row failed.");
-    auto* ContentsBP = Create(TEXT("Global/WBP_SatchelContents"), UEFEquipmentPanelWidget::StaticClass(), bNew);
-    if (bNew)
-    {
-        auto* Column = Widget<UVerticalBox>(ContentsBP, TEXT("ContentsColumn")); ContentsBP->WidgetTree->RootWidget = Column;
-        Column->AddChild(Widget<UComboBoxString>(ContentsBP, TEXT("ContainerPicker")));
-        Column->AddChildToVerticalBox(Label(ContentsBP, TEXT("ContainerLabel"), TEXT("Contents 0 / 20"), 15))->SetPadding(FMargin(0, 12));
-        Column->AddChild(Label(ContentsBP, TEXT("WeightLabel"), TEXT("Weight"), 15));
-        Column->AddChild(Label(ContentsBP, TEXT("MessageLabel"), TEXT(""), 14));
-        auto* QuantityRow = Widget<UHorizontalBox>(ContentsBP, TEXT("QuantityRow")); Column->AddChild(QuantityRow);
-        QuantityRow->AddChildToHorizontalBox(Label(ContentsBP, TEXT("QuantityCaption"), TEXT("Transfer quantity"), 15))->SetPadding(FMargin(0, 12, 12, 12));
-        auto* Quantity = Widget<USpinBox>(ContentsBP, TEXT("TransferQuantity")); Quantity->SetMinValue(1); Quantity->SetMaxValue(9999); Quantity->SetValue(1); Quantity->SetDelta(1); QuantityRow->AddChild(Quantity);
-        for (const bool bContents : {true, false})
-        {
-            Column->AddChildToVerticalBox(Label(ContentsBP, bContents ? TEXT("ContentsHeading") : TEXT("InventoryHeading"), bContents ? TEXT("In satchel") : TEXT("In inventory"), 18))->SetPadding(FMargin(0, 12, 0, 6));
-            auto* Size = Widget<USizeBox>(ContentsBP, bContents ? TEXT("ContentsSize") : TEXT("InventorySize")); Size->SetHeightOverride(165); Column->AddChild(Size);
-            Size->AddChild(Widget<UScrollBox>(ContentsBP, bContents ? TEXT("ContainerRows") : TEXT("InventoryRows")));
-        }
-    }
-    if (!Save(ContentsBP)) return TEXT("FAIL: Satchel content panel failed.");
-    CastChecked<UEFEquipmentPanelWidget>(ContentsBP->GeneratedClass->GetDefaultObject())->TransferRowClass = TransferBP->GeneratedClass;
-    if (!Save(ContentsBP)) return TEXT("FAIL: Satchel content defaults failed.");
-    auto* SatchelBP = Create(TEXT("Global/WBP_SatchelWindow"), UEFEquipmentSatchelWindowWidget::StaticClass(), bNew);
-    if (bNew)
-    {
-        auto* Backdrop = Widget<UBorder>(SatchelBP, TEXT("SatchelBackdrop")); SatchelBP->WidgetTree->RootWidget = Backdrop;
-        Backdrop->SetBrushColor(FLinearColor(0.015f, 0.02f, 0.025f, 0.97f)); Backdrop->SetPadding(FMargin(24));
-        Backdrop->SetHorizontalAlignment(HAlign_Center); Backdrop->SetVerticalAlignment(VAlign_Center);
-        auto* Size = Widget<USizeBox>(SatchelBP, TEXT("SatchelWindowSize")); Size->SetWidthOverride(680); Backdrop->AddChild(Size);
-        auto* Column = Widget<UVerticalBox>(SatchelBP, TEXT("SatchelWindowContent")); Size->AddChild(Column);
-        Column->AddChildToVerticalBox(Label(SatchelBP, TEXT("SatchelTitle"), TEXT("Satchel contents"), 24))->SetPadding(FMargin(0, 0, 0, 18));
-        Column->AddChild(SatchelBP->WidgetTree->ConstructWidget<UUserWidget>(ContentsBP->GeneratedClass.Get(), TEXT("Contents")));
-        Column->AddChildToVerticalBox(DarkButton(SatchelBP, TEXT("CloseButton"), TEXT("Back to inventory")))->SetPadding(FMargin(0, 18, 0, 0));
-    }
-    if (!Save(SatchelBP)) return TEXT("FAIL: Satchel window failed.");
     auto* ItemIcon = LoadObject<UWidgetBlueprint>(nullptr, TEXT("/Game/FullSample/Integrations/SharedAssets/Items/ACF_ItemButtonInterface_WB"));
     if (!ItemIcon) return TEXT("FAIL: Native inventory item icon is missing.");
     if (ItemIcon->ParentClass != UEFEquipmentInventoryIconWidget::StaticClass())
@@ -256,13 +197,13 @@ FString UEFEquipmentAuthoringLibrary::BuildInventoryUI()
             }
             if (!BP->WidgetTree->FindWidget(TEXT("EFOpenSatchelButton")))
                 if (auto* Additional = Cast<UVerticalBox>(BP->WidgetTree->FindWidget(TEXT("EFAdditionalColumn"))))
-                    Additional->AddChildToVerticalBox(DarkButton(BP, TEXT("EFOpenSatchelButton"), TEXT("Contents")))->SetPadding(FMargin(0, 8, 12, 0));
+                    Additional->AddChildToVerticalBox(DarkButton(BP, TEXT("EFOpenSatchelButton"), TEXT("Open bag")))->SetPadding(FMargin(0, 8, 12, 0));
             SynchronizeWidgetGuids(BP);
             FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
             FKismetEditorUtilities::CompileBlueprint(BP);
             auto* Defaults = Cast<UEFEquipmentNativeLayoutWidget>(BP->GeneratedClass->GetDefaultObject());
             if (!Defaults) return TEXT("FAIL: Native layout parent could not be composed.");
-            Defaults->SatchelWindowClass = SatchelBP->GeneratedClass;
+            // Native bag page is bound by BuildStorageRework below.
             if (Defaults->OuterwearSlots.IsEmpty())
             for (const TCHAR* Tag : {TEXT("ItemSlot.Armor.Helmet"), TEXT("ItemSlot.Armor.Chest"), TEXT("ItemSlot.Armor.Legs"),
                 TEXT("ItemSlot.Armor.Feet"), TEXT("ItemSlot.Necklace"), TEXT("ItemSlot.Armor.UpperArms"), TEXT("ItemSlot.Armor.Forearms"),
@@ -317,5 +258,5 @@ FString UEFEquipmentAuthoringLibrary::BuildInventoryUI()
         }
         if (!Save(BP)) return TEXT("FAIL: Existing widget compile/save failed: ") + Path;
     }
-    return TEXT("PASS: Existing ACF inventory routes, reservation icons, weight text and editable equipment/satchel widgets authored.");
+    return BuildStorageRework();
 }

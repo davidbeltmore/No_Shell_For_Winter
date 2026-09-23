@@ -41,6 +41,8 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentSettings : public UDeveloperSettings
     GENERATED_BODY()
 public:
     UPROPERTY(Config, EditAnywhere, Category="Equipment") bool bEnabled = true;
+    /** Granted unequipped once by fresh-game initialization; saved inventory remains authoritative. */
+    UPROPERTY(Config, EditAnywhere, Category="Equipment") TSoftClassPtr<class UACFItem> StarterBagClass = TSoftClassPtr<UACFItem>(FSoftObjectPath(TEXT("/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C")));
     UPROPERTY(Config, EditAnywhere, Category="Equipment") TSoftObjectPtr<UEFEquipmentSlotRegistry> SlotRegistry = TSoftObjectPtr<UEFEquipmentSlotRegistry>(FSoftObjectPath(TEXT("/Game/_Game/Data/Equipment/DA_EquipmentSlots.DA_EquipmentSlots")));
     /** Resolved when a game world initializes, after native class registration. */
     UPROPERTY(Config, EditAnywhere, Category="Equipment") TSoftClassPtr<class AEFEquipmentWorldItem> WorldPickupClass = TSoftClassPtr<AEFEquipmentWorldItem>(FSoftObjectPath(TEXT("/Game/_Game/Items/Equipment/BP_EquipmentWorldItem.BP_EquipmentWorldItem_C")));

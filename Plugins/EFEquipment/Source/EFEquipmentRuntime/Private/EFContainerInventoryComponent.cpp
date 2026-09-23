@@ -14,7 +14,7 @@ namespace EFContainerEnvelope { constexpr int32 MaximumBytes = 16 * 1024 * 1024;
 
 
 UEFContainerInventoryComponent::UEFContainerInventoryComponent()
-{ PrimaryComponentTick.bCanEverTick = false; }
+{ PrimaryComponentTick.bCanEverTick = false; PriceMultiplierOnBuy = 0; PriceMultiplierOnSell = 0; bUseVendorCurrencyComponent = false; }
 
 void UEFContainerInventoryComponent::InitializeContainer(FGuid Guid, double Capacity)
 {

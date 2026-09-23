@@ -13,6 +13,7 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentSaveSubsystem : public UGameInstanceSub
     GENERATED_BODY()
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
     bool Save(const FString& Slot, bool bWorld, bool bLocalPlayer, bool bScreenshot, const FString& Description);
     bool LoadLocal(const FString& Slot, bool bTransform);
     void LoadWorld(const FString& Slot, const FOnLoadFinished& Callback, bool bPlayer);
@@ -22,6 +23,8 @@ public:
     FText GetLastError() const { return FText::FromString(LastError); }
     UFUNCTION(BlueprintPure, Category="Equipment|Save") FText GetLastMigrationSummary() const { return LastMigrationSummary; }
     bool IsBusy() const { return bBusy; }
+    bool HasGrantedStarterBag() const { return bStarterBagGranted; }
+    void MarkStarterBagGranted() { bStarterBagGranted = true; }
 private:
     UPROPERTY(Transient) TObjectPtr<UEFEquipmentSaveGame> TravelingPlayer;
     UPROPERTY(Transient) FOnLoadFinished PendingLoadCallback;
@@ -32,9 +35,11 @@ private:
     bool bConvertedOnLoad = false;
     bool bBusy = false;
     bool bReloadPlayer = true;
+    bool bStarterBagGranted = false;
     UALSLoadAndSaveSubsystem* Native() const;
     UEFEquipmentSaveGame* PrepareLoad(const FString& Slot);
     bool RestoreLocalState(UEFEquipmentSaveGame* Loaded, bool bTransform);
     void PublishMigrationSummary(UEFEquipmentSaveGame* Loaded);
     UFUNCTION() void CompleteNativeLoad(bool bSuccess);
+    UFUNCTION() void HandlePlayerPossessed(APawn* Pawn, AController* Controller);
 };

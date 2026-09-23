@@ -12,6 +12,7 @@ class EFEQUIPMENTEDITOR_API UEFEquipmentAuthoringLibrary : public UBlueprintFunc
 {
     GENERATED_BODY()
 public:
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildStorageRework();
     /** Exact project-owned asset batch. Does not save Player, bodies or vendor assets. */
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString BuildFoundation();
     UFUNCTION(BlueprintCallable, Category="EF Equipment|Authoring") static FString AuditConsumers();

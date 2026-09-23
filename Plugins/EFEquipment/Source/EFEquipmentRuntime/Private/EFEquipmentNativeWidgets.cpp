@@ -1,5 +1,8 @@
 #include "EFEquipmentNativeWidgets.h"
 #include "EFEquipmentCoordinatorComponent.h"
+#include "EFEquipmentStoragePage.h"
+#include "EFEquipmentItems.h"
+#include "EFEquipmentData.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/PanelWidget.h"
 #include "UObject/UnrealType.h"
@@ -20,6 +23,17 @@ UWidget* UEFEquipmentSatchelWindowWidget::NativeGetDesiredFocusTarget() const { 
 
 void UEFEquipmentNativeLayoutWidget::OpenSatchel()
 {
+    Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(GetOwningPlayerPawn());
+    bool bHasBag = false;
+    if (Coordinator && Coordinator->GetNativeEquipment())
+        for (const auto& Item : Coordinator->GetNativeEquipment()->GetInventory())
+            if (auto* Rules = UEFEquipmentRulesFragment::Find(Item.Item); Rules && Rules->Profile && Rules->Profile->bContainer) bHasBag = true;
+    if (!bHasBag)
+    {
+        if (GetGameInstance()) if (auto* UI = GetGameInstance()->GetSubsystem<UANSUIPlayerSubsystem>())
+            UI->BroadcastNotification(FText::FromString(TEXT("Carry a bag to store items.")), 4.f);
+        return;
+    }
     if (SatchelWindowClass && GetGameInstance())
         if (auto* UI = GetGameInstance()->GetSubsystem<UANSUIPlayerSubsystem>())
         {
@@ -31,6 +45,7 @@ void UEFEquipmentNativeLayoutWidget::OpenSatchel()
 FReply UEFEquipmentInventoryIconWidget::NativeOnPreviewMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& Event)
 {
     DragSource = nullptr; DragGuid.Invalidate();
+    if (UEFEquipmentStoragePage::FindContext(this)) return Super::NativeOnPreviewMouseButtonDown(Geometry, Event);
     if (Event.GetEffectingButton() != EKeys::LeftMouseButton) return Super::NativeOnPreviewMouseButtonDown(Geometry, Event);
     // ACF's item button already carries FBaseItem's stable GUID, including in
     // filtered grids. Never infer identity from selection or a list index.

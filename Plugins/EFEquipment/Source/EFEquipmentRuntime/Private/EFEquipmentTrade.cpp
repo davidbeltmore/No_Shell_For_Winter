@@ -37,7 +37,7 @@ bool UEFEquipmentCoordinatorComponent::BuildSale(UACFVendorComponent* Vendor, FG
     if (auto* Rules = UEFEquipmentRulesFragment::Find(Root.Item); Rules && Rules->Profile && Rules->Profile->bContainer)
     {
         auto* Container = ResolveContainer(Guid, Error); if (!Container || Count != 1 || Root.Count != 1) return false;
-        for (const auto& Item : Container->GetInventory()) if (!Append(Item, Item.Count)) return false;
+        if (!Container->GetInventory().IsEmpty()) { Error = TEXT("Empty this bag before selling it."); return false; }
         if (!Rules->FlushContainer(Error)) return false;
         FSHAHash Digest; FSHA1::HashBuffer(Rules->ContainerPayload.GetData(), Rules->ContainerPayload.Num(), Digest.Hash);
         Signature += TEXT("|") + Digest.ToString();

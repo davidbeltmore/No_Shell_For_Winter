@@ -65,7 +65,20 @@ namespace EFEquipmentSaveIntegration
 }
 
 void UEFEquipmentSaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{ Super::Initialize(Collection); Collection.InitializeDependency<UALSLoadAndSaveSubsystem>(); }
+{
+    Super::Initialize(Collection); Collection.InitializeDependency<UALSLoadAndSaveSubsystem>();
+    GetGameInstance()->GetOnPawnControllerChanged().AddUniqueDynamic(this, &ThisClass::HandlePlayerPossessed);
+}
+void UEFEquipmentSaveSubsystem::Deinitialize()
+{
+    GetGameInstance()->GetOnPawnControllerChanged().RemoveDynamic(this, &ThisClass::HandlePlayerPossessed);
+    Super::Deinitialize();
+}
+void UEFEquipmentSaveSubsystem::HandlePlayerPossessed(APawn* Pawn, AController* Controller)
+{
+    if (Pawn && Controller && Controller->IsLocalPlayerController() && Pawn->HasAuthority())
+        UEFEquipmentCoordinatorComponent::FindOrCreate(Pawn);
+}
 
 UALSLoadAndSaveSubsystem* UEFEquipmentSaveSubsystem::Native() const
 { return GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>(); }

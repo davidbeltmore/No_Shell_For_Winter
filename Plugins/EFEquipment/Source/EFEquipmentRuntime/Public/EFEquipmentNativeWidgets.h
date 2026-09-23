@@ -63,7 +63,7 @@ class EFEQUIPMENTRUNTIME_API UEFEquipmentNativeLayoutWidget : public UANSNavWidg
 public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment") TArray<FGameplayTag> OuterwearSlots;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Equipment") TArray<FGameplayTag> AdditionalSlots;
-    UPROPERTY(EditDefaultsOnly, Category="Equipment") TSubclassOf<UEFEquipmentSatchelWindowWidget> SatchelWindowClass;
+    UPROPERTY(EditDefaultsOnly, Category="Equipment") TSubclassOf<UCommonActivatableWidget> SatchelWindowClass;
 protected:
     virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
     virtual void NativeDestruct() override;

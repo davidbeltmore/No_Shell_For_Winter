@@ -4,7 +4,8 @@
 #include "EFEquipmentData.h"
 #include "ANSNavbarFunctionLibrary.h"
 #include "EFEquipmentACFAdapter.h"
-#include "EFEquipmentSaleWidget.h"
+#include "EFEquipmentStoragePage.h"
+#include "EFContainerInventoryComponent.h"
 #include "ACFVendorComponent.h"
 #include "ANSUIPlayerSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -12,6 +13,12 @@
 
 namespace EFEquipmentEntryPoints
 {
+    void NotifyFailure(APawn* Pawn, const FText& Message)
+    {
+        if (Pawn && Pawn->GetGameInstance())
+            if (auto* UI = Pawn->GetGameInstance()->GetSubsystem<UANSUIPlayerSubsystem>())
+                UI->BroadcastNotification(Message, 4.f);
+    }
     UEFEquipmentCoordinatorComponent* Managed(UACFEquipmentComponent* Native, const FInventoryItem& Item)
     {
         if (!Native || !UEFEquipmentCoordinatorComponent::IsManagedPlayer(Native->GetOwner())) return nullptr;
@@ -105,32 +112,62 @@ void UEFEquipmentFunctionLibrary::UnequipItemBySlot(UACFEquipmentComponent* Targ
     }
 }
 
-void UEFEquipmentFunctionLibrary::SellItemsToVendor(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, APawn* instigator, int32 count)
+
+UActorComponent* UEFEquipmentFunctionLibrary::GetStorageComponent(AActor* Target, TSubclassOf<UActorComponent> ComponentClass, UObject* WidgetContext)
 {
-    if (!Target || !instigator) return;
-    if (!UEFEquipmentCoordinatorComponent::IsManagedPlayer(instigator)) { Target->SellItemsToVendor(itemTobeSold, instigator, count); return; }
-    auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(instigator); if (!Coordinator) return;
-    const auto Quote = Coordinator->PreviewSale(Target, itemTobeSold.GetItemGuid(), count);
-    auto* Instance = instigator->GetGameInstance();
-    auto* UI = Instance ? Instance->GetSubsystem<UANSUIPlayerSubsystem>() : nullptr;
-    UClass* Class = LoadClass<UEFEquipmentSaleWidget>(nullptr, TEXT("/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentSaleConfirmation.WBP_EquipmentSaleConfirmation_C"));
-    if (UI && Class)
-    {
-        if (auto* Widget = Cast<UEFEquipmentSaleWidget>(UI->SpawnInGameWidget(Class, false, true)))
-        { Widget->SetQuote(Coordinator, Quote); return; }
-    }
-    Coordinator->CancelSale();
+    if (ComponentClass && ComponentClass->IsChildOf(UACFVendorComponent::StaticClass()))
+        if (auto* Page = UEFEquipmentStoragePage::FindContext(WidgetContext); Page && Page->StorageContext == EEFStorageContext::Satchel)
+            return Page->GetBagInventory();
+    return Target ? Target->GetComponentByClass(ComponentClass) : nullptr;
 }
 
-void UEFEquipmentFunctionLibrary::BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator)
+bool UEFEquipmentFunctionLibrary::CanPawnSellItemFromHisInventory(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, const APawn* seller, int32 count, UObject* WidgetContext)
+{
+    if (auto* Page = UEFEquipmentStoragePage::FindContext(WidgetContext); Page && Page->StorageContext != EEFStorageContext::Merchant)
+        return Target && seller && count > 0 && count <= itemTobeSold.Count;
+    return Target && Target->CanPawnSellItemFromHisInventory(itemTobeSold, seller, count);
+}
+
+void UEFEquipmentFunctionLibrary::SellItemsToVendor(UACFVendorComponent* Target, const FInventoryItem& itemTobeSold, APawn* instigator, int32 count, UObject* WidgetContext)
 {
     if (!Target || !instigator) return;
-    if (!UEFEquipmentCoordinatorComponent::IsManagedPlayer(instigator)) { Target->BuyItems(item, instigator); return; }
-    auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(instigator); if (!Coordinator) return;
+    auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(instigator);
+    if (!Coordinator) { Target->SellItemsToVendor(itemTobeSold, instigator, count); return; }
+    if (auto* Page = UEFEquipmentStoragePage::FindContext(WidgetContext); Page && Page->StorageContext != EEFStorageContext::Merchant)
+    {
+        const auto Result = Page->StorageContext == EEFStorageContext::Satchel
+            ? Coordinator->MoveToContainer(itemTobeSold.GetItemGuid(), Page->GetBagGuid(), count)
+            : Coordinator->GiveToInventory(Target, itemTobeSold.GetItemGuid(), count);
+        if (!Result.bSuccess) EFEquipmentEntryPoints::NotifyFailure(instigator, Result.Message);
+        return;
+    }
+    const auto Quote = Coordinator->PreviewSale(Target, itemTobeSold.GetItemGuid(), count);
+    if (Quote.bValid)
+    {
+        const auto Result = Coordinator->ConfirmSale(Quote.QuoteId);
+        if (!Result.bSuccess) EFEquipmentEntryPoints::NotifyFailure(instigator, Result.Message);
+    }
+    else EFEquipmentEntryPoints::NotifyFailure(instigator, Quote.Message);
+}
+
+void UEFEquipmentFunctionLibrary::BuyItems(UACFVendorComponent* Target, const FInventoryItem& item, APawn* instigator, UObject* WidgetContext)
+{
+    if (!Target || !instigator) return;
+    auto* Coordinator = UEFEquipmentCoordinatorComponent::FindOrCreate(instigator);
+    if (!Coordinator) { Target->BuyItems(item, instigator); return; }
+    if (auto* Page = UEFEquipmentStoragePage::FindContext(WidgetContext); Page && Page->StorageContext != EEFStorageContext::Merchant)
+    {
+        const auto Result = Page->StorageContext == EEFStorageContext::Satchel
+            ? Coordinator->MoveFromContainer(Page->GetBagGuid(), item.GetItemGuid(), item.Count)
+            : Coordinator->TakeFromInventory(Target, item.GetItemGuid(), item.Count, false);
+        if (!Result.bSuccess) EFEquipmentEntryPoints::NotifyFailure(instigator, Result.Message);
+        return;
+    }
     const auto Quote = Coordinator->PreviewPurchase(Target, item.GetItemGuid(), item.Count);
-    auto* Game = instigator->GetGameInstance(); auto* UI = Game ? Game->GetSubsystem<UANSUIPlayerSubsystem>() : nullptr;
-    UClass* Class = LoadClass<UEFEquipmentSaleWidget>(nullptr, TEXT("/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentSaleConfirmation.WBP_EquipmentSaleConfirmation_C"));
-    if (UI && Class) if (auto* Widget = Cast<UEFEquipmentSaleWidget>(UI->SpawnInGameWidget(Class, false, true)))
-    { Widget->SetQuote(Coordinator, Quote); return; }
-    Coordinator->CancelSale();
+    if (Quote.bValid)
+    {
+        const auto Result = Coordinator->ConfirmPurchase(Quote.QuoteId);
+        if (!Result.bSuccess) EFEquipmentEntryPoints::NotifyFailure(instigator, Result.Message);
+    }
+    else EFEquipmentEntryPoints::NotifyFailure(instigator, Quote.Message);
 }

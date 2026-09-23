@@ -190,14 +190,19 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     auto* Vendor = NewObject<UACFVendorComponent>(VendorOwner);
     VendorOwner->AddInstanceComponent(Vendor); Vendor->RegisterComponent();
     VendorOwner->DispatchBeginPlay(); Vendor->SetCurrency(1000); Native->SetCurrency(100);
+    TestFalse(TEXT("Full bags cannot be sold"), Coordinator->PreviewSale(Vendor, Bag.GetItemGuid()).bValid);
+    TestEqual(TEXT("Rejected full bag sale preserves player money"), Native->GetCurrentCurrencyAmount(), 100.f);
+    const auto BeforeEmptying = Coordinator->GetContainerItems(Bag.GetItemGuid());
+    for (const auto& Child : BeforeEmptying) TestTrue(TEXT("Extract before selling"), Coordinator->MoveFromContainer(Bag.GetItemGuid(), Child.GetItemGuid(), Child.Count).bSuccess);
     const auto Cancelled = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
-    TestTrue(TEXT("Full satchel sale has native aggregate price and breakdown"), Cancelled.bValid && Cancelled.Lines.Num() == 2
-        && FMath::IsNearlyEqual(Cancelled.TotalPrice, 30.0 * Vendor->GetVendorPriceMultiplierOnBuy()));
+    TestTrue(TEXT("Empty bag has native price"), Cancelled.bValid && Cancelled.Lines.Num() == 1
+        && FMath::IsNearlyEqual(Cancelled.TotalPrice, 20.0 * Vendor->GetVendorPriceMultiplierOnBuy()));
     Coordinator->CancelSale();
     TestFalse(TEXT("Cancelled quote cannot sell"), Coordinator->ConfirmSale(Cancelled.QuoteId).bSuccess);
     TestEqual(TEXT("Cancellation preserves player money"), Native->GetCurrentCurrencyAmount(), 100.f);
     TestEqual(TEXT("Cancellation preserves vendor money"), Vendor->GetCurrentCurrencyAmount(), 1000.f);
     const auto StaleSale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
+    for (const auto& Child : BeforeEmptying) TestTrue(TEXT("Bag can be refilled after quoting"), Coordinator->MoveToContainer(Child.GetItemGuid(), Bag.GetItemGuid(), Child.Count).bSuccess);
     TestTrue(TEXT("Contents may change while confirmation is open"), Coordinator->MoveToContainer(Stack.GetItemGuid(), Bag.GetItemGuid(), 1).bSuccess);
     TestFalse(TEXT("Changed contents invalidate the quoted sale"), Coordinator->ConfirmSale(StaleSale.QuoteId).bSuccess);
     auto SaleContents = Coordinator->GetContainerItems(Bag.GetItemGuid());
@@ -208,6 +213,7 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     ChildInfo.bSellable = true; ChildInfo.bDroppable = false; SaleContents[0].Item->SetItemDescriptor(ChildInfo);
     TestFalse(TEXT("A non-droppable child rejects the whole drop"), Coordinator->RequestDrop(Bag.GetItemGuid()).bSuccess);
     ChildInfo.bDroppable = true; SaleContents[0].Item->SetItemDescriptor(ChildInfo);
+    for (const auto& Child : SaleContents) TestTrue(TEXT("All content extracted before native sale"), Coordinator->MoveFromContainer(Bag.GetItemGuid(), Child.GetItemGuid(), Child.Count).bSuccess);
     const auto FaultSale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
     Coordinator->TestFailurePoint = 3;
     TestFalse(TEXT("Settlement fault rejects the sale"), Coordinator->ConfirmSale(FaultSale.QuoteId).bSuccess);
@@ -215,7 +221,7 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestEqual(TEXT("Settlement failure restores player money"), Native->GetCurrentCurrencyAmount(), 100.f);
     TestEqual(TEXT("Settlement failure restores vendor money"), Vendor->GetCurrentCurrencyAmount(), 1000.f);
     const auto Sale = Coordinator->PreviewSale(Vendor, Bag.GetItemGuid());
-    TestTrue(TEXT("Full bag can be sold after revalidation"), Sale.bValid && Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
+    TestTrue(TEXT("Empty bag can be sold after revalidation"), Sale.bValid && Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
     TestFalse(TEXT("Sold bag is absent from player"), Native->GetItemByGuid(Bag.GetItemGuid(), Live));
     TestTrue(TEXT("Vendor owns the original bag GUID and item instance"), Vendor->GetItemByGuid(Bag.GetItemGuid(), Live) && Live.Item == Bag.Item);
     TestEqual(TEXT("Vendor receives no duplicate loose content loot"), Vendor->GetInventory().Num(), 1);
@@ -223,8 +229,8 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestEqual(TEXT("Sale debits vendor exactly once"), Vendor->GetCurrentCurrencyAmount(), 1000.f - static_cast<float>(Sale.TotalPrice));
     TestFalse(TEXT("Repeated confirmation cannot duplicate the sale"), Coordinator->ConfirmSale(Sale.QuoteId).bSuccess);
     const auto CancelPurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
-    TestTrue(TEXT("Filled bag purchase quotes every contained entry"), CancelPurchase.bValid && CancelPurchase.bPurchase
-        && CancelPurchase.Lines.Num() == SaleContents.Num() + 1);
+    TestTrue(TEXT("Empty bag purchase quotes the bag"), CancelPurchase.bValid && CancelPurchase.bPurchase
+        && CancelPurchase.Lines.Num() == 1);
     Coordinator->CancelSale();
     TestFalse(TEXT("Cancelled purchase cannot move inventory or money"), Coordinator->ConfirmPurchase(CancelPurchase.QuoteId).bSuccess);
     const auto StalePurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
@@ -232,7 +238,7 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestFalse(TEXT("Changed vendor price invalidates purchase confirmation"), Coordinator->ConfirmPurchase(StalePurchase.QuoteId).bSuccess);
     PriceBag.CurrencyValue = 20; RestoreBagPrice.Item->SetItemDescriptor(PriceBag);
     Coordinator->SetBaseCarryCapacity(Coordinator->GetWeightSummary().EffectiveWeight);
-    TestFalse(TEXT("Buying a full bag checks total content weight"), Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid()).bValid);
+    TestFalse(TEXT("Buying an empty bag checks its weight"), Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid()).bValid);
     Coordinator->SetBaseCarryCapacity(180.125);
     const float PlayerBeforePurchase = Native->GetCurrentCurrencyAmount(), VendorBeforePurchase = Vendor->GetCurrentCurrencyAmount();
     const auto FaultPurchase = Coordinator->PreviewPurchase(Vendor, Bag.GetItemGuid());
@@ -248,7 +254,8 @@ bool FEFEquipmentIntegrationTest::RunTest(const FString&)
     TestEqual(TEXT("Purchase charges the aggregated price once"), Native->GetCurrentCurrencyAmount(), PlayerBeforePurchase - static_cast<float>(Purchase.TotalPrice));
     TestEqual(TEXT("Purchase credits the vendor once"), Vendor->GetCurrentCurrencyAmount(), VendorBeforePurchase + static_cast<float>(Purchase.TotalPrice));
     TestFalse(TEXT("Repeated purchase confirmation cannot charge twice"), Coordinator->ConfirmPurchase(Purchase.QuoteId).bSuccess);
-    TestEqual(TEXT("Rehosted satchel restores both content GUIDs"), Coordinator->GetContainerItems(Bag.GetItemGuid()).Num(), SaleContents.Num());
+    for (const auto& Child : SaleContents) TestTrue(TEXT("Purchased bag accepts the same extracted contents"), Coordinator->MoveToContainer(Child.GetItemGuid(), Bag.GetItemGuid(), Child.Count).bSuccess);
+    TestEqual(TEXT("Refilled satchel retains both content GUIDs"), Coordinator->GetContainerItems(Bag.GetItemGuid()).Num(), SaleContents.Num());
 
     auto* CompanionPawn = World->SpawnActor<APawn>();
     auto* CompanionInventory = NewObject<UACFEquipmentComponent>(CompanionPawn);
