@@ -8,6 +8,14 @@ The reference project `D:/Projects UE5/LustAsDeadlySin` was not opened or writte
 
 ## Ownership and editor entry points
 
+For a chest placed in a level, select the actor itself in the Outliner and use
+**Details > Procedural Chest > Procedural Mode**. Profile, Chest Rarity,
+Override Content and Seed appear in the same section. Stable Identity is under
+the advanced disclosure. These are the existing component properties, exposed
+by the project editor module through native property handles; there is no second
+configuration or Construction Script synchronization. The locked child inherits
+the same actor Details layout. Validate Configuration also appears here.
+
 Open `/Game/_Game/Items/Chests/BP_EquipmentDeposit` or its locked child
 `/Game/_Game/Items/Chests/BP_EquipmentLockedChest`. Select `ProceduralChest`
 in Components, then use Details > Chest > Procedural Mode. It defaults off.

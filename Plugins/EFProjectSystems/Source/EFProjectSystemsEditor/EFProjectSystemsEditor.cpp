@@ -4,10 +4,15 @@
 #include "Editor.h"
 #include "Editor/EditorEngine.h"
 #include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "ProjectChestDetails.h"
 #include "UObject/Package.h"
 
 void FEFProjectSystemsEditorModule::StartupModule()
 {
+    auto& Properties = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+    Properties.RegisterCustomClassLayout(TEXT("BP_EquipmentDeposit_C"),
+        FOnGetDetailCustomizationInstance::CreateStatic(&FProjectChestDetails::MakeInstance));
 	ProceduralDungeonCoordinator = MakeUnique<FEFProceduralEditorCoordinator>();
 	PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw(this, &FEFProjectSystemsEditorModule::HandlePreBeginPIE);
 	EndPIEHandle = FEditorDelegates::EndPIE.AddRaw(this, &FEFProjectSystemsEditorModule::HandleEndPIE);
@@ -15,6 +20,8 @@ void FEFProjectSystemsEditorModule::StartupModule()
 
 void FEFProjectSystemsEditorModule::ShutdownModule()
 {
+    if (auto* Properties = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor"))
+        Properties->UnregisterCustomClassLayout(TEXT("BP_EquipmentDeposit_C"));
 	if (PreBeginPIEHandle.IsValid())
 	{
 		FEditorDelegates::PreBeginPIE.Remove(PreBeginPIEHandle);

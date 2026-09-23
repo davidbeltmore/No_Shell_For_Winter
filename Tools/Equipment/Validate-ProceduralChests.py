@@ -27,7 +27,18 @@ def tick(dt):
         if phase in ('details_deposit','details_locked'):
             name='BP_EquipmentDeposit' if phase=='details_deposit' else 'BP_EquipmentLockedChest'
             bp=unreal.load_asset('/Game/_Game/Items/Chests/'+name)
-            check(unreal.ProjectLockpickingEditorLibrary.show_procedural_chest_details(bp),'Select visible ProceduralChest in '+name)
+            if os.environ.get('EF_CHEST_ACTOR_DETAILS_QA') == '1':
+                unreal.BlueprintEditorLibrary.compile_blueprint(bp)
+                unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).close_all_editors_for_asset(bp)
+                cls = unreal.load_class(None, '/Game/_Game/Items/Chests/'+name+'.'+name+'_C')
+                actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+                candidates = [a for a in actors.get_all_level_actors() if a.get_class() == cls]
+                check(bool(candidates), 'Existing HUB actor for '+name)
+                actors.set_selected_level_actors([candidates[0]])
+                check(candidates[0].get_component_by_class(unreal.ProjectProceduralChestComponent) is not None,
+                      'Selected actor uses existing procedural component: '+name)
+            else:
+                check(unreal.ProjectLockpickingEditorLibrary.show_procedural_chest_details(bp),'Select visible ProceduralChest in '+name)
             step(phase+'_review',1)
         elif phase.endswith('_review'):
             marker=OUT/(phase+'.txt')

@@ -36,6 +36,7 @@ public class EFProjectSystemsEditor : ModuleRules
 			"ACFTrainingSystem",
 			"CharacterController",
 			"UnrealEd",
+			"PropertyEditor",
 			"EditorScriptingUtilities",
 			"AssetTools",
 			"IKRig",
