@@ -1,0 +1,1 @@
+PASS: Actual packaged image reviewed: original inventory, item grid, distinct Outerwear/Underwear columns, Open bag control, equipped rag outfit and readable weight/currency. Scope note: MeleeDamage text overlaps its value in the untouched native stats panel; this is not a claim of a pixel-perfect whole inventory UI.

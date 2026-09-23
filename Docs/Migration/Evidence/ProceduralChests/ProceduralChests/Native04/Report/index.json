@@ -1,0 +1,87 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "HORIZON",
+			"instance": "FFA4DC0C44E8A8B2875C89989647E0B3",
+			"instanceName": "HORIZON-104228",
+			"platform": "WindowsEditor",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "NVIDIA GeForce RTX 5070 Ti",
+			"cPUModel": "AMD Ryzen 7 5800X 8-Core Processor             ",
+			"rAMInGB": 48,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.09.23-21.37.44",
+	"succeeded": 3,
+	"succeededWithWarnings": 0,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 1.1551392078399658,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "MapInstances",
+			"fullTestPath": "EF.Chests.Authored.MapInstances",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"FFA4DC0C44E8A8B2875C89989647E0B3"
+			],
+			"duration": 0.0074706003069877625,
+			"dateTime": "2026.09.23-21.37.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NativeStorage",
+			"fullTestPath": "EF.Chests.Lifecycle.NativeStorage",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"FFA4DC0C44E8A8B2875C89989647E0B3"
+			],
+			"duration": 0.036727599799633026,
+			"dateTime": "2026.09.23-21.37.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "100000Trials",
+			"fullTestPath": "EF.Chests.Selection.100000Trials",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"FFA4DC0C44E8A8B2875C89989647E0B3"
+			],
+			"duration": 1.1109410524368286,
+			"dateTime": "2026.09.23-21.37.43",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Rare selections: 25065 / 100000; expected 25000 +/- 600.",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.09.23-21.37.43"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}

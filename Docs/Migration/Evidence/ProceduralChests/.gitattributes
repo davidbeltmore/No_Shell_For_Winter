@@ -1,0 +1,4 @@
+# Evidence SHA-256 values describe exact captured bytes, including line endings.
+* -text whitespace=cr-at-eol
+*.log -diff
+.gitattributes text eol=lf

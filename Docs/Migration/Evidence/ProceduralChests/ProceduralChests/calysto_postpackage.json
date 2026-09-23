@@ -1,0 +1,63 @@
+﻿{
+    "schema_version":  1,
+    "generated_utc":  "2026-09-23T22:14:15.1567104Z",
+    "project":  "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+    "status":  "PASS",
+    "assets":  {
+                   "Content/Calysto/Dungeon/Blueprint/BP_MassiveDungeon.uasset":  {
+                                                                                      "length":  407681,
+                                                                                      "sha256":  "CAA5156F1CADAB58455DAA36D204A4B67F124668969B0145EDD533401CAD1BFC"
+                                                                                  },
+                   "Content/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.uasset":  {
+                                                                                        "length":  26535,
+                                                                                        "sha256":  "ACEBBA93DD6FE58A2806F9A5B7D22EFD218ECBBEDDD082375F30A293893429F2"
+                                                                                    },
+                   "Content/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMesh.uasset":  {
+                                                                                                "length":  9374,
+                                                                                                "sha256":  "2EA6C142B1FD4454225770845C8A7BAB2555060B91208669731DDCF3AF6C037C"
+                                                                                            },
+                   "Content/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_RoomTheme.uasset":  {
+                                                                                              "length":  3255,
+                                                                                              "sha256":  "85A55E598BC7AF04386558B94D8CEA0E99E017318864D42E9F28EB765EF35FC4"
+                                                                                          },
+                   "Content/Calysto/Dungeon/Data/DataAsset/Spawner/DA_DemoSpawner.uasset":  {
+                                                                                                "length":  3035,
+                                                                                                "sha256":  "1B6345CAF081FD67AFB50A399798A545DAF57671CF70D6B7CB246CE0D270D7AE"
+                                                                                            },
+                   "Content/Calysto/Dungeon/PCG/PCG_MassiveDungeonMaster.uasset":  {
+                                                                                       "length":  519941,
+                                                                                       "sha256":  "5546110D6FF5EDD7C765D2F60C3FFB5D67BFEC16D397D1B694B058CCC51821FE"
+                                                                                   },
+                   "Content/Calysto/Dungeon/PCG/PCG_MassiveDungeonShape.uasset":  {
+                                                                                      "length":  1557249,
+                                                                                      "sha256":  "5ADDB0B7078A95A5C23DF68C22BF7AE70B3FDFB7AFF09F2D37981DA98055522A"
+                                                                                  },
+                   "Content/Calysto/Dungeon/PCG/Function/PCG_SpawnStartAndEnd.uasset":  {
+                                                                                            "length":  125525,
+                                                                                            "sha256":  "7756A0849C1F9CD3EDAFFB0FB8030AFDCCBE210DE7AA865F50934B3AF8E9B0E2"
+                                                                                        },
+                   "Content/Calysto/Dungeon/PCG/Function/PCG_SetRoomTheme.uasset":  {
+                                                                                        "length":  299100,
+                                                                                        "sha256":  "D278B6B979958334D52FA1BD76B8BCCC595933C745485B35840BAC79B7D84DEE"
+                                                                                    },
+                   "Content/Calysto/Dungeon/PCG/Function/PCG_DungeonSpawner.uasset":  {
+                                                                                          "length":  501915,
+                                                                                          "sha256":  "F78822429D5A6DE68A45E84D6483B2EE94104179650E867F5941ADA314100889"
+                                                                                      },
+                   "Content/Calysto/Dungeon/PCG/Function/PCG_SetDungeonMesh.uasset":  {
+                                                                                          "length":  1776509,
+                                                                                          "sha256":  "7A185669F120870E8A201B10DEBC226E3C4222988528BAF1F4F7EA3650280318"
+                                                                                      },
+                   "Content/Procedural/Maps/DungeonGeneration.umap":  {
+                                                                          "length":  58272,
+                                                                          "sha256":  "E004C376D70E54F8D3A43647ED931738037FF77A4748CEDA6A4BD4906ED4F4E5"
+                                                                      },
+                   "Content/Procedural/DoorToLevel.uasset":  {
+                                                                 "length":  30389,
+                                                                 "sha256":  "D6566650472DC99E0B78C1F4D55FDABBCBCC6669522ABFEAC8592C4049C063AF"
+                                                             }
+               },
+    "mismatches":  [
+
+                   ]
+}

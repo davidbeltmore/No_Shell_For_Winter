@@ -1,0 +1,267 @@
+{
+  "status": "PASS",
+  "blueprints": [
+    {
+      "path": "/Game/FullSample/Blueprints/Game/ACFSaveGameActorBP",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Blueprints/Items/Armor/ACFArmorBP",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/ATSIntegrations/FSM/FSM_LoadGame_BP",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/SharedAssets/Items/ACF_ItemButtonInterface_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/SharedAssets/Save/ACF_LoadPage_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/SharedAssets/Save/ACF_SavePage_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Buy_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_CharacterEquipment_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Deposit_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_EquipmentIcon_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_IconStorage_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Inventory_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_ListInventory_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Sell_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Storage_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Weight_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/UI/Inventory/WBP_InventorySubMenu",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/UI/WBP_Storage",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/Bikini01/Bikini",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/Rags01/RagFootWrap",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/Rags01/RagPants",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/Rags01/RagShirt",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/UnderWear01/Bra",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Clothes/UnderWear01/Panty",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Chests/BP_EquipmentDeposit",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_BreastplatePrototypeVisual",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_EquipmentWorldItem",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_ExclusiveTorsoPrototype",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_Satchel1",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_Satchel2",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_Satchel3",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_SatchelPrototypeVisual",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Equipment/BP_StarterBag",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentBag",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "data": [
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_BikiniRules.DA_BikiniRules",
+      "valid": true,
+      "error": ""
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_EquipmentSlots.DA_EquipmentSlots",
+      "valid": true,
+      "error": ""
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_ExclusiveTorsoRules.DA_ExclusiveTorsoRules",
+      "valid": true,
+      "error": ""
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_Satchel1Rules.DA_Satchel1Rules",
+      "valid": true,
+      "error": ""
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_Satchel2Rules.DA_Satchel2Rules",
+      "valid": true,
+      "error": ""
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/DA_Satchel3Rules.DA_Satchel3Rules",
+      "valid": true,
+      "error": ""
+    }
+  ],
+  "assets_saved": [],
+  "hub_pawn_parent": "/Game/FullSample/Player.Player_C",
+  "commit": "25225ea93416b2e4ed13d2bd1c2decc4f50d9982",
+  "working_tree": [
+    " M Tools/Equipment/Record-ChestEvidence.py",
+    "?? Content/_Game/Chest/",
+    "?? Docs/Migration/ChestMoveRollback.md",
+    "?? Docs/Migration/Evidence/ProceduralChests/",
+    "?? Docs/Migration/ProceduralChests.md"
+  ],
+  "map_sha256": {
+    "Content/FullSample/Integrations/UIIntegrations/Level/MenuMap.umap": "9d8155e55a29d70717bf42bdfe165249046e5b783d017906f91f832a51c1d66a",
+    "Content/_Game/Hub/HUB.umap": "e30e324341cb38a7c3c90fa5255f26f7a9a66b106228e5a44b6a93c924a3b0d6",
+    "Content/Procedural/Maps/DungeonGeneration.umap": "e004c376d70e54f8d3a43647ed931738037ff77a4748ceda6a4bd4906ed4f4e5"
+  },
+  "clothing_authority": "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.DA_EFClothingMorphDirector",
+  "generated_manifest": "/EFClothingMorph/_Internal/Compiled/V5/DA_EFClothingSystemManifest.DA_EFClothingSystemManifest",
+  "travel_authority": {
+    "version": 7,
+    "asset": "/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector.DA_CalystoDungeonDirector"
+  },
+  "asset_sha256": {
+    "/Game/FullSample/Blueprints/Game/ACFSaveGameActorBP": "6e0ae4338a6c61dbb75a2a392324f0b9f7922b64efce74460aa1c200e79521aa",
+    "/Game/FullSample/Blueprints/Items/Armor/ACFArmorBP": "0ca27e3080f4d6bd6ae6a26c59c599153e026d0503694f95a732c89460892759",
+    "/Game/FullSample/GameplayTagTables/ItemsDB": "caa53a9c5db349ff1bfcb748b452bb2de25127c4bfa8c5caf8433f98db0fa868",
+    "/Game/FullSample/Integrations/ATSIntegrations/FSM/FSM_LoadGame_BP": "3f940ce9d8c5780526c3ff86ff0549e4197d4b09271cea200c3b70c795e215ae",
+    "/Game/FullSample/Integrations/SharedAssets/Items/ACF_ItemButtonInterface_WB": "afcb966dd25a28f412ebb86357914ef14f295c4eaf0646ddd9fcd0226f7d18d8",
+    "/Game/FullSample/Integrations/SharedAssets/Save/ACF_LoadPage_WB": "e2453bdc2b175c5a90246b08472acce1656d5a88457cbb8b0999ed0caa08d78a",
+    "/Game/FullSample/Integrations/SharedAssets/Save/ACF_SavePage_WB": "0d47a5bc1d4077540a7c6e325fa7467c7ba69eea7cd3734ab8100b4cc3d0bc93",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Buy_WB": "fb8f3b9abc8eea5ffe4b244e7c37fae9d22b4592945ce42eedc04221fe437894",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_CharacterEquipment_WB": "9cc9a6e069da1e9c32aeb3a50549e423f14c810e40fc349dce7e353c8e704357",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Deposit_WB": "66610c3ec6f544780fb87b1617c1be9761deff7506f97af400203611e9c7b19b",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_EquipmentIcon_WB": "5253a231652371806abe89d7540e366ea3cb4f0e226bd15cb8d69db1bb7f6411",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_IconStorage_WB": "fbbf09b3bec078a3bfc4170842fec2245ef772573550752f74adcc3b99f0dbe6",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Inventory_WB": "bce6425b3ccbff42d060d24717585e6f0d8ef7f882a2ac3035bb1f6795f89c14",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_ListInventory_WB": "0e6c8c65c49d8566cfd11c0ca7d381c4ef4dec73ddddd1ad918e6ffed549f493",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Sell_WB": "a4d08b8ac60e3ee21876d55a5a203aee313fbf2cb925eca0e74354a04d42b89d",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Storage_WB": "ee825971200d7f59fffdbfac52720ca56ad1fe8bf407885c667cf46521305d08",
+    "/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_Weight_WB": "d2765eb1ae281eed17c43d73b1eaf159d8b95ba8f92c9b8c722a097abda44402",
+    "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP": "4e4648e22dcb6d816c63d310beccb63590de861f3bba03b0e662b0976a98f9d1",
+    "/Game/FullSample/UI/Inventory/WBP_InventorySubMenu": "42601242ef12147d782db9bc4291d63dec2b9a0c5a113fdfd34f19f5ac9f7cec",
+    "/Game/FullSample/UI/WBP_Storage": "163b444d4b5b4ea19cb87e3f8b11c8ed97daaa6334b7f21e0e5c1dea4d9eaaf8",
+    "/Game/_Game/Clothes/Bikini01/Bikini": "3f7be244341ff55b1c59927f79edf5fa60a3817b15959268af52ae95abf990a2",
+    "/Game/_Game/Clothes/Rags01/RagFootWrap": "7ac2fed358f2fcb3b281648e0ca51c73dbb49b2e2d23ecfbc30a37045432f1a8",
+    "/Game/_Game/Clothes/Rags01/RagPants": "072a757cb5412efbd5978504b89ed6a3a2fd5401f22c397a6a5885ad82559c10",
+    "/Game/_Game/Clothes/Rags01/RagShirt": "7f11c67c935a6313cbb4ed1d36f231e59accc6d299a54b9d123b5115c8f16fe8",
+    "/Game/_Game/Clothes/UnderWear01/Bra": "821263ca3932b677a8f8a52f8ba1179cfb1c7a1ea527898507ced3c37a3f35f0",
+    "/Game/_Game/Clothes/UnderWear01/Panty": "0c68b10dd77875c3be8b4cb81318b2203bf36acb226f64e5890f6cbbca271be8",
+    "/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector": "2d4fcf67a91f6cd6947b8bb5f205ec05fdd2ce9dee08db28e3222a9a44946fef",
+    "/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy": "0a5f09407abacbbc9255abb56d488dd432667ac1fec48a63a361c8e9fbb97688",
+    "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector": "b3384d70d05f87306899478bdedd2283a949f6a918b68f02ba997472ffdea58b",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Ammunition": "b99a83d280430da37024408acd6c4e8c267ab929c6c39d90370476b7c3fa70a3",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Armament": "2df985ac8bc4e40f3d5a5a8e2ec207e6d32aff285de0a4ce73e60737ce18efea",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth": "bf0a3a7841c850568590c36562a392eca87bd4f9421a7909dfcb1fb1dc4a4aae",
+    "/Game/_Game/Data/Equipment/Chests/DT_ChestCatalog": "00708c80a3f6d0294be5e8a8a616bfb2794bd0c4e6be24c492b408cf3f772205",
+    "/Game/_Game/Data/Equipment/DA_BikiniRules": "db9deab071f9eac994adeb616b7798d68328c96d971d53f280aa540c3d0b4fec",
+    "/Game/_Game/Data/Equipment/DA_Chest_Default": "bf67a99e79158c4ccf1cd7a5e13f421379546290d1c6cac73d452014b88fed16",
+    "/Game/_Game/Data/Equipment/DA_EquipmentSlots": "226c7f4b102dcac1ee8b52304d8d49a6b40cfa390167ee5f15a277f7aab1f151",
+    "/Game/_Game/Data/Equipment/DA_ExclusiveTorsoRules": "08df4f5e8be60c7e6414d89610089bc2ad85b0e7e4533e66aabdbec273b469e5",
+    "/Game/_Game/Data/Equipment/DA_Satchel1Rules": "a3e397e96d8165229b1afaa75fd61d27b7364a4b68c3c98ece806632615e2142",
+    "/Game/_Game/Data/Equipment/DA_Satchel2Rules": "d5eb3f8fe67afc897d4ff10c4f291fa5d47f29a2193de5e30c33782dd8fd3482",
+    "/Game/_Game/Data/Equipment/DA_Satchel3Rules": "b5e03c161002bb47b7c6ea9e00675842e7318e55b4b2a9f1bb5822a3b9f29b40",
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit": "eb68bd1614522f508cfe539be436485119f8b1fb2a8e9ed1cb98c7f69ebddf9b",
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest": "3b0976ad37453b10eb5a843172277c6b4f01dbd2cb6a68c896135fce03314c0e",
+    "/Game/_Game/Items/Equipment/BP_BreastplatePrototypeVisual": "d3b074c9fa9680e6a1725eb2945ed44635621c1a8b1e64f9cbdccb2df1a1edaa",
+    "/Game/_Game/Items/Equipment/BP_EquipmentWorldItem": "9c915da2bd1585a7810cddfa3414546416d03d8181eeff46086c61c0c5a9d13f",
+    "/Game/_Game/Items/Equipment/BP_ExclusiveTorsoPrototype": "82ecdcfd843a7dbd5df0676578692d82063d64850f869c20316f8ff6913bef44",
+    "/Game/_Game/Items/Equipment/BP_Satchel1": "af96ffc96c98e0417ac1ef8100fe27a258e21fa546d3686e694320204cb448bc",
+    "/Game/_Game/Items/Equipment/BP_Satchel2": "a21c77bd91754378809296880732bbefbe363adf023e29cf1d899c7f5c551096",
+    "/Game/_Game/Items/Equipment/BP_Satchel3": "76e87ec7f79a0c65ede73bb8fc1c61308016db8245fcd34b7b14d03026927527",
+    "/Game/_Game/Items/Equipment/BP_SatchelPrototypeVisual": "c33c8a740569136fe5d0d21345e715a8a75a77bacc831a4f96f03eb392d79dd1",
+    "/Game/_Game/Items/Equipment/BP_StarterBag": "504fd7b28943d6ec9d7b778b902e921d8bcf3445c549dad4ea87877b3fbe97b3",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Accessory": "803935d2eb9c760111216b5303fdcf8eba717e11afae15b4e6b0b400028d96bb",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Feet": "4cc10bb0f66bdb0263429099f262cc82d1841894804bed7a899ccdd5a466388f",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Forearms": "a6eccdf28a650f300d775f638b1f1fca4dcb6985212075622063f8478f8be94b",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Gloves": "4059aef56cfeb2322ba274f542c7d03d7fbd9358ca7e34cc34d3f5be3c3e585a",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Necklace": "744b5d33df641db376a6917b2b35a0f41d678be2e8bea384072599ef0111e8ee",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_Satchel": "7134599beaa3f6d12ff98f62ccaffec6fe119fe8d364e4fe99d00e2613b30ce1",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_UnderwearLegs": "18fb2fa1a2b683332b9d82d42315445f8d389abd3e0b600a32b5072fdb6ad224",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_UnderwearTorso": "5d08dac98cf96dfa769db588af494006e4128b10d86f2e64cf97d3ab9beeaf59",
+    "/Game/_Game/Widgets/Equipment/Assets/Icons/T_Equipment_UpperArms": "6cd2a6ab35d972507da0769f6a0a25cf00fd8d68f14a7232cfba79837f24b553",
+    "/Game/_Game/Widgets/Equipment/Global/WBP_EquipmentBag": "e3bc5fdd42dc0cf6054b95d256e0a71e02be16898058d96fe309e5989446a25e"
+  },
+  "cook_support_packages": [
+    "/Game/_Game/Data/CalystoDungeon/DA_CalystoDungeonDirector"
+  ]
+}

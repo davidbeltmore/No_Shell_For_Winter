@@ -1,0 +1,13 @@
+﻿{
+    "script":  "D:\\Projects UE5\\NoShellForWinter\\Tools\\Equipment\\Validate-EquipmentTravel.py",
+    "script_sha256":  "98E565B3227A8FB34D760274EADC5B24CA105F44E50B887F8BA5ED8EEC063396",
+    "commit":  "82e6cd63f9041c91ff7f103250213fa5fdbfb72d",
+    "working_tree":  [
+                         " M Tools/Equipment/Record-ChestEvidence.py",
+                         " M Tools/Equipment/Validate-EquipmentTravel.py",
+                         "?? Content/_Game/Chest/",
+                         "?? Docs/Migration/ChestMoveRollback.md",
+                         "?? Docs/Migration/Evidence/ProceduralChests/",
+                         "?? Docs/Migration/ProceduralChests.md"
+                     ]
+}

@@ -1,0 +1,59 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "HORIZON",
+			"instance": "31B329974B194B1ACACC4D82A4BCA342",
+			"instanceName": "HORIZON-106116",
+			"platform": "Windows",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "NVIDIA GeForce RTX 5070 Ti",
+			"cPUModel": "AMD Ryzen 7 5800X 8-Core Processor             ",
+			"rAMInGB": 48,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.09.23-22.18.06",
+	"succeeded": 2,
+	"succeededWithWarnings": 0,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 0.071486100554466248,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "Vertical",
+			"fullTestPath": "EF.Equipment.Native.Vertical",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"31B329974B194B1ACACC4D82A4BCA342"
+			],
+			"duration": 0.067830398678779602,
+			"dateTime": "2026.09.23-22.18.06",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "Contracts",
+			"fullTestPath": "EF.Equipment.Policy.Contracts",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"31B329974B194B1ACACC4D82A4BCA342"
+			],
+			"duration": 0.0036557018756866455,
+			"dateTime": "2026.09.23-22.18.06",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}

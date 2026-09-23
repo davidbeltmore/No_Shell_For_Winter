@@ -1,0 +1,739 @@
+{
+  "asset_mutations": [],
+  "asset_saves": [],
+  "creator_idempotency_receipts": {
+    "Decal material creator": {
+      "append_only": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateDecalMaterialsV6\\2026_09_04T14_26_19_735813_00_00_VALIDATE_EXISTING_READ_ONLY.json",
+      "append_only_sha256": "3D66BE45A24E01927D66357F3396D4BF7CB493F655BCB89ABA3005F55DFB3F10",
+      "canonical": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\CreateDecalMaterialsV6.json",
+      "canonical_sha256": "3D66BE45A24E01927D66357F3396D4BF7CB493F655BCB89ABA3005F55DFB3F10",
+      "current_asset_hashes": {
+        "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling": "4E6B460ADECAA583BD6C6DA3D57C2F3649FA8834DD1A41176644987992F934DD",
+        "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor": "4157DD858519E7494CF7F790031FC674B913D870458C6387DA93EABC3D8D8B95",
+        "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall": "3B3AB613BF90D5C39A287913D4BBC2D6A800718C1933F56C2E0A2BB3D2273266",
+        "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal": "34E38324D705C14571904F80573349223B052E9544B178C7599A13FADE4DAB17"
+      },
+      "first_run": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateDecalMaterialsV6\\2026_09_04T14_21_56_264995_00_00_CREATE_ONCE.json",
+      "first_run_mode": "CREATE_ONCE",
+      "first_run_sha256": "01A6BABBDEC43E71B2437528B65A01000F98FAE9FE533633CA5A9DD7A35E0F12"
+    },
+    "Internal PCG creator": {
+      "append_only": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateInternalPCGClosureV6\\2026_09_04T14_10_27_970686_00_00_VALIDATE_EXISTING_READ_ONLY.json",
+      "append_only_sha256": "7886AAF86B685F87EEE65D6171999EEFDB0E627AFBDC1A93B769A255DF62822C",
+      "canonical": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\CreateInternalPCGClosureV6.json",
+      "canonical_sha256": "7886AAF86B685F87EEE65D6171999EEFDB0E627AFBDC1A93B769A255DF62822C",
+      "current_asset_hashes": {
+        "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe": "D68D3D4B7C12ACC21473646B142545B56B7EE93758F7E94C25AFB3E86C1CB336",
+        "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe": "70CDB4C2D8EF9ED0F390ED0CAFE20DDCB21C7144652B49E332EE4DBA656DCCB7"
+      },
+      "first_run": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateInternalPCGClosureV6\\2026_09_04T14_08_19_740605_00_00_CREATE_ONCE_FROM_FROZEN_VENDOR_GRAPHS.json",
+      "first_run_mode": "CREATE_ONCE_FROM_FROZEN_VENDOR_GRAPHS",
+      "first_run_sha256": "F7473C3AACC79706DC39E6378A6B2D8CF7DECDA49A8BD86D2B87B5A096DE32FA"
+    },
+    "Policy creator": {
+      "append_only": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateDirectorPolicyV6\\2026_09_23T06_43_29_855385_00_00_VALIDATE_EXISTING_READ_ONLY.json",
+      "append_only_sha256": "7086233F9BDAC6B6A639F836DAF0241B524C4DA44168054C84D817A474EE908C",
+      "canonical": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\CreateDirectorPolicyV6.json",
+      "canonical_sha256": "7086233F9BDAC6B6A639F836DAF0241B524C4DA44168054C84D817A474EE908C",
+      "current_asset_hashes": {
+        "/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy": "0A5F09407ABACBBC9255ABB56D488DD432667AC1FEC48A63A361C8E9FBB97688"
+      },
+      "first_run": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateDirectorPolicyV6\\2026_09_04T14_31_01_485218_00_00_CREATE_ONCE_FROM_NATIVE_V6_DEFAULTS.json",
+      "first_run_mode": "CREATE_ONCE_FROM_NATIVE_V6_DEFAULTS",
+      "first_run_sha256": "33B64C030F269D88FF472E0EC752EA80615C6FE73A2CC252E2372165AE003934"
+    },
+    "Runtime Blueprint creator": {
+      "append_only": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateRuntimeAssetsV6\\2026_09_23T21_41_57_986549_00_00_VALIDATE_EXISTING_READ_ONLY.json",
+      "append_only_sha256": "7C64A7601F01196DD7A44AFFA79858648C7E509EC9D76E490D96A0909B3D6778",
+      "canonical": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\CreateRuntimeAssetsV6.json",
+      "canonical_sha256": "7C64A7601F01196DD7A44AFFA79858648C7E509EC9D76E490D96A0909B3D6778",
+      "current_asset_hashes": {
+        "/Game/_Game/Items/Chests/BP_EquipmentDeposit": "EB68BD1614522F508CFE539BE436485119F8B1FB2A8E9ED1CB98C7F69EBDDF9B",
+        "/Game/_Game/Items/Chests/BP_EquipmentLockedChest": "3B0976AD37453B10EB5A843172277C6B4F01DBD2CB6A68C896135FCE03314C0E",
+        "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup": "603FCAEE374521E0217D50D00BAEDC0AD0BFA2F6396CB0F0BBEB2F86ED8E3214"
+      },
+      "first_run": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateRuntimeAssetsV6\\2026_09_04T14_12_52_443879_00_00_CREATE_ONCE_FROM_FROZEN_BLUEPRINTS.json",
+      "first_run_mode": "CREATE_ONCE_FROM_FROZEN_BLUEPRINTS",
+      "first_run_sha256": "FF8C157C984ABEFAF97D991F5C7DE7FA1A11538ACD2A32C150F46E061B99C6AF"
+    }
+  },
+  "decal_dependency_audit": {
+    "dependencies_by_project_owned_package": {
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling": [
+        "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal"
+      ],
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor": [
+        "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal"
+      ],
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall": [
+        "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal"
+      ],
+      "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal": [
+        "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04",
+        "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04"
+      ]
+    },
+    "expected_realistic_blood_dependency_closure": [
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04"
+    ],
+    "project_owned_packages": [
+      "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall"
+    ],
+    "realistic_blood_dependency_closure": [
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04"
+    ]
+  },
+  "dirty_packages_after": [],
+  "dirty_packages_before": [],
+  "generated_utc": "2026-09-23T21:42:29.964278+00:00",
+  "guarded_asset_hashes": {
+    "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling": "4E6B460ADECAA583BD6C6DA3D57C2F3649FA8834DD1A41176644987992F934DD",
+    "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor": "4157DD858519E7494CF7F790031FC674B913D870458C6387DA93EABC3D8D8B95",
+    "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall": "3B3AB613BF90D5C39A287913D4BBC2D6A800718C1933F56C2E0A2BB3D2273266",
+    "/EFProcedural/Calysto/Internal/Materials/Decals/M_CalystoBloodDecal": "34E38324D705C14571904F80573349223B052E9544B178C7599A13FADE4DAB17",
+    "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe": "D68D3D4B7C12ACC21473646B142545B56B7EE93758F7E94C25AFB3E86C1CB336",
+    "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe": "70CDB4C2D8EF9ED0F390ED0CAFE20DDCB21C7144652B49E332EE4DBA656DCCB7",
+    "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04": "33B6BD0949AA4F7EC0A6D0FB87307BE1924967A4AE019287F82806649B35DB3D",
+    "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04": "0DE564AFB5AEEF377A7DB46CCC903B4AB144BC1A77E5DF01EC5798C6E853DB74",
+    "/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy": "0A5F09407ABACBBC9255ABB56D488DD432667AC1FEC48A63A361C8E9FBB97688",
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit": "EB68BD1614522F508CFE539BE436485119F8B1FB2A8E9ED1CB98C7F69EBDDF9B",
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest": "3B0976AD37453B10EB5A843172277C6B4F01DBD2CB6A68C896135FCE03314C0E",
+    "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup": "603FCAEE374521E0217D50D00BAEDC0AD0BFA2F6396CB0F0BBEB2F86ED8E3214"
+  },
+  "internal_pcg_closure": {
+    "asset_hashes": {
+      "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe": "D68D3D4B7C12ACC21473646B142545B56B7EE93758F7E94C25AFB3E86C1CB336",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe": "70CDB4C2D8EF9ED0F390ED0CAFE20DDCB21C7144652B49E332EE4DBA656DCCB7"
+    },
+    "packages": [
+      "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe"
+    ],
+    "runtime_validator": "ValidateInternalCookedClosure",
+    "status": "PASS"
+  },
+  "mode": "READ_ONLY_COOK_CLOSURE_VALIDATION",
+  "policy": {
+    "asset_bundle_data_validation": {
+      "bundle_counts": {
+        "CalystoDecalsV6": 5,
+        "CalystoFloorV6": 49,
+        "CalystoStyleV6": 42,
+        "CalystoThemeV6": 32
+      },
+      "bundles": {
+        "CalystoDecalsV6": [
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling.MI_CalystoBloodDecal_Ceiling",
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor.MI_CalystoBloodDecal_Floor",
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall.MI_CalystoBloodDecal_Wall",
+          "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04.T_Splat_04",
+          "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04.T_Splat_N_04"
+        ],
+        "CalystoFloorV6": [
+          "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange",
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling.MI_CalystoBloodDecal_Ceiling",
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor.MI_CalystoBloodDecal_Floor",
+          "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall.MI_CalystoBloodDecal_Wall",
+          "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe.PCG_AddRampsCookedSafe",
+          "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe.PCG_SetDungeonMeshCookedSafe",
+          "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch.BP_WallTorch_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door.BP_Door_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.BP_EndPoint_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint.BP_StartPoint_C",
+          "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table",
+          "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor.SM_Floor",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean.SM_IronDoorFrameClean",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel.SM_RampBevel",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof.SM_Roof",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall.SM_Wall",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor.SM_WallDoor",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C",
+          "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue",
+          "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04.T_Splat_04",
+          "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04.T_Splat_N_04",
+          "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C",
+          "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C",
+          "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C",
+          "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C",
+          "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C"
+        ],
+        "CalystoStyleV6": [
+          "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange",
+          "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch.BP_WallTorch_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door.BP_Door_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.BP_EndPoint_C",
+          "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint.BP_StartPoint_C",
+          "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table",
+          "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor.SM_Floor",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean.SM_IronDoorFrameClean",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel.SM_RampBevel",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof.SM_Roof",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall.SM_Wall",
+          "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor.SM_WallDoor",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C",
+          "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue",
+          "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C",
+          "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C",
+          "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C",
+          "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C",
+          "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C"
+        ],
+        "CalystoThemeV6": [
+          "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange",
+          "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table",
+          "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C",
+          "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue",
+          "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C",
+          "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C",
+          "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C",
+          "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C",
+          "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C",
+          "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C",
+          "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C",
+          "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C"
+        ]
+      },
+      "storage": "FAssetData.TaggedAssetBundles"
+    },
+    "bundle_asset_count": 49,
+    "bundle_asset_paths": [
+      "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling.MI_CalystoBloodDecal_Ceiling",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor.MI_CalystoBloodDecal_Floor",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall.MI_CalystoBloodDecal_Wall",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe.PCG_AddRampsCookedSafe",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe.PCG_SetDungeonMeshCookedSafe",
+      "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C",
+      "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C",
+      "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C",
+      "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C",
+      "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C",
+      "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C",
+      "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+      "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C",
+      "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C",
+      "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C",
+      "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C",
+      "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C",
+      "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C",
+      "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C",
+      "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch.BP_WallTorch_C",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door.BP_Door_C",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.BP_EndPoint_C",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint.BP_StartPoint_C",
+      "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table",
+      "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor.SM_Floor",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean.SM_IronDoorFrameClean",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel.SM_RampBevel",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof.SM_Roof",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall.SM_Wall",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor.SM_WallDoor",
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C",
+      "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04.T_Splat_04",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04.T_Splat_N_04"
+    ],
+    "bundle_asset_paths_sha256": "A543D6A836F35540A062263975971A8D8AF5169FDE78C1AC7F5D3ECC1489035C",
+    "bundle_names": [
+      "CalystoFloorV6",
+      "CalystoStyleV6",
+      "CalystoThemeV6",
+      "CalystoDecalsV6"
+    ],
+    "bundle_packages": [
+      "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor",
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe",
+      "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe",
+      "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint",
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint",
+      "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table",
+      "/Game/Calysto/Dungeon/Material/MI_GreyTiles",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall",
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor",
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP",
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP",
+      "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04",
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04",
+      "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale",
+      "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale",
+      "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale",
+      "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale",
+      "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale",
+      "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale",
+      "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale",
+      "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale",
+      "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale",
+      "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale",
+      "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale",
+      "/Game/_Game/Characters/Male/ACFGunEnemyBPMale",
+      "/Game/_Game/Characters/Male/ACFMMEnemyBPMale",
+      "/Game/_Game/Characters/Male/ACFMageEnemyBPMale",
+      "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale",
+      "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale",
+      "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale",
+      "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01",
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01",
+      "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
+      "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
+      "/Game/_Game/Items/Companions/BP_Item_WintersRecall"
+    ],
+    "class": "/Script/EFProceduralRuntime.EFCalystoDungeonDirectorPolicyV6Asset",
+    "exact_reference_validation": {
+      "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange",
+        "package_sha256": "721E3896080BA18F0D01974FAED4B51CB87D2779F911051B4B8652D2E38E4899",
+        "resolved_object": "/EFProcedural/Calysto/Internal/Materials/Architecture/MI_Template_BaseOrange.MI_Template_BaseOrange"
+      },
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling.MI_CalystoBloodDecal_Ceiling": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling",
+        "package_sha256": "4E6B460ADECAA583BD6C6DA3D57C2F3649FA8834DD1A41176644987992F934DD",
+        "resolved_object": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Ceiling.MI_CalystoBloodDecal_Ceiling"
+      },
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor.MI_CalystoBloodDecal_Floor": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor",
+        "package_sha256": "4157DD858519E7494CF7F790031FC674B913D870458C6387DA93EABC3D8D8B95",
+        "resolved_object": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Floor.MI_CalystoBloodDecal_Floor"
+      },
+      "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall.MI_CalystoBloodDecal_Wall": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall",
+        "package_sha256": "3B3AB613BF90D5C39A287913D4BBC2D6A800718C1933F56C2E0A2BB3D2273266",
+        "resolved_object": "/EFProcedural/Calysto/Internal/Materials/Decals/MI_CalystoBloodDecal_Wall.MI_CalystoBloodDecal_Wall"
+      },
+      "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe.PCG_AddRampsCookedSafe": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/PCG.PCGGraph",
+        "package": "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe",
+        "package_sha256": "D68D3D4B7C12ACC21473646B142545B56B7EE93758F7E94C25AFB3E86C1CB336",
+        "resolved_object": "/EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe.PCG_AddRampsCookedSafe"
+      },
+      "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe.PCG_SetDungeonMeshCookedSafe": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/PCG.PCGGraph",
+        "package": "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe",
+        "package_sha256": "70CDB4C2D8EF9ED0F390ED0CAFE20DDCB21C7144652B49E332EE4DBA656DCCB7",
+        "resolved_object": "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe.PCG_SetDungeonMeshCookedSafe"
+      },
+      "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch.BP_WallTorch_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch",
+        "package_sha256": "CA9BD0025E6672A1E4A65F66B3B37976DB812D10E4F9B695765C142083D4FD5A",
+        "resolved_object": "/Game/Calysto/Dungeon/Blueprint/Lightning/BP_WallTorch.BP_WallTorch_C"
+      },
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door.BP_Door_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door",
+        "package_sha256": "9DF18266D601C85DE860F03D5F99042E825E7447CA75D39C875E2521AC23B163",
+        "resolved_object": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_Door.BP_Door_C"
+      },
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.BP_EndPoint_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint",
+        "package_sha256": "ACEBBA93DD6FE58A2806F9A5B7D22EFD218ECBBEDDD082375F30A293893429F2",
+        "resolved_object": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_EndPoint.BP_EndPoint_C"
+      },
+      "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint.BP_StartPoint_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint",
+        "package_sha256": "EA5696529080367617059E07C70FE9D70F127AF537F081BCE375AA061B786905",
+        "resolved_object": "/Game/Calysto/Dungeon/Blueprint/Utility/BP_StartPoint.BP_StartPoint_C"
+      },
+      "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/PCG.PCGDataAsset",
+        "package": "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table",
+        "package_sha256": "568937E8194674F2CDB1CBFE61BAE9494F116BF2C6F3BDA9595370674495D324",
+        "resolved_object": "/Game/Calysto/Dungeon/Demo/LevelInstance/PCGDA_Table.PCGDA_Table"
+      },
+      "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/Game/Calysto/Dungeon/Material/MI_GreyTiles",
+        "package_sha256": "D34408633CDFF842C443547769A63DCD74738BFB86F691F0E36F0D128ABC9A76",
+        "resolved_object": "/Game/Calysto/Dungeon/Material/MI_GreyTiles.MI_GreyTiles"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor.SM_Floor": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor",
+        "package_sha256": "01DD6EEB2444E20F5A0F37AF551D2A0E8FC58CDB744BDB5BF45C79E80C61A268",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Floor.SM_Floor"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean.SM_IronDoorFrameClean": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean",
+        "package_sha256": "68A63919794AB6FF30A3CC76F6043DE310E68B61275542122BAFCDD275CA2D3E",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_IronDoorFrameClean.SM_IronDoorFrameClean"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel.SM_RampBevel": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel",
+        "package_sha256": "E9EA9E9717D41C7CA6E92D4FF16720CAA90883E6629550790DEFF902070BF395",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_RampBevel.SM_RampBevel"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof.SM_Roof": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof",
+        "package_sha256": "F2D63D29EDC1BD0203E447EBFC12D84D799E9CA4273B4C01E3348DA22806B16C",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Roof.SM_Roof"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall.SM_Wall": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall",
+        "package_sha256": "4B7BE88EC6FB1DADA035E82E11409AF4D49E4D54BE3A71E84CDAFF0540048047",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_Wall.SM_Wall"
+      },
+      "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor.SM_WallDoor": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.StaticMesh",
+        "package": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor",
+        "package_sha256": "D4F770794AFA975AE732900AE0460ADF3576A7A44429B77D81AA316FA9DE5915",
+        "resolved_object": "/Game/Calysto/Dungeon/Mesh/DungeonMesh/SM_WallDoor.SM_WallDoor"
+      },
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP",
+        "package_sha256": "33F8EB3A9A008D4FFAE358DD1C4DA45F127AC60531EA9F08489D06D7D97E9040",
+        "resolved_object": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C"
+      },
+      "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP",
+        "package_sha256": "2AAEC8E74892E2EA82EB63296E100D904461BED8F01A614FDE77905B3A19FD2C",
+        "resolved_object": "/Game/FullSample/Blueprints/Items/Consumable/ACFManaPotionBP.ACFManaPotionBP_C"
+      },
+      "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.MaterialInstanceConstant",
+        "package": "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue",
+        "package_sha256": "191CF50131E6024D76300BCEBBA5E35431CE3EE5337ECE99717BC8A77D75253E",
+        "resolved_object": "/Game/FullSample/DemoRoom/Materials/MI_Display_Blue.MI_Display_Blue"
+      },
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04.T_Splat_04": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.Texture2D",
+        "package": "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04",
+        "package_sha256": "33B6BD0949AA4F7EC0A6D0FB87307BE1924967A4AE019287F82806649B35DB3D",
+        "resolved_object": "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_04.T_Splat_04"
+      },
+      "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04.T_Splat_N_04": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.Texture2D",
+        "package": "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04",
+        "package_sha256": "0DE564AFB5AEEF377A7DB46CCC903B4AB144BC1A77E5DF01EC5798C6E853DB74",
+        "resolved_object": "/Game/RealisticBlood/_Commons/Textures/Decals/T_Splat_N_04.T_Splat_N_04"
+      },
+      "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale",
+        "package_sha256": "E75143CF5872AE1B101561E004A545BDE22C654E3DEE86C8974B8F3055736122",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale",
+        "package_sha256": "8670C1AAFA47120C23840E3C6A78EC55A67E2A76405D4B265CE6FB5A44B58B69",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale.ACFDefenderEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale",
+        "package_sha256": "3B4F1F3C566EB399982328EEB50153DB10C5F6B3DCCA11103B2BE699C795F4FA",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale",
+        "package_sha256": "43D28E31C4B3A340B83C2673F0394672E49906A46F0DC4F14CF23865742D0EEC",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale.ACFMMEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale",
+        "package_sha256": "70F03CF538F43696C5789E2993F9F5FB52D49FAA00FBDFF1A356F0012FB3AB18",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale.ACFMageEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale",
+        "package_sha256": "6FA668BC66509B76F545FA03747F5364F315A1E60C2DA48EE97FC41506454CA3",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale.ACFMeleeCompanionBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale",
+        "package_sha256": "EFE8CB2E989A1CA5C8447E62C94A5C57833D08E83E5F4CDB96EC0232E77999C5",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale",
+        "package_sha256": "AF617ECE35A1A07B09E6DD2D44BE37297EFDD3D795FFC2495E22DC4122BF5069",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale.ACFRangedCompanionBPFemale_C"
+      },
+      "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale",
+        "package_sha256": "1DC0A342C579B8BD9FF47982A2CF8B5001B28DFD0CEBA12D3BA03F4637482930",
+        "resolved_object": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale.ACFRangedEnemyBPFemale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale",
+        "package_sha256": "854F866295BECA99474FFCBB9F268B3DA920B30C13ACCAC2FFFEFEC2F59A8DD5",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale",
+        "package_sha256": "F8F84F8AF8C7596EF8610B3751EC5717192D021B540D41B4ED6FCC4FC078FE88",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale.ACFDefenderEnemyBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale",
+        "package_sha256": "8C760DE18D2829BB9E35574C56082617D0765BCA7657EDF5BA92F723732AB759",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale",
+        "package_sha256": "F139DB6355EEA4CAB3F2F8748A5B55CDAE79B76F9C79BD5DBBA5EDD32A47F638",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale.ACFMMEnemyBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale",
+        "package_sha256": "BCBBC5C6BF3215EC1DE6585CAC7AB7FE524F8DC43DD8D712C288850288F3132B",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale.ACFMageEnemyBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale",
+        "package_sha256": "E581D9948A898C61C9CCC00A490034DD002640C3A78472745913E4B7818B3F6F",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale",
+        "package_sha256": "44B7AC40E7358DEC566D285A79569380290ECE95B0DD4ACADD7B0628F07C85D6",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale",
+        "package_sha256": "27EA44C6C6A323B56DA61DD750D0D2C1B17A58508909C242E2BECF467543704C",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale.ACFRangedCompanionBPMale_C"
+      },
+      "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale",
+        "package_sha256": "9D29A9F6C3DBD7EC5F9C9919C39AE59EE912E2051C2591514A65D289CA0A6A64",
+        "resolved_object": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale.ACFRangedEnemyBPMale_C"
+      },
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07",
+        "package_sha256": "E73A9C641D0EF66EFB5FB558792823DB33089D8280F4E1059694DEED0547B866",
+        "resolved_object": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_AlcoholBottle07.BP_Pickup_Drink_AlcoholBottle07_C"
+      },
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01",
+        "package_sha256": "2E2A8E9995C5EBCA898E9509163CA37D8C23EB5797B780811668E6CB48799521",
+        "resolved_object": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Drink/BP_Pickup_Drink_WaterBottle01.BP_Pickup_Drink_WaterBottle01_C"
+      },
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01",
+        "package_sha256": "95BE5D7B6F664BE9F315AC7FEED101501A3283D66DB541C4E9DAF6A17F168C9A",
+        "resolved_object": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01.BP_Pickup_Food_Apple01_C"
+      },
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01",
+        "package_sha256": "10166BC55CECC291840213FC4139936A4573D777F0611C1D659F6702E2D6526C",
+        "resolved_object": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01.BP_Pickup_Food_Bread01_C"
+      },
+      "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01",
+        "package_sha256": "2A92F111040E0A9B7A3472F928718C6F05AE00BAB9CE19C59682535E4FD69C57",
+        "resolved_object": "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01.BP_Pickup_Food_CookedMeat01_C"
+      },
+      "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
+        "package_sha256": "3B0976AD37453B10EB5A843172277C6B4F01DBD2CB6A68C896135FCE03314C0E",
+        "resolved_object": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C"
+      },
+      "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
+        "package_sha256": "603FCAEE374521E0217D50D00BAEDC0AD0BFA2F6396CB0F0BBEB2F86ED8E3214",
+        "resolved_object": "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C"
+      },
+      "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C": {
+        "asset_registry_row_count": 1,
+        "class": "/Script/Engine.BlueprintGeneratedClass",
+        "package": "/Game/_Game/Items/Companions/BP_Item_WintersRecall",
+        "package_sha256": "2EC263DCF11A891AACEADD717A00117AE4F1C21F4D07B7A9DD6F39965C92CC8F",
+        "resolved_object": "/Game/_Game/Items/Companions/BP_Item_WintersRecall.BP_Item_WintersRecall_C"
+      }
+    },
+    "hashes": {
+      "authoring": "E5594154410469FF902C5BB69D7C536DE3EBB255716B9CB46ECFDBC5529CE342",
+      "decals": "92EEB49947EA18CEDE770B6579C09226481F0C5D36C33098155AD7F7144221CF",
+      "gameplay": "69EFBBA40F5617031215792956B866806A6B4EEC7D80DD94917506F920342E78",
+      "materials": "E61AE6EAD0D4689A262F7BBB11A117F56EA4A412232DFC20E4DCB77AF3235B48"
+    },
+    "object": "/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy.DA_CalystoDungeonDirectorPolicy",
+    "package_sha256": "0A5F09407ABACBBC9255ABB56D488DD432667AC1FEC48A63A361C8E9FBB97688",
+    "serialized_asset_bundle_storage": "FAssetData.TaggedAssetBundles"
+  },
+  "project": "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+  "receipt_schema_version": 1,
+  "save_api_calls": 0,
+  "status": "PASS"
+}

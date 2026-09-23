@@ -1,0 +1,38 @@
+{
+  "append_only_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Migration\\CalystoDungeonDirectorV6\\ReceiptHistory\\CreateRuntimeAssetsV6\\2026_09_23T21_41_57_986549_00_00_VALIDATE_EXISTING_READ_ONLY.json",
+  "asset_mutations": [],
+  "asset_mutations_final": [],
+  "blueprints": [
+    {
+      "compile_status": "<BlueprintStatus.BS_UP_TO_DATE: 3>",
+      "generated_class": "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit_C",
+      "package": "/Game/_Game/Items/Chests/BP_EquipmentDeposit",
+      "package_sha256": "EB68BD1614522F508CFE539BE436485119F8B1FB2A8E9ED1CB98C7F69EBDDF9B",
+      "parent": "/AscentCombatFramework/Integrations/Actors/ACF_Deposit_BP.ACF_Deposit_BP_C"
+    },
+    {
+      "compile_status": "<BlueprintStatus.BS_UP_TO_DATE: 3>",
+      "generated_class": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C",
+      "package": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
+      "package_sha256": "3B0976AD37453B10EB5A843172277C6B4F01DBD2CB6A68C896135FCE03314C0E",
+      "parent": "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit_C"
+    },
+    {
+      "compile_status": "<BlueprintStatus.BS_UP_TO_DATE: 3>",
+      "generated_class": "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup.BP_CalystoArmorPickup_C",
+      "package": "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
+      "package_sha256": "603FCAEE374521E0217D50D00BAEDC0AD0BFA2F6396CB0F0BBEB2F86ED8E3214",
+      "parent": "/Script/InventorySystem.ACFWorldItem"
+    }
+  ],
+  "changed_content_files": [],
+  "changed_content_files_final": [],
+  "created": [],
+  "engine_version": "5.8.3-58210709+++UE5+Release-5.8",
+  "generated_utc": "2026-09-23T21:41:57.986549+00:00",
+  "mode": "VALIDATE_EXISTING_READ_ONLY",
+  "project": "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+  "receipt_schema_version": 1,
+  "saved": [],
+  "status": "PASS"
+}

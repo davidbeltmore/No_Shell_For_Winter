@@ -1,0 +1,13 @@
+﻿{
+    "status":  "PASS",
+    "mode":  "NativeEquipment",
+    "archive":  "A:\\NoShellForWinterChests\\Archive_05",
+    "executable_sha256":  "43EFC4F300F5F6934FD318B1E2575CCFD157CD5D45322D226DC17A0441ADE3CE",
+    "user_dir":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\EquipmentQA\\Packaged_ChestsEquipment01\\User",
+    "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\EquipmentQA\\Packaged_ChestsEquipment01\\game.log",
+    "expected_tests":  [
+                           "EF.Equipment.Native.Vertical",
+                           "EF.Equipment.Policy.Contracts"
+                       ],
+    "exit_code":  0
+}

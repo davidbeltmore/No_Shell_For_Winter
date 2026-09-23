@@ -1,0 +1,513 @@
+{
+  "binding_schema_version": 16,
+  "catalog_equality_gate": true,
+  "clothing_names": [
+    "RagFootWraps",
+    "RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "RagPants",
+    "RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "RagShirt",
+    "RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearBikini_Female",
+    "UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearBra_Female",
+    "UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearPanty_Female",
+    "UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40"
+  ],
+  "compatibility_reference": "/Game/DazToUnreal/Multiple/Multiple",
+  "compiled_row_count": 12,
+  "compiler_version": 36,
+  "director": "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector",
+  "director_id": "EFClothingMorphV4",
+  "director_schema_version": 5,
+  "draft_row_count": 0,
+  "enabled_row_count": 12,
+  "engine_version": "5.8.3-58210709+++UE5+Release-5.8",
+  "errors": [],
+  "failed_row_count": 0,
+  "generated_utc": "2026-09-23T21:49:02.288584+00:00",
+  "native_report": "V4 PASS | enabled=12 ready=12 reused=12 published=12 drafts=0 failed=0 registry=/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry | V4 FRESH | enabled=12 valid=12 drafts=0 invalid=0 stale=0 registry=12",
+  "orphan_cleanup": {
+    "audited": {},
+    "blocked": {},
+    "deleted": [],
+    "remaining": []
+  },
+  "output_root": "/EFClothingMorph/_Internal/Compiled/V4",
+  "project": "D:\\Projects UE5\\NoShellForWinter\\NoShellForWinter.uproject",
+  "protected_inputs_unchanged": true,
+  "protected_packages": [
+    "/Game/DazToUnreal/Bikini/Bikini",
+    "/Game/DazToUnreal/Female/Female",
+    "/Game/DazToUnreal/Male/Male",
+    "/Game/DazToUnreal/Multiple/Multiple",
+    "/Game/DazToUnreal/RagFootWraps/RagFootWraps",
+    "/Game/DazToUnreal/RagPants/RagPants",
+    "/Game/DazToUnreal/RagShirt/RagShirt",
+    "/Game/DazToUnreal/UnderWearBra/UnderWearBra",
+    "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty",
+    "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin",
+    "/Game/FullSample/Player",
+    "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector"
+  ],
+  "protected_sha256_after": {
+    "/Game/DazToUnreal/Bikini/Bikini": {
+      "sha256": "993FE56125B8C0400EFDE014A39B8B70254F80EB223E5A8B7FFE7CEF6F237E23",
+      "size_bytes": 418468
+    },
+    "/Game/DazToUnreal/Female/Female": {
+      "sha256": "8C333C85F218B9858CB3BF67E7B9B15ABB071A08689917A90A18965A5A75AF13",
+      "size_bytes": 62494999
+    },
+    "/Game/DazToUnreal/Male/Male": {
+      "sha256": "AD03E3417CE42997EAEBF1B28189692A62BC2126CF707FA75F8C373587DD629C",
+      "size_bytes": 170736396
+    },
+    "/Game/DazToUnreal/Multiple/Multiple": {
+      "sha256": "3FC4E53877C2EA61A766761E12095FA5F9AF48993A2ECE6CE131CFCCA6BF9583",
+      "size_bytes": 15185847
+    },
+    "/Game/DazToUnreal/RagFootWraps/RagFootWraps": {
+      "sha256": "FAEA4434912C92D494AB9BD958307133C47ED7E7B08B3544F3EE6DE9DF22123C",
+      "size_bytes": 600656
+    },
+    "/Game/DazToUnreal/RagPants/RagPants": {
+      "sha256": "8DC72211B4FDD9A93A0E16F493276967A0EAE5A18CB414509BB5A6C5E6439E59",
+      "size_bytes": 2394988
+    },
+    "/Game/DazToUnreal/RagShirt/RagShirt": {
+      "sha256": "B294ED8C6AE5CD94AA0A4DC3EFC3A7A9F29B74A6D0A38EC1B43B320491E367A5",
+      "size_bytes": 2119105
+    },
+    "/Game/DazToUnreal/UnderWearBra/UnderWearBra": {
+      "sha256": "92F6FBC7C1898264320A60C69EE795D0184033FABC6EE7F6DAB638329DD513CA",
+      "size_bytes": 6665573
+    },
+    "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty": {
+      "sha256": "271AAF5B34530E0A71A0B8E6C2F5D07D205F28D4B4DE177B88DFB1DFBDE2F843",
+      "size_bytes": 4862412
+    },
+    "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin": {
+      "sha256": "2F23059E4A1F166030724EB4369BA462302D025F2F4A09079EF95402846A8693",
+      "size_bytes": 176757
+    },
+    "/Game/FullSample/Player": {
+      "sha256": "C79AEE2264D52C3A9F61687A57D3713CBB25441E778979E5C412B82D84B36709",
+      "size_bytes": 126080
+    },
+    "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector": {
+      "sha256": "B3384D70D05F87306899478BDEDD2283A949F6A918B68F02BA997472FFDEA58B",
+      "size_bytes": 22153
+    }
+  },
+  "protected_sha256_before": {
+    "/Game/DazToUnreal/Bikini/Bikini": {
+      "sha256": "993FE56125B8C0400EFDE014A39B8B70254F80EB223E5A8B7FFE7CEF6F237E23",
+      "size_bytes": 418468
+    },
+    "/Game/DazToUnreal/Female/Female": {
+      "sha256": "8C333C85F218B9858CB3BF67E7B9B15ABB071A08689917A90A18965A5A75AF13",
+      "size_bytes": 62494999
+    },
+    "/Game/DazToUnreal/Male/Male": {
+      "sha256": "AD03E3417CE42997EAEBF1B28189692A62BC2126CF707FA75F8C373587DD629C",
+      "size_bytes": 170736396
+    },
+    "/Game/DazToUnreal/Multiple/Multiple": {
+      "sha256": "3FC4E53877C2EA61A766761E12095FA5F9AF48993A2ECE6CE131CFCCA6BF9583",
+      "size_bytes": 15185847
+    },
+    "/Game/DazToUnreal/RagFootWraps/RagFootWraps": {
+      "sha256": "FAEA4434912C92D494AB9BD958307133C47ED7E7B08B3544F3EE6DE9DF22123C",
+      "size_bytes": 600656
+    },
+    "/Game/DazToUnreal/RagPants/RagPants": {
+      "sha256": "8DC72211B4FDD9A93A0E16F493276967A0EAE5A18CB414509BB5A6C5E6439E59",
+      "size_bytes": 2394988
+    },
+    "/Game/DazToUnreal/RagShirt/RagShirt": {
+      "sha256": "B294ED8C6AE5CD94AA0A4DC3EFC3A7A9F29B74A6D0A38EC1B43B320491E367A5",
+      "size_bytes": 2119105
+    },
+    "/Game/DazToUnreal/UnderWearBra/UnderWearBra": {
+      "sha256": "92F6FBC7C1898264320A60C69EE795D0184033FABC6EE7F6DAB638329DD513CA",
+      "size_bytes": 6665573
+    },
+    "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty": {
+      "sha256": "271AAF5B34530E0A71A0B8E6C2F5D07D205F28D4B4DE177B88DFB1DFBDE2F843",
+      "size_bytes": 4862412
+    },
+    "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin": {
+      "sha256": "2F23059E4A1F166030724EB4369BA462302D025F2F4A09079EF95402846A8693",
+      "size_bytes": 176757
+    },
+    "/Game/FullSample/Player": {
+      "sha256": "C79AEE2264D52C3A9F61687A57D3713CBB25441E778979E5C412B82D84B36709",
+      "size_bytes": 126080
+    },
+    "/Game/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector": {
+      "sha256": "B3384D70D05F87306899478BDEDD2283A949F6A918B68F02BA997472FFDEA58B",
+      "size_bytes": 22153
+    }
+  },
+  "published_row_count": 12,
+  "registry": "/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry",
+  "registry_native_binding_count": 12,
+  "registry_profile_count": 0,
+  "reused_fresh_row_count": 12,
+  "rows": [
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearBra_Female_759333BC_Female_1FCC5E1D_EFV4Surface_D0FE312148FEF33EF49C90A3C5B9E4C7.DA_UnderWearBra_Female_759333BC_Female_1FCC5E1D_EFV4Surface_D0FE312148FEF33EF49C90A3C5B9E4C7",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/UnderWearBra/UnderWearBra",
+      "clothing_name": "UnderWearBra_Female",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 5855,
+          "collision_only_vertices": 5855,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 26792
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_759333BC_Male_DEE4BC74_EFV4Surface_CA3669D94AC6B47DA7E32EBD3E56EE4A.DA_UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_759333BC_Male_DEE4BC74_EFV4Surface_CA3669D94AC6B47DA7E32EBD3E56EE4A",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/UnderWearBra/UnderWearBra",
+      "clothing_name": "UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 5855,
+          "collision_only_vertices": 5855,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 26792
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV4Surface_CFD73B2E45D2B8ECAFCE34A8BD9D4383.DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV4Surface_CFD73B2E45D2B8ECAFCE34A8BD9D4383",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty",
+      "clothing_name": "UnderWearPanty_Female",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 4466,
+          "collision_only_vertices": 3512,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 954,
+          "witnesses": 19386
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_1D108A5B_Male_DEE4BC74_EFV4Surface_10757D8B427FEE982F1FD685BC7404A5.DA_UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_1D108A5B_Male_DEE4BC74_EFV4Surface_10757D8B427FEE982F1FD685BC7404A5",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty",
+      "clothing_name": "UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 4466,
+          "collision_only_vertices": 4466,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 25012
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearBikini_Female_5919F4ED_Female_1FCC5E1D_EFV4Surface_4C9AF976438351D4BA2B1C86BC5361AD.DA_UnderWearBikini_Female_5919F4ED_Female_1FCC5E1D_EFV4Surface_4C9AF976438351D4BA2B1C86BC5361AD",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/Bikini/Bikini",
+      "clothing_name": "UnderWearBikini_Female",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 1447,
+          "collision_only_vertices": 1156,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 291,
+          "witnesses": 6140
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_5919F4ED_Male_DEE4BC74_EFV4Surface_9561F0064A70F180F1D097BCB1213ACA.DA_UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_5919F4ED_Male_DEE4BC74_EFV4Surface_9561F0064A70F180F1D097BCB1213ACA",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/Bikini/Bikini",
+      "clothing_name": "UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 1447,
+          "collision_only_vertices": 1447,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 9257
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_DFB8F4F746D0BCADBC6AFD9230D02B91.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_DFB8F4F746D0BCADBC6AFD9230D02B91",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagShirt/RagShirt",
+      "clothing_name": "RagShirt",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 7767,
+          "collision_only_vertices": 7767,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 86217
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_BDAAEA944D13C93FAD92A4A75481D042.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_BDAAEA944D13C93FAD92A4A75481D042",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagShirt/RagShirt",
+      "clothing_name": "RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 7767,
+          "collision_only_vertices": 7767,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 86217
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_1528624C45D22948B007F08D3306020B.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_1528624C45D22948B007F08D3306020B",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagPants/RagPants",
+      "clothing_name": "RagPants",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 9081,
+          "collision_only_vertices": 8884,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 197,
+          "witnesses": 102273
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_42AE7D83418DB6B8B4A3278B4676C44A.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_42AE7D83418DB6B8B4A3278B4676C44A",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagPants/RagPants",
+      "clothing_name": "RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 9081,
+          "collision_only_vertices": 9081,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 104775
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_4C63A131475C12BFA245E2999D69758D.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_4C63A131475C12BFA245E2999D69758D",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps",
+      "clothing_name": "RagFootWraps",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 47031,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 2176,
+          "collision_only_vertices": 2176,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 22076
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    },
+    {
+      "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_180A24CE477C4DAAF0908B9BBCB0D94D.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_180A24CE477C4DAAF0908B9BBCB0D94D",
+      "binding_schema_version": 16,
+      "clothing_mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps",
+      "clothing_name": "RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+      "compiler_version": 36,
+      "generated_clothing_mesh": "",
+      "lod_pairs": [
+        {
+          "base_clearance_cm": 0.0,
+          "body_lod": 0,
+          "body_vertices": 70895,
+          "certified": true,
+          "clothing_lod": 0,
+          "clothing_vertices": 2176,
+          "collision_only_vertices": 2176,
+          "compiled_reserve_cm": 0.0,
+          "invalid_anchors": 0,
+          "preserve_upstream_vertices": 0,
+          "witnesses": 22076
+        }
+      ],
+      "report": "READY: reused the exact fresh binding.",
+      "reused": true,
+      "success": true,
+      "valid": true
+    }
+  ],
+  "schema_version": 1,
+  "status": "UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE_PASS",
+  "strict_validation": {
+    "draft_row_count": 0,
+    "enabled_row_count": 12,
+    "fresh": true,
+    "invalid_row_count": 0,
+    "report": "V4 FRESH | enabled=12 valid=12 drafts=0 invalid=0 stale=0 registry=12",
+    "stale_row_count": 0,
+    "valid_binding_count": 12
+  },
+  "success": true,
+  "v5_sync": "PASS: EF Clothing Morph V5.1 single-table sync was already current: bodies=2 garments=12 LOD bindings=12 created=0 updated=0 saved=0 drafts=0 migrated-rows=0 lower-body-guards=0.",
+  "valid_binding_count": 12,
+  "valid_clothing_names": [
+    "RagFootWraps",
+    "RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "RagPants",
+    "RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "RagShirt",
+    "RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearBikini_Female",
+    "UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearBra_Female",
+    "UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40",
+    "UnderWearPanty_Female",
+    "UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+	"status": "PASS",
+	"elapsed_s": 51.831599302589893,
+	"checks": [
+		{
+			"name": "Cooked player uses the authored equipment registry.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item exists: /Game/_Game/Clothes/Rags01/RagShirt.RagShirt_C",
+			"pass": true
+		},
+		{
+			"name": "Packaged fixture owns its requested item.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item equips through native coordinator.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item exists: /Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+			"pass": true
+		},
+		{
+			"name": "Packaged fixture owns its requested item.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item equips through native coordinator.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item exists: /Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+			"pass": true
+		},
+		{
+			"name": "Packaged fixture owns its requested item.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item equips through native coordinator.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item exists: /Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+			"pass": true
+		},
+		{
+			"name": "Packaged fixture owns its requested item.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item equips through native coordinator.",
+			"pass": true
+		},
+		{
+			"name": "Cooked item exists: /Game/_Game/Clothes/UnderWear01/Panty.Panty_C",
+			"pass": true
+		},
+		{
+			"name": "Packaged fixture owns its requested item.",
+			"pass": true
+		},
+		{
+			"name": "Packaged satchel owns the transferred item.",
+			"pass": true
+		},
+		{
+			"name": "Packaged equipment save subsystem is available.",
+			"pass": true
+		},
+		{
+			"name": "Packaged player saves a full satchel while overburdened: ",
+			"pass": true
+		},
+		{
+			"name": "Packaged extraction is allowed while overburdened.",
+			"pass": true
+		},
+		{
+			"name": "Packaged save restores: ",
+			"pass": true
+		},
+		{
+			"name": "Packaged load conserves child GUID, separate capacity and legitimate overload.",
+			"pass": true
+		},
+		{
+			"name": "Cooked full-bag world drop succeeds.",
+			"pass": true
+		},
+		{
+			"name": "Cooked drop has one bag and no duplicate child loot.",
+			"pass": true
+		},
+		{
+			"name": "Cooked Blueprint pickup preserves contained GUID and reequips.",
+			"pass": true
+		},
+		{
+			"name": "Original cooked inventory menu opens.",
+			"pass": true
+		},
+		{
+			"name": "Real packaged inventory screenshot was captured.",
+			"pass": true
+		},
+		{
+			"name": "Packaged screenshot was visually reviewed: PASS: Actual packaged image reviewed: original inventory, item grid, distinct Outerwear/Underwear columns, Open bag control, equipped rag outfit and readable weight/currency. Scope note: MeleeDamage text overlaps its value in the untouched native stats panel; this is not a claim of a pixel-perfect whole inventory UI.\r\n",
+			"pass": true
+		}
+	],
+	"clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=0.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=0.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=1323] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm).",
+	"first_process_outfit_ready_s": 0.86863400042057037,
+	"latency_scope": "First outfit in a fresh packaged process, including item-class loading; OS caches are not flushed."
+}

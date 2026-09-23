@@ -1,0 +1,298 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "Fresh character automatically receives exactly one Travel Bag",
+      "pass": true
+    },
+    {
+      "name": "Repeated equipment refresh does not duplicate the starter bag",
+      "pass": true
+    },
+    {
+      "name": "Native deposit panel exists",
+      "pass": true
+    },
+    {
+      "name": "Deposit hides repeated inner title: ACF_Buy_WB",
+      "pass": true
+    },
+    {
+      "name": "Deposit hides repeated inner title: ACF_Sell_WB",
+      "pass": true
+    },
+    {
+      "name": "Deposit transfers original GUID",
+      "pass": true
+    },
+    {
+      "name": "Deposit does not change currency",
+      "pass": true
+    },
+    {
+      "name": "Withdrawal returns original GUID",
+      "pass": true
+    },
+    {
+      "name": "Withdrawal does not change currency",
+      "pass": true
+    },
+    {
+      "name": "Native deposit preserves a whole stack GUID and quantity",
+      "pass": true
+    },
+    {
+      "name": "Native withdrawal restores the whole stack GUID and quantity",
+      "pass": true
+    },
+    {
+      "name": "Stack round trip does not change currency",
+      "pass": true
+    },
+    {
+      "name": "Bag page resolves actual ACF bag inventory",
+      "pass": true
+    },
+    {
+      "name": "Native bag deposit preserves GUID",
+      "pass": true
+    },
+    {
+      "name": "Bag deposit does not change currency",
+      "pass": true
+    },
+    {
+      "name": "Full bag sale rejected without losing objects",
+      "pass": true
+    },
+    {
+      "name": "Rejected bag sale does not change currency",
+      "pass": true
+    },
+    {
+      "name": "Full bag rejection uses explicit English message",
+      "pass": true
+    },
+    {
+      "name": "Native bag withdrawal preserves GUID",
+      "pass": true
+    },
+    {
+      "name": "Native bag stores a whole stack with its original GUID and quantity",
+      "pass": true
+    },
+    {
+      "name": "Native bag extracts the same whole stack and quantity",
+      "pass": true
+    },
+    {
+      "name": "Authored bag capacity has an exact bounded item fixture",
+      "pass": true
+    },
+    {
+      "name": "Capacity fixture contains distinct original item GUIDs",
+      "pass": true
+    },
+    {
+      "name": "Native bag accepts exactly its authored capacity without GUID loss",
+      "pass": true
+    },
+    {
+      "name": "Native bag rejects one item above exact capacity",
+      "pass": true
+    },
+    {
+      "name": "Native capacity round trip conserves every GUID and quantity",
+      "pass": true
+    },
+    {
+      "name": "Native bag page rejects container nesting without ownership loss",
+      "pass": true
+    },
+    {
+      "name": "Capacity and nesting checks preserve currency",
+      "pass": true
+    },
+    {
+      "name": "Locked chest suppresses native opening action before interaction",
+      "pass": true
+    },
+    {
+      "name": "Missing pick cannot begin lockpicking",
+      "pass": true
+    },
+    {
+      "name": "Locked local interaction cannot open native storage without a pick",
+      "pass": true
+    },
+    {
+      "name": "Locked chest has not generated loot early",
+      "pass": true
+    },
+    {
+      "name": "Existing lockpick prompt is reused",
+      "pass": true
+    },
+    {
+      "name": "Prompt cancellation preserves lock",
+      "pass": true
+    },
+    {
+      "name": "Existing lockpick minigame starts with a pick",
+      "pass": true
+    },
+    {
+      "name": "Minigame cancellation clears session and preserves lock",
+      "pass": true
+    },
+    {
+      "name": "Cancelled session cannot unlock through stale confirmation",
+      "pass": true
+    },
+    {
+      "name": "Failed timing retains lock and native cooldown",
+      "pass": true
+    },
+    {
+      "name": "Failed attempt consumes one lockpick",
+      "pass": true
+    },
+    {
+      "name": "Retry starts a visible active minigame",
+      "pass": true
+    },
+    {
+      "name": "Successful native timing unlocks chest",
+      "pass": true
+    },
+    {
+      "name": "Successful lockpick restores the native opening action",
+      "pass": true
+    },
+    {
+      "name": "Success consumes the final lockpick exactly once",
+      "pass": true
+    },
+    {
+      "name": "Unlock continues native deposit interaction exactly once",
+      "pass": true
+    },
+    {
+      "name": "Procedural chest generates on first successful opening",
+      "pass": true
+    },
+    {
+      "name": "Native catalog profile quantity is within authored bounds",
+      "pass": true
+    },
+    {
+      "name": "Chest save uses isolated QA metadata",
+      "pass": true
+    },
+    {
+      "name": "Native ALS world save accepted",
+      "pass": true
+    },
+    {
+      "name": "Generated chest items can be withdrawn",
+      "pass": true
+    },
+    {
+      "name": "Empty procedural chest remains initialized",
+      "pass": true
+    },
+    {
+      "name": "Empty chest does not regenerate loot",
+      "pass": true
+    },
+    {
+      "name": "Native ALS world load accepted",
+      "pass": true
+    },
+    {
+      "name": "Native save/load preserves unlocked state",
+      "pass": true
+    },
+    {
+      "name": "Native save/load preserves generated flag",
+      "pass": true
+    },
+    {
+      "name": "Native save/load preserves remaining item GUIDs and quantities",
+      "pass": true
+    },
+    {
+      "name": "Exhausted lockpicks prevent another attempt",
+      "pass": true
+    }
+  ],
+  "phase": "finish",
+  "startup_inventory": [
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+      "count": 8
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+      "count": 60
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+      "count": 20
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+      "count": 3
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+      "count": 1
+    },
+    {
+      "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+      "count": 1
+    }
+  ],
+  "lock_before": {
+    "actor": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_EquipmentLockedChest_C_1",
+    "locked": true,
+    "session": false,
+    "pick_count": 0,
+    "required": true,
+    "starts_locked": true
+  },
+  "lock_after": {
+    "locked": true,
+    "session": false,
+    "pick_count": 0
+  },
+  "retry": {
+    "session": true,
+    "ui": true,
+    "paused": false
+  }
+}

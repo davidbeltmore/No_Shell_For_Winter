@@ -1,0 +1,377 @@
+{
+  "status": "PASS",
+  "before": {
+    "DirectionalLight_0": {
+      "label": "DirectionalLight",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: -0.730436, y: 0.299927, z: 0.301119, w: 0.534634}, translation: {x: 0.000000, y: 0.000000, z: 400.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "SkyAtmosphere_0": {
+      "label": "SkyAtmosphere",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: -6000.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "SkyLight_0": {
+      "label": "SkyLight",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 600.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "VolumetricCloud_0": {
+      "label": "VolumetricCloud",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 700.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "PlayerStart_0": {
+      "label": "PlayerStart",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 92.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "Floor_0": {
+      "label": "Floor",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: -0.500000}, scale3d: {x: 8.000000, y: 8.000000, z: 8.000000}}>",
+      "tags": "[]"
+    },
+    "StaticMeshActor_0": {
+      "label": "Cube",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -520.000000, y: -930.000000, z: 50.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Dirt_C_1": {
+      "label": "BP_Dirt",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -816.000000, y: 502.000000, z: 94.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Blood_C_1": {
+      "label": "BP_Blood",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1242.000000, y: 501.000000, z: 86.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Burn_C_2": {
+      "label": "BP_Burn",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1660.000000, y: 492.000000, z: 75.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Snow_C_1": {
+      "label": "BP_Snow",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -823.000000, y: 91.000000, z: 85.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_Mud_C_1": {
+      "label": "BP_Water_Mud",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1235.000000, y: 83.000000, z: 78.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Sand_C_1": {
+      "label": "BP_Sand",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1650.000000, y: 87.000000, z: 60.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Sand_C_4": {
+      "label": "BP_Sand2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -824.000000, y: -391.000000, z: -53.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_Mud_C_3": {
+      "label": "BP_Water_Mud2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -827.000000, y: -387.000000, z: 72.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.125000}}>",
+      "tags": "[]"
+    },
+    "BP_Snow_C_3": {
+      "label": "BP_Snow2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -829.000000, y: -391.000000, z: 118.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.281250}}>",
+      "tags": "[]"
+    },
+    "BP_Water_C_2": {
+      "label": "BP_Water",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -539.000000, y: -940.000000, z: 83.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_C_4": {
+      "label": "BP_Water2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 118.000000, y: -950.000000, z: 24.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.281250}}>",
+      "tags": "[]"
+    },
+    "DoorToLevel_C_0": {
+      "label": "DoorToLevel",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 1250.000000, y: 200.000000, z: 110.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "Altar_C_1": {
+      "label": "Altar",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -530.000000, y: 140.000000, z: 30.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_0": {
+      "label": "ACFFullWorldItemBP",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 910.000000, y: -60.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_1": {
+      "label": "ACFDummyEnemyBPMale",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3480.000000, y: 2660.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_2": {
+      "label": "ACFDummyEnemyBPMale2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3490.000000, y: 2820.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_3": {
+      "label": "ACFDummyEnemyBPMale3",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3500.000000, y: 2990.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFMMEnemyBPFemale_C_3": {
+      "label": "ACFMMEnemyBPFemale",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3360.000000, y: -2650.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Pickup_Food_Bananas01_C_1": {
+      "label": "BP_Pickup_Food_Bananas01",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 710.000000, y: -240.000000, z: 20.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_1": {
+      "label": "ACFFullWorldItemBP2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 920.000000, y: 460.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_2": {
+      "label": "ACFFullWorldItemBP3",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 1110.000000, y: -290.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_EquipmentLockedChest_C_1": {
+      "label": "LockedChest",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 910.000000, y: -720.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    },
+    "BP_EquipmentLockedChest_C_0": {
+      "label": "Locked2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 122.000000, y: -918.000000, z: 10.000000}, scale3d: {x: 0.750000, y: 1.000000, z: 0.687500}}>",
+      "tags": "[]",
+      "stock": "[{item_class: \"/Script/Engine.BlueprintGeneratedClass'/Game/_Game/Lockpicking/LockPick.LockPick_C'\", count: 20, item_guid: {}}]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    },
+    "BP_EquipmentDeposit_C_3": {
+      "label": "BP_EquipmentDeposit",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 280.000000, y: -410.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false
+    },
+    "BP_EquipmentLockedChest_C_3": {
+      "label": "BP_EquipmentLockedChest",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 120.000000, y: -400.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    }
+  },
+  "after": {
+    "DirectionalLight_0": {
+      "label": "DirectionalLight",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: -0.730436, y: 0.299927, z: 0.301119, w: 0.534634}, translation: {x: 0.000000, y: 0.000000, z: 400.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "SkyAtmosphere_0": {
+      "label": "SkyAtmosphere",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: -6000.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "SkyLight_0": {
+      "label": "SkyLight",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 600.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "VolumetricCloud_0": {
+      "label": "VolumetricCloud",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 700.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "PlayerStart_0": {
+      "label": "PlayerStart",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: 92.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "Floor_0": {
+      "label": "Floor",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 0.000000, y: 0.000000, z: -0.500000}, scale3d: {x: 8.000000, y: 8.000000, z: 8.000000}}>",
+      "tags": "[]"
+    },
+    "StaticMeshActor_0": {
+      "label": "Cube",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -520.000000, y: -930.000000, z: 50.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Dirt_C_1": {
+      "label": "BP_Dirt",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -816.000000, y: 502.000000, z: 94.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Blood_C_1": {
+      "label": "BP_Blood",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1242.000000, y: 501.000000, z: 86.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Burn_C_2": {
+      "label": "BP_Burn",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1660.000000, y: 492.000000, z: 75.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Snow_C_1": {
+      "label": "BP_Snow",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -823.000000, y: 91.000000, z: 85.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_Mud_C_1": {
+      "label": "BP_Water_Mud",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1235.000000, y: 83.000000, z: 78.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Sand_C_1": {
+      "label": "BP_Sand",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -1650.000000, y: 87.000000, z: 60.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Sand_C_4": {
+      "label": "BP_Sand2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -824.000000, y: -391.000000, z: -53.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_Mud_C_3": {
+      "label": "BP_Water_Mud2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -827.000000, y: -387.000000, z: 72.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.125000}}>",
+      "tags": "[]"
+    },
+    "BP_Snow_C_3": {
+      "label": "BP_Snow2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -829.000000, y: -391.000000, z: 118.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.281250}}>",
+      "tags": "[]"
+    },
+    "BP_Water_C_2": {
+      "label": "BP_Water",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -539.000000, y: -940.000000, z: 83.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Water_C_4": {
+      "label": "BP_Water2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 118.000000, y: -950.000000, z: 24.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 0.281250}}>",
+      "tags": "[]"
+    },
+    "DoorToLevel_C_0": {
+      "label": "DoorToLevel",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 1250.000000, y: 200.000000, z: 110.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "Altar_C_1": {
+      "label": "Altar",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: -530.000000, y: 140.000000, z: 30.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_0": {
+      "label": "ACFFullWorldItemBP",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 910.000000, y: -60.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_1": {
+      "label": "ACFDummyEnemyBPMale",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3480.000000, y: 2660.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_2": {
+      "label": "ACFDummyEnemyBPMale2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3490.000000, y: 2820.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFDummyEnemyBPMale_C_3": {
+      "label": "ACFDummyEnemyBPMale3",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3500.000000, y: 2990.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFMMEnemyBPFemale_C_3": {
+      "label": "ACFMMEnemyBPFemale",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 3360.000000, y: -2650.000000, z: 88.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_Pickup_Food_Bananas01_C_1": {
+      "label": "BP_Pickup_Food_Bananas01",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 710.000000, y: -240.000000, z: 20.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_1": {
+      "label": "ACFFullWorldItemBP2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 920.000000, y: 460.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "ACFFullWorldItemBP_C_2": {
+      "label": "ACFFullWorldItemBP3",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 1110.000000, y: -290.000000, z: 21.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]"
+    },
+    "BP_EquipmentLockedChest_C_1": {
+      "label": "LockedChest",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 910.000000, y: -720.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    },
+    "BP_EquipmentLockedChest_C_0": {
+      "label": "Locked2",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 122.000000, y: -918.000000, z: 10.000000}, scale3d: {x: 0.750000, y: 1.000000, z: 0.687500}}>",
+      "tags": "[]",
+      "stock": "[{item_class: \"/Script/Engine.BlueprintGeneratedClass'/Game/_Game/Lockpicking/LockPick.LockPick_C'\", count: 20, item_guid: {}}]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    },
+    "BP_EquipmentDeposit_C_3": {
+      "label": "BP_EquipmentDeposit",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 280.000000, y: -410.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false
+    },
+    "BP_EquipmentLockedChest_C_3": {
+      "label": "BP_EquipmentLockedChest",
+      "transform": "<Struct 'Transform' (0x000001FD13A3B9C0) {rotation: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}, translation: {x: 120.000000, y: -400.000000, z: 0.000000}, scale3d: {x: 1.000000, y: 1.000000, z: 1.000000}}>",
+      "tags": "[]",
+      "stock": "[]",
+      "legacy_mode": false,
+      "starts_locked": true,
+      "difficulty": 50
+    }
+  },
+  "identities": [
+    {
+      "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.BP_EquipmentLockedChest_C_1",
+      "identity": "3A75D7C24EA6063FBC2FD6AB74EB8967",
+      "mode": false
+    },
+    {
+      "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.BP_EquipmentLockedChest_C_0",
+      "identity": "8CBF2F604FB253E436DA489F739CB3D6",
+      "mode": false
+    },
+    {
+      "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.BP_EquipmentDeposit_C_3",
+      "identity": "78A2CB584ED976FA91BAC2BF7F6A0496",
+      "mode": false
+    },
+    {
+      "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.BP_EquipmentLockedChest_C_3",
+      "identity": "DC0301DE4A32C94D7145D3920B8AEE94",
+      "mode": false
+    }
+  ]
+}

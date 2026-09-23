@@ -1,0 +1,1074 @@
+{
+  "status": "FAIL",
+  "checks": [
+    {
+      "name": "Travel fixture owns BP_Satchel2",
+      "pass": true
+    },
+    {
+      "name": "Travel fixture owns Panty",
+      "pass": true
+    },
+    {
+      "name": "Travel fixture owns Bikini",
+      "pass": true
+    },
+    {
+      "name": "Travel fixture equips Bikini",
+      "pass": true
+    },
+    {
+      "name": "Travel fixture equips Satchel",
+      "pass": true
+    },
+    {
+      "name": "Travel fixture transfers unique content into Satchel",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: player is present",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: travel/possession retains exactly one starter Travel Bag",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: fractional base capacity survives travel",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: legitimate overload is retained",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: same satchel GUID remains equipped",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: contained GUID has one owner",
+      "pass": true
+    },
+    {
+      "name": "HUB before travel: Bikini reservation is rebuilt",
+      "pass": true
+    },
+    {
+      "name": "Existing authored runtime accepts a new floor request",
+      "pass": true
+    },
+    {
+      "name": "Existing runtime committed floor 1",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: player is present",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: travel/possession retains exactly one starter Travel Bag",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: fractional base capacity survives travel",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: legitimate overload is retained",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: same satchel GUID remains equipped",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: contained GUID has one owner",
+      "pass": true
+    },
+    {
+      "name": "Floor 1: Bikini reservation is rebuilt",
+      "pass": true
+    },
+    {
+      "name": "Existing runtime accepts next-floor travel",
+      "pass": true
+    },
+    {
+      "name": "Existing runtime committed floor 2",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: player is present",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: travel/possession retains exactly one starter Travel Bag",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: fractional base capacity survives travel",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: legitimate overload is retained",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: same satchel GUID remains equipped",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: contained GUID has one owner",
+      "pass": true
+    },
+    {
+      "name": "Floor 2: Bikini reservation is rebuilt",
+      "pass": true
+    },
+    {
+      "name": "Existing runtime accepts HUB return",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: player is present",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: travel/possession retains exactly one starter Travel Bag",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: fractional base capacity survives travel",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: legitimate overload is retained",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: same satchel GUID remains equipped",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: contained GUID has one owner",
+      "pass": true
+    },
+    {
+      "name": "HUB after travel: Bikini reservation is rebuilt",
+      "pass": true
+    },
+    {
+      "name": "Authored two-floor run exercised at least one real resolved chest",
+      "pass": false
+    }
+  ],
+  "scope": "Authored runtime travel, equipped satchel and original GUIDs; no dungeon authoring changes",
+  "arrival_inventory": [
+    {
+      "label": "HUB before travel",
+      "pawn_class": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar.BP_TSChar_C",
+      "authored_pawn_class": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar.BP_TSChar_C",
+      "items": [
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "count": 8
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "count": 60
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "count": 20
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "count": 3
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "Floor 1",
+      "pawn_class": "/Game/FullSample/Player.Player_C",
+      "authored_pawn_class": "/Game/FullSample/Player.Player_C",
+      "items": [
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "count": 8
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "count": 60
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "count": 20
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "count": 3
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "Floor 2",
+      "pawn_class": "/Game/FullSample/Player.Player_C",
+      "authored_pawn_class": "/Game/FullSample/Player.Player_C",
+      "items": [
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "count": 8
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "count": 60
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "count": 20
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "count": 3
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "label": "HUB after travel",
+      "pawn_class": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar.BP_TSChar_C",
+      "authored_pawn_class": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar.BP_TSChar_C",
+      "items": [
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "count": 8
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "count": 60
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "count": 20
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "count": 3
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "count": 1
+        },
+        {
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "count": 1
+        },
+        {
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "player_observations": [
+    {
+      "label": "HUB before travel",
+      "world": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB",
+      "expected_base_capacity": 57.775,
+      "base_capacity": 57.775,
+      "effective_weight": 57.9,
+      "root_items": [
+        {
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "equipped": false
+        },
+        {
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "equipped": false
+        },
+        {
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "equipped": true
+        },
+        {
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "equipped": true
+        }
+      ]
+    },
+    {
+      "label": "Floor 1",
+      "world": "/Game/Procedural/Maps/UEDPIE_0_DungeonGeneration.DungeonGeneration",
+      "expected_base_capacity": 57.775,
+      "base_capacity": 57.775,
+      "effective_weight": 57.9,
+      "root_items": [
+        {
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "equipped": false
+        },
+        {
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "equipped": false
+        },
+        {
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "equipped": true
+        },
+        {
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "equipped": true
+        }
+      ]
+    },
+    {
+      "label": "Floor 2",
+      "world": "/Game/Procedural/Maps/UEDPIE_0_DungeonGeneration.DungeonGeneration",
+      "expected_base_capacity": 57.775,
+      "base_capacity": 57.775,
+      "effective_weight": 57.9,
+      "root_items": [
+        {
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "equipped": false
+        },
+        {
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "equipped": false
+        },
+        {
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "equipped": true
+        },
+        {
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "equipped": true
+        }
+      ]
+    },
+    {
+      "label": "HUB after travel",
+      "world": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB",
+      "expected_base_capacity": 57.775,
+      "base_capacity": 57.775,
+      "effective_weight": 57.9,
+      "root_items": [
+        {
+          "guid": "9CD8CCEB4E5082E16C54279F0D26562B",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFSwordBP.ACFSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "8B7B2D6C433BDA4A060723BF4EB52088",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "12D78364423E6BE19804919A62020DEC",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Grenade_BP.ACF_Grenade_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "0279B6C448365F489966E7969A88562A",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShieldBP.ACFShieldBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "0549584248DCCB9DE70DC9893EE5FAC4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFBowBP.ACFBowBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "1F0962AC487BF005C26A71A80224FD68",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Bullet_BP.ACF_Bullet_BP_C",
+          "equipped": true
+        },
+        {
+          "guid": "022E86EB4222D0E999F343A4C689B238",
+          "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+          "equipped": false
+        },
+        {
+          "guid": "072A00C24C045F2FC042358B272110B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFPistolBP.ACFPistolBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "402BB3314279EA9AFFC449BD4771A12F",
+          "class": "/Game/FullSample/Blueprints/Items/Consumable/ACFHealthPotionBP.ACFHealthPotionBP_C",
+          "equipped": true
+        },
+        {
+          "guid": "3E86514C4A6BF94CB02B3A868760A119",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFShotgunBP.ACFShotgunBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "9780BF3F480C4C2A20713CB97B65F4B4",
+          "class": "/Game/FullSample/Blueprints/Items/Weapons/ACFAutomaticRifleBP.ACFAutomaticRifleBP_C",
+          "equipped": false
+        },
+        {
+          "guid": "897BD8DB4881342919CF14ADBC274C3E",
+          "class": "/Game/_Game/Items/Equipment/BP_StarterBag.BP_StarterBag_C",
+          "equipped": false
+        },
+        {
+          "guid": "D5E7E8124914CD9C249450A50593416D",
+          "class": "/Game/_Game/Items/Equipment/BP_Satchel2.BP_Satchel2_C",
+          "equipped": true
+        },
+        {
+          "guid": "18602BE648779B7EC2370BB9F3A4366B",
+          "class": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini_C",
+          "equipped": true
+        }
+      ]
+    }
+  ],
+  "run_seed": 202609210058,
+  "resolved_chests": [],
+  "floors": [
+    {
+      "schema_version": 1,
+      "run_seed": 202609210058,
+      "run_epoch": 1,
+      "floor_number": 1,
+      "last_committed_floor_number": 1,
+      "last_committed_run_epoch": 1,
+      "reroll_index": 0,
+      "state": "Ready",
+      "style_id": "27327960-EDE8-9DD1-D3A1-2A7C9737D483",
+      "request_id": "3ECE72C7-4D8F-E4CB-E4CE-3F8AAD79505B",
+      "attempt_id": "B3D9D72E-4FA8-285E-21CA-16BA95FE6D99",
+      "routing_request_id": "3ECE72C7-4D8F-E4CB-E4CE-3F8AAD79505B",
+      "transaction_phase": "Ready",
+      "topology_seed": 416128326,
+      "native_floor_verified": true,
+      "gameplay_verified": true,
+      "transaction_committed": true,
+      "has_validated_evidence": true,
+      "release_in_progress": false,
+      "cleanup_failed": false,
+      "terminal_gameplay_recovery_pending": false,
+      "terminal_gameplay_recovery_message": "",
+      "can_retry": false,
+      "can_return_to_hub": true,
+      "request_budget_seconds": 30,
+      "maximum_attempts": 4,
+      "request_elapsed_seconds": 27.56251399964094,
+      "player_view": {
+        "fade_enabled": false,
+        "fade_amount": 0,
+        "viewport_present": true,
+        "world_rendering_disabled": false
+      },
+      "remaining_deadline_seconds": null,
+      "entry_location": [
+        -3750,
+        -3750,
+        90
+      ],
+      "unique_owned_start_and_end": true,
+      "blocking_floor_and_capsule_clearance": true,
+      "complete_relevant_navigation_route": true,
+      "room_theme_contract_verified": true,
+      "materials_verified": true,
+      "native_parity_verified": true,
+      "reserved_element_count": 0,
+      "verified_element_count": 0,
+      "attempt_count": 1,
+      "attempts_truncated": false,
+      "attempts": [
+        {
+          "request_id": "3ECE72C7-4D8F-E4CB-E4CE-3F8AAD79505B",
+          "attempt_id": "B3D9D72E-4FA8-285E-21CA-16BA95FE6D99",
+          "attempt_index": 0,
+          "topology_seed": 416128326,
+          "root_generation_count_source": "TransactionAuthorization",
+          "root_generation_requests": 1,
+          "accepted": true,
+          "cleanup_verified": false,
+          "failure_code": "",
+          "actual_root_generation_requests": 1,
+          "native_observation": {
+            "code": "STRUCTURAL_NAVIGATION_VERIFIED",
+            "message": "Generated structure, entry capsule, navigation bounds and complete progression route verified.",
+            "floor_instances": 150,
+            "wall_instances": 128,
+            "roof_instances": 150,
+            "navigation_data": "/Game/Procedural/Maps/UEDPIE_0_DungeonGeneration.DungeonGeneration:PersistentLevel.EFCalystoPlayerNavMesh-Player",
+            "navigation_agent_radius_cm": 50,
+            "navigation_agent_height_cm": 176,
+            "navigation_default_cell_size_cm": 10,
+            "active_navigation_tiles": 48,
+            "bounds_registered": true,
+            "navigation_building": false,
+            "start_projected": true,
+            "end_projected": true,
+            "route_points": 17,
+            "native_output_seconds": 2.2317462004721165,
+            "navigation_observation_seconds": 0.40831660106778145,
+            "architecture_opportunities": 6,
+            "reserved_architecture_parents": 0,
+            "reserved_architecture_meshes": 0,
+            "verified_architecture_meshes": 0,
+            "surface_physics_queries": 5502,
+            "surface_geometry_rejections": 7192,
+            "surface_protection_rejections": 309,
+            "first_architecture_rejection": "",
+            "architecture_reservation_seconds": 0.085360798984766,
+            "architecture_realization_seconds": 4.189833998680115e-05
+          }
+        }
+      ],
+      "shared_dependencies": {
+        "path_count": 11,
+        "pending": false,
+        "ready": true,
+        "ready_at_request_start": false,
+        "failure": "",
+        "lease_priority": 100,
+        "handle_completed": true,
+        "unresolved_paths": [],
+        "unresolved_path_count": 0,
+        "unresolved_paths_truncated": false
+      },
+      "request_visual_path_count": 34,
+      "async_loading_budget_ms": 1,
+      "phase_timings": {
+        "shared_async_load_seconds": 33.66720459982753,
+        "configuration_preparation_seconds": 20.515486001968384,
+        "configuration_compile_seconds": 0.0049819014966487885,
+        "request_visual_async_load_seconds": 3.8030172996222973,
+        "baked_visual_async_load_seconds": 0.1729435995221138,
+        "retained_request_visual_leases": 2,
+        "request_to_dependencies_ready_seconds": 24.338290598243475
+      }
+    },
+    {
+      "schema_version": 1,
+      "run_seed": 202609210058,
+      "run_epoch": 1,
+      "floor_number": 2,
+      "last_committed_floor_number": 2,
+      "last_committed_run_epoch": 1,
+      "reroll_index": 0,
+      "state": "Ready",
+      "style_id": "27327960-EDE8-9DD1-D3A1-2A7C9737D483",
+      "request_id": "4822BCC1-4BB9-DF7D-5978-918E2034D1F3",
+      "attempt_id": "9045E06C-4249-D0F6-7BEE-E584BF757052",
+      "routing_request_id": "00000000-0000-0000-0000-000000000000",
+      "transaction_phase": "Ready",
+      "topology_seed": 1340134437,
+      "native_floor_verified": true,
+      "gameplay_verified": true,
+      "transaction_committed": true,
+      "has_validated_evidence": true,
+      "release_in_progress": false,
+      "cleanup_failed": false,
+      "terminal_gameplay_recovery_pending": false,
+      "terminal_gameplay_recovery_message": "",
+      "can_retry": false,
+      "can_return_to_hub": true,
+      "request_budget_seconds": 30,
+      "maximum_attempts": 4,
+      "request_elapsed_seconds": 4.058406200259924,
+      "player_view": {
+        "fade_enabled": false,
+        "fade_amount": 0,
+        "viewport_present": true,
+        "world_rendering_disabled": false
+      },
+      "remaining_deadline_seconds": null,
+      "entry_location": [
+        1650,
+        -3750,
+        90
+      ],
+      "unique_owned_start_and_end": true,
+      "blocking_floor_and_capsule_clearance": true,
+      "complete_relevant_navigation_route": true,
+      "room_theme_contract_verified": true,
+      "materials_verified": true,
+      "native_parity_verified": true,
+      "reserved_element_count": 1,
+      "verified_element_count": 1,
+      "attempt_count": 2,
+      "attempts_truncated": false,
+      "attempts": [
+        {
+          "request_id": "4822BCC1-4BB9-DF7D-5978-918E2034D1F3",
+          "attempt_id": "15D8D9A2-4271-4811-B417-B2B3B69015AA",
+          "attempt_index": 0,
+          "topology_seed": 937095122,
+          "root_generation_count_source": "TransactionAuthorization",
+          "root_generation_requests": 1,
+          "accepted": false,
+          "cleanup_verified": true,
+          "failure_code": "NativeOutputInvalid",
+          "actual_root_generation_requests": 1,
+          "native_observation": {
+            "code": "NativeOutputInvalid",
+            "message": "Room Contexts requires all rooms, unique Start/End and exactly one guaranteed Theme: rooms=0 starts=0 ends=0 guaranteed=0.",
+            "floor_instances": 0,
+            "wall_instances": 0,
+            "roof_instances": 0,
+            "navigation_data": "",
+            "navigation_agent_radius_cm": -1,
+            "navigation_agent_height_cm": -1,
+            "navigation_default_cell_size_cm": -1,
+            "active_navigation_tiles": -1,
+            "bounds_registered": false,
+            "navigation_building": false,
+            "start_projected": false,
+            "end_projected": false,
+            "route_points": 0,
+            "native_output_seconds": 0.9764677993953228,
+            "navigation_observation_seconds": null,
+            "architecture_opportunities": 0,
+            "reserved_architecture_parents": 0,
+            "reserved_architecture_meshes": 0,
+            "verified_architecture_meshes": 0,
+            "surface_physics_queries": 0,
+            "surface_geometry_rejections": 0,
+            "surface_protection_rejections": 0,
+            "first_architecture_rejection": "",
+            "architecture_reservation_seconds": null,
+            "architecture_realization_seconds": null
+          }
+        },
+        {
+          "request_id": "4822BCC1-4BB9-DF7D-5978-918E2034D1F3",
+          "attempt_id": "9045E06C-4249-D0F6-7BEE-E584BF757052",
+          "attempt_index": 1,
+          "topology_seed": 1340134437,
+          "root_generation_count_source": "TransactionAuthorization",
+          "root_generation_requests": 1,
+          "accepted": true,
+          "cleanup_verified": false,
+          "failure_code": "",
+          "actual_root_generation_requests": 1,
+          "native_observation": {
+            "code": "STRUCTURAL_NAVIGATION_VERIFIED",
+            "message": "Generated structure, entry capsule, navigation bounds and complete progression route verified.",
+            "floor_instances": 149,
+            "wall_instances": 128,
+            "roof_instances": 149,
+            "navigation_data": "/Game/Procedural/Maps/UEDPIE_0_DungeonGeneration.DungeonGeneration:PersistentLevel.EFCalystoPlayerNavMesh-Player",
+            "navigation_agent_radius_cm": 50,
+            "navigation_agent_height_cm": 176,
+            "navigation_default_cell_size_cm": 10,
+            "active_navigation_tiles": 60,
+            "bounds_registered": true,
+            "navigation_building": false,
+            "start_projected": true,
+            "end_projected": true,
+            "route_points": 11,
+            "native_output_seconds": 1.4880953989923,
+            "navigation_observation_seconds": 0.41749029979109764,
+            "architecture_opportunities": 15,
+            "reserved_architecture_parents": 0,
+            "reserved_architecture_meshes": 0,
+            "verified_architecture_meshes": 0,
+            "surface_physics_queries": 6129,
+            "surface_geometry_rejections": 6997,
+            "surface_protection_rejections": 385,
+            "first_architecture_rejection": "RoomOwnership: room=239117729357880983 entry=21251CFDDE3CBCE797E64C23BC7C781B bounds_min=X=1337.981 Y=-2212.019 Z=0.000 bounds_max=X=1562.019 Y=-1987.981 Z=126.360 native_slot=1450.000000,-2100.000000,0.000000|0.000000,0.000000,-0.000000|1.000000,1.000000,",
+            "architecture_reservation_seconds": 0.10766509920358658,
+            "architecture_realization_seconds": 0.0012464970350265503
+          }
+        }
+      ],
+      "shared_dependencies": {
+        "path_count": 11,
+        "pending": false,
+        "ready": true,
+        "ready_at_request_start": true,
+        "failure": "",
+        "lease_priority": 100,
+        "handle_completed": true,
+        "unresolved_paths": [],
+        "unresolved_path_count": 0,
+        "unresolved_paths_truncated": false
+      },
+      "request_visual_path_count": 37,
+      "async_loading_budget_ms": 1,
+      "phase_timings": {
+        "shared_async_load_seconds": 33.66720459982753,
+        "configuration_preparation_seconds": 0.008458700031042099,
+        "configuration_compile_seconds": 0.0005727000534534454,
+        "request_visual_async_load_seconds": 0.1516811028122902,
+        "baked_visual_async_load_seconds": 0.04399310052394867,
+        "retained_request_visual_leases": 2,
+        "request_to_dependencies_ready_seconds": 0.5867531970143318
+      }
+    }
+  ],
+  "error": "Traceback (most recent call last):\n  File \"D:\\Projects UE5\\NoShellForWinter\\Tools\\Equipment\\Validate-EquipmentTravel.py\", line 186, in tick\n    check(bool(R.get('resolved_chests')), 'Authored two-floor run exercised at least one real resolved chest')\n  File \"D:\\Projects UE5\\NoShellForWinter\\Tools\\Equipment\\Validate-EquipmentTravel.py\", line 28, in check\n    assert value, name\nAssertionError: Authored two-floor run exercised at least one real resolved chest\n"
+}

@@ -1,0 +1,14 @@
+﻿{
+    "status":  "PASS",
+    "mode":  "NativeChests",
+    "archive":  "A:\\NoShellForWinterChests\\Archive_05",
+    "executable_sha256":  "43EFC4F300F5F6934FD318B1E2575CCFD157CD5D45322D226DC17A0441ADE3CE",
+    "user_dir":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\EquipmentQA\\Packaged_ChestsNative01\\User",
+    "log":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\EquipmentQA\\Packaged_ChestsNative01\\game.log",
+    "expected_tests":  [
+                           "EF.Chests.Authored.MapInstances",
+                           "EF.Chests.Lifecycle.NativeStorage",
+                           "EF.Chests.Selection.100000Trials"
+                       ],
+    "exit_code":  0
+}

@@ -1,0 +1,134 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "Three source test chests",
+      "pass": true
+    },
+    {
+      "name": "Generate before travel 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Generate before travel 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Generate before travel C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Isolated native disk save fixture",
+      "pass": true
+    },
+    {
+      "name": "World save includes unloaded test-map chest records",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip stable identities retained",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip generated marker 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip exact remaining GUIDs/counts 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip opening does not refill 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip generated marker 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip exact remaining GUIDs/counts 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip opening does not refill 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip generated marker C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip exact remaining GUIDs/counts C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Actual map round trip opening does not refill C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Deliberate post-save contents differ from saved snapshot",
+      "pass": true
+    },
+    {
+      "name": "Load native disk slot after changing source contents",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state stable identities retained",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state generated marker 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state exact remaining GUIDs/counts 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state opening does not refill 311EA5EF4DD0714B5AE3EAA05C9FCEDD",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state generated marker 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state exact remaining GUIDs/counts 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state opening does not refill 16C8E1914D31420D449B2494EEE91565",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state generated marker C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state exact remaining GUIDs/counts C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    },
+    {
+      "name": "Disk load of unloaded actor state opening does not refill C804C20B4D0467B6D77854908C9139A3",
+      "pass": true
+    }
+  ],
+  "phase": "disk_return",
+  "expected": {
+    "311EA5EF4DD0714B5AE3EAA05C9FCEDD": [],
+    "16C8E1914D31420D449B2494EEE91565": [
+      [
+        "17D6E6804C80EDDD0F851697C044383A",
+        "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+        1
+      ],
+      [
+        "8F5BB76E40FE0058E0319894222E6753",
+        "/Game/FullSample/Blueprints/Items/Weapons/ACFLeftSwordBP.ACFLeftSwordBP_C",
+        1
+      ]
+    ],
+    "C804C20B4D0467B6D77854908C9139A3": []
+  }
+}

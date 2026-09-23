@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "profiles": [
+    {
+      "path": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth",
+      "content": "<Struct 'ProjectChestContentSettings' (0x0000018117FDFC30) {content_type: \"Wealth\", catalog: \"/Script/Engine.DataTable'/Game/_Game/Data/Equipment/Chests/DT_ChestCatalog.DT_ChestCatalog'\", categories: {gameplay_tags: ((TagName=\"Item.Material\"))}, excluded_categories: {gameplay_tags: }, allowed_rows: (\"NewRow_0\"), excluded_rows: , use_selection_range: True, fixed_selections: 1, min_selections: 1, max_selections: 3, min_units_per_stack: 1, max_units_per_stack: 1, allow_duplicates: True, item_rarities: ((Rarity=(TagName=\"Rarity.Common\")))}>"
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Armament",
+      "content": "<Struct 'ProjectChestContentSettings' (0x0000018117FDC6D0) {content_type: \"Armament\", catalog: \"/Script/Engine.DataTable'/Game/_Game/Data/Equipment/Chests/DT_ChestCatalog.DT_ChestCatalog'\", categories: {gameplay_tags: ((TagName=\"Item.Weapon\"))}, excluded_categories: {gameplay_tags: }, allowed_rows: , excluded_rows: , use_selection_range: True, fixed_selections: 1, min_selections: 1, max_selections: 2, min_units_per_stack: 1, max_units_per_stack: 1, allow_duplicates: True, item_rarities: ((Rarity=(TagName=\"Rarity.Common\"),Percentage=70.000000),(Rarity=(TagName=\"Rarity.Rare\"),Percentage=30.000000))}>"
+    },
+    {
+      "path": "/Game/_Game/Data/Equipment/Chests/DA_Chest_Ammunition",
+      "content": "<Struct 'ProjectChestContentSettings' (0x0000018117FD9090) {content_type: \"Ammunition\", catalog: \"/Script/Engine.DataTable'/Game/_Game/Data/Equipment/Chests/DT_ChestCatalog.DT_ChestCatalog'\", categories: {gameplay_tags: ((TagName=\"Item.Ammunition\"))}, excluded_categories: {gameplay_tags: }, allowed_rows: , excluded_rows: , use_selection_range: True, fixed_selections: 1, min_selections: 1, max_selections: 3, min_units_per_stack: 5, max_units_per_stack: 15, allow_duplicates: True, item_rarities: ((Rarity=(TagName=\"Rarity.Common\")))}>"
+    }
+  ],
+  "created": [
+    "/Game/_Game/Data/Equipment/Chests/DT_ChestCatalog",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Armament",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Ammunition"
+  ],
+  "component_authoring": "PASS: Added only the ProceduralChest authoring component; existing inventory, graphs and lock settings preserved.",
+  "blueprints": [
+    {
+      "path": "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ]
+}

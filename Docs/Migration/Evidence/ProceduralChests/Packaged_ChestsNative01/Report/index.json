@@ -1,0 +1,87 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "HORIZON",
+			"instance": "F11EE4834BA4C7890E4776BA122C71EE",
+			"instanceName": "HORIZON-105660",
+			"platform": "Windows",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "NVIDIA GeForce RTX 5070 Ti",
+			"cPUModel": "AMD Ryzen 7 5800X 8-Core Processor             ",
+			"rAMInGB": 48,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.09.23-22.18.07",
+	"succeeded": 3,
+	"succeededWithWarnings": 0,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 1.0697823762893677,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "MapInstances",
+			"fullTestPath": "EF.Chests.Authored.MapInstances",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"F11EE4834BA4C7890E4776BA122C71EE"
+			],
+			"duration": 0.0034530013799667358,
+			"dateTime": "2026.09.23-22.18.06",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NativeStorage",
+			"fullTestPath": "EF.Chests.Lifecycle.NativeStorage",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"F11EE4834BA4C7890E4776BA122C71EE"
+			],
+			"duration": 0.011031102389097214,
+			"dateTime": "2026.09.23-22.18.06",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "100000Trials",
+			"fullTestPath": "EF.Chests.Selection.100000Trials",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"F11EE4834BA4C7890E4776BA122C71EE"
+			],
+			"duration": 1.0552983283996582,
+			"dateTime": "2026.09.23-22.18.06",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Rare selections: 25065 / 100000; expected 25000 +/- 600.",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": -1,
+					"timestamp": "2026.09.23-22.18.06"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}
