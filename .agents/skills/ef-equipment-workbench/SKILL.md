@@ -139,6 +139,11 @@ ACF capacity and restores actual equipment order through the coordinator. Do not
 reintroduce raw-weight rejection for a legitimately overloaded player. Companion
 capacity checks retain their native behavior. Test source-world destruction and GC,
 not only a save/load within the same world.
+Native ranged weapons may auto-select ammunition while restoring. The captured
+ammo selection can replace that incidental choice; it must never displace another
+captured selection. Keep final canonical inventory/equipment verification. Native
+quick-slot consumables need not inherit UACFEquippableItem: retain ACF's class/slot
+admission and call instance equipment requirements only when that interface exists.
 
 Container envelope v2 omits ACF's redundant cached `FInventoryItem.Item` pointer;
 native composition and item/fragment serialization remain authoritative. Read v1
@@ -213,3 +218,14 @@ parent-slot and synthetic-overlap instructions in the shared clothing skill.
 After each subsystem, compile, run relevant tests, compare protected hashes and
 make a small commit. Complete Editor/Game, Blueprint, PIE, visual, cook and packaged
 gates on the final tree before release acceptance. Unexecuted checks stay PENDING.
+Read [release-validation.md](references/release-validation.md) for isolated real
+travel, current cook preflight and opt-in packaged checks. A runner is not evidence
+of a pass; always inspect the result and exact test list.
+
+For cooked identity failures, use the bounded `EF.Clothing.IdentityAudit`
+diagnostic and compare Source, Body and Shared independently. FName spelling
+must be canonicalized consistently by compiler/runtime; never bypass hierarchy
+or pose validation. The current V4 compiler/schema are 36/16. Read
+`Docs/Migration/EquipmentMasterClosure.md` for the audited cause and evidence.
+Controller bytecode is a separate identity: retain frozen Editor hashes and
+require an independent operand/control-flow audit before accepting a cooked form.

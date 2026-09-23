@@ -1,5 +1,64 @@
 # Layered equipment and satchels
 
+
+## Validated package update ? 2026-09-23
+
+`A:/NoShellForWinterMasterClosure/Archive_FINAL2` passed protected Editor/Game
+builds, the 36-Blueprint preflight, cook/archive and all three isolated packaged
+modes (`Native_FINAL2`, `Controller_FINAL2`, `Visual_FINAL2`). The actual inventory
+image was reviewed before its marker. This supersedes historical package PENDING
+statements and the failed first visual package, without changing their evidence.
+Real HUB inventory/storage/lockpicking, save/load/death/drop, authored travel and
+Female/Male/Female layering checks passed. All 7,642 protected hashes match and
+Daz receipts are restored. Exact receipts and limits are in
+[EquipmentMasterClosure.md](EquipmentMasterClosure.md).
+
+**Overall closure remains PENDING:** `DetachedSnapshotTerminalRecovery` still
+fails (lifecycle batch 5/6). Correcting its EFProcedural runtime handoff exceeds
+the explicit reference/validator-only scope; the proposed exception awaits the
+user's answer. Normal HUB/floor travel passed independently. No failure was
+converted to PASS.
+
+## Current closure
+
+See [EquipmentMasterClosure.md](EquipmentMasterClosure.md) for the current
+ACFU 4.4.2 / UE 5.8.2 evidence, cooked clothing cause, strict runners and final
+archive validation. Older results below retain their original outcome and scope.
+
+## Historical travel and release validation
+
+Snapshot after `cad7bb1`. BuildEditor70 failed on the new packaged QA harness's
+missing AscentCoreInterfaces link dependency; BuildEditor71 passed after declaring
+that direct dependency. The harness is opt-in Development-only with a mandatory
+fresh UserDir. At that historical snapshot it had not certified an executable.
+
+Actual authored travel found two integration defects that synthetic clothing-only
+travel did not exercise. TravelPIE_01/02 failed because ACF's restored bow selected
+ammunition as a native side effect, then the adapter rejected replacement by the
+player's frozen ammo. Restoration now permits displacement of that incidental
+selection but rejects displacement of any frozen selection; complete canonical
+inventory and realized-equipment verification remain in force. TravelPIE_03 found
+that native quick-slot potions need not derive from UACFEquippableItem. The
+coordinator now uses native class/slot admission for those items and evaluates
+instance requirements when an equippable instance exists. No consumption occurs.
+
+BuildEditor72/73/74/75 PASS. NativeEquipment17 PASS, the two exact suites with zero
+test warnings/failures, including new potion GUID/count conservation. Evidence:
+`Saved/EquipmentQA/NativeAutomation_NativeEquipment17/Report/index.json`.
+TravelPIE_04 reached an actually committed, gameplay-verified Ready floor according
+to native MCP diagnostics, but the fixture timed out because it compared the
+formatted Python enum incorrectly. Its result remains FAIL. The fixture now uses
+the existing traversal tool's `.name` normalization. Every completed travel run
+verified/restored the same seven user saves. TravelPIE_05 and all final cook/package
+results are PENDING until their concrete receipts are reviewed.
+
+The existing companion Ready callback logs that its snapshot lease is no longer
+publishable. Inspection at `6a72c7fb` confirms both the lease release and callback
+precondition predate this equipment work. It has not been silenced or changed;
+these inventory travel checks do not certify companion gameplay. Protected task
+comparison PASS for all 5,260 files in
+`Saved/EquipmentQA/protected_final_runtime_result.json`.
+
 ## Original save/load page interaction
 
 Snapshot after `44e60e4`, Editor build 69. `Validate-SaveUI.py` opens the original

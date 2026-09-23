@@ -1,5 +1,28 @@
 # ACF storage rework
 
+
+## Validated package update ? 2026-09-23
+
+`A:/NoShellForWinterMasterClosure/Archive_FINAL2` passed protected Editor/Game
+builds, the 36-Blueprint preflight, cook/archive and all three isolated packaged
+modes (`Native_FINAL2`, `Controller_FINAL2`, `Visual_FINAL2`). The actual inventory
+image was reviewed before its marker. This supersedes historical package PENDING
+statements and the failed first visual package, without changing their evidence.
+Real HUB inventory/storage/lockpicking, save/load/death/drop, authored travel and
+Female/Male/Female layering checks passed. All 7,642 protected hashes match and
+Daz receipts are restored. Exact receipts and limits are in
+[EquipmentMasterClosure.md](EquipmentMasterClosure.md).
+
+**Overall closure remains PENDING:** `DetachedSnapshotTerminalRecovery` still
+fails (lifecycle batch 5/6). Correcting its EFProcedural runtime handoff exceeds
+the explicit reference/validator-only scope; the proposed exception awaits the
+user's answer. Normal HUB/floor travel passed independently. No failure was
+converted to PASS.
+
+Current closure ledger: [EquipmentMasterClosure.md](EquipmentMasterClosure.md).
+The dated runs below are historical evidence; their pending or failed gates are
+superseded only by an explicitly recorded successful final run in that ledger.
+
 Target: NoShellForWinter, UE 5.8 / installed ACFU 4.4.2. Fresh-save validation;
 existing player saves are not migrated or deleted. Starting commit: c3c0521.
 
@@ -127,3 +150,41 @@ updates, full packaged QA and clean subsystem integration remain open. The HUB
 contains preserved pre-existing user edits and is intentionally not swept into
 the code/asset commit. This section closes the tested lockpick correction only,
 not those remaining rework deliverables.
+
+### Release closure follow-up (2026-09-23)
+
+The legacy retirement/tooling items above are now addressed. Unreal retired the
+five exact superseded chest Blueprints and four provisional storage/sale widgets
+after a fresh referencer audit found no external consumers. Backups and the
+ordered deletion record are in `Saved/EquipmentQA/StorageClosure/retirement.json`.
+The first per-asset deletion pass reported success but left four packages on disk.
+`retirement-batch.log` records the successful closed-set batch deletion;
+`remaining_files` is now empty for all nine original paths. The first report is
+retained as `retirement-first.json` and is superseded by this postcondition check.
+The LockPick item, minigame, native ACF assets and user-edited HUB were preserved.
+Public native compatibility classes remain available; no retired UI is authored.
+
+Native default chest references, migration mappings, Blueprint ancestry checks
+and cook/package consumers now use the shared equipment chest family. Existing
+runtime assets are validated read-only; the old duplicate-chest creation branch
+was removed. Policy receipt hashing now preserves native canonical ordering,
+matching cook/package validators instead of applying Python's different sort.
+No receipt hash was edited manually and no guard was bypassed.
+
+`editor-closure.log` and `game-closure.log`: PASS. `blueprints-closure.log`: PASS,
+six affected Blueprints in a fresh commandlet. `protected_release_closure.json`:
+PASS, 7,642 protected files unchanged. All paths are under
+`Saved/EquipmentQA/StorageRework` unless stated otherwise.
+
+The combined asset-validation commandlet passed retirement and cook-closure
+checks but crashed during subsequent Python Blueprint reinstancing. A separate
+Blueprint commandlet passed. The standalone closure commandlet also published
+its validated PASS receipt before a Python shutdown access violation; the crash
+logs are retained. These tool-process failures are not recorded as clean exits.
+Packaging and packaged execution: PENDING until their fresh outputs are checked.
+
+The equipment cook preflight was corrected to use the reflected Blueprint parent
+API, handle UE's returned validation error string, and exclude deleted packages
+from its compile list. It then passed 36 Blueprints before the final four package
+deletions; the package runner rechecks the final cohort. The archive wrapper now
+creates its log's parent directory before starting UAT, including on another drive.

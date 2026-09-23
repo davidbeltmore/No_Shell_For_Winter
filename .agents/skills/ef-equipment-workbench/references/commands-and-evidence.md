@@ -166,8 +166,9 @@ to 2..32 before launching PIE (default 1). After the actual menu review, each
 cycle invokes the real native zero-health callback, verifies one original bag
 pickup and no loose child duplicate, picks it up, then uses native Revive and
 reequips that same bag. `death_cycles` records immediate and delayed ownership.
-This opt-in fixture is not a production respawn flow. Always inspect `result.json`:
-the launcher can exit successfully even when assertions report FAIL.
+This opt-in fixture is not a production respawn flow. Always inspect `result.json`
+and `user_save_after.json`. The launcher now rejects a missing/non-PASS receipt
+and reused run directories after restoring user saves.
 
 Storage/trade authoring and the bounded native travel regression:
 ```powershell

@@ -101,15 +101,16 @@ a direct interaction call as proof of a working button. Use the MCP Slate
 capture for the visible minigame. The initial fixture also checks native
 deposit/bag transfers and currency conservation.
 
-To run unattended through the visual checkpoints, create `visual_done.txt` and
-`minigame_visual_done.txt` inside `Saved/EquipmentQA/<run>` before launching
-`Launch-InventoryPIE.ps1 -StorageQA -RunName <run>`. Omit the second marker for
-a bounded screenshot checkpoint. Do not manually restart PIE during a fixture;
+Run `Launch-InventoryPIE.ps1 -StorageQA -RunName LockpickInput_<unique-run>`.
+At each checkpoint capture and inspect the actual image, then write the matching
+`visual_done.txt` or `minigame_visual_done.txt` inside `Saved/EquipmentQA/<run>`
+as UTF-8 without BOM, starting `PASS:` and describing what was observed.
+Never pre-create markers or reuse an old run directory. Do not manually restart PIE during a fixture;
 that invalidates its world and widget references. Keep failed/interrupted runs
 as evidence, and record the final run separately.
 
-`Capture-LockpickFixture.py Saved/EquipmentQA/<run>` can capture that checkpoint
-through native MCP and release it automatically; inspect the resulting PNG.
+`Capture-LockpickFixture.py Saved/EquipmentQA/<run>` captures that checkpoint
+through native MCP and leaves it pending until the PNG has actually been reviewed.
 After ALS world loading, reacquire world/pawn/chest references by saved actor
 identity. Pair synthetic pointer down/up within one tick: desktop cursor updates
 can otherwise remove the synthetic hover. Distinguish keyboard-assisted fixture
@@ -119,3 +120,20 @@ When configuring a live fixture, use `PropertyAccessChangeNotifyMode.NEVER`
 for its stock settings. Default editor notifications reconstruct SCS lock
 components and invalidate both references and transient cached action tags.
 This is fixture setup, never a substitute for testing authored game assets.
+# Release closure after changing chest classes
+
+Use `Create-CalystoDungeonDirectorPolicyV6.py` to validate the existing policy
+read-only and publish an append-only receipt. Do not edit receipt hashes manually.
+`Validate-StorageReleaseClosure.py` retires the exact obsolete chest/UI packages
+only after a fresh Unreal referencer audit, then validates native chest ancestry,
+the preserved creator history and current cook closure. Run
+`Validate-StorageBlueprints.py` in a fresh protected editor invocation afterward;
+combining deletion, heavy dependency loading and Python Blueprint reinstancing
+in one commandlet caused an access violation during the closure run.
+It preserves `LockPick`, the minigame, existing saves and unrelated map edits.
+Verify package files are absent after Unreal deletion; its return value alone
+can report success while generated-class references keep a package on disk.
+The runtime Blueprint validator now requires the shared native deposit family;
+missing assets are authored through `Author-ChestFamily.py`, never duplicated
+from the retired lockpick chests. Cook validation excludes deleted packages from
+the compile list; the retirement audit remains the authority for those deletions.
