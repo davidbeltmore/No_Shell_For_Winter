@@ -14,6 +14,7 @@
 #include "EngineUtils.h"
 #include "EnhancedInputDeveloperSettings.h"
 #include "Lockpicking/ProjectLockpickableComponent.h"
+#include "UObject/UnrealType.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectChestProbabilityTest, "EF.Chests.Selection.100000Trials", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
@@ -164,6 +165,30 @@ bool FProjectChestLifecycleTest::RunTest(const FString&)
     Manual->GetOwner()->FindComponentByClass<UProjectProceduralChestComponent>()->bProceduralMode = true;
     TestFalse(TEXT("Toggling mode never overwrites existing items"), Manual->EnsureContents(Error));
     TestTrue(TEXT("Rejected toggle retains manual GUID"), Manual->GetInventory()[0].GetItemGuid()==ManualId);
+    // The transition adapter owns a frozen manifest. Both procedural switches
+    // and authored manual stock must remain subordinate to that one owner.
+    auto* Resolved = Spawn(); Resolved->bProceduralMode = true;
+    auto* AuthoredItems = FindFProperty<FArrayProperty>(Resolved->GetClass(), TEXT("Items"));
+    if (!TestNotNull(TEXT("Native authored stock property"), AuthoredItems)) return false;
+    auto& ManualSeed = *AuthoredItems->ContainerPtrToValuePtr<TArray<FBaseItem>>(Resolved);
+    ManualSeed.Add(FBaseItem(UACFConsumable::StaticClass(), 1));
+    FProjectChestResolvedEntry Entry; Entry.StableAttemptId = TEXT("Attempt.Item");
+    Entry.ContentCatalogId = TEXT("Catalog.Item"); Entry.ItemClass = UACFItem::StaticClass();
+    TArray<FProjectChestResolvedEntry> Manifest{Entry};
+    if (!TestTrue(TEXT("External manifest configured before BeginPlay"), Resolved->ConfigureResolvedLoot(Manifest, Error))) return false;
+    const auto ResolvedId = Resolved->GetInventory()[0].GetItemGuid();
+    Resolved->GetOwner()->DispatchBeginPlay();
+    TArray<FName> Verified;
+    TestTrue(TEXT("External manifest survives native BeginPlay without manual seeding"), Resolved->FinalizeAndVerifyResolvedLoot(Verified, Error));
+    TestTrue(TEXT("External manifest publishes exact catalog identity once"), Verified.Num()==1 && Verified[0]==Entry.ContentCatalogId);
+    TestFalse(TEXT("External manifest cannot finalize twice"), Resolved->FinalizeAndVerifyResolvedLoot(Verified, Error));
+    TestFalse(TEXT("External manifest cannot configure twice"), Resolved->ConfigureResolvedLoot(Manifest, Error));
+    TestTrue(TEXT("External ownership suppresses both procedural generators"), Resolved->EnsureContents(Error)
+        && Resolved->GetInventory().Num()==1 && Resolved->GetInventory()[0].GetItemGuid()==ResolvedId);
+    Resolved->RemoveItem(Resolved->GetInventory()[0], 1);
+    TestTrue(TEXT("Empty external manifest never regenerates"), Resolved->EnsureContents(Error)
+        && Resolved->HasGeneratedContents() && Resolved->GetInventory().IsEmpty());
+    TestEqual(TEXT("External generation retains authored manual settings"), ManualSeed.Num(), 1);
     return !HasAnyErrors();
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectChestMapTest, "EF.Chests.Authored.MapInstances", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)

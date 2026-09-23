@@ -73,6 +73,35 @@ def verify_player(world, label):
     check(any(v.get_editor_property('reserved') for v in coordinator.get_slot_views()), label + ': Bikini reservation is rebuilt')
     return pawn
 
+def verify_resolved_chests(world, floor):
+    """Optional chest regression on actual committed Calysto population."""
+    if not OUT.name.startswith('ProceduralChestCalysto'):
+        return
+    records = []
+    def contents(stock):
+        return sorted((i.get_editor_property('item_guid').to_string(),
+                       i.get_editor_property('item_class').get_path_name(),
+                       i.get_editor_property('count')) for i in stock.get_inventory())
+    for actor in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.Actor):
+        stock = actor.get_component_by_class(unreal.ProjectChestInventoryComponent)
+        if not stock:
+            continue
+        before = contents(stock)
+        check(stock.has_generated_contents(), 'Calysto floor %d: resolved chest initialized before opening' % floor)
+        lock = actor.get_component_by_class(unreal.ProjectLockpickableComponent)
+        if lock:
+            lock.set_locked(False)
+        stock.ensure_contents()
+        check(contents(stock) == before, 'Calysto floor %d: opening preserves resolved GUIDs and quantities' % floor)
+        for entry in list(stock.get_inventory()):
+            stock.remove_item(entry, entry.get_editor_property('count'))
+        stock.ensure_contents()
+        check(stock.has_generated_contents() and not stock.get_inventory(),
+              'Calysto floor %d: exhausted external manifest never regenerates' % floor)
+        records.append({'actor': actor.get_path_name(), 'before': before})
+    R.setdefault('resolved_chests', []).extend(records)
+    write()
+
 def tick(dt):
     if S['busy']:
         return
@@ -138,6 +167,7 @@ def tick(dt):
             check(snapshot.get_editor_property('last_committed_floor_number') == floor, 'Existing runtime committed floor ' + str(floor))
             world = ED.get_game_world()
             verify_player(world, 'Floor ' + str(floor))
+            verify_resolved_chests(world, floor)
             R.setdefault('floors', []).append(json.loads(S['director'].get_diagnostics_json()))
             if floor == 1:
                 check(S['director'].request_advance_floor(), 'Existing runtime accepts next-floor travel')
@@ -152,6 +182,8 @@ def tick(dt):
             advance('hub_verify', 6)
         elif phase == 'hub_verify':
             verify_player(ED.get_game_world(), 'HUB after travel')
+            if OUT.name.startswith('ProceduralChestCalysto'):
+                check(bool(R.get('resolved_chests')), 'Authored two-floor run exercised at least one real resolved chest')
             finish()
     except Exception:
         finish(traceback.format_exc())
