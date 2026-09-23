@@ -121,4 +121,22 @@ public:
 	 * report the failed terminal boundary rather than silently dropping it. */
 	virtual bool FinishRequest(const FGuid& RequestId,
 		TSharedPtr<IEFCalystoGameplaySnapshot>& Snapshot, bool bAccepted) = 0;
+
+	/** Finish the attempt runtime's local lease after native cleanup. The Director
+	 * still owns the same pre-travel snapshot. A rejected detached graph must be
+	 * handed back to that owner for reconstruction, not released by the provider
+	 * before a destination exists. Never reinterpret a provider failure as success. */
+	bool FinishRuntimeSnapshot(const FGuid& RequestId,
+		TSharedPtr<IEFCalystoGameplaySnapshot>& Snapshot, const bool bAccepted)
+	{
+		if (!RequestId.IsValid()) return false;
+		if (!Snapshot) return true;
+		if (!CanHandleSnapshot(Snapshot)) return false;
+		if (!bAccepted && Snapshot->IsDetachedForTravel())
+		{
+			Snapshot.Reset(); // Only this local reference; the Director retains the graph.
+			return true;
+		}
+		return FinishRequest(RequestId, Snapshot, bAccepted);
+	}
 };

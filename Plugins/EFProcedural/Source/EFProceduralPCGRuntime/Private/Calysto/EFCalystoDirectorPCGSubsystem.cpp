@@ -795,13 +795,14 @@ namespace
 			if (!RequestId.IsValid() || RequestId!=ContentSnapshotRequest || !ContentSnapshot) return true;
 			FString Error;
 			IEFCalystoContentAttemptProvider* Provider=ResolveUniqueContentProvider(Error);
-			if (!Provider || !Provider->FinishRequest(RequestId,ContentSnapshot,bAccepted))
+			if (!Provider || !Provider->FinishRuntimeSnapshot(RequestId,ContentSnapshot,bAccepted))
 			{
 				UE_LOG(LogTemp, Error, TEXT("V7 Calysto terminal gameplay lease could not be released: %s"),
 					Error.IsEmpty() ? TEXT("the content provider retained the snapshot") : *Error);
 				return false;
 			}
 			ContentSnapshot.Reset(); ContentSnapshotRequest.Invalidate();
+			Request.PreFloorGameplaySnapshot.Reset();
 			bGameplaySnapshotReconstructed = false; bGameplayProviderPrepared = false;
 			GameplayReconstructionRequest.Invalidate();
 			return true;

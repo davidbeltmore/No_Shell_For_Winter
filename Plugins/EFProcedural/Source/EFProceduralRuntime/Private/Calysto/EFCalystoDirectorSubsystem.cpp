@@ -1398,6 +1398,8 @@ namespace
 	{
 	public:
 		bool bAllowRecovery = true;
+		bool bOwnsSnapshot = true;
+		bool bRejectFinish = false;
 		int32 FinishCalls = 0;
 		int32 RecoveryCalls = 0;
 		virtual bool CapturePreTravelSnapshot(const FGuid&, UWorld*,
@@ -1405,7 +1407,7 @@ namespace
 		{ OutSnapshot.Reset(); Error = TEXT("Fixture capture is not used."); return false; }
 		virtual bool CanHandleSnapshot(const TSharedPtr<IEFCalystoGameplaySnapshot>& Snapshot) const override
 		{
-			return Snapshot && Snapshot->GetCanonicalHash() == TEXT("DetachedGameplayFixture");
+			return bOwnsSnapshot && Snapshot && Snapshot->GetCanonicalHash() == TEXT("DetachedGameplayFixture");
 		}
 		virtual bool PreparePreTravelSnapshot(const FGuid&,
 			const TSharedPtr<IEFCalystoGameplaySnapshot>&, FString& Error) override
@@ -1443,6 +1445,7 @@ namespace
 			const bool) override
 		{
 			++FinishCalls;
+			if (bRejectFinish) return false;
 			if (Snapshot && !Snapshot->IsDetachedForTravel()) Snapshot.Reset();
 			return !Snapshot;
 		}
@@ -1457,7 +1460,7 @@ namespace
 		virtual bool FinishRequest(const FGuid& RequestId, const bool bAccepted) override
 		{
 			++FinishCalls;
-			if (Provider && !Provider->FinishRequest(RequestId, RetainedSnapshot, bAccepted)) return false;
+			if (!Provider || !Provider->FinishRuntimeSnapshot(RequestId, RetainedSnapshot, bAccepted)) return false;
 			RetainedSnapshot.Reset();
 			return true;
 		}
@@ -1981,7 +1984,8 @@ bool FEFCalystoDirectorDetachedSnapshotRecoveryTests::RunTest(const FString&)
 		Owner->FinishRuntimeRequest(Runtime, Request, false);
 		TestEqual(TEXT("Terminal release first defers the detached runtime lease"), Runtime->FinishCalls, 1);
 		TestEqual(TEXT("Terminal recovery reconstructs exactly once after runtime cleanup"), Provider.RecoveryCalls, 1);
-		TestEqual(TEXT("Provider releases only after the graph is reconstructed"), Provider.FinishCalls, 2);
+		TestEqual(TEXT("Provider releases exactly once, only after reconstruction"), Provider.FinishCalls, 1);
+		TestFalse(TEXT("Runtime drops its local lease before Director recovery"), Runtime->RetainedSnapshot.IsValid());
 		TestFalse(TEXT("Successful terminal recovery retains no old gameplay snapshot"), Owner->PreTravelGameplaySnapshot.IsValid());
 		TestFalse(TEXT("Successful terminal recovery does not strand the recovery flag"), Owner->bTerminalGameplayRecoveryPending);
 		TestFalse(TEXT("Successful terminal recovery clears the old routing owner"), Owner->PreTravelGameplayRequest.IsValid());
@@ -1998,6 +2002,7 @@ bool FEFCalystoDirectorDetachedSnapshotRecoveryTests::RunTest(const FString&)
 		Owner->FinishRuntimeRequest(Runtime, Request, false);
 		TestTrue(TEXT("Failed terminal recovery retains the detached graph"), Owner->PreTravelGameplaySnapshot.IsValid()
 			&& Owner->PreTravelGameplaySnapshot->IsDetachedForTravel());
+		TestFalse(TEXT("Failed recovery has no competing runtime lease"), Runtime->RetainedSnapshot.IsValid());
 		TestTrue(TEXT("Failed terminal recovery exposes explicit protected recovery"), Owner->bTerminalGameplayRecoveryPending);
 		TestTrue(TEXT("Failed terminal recovery keeps Retry available without a reseed"), Owner->GetSnapshot().bCanRetry);
 		TestFalse(TEXT("Failed terminal recovery does not finish the request"), Owner->FinishedRuntimeRequest == Request);
@@ -2007,6 +2012,29 @@ bool FEFCalystoDirectorDetachedSnapshotRecoveryTests::RunTest(const FString&)
 		TestFalse(TEXT("Explicit recovery clears persistent ownership before a new request"), Owner->PreTravelGameplaySnapshot.IsValid());
 		Owner->FinishRuntimeRequest(Runtime, Request, false);
 		TestEqual(TEXT("Recovered terminal request can close without another topology attempt"), Owner->FinishedRuntimeRequest, Request);
+	}
+	{
+		FTerminalRecoveryProvider Provider;
+		const auto Graph = MakeShared<FDetachedGameplaySnapshot>();
+		TSharedPtr<IEFCalystoGameplaySnapshot> LocalLease = Graph;
+		TestFalse(TEXT("Invalid request cannot hand off a detached lease"),
+			Provider.FinishRuntimeSnapshot(FGuid(), LocalLease, false));
+		Provider.bOwnsSnapshot = false;
+		TestFalse(TEXT("Foreign snapshot cannot be handed off"),
+			Provider.FinishRuntimeSnapshot(Request, LocalLease, false));
+		TestTrue(TEXT("Rejected handoff retains the exact graph"), LocalLease.Get() == &Graph.Get());
+		Provider.bOwnsSnapshot = true;
+		TestFalse(TEXT("Accepted detached snapshot cannot use rejected recovery handoff"),
+			Provider.FinishRuntimeSnapshot(Request, LocalLease, true));
+		Graph->bDetached = false;
+		Provider.bRejectFinish = true;
+		TestFalse(TEXT("Ordinary provider release failure remains failure"),
+			Provider.FinishRuntimeSnapshot(Request, LocalLease, false));
+		TestTrue(TEXT("Provider failure retains the exact graph"), LocalLease.Get() == &Graph.Get());
+		Provider.bRejectFinish = false;
+		TestTrue(TEXT("Ordinary release can succeed on retry"),
+			Provider.FinishRuntimeSnapshot(Request, LocalLease, false));
+		TestFalse(TEXT("Successful ordinary release clears the runtime lease"), LocalLease.IsValid());
 	}
 	return true;
 }
