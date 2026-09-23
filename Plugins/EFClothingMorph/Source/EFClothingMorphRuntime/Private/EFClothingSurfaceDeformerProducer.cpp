@@ -871,23 +871,29 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 					[ConfirmationTelemetry, ConfirmationArm, FailureCountBeforeSubmission]()
 					{
 						check(IsInRenderingThread());
-						--ConfirmationArm->RemainingEndFrameCallbacks;
-						if (ConfirmationArm->RemainingEndFrameCallbacks > 0)
+						// Remove can destroy this delegate and its lambda captures
+						// immediately. Keep the state on this call's stack and never
+						// access a capture after removing the one-shot callback.
+						const auto KeepAliveTelemetry = ConfirmationTelemetry;
+						const auto KeepAliveArm = ConfirmationArm;
+						const uint32 ExpectedFailureCount = FailureCountBeforeSubmission;
+						--KeepAliveArm->RemainingEndFrameCallbacks;
+						if (KeepAliveArm->RemainingEndFrameCallbacks > 0)
 						{
 							return;
 						}
 
-						FCoreDelegates::OnEndFrameRT.Remove(
-							ConfirmationArm->EndFrameDelegateHandle);
-						if (!ConfirmationTelemetry->bCancelled.Load()
-							&& ConfirmationTelemetry->DispatchFailureCount.Load()
-								== FailureCountBeforeSubmission)
+						if (!KeepAliveTelemetry->bCancelled.Load()
+							&& KeepAliveTelemetry->DispatchFailureCount.Load()
+								== ExpectedFailureCount)
 						{
-							ConfirmationTelemetry->LastValidatedFailureCount.Store(
-								FailureCountBeforeSubmission);
-							++ConfirmationTelemetry->RenderValidatedSubmissionCount;
+							KeepAliveTelemetry->LastValidatedFailureCount.Store(
+								ExpectedFailureCount);
+							++KeepAliveTelemetry->RenderValidatedSubmissionCount;
 						}
-						ConfirmationTelemetry->bRenderConfirmationArmed.Store(false);
+						KeepAliveTelemetry->bRenderConfirmationArmed.Store(false);
+						FCoreDelegates::OnEndFrameRT.Remove(
+							KeepAliveArm->EndFrameDelegateHandle);
 					});
 			});
 	}
