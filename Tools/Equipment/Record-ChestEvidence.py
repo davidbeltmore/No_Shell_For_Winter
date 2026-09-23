@@ -10,25 +10,33 @@ saved = root / "Saved/EquipmentQA"
 out = root / "Docs/Migration/Evidence/ProceduralChests"
 out.mkdir(parents=True, exist_ok=True)
 paths = [
-    "ProceduralChests/build07.log", "ProceduralChests/game02.log",
+    "ProceduralChests/build08.log", "ProceduralChests/game03.log",
     "ProceduralChests/author.json", "ProceduralChests/identities.json",
     "ProceduralChests/protected_before.json", "ProceduralChests/protected_final.json",
+    "ProceduralChests/protected_postpackage.json", "ProceduralChests/calysto_postpackage.json",
     "ProceduralChests/protected_historical.json", "ProceduralChests/calysto_before.json",
-    "ProceduralChests/calysto_after.json", "ProceduralChests/Native04/Report/index.json",
-    "ProceduralChests/native04-launch.log",
+    "ProceduralChests/calysto_after.json", "ProceduralChests/Native05/Report/index.json",
+    "ProceduralChests/native05-launch.log",
     "ProceduralChests/runtime-assets-final.json", "ProceduralChests/cook-closure-final.json",
+    "ProceduralChests/clothing-certification.json",
+    "ProceduralChests/packaging-contract.json", "ProceduralChests/equipment-cook-preflight.json",
     "ProceduralChestsPIE02/result.json", "ProceduralChestsPIE02/user_save_after.json",
     "ProceduralChestsPIE02/details-deposit.png", "ProceduralChestsPIE02/details-locked-focused.png",
     "ProceduralChestTravel01/result.json", "ProceduralChestTravel01/user_save_after.json",
     "StorageProceduralChests02/result.json", "StorageProceduralChests02/user_save_after.json",
     "StorageProceduralChests02/bag.png",
+    "ProceduralChestCalysto01/result.json", "ProceduralChestCalysto01/user_save_after.json",
 ]
+for run in ("ProceduralChestsPIE02", "ProceduralChestTravel01", "StorageProceduralChests02", "ProceduralChestCalysto01"):
+    paths += [f"{run}/launch.json", f"{run}/fixture.py"]
 # Optional release receipts are included only if they exist. Absence is not PASS.
 for name in ("ChestsNative01", "ChestsEquipment01", "ChestsVisual01"):
     paths += [f"Packaged_{name}/launch.json"]
+    paths += [f"Packaged_{name}/game.log"]
     paths += [f"Packaged_{name}/Report/index.json"] if "Visual" not in name else [
         f"Packaged_{name}/User/Saved/EquipmentQA/Packaged/result.json",
         f"Packaged_{name}/User/Saved/EquipmentQA/Packaged/inventory.png",
+        f"Packaged_{name}/User/Saved/EquipmentQA/Packaged/visual_done.txt",
     ]
 
 artifacts, missing = {}, []
@@ -50,6 +58,7 @@ for relative in tracked:
             or relative in ("Content/_Game/Hub/HUB.umap", "Content/_Game/Tests/ChestProcedural.umap",
                             "Content/_Game/Items/Chests/BP_EquipmentDeposit.uasset",
                             "Content/_Game/Items/Chests/BP_EquipmentLockedChest.uasset",
+                            "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_EFClothingFitRegistry.uasset",
                             "Config/DefaultEngine.ini", "Config/Tags/ChestContent.ini")):
         source_hashes[relative] = hashlib.sha256((root / relative).read_bytes()).hexdigest()
 manifest = {
