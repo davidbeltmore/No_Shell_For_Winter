@@ -1,6 +1,7 @@
 #include "Lockpicking/ProjectLockpickingEditorLibrary.h"
 #if WITH_EDITOR
 #include "Storage/ProjectChestInventoryComponent.h"
+#include "Storage/ProjectProceduralChestComponent.h"
 #include "Lockpicking/ProjectLockpickableComponent.h"
 #include "Lockpicking/ProjectLockpickingEditorLibrary.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -19,8 +20,64 @@
 #include "UObject/SavePackage.h"
 #include "UObject/UnrealType.h"
 #include "Engine/DataTable.h"
+#include "Editor.h"
+#include "Subsystems/AssetEditorSubsystem.h"
+#include "BlueprintEditor.h"
 
 #endif
+bool UProjectLockpickingEditorLibrary::ShowProceduralChestDetails(UBlueprint* Blueprint)
+{
+#if WITH_EDITOR
+    if (!Blueprint || !Blueprint->GeneratedClass) return false;
+    auto* Editors = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+    Editors->OpenEditorForAsset(Blueprint);
+    auto* Instance = Editors->FindEditorForAsset(Blueprint, true);
+    if (!Instance || Instance->GetEditorName() != TEXT("BlueprintEditor")) return false;
+    auto* Editor = static_cast<FBlueprintEditor*>(Instance);
+    for (auto* Class = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass); Class; Class = Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()))
+        if (Class->SimpleConstructionScript)
+            for (auto* Node : Class->SimpleConstructionScript->GetAllNodes())
+                if (Node->ComponentClass->IsChildOf(UProjectProceduralChestComponent::StaticClass()))
+                    return Editor->FindAndSelectSubobjectEditorTreeNode(Node->ComponentTemplate, false).IsValid();
+    return false;
+#else
+    return false;
+#endif
+}
+
+FString UProjectLockpickingEditorLibrary::AddProceduralChestAuthoring()
+{
+#if WITH_EDITOR
+    auto* BP = LoadObject<UBlueprint>(nullptr, TEXT("/Game/_Game/Items/Chests/BP_EquipmentDeposit"));
+    if (!BP || !BP->SimpleConstructionScript) return TEXT("FAIL: Project deposit is unavailable.");
+    USCS_Node* Found = nullptr;
+    for (auto* Node : BP->SimpleConstructionScript->GetAllNodes())
+        if (Node->ComponentClass->IsChildOf(UProjectProceduralChestComponent::StaticClass())) Found = Node;
+    if (!Found)
+    {
+        BP->Modify();
+        Found = BP->SimpleConstructionScript->CreateNode(UProjectProceduralChestComponent::StaticClass(), TEXT("ProceduralChest"));
+        BP->SimpleConstructionScript->AddNode(Found);
+        auto* Settings = CastChecked<UProjectProceduralChestComponent>(Found->ComponentTemplate);
+        Settings->Profile = LoadObject<UProjectChestLootProfile>(nullptr, TEXT("/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth"));
+        Settings->ChestRarity = FGameplayTag::RequestGameplayTag(TEXT("Rarity.Common"));
+        FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+    }
+    for (const TCHAR* Path : {TEXT("/Game/_Game/Items/Chests/BP_EquipmentDeposit"), TEXT("/Game/_Game/Items/Chests/BP_EquipmentLockedChest")})
+    {
+        auto* Asset = LoadObject<UBlueprint>(nullptr, Path);
+        if (!Asset) return TEXT("FAIL: Project chest missing.");
+        FKismetEditorUtilities::CompileBlueprint(Asset);
+        if (Asset->Status == BS_Error) return TEXT("FAIL: Chest compile failed.");
+        FSavePackageArgs Args; Args.TopLevelFlags = RF_Public | RF_Standalone;
+        if (!UPackage::SavePackage(Asset->GetPackage(), Asset, *FPackageName::LongPackageNameToFilename(Path, FPackageName::GetAssetPackageExtension()), Args)) return TEXT("FAIL: Chest save failed.");
+    }
+    return TEXT("PASS: Added only the ProceduralChest authoring component; existing inventory, graphs and lock settings preserved.");
+#else
+    return TEXT("FAIL: Requires Editor.");
+#endif
+}
+
 FString UProjectLockpickingEditorLibrary::BuildChestFamily()
 {
 #if WITH_EDITOR
@@ -43,6 +100,14 @@ FString UProjectLockpickingEditorLibrary::BuildChestFamily()
     };
     auto* Deposit = Create(TEXT("BP_EquipmentDeposit"), Native->GeneratedClass);
     if (!Deposit) return TEXT("FAIL: Deposit creation failed.");
+    bool bHasProcedural = false;
+    for (auto* Node : Deposit->SimpleConstructionScript->GetAllNodes())
+        bHasProcedural |= Node->ComponentClass->IsChildOf(UProjectProceduralChestComponent::StaticClass());
+    if (!bHasProcedural)
+    {
+        auto* Node = Deposit->SimpleConstructionScript->CreateNode(UProjectProceduralChestComponent::StaticClass(), TEXT("ProceduralChest"));
+        Deposit->SimpleConstructionScript->AddNode(Node);
+    }
     Deposit->ComponentClassOverrides.RemoveAll([](const FBPComponentClassOverride& Row) { return Row.ComponentName == TEXT("StorageComponent"); });
     Deposit->ComponentClassOverrides.Add(FBPComponentClassOverride(TEXT("StorageComponent"), UProjectChestInventoryComponent::StaticClass()));
     if (!FBlueprintEditorUtils::FindEventGraph(Deposit)) FKismetEditorUtilities::CreateDefaultEventGraphs(Deposit);

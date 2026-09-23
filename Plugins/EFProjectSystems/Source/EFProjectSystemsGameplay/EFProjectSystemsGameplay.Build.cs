@@ -82,6 +82,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 			PrivateDependencyModuleNames.AddRange(new string[]
 			{
 				"UnrealEd",
+				"Kismet",
 				"BlueprintGraph"
 			});
 		}
