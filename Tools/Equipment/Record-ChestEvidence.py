@@ -20,6 +20,7 @@ paths = [
     "ProceduralChests/runtime-assets-final.json", "ProceduralChests/cook-closure-final.json",
     "ProceduralChests/clothing-certification.json",
     "ProceduralChests/packaging-contract.json", "ProceduralChests/equipment-cook-preflight.json",
+    "ProceduralChests/editor-final-context.json", "ProceduralChests/editor-final-details.png",
     "ProceduralChestsPIE02/result.json", "ProceduralChestsPIE02/user_save_after.json",
     "ProceduralChestsPIE02/details-deposit.png", "ProceduralChestsPIE02/details-locked-focused.png",
     "ProceduralChestTravel01/result.json", "ProceduralChestTravel01/user_save_after.json",
