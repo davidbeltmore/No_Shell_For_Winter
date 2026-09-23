@@ -41,8 +41,8 @@ $internalPCGPackages = @(
     '/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe'
 )
 $runtimeBlueprintPackages = @(
-    '/Game/_Game/Items/Chests/BP_CalystoLockedChest',
-    '/Game/_Game/Items/Chests/BP_CalystoLockPickChest',
+    '/Game/_Game/Items/Chests/BP_EquipmentDeposit',
+    '/Game/_Game/Items/Chests/BP_EquipmentLockedChest',
     '/Game/_Game/Items/Clothing/BP_CalystoArmorPickup'
 )
 $retiredVersions = @(3..5)

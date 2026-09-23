@@ -59,8 +59,8 @@ EXPECTED_HASHES = {
     LEGACY_BLUEPRINTS[2]: "DC92929C9D5FA12B6672BBCB2168BBE360964D1D8A860806CF066A19D9F23DFD",
 }
 UNVERSIONED = (
-    "/Game/_Game/Items/Chests/BP_CalystoLockedChest",
-    "/Game/_Game/Items/Chests/BP_CalystoLockPickChest",
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit",
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
     "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
 )
 LEGACY_DIRECTORIES = (

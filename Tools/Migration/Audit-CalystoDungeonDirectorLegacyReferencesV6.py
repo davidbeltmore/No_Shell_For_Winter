@@ -64,11 +64,11 @@ LEGACY_ASSETS = {
 }
 
 UNVERSIONED_BLUEPRINTS = {
-    "/Game/_Game/Items/Chests/BP_CalystoLockedChest": (
-        "/Script/EFProjectSystemsGameplay.ProjectCalystoChest"
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit": (
+        "/AscentCombatFramework/Integrations/Actors/ACF_Deposit_BP.ACF_Deposit_BP_C"
     ),
-    "/Game/_Game/Items/Chests/BP_CalystoLockPickChest": (
-        "/Script/EFProjectSystemsGameplay.ProjectCalystoChest"
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest": (
+        "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit_C"
     ),
     "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup": (
         "/Script/InventorySystem.ACFWorldItem"

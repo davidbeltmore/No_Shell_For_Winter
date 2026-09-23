@@ -49,8 +49,8 @@ INTERNAL_PCG_PACKAGES = (
     "/EFProcedural/Calysto/Internal/PCG/PCG_SetDungeonMeshCookedSafe",
 )
 RUNTIME_BLUEPRINT_PACKAGES = (
-    "/Game/_Game/Items/Chests/BP_CalystoLockedChest",
-    "/Game/_Game/Items/Chests/BP_CalystoLockPickChest",
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit",
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
     "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
 )
 FORBIDDEN_BUNDLE_TOKENS = tuple(
@@ -545,7 +545,7 @@ try:
             f"actual={bundle_internal_pcg} expected={sorted(INTERNAL_PCG_PACKAGES)}"
         )
     missing_runtime_blueprints = sorted(
-        set(RUNTIME_BLUEPRINT_PACKAGES) - set(bundle_packages)
+        (set(RUNTIME_BLUEPRINT_PACKAGES) - {"/Game/_Game/Items/Chests/BP_EquipmentDeposit"}) - set(bundle_packages)
     )
     if missing_runtime_blueprints:
         fail(

@@ -185,9 +185,9 @@ V5_TO_V6_MAPPING = {
         ],
         "runtime_blueprint_replacements": {
             "/Game/_Game/Items/Chests/BP_CalystoLockedChestV4":
-                "/Game/_Game/Items/Chests/BP_CalystoLockedChest",
+                "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
             "/Game/_Game/Items/Chests/BP_CalystoLockPickChestV4":
-                "/Game/_Game/Items/Chests/BP_CalystoLockPickChest",
+                "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
             "/Game/_Game/Items/Clothing/BP_CalystoArmorPickupV4":
                 "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
         },
@@ -359,9 +359,11 @@ def call_string_list(owner: Any, method_name: str, label: str) -> list[str]:
             "BLOCKED_NATIVE_V6_INTERFACE_INCOMPLETE",
             f"{owner.get_class().get_path_name()} does not expose {method_name}()",
         )
-    values = sorted({str(item) for item in method()})
-    if not values:
-        fail(f"{label} is empty")
+    # Preserve the native canonical order used by cook and packaged validators.
+    # Python's case-sensitive sort differs from FString ordering for /_Game.
+    values = [str(item) for item in method()]
+    if not values or len(values) != len(set(values)):
+        fail(f"{label} is empty or contains duplicates")
     return values
 
 

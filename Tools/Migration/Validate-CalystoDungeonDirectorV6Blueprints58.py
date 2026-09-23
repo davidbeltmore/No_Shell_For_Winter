@@ -65,17 +65,16 @@ BASELINE_BUNDLE_BLUEPRINTS = frozenset(
         "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Apple01",
         "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_Bread01",
         "/Game/_Game/FoodSystem/Food/Items/PickuableItems/Food/BP_Pickup_Food_CookedMeat01",
-        "/Game/_Game/Items/Chests/BP_CalystoLockPickChest",
-        "/Game/_Game/Items/Chests/BP_CalystoLockedChest",
+        "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
         "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup",
         "/Game/_Game/Items/Companions/BP_Item_WintersRecall",
     }
 )
 DEFINITIVE_PARENTS = {
-    "/Game/_Game/Items/Chests/BP_CalystoLockedChest":
-        "/Script/EFProjectSystemsGameplay.ProjectCalystoChest",
-    "/Game/_Game/Items/Chests/BP_CalystoLockPickChest":
-        "/Script/EFProjectSystemsGameplay.ProjectCalystoChest",
+    "/Game/_Game/Items/Chests/BP_EquipmentDeposit":
+        "/AscentCombatFramework/Integrations/Actors/ACF_Deposit_BP.ACF_Deposit_BP_C",
+    "/Game/_Game/Items/Chests/BP_EquipmentLockedChest":
+        "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit_C",
     "/Game/_Game/Items/Clothing/BP_CalystoArmorPickup":
         "/Script/InventorySystem.ACFWorldItem",
 }
@@ -379,7 +378,7 @@ def validate_context(
     validate_guarded_asset_hashes(closure)
     validate_creator_receipt_freshness(closure)
     current_hashes, bundle_paths = current_policy_contract(closure)
-    if len(BASELINE_BUNDLE_BLUEPRINTS) != 29:
+    if len(BASELINE_BUNDLE_BLUEPRINTS) != 28:
         fail("Internal V6 baseline Blueprint cohort cardinality drifted")
     return current_hashes, bundle_paths
 
@@ -454,7 +453,7 @@ try:
     registry.search_all_assets(True)
     registry.wait_for_completion()
     bundle_blueprints = derive_bundle_blueprints(registry, bundle_paths)
-    expected_blueprints = {DOOR_TO_LEVEL, *bundle_blueprints}
+    expected_blueprints = {DOOR_TO_LEVEL, *bundle_blueprints, *DEFINITIVE_PARENTS}
     PAYLOAD["expected_bundle_blueprint_count"] = len(bundle_blueprints)
     PAYLOAD["expected_blueprint_count"] = len(expected_blueprints)
     PAYLOAD["expected_blueprints"] = sorted(expected_blueprints)

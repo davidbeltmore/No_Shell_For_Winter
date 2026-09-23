@@ -412,7 +412,7 @@ bool FEFCalystoV6PolicyHashesAndClosureTest::RunTest(const FString& Parameters)
 		Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("SM_Floor.SM_Floor")); }));
 	TestTrue(TEXT("Inline Forge Level Instance is cooked"),
 		Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("PCGDA_Table.PCGDA_Table")); }));
-	TestTrue(TEXT("Definitive locked chest is cooked"), Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("BP_CalystoLockedChest.BP_CalystoLockedChest_C")); }));
+	TestTrue(TEXT("Definitive locked chest is cooked"), Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("BP_EquipmentLockedChest.BP_EquipmentLockedChest_C")); }));
 	TestTrue(TEXT("Definitive armor pickup is cooked"), Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("BP_CalystoArmorPickup.BP_CalystoArmorPickup_C")); }));
 	TestTrue(TEXT("Minimal blood color texture is cooked"), Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("T_Splat_04")); }));
 	TestTrue(TEXT("Minimal blood normal texture is cooked"), Paths.ContainsByPredicate([](const FString& Path) { return Path.Contains(TEXT("T_Splat_N_04")); }));

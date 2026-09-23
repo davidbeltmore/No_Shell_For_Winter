@@ -1,10 +1,7 @@
-"""Create the three definitive, unversioned Calysto runtime Blueprints.
+"""Validate the current native deposit chest family and armor runtime asset.
 
-The first run duplicates the byte-frozen V4-named Blueprints to new object
-paths, reparents the chest copies to the unversioned native chest class,
-compiles, and saves only the three new packages. Existing destinations are
-validated read-only. Source assets are never renamed or saved, which keeps all
-legacy policy references stable until controlled retirement.
+Legacy creation receipts remain immutable provenance. Missing chest assets are
+authored by the shared equipment workbench, never duplicated from retired chests.
 """
 
 from __future__ import annotations
@@ -31,16 +28,12 @@ CHEST_PARENT = "/Script/EFProjectSystemsGameplay.ProjectCalystoChest"
 ARMOR_PARENT = "/Script/InventorySystem.ACFWorldItem"
 SPECS = (
     {
-        "source": "/Game/_Game/Items/Chests/BP_CalystoLockedChestV4",
-        "destination": "/Game/_Game/Items/Chests/BP_CalystoLockedChest",
-        "parent": CHEST_PARENT,
-        "source_sha256": "3D7FA02BC0B3A11315E6CB130A479FA6099B792D79DE288B374CF62684853117",
+        "destination": "/Game/_Game/Items/Chests/BP_EquipmentDeposit",
+        "parent": "/AscentCombatFramework/Integrations/Actors/ACF_Deposit_BP.ACF_Deposit_BP_C",
     },
     {
-        "source": "/Game/_Game/Items/Chests/BP_CalystoLockPickChestV4",
-        "destination": "/Game/_Game/Items/Chests/BP_CalystoLockPickChest",
-        "parent": CHEST_PARENT,
-        "source_sha256": "45D439633454B551979F594A7ADC00D399520598541163F425BD01B4B1078205",
+        "destination": "/Game/_Game/Items/Chests/BP_EquipmentLockedChest",
+        "parent": "/Game/_Game/Items/Chests/BP_EquipmentDeposit.BP_EquipmentDeposit_C",
     },
     {
         "source": "/Game/_Game/Items/Clothing/BP_CalystoArmorPickupV4",
@@ -219,67 +212,7 @@ try:
             for spec in SPECS
         ]
     else:
-        result["mode"] = "CREATE_ONCE_FROM_FROZEN_BLUEPRINTS"
-        dirty = dirty_packages()
-        result["source_assets"] = []
-        for spec in SPECS:
-            source_file = package_file(spec["source"])
-            if not source_file.is_file():
-                fail(f"Frozen source Blueprint is missing: {spec['source']}")
-            actual_hash = sha256(source_file)
-            if actual_hash != spec["source_sha256"]:
-                fail(
-                    f"Frozen source Blueprint drift: {spec['source']} "
-                    f"actual={actual_hash} expected={spec['source_sha256']}"
-                )
-            if spec["source"] in dirty:
-                fail(f"Frozen source Blueprint is dirty: {spec['source']}")
-            source_asset = unreal.load_asset(spec["source"])
-            if source_asset is None or source_asset.get_class().get_name() != "Blueprint":
-                fail(f"Frozen source is not a Blueprint: {spec['source']}")
-            result["source_assets"].append(
-                {"package": spec["source"], "sha256": actual_hash, "dirty": False}
-            )
-
-        parents = {path: load_exact_class(path) for path in {spec["parent"] for spec in SPECS}}
-        states: list[dict[str, Any]] = []
-        for spec in SPECS:
-            duplicated = unreal.EditorAssetLibrary.duplicate_asset(
-                spec["source"], spec["destination"]
-            )
-            if duplicated is None:
-                fail(
-                    f"Could not duplicate {spec['source']} to {spec['destination']}"
-                )
-            created.append(spec["destination"])
-            outcome = unreal.BlueprintEditorLibrary.reparent_blueprint(
-                duplicated, parents[spec["parent"]]
-            )
-            if outcome is False:
-                fail(f"Reparent returned false: {spec['destination']}")
-            states.append(
-                blueprint_state(spec["destination"], spec["parent"], compile_asset=True)
-            )
-
-        for spec in SPECS:
-            if not unreal.EditorAssetLibrary.save_asset(
-                spec["destination"], only_if_is_dirty=False
-            ):
-                fail(f"Could not save new Blueprint: {spec['destination']}")
-            saved.append(spec["destination"])
-        result["blueprints"] = [
-            blueprint_state(spec["destination"], spec["parent"], compile_asset=False)
-            for spec in SPECS
-        ]
-
-        source_after = {
-            spec["source"]: sha256(package_file(spec["source"])) for spec in SPECS
-        }
-        expected_source_after = {
-            spec["source"]: spec["source_sha256"] for spec in SPECS
-        }
-        if source_after != expected_source_after:
-            fail("A frozen source Blueprint changed during V6 duplication")
+        fail("Author the native chest family with Tools/Equipment/Author-ChestFamily.py first; legacy chest duplication is retired.")
 
     after = snapshot_content()
     files, packages = changed_packages(before, after)

@@ -1,5 +1,6 @@
 """Compile the project-owned storage and lockpick Blueprint surface."""
 import json
+import datetime
 from pathlib import Path
 import unreal
 
@@ -12,8 +13,9 @@ paths=[
 registry=unreal.AssetRegistryHelpers.get_asset_registry()
 for asset in registry.get_assets_by_path('/Game/_Game/Widgets/LockPick',True):
     if str(asset.asset_class_path.asset_name)=='WidgetBlueprint': paths.append(str(asset.package_name))
-result={'status':'PENDING','assets':[]}
+result={'status':'PENDING','generated_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'assets':[]}
 out=Path(unreal.Paths.project_dir())/'Saved/EquipmentQA/StorageRework/blueprints-final.json'
+out.write_text(json.dumps(result,indent=2))
 try:
     for path in sorted(set(paths)):
         bp=unreal.load_asset(path)

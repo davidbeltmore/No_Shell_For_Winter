@@ -776,8 +776,8 @@ TArray<FEFCalystoCatalogEntryV6> MakeFoodCatalog()
 TArray<FEFCalystoCatalogEntryV6> MakeChestCatalog()
 {
 	return {
-		MakeActorEntry(TEXT("Chest.Locked"), TEXT("/Game/_Game/Items/Chests/BP_CalystoLockedChest.BP_CalystoLockedChest_C"), 1.0f, TEXT("Chest"), EEFCalystoRarityTierV6::Common, EEFCalystoGenderV6::Any, 1.0f, 1, 3),
-		MakeActorEntry(TEXT("Chest.LockPick"), TEXT("/Game/_Game/Items/Chests/BP_CalystoLockPickChest.BP_CalystoLockPickChest_C"), 1.0f, TEXT("Chest"), EEFCalystoRarityTierV6::Common, EEFCalystoGenderV6::Any, 1.0f, 1, 3)
+		MakeActorEntry(TEXT("Chest.Locked"), TEXT("/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C"), 1.0f, TEXT("Chest"), EEFCalystoRarityTierV6::Common, EEFCalystoGenderV6::Any, 1.0f, 1, 3),
+		MakeActorEntry(TEXT("Chest.LockPick"), TEXT("/Game/_Game/Items/Chests/BP_EquipmentLockedChest.BP_EquipmentLockedChest_C"), 1.0f, TEXT("Chest"), EEFCalystoRarityTierV6::Common, EEFCalystoGenderV6::Any, 1.0f, 1, 3)
 	};
 }
 
