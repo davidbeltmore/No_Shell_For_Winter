@@ -159,9 +159,15 @@ FReply UProjectLockpickingWidget::NativeOnKeyDown(const FGeometry& InGeometry, c
 
 	if (InKeyEvent.GetKey() == EKeys::SpaceBar)
 	{
-		OnConfirmRequested.Broadcast();
+		if (!InKeyEvent.IsRepeat()) OnConfirmRequested.Broadcast();
 		return FReply::Handled();
 	}
+	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::BackSpace)
+	{
+		if (!InKeyEvent.IsRepeat()) OnCancelRequested.Broadcast();
+		return FReply::Handled();
+	}
+	if (InKeyEvent.GetKey() == EKeys::E || InKeyEvent.GetKey() == EKeys::Enter) return FReply::Handled();
 
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }

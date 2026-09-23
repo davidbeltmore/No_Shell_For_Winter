@@ -168,7 +168,7 @@ FReply UProjectLockpickPromptWidget::NativeOnKeyDown(const FGeometry& InGeometry
 
 	if (Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::E)
 	{
-		ConfirmSelectedOption();
+		if (!InKeyEvent.IsRepeat()) ConfirmSelectedOption();
 		return FReply::Handled();
 	}
 

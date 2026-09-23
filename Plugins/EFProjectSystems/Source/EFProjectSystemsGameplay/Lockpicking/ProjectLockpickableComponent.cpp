@@ -1,6 +1,7 @@
 #include "Lockpicking/ProjectLockpickableComponent.h"
 
 #include "Components/ACFInventoryComponent.h"
+#include "Components/ACFInteractableComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/GameStateBase.h"
@@ -9,6 +10,7 @@
 #include "Items/ACFItem.h"
 #include "Lockpicking/ProjectLockpickingSubsystem.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/UnrealType.h"
 #include "InnerDoctrine/ProjectInnerDoctrineComponent.h"
 #include "InnerDoctrine/ProjectInnerDoctrineSettings.h"
 
@@ -43,6 +45,30 @@ void UProjectLockpickableComponent::BeginPlay()
 	{
 		bLocked = bStartsLocked;
 	}
+	UpdateNativeActionGate();
+}
+
+void UProjectLockpickableComponent::UpdateNativeActionGate()
+{
+	// ACF triggers the interaction montage before the actor's lock gate and its
+	// animation notify loses the lockpick interaction type. Suppress only that
+	// action on this instance while locked; restore the authored tag on unlock.
+	auto* Interactable = GetOwner()->FindComponentByClass<UACFInteractableComponent>();
+	if (!Interactable) return;
+	auto* Property = FindFProperty<FStructProperty>(Interactable->GetClass(), TEXT("InteractionActionTag"));
+	if (!ensure(Property && Property->Struct == FGameplayTag::StaticStruct())) return;
+	auto* Tag = Property->ContainerPtrToValuePtr<FGameplayTag>(Interactable);
+	if (bLocked && !bNativeActionSuppressed)
+	{
+		SavedInteractionAction = *Tag;
+		*Tag = FGameplayTag();
+		bNativeActionSuppressed = true;
+	}
+	else if (!bLocked && bNativeActionSuppressed)
+	{
+		*Tag = SavedInteractionAction;
+		bNativeActionSuppressed = false;
+	}
 }
 
 void UProjectLockpickableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -69,6 +95,8 @@ bool UProjectLockpickableComponent::HandleACFInteraction(
 
 	if (!bLocked)
 	{
+		if (IsLockpickBeginInteractionType(InteractionType) || IsLockpickConfirmInteractionType(InteractionType))
+			OutResult = EProjectLockpickInteractionGateResult::Consumed;
 		return true;
 	}
 
@@ -121,6 +149,11 @@ bool UProjectLockpickableComponent::ConsumeACFInteractionIfLocked(APawn* Pawn, c
 {
 	EProjectLockpickInteractionGateResult GateResult = EProjectLockpickInteractionGateResult::RunOriginal;
 	HandleACFInteraction(Pawn, InteractionType, GateResult);
+	// ACF 4.4 marks its interaction component busy before invoking this gate.
+	// A consumed lock attempt opens no native storage UI to release that state.
+	// Release it while still locked so retry/confirm/cancel are not vetoed by ACF.
+	if (GateResult == EProjectLockpickInteractionGateResult::Consumed && HasAuthority())
+		if (auto* Interaction = GetOwner()->FindComponentByClass<UACFInteractableComponent>()) Interaction->EndInteraction();
 	return GateResult == EProjectLockpickInteractionGateResult::Consumed;
 }
 
@@ -138,6 +171,7 @@ bool UProjectLockpickableComponent::HandleACFLocalInteraction(APawn* Pawn, const
 		LockpickingSubsystem->CloseLockpicking();
 		return true;
 	}
+	if (!bLocked && IsLockpickBeginInteractionType(InteractionType)) return true;
 
 	if (!Pawn || !bLocked)
 	{
@@ -151,6 +185,7 @@ bool UProjectLockpickableComponent::HandleACFLocalInteraction(APawn* Pawn, const
 
 	if (bShowPromptBeforeLockpicking)
 	{
+		if (IsSessionActive()) return LockpickingSubsystem->OpenLockpicking(GetOwner(), this, Pawn);
 		return LockpickingSubsystem->OpenLockpickPrompt(GetOwner(), this, Pawn);
 	}
 
@@ -159,7 +194,11 @@ bool UProjectLockpickableComponent::HandleACFLocalInteraction(APawn* Pawn, const
 
 bool UProjectLockpickableComponent::ConsumeACFLocalInteractionIfLocked(APawn* Pawn, const FString& InteractionType)
 {
-	return HandleACFLocalInteraction(Pawn, InteractionType);
+	const bool bWasLocked = bLocked;
+	const bool bHandled = HandleACFLocalInteraction(Pawn, InteractionType);
+	// UI admission can fail (e.g. no lockpick). That must never authorize the
+	// native deposit continuation while its physical lock is still closed.
+	return bWasLocked || bHandled;
 }
 
 bool UProjectLockpickableComponent::CanBeInteracted(APawn* Pawn) const
@@ -309,10 +348,16 @@ void UProjectLockpickableComponent::SetLocked(const bool bInLocked)
 	}
 
 	bLocked = bInLocked;
+	UpdateNativeActionGate();
 	if (!bLocked)
 	{
 		ClearActiveSession();
 	}
+}
+
+void UProjectLockpickableComponent::CancelSession(APawn* Pawn)
+{
+	if (HasAuthority() && Pawn && ActivePawn == Pawn) ClearActiveSession();
 }
 
 bool UProjectLockpickableComponent::ReplayOwnerACFInteraction(APawn* Pawn, const FString& InteractionType) const
@@ -371,7 +416,7 @@ float UProjectLockpickableComponent::ComputeTargetHalfRange(const int32 InDiffic
 
 void UProjectLockpickableComponent::StartLockpickSession(APawn* Pawn, const FString& OriginalInteractionType)
 {
-	if (!CanPawnAttemptLockpick(Pawn))
+	if (IsSessionActive() || !CanPawnAttemptLockpick(Pawn))
 	{
 		return;
 	}
@@ -396,12 +441,20 @@ void UProjectLockpickableComponent::StartLockpickSession(APawn* Pawn, const FStr
 
 void UProjectLockpickableComponent::ConfirmLockpickSession(APawn* Pawn, const int32 SessionId)
 {
-	if (!Pawn || SessionId == INDEX_NONE || SessionId != ActiveSessionId || ActivePawn != Pawn || IsInFailureCooldown())
+	if (bResolvingAttempt || !Pawn || SessionId == INDEX_NONE || SessionId != ActiveSessionId || ActivePawn != Pawn || IsInFailureCooldown())
 	{
 		return;
 	}
 
 	const float PulseValue = GetCurrentPulseValueForServerTime(ResolveServerWorldTimeSeconds());
+	TGuardValue<bool> AttemptGuard(bResolvingAttempt, true);
+	// Opening/cancelling does not spend a tool. A confirmed attempt spends one
+	// on the authority before either outcome; callbacks cannot resolve it twice.
+	if (!ConsumeAttemptLockpick(Pawn))
+	{
+		CompleteLockpickFailure(Pawn, PulseValue);
+		return;
+	}
 	const bool bSucceeded = FMath::Abs(PulseValue - FMath::Clamp(TargetCenter, 0.0f, 1.0f)) <= ActiveTargetHalfRange;
 	if (bSucceeded)
 	{
@@ -413,12 +466,32 @@ void UProjectLockpickableComponent::ConfirmLockpickSession(APawn* Pawn, const in
 	}
 }
 
+bool UProjectLockpickableComponent::ConsumeAttemptLockpick(APawn* Pawn)
+{
+	if (!bRequireLockpickItem) return true;
+	auto* Inventory = ResolveInventoryComponent(Pawn);
+	const TSubclassOf<UACFItem> ItemClass = RequiredLockpickItemClass.LoadSynchronous();
+	if (!HasAuthority() || !Inventory || !ItemClass) return false;
+	const int32 Before = Inventory->GetTotalCountOfItemsByClass(ItemClass);
+	if (Before <= 0) return false;
+	TArray<FInventoryItem> Picks;
+	Inventory->GetAllItemsOfClassInInventory(ItemClass, Picks);
+	for (const auto& Pick : Picks)
+	{
+		if (Pick.Count <= 0) continue;
+		Inventory->RemoveItem(Pick, 1);
+		return Inventory->GetTotalCountOfItemsByClass(ItemClass) == Before - 1;
+	}
+	return false;
+}
+
 void UProjectLockpickableComponent::CompleteLockpickSuccess(APawn* Pawn, const float PulseValue)
 {
 	const int32 CompletedSessionId = ActiveSessionId;
 	const FString OriginalInteractionType = ActiveOriginalInteractionType;
 
 	bLocked = false;
+	UpdateNativeActionGate();
 	ClearActiveSession();
 
 	OnLockpickSucceeded.Broadcast(Pawn, CompletedSessionId, PulseValue);

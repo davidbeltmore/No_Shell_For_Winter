@@ -11,6 +11,9 @@
 #include "Lockpicking/ProjectLockpickableComponent.h"
 #include "Lockpicking/ProjectLockpickingWidget.h"
 #include "TimerManager.h"
+#include "Framework/Application/IInputProcessor.h"
+#include "Framework/Application/SlateApplication.h"
+#include "InputCoreTypes.h"
 #include "UI/ProjectWidgetClassResolver.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectLockpicking, Log, All);
@@ -18,6 +21,38 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectLockpicking, Log, All);
 namespace ProjectLockpickingSubsystemPrivate
 {
 	constexpr int32 DefaultWidgetZOrder = 10040;
+	class FModalInputProcessor final : public IInputProcessor
+	{
+	public:
+		explicit FModalInputProcessor(UProjectLockpickingSubsystem* InOwner) : Owner(InOwner) {}
+		virtual void Tick(float, FSlateApplication&, TSharedRef<ICursor>) override {}
+		virtual bool HandleKeyDownEvent(FSlateApplication&, const FKeyEvent& Event) override
+		{ return Owner.IsValid() && Owner->RouteModalKey(Event, false); }
+		virtual bool HandleKeyUpEvent(FSlateApplication&, const FKeyEvent& Event) override
+		{ return Owner.IsValid() && Owner->RouteModalKey(Event, true); }
+	private:
+		TWeakObjectPtr<UProjectLockpickingSubsystem> Owner;
+	};
+}
+
+bool UProjectLockpickingSubsystem::RouteModalKey(const FKeyEvent& Event, bool bKeyUp)
+{
+	UUserWidget* Modal = bLockpickingOpen ? static_cast<UUserWidget*>(ActiveWidget)
+		: bPromptOpen ? static_cast<UUserWidget*>(ActivePromptWidget) : nullptr;
+	if (!Modal || !Modal->IsInViewport()) return false;
+	const FKey Key = Event.GetKey();
+	const bool bOwnsKey = Key == EKeys::E || Key == EKeys::Enter || Key == EKeys::SpaceBar
+		|| Key == EKeys::Escape || Key == EKeys::BackSpace || Key == EKeys::Tab
+		|| Key == EKeys::Up || Key == EKeys::Down || Key == EKeys::Left || Key == EKeys::Right;
+	if (!bOwnsKey) return false;
+	// CommonUI's global accept/back preprocessor otherwise consumes these before
+	// the existing UUserWidget minigame. Own them only for the modal's lifetime.
+	if (!bKeyUp && !Event.IsRepeat())
+	{
+		if (bLockpickingOpen) ActiveWidget->NativeOnKeyDown(ActiveWidget->GetCachedGeometry(), Event);
+		else ActivePromptWidget->NativeOnKeyDown(ActivePromptWidget->GetCachedGeometry(), Event);
+	}
+	return true;
 }
 
 void UProjectLockpickingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -147,6 +182,10 @@ bool UProjectLockpickingSubsystem::OpenLockpicking(
 
 void UProjectLockpickingSubsystem::CloseLockpicking()
 {
+	if (ActiveLockpickableComponent && ActivePawn)
+	{
+		ActiveLockpickableComponent->CancelSession(ActivePawn);
+	}
 	if (ActiveWidget)
 	{
 		ActiveWidget->RemoveFromParent();
@@ -276,6 +315,7 @@ void UProjectLockpickingSubsystem::EnsureLockpickingWidget(APlayerController* Pl
 	ActiveWidget->Configure(ActiveLockpickableComponent, ActivePawn);
 	ActiveWidget->OnConfirmRequested.RemoveAll(this);
 	ActiveWidget->OnConfirmRequested.AddUObject(this, &ThisClass::HandleConfirmRequested);
+	ActiveWidget->OnCancelRequested.AddUObject(this, &ThisClass::CloseLockpicking);
 }
 
 void UProjectLockpickingSubsystem::EnsureLockpickPromptWidget(APlayerController* PlayerController)
@@ -392,6 +432,11 @@ void UProjectLockpickingSubsystem::UpdateInputCaptureFocus(UUserWidget* WidgetTo
 	{
 		return;
 	}
+	if (!ModalInputProcessor && FSlateApplication::IsInitialized())
+	{
+		ModalInputProcessor = MakeShared<ProjectLockpickingSubsystemPrivate::FModalInputProcessor>(this);
+		FSlateApplication::Get().RegisterInputPreProcessor(ModalInputProcessor, 0);
+	}
 
 	ActivePlayerController->bShowMouseCursor = bShowCursor;
 	ActivePlayerController->bEnableClickEvents = bShowCursor;
@@ -405,6 +450,9 @@ void UProjectLockpickingSubsystem::UpdateInputCaptureFocus(UUserWidget* WidgetTo
 
 void UProjectLockpickingSubsystem::RestoreInputCapture()
 {
+	if (ModalInputProcessor && FSlateApplication::IsInitialized())
+		FSlateApplication::Get().UnregisterInputPreProcessor(ModalInputProcessor);
+	ModalInputProcessor.Reset();
 	if (ActivePawn && InputSnapshot.bPawnInputSuspended)
 	{
 		if (APlayerController* OwningController = Cast<APlayerController>(ActivePawn->GetController()))
@@ -471,6 +519,9 @@ void UProjectLockpickingSubsystem::HandleConfirmRequested()
 
 	if (UACFInteractionComponent* InteractionComponent = ActivePawn->FindComponentByClass<UACFInteractionComponent>())
 	{
+		// Detection may change while a modal owns focus. Confirm the chest that
+		// owns this session, never whichever actor currently happens to be nearest.
+		InteractionComponent->SetCurrentBestInteractable(ActiveLockedActor);
 		InteractionComponent->Interact(ConfirmInteractionType);
 		return;
 	}
@@ -515,7 +566,9 @@ void UProjectLockpickingSubsystem::HandlePromptLockpickSelected()
 		return;
 	}
 
+	AActor* RequestedActor = ActiveLockedActor;
 	CloseLockpickPrompt();
+	InteractionComponent->SetCurrentBestInteractable(RequestedActor);
 	InteractionComponent->Interact(BeginInteractionType);
 }
 
@@ -597,11 +650,11 @@ void UProjectLockpickingSubsystem::RefreshLockpickingFocusNextTick()
 	}
 
 	FTimerDelegate FocusDelegate;
-	FocusDelegate.BindWeakLambda(ActiveWidget, [Widget = TWeakObjectPtr<UProjectLockpickingWidget>(ActiveWidget)]()
+	FocusDelegate.BindWeakLambda(this, [this]()
 	{
-		if (Widget.IsValid())
+		if (bLockpickingOpen && ActiveWidget && ActiveWidget->IsInViewport())
 		{
-			Widget->FocusLockpickingWidget();
+			ActiveWidget->FocusLockpickingWidget();
 		}
 	});
 	World->GetTimerManager().SetTimerForNextTick(FocusDelegate);
@@ -622,11 +675,11 @@ void UProjectLockpickingSubsystem::RefreshPromptFocusNextTick()
 	}
 
 	FTimerDelegate FocusDelegate;
-	FocusDelegate.BindWeakLambda(ActivePromptWidget, [Widget = TWeakObjectPtr<UProjectLockpickPromptWidget>(ActivePromptWidget)]()
+	FocusDelegate.BindWeakLambda(this, [this]()
 	{
-		if (Widget.IsValid())
+		if (bPromptOpen && ActivePromptWidget && ActivePromptWidget->IsInViewport())
 		{
-			Widget->FocusPromptWidget();
+			ActivePromptWidget->FocusPromptWidget();
 		}
 	});
 	World->GetTimerManager().SetTimerForNextTick(FocusDelegate);

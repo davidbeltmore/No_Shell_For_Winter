@@ -96,6 +96,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lockpicking")
 	void SetLocked(bool bInLocked);
 
+	UFUNCTION(BlueprintCallable, Category = "Lockpicking")
+	void CancelSession(APawn* Pawn);
+
 	UFUNCTION(BlueprintCallable, Category = "Lockpicking|ACF")
 	bool ReplayOwnerACFInteraction(APawn* Pawn, const FString& InteractionType) const;
 
@@ -158,6 +161,11 @@ public:
 
 private:
 	void StartLockpickSession(APawn* Pawn, const FString& OriginalInteractionType);
+	void UpdateNativeActionGate();
+	FGameplayTag SavedInteractionAction;
+	bool bNativeActionSuppressed = false;
+	bool bResolvingAttempt = false;
+	bool ConsumeAttemptLockpick(APawn* Pawn);
 	void ConfirmLockpickSession(APawn* Pawn, int32 SessionId);
 	void CompleteLockpickSuccess(APawn* Pawn, float PulseValue);
 	void CompleteLockpickFailure(APawn* Pawn, float PulseValue);

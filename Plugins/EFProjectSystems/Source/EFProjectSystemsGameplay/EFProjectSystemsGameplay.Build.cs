@@ -55,6 +55,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"CinematicCameraManager",
 			"AIFramework",
 			"InventorySystem",
+			"CraftingSystem",
 			"StatusEffectSystem",
 			"AscentDialogueSystem",
 			"ActionsSystem",

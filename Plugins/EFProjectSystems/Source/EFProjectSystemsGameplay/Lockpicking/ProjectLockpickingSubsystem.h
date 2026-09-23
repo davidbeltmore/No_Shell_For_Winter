@@ -13,6 +13,8 @@ class UProjectLockpickableComponent;
 class UProjectLockpickPromptWidget;
 class UProjectLockpickingWidget;
 class UUserWidget;
+class IInputProcessor;
+struct FKeyEvent;
 
 struct FProjectLockpickingInputStateSnapshot
 {
@@ -60,6 +62,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Lockpicking|UI")
 	bool IsLockpickPromptOpen() const;
+	bool RouteModalKey(const FKeyEvent& Event, bool bKeyUp);
 
 private:
 	UFUNCTION()
@@ -106,6 +109,7 @@ private:
 	TObjectPtr<UProjectLockpickPromptWidget> ActivePromptWidget;
 
 	FProjectLockpickingInputStateSnapshot InputSnapshot;
+	TSharedPtr<IInputProcessor> ModalInputProcessor;
 	bool bLockpickingOpen = false;
 	bool bPromptOpen = false;
 };

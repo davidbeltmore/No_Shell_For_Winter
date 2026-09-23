@@ -14,6 +14,7 @@
 #include "Items/ACFItem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lockpicking/ProjectCalystoChest.h"
+#include "Storage/ProjectChestInventoryComponent.h"
 #include "Misc/SecureHash.h"
 #include "Social/ProjectSocialSubsystem.h"
 
@@ -146,8 +147,8 @@ bool FProjectCalystoContentGameplayBridge::Preflight(const FEFCalystoContentGame
 		}
 		if (!ProjectCalystoContentBridgePrivate::IsWorldActorRole(Reservation.Role))
 		{ Error=TEXT("The selected V7 gameplay role has no world-spawn contract."); return false; }
-		if (Reservation.Role==EEFCalystoGameplayRole::Container)
-			AdditionalDependencies.AddUnique(AProjectCalystoChest::GetDefaultVisualMeshPath());
+		// Native deposit visuals are hard dependencies of the selected Blueprint.
+		// Loading its class above resolves them; do not preload the retired chest's mesh.
 	}
 	return true;
 }
@@ -192,8 +193,8 @@ bool FProjectCalystoContentGameplayBridge::PrepareDeferredActor(const FEFCalysto
 	}
 	else if (Stage.bContainer)
 	{
-		AProjectCalystoChest* Chest=Cast<AProjectCalystoChest>(Actor);
-		if (!Chest) { Error=TEXT("A selected container does not derive from the project Calysto chest contract."); return false; }
+		UProjectChestInventoryComponent* Chest = Actor->FindComponentByClass<UProjectChestInventoryComponent>();
+		if (!Chest) { Error=TEXT("A selected container does not provide the project native deposit storage contract."); return false; }
 		TArray<FProjectCalystoResolvedChestEntry> Entries; TSet<FGuid> Ids;
 		for (const FEFCalystoReservedContent& Item : ContainerContents)
 		{
@@ -247,7 +248,7 @@ EEFCalystoGameplayObservation FProjectCalystoContentGameplayBridge::FinalizeSpaw
 	}
 	else if (Stage.bContainer)
 	{
-		TArray<FName> Verified; AProjectCalystoChest* Chest=CastChecked<AProjectCalystoChest>(Actor);
+		TArray<FName> Verified; UProjectChestInventoryComponent* Chest = Actor->FindComponentByClass<UProjectChestInventoryComponent>();
 		if (!Chest->FinalizeAndVerifyResolvedLoot(Verified,Error) || Verified.Num()!=Stage.ContentReservations.Num()) return EEFCalystoGameplayObservation::Failed;
 	}
 	Stage.bFinalized=true; return EEFCalystoGameplayObservation::Verified;
@@ -308,11 +309,11 @@ FEFCalystoGameplayElementEvidence FProjectCalystoContentGameplayBridge::ObserveI
 		return Evidence(Context,Reservation,EEFCalystoGameplayObservation::Failed,TEXT("invalid"),Error.IsEmpty()?TEXT("The selected inventory binding is invalid."):Error);
 	const FActorStage* Stage=Stages.Find(Reservation.ParentContainerId);
 	UClass* Expected=Cast<UClass>(Reservation.Entry.InventoryClass.ToSoftObjectPath().ResolveObject());
-	AProjectCalystoChest* Chest=Cast<AProjectCalystoChest>(Container);
+	UProjectChestInventoryComponent* Chest = Container->FindComponentByClass<UProjectChestInventoryComponent>();
 	if (!Stage || !Stage->bContainer || Stage->Actor.Get()!=Container || !Stage->ContentReservations.Contains(Reservation.Id)
 		|| !Expected || !Expected->IsChildOf(UACFItem::StaticClass()) || !Chest)
 		return Evidence(Context,Reservation,EEFCalystoGameplayObservation::Failed,TEXT("invalid"),TEXT("The selected chest does not retain its exact inventory reservation."));
-	int32 Count=0; for (const FInventoryItem& Item:Chest->GetItems()) if (Item.ItemClass==Expected && Item.Count>0) Count+=Item.Count;
+	int32 Count=0; for (const FInventoryItem& Item:Chest->GetInventory()) if (Item.ItemClass==Expected && Item.Count>0) Count+=Item.Count;
 	if (Count<1) return Evidence(Context,Reservation,EEFCalystoGameplayObservation::Failed,TEXT("invalid"),TEXT("The selected chest item class is absent after native finalization."));
 	return Evidence(Context,Reservation,EEFCalystoGameplayObservation::Verified,HashRows({
 		ProjectCalystoContentBridgePrivate::Guid(Reservation.Id),Expected->GetPathName(),FString::FromInt(Count)}));

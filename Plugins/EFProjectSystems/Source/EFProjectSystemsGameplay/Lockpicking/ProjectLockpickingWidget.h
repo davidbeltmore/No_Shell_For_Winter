@@ -40,6 +40,7 @@ public:
 	bool IsDisplayedPulseInTargetRange() const { return bLastPulseInTargetRange; }
 
 	FProjectLockpickingConfirmRequested OnConfirmRequested;
+	FProjectLockpickingConfirmRequested OnCancelRequested;
 
 private:
 	enum class EFeedbackColorRole : uint8

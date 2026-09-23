@@ -13,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Items/ACFItem.h"
 #include "Lockpicking/ProjectCalystoChest.h"
+#include "Storage/ProjectChestInventoryComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectCalystoPopulationBridge, Log, All);
 
@@ -206,7 +207,6 @@ bool FProjectCalystoPopulationBridge::GatherAdditionalPreloadPaths(
 	OutAssetPaths.Reset();
 	OutError.Reset();
 	bool bHasNpc = false;
-	bool bHasChest = false;
 	for (const FEFCalystoRoomPopulationPlanV6& Room : Plan.Rooms)
 	{
 		for (const FEFCalystoPopulationDecisionV6& Decision : Room.Decisions)
@@ -216,18 +216,7 @@ bool FProjectCalystoPopulationBridge::GatherAdditionalPreloadPaths(
 				continue;
 			}
 			bHasNpc |= IsCategory(Decision.CategoryId, TEXT("NPC"));
-			bHasChest |= IsCategory(Decision.CategoryId, TEXT("Chest"));
 		}
-	}
-	if (bHasChest)
-	{
-		const FSoftObjectPath ChestVisualPath = AProjectCalystoChest::GetDefaultVisualMeshPath();
-		if (!ChestVisualPath.IsValid())
-		{
-			OutError = TEXT("The project Calysto chest visual preload contract is invalid.");
-			return false;
-		}
-		OutAssetPaths.AddUnique(ChestVisualPath);
 	}
 	if (bHasNpc)
 	{
@@ -367,7 +356,7 @@ bool FProjectCalystoPopulationBridge::PrepareDeferredActor(
 		return true;
 	}
 
-	AProjectCalystoChest* Chest = Cast<AProjectCalystoChest>(DeferredActor);
+	UProjectChestInventoryComponent* Chest = DeferredActor->FindComponentByClass<UProjectChestInventoryComponent>();
 	if (!Chest || ChestContents.Num() > 3)
 	{
 		OutError = TEXT("The selected Calysto chest actor or content count violates the frozen contract.");
@@ -504,7 +493,7 @@ bool FProjectCalystoPopulationBridge::FinalizeSpawnedActor(
 		return true;
 	}
 
-	AProjectCalystoChest* Chest = Cast<AProjectCalystoChest>(SpawnedActor);
+	UProjectChestInventoryComponent* Chest = SpawnedActor->FindComponentByClass<UProjectChestInventoryComponent>();
 	if (!IsCategory(ActorDecision.CategoryId, TEXT("Chest")) || !Chest)
 	{
 		OutError = TEXT("The finalized Calysto bridge actor is not the selected chest class.");
