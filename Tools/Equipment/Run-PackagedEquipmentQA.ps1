@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory)][string]$ArchiveRoot,
     [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Stamp,
-    [ValidateSet('Visual','NativeEquipment','NativeController')][string]$Mode = 'Visual'
+    [ValidateSet('Visual','NativeEquipment','NativeController','NativeChests')][string]$Mode = 'Visual'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -22,9 +22,10 @@ $expected = @()
 if ($Mode -eq 'Visual') {
     $arguments = @('/Game/_Game/Hub/HUB') + $arguments + @('-EFEquipmentQA','-windowed','-ResX=1920','-ResY=1080','-d3d12','-sm6')
 } else {
-    $expected = @(if ($Mode -eq 'NativeEquipment') { 'EF.Equipment.Native.Vertical'; 'EF.Equipment.Policy.Contracts' } else { 'NoShellForWinter.CalystoDungeon.Director.DormantController.AuditedNpcProfilePreflight' })
+    $expected = @(if ($Mode -eq 'NativeChests') { 'EF.Chests.Authored.MapInstances'; 'EF.Chests.Lifecycle.NativeStorage'; 'EF.Chests.Selection.100000Trials' } elseif ($Mode -eq 'NativeEquipment') { 'EF.Equipment.Native.Vertical'; 'EF.Equipment.Policy.Contracts' } else { 'NoShellForWinter.CalystoDungeon.Director.DormantController.AuditedNpcProfilePreflight' })
     $filter = (@($expected | ForEach-Object { '^' + $_ + '$' }) -join '+')
-    $arguments = @('/Engine/Maps/Entry') + $arguments + @('-NullRHI','-NoSound', ('-ExecCmds="Automation RunTests {0};Quit"' -f $filter), '-TestExit="Automation Test Queue Empty"', ('-ReportExportPath="{0}"' -f $report))
+    $map = if ($Mode -eq 'NativeChests') { '/Game/_Game/Tests/ChestProcedural' } else { '/Engine/Maps/Entry' }
+    $arguments = @($map) + $arguments + @('-NullRHI','-NoSound', ('-ExecCmds="Automation RunTests {0};Quit"' -f $filter), '-TestExit="Automation Test Queue Empty"', ('-ReportExportPath="{0}"' -f $report))
 }
 $receipt = [ordered]@{ status='PENDING'; mode=$Mode; archive=$archive; executable_sha256=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash; user_dir=$user; log=$log; expected_tests=$expected }
 $receiptPath = Join-Path $out 'launch.json'

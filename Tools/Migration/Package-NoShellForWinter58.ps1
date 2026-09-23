@@ -142,6 +142,9 @@ $requiredCookMaps = @(
     "/Game/Procedural/Maps/DungeonGeneration"
 )
 $requiredCookSupportPackages = @(
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Wealth",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Armament",
+    "/Game/_Game/Data/Equipment/Chests/DA_Chest_Ammunition",
     "/Game/_Game/Data/CalystoDungeon/V6/DA_CalystoDungeonDirectorPolicy",
     "/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMesh",
     "/Game/Calysto/Dungeon/Data/DataAsset/Dungeon/DA_DungeonMaterial",
@@ -158,6 +161,7 @@ $requiredCookSupportPackages = @(
     "/AscentCombatFramework/Blueprints/AI/Controllers/ACFMeleeAIControllerBP",
     "/AscentCombatFramework/Blueprints/AI/Controllers/ACFRangedAIControllerBP"
 ) + $policyBundlePackages + $decalMaterialPackages | Sort-Object -Unique
+if ($Configuration -eq 'Development') { $requiredCookSupportPackages += '/Game/_Game/Tests/ChestProcedural' }
 # UE 5.8 sends every -map token through AddFlexPathToCook, so a single exact
 # package list cooks the runtime maps, V6 policy bundle, and exact project-owned
 # decal/PCG closures without pulling unrelated blood-pack features.

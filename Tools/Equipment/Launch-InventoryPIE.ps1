@@ -1,6 +1,6 @@
-param([ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = 'PIE_02', [switch]$SaveUIQA, [switch]$TravelQA, [switch]$StorageQA)
+param([ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = 'PIE_02', [switch]$SaveUIQA, [switch]$TravelQA, [switch]$StorageQA, [switch]$ProceduralChestQA, [switch]$ChestTravelQA)
 $ErrorActionPreference = 'Stop'
-if (([int][bool]$SaveUIQA + [int][bool]$TravelQA + [int][bool]$StorageQA) -gt 1) { throw 'Select only one isolated fixture.' }
+if (([int][bool]$SaveUIQA + [int][bool]$TravelQA + [int][bool]$StorageQA + [int][bool]$ProceduralChestQA + [int][bool]$ChestTravelQA) -gt 1) { throw 'Select only one isolated fixture.' }
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 if (@(Get-Process UnrealEditor -ErrorAction SilentlyContinue).Count) { throw 'Inventory PIE requires the target editor to be closed.' }
 $oldEnable = $env:CODEX_RUN_MIGRATION_BASELINE_PIE
@@ -12,7 +12,7 @@ if (Test-Path -LiteralPath $qaDirectory) { throw 'Use a fresh RunName; do not re
 $saveSnapshot = @(Backup-UnrealQAUserSaves -ProjectRoot $root -OutputDirectory $qaDirectory)
 try {
     $env:CODEX_RUN_MIGRATION_BASELINE_PIE = '1'
-    $env:CODEX_MIGRATION_PIE_SCRIPT = Join-Path $PSScriptRoot $(if ($StorageQA) { 'Validate-StorageRework.py' } elseif ($SaveUIQA) { 'Validate-SaveUI.py' } elseif ($TravelQA) { 'Validate-EquipmentTravel.py' } else { 'Validate-InventoryPIE.py' })
+    $env:CODEX_MIGRATION_PIE_SCRIPT = Join-Path $PSScriptRoot $(if ($ChestTravelQA) { 'Validate-ChestTravel.py' } elseif ($ProceduralChestQA) { 'Validate-ProceduralChests.py' } elseif ($StorageQA) { 'Validate-StorageRework.py' } elseif ($SaveUIQA) { 'Validate-SaveUI.py' } elseif ($TravelQA) { 'Validate-EquipmentTravel.py' } else { 'Validate-InventoryPIE.py' })
     $env:EF_EQUIPMENT_QA_RUN = $RunName
     Copy-Item -LiteralPath $env:CODEX_MIGRATION_PIE_SCRIPT -Destination (Join-Path $qaDirectory 'fixture.py')
     [ordered]@{
