@@ -320,8 +320,8 @@ def run(payload):
             and binding is not None
             and package_name(binding).startswith(OUTPUT_ROOT + "/")
             and str(prop(binding, "garment_id")) == row_id
-            and binding_compiler_version == 35
-            and binding_schema_version == 15
+            and binding_compiler_version == 36
+            and binding_schema_version == 16
             and package_name(prop(binding, "source_garment")).startswith("/Game/")
             and not package_name(prop(binding, "fitted_garment"))
             and pair_valid
@@ -406,8 +406,8 @@ def run(payload):
 def main():
     payload = {
         "schema_version": 1,
-        "compiler_version": 35,
-        "binding_schema_version": 15,
+        "compiler_version": 36,
+        "binding_schema_version": 16,
         "generated_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "status": "UE58_EF_CLOTHING_MORPH_V4_CATALOG_COMPILE_FAIL",
         "success": False,

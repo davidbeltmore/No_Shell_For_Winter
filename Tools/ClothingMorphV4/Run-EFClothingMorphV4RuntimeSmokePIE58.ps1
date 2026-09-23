@@ -370,8 +370,8 @@ try {
         throw "V4 runtime smoke failed: $($runtime.failure)"
     }
     if (
-        [int]$runtime.expected_compiler_version -ne 35 -or
-        [int]$runtime.expected_binding_schema -ne 15 -or
+        [int]$runtime.expected_compiler_version -ne 36 -or
+        [int]$runtime.expected_binding_schema -ne 16 -or
         [string]$runtime.hub_character_creation_gate.status -ne 'PASS_ABSENT_FROM_ALL_OBSERVED_HUB_PIE_TICKS' -or
         [string]$runtime.source_visibility_gate.status -ne 'PASS_EXACT_SOURCE_READY_NEVER_HIDDEN_WHILE_EXPECTED' -or
         @($runtime.source_visibility_gate.passthrough_observations).Count -ne 0 -or
