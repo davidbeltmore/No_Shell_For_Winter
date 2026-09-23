@@ -4,7 +4,7 @@
 #include "AbilitySystemGlobals.h"
 #include "ACMEffectsDispatcherComponent.h"
 #include "ACMTypes.h"
-#include "ARSStatisticsComponent.h"
+#include "ACFGASStatisticsComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Combat/ProjectCombatAttributeComponent.h"
@@ -1969,8 +1969,8 @@ void UProjectInnerDoctrineComponent::EmitPainSpike()
 		{
 			continue;
 		}
-		if (UARSStatisticsComponent* Statistics =
-			Candidate->FindComponentByClass<UARSStatisticsComponent>())
+		if (UACFGASStatisticsComponent* Statistics =
+			Candidate->FindComponentByClass<UACFGASStatisticsComponent>())
 		{
 			Statistics->ModifyStatistic(EquilibriumTag, PoiseDelta);
 		}

@@ -3,7 +3,6 @@
 #include "ACFGASStatisticsComponent.h"
 #include "ACFTrainingMinigameBase.h"
 #include "ACFTrainingSettings.h"
-#include "ARSStatisticsComponent.h"
 #include "ARSTypes.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameStateBase.h"
@@ -373,7 +372,7 @@ bool UACFTrainingComponent::ResolveScalarGateValue_Implementation(const FACFTrai
 		return false;
 	}
 
-	UARSStatisticsComponent* StatisticsComponent = FindStatisticsComponent();
+	UACFGASStatisticsComponent* StatisticsComponent = FindStatisticsComponent();
 	if (!StatisticsComponent)
 	{
 		return false;
@@ -595,7 +594,7 @@ TArray<FACFTrainingDefinition> UACFTrainingComponent::ResolveTrainingDefinitions
 	return GetTrainingDefinitionSource();
 }
 
-UARSStatisticsComponent* UACFTrainingComponent::FindStatisticsComponent() const
+UACFGASStatisticsComponent* UACFTrainingComponent::FindStatisticsComponent() const
 {
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor)
@@ -603,12 +602,7 @@ UARSStatisticsComponent* UACFTrainingComponent::FindStatisticsComponent() const
 		return nullptr;
 	}
 
-	if (UACFGASStatisticsComponent* GASStatisticsComponent = OwnerActor->FindComponentByClass<UACFGASStatisticsComponent>())
-	{
-		return GASStatisticsComponent;
-	}
-
-	return OwnerActor->FindComponentByClass<UARSStatisticsComponent>();
+	return OwnerActor->FindComponentByClass<UACFGASStatisticsComponent>();
 }
 
 bool UACFTrainingComponent::ValidateScalarRequirements(const FACFTrainingDefinition& Definition, FText& OutReason) const
@@ -662,7 +656,7 @@ bool UACFTrainingComponent::GrantTrainingReward(const FACFTrainingDefinition& De
 
 bool UACFTrainingComponent::ReapplyTrainingRewardModifier()
 {
-	UARSStatisticsComponent* StatisticsComponent = FindStatisticsComponent();
+	UACFGASStatisticsComponent* StatisticsComponent = FindStatisticsComponent();
 	if (!StatisticsComponent)
 	{
 		return false;

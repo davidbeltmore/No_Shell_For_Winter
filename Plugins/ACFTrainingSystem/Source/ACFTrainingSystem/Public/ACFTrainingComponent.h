@@ -8,7 +8,7 @@
 #include "ACFTrainingComponent.generated.h"
 
 class UACFTrainingMinigameBase;
-class UARSStatisticsComponent;
+class UACFGASStatisticsComponent;
 class UAnimationAsset;
 struct FAttributesSetModifier;
 
@@ -183,7 +183,7 @@ protected:
 	const FACFTrainingDefinition* FindTrainingDefinition(FName TrainingId) const;
 	const TArray<FACFTrainingDefinition>& GetTrainingDefinitionSource() const;
 	TArray<FACFTrainingDefinition> ResolveTrainingDefinitions() const;
-	UARSStatisticsComponent* FindStatisticsComponent() const;
+	UACFGASStatisticsComponent* FindStatisticsComponent() const;
 
 	bool ValidateScalarRequirements(const FACFTrainingDefinition& Definition, FText& OutReason) const;
 	bool GrantTrainingReward(const FACFTrainingDefinition& Definition);

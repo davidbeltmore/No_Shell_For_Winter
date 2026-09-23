@@ -32,6 +32,8 @@ Use the project-scoped `unreal-mcp` Streamable HTTP server at `http://127.0.0.1:
 
 ## Connection recovery
 
+If the Editor exits with a plugin/module load dialog, use [startup-module-recovery.md](references/startup-module-recovery.md) before diagnosing MCP connectivity.
+
 - Confirm `ModelContextProtocol`, `EditorToolset`, and `MCPClientToolset` remain enabled in `NoShellForWinter.uproject`.
 - Confirm `Config/DefaultEditorPerProjectUserSettings.ini` keeps `bAutoStartServer=True`, port `8000`, path `/mcp`, and tool search enabled.
 - Confirm both `.codex/config.toml` and `.vscode/mcp.json` target `http://127.0.0.1:8000/mcp`.

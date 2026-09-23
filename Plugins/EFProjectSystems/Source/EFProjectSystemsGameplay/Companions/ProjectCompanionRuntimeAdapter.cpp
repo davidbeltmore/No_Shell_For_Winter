@@ -2,7 +2,7 @@
 
 #include "ACFAIController.h"
 #include "ACFAITypes.h"
-#include "ACFGASAttributesComponent.h"
+#include "ACFGASStatisticsComponent.h"
 #include "Actors/ACFCharacter.h"
 #include "Characters/ProjectEnemyLevelComponent.h"
 #include "Calysto/ProjectCalystoDormantController.h"
@@ -90,8 +90,8 @@ namespace ProjectCompanionRuntimeAdapterPrivate
 			// attributes component directly and repair only a missing row. Creating
 			// an empty CharacterDataAsset here would clear authored abilities,
 			// equipment and appearance during BeginPlay.
-			UACFGASAttributesComponent* Attributes =
-				Character->FindComponentByClass<UACFGASAttributesComponent>();
+			UACFGASStatisticsComponent* Attributes =
+				Character->FindComponentByClass<UACFGASStatisticsComponent>();
 			if (!Attributes)
 			{
 				OutError = TEXT("The legacy ACF companion has neither CharacterInitDataAsset nor attributes component.");
@@ -230,7 +230,7 @@ namespace ProjectCompanionRuntimeAdapterPrivate
 				DefinitionError.IsEmpty()?TEXT("Actor-local companion initialization has no valid exact native definition."):DefinitionError);
 		}
 
-		UACFGASAttributesComponent* Attributes = Character->FindComponentByClass<UACFGASAttributesComponent>();
+		UACFGASStatisticsComponent* Attributes = Character->FindComponentByClass<UACFGASStatisticsComponent>();
 		const FDataTableRowHandle RealizedRow = Attributes ? Attributes->GetCharacterRow() : FDataTableRowHandle();
 		if (!Attributes || !RealizedRow.DataTable || RealizedRow.RowName.IsNone())
 		{
@@ -356,7 +356,7 @@ FProjectCompanionSpawnResult UProjectCompanionRuntimeAdapter::FinalizeDeferredCo
 		return Failure(EProjectCompanionSpawnFailure::CompanionGroupMissing,TEXT("A persistent roster projection requires the ACF companion group."));
 	const auto Local=InitializeCompanionLocalState(Character,Definition);
 	if (!Local.bSucceeded) return Local;
-	const auto* Attributes=Character->FindComponentByClass<UACFGASAttributesComponent>();
+	const auto* Attributes=Character->FindComponentByClass<UACFGASStatisticsComponent>();
 	const FDataTableRowHandle RealizedRow=Attributes->GetCharacterRow();
 
 	if (bRegisterAsRecruited)
@@ -460,7 +460,7 @@ bool UProjectCompanionRuntimeAdapter::ValidateDeferredCompanionForDirector(
 		|| !Controller.Verify(Token,Character,Error))
 	{ if (Error.IsEmpty()) Error=TEXT("The staged companion differs from its exact live native definition and controller.");return false; }
 	const auto* Level=Character->FindComponentByClass<UProjectEnemyLevelComponent>();
-	const auto* Attributes=Character->FindComponentByClass<UACFGASAttributesComponent>();
+	const auto* Attributes=Character->FindComponentByClass<UACFGASStatisticsComponent>();
 	if (!Level || !Level->ValidateDirectorLevelState(Definition.ResolvedLevel,Error) || !Attributes
 		|| !Attributes->GetCharacterRow().DataTable || Attributes->GetCharacterRow().RowName.IsNone()
 		|| !Character->FindComponentByClass<UACFTeamComponent>() || !Character->FindComponentByClass<UAIPerceptionStimuliSourceComponent>())
