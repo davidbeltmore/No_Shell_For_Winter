@@ -2,10 +2,13 @@
 name: ef-equipment-workbench
 description: Author, integrate, debug and validate NoShellForWinter layered ACF equipment, GUID reservations, satchel inventories, effective weight, equipment UI and save migration. Use when adding equipment slots, garments, exclusivity profiles or container variants, or diagnosing equip conflicts and inventory conservation.
 metadata:
-  version: "10"
+  version: "13"
 ---
 
 # EF Equipment workbench
+
+For native deposit/bag layout, context routing and repeatable visual captures,
+read [native-storage-ui.md](references/native-storage-ui.md).
 
 Use the target project `D:/Projects UE5/NoShellForWinter`. Invoke
 `noshellforwinter-unreal-mcp` first and start with read-only editor context.
@@ -167,9 +170,9 @@ counts, classes and asset paths. Derive reservations after restore; don't serial
 them as truth. Resolve exclusive items first, then slot order and GUID. Displaced
 items remain unequipped. Legitimately overloaded saves are valid.
 
-Trade/drop acts on the bag plus its contents. Check every contained restriction,
-use native vendor prices, show the breakdown, revalidate confirmation and consume
-the quote once. Cancellation must change neither money nor ownership. Death and
+Selling requires an empty bag, following the user's storage rework revision.
+Use native merchant controls/prices; do not recreate the global sale-confirmation
+window. Reject filled bags before changing currency or ownership. Drop, death and
 travel carry contents with the bag; don't also emit separate content loot. Filled
 bag transfer to companions requires an explicit unsupported-operation message.
 

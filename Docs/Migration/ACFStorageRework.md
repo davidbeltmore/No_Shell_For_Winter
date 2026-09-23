@@ -70,3 +70,60 @@ Generation, persistence, legacy retirement and final chest gates remain PENDING.
 
 Pre-existing dirty travel/save work is retained separately. It is not silently
 included in this subsystem's commits or claimed as validated by these gates.
+
+## Lockpick interaction and consumption revision (2026-09-23)
+
+The user changed the previous non-consumable policy: one required lockpick is
+now removed from the authoritative native inventory per confirmed attempt,
+whether successful or failed. Opening/cancellation is free. The session id and
+a reentry guard prevent duplicate consumption; a missing tool cannot unlock.
+
+ACF 4.4's pre-gate opening action discarded the Begin/Confirm payload at its
+animation notify. `UProjectLockpickableComponent` now suppresses the instance's
+authored action tag while locked and restores it on unlock. The chest starts
+the native opening action once on the following tick. Consumed attempts release
+native Busy state. Begin is idempotent for an active session. The subsystem pins
+the correct actor and owns modal keys before CommonUI's global accept/back
+handler; deferred focus callbacks no longer target removed prompts.
+
+`LockpickInput07/result.json` verifies Slate pointer selection, E/Enter start,
+BackSpace cancellation, duplicate Begin, Spacebar failure/retry/success, exactly
+one pick per confirmation and restoration of the opening action. Its overall
+result remains FAIL: subsequent storage opening exposed five obsolete item
+class references in the existing project `ItemsDB` catalog. The bounded repair
+script backs up that asset, changes only those references to validated current
+ACF item classes and preserves categories/rarities. Final integrated rerun is
+PENDING. Earlier input fixtures record their failures separately.
+
+Editor build20: PASS. Protected comparison `protected_lockpick.json`: PASS,
+7,642 unchanged. Final Game/cook/packaged gates remain PENDING.
+
+### Final lockpick correction evidence
+
+- Editor build20 and `game-build-lockpick.log`: PASS (Development Game).
+- `blueprints-final.json`: PASS, six project Blueprints, all BS_UP_TO_DATE.
+- `LockpickInput09/result.json`: PASS, 52 assertions including generation once,
+  failed/successful pick consumption, no double consumption, native deposit
+  continuation, save/load of unlocked/generated state and exact content GUIDs.
+  Its synthetic pointer attempt lost hover; `keyboard_resume.json` records the
+  explicit E input used to resume. Do not count its initial pointer-named
+  assertion as independent mouse evidence. Pointer entry passed in Input07/08;
+  Input08's real MCP minigame capture is `minigame-slate.png`.
+- Input08 reached successful native opening and save before its fixture used a
+  stale pre-load world reference. Input09 reacquires world/pawn/chest by saved
+  actor identity. The maintained fixture now pairs synthetic down/up within a
+  tick so the desktop cursor cannot invalidate its hover between events.
+- `catalog_repair.json`: PASS, five exact stale item class paths repaired in the
+  existing project ItemsDB; a byte-exact asset backup is retained.
+- `protected_final_lockpick.json`: PASS, 7,642 protected files unchanged.
+- `LockpickInput09/user_save_after.json`: PASS, seven existing user saves checked.
+- `package-final.log`: packaging preflight BLOCKED because the updated V6 policy
+  asset differs from its authoring receipt. Cook and packaged execution remain
+  PENDING. The chest catalog remap requires a validated receipt/tooling update;
+  no hash check was bypassed. This is not complete release acceptance.
+
+The original rework's legacy asset retirement, remaining authoring/cook consumer
+updates, full packaged QA and clean subsystem integration remain open. The HUB
+contains preserved pre-existing user edits and is intentionally not swept into
+the code/asset commit. This section closes the tested lockpick correction only,
+not those remaining rework deliverables.

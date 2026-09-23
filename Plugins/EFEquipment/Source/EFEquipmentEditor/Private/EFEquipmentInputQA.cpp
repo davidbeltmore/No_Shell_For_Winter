@@ -7,6 +7,18 @@
 #include "InputCoreTypes.h"
 #include "Engine/World.h"
 
+bool UEFEquipmentAuthoringLibrary::SendFocusedInventoryKey(UWidget* WorldContext, FName KeyName)
+{
+    if (!WorldContext || !WorldContext->GetWorld() || WorldContext->GetWorld()->WorldType != EWorldType::PIE || !FSlateApplication::IsInitialized()) return false;
+    const FKey Key(KeyName);
+    if (!Key.IsValid()) return false;
+    const FKeyEvent Event(Key, FModifierKeysState(), 0, false, 0, 0);
+    auto& Slate = FSlateApplication::Get();
+    const bool Handled = Slate.ProcessKeyDownEvent(Event);
+    Slate.ProcessKeyUpEvent(Event);
+    return Handled;
+}
+
 bool UEFEquipmentAuthoringLibrary::SendInventoryBackKey(UWidget* Target)
 {
     if (!Target || !Target->GetWorld() || Target->GetWorld()->WorldType != EWorldType::PIE || !FSlateApplication::IsInitialized()) return false;

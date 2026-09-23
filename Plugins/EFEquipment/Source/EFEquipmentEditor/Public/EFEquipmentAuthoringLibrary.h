@@ -40,4 +40,6 @@ public:
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static UWidget* FindInventoryWidget(UUserWidget* Root, FName Name);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendInventoryPointer(UWidget* Target, FName Action, float WheelDelta = 0, FVector2D LocalOffset = FVector2D::ZeroVector);
     UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendInventoryBackKey(UWidget* Target);
+    /** Dispatch a key through the current Slate focus without forcing a widget. */
+    UFUNCTION(BlueprintCallable, Category="EF Equipment|QA") static bool SendFocusedInventoryKey(UWidget* WorldContext, FName KeyName);
 };
