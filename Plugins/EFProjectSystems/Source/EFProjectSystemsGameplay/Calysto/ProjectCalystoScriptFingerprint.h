@@ -22,7 +22,7 @@ namespace ProjectCalystoScriptFingerprint
 		}
 	};
 
-	inline FString Compute(const UClass* Class)
+	inline FString Compute(const UClass* Class, TArray<uint8>* DiagnosticBytes = nullptr)
 	{
 		if (!Class) return {};
 		TArray<UFunction*> Functions;
@@ -47,6 +47,7 @@ namespace ProjectCalystoScriptFingerprint
 			}
 			if (Archive.IsError()) return {};
 		}
+		if (DiagnosticBytes) *DiagnosticBytes = Bytes;
 		uint8 Digest[FSHA1::DigestSize]; FSHA1::HashBuffer(Bytes.GetData(), Bytes.Num(), Digest);
 		return BytesToHex(Digest, UE_ARRAY_COUNT(Digest));
 	}

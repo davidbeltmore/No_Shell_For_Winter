@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace ProjectCalystoDormantControllerTests
@@ -21,8 +23,11 @@ namespace ProjectCalystoDormantControllerTests
 			if (!GEngine) return;
 			const auto Init=UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(false)
 				.CreateNavigation(false).CreateAISystem(false).RequiresHitProxies(false).ShouldSimulatePhysics(false);
-			Value=UWorld::CreateWorld(EWorldType::Game,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&Init);
-			if (Value) GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(Value);
+			// Synchronous possession/lease tests require actors, not a local input
+			// lifecycle. UE 5.8 Enhanced Input supports Game/PIE only; None also
+			// excludes default gameplay world subsystems without changing settings.
+			Value=UWorld::CreateWorld(EWorldType::None,false,NAME_None,nullptr,true,ERHIFeatureLevel::Num,&Init);
+			if (Value) GEngine->CreateNewWorldContext(EWorldType::None).SetCurrentWorld(Value);
 		}
 		~FWorld()
 		{
@@ -179,13 +184,20 @@ bool FProjectCalystoDormantRejectedPreflightReleaseTest::RunTest(const FString&)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectCalystoDormantAuditedNpcProfileTest,
 	"NoShellForWinter.CalystoDungeon.Director.DormantController.AuditedNpcProfilePreflight",
-	EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+	EAutomationTestFlags::EditorContext|EAutomationTestFlags::ClientContext|EAutomationTestFlags::EngineFilter)
 bool FProjectCalystoDormantAuditedNpcProfileTest::RunTest(const FString&)
 {
 	const TCHAR* Path=TEXT("/AscentCombatFramework/Blueprints/AI/Controllers/ACF_NPCController_BP.ACF_NPCController_BP_C");
 	UClass* ControllerClass=LoadClass<AAIController>(nullptr,Path);
 	TArray<FSoftObjectPath> Dependencies; FString Error;
 	if (!TestNotNull(TEXT("The exact installed ACF NPC controller class is resident"),ControllerClass)) return false;
+	for (const UClass* Audited : {ControllerClass, ControllerClass->GetSuperClass()})
+	{
+		TArray<uint8> Canonical;
+		const FString Identity = ProjectCalystoScriptFingerprint::Compute(Audited, &Canonical);
+		const FString File = FPaths::ProjectSavedDir() / (TEXT("ControllerIdentity_") + Audited->GetName() + TEXT(".bin"));
+		TestTrue(TEXT("Bounded controller identity diagnostic was written"), !Identity.IsEmpty() && FFileHelper::SaveArrayToFile(Canonical, *File));
+	}
 	TestTrue(TEXT("The exact audited NPC BeginPlay profile is admitted"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
 	TestTrue(TEXT("Preflight retains the exact audited NPC controller dependency"),Dependencies.Contains(FSoftObjectPath(ControllerClass)));
 	UFunction* Script=ControllerClass->FindFunctionByName(TEXT("ReceiveBeginPlay"));
@@ -203,6 +215,26 @@ bool FProjectCalystoDormantAuditedNpcProfileTest::RunTest(const FString&)
 		TestFalse(TEXT("Same class path and Blueprint GUID cannot admit modified bytecode"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
 	}
 	TestTrue(TEXT("Restored original bytecode is admitted again"),FProjectCalystoDormantController::PreflightClass(ControllerClass,Dependencies,Error));
+	// Every function in both compiler profiles remains frozen, including code
+	// outside BeginPlay. A trailing no-op must not evade the exact byte identity.
+	for (UClass* Audited : {ControllerClass, ControllerClass->GetSuperClass()})
+	{
+		for (TFieldIterator<UFunction> It(Audited, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+		{
+			if (It->Script.IsEmpty()) continue;
+			const TArray<uint8> Original = It->Script;
+			{
+				TGuardValue<TArray<uint8>> Restore(It->Script, Original);
+				It->Script.Add(EX_Nothing);
+				AddExpectedMessagePlain(TEXT("Calysto audited controller script mismatch:"), ELogVerbosity::Warning,
+					EAutomationExpectedMessageFlags::Contains, 1);
+				TestFalse(TEXT("Modified audited function is rejected: ") + It->GetPathName(),
+					FProjectCalystoDormantController::PreflightClass(ControllerClass, Dependencies, Error));
+			}
+			TestTrue(TEXT("Exact function restoration is admitted: ") + It->GetPathName(),
+				FProjectCalystoDormantController::PreflightClass(ControllerClass, Dependencies, Error));
+		}
+	}
 	return true;
 }
 

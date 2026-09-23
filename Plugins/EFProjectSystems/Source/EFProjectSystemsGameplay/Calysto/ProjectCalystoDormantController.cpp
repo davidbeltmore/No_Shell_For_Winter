@@ -28,7 +28,8 @@ namespace ProjectCalystoDormantPrivate
 		const UFunction* Function=Class?Class->FindFunctionByName(FunctionName):nullptr;
 		return Function && Function->GetOuterUClass()==Class ? Function : nullptr;
 	}
-	bool MatchesAuditedBlueprint(const UClass* Class,const TCHAR* ExpectedPath,const FGuid& ExpectedGuid,const TCHAR* ExpectedScript)
+	bool MatchesAuditedBlueprint(const UClass* Class,const TCHAR* ExpectedPath,const FGuid& ExpectedGuid,
+		const TCHAR* ExpectedScript,const TCHAR* AuditedCookedScript)
 	{
 		if (!Class || Class->GetPathName()!=ExpectedPath) return false;
 #if WITH_EDITORONLY_DATA
@@ -36,7 +37,7 @@ namespace ProjectCalystoDormantPrivate
 		if (!Blueprint || Blueprint->GetBlueprintGuid()!=ExpectedGuid) return false;
 #endif
 		const FString Actual=ProjectCalystoScriptFingerprint::Compute(Class);
-		if (Actual!=ExpectedScript)
+		if (Actual!=ExpectedScript && Actual!=AuditedCookedScript)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Calysto audited controller script mismatch: %s fingerprint=%s"), ExpectedPath, *Actual);
 			return false;
@@ -55,8 +56,16 @@ namespace ProjectCalystoDormantPrivate
 		static const TCHAR* NpcPath=TEXT("/AscentCombatFramework/Blueprints/AI/Controllers/ACF_NPCController_BP.ACF_NPCController_BP_C");
 		static const TCHAR* ParentPath=TEXT("/AscentCombatFramework/Blueprints/AI/Controllers/ACFAIControllerBP.ACFAIControllerBP_C");
 		UClass* Parent=Class?Class->GetSuperClass():nullptr;
-		const bool NpcMatches=MatchesAuditedBlueprint(Class,NpcPath,NpcBlueprintGuid,TEXT("17FF44E72BB1D1510003BAA3A62673440322EED6"));
-		const bool ParentMatches=MatchesAuditedBlueprint(Parent,ParentPath,ParentBlueprintGuid,TEXT("C173DC40FA2886C07128355F3E0664F35E0FBE4C"));
+		// The original frozen Editor profiles remain unchanged. UE's cooker strips
+		// trace sites, relocates event blocks and renumbers compiler temporaries.
+		// These two additional exact byte streams were independently decoded and
+		// matched against every reachable operation/branch of the frozen profiles.
+		// See EquipmentControllerCookEquivalence.json and its fail-closed auditor.
+		// No runtime learning, broad opcode exclusions or fingerprint refresh.
+		const bool NpcMatches=MatchesAuditedBlueprint(Class,NpcPath,NpcBlueprintGuid,TEXT("17FF44E72BB1D1510003BAA3A62673440322EED6"),
+			TEXT("17923B214956A1CF785A33E95390933BD64E36A0"));
+		const bool ParentMatches=MatchesAuditedBlueprint(Parent,ParentPath,ParentBlueprintGuid,TEXT("C173DC40FA2886C07128355F3E0664F35E0FBE4C"),
+			TEXT("83F88D2E55664C1868EF0BCCD8A4879AD9260A72"));
 		if (!NpcMatches || !ParentMatches
 			|| !Class->IsChildOf(AACFAIController::StaticClass()))
 		{

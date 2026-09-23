@@ -1,0 +1,35 @@
+{
+  "engine": "5.8.2",
+  "acf": "4.4.2",
+  "baseline_commit": "5084dcbd1212e9cb124d719d5bb94ae605cde9a8",
+  "audit": "Tools/Equipment/AuditControllerCookEquivalence.py",
+  "runtime_acceptance": "Exact frozen Editor or independently audited cooked SHA1; all other preflight contracts remain required",
+  "records": [
+    {
+      "class_name": "ACF_NPCController_BP_C",
+      "frozen_editor_sha1": "17FF44E72BB1D1510003BAA3A62673440322EED6",
+      "cooked_sha1": "17923B214956A1CF785A33E95390933BD64E36A0",
+      "semantic_control_flow_and_operands_equal": true,
+      "functions": [
+        "GetDefenseComp",
+        "OnAICombatStateChanged_Event_0",
+        "OnCombatStarted",
+        "OnDamageReceived_Event",
+        "ReceiveBeginPlay"
+      ],
+      "editor_archive": "Saved\\EquipmentQA\\MasterClosure\\EditorIdentity\\ControllerIdentity_ACF_NPCController_BP_C.bin",
+      "cooked_archive": "Saved\\EquipmentQA\\MasterClosure\\CookedIdentity01\\User\\Saved\\ControllerIdentity_ACF_NPCController_BP_C.bin"
+    },
+    {
+      "class_name": "ACFAIControllerBP_C",
+      "frozen_editor_sha1": "C173DC40FA2886C07128355F3E0664F35E0FBE4C",
+      "cooked_sha1": "83F88D2E55664C1868EF0BCCD8A4879AD9260A72",
+      "semantic_control_flow_and_operands_equal": true,
+      "functions": [
+        "ReceiveBeginPlay"
+      ],
+      "editor_archive": "Saved\\EquipmentQA\\MasterClosure\\EditorIdentity\\ControllerIdentity_ACFAIControllerBP_C.bin",
+      "cooked_archive": "Saved\\EquipmentQA\\MasterClosure\\CookedIdentity01\\User\\Saved\\ControllerIdentity_ACFAIControllerBP_C.bin"
+    }
+  ]
+}
