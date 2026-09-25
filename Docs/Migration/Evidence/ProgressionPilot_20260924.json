@@ -1,0 +1,138 @@
+{
+  "utc": "2026-09-25T03:37:35.650873+00:00",
+  "parent_commit": "a99673ffbbef70d337b144f473869beb6215dcec",
+  "scope": "opt-in pilot; not activated on Player",
+  "automation": {
+    "succeeded": 18,
+    "succeededWithWarnings": 0,
+    "failed": 0,
+    "notRun": 0
+  },
+  "tests": [
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Celerity.RecoveredMomentumWindow",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Charisma.DxpScope",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Cunning.Math",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Curse.BoundariesAndIdempotence",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Curse.OverlappingZonePresence",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Curse.ResistanceComposition",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Curse.TravelPersistenceAndDefeatClamp",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Defensive.GuardRecovery",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Hooks.FloorSleepAndServices",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Offensive.CanonicalCurseSource",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Progression.LevelGrid",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Progression.MilestoneCatalog",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Progression.UpgradeAndSources",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.InnerDoctrine.Willpower.DynamicMaximums",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.ProgressionPilot.CurveAdapterParity",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.ProgressionPilot.ExperienceGuards",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.ProgressionPilot.NativePurchase",
+      "state": "Success"
+    },
+    {
+      "path": "NoShellForWinter.ProgressionPilot.NativeSaveRoundTrip",
+      "state": "Success"
+    }
+  ],
+  "gates": {
+    "editor_build": "PASS",
+    "game_build": "PASS",
+    "pilot_effect_blueprint_compile_and_fresh_load": "PASS",
+    "cook": "PASS_WITH_44_WARNINGS_5304_PACKAGES",
+    "package_archive": "PASS",
+    "packaged_startup": "EXIT_0_WITH_RUNTIME_ERRORS_NULLRHI_ONLY",
+    "pie_hud_and_menu_capture": "PASS_BASELINE_ONLY",
+    "unified_player_ui_purchase": "PENDING",
+    "real_disk_save_migration": "PENDING",
+    "full_visual_parity": "PENDING",
+    "full_packaged_gameplay": "PENDING",
+    "network": "PENDING",
+    "save_guard_synthetic_and_real_pie": "PASS"
+  },
+  "protected_local_count": 403,
+  "protected_local_changes": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+  ],
+  "new_save_files": [],
+  "artifact_sha256": {
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Progression\\ProjectDoctrineAttributeSet.cpp": "1e568e2b8ee1b32875c9b8dabf8617f2e5274d9e12454de21d9d790af560a72c",
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Progression\\ProjectDoctrineAttributeSet.h": "f6c660ae0360e7178a5d570f9dafeb52f22b89cf8f484fedd300dd5efe73810b",
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Progression\\ProjectProgressionBridge.cpp": "61c6fd57d3b99d726777e646aaf45e794dc95ebda16b64850a97def658d49392",
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Progression\\ProjectProgressionBridge.h": "f40c8a78c0a08f7522fa44ce2a8d21043ae8a62fbceefbf09ef217c484220737",
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsEditor\\Tests\\ProjectProgressionPilotTests.cpp": "a6b60b32f83e35bdc2264f48f37b0b5477fffa1bc77361c46c8119f2fb13ae8b",
+    "Content\\_Game\\Data\\Progression\\GE_ProjectAttDependencies_GE.uasset": "18ac7681d6ae0ef72efdbb0c4201e3fdedf3de6955b515df7cd8bfe51bdf278e",
+    "Content\\_Game\\Data\\Progression\\GE_ProjectStatInit_GE.uasset": "13e4da18ebf8009f4e4faa3bd0cc5761721f7cb7c54520aa1f17766ccd6805a3",
+    "Tools\\Migration\\Capture-ProgressionBaselinePIE58.py": "18f35af4bfc19a7d60cd06049aaa137d341e9589bcae74fc5d426f87f5312805",
+    "Tools\\Migration\\Create-ProgressionCurveAdapters58.py": "919b4b944b781134e46d1e26e5b66c59f64f0a8b81c7b58714b6098c811f8740",
+    "Tools\\Migration\\Inspect-ProgressionCurves58.py": "98727c526cac5743d7f196a82ba061e464beda1ffc5c03a1dea1e1ee8d8ad11d",
+    "Tools\\Migration\\Package-ProgressionPilot58.ps1": "97209441a5b3dd53b691456515db302c7ebbedf2b0e87069d726c771c0b25589",
+    "Tools\\Migration\\Progression-SaveGuard.ps1": "719990f77a6f730e2e14ed390666ce5db225bae74d7aeffccaa4e84e4db264a3",
+    "Tools\\Migration\\Run-ProgressionPilot58.ps1": "f807e9c77746d15930fbd49c2e00f0d3fce2ec603cb0206c170916753882f3a8",
+    "Tools\\Migration\\Run-ProgressionVisual58.ps1": "510dfda11946bab33fd56eac346e02b47fa6403014b0eca9be8228355244cd61",
+    "Tools\\Migration\\Test-ProgressionSaveGuard58.ps1": "c850dd9d8f7ee8f6bd9ed33a26ce7f2f04a9f1a0f942f51cc08512ae4553a778"
+  },
+  "package": "Saved/Analysis/ProgressionPilot/Package_20260924_222737/Archive/Windows",
+  "save_guard": {
+    "receipt": "Saved\\Analysis\\ProgressionPilot\\VisualSaveGuard_20260924_224045\\SaveGuard.json",
+    "restored": true,
+    "isolated_outputs": [
+      "ProjectIntimacy.sav"
+    ]
+  },
+  "save_side_effect": {
+    "path": "Saved\\SaveGames\\ProjectIntimacy.sav",
+    "original_hash": "2044bac138b1ec49d51faa6f0adfa3e98557a923735ef8cf127a8a15ca0f197c",
+    "current_hash": "cf26962a3f76aaf43d3474b3585d261d749a055207608f309f201bc3c9974689",
+    "original_bytes_recovered": false,
+    "semantic_equivalence": "PENDING",
+    "note": "Unprotected runtime tests rewrote this slot; guarded repeat restored all slots to their pre-repeat hashes."
+  }
+}

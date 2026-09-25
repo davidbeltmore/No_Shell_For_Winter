@@ -1,0 +1,312 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "HORIZON",
+			"instance": "143F2ABA46EB4C3ADB7C2E866B7FB3D9",
+			"instanceName": "HORIZON-53008",
+			"platform": "WindowsEditor",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "NVIDIA GeForce RTX 5070 Ti",
+			"cPUModel": "AMD Ryzen 7 5800X 8-Core Processor             ",
+			"rAMInGB": 48,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.09.25-03.17.43",
+	"succeeded": 18,
+	"succeededWithWarnings": 0,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 0.26893520355224609,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "RecoveredMomentumWindow",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Celerity.RecoveredMomentumWindow",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.021736200898885727,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "DxpScope",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Charisma.DxpScope",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0085893981158733368,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "Math",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Cunning.Math",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0084553994238376617,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "BoundariesAndIdempotence",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Curse.BoundariesAndIdempotence",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0089702978730201721,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "OverlappingZonePresence",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Curse.OverlappingZonePresence",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0083563998341560364,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ResistanceComposition",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Curse.ResistanceComposition",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0071197971701622009,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "TravelPersistenceAndDefeatClamp",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Curse.TravelPersistenceAndDefeatClamp",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0071446001529693604,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "GuardRecovery",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Defensive.GuardRecovery",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0084584988653659821,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "FloorSleepAndServices",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Hooks.FloorSleepAndServices",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.010680597275495529,
+			"dateTime": "2026.09.25-03.17.42",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "CanonicalCurseSource",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Offensive.CanonicalCurseSource",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0076400004327297211,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "LevelGrid",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Progression.LevelGrid",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0088540986180305481,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "MilestoneCatalog",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Progression.MilestoneCatalog",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0081399008631706238,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "UpgradeAndSources",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Progression.UpgradeAndSources",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0089279003441333771,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "DynamicMaximums",
+			"fullTestPath": "NoShellForWinter.InnerDoctrine.Willpower.DynamicMaximums",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.0073193013668060303,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "CurveAdapterParity",
+			"fullTestPath": "NoShellForWinter.ProgressionPilot.CurveAdapterParity",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.07951749861240387,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [
+				{
+					"event":
+					{
+						"type": "Info",
+						"message": "Suppressed expected ('Warning') level log message or higher matching 'FScalableFloat has no CurveTable or DataRegistry' 36 times.",
+						"context": "",
+						"artifact": "00000000000000000000000000000000"
+					},
+					"filename": "",
+					"lineNumber": 0,
+					"timestamp": "2026.09.25-03.17.43"
+				}
+			],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ExperienceGuards",
+			"fullTestPath": "NoShellForWinter.ProgressionPilot.ExperienceGuards",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.016597401350736618,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NativePurchase",
+			"fullTestPath": "NoShellForWinter.ProgressionPilot.NativePurchase",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.016770601272583008,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NativeSaveRoundTrip",
+			"fullTestPath": "NoShellForWinter.ProgressionPilot.NativeSaveRoundTrip",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"143F2ABA46EB4C3ADB7C2E866B7FB3D9"
+			],
+			"duration": 0.025657299906015396,
+			"dateTime": "2026.09.25-03.17.43",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}

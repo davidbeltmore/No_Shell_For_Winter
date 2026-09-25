@@ -34,6 +34,8 @@ public class EFProjectSystemsEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"ACFTrainingSystem",
+			"AdvancedRPGSystem",
+			"AscentGASRuntime",
 			"CharacterController",
 			"UnrealEd",
 			"PropertyEditor",

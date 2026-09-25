@@ -1,0 +1,969 @@
+{
+  "schema_version": 1,
+  "audit_date_local": "2026-09-24",
+  "recorded_utc": "2026-09-25T01:52:02.447908+00:00",
+  "source_project": "D:/Projects UE5/LustAsDeadlySin (not modified or hydrated)",
+  "target_project": "D:\\Projects UE5\\NoShellForWinter",
+  "baseline": {
+    "utc": "2026-09-25T01:41:36.709915+00:00",
+    "commit": "a99673ffbbef70d337b144f473869beb6215dcec",
+    "git_status": " M Content/_Game/Hub/HUB.umap\n?? Content/_Game/Chest/\n?? Docs/Migration/ChestMoveRollback.md\n?? Docs/Migration/ProjectSizeCleanup_20260924.md\n?? Tools/Migration/Invoke-SafeGeneratedCleanup.ps1\n",
+    "project": "D:\\Projects UE5\\NoShellForWinter",
+    "native_mcp": "http://127.0.0.1:8000/mcp",
+    "queries": {
+      "statistics": {
+        "path": "/Game/FullSample/Player.Default__Player_C:Statistic Component",
+        "result": {
+          "returnValue": "{\"characterLevel\":1,\"levelingType\":\"EAssignPerksManually\",\"expForNextLevelCurve\":{\"refPath\":\"/AscentCombatFramework/Configuration/LevelingCurve.LevelingCurve\"},\"perksObtainedOnLevelUp\":1,\"characterRow\":{\"dataTable\":{\"refPath\":\"/AscentCombatFramework/Configuration/ACF_SampleAttributesInit_DT.ACF_SampleAttributesInit_DT\"},\"rowName\":\"Player\"},\"attributesByLevelCurve\":{\"refPath\":\"/AscentCombatFramework/GASRuntime/Config/ACFLevelingCurvesSample.ACFLevelingCurvesSample\"},\"bAffectedByDifficultyLevel\":false}"
+        }
+      },
+      "ability_system": {
+        "path": "/Game/FullSample/Player.Default__Player_C:Actions Manager",
+        "result": {
+          "returnValue": "{\"defaultStartingData\":[{\"attributes\":{\"refPath\":\"/Script/AscentGASRuntime.ACFPrimaryAttributeSet\"},\"defaultStartingTable\":{\"refPath\":\"/AscentCombatFramework/Configuration/ACF_SampleAttributesInit_DT.ACF_SampleAttributesInit_DT\"}},{\"attributes\":{\"refPath\":\"/AscentCombatFramework/GASRuntime/AttributeSets/ACFStatisticsSetBP.ACFStatisticsSetBP_C\"},\"defaultStartingTable\":\"None\"},{\"attributes\":{\"refPath\":\"/Script/AscentGASRuntime.ACFAttributeSet\"},\"defaultStartingTable\":\"None\"}]}"
+        }
+      },
+      "skill_tree": {
+        "path": "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerBP.ACFUltimatePlayerBP_C:ACFSkillTree_GEN_VARIABLE",
+        "result": {
+          "returnValue": "{\"skillTrees\":[{\"refPath\":\"/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACFPrimarySkills.ACFPrimarySkills\"},{\"refPath\":\"/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACFSecondarySkills.ACFSecondarySkills\"}],\"skillPoints\":2}"
+        }
+      },
+      "save_settings": {
+        "error": "{'content': [{'type': 'text', 'text': \"GetObjectProperties on '/Script/AscentSaveSystem.Default__ALSSaveGameSettings' (ALSSaveGameSettings): the following properties could not be read: componentsToBeSaved\"}], 'isError': True}"
+      },
+      "gas_settings": {
+        "path": "/Script/AscentGASRuntime.Default__ACFGASDeveloperSettings",
+        "result": {
+          "returnValue": "{\"serializableAttributes\":{\"refPath\":\"/AscentCombatFramework/GASRuntime/ACF_SerializabeAttributes_DT.ACF_SerializabeAttributes_DT\"},\"attributesToSetByCallerTags\":{\"refPath\":\"/AscentCombatFramework/GASRuntime/Config/ACF_AttributesSetByCallers_DT.ACF_AttributesSetByCallers_DT\"},\"statsToSetByCallerTags\":{\"refPath\":\"/AscentCombatFramework/GASRuntime/Config/ACF_StatsSetByCaller_DT.ACF_StatsSetByCaller_DT\"},\"maxLevel\":100}"
+        }
+      }
+    },
+    "pie": {
+      "returnValue": false
+    },
+    "map": {
+      "returnValue": "/Game/_Game/Hub/HUB"
+    },
+    "local_baseline_hashes": {
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\Player.uasset": "c79aee2264d52c3a9f61687a57d3713cbb25441e778979e5c412b82d84b36709",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\_Game\\Hub\\HUB.umap": "1f7df72f77516f8f96b197af1cd660106a7d145dad6e6d047dcdeeb018ffc5c3",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Bikini.uasset": "993fe56125b8c0400efde014a39b8b70254f80eb223e5a8b7ffe7cef6f237e23",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Bikini_CR.uasset": "5b3330af4809a1275327d11fc2e66dd7f901e06d19265e25fdd161970b67706c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Bikini_PhysicsAsset.uasset": "0beb59e6fdf4992cba27083a53ae03bd91d7a8da6191210bab867c7925f54aa1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Bikini_Skeleton.uasset": "e4eb383f743c2621b500db83b2f6022b4cd12f937fcbd0f91097568ffc50ca2c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Deformers\\MDC_DazDualQuatMorph.uasset": "42bfccb78b6ca83ef4c8ac0852d0128f947842c24db5c30fc05c2c2f6687daa2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female.uasset": "8c333c85f218b9858cb3bf67e7b9b15abb071a08689917a90a18965a5a75af13",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female_CR.uasset": "4fea5ed2ce46c478685e178c5b0c4bbf9870cfc7273cb014bfc7ccbe0632abeb",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female_PhysicsAsset.uasset": "b142d2113316480da3d9cfa77c0e764d367e7ca69d5b0b228316e415599e8bdc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female_Skeleton.uasset": "b0981b46dd289fb3ec03e7d264c14ebfc64ea3505e78a46c4ca5ec0cf0ad8c9f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male.uasset": "ad03e3417ce42997eaebf1b28189692a62bc2126cf707fa75f8c373587dd629c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male_CR.uasset": "9c0b211cc32c5bb26bcff4ff9717f1bf5473b697c70494762bcb135b8a8d71c2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male_PhysicsAsset.uasset": "04082c1aba107def6e174acbfb7b35ba401f5ec496f44720caeacfa157db4237",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male_Skeleton.uasset": "e4554269f025014d578d86e65eea582591f1123b4cc87424304daa47dfa7c240",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple.uasset": "3fc4e53877c2ea61a766761e12095fa5f9af48993a2ece6ce131cfcca6bf9583",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple_CR.uasset": "0d10b98dd048ea5035dbb40320cf599cfbebf8645bcf3901c7df55d98862dc31",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple_PhysicsAsset.uasset": "d9f5b1b24b35bff2da3c7105dfe14f14cd2bfa31387dc46c5e9f1240fa3e6254",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple_Skeleton.uasset": "583d9a9b07b5ee3244e4624f31602780c7e5a6d4035438efedf5d2bfd6b8007c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\RagFootWraps.uasset": "faea4434912c92d494ab9bd958307133c47ed7e7b08b3544f3ee6de9df22123c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\RagFootWraps_CR.uasset": "960e754318d92b9875c04ffe48dd1d2f8386a099b01fd733814da79c76a3b2d1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\RagFootWraps_PhysicsAsset.uasset": "9904e1044a97414720daacaeb5a405285f3d44b5ccd1771c85627b15be7b3e9e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\RagFootWraps_Skeleton.uasset": "f6d39d7cd3f9f12827b87eabe6351df614a990ff2a1d410d932cf3fa496c3c89",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\RagPants.uasset": "8dc72211b4fdd9a93a0e16f493276967a0eae5a18cb414509bb5a6c5e6439e59",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\RagPants_CR.uasset": "009ae7d1b79e6f23e36669c496b8116cf14657282e50d8fc2aec37e0d946405b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\RagPants_PhysicsAsset.uasset": "3a0f6cda6fec62805d341e878dcc17ac3c2742f0d7cff68b624b23bffb09d32e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\RagPants_Skeleton.uasset": "ca6e5f272d57b1e380cb85e09db6d103ecf58009822febdcf525ecdefec6e69a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\RagShirt.uasset": "b294ed8c6ae5cd94aa0a4dc3efc3a7a9f29b74a6d0a38ec1b43b320491e367a5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\RagShirt_CR.uasset": "1d2bd3c5e20cf3bd1f5265192bf05571a69445c79630a81b9b295186884cdbaf",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\RagShirt_PhysicsAsset.uasset": "8863c69bc5c41505d807da30fe355d38f8cfe844bd03f925503f4a852867edbc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\RagShirt_Skeleton.uasset": "84a9fc84f13b22d8aa94cb5a9bd2940e88e03b7ca1e658d552e610559536e846",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\UnderWearBra.uasset": "92f6fbc7c1898264320a60c69ee795d0184033fabc6ee7f6dab638329dd513ca",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\UnderWearBra_CR.uasset": "5e63c4570100fc8e5ae329d76ca748c8940affecb8065dcd20dce38745fc9330",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\UnderWearBra_PhysicsAsset.uasset": "f04a26509df1b814f3cc022eaa26ca122615bf6431d082767cc1697bf260ac53",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\UnderWearBra_Skeleton.uasset": "ed4e35f782799e0a06b94e6ed16c62037b7016350b9d8bab787a1a17da629a34",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\UnderWearPanty.uasset": "271aaf5b34530e0a71a0b8e6c2f5d07d205f28d4b4de177b88dfb1dfbde2f843",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\UnderWearPanty_CR.uasset": "736dc57439506319fb0c1de2ced12f75e5fb59506e9a3601e99dee7e290077a4",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\UnderWearPanty_PhysicsAsset.uasset": "69ea09df747ec016dbb48dfa790b4da6f8322f9a6395778e3374d6613036ba9a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\UnderWearPanty_Skeleton.uasset": "b6fe320dcf9c03af4534ae65630decfcbfb00078f816b8709e14e80c2063ffad",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_00_Disp_00_UnderWearPanty.uasset": "7a06300c798d25d68789eda4c8aab722a60bb315c75b570cddc313c66103fbd0",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_B_00_UnderWearPanty.uasset": "5cea70890297c9b96f8cc980e43ff2e78e03ddff0bb3b1a30f9664a90e1de285",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_D_00_UnderWearPanty.uasset": "c4f85aa3df62ab18919bf06aac37d9c41e024d8f9277a9e5f0afc95091a3ee59",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_Gloss_00_UnderWearPanty.uasset": "e74659790b826b8181a9e90abd8768bab243bcc64c8eba298b065e7034ca25ff",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_M_00_UnderWearPanty.uasset": "dfda42b5c5c76046df38a5e23f1524a69961d0e8a37759006cec69b1d36bf6db",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_N_00_UnderWearPanty.uasset": "6824d0c7a96bb31a0467f78438a7e396a69a4e4a730131d9b7831176f061abb6",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_Specular_00_UnderWearPanty.uasset": "20abba5f52e0a0d29c6561026ca21057124429ac4dda967c8f17e487b02c4ede",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_S_00_UnderWearPanty.uasset": "41370aec36d805a5e55e0d677c129537837522bb4cd6f96d34e4688849d3e24d",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Textures\\G9SE_Bikini_01_T_00_UnderWearPanty.uasset": "f9c1094c08a0cf1c3e7af9dec7503b0dbb2a9e0ac1df7d195172dbdcc23bfb4b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Materials\\G9BaseBikini\\G9BaseBikini_Undies_Heart.uasset": "4e24fc5b972269365015c7553ab5d2c63fadb5ef3b6baba59c3c2466e385b831",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearPanty\\Materials\\G9BaseBikini_Undies_Heart\\G9BaseBikini_Undies_Heart_Profile.uasset": "65006e888c2062f2e34924acb2c117f552140f1cf833e0ec1bdf3c0d7755e75b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_00_Disp_00_UnderWearBra.uasset": "b5a988c2950558755a1686fb306986b3f755e836ebcc708e1309bd7a14d4428b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_B_00_UnderWearBra.uasset": "0cf0561336ef136f434e83cfbfec25338b88672ca8fe911147870e0e86f2e8c5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_D_00_UnderWearBra.uasset": "d4029e47989c27fec92b396a16595098e78a7fd2881d28120bb1b90a9b6e601d",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_Gloss_00_UnderWearBra.uasset": "9e2e5237c4bf8077764c28c5fffc0cd2f92154e336950b796329f9d9f1f4f8f0",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_M_00_UnderWearBra.uasset": "078358ed8dfe7032242ab5743d02f93ffb6f0b684224f6a31c3935466b677b56",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_N_00_UnderWearBra.uasset": "677b070e14cc155e5fc8d379b606b17959459b718cc589eab094fb460b911c1a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_Specular_00_UnderWearBra.uasset": "af9bff339c68d719c277c7e9c3c3e0ae8a068bee412986dbcf579719f91e26f9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_S_00_UnderWearBra.uasset": "9aed03eb6a1c98a65188759e63232f504e4b25121dd8b3a67f6d0165e6106b42",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Textures\\G9SE_Bra_01_T_00_UnderWearBra.uasset": "b8320dfe65f3cdd84d8e8894bd00b696383de0f1149ef5fe192a6a640e44a657",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Materials\\G9BaseBra\\G9BaseBra_Bra_Heart.uasset": "1c798f714c28b1566fe6a8e8f6bf0003dc64dea0810d22b21f8e8c346721deed",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\UnderWearBra\\Materials\\G9BaseBra_Bra_Heart\\G9BaseBra_Bra_Heart_Profile.uasset": "902231c69268b9904455c542d40f3a1cb4b766647134f0fed2e85109e0450436",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Textures\\sydfr_shirtpantsshoes_DM_00_RagShirt.uasset": "7410febe53b90dea0b2b831ae0105e0fe1d85eb6ea67efc1981c9fd90f26a52f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Textures\\sydfr_shirtpantsshoes_GM_00_RagShirt.uasset": "d10057fafa56862c8ad10914496901dc53dc0fa851dcc340403830d257327a18",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Textures\\sydfr_shirtpantsshoes_NM_00_RagShirt.uasset": "a29a3ec59fc7c11d46aeb4a1e4e20660b2b291dfa818ca9dffe87b9664f8c0f0",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Textures\\sydfr_shirtpantsshoes_TM_00_RagShirt.uasset": "1cac749f2eea47969b323218c132a8429c76616e4c56b0c1d2f05ede5cda3a43",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Materials\\SYDFR9RagShirtG9\\SYDFR9RagShirtG9_Shirt.uasset": "2f6b53c6cab6fd67b2ac96d20c8fcfae17851d80f22b8f6700bcab2966647e5a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagShirt\\Materials\\SYDFR9RagShirtG9_Shirt\\SYDFR9RagShirtG9_Shirt_Profile.uasset": "539a3f2c0008f41e660718ba287ad095d9d74fa8f96a74811effb94c202d029f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Textures\\sydfr_shirtpantsshoes_DM_00_RagPants.uasset": "7b0388fa99976642806e61592fda0fb83fa913471f285c68fea586656c7b2b08",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Textures\\sydfr_shirtpantsshoes_GM_00_RagPants.uasset": "e7181a44b074af6bdccaf0fd7c7381e510a8d05bd7a66fc8173000f875fee56a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Textures\\sydfr_shirtpantsshoes_NM_00_RagPants.uasset": "981b293ddde0d2380bf25571a09e1ff0118acba1b8e479c40ba2b381c6e80f86",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Textures\\sydfr_shirtpantsshoes_TM_00_RagPants.uasset": "e4f7a6ca2e0372310299888c11261f30c527e39aeeed58a94f182c423fae0632",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Materials\\SYDFR9RagPantsG9\\SYDFR9RagPantsG9_Pants.uasset": "93c3251b97a9f9293cbfd3ce97322e69fe155ea75e7d18035eceb92bfb675a5c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagPants\\Materials\\SYDFR9RagPantsG9_Pants\\SYDFR9RagPantsG9_Pants_Profile.uasset": "beff65be7c178c8f77524607b458e3c094788888a7d05669db9e85a147e10745",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Textures\\sydfr_shirtpantsshoes_DM_00_RagFootWraps.uasset": "c705f1ef99134f3974dcbd5aed75c94056f9db3b00b0b00d38f3f55b793ac279",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Textures\\sydfr_shirtpantsshoes_GM_00_RagFootWraps.uasset": "773502fdc8e2763b8c391839ac1154e55df34b9c2c0a8b72ebf815c80ba78d2e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Textures\\sydfr_shirtpantsshoes_NM_00_RagFootWraps.uasset": "c7d2761453d58f7748adabcaaa7025c37066de9546824453c92585de9c3bdaac",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Textures\\sydfr_shirtpantsshoes_TM_00_RagFootWraps.uasset": "9b0cce89f4b6c8bbc009ca9538f6ff9dea9abb40c33307cdf050f91eb1258678",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Materials\\SYDFR9RagFootWrapsG9\\SYDFR9RagFootWrapsG9_Wraps.uasset": "afbd18cbb9f42761aeee33507d50173b2d2722f38425bed7557cac053ce682ca",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\RagFootWraps\\Materials\\SYDFR9RagFootWrapsG9_Wraps\\SYDFR9RagFootWrapsG9_Wraps_Profile.uasset": "586f75d20843039344a3710b20265577553b804eb2ad1156da0f9a478291a768",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\G9EyebrowsCardStyle06_BaseMat.uasset": "a8a355e1f1ada9235524b6c2db1c4d0fb3671ae8934a7b56b159883cca617602",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyes_BaseMat.uasset": "5c07111b8eea575214b655a344c80950f9cabdd27e3308313f16cc4db7e276a1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Mouth_BaseMat.uasset": "bac3195bd16c5acd0611b06072c8836d644bfb39a56a6cb6eb32891344075471",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9_BaseMat.uasset": "e60df2aa7f950aacffbf24c00b672bdc148ce1e608578741ceea2e1f1b576d9a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9_Body_Profile.uasset": "86ebc5ac51929231f5c18bd1f6c3befadae1d1846533db08768946f4c4a31a04",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\AlbedoVariation01_Light_Thin_00_Multiple.uasset": "d05445fc855ee379347da8b846c733182b60c79b6218c7bad2fc6939fd5f2dca",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\AlbedoVariation02_Medium_Thin_00_Multiple.uasset": "7b31abeece3e1214583037329e77d750d4748a701cf15c76a4ab2c85b016312b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\d5_EyeNormal_00_Multiple.uasset": "634ca42068801fee57efab5841f8de13179988916ff5d15834fa4ffad523f739",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\d6_EyeColor_00_Multiple.uasset": "5220524392e3929fead6d864b76db12d33433009f725c6d394969f95d8d13834",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\d7_EyeTranslucency_00_Multiple.uasset": "761b04df8c512a450bfa53ee6a79f6a877040324073c63ad7938283b36da5c4a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\G9_Eyes_SLW_00_Multiple.uasset": "f115dab3f4fb1f908d126e4857c136ed5d3b9970f8f92b9738ad05ffd8c34401",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\Genesis9_Eyelashes01_C_00_Multiple.uasset": "6b920798433d0dc9b707415d28eeb09c49d025586e0644f50d8f094f8b795cc2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\Genesis9_Eyelashes01_NM_00_Multiple.uasset": "08b17b53042fdb11d5bc6572c944a6735a08515c5ea2fb5083b9079d6a23fbd8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\Genesis9_Mouth_D_1001_00_Multiple.uasset": "9f57ffc4d351fb1428d97700fe4ca35693c20ece6643b5ef54570ffecb26add5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\Genesis9_Mouth_NM_1001_00_Multiple.uasset": "5ef0a88de9a843dff8aea8ebf0d0d472d3e86bb26855f1995bdc6933d4520100",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\Genesis9_Mouth_R_1001_00_Multiple.uasset": "a770572bd586ff7899aab42c6d30866292cbee7cf68da06318fb84a0e15bbff9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Arms_B_00_Multiple.uasset": "f67fa3f7000c6e28c8e88c82d32ea6be68b6d8c1b422a3daf0e3392dfb7073c9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Arms_D_00_Multiple.uasset": "303dfb2bd174fe470790932447705e74f06a02d67faee0338416bbf34813f9f7",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Arms_N_00_Multiple.uasset": "9f8d3f76d687edddb81f5d06135c12192c3e26dd169ee0e029f9d09e7835a608",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Arms_SSS_00_Multiple.uasset": "6b0f8328760ce6113e9d73f79a12eba8d56d2b453b74290bedbf8c51647a0e1c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Arms_S_00_Multiple.uasset": "04b4a6ffa849de46cabfbfc417222d41694b6e799b396892c384c8c7a3928ddd",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Body_B_00_Multiple.uasset": "d7964e6ebc0661ff6e0e52080e249535aaa39a472c0586b61114a6a2b2f9a6dd",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Body_D_00_Multiple.uasset": "50058522d2dd6a23e60914b80700fe5d055af2bcd3ebcb81e34f994e6bb4b794",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Body_N_00_Multiple.uasset": "75fcdef3ba0ac005b774b9a6d13e662bb29378274ff29535b692644e74dbe73f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Body_SSS_00_Multiple.uasset": "204aa608c1a2b8472da4b4ad184149f3ea9c76587abe85c1475b73fb01dab379",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Body_S_00_Multiple.uasset": "2def3b49e2ca24c36e67986a5607d04c87999014950ae54b54977fea4120a6f2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Head_B_00_Multiple.uasset": "017e82a9b902be4ff7ffbe72a36ac7dfb37f2c1da96d51f8394006cc44792906",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Head_D_00_Multiple.uasset": "b450662999c5a53ddbefa6e607fbf9d673db61697147d9ef709610e97269a3dc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Head_N_00_Multiple.uasset": "62fab850ad85df956ac9983e7e1002846c22e9ef707002978fbbeb89848142e7",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Head_SSS_00_Multiple.uasset": "c0386a46b6a013376c1081cacf530c198f27073c5657c02dc0abbeb0741e2776",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Head_S_00_Multiple.uasset": "9a937004e2faa8e9e6c4fcb20a9abc7765097f3f40a7aa8af251eb8fdf239e4e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Legs_B_00_Multiple.uasset": "21dfa3276d2371c55bead5e1e284ff326897740392f8afd052797a40978b2f01",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Legs_D_00_Multiple.uasset": "aac14f3660cadf6bdbfb51e2ee812ee6d47804f91f5319228e991627d894ff7a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Legs_N_00_Multiple.uasset": "48ef65aee86b73907802fec608d488bed4c74b2b0f31ae51cce55b14173d601f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Legs_SSS_00_Multiple.uasset": "c42879779b95133886715cf45ae4c35a2fa0052568a9f1fd23fa5f342dfd8ec9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Legs_S_00_Multiple.uasset": "3862328b851a5a3ed514089f0171694ec7fff2f471412bcf019ac31518a04d08",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Nails_D_00_Multiple.uasset": "538dbfb510840c971f54f97d4b545ad8d4d96abdb7623b696e99de7733d83ede",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\MB_Darren_Nails_S_00_Multiple.uasset": "3dd4712fb95bbc2fc075cb8ced24590dae0ee85ea0fabfb8ec8402151e5d64a8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\NormalMap01_Thin_00_Multiple.uasset": "d31d34325616e7ee7e8833c6cb3423b21096b4cc5b80ca448a117984c8d862c3",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Textures\\OpacityCutout01_Thin_00_Multiple.uasset": "73ee866c1047693287aa88857449e63317d6a27b43ffcad70f7c5c7ffae3e549",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\DicktatorG9\\DicktatorG9_Torso_Back.uasset": "b160ad16374cdc0f4b276428e60a6a78e0572c5212ae9297f06dbee573cd6567",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\DicktatorG9_Torso_Back\\DicktatorG9_Torso_Back_Profile.uasset": "6a584d64518feb68c9f822de37ea1563d5f3dd3783a217f23ac2fcbcd1153250",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\G9EyebrowsCardStyle06\\G9EyebrowsCardStyle06_Eyebrows_Primary.uasset": "ea6a48fbc6bf8286688ec01effcaa30d50e5f5edc8317ff66da8f2788b5d9dc1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\G9EyebrowsCardStyle06\\G9EyebrowsCardStyle06_Eyebrows_Primary_Profile.uasset": "4b01416409cee7d3b458511015f3e989d98ca9b836c29a3d3ae2f1c8c80e92be",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\G9EyebrowsCardStyle06\\G9EyebrowsCardStyle06_Eyebrows_Secondary.uasset": "cd753ecae7ec9209874245bd310dbc6a70b8dd4dc34dfb88a71c49818495ba68",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\G9EyebrowsCardStyle06\\G9EyebrowsCardStyle06_Eyebrows_Secondary_Profile.uasset": "cf0069aadde2c837cec0d56c9ed5e1741e8e2556f61c02150498a2f158075082",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9\\Genesis9_Arms.uasset": "79cf04272b4f4ee08aceb682fded19529b315560e3e23bb984496017a4611c2a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9\\Genesis9_Body.uasset": "ae68f17e6e117a9543db68e4f64d8eea94f1c76d45811ae521e8b7571c23cdfa",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9\\Genesis9_Fingernails.uasset": "da2b668f35369e749ddd6b3f85740f192d847f70764fdad042cf8ceb04b1f492",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9\\Genesis9_Head.uasset": "9d73fb6a05b252dc3d41db79f0f16030eea79fb3a2779c50a8775ab1074e5e91",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9\\Genesis9_Legs.uasset": "c355dbb6232bb76f7a5f3710221052df3387f86f275714f92530d8fe85327bdb",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyelashes\\Genesis9Eyelashes_EyelashesLower.uasset": "a1784c649d80a51b81c0010466fe99088870527ea39b8b13a7995331a299d186",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyelashes_EyelashesLower\\Genesis9Eyelashes_EyelashesLower_Profile.uasset": "547e2f9cecaaa3aba55e16e97eb6cee99cfc850293c6c86e888e6217d2ab53f9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeLeft.uasset": "52e1cf2d022ab002b305947ad057ff6611399941afd648b30cb6de7be0f8bb51",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft.uasset": "be2aecf33d8293d443e2b3faca727bbeeccbbaa43252a7a2f43711f6a3d3a737",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft_Profile.uasset": "fac337c03216ddbbe522a9a34a60011efa648d4184efab615ca1598869ae58dd",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Mouth\\Genesis9Mouth_Mouth.uasset": "48b0dc47dc82a3a56c68bd996b81c833408e70930b7de452d5cef450e43c561a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth.uasset": "e2c3e468b0118aaac61073973b9de0b280a1f5505e40e4a39693ddba2e5e7c48",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth_Profile.uasset": "e6708cc238ba0b2c8afd6640bfbef88525a995841f9a3d4bc6174afe9aa05865",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\GoldenPalace_G9\\GoldenPalace_G9_GP_Torso.uasset": "c4884c3480f2161ec8506388301e8cfb7dc1502cf10495c34bbbdef1e28a1656",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Materials\\GoldenPalace_G9_GP_Torso\\GoldenPalace_G9_GP_Torso_Profile.uasset": "0afafbba99aef788d33a2542e9c13c40f4fa05be3a09c3f64b5c43b791e4891f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\G9EyebrowsFiberStyle06_BaseMat.uasset": "f4ae3ea53021c00c0e2d9f0ad7927d1e583599df94616722c5068a8f7f522908",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyes_BaseMat.uasset": "f46ef6ed463dc21bc8d8f582f396077266b0a3e1e35db7a1b4febd3fb0b9193b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Mouth_BaseMat.uasset": "cf20594bad77b5f32954e0f412b1c00b60e0e625d2678e2ea1248933534c4b3f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9_BaseMat.uasset": "39614ac4e5463f225252ee437203d32c9551a67902117057fff4e12b321010ca",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9_Body_Profile.uasset": "f1581ed50757d128cb9b9dec591ea3a1b1017b86ffccf0c1ecca39b17cb866d6",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\d2_EyeNormal-3_0b77f76a-19c9-415a-4149-d26956fbf6a6_00_Male.uasset": "a8dae9d19db8a98c3b56cd7e1c75d477ffe9ce68b2cee21928786c1e4d8ce073",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\d3_EyeColor-1_d7362add-2df2-c6b8-f461-9decad540cf9_00_Male.uasset": "29c156a67ee57e0d5a22500f426746f417216afa1f6fdeb38a127ce8704c5fe0",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\d4_EyeTranslucency-1_d7362add-2df2-c6b8-f461-9decad540cf9_00_Male.uasset": "955ef0202ffee0353044722b00508c84c170c2bcd3d63341dca093e9a39c4774",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Arms_D_1004_00_Male.uasset": "f903e29c6c6817f80892bbb46411c6b3b17ac0e1d840fbbb300ebd61059adcf6",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Arms_NM_1004_00_Male.uasset": "4abe999efacae70959740b1528feede43d812fcdb428cf535ae500d358724a6c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Arms_R_1004_00_Male.uasset": "6f095d769ad1aa385262c5907702fbf1532dee60c6c9f304a7e65df89cfe1449",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Arms_SO_1004_00_Male.uasset": "697e63888d2adc959b90261182331a1c875335cd746f53f19fe280084fef97fb",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Arms_SSS_1004_00_Male.uasset": "76f8c31c89cdecfe5d001f2068c68ef817d073371d58e359759269068e5cea84",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Body_D_1002_00_Male.uasset": "b213a7c4527bb7ba8c4680af7789cec5f8513660bec067b48a98fa6787865852",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Body_NM_1002_00_Male.uasset": "34e1fac2a0f47e30572f5155aeca30deea3f80b029539a7ad565251e7025e8dc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Body_R_1002_00_Male.uasset": "7c42fa468875c849f3bb14c1fc868fbc1cca50e6ed52e863049d299c06e61b2b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Body_SO_1002_00_Male.uasset": "735e870b632ea0544885e079779fbfe6c5ac9cf65024c0a3f3fb5f9ceafbaf35",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Body_SSS_1002_00_Male.uasset": "26acf163fb9257d8dd2f4c677ea91cbe05ccd9d92ca7807d531f25d7ec013c20",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Head_D_1001_00_Male.uasset": "f3846849ea34aa2c37c98cb9b8b8e918eac51c00e84a640c812bce9e417e44f1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Head_NM_1001_00_Male.uasset": "96a48644255e2b27939f1e6d94849bfca2f2535f2ac3a8432d325900512c649e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Head_R_1001_00_Male.uasset": "37aaac8ac454a508522ab2b8c66d3bcd2083adf0919bda7103d87d870bf59f46",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Head_SO_1001_00_Male.uasset": "4a5d42552956a8fb456f08c3b352c2a65ad1a1bd0affcb7dba5001aa9d7b23ba",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Head_SSS_1001_00_Male.uasset": "deed8c855bafafa0350172c624c608d26755f94fed94ef99e1946480b63c8a3b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Legs_D_1003_00_Male.uasset": "5d47a9938efc9bd8b13fb9c9215b2df795ab2e689f7f7c52f4a0751d0482a51b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Legs_NM_1003_00_Male.uasset": "2be6f115b4976e9173304e961a4e34504114b1fde7d7c3dc6e3e736d70170a8d",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Legs_R_1003_00_Male.uasset": "a0d9446d0042e440d1868b206f34e24e2a1f48a0cd54446a4a97f9ebbd6051cd",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Legs_SO_1003_00_Male.uasset": "d9a938de1692779564636f7b7ea1d0a33b029dba416d41794f4082217ad6e57b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Legs_SSS_1003_00_Male.uasset": "a41d3cd7bba4a837cc361185694e3f1009d283d1697ab98f7752e08829b8dc08",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Nails_D_1005_00_Male.uasset": "b315258e5414adb3dbe32a61cee2939074bea61a5c28c0a03cd85df51ebe97a0",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Nails_R_1005_00_Male.uasset": "38c4965f575083227f43aac9859516f6fffc9076784782bf0f3093c4997113d4",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Nails_SO_1005_00_Male.uasset": "aa7c9e8e71be06f255be5e01cebf8816338dd6a1348c5f8b3199bbc767890122",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9Masculine01_Nails_SSS_1005_00_Male.uasset": "6f9162fbc81d4a426a9a605bfd5102542eddb60749a1c69a0b5d6632488f8c67",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9TearNormal_00_Male.uasset": "1f055716f63d260316f67092b16f62bf91e0e438fd9a3077de2e85d6bf35984e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9TearOpacity_00_Male.uasset": "02a5fff90c177cc51cda53c4002aaa91de69e57583c602abca1842cf01edbf31",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\G9_Eyes_SLW_00_Male.uasset": "a38c65ca07977550d03480643743a88c7ede15dea7616268d2a6050ed3ffa3db",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Genesis9_Eyelashes01_C_00_Male.uasset": "e0b6a985008672a537d09fbf5046f6c843c4791c8006205987c40e281bae87f5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Genesis9_Eyelashes01_NM_00_Male.uasset": "17b0199980c74b2dddfd578c256c3a68efd45b16d3d9c3c22522d499bf53db0c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Genesis9_Mouth_D_1001_00_Male.uasset": "02f038d237430621879469ab1a5517993889faba8b360d057ebf3ebdf895a10a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Genesis9_Mouth_NM_1001_00_Male.uasset": "b0410ce980e55284ddb19aaac1cbf3c26102c7050a3fd53cb7dcde94e6181f98",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Genesis9_Mouth_R_1001_00_Male.uasset": "7c8874bffebbf77d652d93c0f8e24bb67d0b6237189d2d2371b5b9f1928fc203",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Textures\\Skin_SLW_00_Male.uasset": "f7be9b44aff20a46bc5817d6571f2508af9d6ae7d5f6faec63c1724ac7f1cf92",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\DicktatorG9\\DicktatorG9_Torso_Back.uasset": "c4a3d26207baa71fa9474cb515668814de7f1d152703bd44a8c487984d48493f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\DicktatorG9_Torso_Back\\DicktatorG9_Torso_Back_Profile.uasset": "12c50c9b0feafbb117f80854548b3e3ca2e2a9ac586fd76481d9521ea07f93a2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Primary.uasset": "8c596de4b85853619ad563beee257fcefc5259824903011ef931ecc68b8dc739",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Primary_Profile.uasset": "4e04ada0d3b683dabf0038fd1a98ff47bc9ab2583f4b0cf1e4ef3df22a920501",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Secondary.uasset": "af5e14d061daceb5db8552c1fccc69d2bc2d9da3f4446063b0e0b8b0da9cc332",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\G9EyebrowsFiberStyle06\\G9EyebrowsFiberStyle06_Eyebrows_Secondary_Profile.uasset": "c133a3c798e0494a07b5c97f88716847fb9846899319dbed3f89d5c42c5a2eb8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_Arms.uasset": "ccbc2d9890a97d65536215f4c0615461f8dc7932e097127b3f396760bb19c801",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_Body.uasset": "1659eb5d853f1fe81241325b7c8ccdfdbffa81f5a882eb8de2bc27aef6be6acb",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_Fingernails.uasset": "067ca5e358db6513b4350eda61fecf61c0863b7e1fa7830fc53c8468e83b1f4f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_Head.uasset": "0859b0ce9213b1600c919f41d7bc5abaad197881e9a64c8efff4e29aee13a9ec",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_Legs.uasset": "7e9d8fda041520360ddfa7b16ecec86a68841c9e184e5d6585a65e510abaaf8e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9\\Genesis9_MouthCavity.uasset": "a676ee35f3bcb23ee37f8716688073f0b81d408b8df20706e0cf75a5bf5f3a09",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyelashes\\Genesis9Eyelashes_EyelashesLower.uasset": "c66b3e6c3ecddb60adb3e1e83a52e6e84b28c815752b7a3dc66949094c4954c9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyelashes_EyelashesLower\\Genesis9Eyelashes_EyelashesLower_Profile.uasset": "c79e96cb141405e87b2eb219b644f60a6dc6de9fd49c359a9dd21af03d969a73",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeLeft.uasset": "6d237f86ce1f0c89762bc7c45f6e8a84942f988bd92c4c9fdf91d83d60b3f233",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft.uasset": "5c43409e12d2d2fbc6c812661956d3f2287a54800a973fb1440a92166a58e515",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft_Profile.uasset": "472b3c71125cc88f97e2defcdf1bcb23b6451ac953debd981ea6bfcffcda55f7",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Mouth.uasset": "25ff3c6b7c46bd3468d46b5e37e65e6ec28902fee1d801cb578ef0c2e9c7d016",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth.uasset": "8318e89433957bfbb3ec13d8ce2993a951ea1ae84d433e16495f185765530922",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth_Profile.uasset": "ed4debcb99b58f5b93602eab4d9ae9ed4e57d2fee56b89bef25fc21a4213c794",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Tear\\Genesis9Tear_Tear.uasset": "ede7efd0df7b74a0aeab06f8e9f86772de46319bf197ee74d165961037d146bc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Materials\\Genesis9Tear_Tear\\Genesis9Tear_Tear_Profile.uasset": "e831c01f107727d866ddbd1182a32e39761739979ae9ed7afefd9f4c2bd6686b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyes_BaseMat.uasset": "aa74be2421fdaba8957057d3ca46b9f932dc0e8eed7dad4ac3ee627c63008cac",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Mouth_BaseMat.uasset": "b23477a69c7d6dbff3b3dce8dd5bba1e08c42d6cc5b0d32f891469b8ab9d3212",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9_BaseMat.uasset": "1bbd0c8abe4ad66cdc1be1ecd06cf2f4dec853b1c1afe46f3ba1446f2255f0b9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9_Body_Profile.uasset": "9863a41f4737cfcd6b23ca669c7ef119d639a23316429e082790d57be165c447",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\d2_EyeNormal2_00_Female.uasset": "aee888ab27f79d6f74b0a967d0f81e85e7e290ff1762c3462e5e18b731f38e01",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\d3_EyeColor2_00_Female.uasset": "0913eb37df6e5a738d825ad11021d0db925472dd293f3d5f7a3a270b39c6c58c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\d4_EyeTranslucency2_00_Female.uasset": "35f61260431805f652d5fd6e3ab2530b694f310e3dab9bfef75fbf9d97323ce5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\g9feminine01_arms_r_1004_00_Female.uasset": "335fa88320e2faa5f01a13296993cafac2d93b25654923bbc508002b02f80193",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Arms_SO_1004_00_Female.uasset": "29ab8a632f3e19fb36fe9f0f9445e8fab6332811eca2411d8d1a369ff53dbfec",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\g9feminine01_body_r_1002_00_Female.uasset": "abc4a0e6dd1c2165448ca8fa20caea1725faaaa663bb1d85e7f5cbad009d8c82",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Body_SO_1002_00_Female.uasset": "848b4bfd23e1afc3e470cced86866f2e87cddf42b8adc6772d7a9cb15b8f8709",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\g9feminine01_head_r_1001_00_Female.uasset": "aec1db9a4dc161eb257cdf9d0022974583a2b161b62aa0e3c1212d2216173462",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Head_SO_1001_00_Female.uasset": "41e24eec7c9a60a4f3b207e9df6c2bc4f82d61ebef31288e3ff8975c7c39c28f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\g9feminine01_legs_r_1003_00_Female.uasset": "97ce9c201a3d8ecbd296907c808530d12a2bcb960d720dff4195f7280e5f38d6",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Legs_SO_1003_00_Female.uasset": "e49e6712a368ed0e3f1ea6c1c849ca2390bca7f4eb8fe6b294a12593f51110fe",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Nails_R_1005_00_Female.uasset": "6825349586224c87d4e241487ef4d3729588bbcef5cbe5c01baa09462074b1d2",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9Feminine01_Nails_SO_1005_00_Female.uasset": "2f2c3560cd03bb47cfe783a6ac36270cc4b8396b360d4b7362d487b19792bf55",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\G9_Eyes_SLW_00_Female.uasset": "856a97315978ab7980cbcfc19c3cbc7e88eec6943ea8dbeffece73969e38fece",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\genesis9_arms_nm_1004_00_Female.uasset": "b9368ffcea2d9ca9061293391b2150ed93090afa27130e981e4ea15048001a0e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\genesis9_bodyf_nm_1002_00_Female.uasset": "4c61f9feed66f9373c2e0d6eb58d2abc24b6c2e50798e44af8d84df6f8327c7c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Genesis9_Eyelashes01_C_00_Female.uasset": "31fe90cb195ee4d5305f2b52205b1db1ebc78bd8c30ea862900b2c45ffcb6ba5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Genesis9_Eyelashes01_NM_00_Female.uasset": "37feba13647c4eaab1f00272f28e52a36c3f030d4d94764be3b21e357ed085a8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\genesis9_head_nm_1001_00_Female.uasset": "11d7c8262c779d9891155ad7704c61744d933c9657a0333bf9b0afd89508303c",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\genesis9_legs_nm_1003_00_Female.uasset": "2922ec690b548cd584c16284889841371121260ca1faa0557e9fcebecd83d544",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Genesis9_Mouth_D_1001_00_Female.uasset": "508b3467bdd05a91e7d5dd49b6baf6e3c52663c622e1bc453801ab166695eb27",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Genesis9_Mouth_NM_1001_00_Female.uasset": "0ee85967e3aab069cacb79726129c7759ce08aaf6ced33c1cd17a77c94159a6b",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Genesis9_Mouth_R_1001_00_Female.uasset": "f14fc171b15923fb9df7a9aba677aaccedd9d38ecfd2c2d11a4c117b0dd78f81",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\genesis9_nails_nm_1005_00_Female.uasset": "cf9b444104a8f38efa5f83191b6338fb130f1dc1d7421c9242722034b5ea9241",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\NailsSSS_00_Female.uasset": "fb73a6a8e3d7da6b04a1a190d58cc453210bb54b27f0bde60bd1116bdeb1fcd8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\SamArms_00_Female.uasset": "b6491397790d98fdcd142cab1274ad5073b665d83152957faf87f10db4bf23df",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\SamBody_00_Female.uasset": "41a8eecbb0ab810c47af02d23b5d9efa1ca0b62166d73a6636971185e55ca059",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\SamFace_00_Female.uasset": "30b298bd74dce7a681583608f82369f11053341998ec5c00cd4b01f3de1e7cf8",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\SamLegs_00_Female.uasset": "815e3d80a495862567610d4dec52c4f12a4aed6e72eb67d63aac9caeb60ec14d",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\SamNails_00_Female.uasset": "ab180fa319dfa01a40c0045cb20bbe57ed91b38fed68963ac5ff5ce81ea7fb21",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Textures\\Skin_SLW_00_Female.uasset": "10866737be54a9bb2209dbfb56d6e9eec379efe5df21df079fd4adb0bb1afef1",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Arms.uasset": "f2251a06535fbe8f59da12da66f88f16d6f3003e3cf7d5b7462f71c4dba521e5",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Body.uasset": "aee8fc0d02bb51b7ca8a729b86e499b229a0c5f8e418ea52b783952ba06c4c19",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Fingernails.uasset": "4d282695a822697df37251581663b175fbd2ae8ee817ab6a47071837ac650adc",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Fingernails_Profile.uasset": "24957a720b3768656dadebe8a6d6e408b77abc087814d12c867fdbf18d92a5c3",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Head.uasset": "353a9444aca5340bf8b6e82cb8ad44f6ff5bd0c32b5630adb5d2b38253193841",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9\\Genesis9_Legs.uasset": "15fd5e876f7061b22a7d970ddfa7346e63563a12388d22d731e5226ee1833a77",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyelashes\\Genesis9Eyelashes_EyelashesLower.uasset": "db921ceddf8c8f34ff4fb47e9164af36fd5e2ab9dc7f86cf93454aa29fdcdd32",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyelashes_EyelashesLower\\Genesis9Eyelashes_EyelashesLower_Profile.uasset": "c031b286390f901f5ea23b803ccc6d6e205de96199b770f119337623e805e701",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeLeft.uasset": "07481479478eabcc1297219a39108151c4788a470ae60c0e761f1d9477ed6d59",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeLeft_Profile.uasset": "51669002958cae24eac977ed8c6778857d2dbbe98573398c14a275e76e782a3f",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft.uasset": "ba3e57eac9114ccc503f1d6024ee450fba306bb3e80726878b87728783fcc34e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Eyes\\Genesis9Eyes_EyeMoistureLeft_Profile.uasset": "213fb68f855d82361d94f170ff9af2e6c6032b764b9bd47d77064741d8109ac9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Mouth\\Genesis9Mouth_Mouth.uasset": "948dabc2d3e39baf1b4d389daec2212af648e0bc08e31629cc893c386cb9ae8d",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Mouth\\Genesis9Mouth_Mouth_Profile.uasset": "dfc278775990f4f0c5034104e32992b6976efb1c6872afaf99a1e0587ba5c794",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth.uasset": "07fd4ad576a2497c66c46a40d1a25fd4c835c39ce8d6c34398ad301d678e1f03",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\Genesis9Mouth\\Genesis9Mouth_Teeth_Profile.uasset": "05a69d874c32a3778f6491a56f8ad5facbf9401140ee61a70ea5ef8a2250f66e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\GoldenPalace_G9\\GoldenPalace_G9_GP_Torso.uasset": "938e7c04e9b7489b6835f148efbb4643d20172be6f6fb352c6f9fa189fb50278",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Materials\\GoldenPalace_G9_GP_Torso\\GoldenPalace_G9_GP_Torso_Profile.uasset": "791d3b02e8871e48a694d0dab0d29dcfc95ef0569809daeb7e581535ca3690e6",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Textures\\bikini_1001_BaseColor_00_Bikini.uasset": "1b089c7ab8941e0b2dc79b8debf2fb5db9af5d5d1ce6c94efa902417f1b4819e",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Textures\\bikini_1001_Height_00_Bikini.uasset": "1c89b891642cc7692ed1717ca9721f08be20794b66e89654b06aef3aa96318f9",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Textures\\bikini_1001_Normal_00_Bikini.uasset": "9afad05194403f43310458a695a3c49188f64d3476d7d5efed201f5d46d18470",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Textures\\bikini_1001_Roughness_00_Bikini.uasset": "e3bd4d533240129798cae53ba26240eee5d0e526cbc06aa3ea7bc3751a2c6758",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Materials\\TainaCatwalkBikiniBottom\\TainaCatwalkBikiniBottom_Cords.uasset": "d4903de76c4b21fbc3ac1657d3eb6a0eaab59e3226c6c627e39966dd1110024a",
+      "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Bikini\\Materials\\TainaCatwalkBikiniBottom_Cords\\TainaCatwalkBikiniBottom_Cords_Profile.uasset": "6a8364c5bc1670e8b0c4aa7f45296030d840c4a25d57d9808108b568178113f6",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\CharacterCreationPresets.sav": "cef9d24b080e46f92ca08bb862614ee31a54962655d0c460fbd29dac01b1d421",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_World.png": "c2b81bff34ea385d6dd1e0f563dae8ed1c57119566c4316551224f1be4aad125",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_World.png": "974746baf7beadec94381912c009adaaea5a56e339c320d3344ed2f88ef381a4",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectCharacterBackground.sav": "fff11431fd73318c6edb4010e3219894358cc37a38eac8faefbe3e968e07a3ef",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectInnerDoctrineV1.sav": "7453aaf516352871a1cab0fdc742b8a0223b4879dc4fd48259522a8ae7f7f027",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav": "2044bac138b1ec49d51faa6f0adfa3e98557a923735ef8cf127a8a15ca0f197c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectTattooShop_v1.sav": "f56a4cedd1344d650da878890364c3e6b1a65e40c52142d70ae2492827d3e621",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\SaveMetadata.sav": "e8ab5be40d0389d2f557bdeaf9d4faa9510590b38b29bb7a5f92abaf1b76e57b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\test.sav": "24b81079c9bf5c149239286950b7d717b1f20057e93807fdaf4fcbd01a6c15a9",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_0493F07C47E6916AC02A0893ED9ED0AE\\20260923_102556_3C79C6774619FD22D777B3A8B99C36F3.sav": "a2c340e0db8be6ca2c27df37650d2ac2a4aa7d8ba71b50eefa00f3009ac92ac9",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_0493F07C47E6916AC02A0893ED9ED0AE\\20260923_102556_3C79C6774619FD22D777B3A8B99C36F3.sav.txt": "8f722de02f210c4e6736acef0d18144de263d5aefd93985067193e1f13a65f12",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_0E22572A4185EB0AAE6C2CB720B0AFD5\\20260923_093052_0F2438CF402E6E2D418848BE1A718B6B.sav": "e1a7ca905932a5e1a10ac0aa1e271023c506280e73ce55e905510d8a72b4bda5",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_0E22572A4185EB0AAE6C2CB720B0AFD5\\20260923_093052_0F2438CF402E6E2D418848BE1A718B6B.sav.txt": "0b5421bb3755a6ba219b211270986851602052f3e684042f3f5f6515045ef5f2",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_19FD7F664B5D0D3CFF9DFA9BC8395AAD\\20260923_092653_9FA5B59348B242C54A9B3F969E1A077A.sav": "6c6b8adfad560a66a76c55a31cce389a2f489bcd2d8af5e04bd3a110a71c59b3",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_19FD7F664B5D0D3CFF9DFA9BC8395AAD\\20260923_092653_9FA5B59348B242C54A9B3F969E1A077A.sav.txt": "5f074ede8b5487cd285ac8cd897370ac4057cf3b7bac06b9e44023a646d471e8",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_277486354C0DDE1A330F9E9F8A13C4CB\\20260921_104744_D2D85A5F4896A06B5F378BB677B03951.sav": "34e112ae03512a936c0dd738e469139be36779f2eb5f4edd4432bb68d30518ca",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_277486354C0DDE1A330F9E9F8A13C4CB\\20260921_104744_D2D85A5F4896A06B5F378BB677B03951.sav.txt": "d24169629f1ee372d8023b2ab3060adcc4d2e0bd87f6c8310f49d2e1fd0f86b0",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_27C3681B4935C5CCE734E1996C6EB6CC\\20260923_044537_182EDB0B4D63A5DE4613DA8632305918.sav": "36fd6936cf4625843529a9800e11fd0d0bf14dbf2434abcba025bf71ca4457f4",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_27C3681B4935C5CCE734E1996C6EB6CC\\20260923_044537_182EDB0B4D63A5DE4613DA8632305918.sav.txt": "ca0aec4d968fad2097576269e6136f28fe1d0c52bf082640b58c5ad3dbd4cdc8",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_2DCEF68A4824E8B5F96F8AA547B6EEE8\\20260923_093306_7F248DFE44042EF1A97E9587D84B4039.sav": "d58457dc5ed87e828c865d9a5eeb5bd2f358cef2fe7efaa736f2405dd23f07ca",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_2DCEF68A4824E8B5F96F8AA547B6EEE8\\20260923_093306_7F248DFE44042EF1A97E9587D84B4039.sav.txt": "4de238ba5a774db27ace418c05f457bf4af3680086c42c04fc59c14efe4b794a",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_2F0B59E44B6A28C8A872BEB870AF4743\\20260921_075016_9BCFB20644311B0864D7C68B6DEF317F.sav": "4f60b5120d04354c054a6400be065b902ff6304979c0c1fedea57496a9ec1787",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_2F0B59E44B6A28C8A872BEB870AF4743\\20260921_075016_9BCFB20644311B0864D7C68B6DEF317F.sav.txt": "9ca6195fe61f810fb3c5182ccacf84c65827f1f7abaf6ecc490838f03a0debca",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_34AA982D41C23678A134E682E84C4C1C\\20260923_100210_7CCA6B3142363271926F418A40807AA4.sav": "a8d21e54f42e8233ca26fde2b3348eb32a9cb4e6e2ffdbac08360d97451429d2",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_34AA982D41C23678A134E682E84C4C1C\\20260923_100210_7CCA6B3142363271926F418A40807AA4.sav.txt": "0d8058cc3e3f0d965edf1d3a6e71560eb6cd8201b6a418b8082917a9b2789cec",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_5A573007456AF6F3A3485DBE3A67CF60\\20260921_081840_4CA336364E1E3EE9AFF3A28416F2111E.sav": "db88e85361371d7cb9cf347e3485e9392a933e52c79554010032c6aef7c15256",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_5A573007456AF6F3A3485DBE3A67CF60\\20260921_081840_4CA336364E1E3EE9AFF3A28416F2111E.sav.txt": "c3ceb4b27670dc30e726476eae4cbced1103ff0756443913a8e0fd9e593dad5b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_78E22DAE4C2E0AFA6ABE149BE0EA6EEC\\20260921_085841_3C57817446091F53B47252A97EDC1887.sav": "f2e92d20fa126885bc7065147eb7b62051d780f90634b6c806ec875e90a547fd",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_78E22DAE4C2E0AFA6ABE149BE0EA6EEC\\20260921_085841_3C57817446091F53B47252A97EDC1887.sav.txt": "45e0954786796b19c660325b8ad2a80e2da8adf6a857b0eef415c95903591e11",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_A3D0C1414ADCCED2D29EFAA89A33D4E6\\20260923_093437_4AC106FA4016DAAF78C02CB1CF936D70.sav": "2754a4c0d64cdffe7d75f9879d28c63bfe2c0947adc60c52d99d9e6d358f43e3",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_A3D0C1414ADCCED2D29EFAA89A33D4E6\\20260923_093437_4AC106FA4016DAAF78C02CB1CF936D70.sav.txt": "a6cd3d575bd1ce623cd8ecc8ecfe488b21998eca656dbbf9a3424a16730625fc",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_BE7F2C8A43310B9B42BF27809EFD1AF3\\20260921_085044_255520724409CCC51542EDB2AFB52B54.sav": "b8cbf9f4afa39341a3724c882744a8d73aa30d4f0e90719ab21e633c24d82254",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_BE7F2C8A43310B9B42BF27809EFD1AF3\\20260921_085044_255520724409CCC51542EDB2AFB52B54.sav.txt": "427e770545cf4ea6db56e7d61b44fe7a804496d5d3e8c9647c4191e50b20e6ad",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_CA24C18F405411F1271C009D534351A6\\20260921_100504_26E3331E4C0C66D7465EA4B44E7FD32D.sav": "107ea53132eceb781d005d70dda64705655d22b0782342106753ceb7e5f762bc",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_CA24C18F405411F1271C009D534351A6\\20260921_100504_26E3331E4C0C66D7465EA4B44E7FD32D.sav.txt": "bafbe7f1519ab87309d8e5de485d42c60336c200015fdb8b772b39798276a27c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_Metadata\\20260921_090504_ABF5CD55447DEDB94988009C217E0E52.sav": "9bc1865bc5985e7651fa53f9ec22b709cd7c7f757c66b64be39f02f6779a29e1",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_Metadata\\20260921_090504_ABF5CD55447DEDB94988009C217E0E52.sav.txt": "01697e35d114f755e8fb3041cb21d1169e4b724d1421534e4159a3d9b75a7c31",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_Player\\20260921_090504_C896CAFB494002C21758078E7F6A594E.sav": "8906d4648bb22dfdedf9512969efd6f12a6f1179cef5e7a9afdf57d05e81dac4",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_Player\\20260921_090504_C896CAFB494002C21758078E7F6A594E.sav.txt": "a71845486f9ca1c02a5a2dafbe837471a374bb7d633a1b6c0e84c9a57b50d372",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_World\\20260921_090504_DE83C61445EF1898E2F16EB2AC4DBA45.sav": "338cada5d11675b55e1f7b9ff63739e9e6c571cef2397b29a9ee7ae2978f7e1b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_153098BC40FB2717D4B92D8116986B9C_World\\20260921_090504_DE83C61445EF1898E2F16EB2AC4DBA45.sav.txt": "e423409973be89b6e9549aff32bfee092fdba970913066bf6705736c78a1adb8",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Legacy\\20260921_101428_B16DF8704F8B6F601C837C8D5D626361.sav": "3ddba4b8648d1fe8c630595ef5eea5fc5ee8f1a133ade4ca20e64b56ed969da0",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Legacy\\20260921_101428_B16DF8704F8B6F601C837C8D5D626361.sav.txt": "2974e89952b09624bf9e93e0f1b6ae3f83e410ad98a712e9c14953b8dae56e0b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Metadata\\20260921_101428_AB1B13B74C91CABFBCC59AB7A10D2109.sav": "f459863032150a519d27a9fad0b97f2618edb5e44f96946894cc44907759359d",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Metadata\\20260921_101428_AB1B13B74C91CABFBCC59AB7A10D2109.sav.txt": "544339f1ce45534cbfb33e1aeb191bf3e0477fd72a6efc3c610576a67a991bad",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Player\\20260921_101428_1031D30D444D9076867BB8B30AF652AA.sav": "74a8279042d3289f4b6527362310977292ebaebd03c010ea1c665ae6ced4544a",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Player\\20260921_101428_1031D30D444D9076867BB8B30AF652AA.sav.txt": "783c7a5db1cc56fe85d4ede267edb1eb3318466fa417426489653712dabca3ee",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Player\\20260921_101428_9E026B6E4908FF2184296A94571B0EB8.sav": "74a8279042d3289f4b6527362310977292ebaebd03c010ea1c665ae6ced4544a",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_Player\\20260921_101428_9E026B6E4908FF2184296A94571B0EB8.sav.txt": "783c7a5db1cc56fe85d4ede267edb1eb3318466fa417426489653712dabca3ee",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_World\\20260921_101428_142EFA1246A18C388927B687924D751F.sav": "964e43e66a355df090ea54cd956227c902449930b9a990facfb0c6af0c00a871",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_1DEFB6A44A995B4A3784E89836A761BE_World\\20260921_101428_142EFA1246A18C388927B687924D751F.sav.txt": "fb01ab881b0f9149fe4506cc78b95558fcf9488f1bc18c3308b00f0e98c6337b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_282B615D47781D8EC56797831D43E30B_World\\20260923_055357_3B6B45814832B7948A6A17938F8DBCCB.sav": "e7e9861b2038443129f845b193dcc214246b733308479181f2841338c6f472e0",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_282B615D47781D8EC56797831D43E30B_World\\20260923_055357_3B6B45814832B7948A6A17938F8DBCCB.sav.txt": "a9def52e16f6a48ecba120549d0829204bdca2137f59dceae6e8955a61b1aaa5",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_Metadata\\20260921_091505_B8BF50FF43C69CDC9019A5A3BA76CDEB.sav": "2d58e8ee10e981c72e2ddddc6a0db4811b9280e71a60c1ce6ac815e951fc6513",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_Metadata\\20260921_091505_B8BF50FF43C69CDC9019A5A3BA76CDEB.sav.txt": "886bf0dbfbd1d010ab51415140dd3147d21052158c38b7d18efa4badc75c5469",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_Player\\20260921_091505_9E462B7F47083A1134499998F77E23E5.sav": "000d427a42024a513e9526600437c79db11f0d1f4263c1c0ab629286138132f5",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_Player\\20260921_091505_9E462B7F47083A1134499998F77E23E5.sav.txt": "e0402777e1535f1dec490036b01ff3a435f3ce8ee39ef0c1476703c97ed1f7d5",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_World\\20260921_091505_DBDB09EF472DB547FEC271B1DCF7725E.sav": "75fae5cc9a7b3ccf0c3ad12820b05817822376062b42ab3f24060c2512181280",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_605E4E594FC574859D625FAA64568E03_World\\20260921_091505_DBDB09EF472DB547FEC271B1DCF7725E.sav.txt": "74e48e5fc1bd5102142c77c615d1230661047fee85273008f1c31809fce98309",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_652DC6524198CCDC3B3D32BFD4F7256E_Player\\20260921_080253_AFEC75F04A178C0DA72C519B58240FBF.sav": "6bc224f5470898aa950c7ab64b777b0769c50ad4159406bcb33dd4e1a316c176",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_652DC6524198CCDC3B3D32BFD4F7256E_Player\\20260921_080253_AFEC75F04A178C0DA72C519B58240FBF.sav.txt": "90993907e01917c116e564772dd8372aee093dae1420f83b056303c26d58b864",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_Metadata\\20260921_092123_948A3BA545D2803361C0799CF3DD01B8.sav": "8a8aa60efa01f54d163531f69b035ff24fc4175722745074ec0651e078e3e77e",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_Metadata\\20260921_092123_948A3BA545D2803361C0799CF3DD01B8.sav.txt": "a538d25370ac825d321d644a050a75ae4942fc09923e7b779ffedd9dff2ab1ea",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_Player\\20260921_092123_BB62969841CA8965383B00AB97A1248A.sav": "ca950e8cd291d2924e425268dc22332285830ec8eb8d691f5847917bfa83b0a0",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_Player\\20260921_092123_BB62969841CA8965383B00AB97A1248A.sav.txt": "d38a942d06e76ed8bb6577263d9476ba3c121a9c99341855bb224e1bcdd8d762",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_World\\20260921_092123_EE64E8034F451D279936B38F0494E56A.sav": "19ba1e5cb892b1fc339ed72f46d07ce6070c5a11a6b8e862862e7276133dcce4",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_6A2DA7A940D5AB2E1B0DE19F4841D630_World\\20260921_092123_EE64E8034F451D279936B38F0494E56A.sav.txt": "3a4e576242058e625621aa5be3c5686b2ad8244e1d8892d3dfc9988756ae95c1",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_Metadata\\20260921_081607_6E9736EF4E056D6C69AA7E93B7BB277E.sav": "6991472155014f21b6c35554a5f0f33404801b340cac19705d4c83d651ee48c3",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_Metadata\\20260921_081607_6E9736EF4E056D6C69AA7E93B7BB277E.sav.txt": "d7940b8432b833f77abeb2ac7f5f6688f236a0b3778c28ba8bc3a573fa0ab4ae",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_Player\\20260921_081607_0BA6711848B323C75940D3BD2F66B4F6.sav": "c646ece50652258777339a921be06d36beea1efd7d5fca9fc44ddced5740224a",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_Player\\20260921_081607_0BA6711848B323C75940D3BD2F66B4F6.sav.txt": "f97ad61ec18472d79d53b9600c68240cdbf4a2d59efb49a2c8d63ab74935c509",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_World\\20260921_081607_9E7CA846489D0671C4B308A74AE20CC1.sav": "f77893f059ec0ad8e00ab75a05089b7ee8c1cd62c6ce371ed006bdd1f7801e8c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_771D90A449DD42A455B5BEADD8551E5C_World\\20260921_081607_9E7CA846489D0671C4B308A74AE20CC1.sav.txt": "9b5ca3f5370ffdfa28b3b814f4101b64bb6c1261c52fcc15388b7538dc5ed79e",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_Metadata\\20260921_102050_F40F6A3641C2284F26CAAB962BC342CE.sav": "792748adc208b795bbc0b0952f2c5e566a3bbc53249867d939992d2134fc3d74",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_Metadata\\20260921_102050_F40F6A3641C2284F26CAAB962BC342CE.sav.txt": "0b3dcdc1ae7b0a26ce827c1683d9e3481b6efc513d5f5375d9cb1967663e6889",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_World\\20260921_102050_C9098C814B60E1CE68A63DA4810BF773.sav": "34d4257b374cb0e583d5aec9a186a6b3115bc664a95ec5bcf3dcc031ef0d329c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_World\\20260921_102050_C9098C814B60E1CE68A63DA4810BF773.sav.txt": "267b05c62dbc8741f04ddc3f7382738539692324532988fd68b8b31a7e76b296",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_World\\20260921_102055_158DF6E349227C294A6162A497A4908D.sav": "327b5f162972ba536d5a6e4b7a9d1fcfbbc586878a79f3477bde8372ad20c57b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_8B7561A34548ACE11667888BC971B5D0_World\\20260921_102055_158DF6E349227C294A6162A497A4908D.sav.txt": "ee0c1b4df0d9a5f12780bdbee59f153cb3f2148004bd3e358d31c920415a1c57",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_90DD8E774C748EE1638C629371AF3992_World\\20260923_055835_63E8F2714978F05EB1A0AA8DE7A0D47A.sav": "45a74afef593269611bb0f82be6e243f917e9d3537e5c1fbc6d6279514663c2b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_90DD8E774C748EE1638C629371AF3992_World\\20260923_055835_63E8F2714978F05EB1A0AA8DE7A0D47A.sav.txt": "d8e67cfbc798ff34c6225fa8d8c1fb670a0beb25d71e8d7b71b9c67001653f67",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_972A81B246C8EA3285A84484F8C8D1D6_World\\20260923_101811_E516630F41B1EF664DD9A490806FA7C2.sav": "f52d44bfdf42c402b46aa0a8c8437fafddef22f34f286e2e82211acaa260c150",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_972A81B246C8EA3285A84484F8C8D1D6_World\\20260923_101811_E516630F41B1EF664DD9A490806FA7C2.sav.txt": "fee23894707f7f0ca39175fb7a99b0783e5a605989912ed23389506508d7b0da",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Legacy\\20260921_101823_ECF711C7434F75ED58E8F2979E50D841.sav": "3c12b9970732cd06d3766a68038836e1263a2eca70c927abf417fcbcd09cef2a",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Legacy\\20260921_101823_ECF711C7434F75ED58E8F2979E50D841.sav.txt": "b998ede0dbb9b5f7f0805a23a6db27fd7da01fb84051ecda06c4ce0ad3ae87de",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Metadata\\20260921_101824_FA211D3C4244C8D797E997925BA495AC.sav": "534e3426c558d01c85754b63d76eb4adf683d0341e66c52764a7c2f2fd799d6c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Metadata\\20260921_101824_FA211D3C4244C8D797E997925BA495AC.sav.txt": "d880f583f262369348adf1a1aa3bbaf47a0254167f8a87578df42c59cc369fda",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Player\\20260921_101823_91AB41D3420F8A908C89A285018DA915.sav": "b848042833deac7cfa309d3aa2f20e0a1df529796950770632461cf3e8630f47",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Player\\20260921_101823_91AB41D3420F8A908C89A285018DA915.sav.txt": "3c8f3c8e1d6e3d50f90d67e59ab860bac6531a50b51bd7b9aefcf0c1fb04d393",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Player\\20260921_101824_515FDF6647DD061C2F888596F630CB63.sav": "b848042833deac7cfa309d3aa2f20e0a1df529796950770632461cf3e8630f47",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_Player\\20260921_101824_515FDF6647DD061C2F888596F630CB63.sav.txt": "3c8f3c8e1d6e3d50f90d67e59ab860bac6531a50b51bd7b9aefcf0c1fb04d393",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_World\\20260921_101824_083019CB458037CF6A574EB6C23CEE9F.sav": "208dd46d68b35577489e54d42295beb133e808d2a0f9a60178d23eeb2cd8674f",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_98C43AE64C8AEE475809E6817815E4EB_World\\20260921_101824_083019CB458037CF6A574EB6C23CEE9F.sav.txt": "71af7089bbdf09328c466d45593e5b4b65b5b138ee1b1ba4d15b9253a0f66887",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_9D77C046423072D61B43B7932AF81389_World\\20260923_212059_E4A2AE3C44E8C553D87DCDA46BBA25D4.sav": "664d7ccc98f27a876ad753760bc5e3768183845630d18e63c254fcd1a456b21c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_9D77C046423072D61B43B7932AF81389_World\\20260923_212059_E4A2AE3C44E8C553D87DCDA46BBA25D4.sav.txt": "df41ada1dfaeb92d7f9292e9a8d8524d40b3c539e17b8ee20af9b45764ca7dbc",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_A6C4A1D64139FD2F67AC0389F4FDDFEC_World\\20260923_213502_F421C5774451DB9B718CF6B972A4CD2C.sav": "74bd85e6ec9ec9fb3178c924232e4980e73e51ae716ded7273470570de642c2c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_A6C4A1D64139FD2F67AC0389F4FDDFEC_World\\20260923_213502_F421C5774451DB9B718CF6B972A4CD2C.sav.txt": "0bfcdc0675832238ef9e307289eb4a0361442ffc4fe11993e49fca5683e29bd6",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_Metadata\\20260921_090246_95356BD54C0DF9EEBB5F098583075669.sav": "b6c8ad4fd1eb83b9da8dfdd448a5e3f4fcc6c126e3bbac7250ca10700cb02918",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_Metadata\\20260921_090246_95356BD54C0DF9EEBB5F098583075669.sav.txt": "ac4bb0cdef58b08c6661b7a3c306bb57eae82c3599c2c04be4069dcd0ccfe4b0",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_Player\\20260921_090246_A084FCEA432A0D936FC45590B631B385.sav": "578941e6f549ecb00ccda9c5c5ecde1b04b887b05fd025a8adaaada5c759fdeb",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_Player\\20260921_090246_A084FCEA432A0D936FC45590B631B385.sav.txt": "33724f7a557170f10107c3513d77e4f82507581fd19511ae86dd583168f8051c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_World\\20260921_090246_F85137FC4B0EFA40463C8FB35F4F6D6D.sav": "616b56339b10ddea4b4ea556c0e3bb48605da1bbdefa1b068116d9300a24d50d",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_B31289E0430BF92E9839C4827BA17889_World\\20260921_090246_F85137FC4B0EFA40463C8FB35F4F6D6D.sav.txt": "4e0b50b95fe661a881359207a48f05cdb18f6844318b7a0d0a89ff455e0da33b",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_Metadata\\20260921_091020_A90B7DDC43E10FC544767893C6E1F947.sav": "3c2a35d09cfea2fc521dff481a5b9f830a550240f7e01748c8de79d921af6b01",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_Metadata\\20260921_091020_A90B7DDC43E10FC544767893C6E1F947.sav.txt": "f500a5211e6276b7ad43b538112ce6076e38695a66368eeb2de965c5baaab7a1",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_Player\\20260921_091020_7220EAA0403FDB9B952DC69366C86FEE.sav": "c293d6387ba506eb540e8f3465cf7e452631400f8cd4b2baad4f0aa4bd87e7ef",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_Player\\20260921_091020_7220EAA0403FDB9B952DC69366C86FEE.sav.txt": "a511f8bc6be7ff7769cd0b7b0eeb0509037aecf185feb1e6cc9d39a718b85d94",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_World\\20260921_091020_5F92FA6846E8E1309110E182BBF90FC3.sav": "352bad2c27613277d99da1dd7b5e23b7716c8c1a4c813d671797c302c3e90944",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_BAC075C1440B79EE40F759A15E7C2A6F_World\\20260921_091020_5F92FA6846E8E1309110E182BBF90FC3.sav.txt": "e5cad17df478fbbd3fb61114715ef2db7cb31c13dcfc1a556fe7456098e9792d",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Legacy\\20260923_101142_7788B0E54386C8EEFA8BFFA9F884596F.sav": "dbc152805b6529781f5b81592a85f4de8494b603474d6fd1714471469020bd12",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Legacy\\20260923_101142_7788B0E54386C8EEFA8BFFA9F884596F.sav.txt": "b29f65721a52f9696106d6964403a437bfe516fe4173de078fabc3918e1dd365",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Metadata\\20260923_101142_9DD6EF7D4818977EE94931A2C849B319.sav": "aff1f7b00ce4b211dfa5053eb6b83f6c459fc00f257fd0c3cacbcc923ded08ec",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Metadata\\20260923_101142_9DD6EF7D4818977EE94931A2C849B319.sav.txt": "6551c8a51f31ef4f12f9b7c7d7dce55a87a9e4ce7c0ddd48485a889f0bec03ec",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Player\\20260923_101142_0016F19F43F6DDC597B911A1E6C023C7.sav": "e5f7a855b5e31851ce1d57028a0a09186ca8bccd570774e34f5090396d1f83af",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Player\\20260923_101142_0016F19F43F6DDC597B911A1E6C023C7.sav.txt": "65eed00c32dbace87e8978248bbafe533a7669b49da477d160c123dad15a8b76",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Player\\20260923_101142_B9C9FB2D46B08C068E62739EE6333C48.sav": "e5f7a855b5e31851ce1d57028a0a09186ca8bccd570774e34f5090396d1f83af",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_Player\\20260923_101142_B9C9FB2D46B08C068E62739EE6333C48.sav.txt": "65eed00c32dbace87e8978248bbafe533a7669b49da477d160c123dad15a8b76",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_World\\20260923_101142_03FD0ACF4AF63FF5D2FEEF9BB2513F0D.sav": "e7b39d4e9a9e4754b7c64286a4cfcd9f98a033eb5743b39ecc878ddf45c0f2b3",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DA10F2BB4D4BA83D2A1CEFB4CB3FB1C7_World\\20260923_101142_03FD0ACF4AF63FF5D2FEEF9BB2513F0D.sav.txt": "54f4f3ff90f6624cd4745d8e97f478aa400cb0bf4510e7d7b9d79ea518d86a18",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Legacy\\20260921_100656_625C1E5B4453559B1868DEA7483AAA6B.sav": "4c3196c7c9187eacae452ef02a1aacb28906e2fa6bc7b2f6d51fd724aca5b237",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Legacy\\20260921_100656_625C1E5B4453559B1868DEA7483AAA6B.sav.txt": "173dc7aca2ea9e18ca433c5f5ac026b9e3d1f0e87ab34d12a3e2fa39ff3ac349",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Metadata\\20260921_100656_063FE0C945D5505466482EAD0B660192.sav": "213368fe644ab2d75306fbe5f56c181aa49b87690960d4bcfc6ee6545d5c49df",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Metadata\\20260921_100656_063FE0C945D5505466482EAD0B660192.sav.txt": "05f4f0c5abd778856d8d7268467087771c6ac0607ec7de8394df708dc2457916",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Player\\20260921_100656_39931CAF4CA9F58B1C24B0834360310E.sav": "5699926ef92d7bccac407be628e079341a19db6f43991d066b85902bec6a89e6",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Player\\20260921_100656_39931CAF4CA9F58B1C24B0834360310E.sav.txt": "19f1a974d3f74d4c6937b7fccfc36b471dae691660f8e5dc300f18d7b7df1969",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Player\\20260921_100656_C88DB93F4A6A8DC9937681BA09760980.sav": "5699926ef92d7bccac407be628e079341a19db6f43991d066b85902bec6a89e6",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_Player\\20260921_100656_C88DB93F4A6A8DC9937681BA09760980.sav.txt": "19f1a974d3f74d4c6937b7fccfc36b471dae691660f8e5dc300f18d7b7df1969",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_World\\20260921_100656_B4D1AC43442F5B1157ADC9BAF8A2F78E.sav": "1c8a33ec3cab3bf1f71da9ae05a3f8d4adcc91f35cbdc36cf11d9f637d302ac6",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_DEE20C2845A5DC7DED3AD1BDE42D6E38_World\\20260921_100656_B4D1AC43442F5B1157ADC9BAF8A2F78E.sav.txt": "28b4691b9bcde2862a9f30af0beb623d53cbb2d0280b3ea996f3a9fce00a8b27",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_Metadata\\20260921_102433_C274C5564EB5E58009FECABB25108046.sav": "47261e5103667a334b1d1f62f62c7ce129b685561a59b9b8bf0523d62931849d",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_Metadata\\20260921_102433_C274C5564EB5E58009FECABB25108046.sav.txt": "0ca974702b5902f2ca82ad68587998d7af29acedca5094ab917dc1e0741bc383",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_World\\20260921_102433_6E363E34457ABFAF12A8E7B96C79FD14.sav": "9c1a16b3d85842e9b5a7ae2457f4895c45b13dead886a6529866467a27d41307",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_World\\20260921_102433_6E363E34457ABFAF12A8E7B96C79FD14.sav.txt": "83bce3a20e39793f7d7e62d53e7d48e5ca21b3fb7fa775ec7b5a0a6240582a87",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_World\\20260921_102438_A2BE09064C06846A90B2D0A1CC359A73.sav": "c48ae5ff5df0af7149408d512599e73105ea0630faadac1fe7cea92d03646eaa",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\EquipmentQA_PIE_F1453CE7433B007649AAD4A15E6C75DB_World\\20260921_102438_A2BE09064C06846A90B2D0A1CC359A73.sav.txt": "2eeb69c064e9c75189c37c01f411ae50928c25e518f5207b7f5b6283c9b1e6d1",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\SaveMetadata\\20260925_010635_3A759D444559540DC4826B9942494629.sav": "3e71c51b7d85ec7e755cbc318b723759796796ebd8e43016daabe96ffd89f387",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\SaveMetadata\\20260925_010635_3A759D444559540DC4826B9942494629.sav.txt": "6c75a28dc725ee4d00a6483fd28ae3bc717335ceb445d49501a81894782e3a6e",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\test\\20260925_010635_ED39E08D48979E0987ECD3BEE000999F.sav": "f22999c7942dca8520a935e6ad5b080d6bf558cd60bc959d0227a17192328519",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\test\\20260925_010635_ED39E08D48979E0987ECD3BEE000999F.sav.txt": "a44dbc5cc43bdeabf6af50c2e8f4016d7c6c18e346c5fbfb51f55ee0c922df9c",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\test\\20260925_010637_EB09C8EA4161D7ED1DE269B578F8392A.sav": "24b81079c9bf5c149239286950b7d717b1f20057e93807fdaf4fcbd01a6c15a9",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\EFEquipmentBackups\\test\\20260925_010637_EB09C8EA4161D7ED1DE269B578F8392A.sav.txt": "d8ab46cd22c94482e73fea4a7212cf3a9a2dd6148f84cf0ef9edec580582a9ed"
+    }
+  },
+  "runtime": {
+    "pawn": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0",
+    "components": {
+      "returnValue": [
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CollisionCylinder"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Arrow"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharMoveComp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Actions Manager"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Character Initializer"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Statistic Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Collisions Manager"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Equipment Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Damage Handler Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Ragdoll Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Motion Warp Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Materials Override Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.TeamComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.StimuliSource"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Effects Comp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Audio Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF TargetPoint"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.TargetedWidget"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF HealthWidget"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ContextualAnimSceneActor"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFInteraction"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SpringArm"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Camera"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CameraProxyMeshComponent_0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.DrawFrustumComponent_0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF Rider Comp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CCMLookAtPoint"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CCMCameraSpline"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.NavigationInvoker"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF Outline Component"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF SlotsManagerBComp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF Anim Master Comp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFShooting"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFDefenseStance"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF Vault Comp"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFStatusEffectManager"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFLadderClimbing"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFClimbing"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACF_TraversalComponent_BP"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFDialogueComponentBP"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ANS_CharacterCaptureComponent_BP"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.StaticMeshComponent_0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.DrawFrustumComponent_1"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.AMSMapMarker"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFCombo"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.AMSDiscover"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFSkillTree"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SkeletalMesh"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFMotionMatchingComponentBP"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CameraBoom"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.EFEquipmentCoordinator"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.DirtyPawnRuntime"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.EFClothingRuntime"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.EFClothingEquipmentBridge"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.PawnInputComponent0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Collisions Manager.ParticleSystemComponent_0"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Collisions Manager.ParticleSystemComponent_1"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Collisions Manager.ParticleSystemComponent_2"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.EFBlinkMorphComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectDefaultTattooSkinnedDecalSampler"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ACFTrainingComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectEmoteComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectTargetingFixComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectInnerDoctrineComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectLocomotionOverrideComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectMorphPhysicsConstraintComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectPlayerCharacterCustomizationComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectCombatAttributeComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectSurvivalNeedsComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectSurvivalAttributeBridgeComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectSurvivalStatusComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectRealtimeSnapshotComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectDefeatFlowComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectDefeatBlueprintBridgeComponent"
+        },
+        {
+          "refPath": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SatchelInventory_0"
+        }
+      ]
+    },
+    "Statistic Component": {
+      "error": "{'content': [{'type': 'text', 'text': \"GetObjectProperties on '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.Statistic Component' (ACFGASStatisticsComponent): the following properties could not be read: currentExps, perks\"}], 'isError': True}"
+    },
+    "ACFSkillTree": {
+      "returnValue": "{\"skillPoints\":2,\"skillTrees\":[{\"refPath\":\"/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACFPrimarySkills.ACFPrimarySkills\"},{\"refPath\":\"/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACFSecondarySkills.ACFSecondarySkills\"}]}"
+    },
+    "ProjectSurvivalNeedsComponent": {
+      "returnValue": "{\"needs\":[{\"needName\":\"Hunger\",\"currentValue\":89.627853393554688,\"maxValue\":100,\"decayPerSecond\":0.15999999642372131,\"recoveryPerSecond\":0},{\"needName\":\"Thirst\",\"currentValue\":80.553871154785156,\"maxValue\":100,\"decayPerSecond\":0.30000001192092896,\"recoveryPerSecond\":0},{\"needName\":\"Sleep\",\"currentValue\":93.19305419921875,\"maxValue\":100,\"decayPerSecond\":0.10499999672174454,\"recoveryPerSecond\":0}],\"sensations\":[{\"sensationName\":\"Madness\",\"currentValue\":0,\"maxValue\":100,\"passiveDeltaPerSecond\":0},{\"sensationName\":\"Pain\",\"currentValue\":0,\"maxValue\":100,\"passiveDeltaPerSecond\":0},{\"sensationName\":\"Curse\",\"currentValue\":0,\"maxValue\":100,\"passiveDeltaPerSecond\":0},{\"sensationName\":\"Alcohol\",\"currentValue\":0,\"maxValue\":100,\"passiveDeltaPerSecond\":-0.25}]}"
+    },
+    "ProjectInnerDoctrineComponent": {
+      "error": "{'content': [{'type': 'text', 'text': \"GetObjectProperties on '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectInnerDoctrineComponent' (ProjectInnerDoctrineComponent): the following properties could not be read: attributeLevels\"}], 'isError': True}"
+    },
+    "ProjectSurvivalAttributeBridgeComponent": {
+      "error": "{'content': [{'type': 'text', 'text': \"GetObjectProperties on '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ProjectSurvivalAttributeBridgeComponent' (ProjectSurvivalAttributeBridgeComponent): the following properties could not be read: bBridgeReady\"}], 'isError': True}"
+    }
+  },
+  "post_pie_hash_check": {
+    "utc": "2026-09-25T01:46:29.982548+00:00",
+    "checked": 403,
+    "changed": [],
+    "new_save_files": []
+  },
+  "source_files": {
+    "leveling": {
+      "path": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5\\Source\\AscentGASRuntime\\Private\\ARSLevelingComponent.cpp",
+      "sha256": "cdfa088a9f6c18244fe569d539c4d2506f5b166a142d101acdfac0b2ff851210",
+      "symbols": {
+        "Internal_AddExp": [
+          47,
+          64,
+          77
+        ],
+        "GetTotalExpsAcquired": [
+          130
+        ]
+      }
+    },
+    "gas_statistics": {
+      "path": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5\\Source\\AdvancedRPGSystem\\Private\\ACFGASStatisticsComponent.cpp",
+      "sha256": "d5755a6ba149b295efae29c3170d375c78104ae06a2d4491051ec56eb68066f5",
+      "symbols": {
+        "AssignPerkToAttribute_Implementation": [
+          26
+        ],
+        "OnComponentSaved_Implementation": [
+          243
+        ]
+      }
+    },
+    "skills": {
+      "path": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5\\Source\\AscentSkillTree\\Private\\ACFSkillTreeComponent.cpp",
+      "sha256": "6665a8d7e859123d3783bfdcfc9b8e49bb402c3dfddfb580d2b461c8a4564430",
+      "symbols": {
+        "UnlockSkillFromTree_Implementation": [
+          87
+        ],
+        "CanUnlockSkill": [
+          89,
+          91,
+          135,
+          138,
+          143,
+          149,
+          155,
+          167,
+          171,
+          178,
+          188,
+          196,
+          201
+        ],
+        "Respec_Implementation": [
+          253
+        ]
+      }
+    },
+    "save_components": {
+      "path": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5\\Source\\AscentCombatFramework\\Private\\Actors\\ACFCharacter.cpp",
+      "sha256": "d1f650f1238d3849c080b936d78514d65ea422629007c2091e7ac416175c4afb",
+      "symbols": {
+        "GetComponentsToSave_Implementation": [
+          308
+        ]
+      }
+    },
+    "native_kill_xp": {
+      "path": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5\\Source\\AscentCombatFramework\\Private\\Components\\ACFDamageHandlerComponent.cpp",
+      "sha256": "2d429e86f85597fab3895421b1e7a4390419dd22ef4a9c6bfcf49f88c028a335",
+      "symbols": {
+        "HandleStatReachedZero": [
+          46,
+          48,
+          208
+        ]
+      }
+    },
+    "doctrine": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\InnerDoctrine\\ProjectInnerDoctrineComponent.cpp",
+      "sha256": "e20389b35b424cf9b9fcbd1c173368956980b27009df88f0eaa02e2340467651",
+      "symbols": {
+        "GrantDxp(": [
+          292,
+          344
+        ],
+        "SpendDxpOnAttribute": [
+          347
+        ],
+        "HandleRunDeath": [
+          493,
+          929
+        ],
+        "LoadPersistentState": [
+          126,
+          1138
+        ],
+        "ApplyPassiveAttributeEffects": [
+          128,
+          209,
+          368,
+          396,
+          1195,
+          1198
+        ]
+      }
+    },
+    "doctrine_cost": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\InnerDoctrine\\ProjectInnerDoctrineSettings.cpp",
+      "sha256": "2a8f47a68aae327573811c63fcc87dd65a6687df9d3e17501ab70920a23a02f2",
+      "symbols": {
+        "ComputeAttributeUpgradeCost": [
+          64
+        ],
+        "ComputeCunningLockpickSpeedMultiplier": [
+          96
+        ]
+      }
+    },
+    "doctrine_save": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\InnerDoctrine\\ProjectInnerDoctrineSaveGame.h",
+      "sha256": "81f0fbc9812bd3cff7f332f92d4f4c77f2c6f092b49259bb4bfa462d221e9fdb",
+      "symbols": {
+        "MetaBankDxp": [
+          14
+        ]
+      }
+    },
+    "needs": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Survival\\ProjectSurvivalNeedsComponent.h",
+      "sha256": "01399a9462cea0b899444ec9e5141f4a39eb85639ddb8dd6e7873d8cbc6201e9",
+      "symbols": {
+        "SetNeedCurrentValue": [
+          55
+        ],
+        "Needs;": [
+          138
+        ]
+      }
+    },
+    "bridge": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Survival\\ProjectSurvivalAttributeBridgeComponent.cpp",
+      "sha256": "80c22246789eb0907a785046d015afddc352dc38c1c5c644b9df7f024d8ccb2f",
+      "symbols": {
+        "ResolveBridge": [
+          134,
+          155,
+          303
+        ],
+        "ApplyBindingModifierDelta": [
+          386,
+          425,
+          436,
+          577
+        ]
+      }
+    },
+    "lockpick": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Lockpicking\\ProjectLockpickableComponent.cpp",
+      "sha256": "da748074c98f45464d048aaef9e58568438243513cf028b8ad9b4ed083fdfc71",
+      "symbols": {
+        "ComputeSpeedMultiplier": [
+          397,
+          435
+        ],
+        "ResolveCunningLevel": [
+          434,
+          529
+        ]
+      }
+    },
+    "ui": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\InnerDoctrine\\ProjectInnerDoctrineAttributesPanelWidget.cpp",
+      "sha256": "c56313d42323155ba6a2e17e9e61ba9bebc81afe958be9e6c5efdcc564f627c5",
+      "symbols": {
+        "TEXT(\"DXP\")": [
+          529
+        ],
+        "TEXT(\"META\")": [
+          539
+        ]
+      }
+    },
+    "training": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\ACFTrainingSystem\\Source\\ACFTrainingSystem\\Private\\ACFTrainingComponent.cpp",
+      "sha256": "cc691b41956727420bd8e42eeb1c5adb848906fdafdf2981421e899783fda1fa",
+      "symbols": {
+        "GrantTrainingReward": [
+          507,
+          641
+        ],
+        "ReapplyTrainingRewardModifier": [
+          73,
+          652,
+          657
+        ]
+      }
+    },
+    "sweat": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\DirtyPawnRuntime\\Source\\DirtyPawnRuntime\\Private\\DirtyPawnComponent.cpp",
+      "sha256": "091cc1b6a51a23b3f4ed2e46669b657dd5d397e90a461a99f3a1be69a4643161",
+      "symbols": {
+        "UpdateSweatState": [
+          850,
+          1828
+        ]
+      }
+    },
+    "combat": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Combat\\ProjectCombatAttributeComponent.cpp",
+      "sha256": "21213807156b3b192317cfa41d2135c2e0e5ef797ae6b9d9c8443fffc4172278",
+      "symbols": {
+        "ApplyQualifiedPainHit": [
+          195,
+          266
+        ],
+        "NotifyDamageDealt": [
+          205
+        ]
+      }
+    }
+  },
+  "blueprint_search": {
+    "/Game/FullSample/Player.Player": [],
+    "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerBP.ACFUltimatePlayerBP": [],
+    "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar.BP_TSChar": []
+  },
+  "skill_tree_cdo_replicates": false,
+  "bp_tschar_parent": "/Game/FullSample/Player.Player_C",
+  "artifacts": {
+    "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ProgressionUnification\\baseline_pie.png",
+    "pie_log": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ProgressionUnification\\baseline_pie.log"
+  },
+  "gates": {
+    "native_mcp_inspection": "PASS",
+    "baseline_pie_start_stop": "PASS",
+    "survival_bridge_initialized_6_of_6": "PASS",
+    "post_inspection_hashes_403": "PASS",
+    "xp_award_purchase_integration": "PENDING",
+    "automation_tests": "PENDING",
+    "unified_implementation_build": "PENDING",
+    "blueprint_compile": "PENDING",
+    "visual_parity_of_all_menus": "PENDING",
+    "save_load_migration": "PENDING",
+    "cook": "PENDING",
+    "packaged_validation": "PENDING"
+  },
+  "tool_limits": [
+    "Computer Use native pipe unavailable after recovery",
+    "UECP get_tool_docs rejected: license verification required; no bypass attempted",
+    "Native object reflection did not expose private XP/perks/Doctrine rank fields"
+  ],
+  "balance_observation": {
+    "native_initial_perks_per_level": 1,
+    "points_gained_levels_1_to_100": 99,
+    "doctrine_cost_example": {
+      "1": 80,
+      "5": 1860,
+      "10": 8536,
+      "100": 1726258
+    },
+    "meaning": "Offline arithmetic of existing formula, not an Unreal automation test or migration exchange rate"
+  }
+}

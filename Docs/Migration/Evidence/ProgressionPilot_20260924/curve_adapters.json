@@ -1,0 +1,35 @@
+[
+  {
+    "source": "/AscentCombatFramework/GASRuntime/GameplayEffects/ACF_AttDependencies_GE",
+    "destination": "/Game/_Game/Data/Progression/GE_ProjectAttDependencies_GE",
+    "removed_orphan_rows_per_modifier": [
+      2,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "source_modifiers_sha256": "b8531678b71fb6ae27e84af3334c25a8a982207137c3a113be50169bead21a0c",
+    "native_source_unchanged": true
+  },
+  {
+    "source": "/AscentCombatFramework/GASRuntime/GameplayEffects/ACF_StatInit_GE",
+    "destination": "/Game/_Game/Data/Progression/GE_ProjectStatInit_GE",
+    "removed_orphan_rows_per_modifier": [
+      3,
+      1,
+      1,
+      0
+    ],
+    "source_modifiers_sha256": "ac57b8d48d614faedf901b9d7edd3e06270001fc1e3d982de26327fabe980cb3",
+    "native_source_unchanged": true
+  }
+]

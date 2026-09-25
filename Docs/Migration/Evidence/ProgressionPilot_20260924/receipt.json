@@ -1,0 +1,13 @@
+{
+  "phase": "menu_capture",
+  "started": 39409.359,
+  "since": 39427.812,
+  "pawn": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0",
+  "hud_visible": true,
+  "menu_open": true,
+  "error": "",
+  "screenshots": [
+    "..\\..\\..\\..\\..\\..\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ProgressionPilot\\Visual\\doctrine_menu00000.png",
+    "..\\..\\..\\..\\..\\..\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ProgressionPilot\\Visual\\needs_doctrine_hud00000.png"
+  ]
+}
