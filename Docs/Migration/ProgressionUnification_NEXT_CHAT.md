@@ -32,7 +32,35 @@ Continúa con una integración vertical real de Willpower antes de activar los s
 
 Después, extender los mismos contratos a los otros seis atributos y diseñar sinergias configurables Constitution/Pain, Endurance/sudor e Intelligence+Cunning/lockpicking. Mantén widgets y estilo; sólo cambia etiquetas necesarias al activar el backend.
 
-Investiga las advertencias relacionadas de cook: imports /Script/AscentLevelingSystem en ACF_RewardAction_BP y /Script/AscentGASIntegration en ACFCutDamageType. No asumas que una rama funciona porque el cook pasa. Fija explícitamente la clase de menú actual en EFProjectUISettings cuando conectes la UI; ahora el resolver elige entre dos WBP.
+También forma parte obligatoria del trabajo corregir todos los errores y advertencias detectados, preservando la lógica, los contratos Blueprint, el balance y el aspecto actuales. No basta con enumerarlos o conseguir que el cook termine. Investiga la causa, aplica una solución compatible y verifica las rutas afectadas antes de darlas por resueltas.
+
+El cook registrado emitió 44 advertencias; varias son repeticiones o contexto del mismo problema. Lee el listado exacto en Docs/Migration/Evidence/ProgressionPilot_20260924/cook_warnings.txt y contrástalo con los logs completos del informe:
+
+| Cantidad | Advertencia que debes resolver |
+| ---: | --- |
+| 2 | Imports antiguos: /Script/AscentLevelingSystem en ACF_RewardAction_BP y /Script/AscentGASIntegration en ACFCutDamageType. Verificar recompensas y daño reales. |
+| 5 | Gameplay Tags no registrados: Ability.Reactive.Dodge, Ability.Reactive.Parry, Actions.LadderClimb.Exit, RPG.StatusEffect.Poisioned y Marker.Basic. Identificar productores/consumidores y equivalencias antes de registrar o redirigir etiquetas. |
+| 1 | Colisión de GameplayCue.ACF.HitEffectCue entre ACF_DefaultReaction_GC y ACF_DefaultHit_GC. Preservar el feedback de golpes y las reacciones necesarias; no eliminar uno sin probar ambos comportamientos. |
+| 2 | DataTables no encontradas: ACFJ_AbilityTag de TurnCombat y una referencia vacía. Identificar quién las solicita y si la función correspondiente debe estar activa. |
+| 8 | Cuatro accesos a índice 0 de un array vacío en LevelBlock: cuatro avisos y cuatro líneas de contexto de LevelBlock_Traversable_C. Corregir la precondición sin anular la construcción prevista. |
+| 2 | Avisos repetidos de DefaultSlot duplicado en ACF_Humanoid_ABP. Verificar montages y rutas de animación antes de modificar la integración. |
+| 1 | Pin obsoleto In Font Size en SetFontSize de ANS_MapMarker_WBP. Conservar tamaño y aspecto de los marcadores. |
+| 1 | Consulta al Asset Registry durante carga/guardado con bIncludeOnlyOnDiskAssets=false. Identificar el llamador y corregir la dependencia que introduce variación entre cooks. |
+| 1 | GameplayCueNotifyPaths sin configurar: búsqueda en todo /Game. Definir rutas completas y comprobar que no desaparezcan cues necesarios. |
+| 12 | Assets sin versión de motor registrada: materiales Daz, animaciones de escalera y Arrow. Comprobar compatibilidad; no hacer resaves masivos ni modificar assets Marketplace para ocultar el aviso. |
+| 7 | Configuración antigua de ACF: BaseAscentCombatFramework.ini deprecado y seis redirects MatchSubstring. Conservar la resolución de rutas antiguas y evitar redirects duplicados o cambios incompatibles. |
+| 1 | Conflicto de prioridad de r.Shadow.Virtual.Enable. Mantener el resultado visual actual y aclarar qué configuración debe controlarlo. |
+| 1 | Timeout HTTP de una consulta externa de configuración. Identificar su plugin y tratar la disponibilidad externa; no retirar funciones ni desactivar el plugin arbitrariamente. |
+
+Estas 44 advertencias son distintas de las nueve referencias huérfanas de curvas. Resolver también esas curvas en las rutas activas mediante las copias propias ya validadas, sin aplicar efectos dos veces.
+
+Incluye los problemas encontrados fuera del resumen del cook: misión con actor objetivo no resuelto en el smoke Entry, material DirtyPawn ausente del paquete de ensayo, selección ambigua entre dos WBP del menú, recortes/solapamientos observados en el viewport estrecho y autoguardado incidental de ProjectIntimacy.sav. Distingue fallos del banco de pruebas de fallos del juego: usa un escenario de prueba apropiado sin desactivar misiones o sistemas reales para conseguir un PASS. Verifica la presencia y el funcionamiento del material en un ejecutable con renderizado.
+
+Para conservar la UI, fija la clase actualmente elegida en EFProjectUISettings tras verificarla y compara capturas a igual resolución. Si corriges adaptación a tamaños de viewport, conserva diseño, tipografía, marcos, iconos, navegación y comportamiento.
+
+No suprimas categorías de log, no bajes la severidad de los mensajes y no desactives funcionalidades para aparentar cero advertencias. No añadas redirects, tags o assets ficticios sin comprobar su semántica. Usa adaptadores, configuración, clases y assets propios: no modifiques directamente Engine, Marketplace ni el proyecto origen. Si una corrección depende del proveedor o de un servicio externo y no existe una solución compatible dentro de estas restricciones, documenta la evidencia y déjala explícitamente PENDING; no declares que quedó arreglada.
+
+Mantén una matriz de cada incidencia con origen, causa, cambio aplicado, comportamiento que debe preservarse y prueba de regresión. Repite build, Blueprint compile, PIE, guardado/carga, cook y ejecución empaquetada; revisa también los errores/advertencias nuevos. Sólo cierra una incidencia cuando su causa esté resuelta y las funciones afectadas sigan funcionando. No asumas que una rama funciona porque el cook pasa.
 
 Comandos reproducibles están en el informe: Build-NoShellForWinterEditor58.ps1, Run-ProgressionPilot58.ps1, Build-NoShellForWinterGame58.ps1, Package-ProgressionPilot58.ps1 y Run-ProgressionVisual58.ps1. Usa Launch-NoShellForWinterEditor58.ps1 para los scripts Python. Los runners requieren cerrar sesiones de editor/commandlet. Respeta los recibos de Daz y no ejecutes el editor durante la exclusión temporal del build de juego.
 
