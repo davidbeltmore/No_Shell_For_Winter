@@ -3204,9 +3204,11 @@ void UProjectIntimacySubsystem::LoadPersistentState()
 	const UProjectIntimacySettings* Settings = UProjectIntimacySettings::Get();
 	const FString SlotName = Settings ? Settings->SaveSlotName : FString(TEXT("ProjectIntimacy"));
 	const int32 UserIndex = Settings ? Settings->SaveUserIndex : 0;
-	if (USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex))
+	// A fresh character has no slot yet. Only load existing saves; the normal
+	// creation path below handles first launch without a file-read warning.
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex))
 	{
-		IntimacySaveGame = Cast<UProjectIntimacySaveGame>(LoadedSave);
+		IntimacySaveGame = Cast<UProjectIntimacySaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
 	}
 
 	if (!IntimacySaveGame)
