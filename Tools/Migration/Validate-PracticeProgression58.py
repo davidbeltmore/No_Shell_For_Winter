@@ -150,6 +150,13 @@ def tick(delta):
                 fixture.set_editor_property('tags',['QA_PracticeLock'])
             editor_world=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
             unreal.SystemLibrary.execute_console_command(editor_world,'Editor.AsyncAssetCompilationFinishAll')
+            if not ACTIVITIES and not RELOAD:
+                runpy.run_path(str(PROJECT_DIR/'Tools/Migration/Validate-ProgressionLegacyAssets58.py'))
+                check('legacy ladder animations decompress and Arrow geometry loads',True)
+                ui_settings=unreal.get_default_object(cls('EFProjectUISettings','EFProjectSystemsCore'))
+                state['pinned_widgets']={name:ui_settings.get_editor_property(name).export_text() for name in ['NeedsWidgetClass','InnerDoctrineExchangeMenuWidgetClass']}
+                check('needs widget stays pinned to baseline class','/Globals/WBP_ProjectInnerStateGlobal.WBP_ProjectInnerStateGlobal_C' in state['pinned_widgets']['NeedsWidgetClass'])
+                check('doctrine menu stays pinned to baseline class','/Global/WBP_ProjectInnerDoctrineExchangeMenuGlobal.WBP_ProjectInnerDoctrineExchangeMenuGlobal_C' in state['pinned_widgets']['InnerDoctrineExchangeMenuWidgetClass'])
             phase('ready')
             threading.Thread(target=start_floating_pie,daemon=True).start()
             return
@@ -171,6 +178,11 @@ def tick(delta):
         emotes=sub(world,'ProjectEmoteSubsystem')
         if state['phase']=='ready' and age>12:
             check('project practice adapter on real player',training is not None and progression is not None)
+            controller=unreal.GameplayStatics.get_player_controller(world,0)
+            quest_manager=controller.get_component_by_class(cls('AQSQuestManagerComponent','AscentQuestSystem'))
+            deferred_quest=controller.get_component_by_class(cls('ProjectQuestStartComponent'))
+            check('HUB keeps unavailable sample quest queued',quest_manager is not None and deferred_quest is not None and deferred_quest.is_component_tick_enabled()
+                  and not quest_manager.is_quest_in_progress_by_tag(quest_manager.get_default_quest_tag()))
             effects=list(stats.get_editor_property('StartingEffects'))
             state['starting_effects']=[effect.get_path_name() for effect in effects]
             check('validated curve adapters are active',all(any(name in path for path in state['starting_effects']) for name in ['GE_ProjectAttDependencies_GE','GE_ProjectStatInit_GE']))
@@ -238,6 +250,17 @@ def tick(delta):
             activity=state['activities'][state['activity_index']]
             check(activity+' remains active and progresses',training.is_training_active() and str(training.get_active_training_id())==activity and training.get_session_hours()>0)
             check(activity+' animation is active',pawn.get_component_by_class(cls('ProjectEmoteComponent')).is_emote_active())
+            dirty=unreal.DirtyPawnComponent.find_canonical_dirty_pawn_component(pawn)
+            effort_resolver=unreal.get_default_object(cls('ProjectPracticeSettings')).get_editor_property('Activities')
+            intensity=next(d.get_editor_property('PhysicalEffortIntensity') for d in effort_resolver if str(d.get_editor_property('Id'))==activity)
+            effort_before=dirty.get_editor_property('PhysicalEffort')
+            sweat_before=dirty.get_editor_property('SweatPoints')
+            dirty.dynamic_material_tick(10.0)
+            if intensity==0:
+                check(activity+' creates no sweat',dirty.get_editor_property('SweatPoints')<=sweat_before+.001)
+                check(activity+' recovers effort',dirty.get_editor_property('PhysicalEffort')<=effort_before+.001)
+            else:
+                check(activity+' produces configured physical effort',abs(dirty.get_editor_property('PhysicalEffort')-intensity)<.001)
             duration=training.get_session_duration();state['durations'][activity]=duration
             if activity in ['Meditate','Pray','RehearseSpeech']:check(activity+' is continuous',duration==0)
             if activity=='ReadBook':check('default book is 48 calendar hours',duration==48)
@@ -251,6 +274,13 @@ def tick(delta):
             phase('lock_compare')
         elif state['phase']=='lock_compare' and age>2:
             check('lock difficulty changes duration',0<training.get_session_duration()<state['durations']['PracticeLock'])
+            state['lock_without_intelligence']=training.get_session_duration()
+            training.cancel_training()
+            progression.practice('Intelligence',1,1.e9,False)
+            check('intelligent character can practice same lock',emotes.request_start_interaction_by_id('Actions.Training.PracticeLock'))
+            phase('lock_intelligence')
+        elif state['phase']=='lock_intelligence' and age>2:
+            check('intelligence gives a small bounded lock practice benefit',state['lock_without_intelligence']*.9<training.get_session_duration()<state['lock_without_intelligence'])
             state['lock_fixture'].set_actor_location(pawn.get_actor_location()+unreal.Vector(1000,0,0),False,False)
             phase('lock_left')
         elif state['phase']=='lock_left' and age>2:
@@ -262,6 +292,47 @@ def tick(delta):
             check('learned strength raises physical cap to nine hours',training.is_training_active() and abs(training.get_session_duration()-9)<1.e-6)
             training.cancel_training()
             state['lock_fixture'].destroy_actor();del state['lock_fixture']
+            progression.practice('Endurance',1,1.e9,False)
+            phase('sweat_synergy')
+        elif state['phase']=='sweat_synergy' and age>2:
+            dirty=unreal.DirtyPawnComponent.find_canonical_dirty_pawn_component(pawn)
+            state['sweat_synergy']={'learned_endurance':progression.get_learned_rank('Endurance'),'component':str(dirty),
+                                   'multiplier':dirty.get_activity_sweat_gain_multiplier() if dirty else None}
+            check('effective endurance reaches live sweat activity bridge',dirty is not None and abs(dirty.get_activity_sweat_gain_multiplier()-.7)<1.e-5)
+            original={property_name:dirty.get_editor_property(property_name) for property_name in ['SweatMovementGainPerSecond','SweatPoints']}
+            try:
+                # Controlled exertion fixture on the real, material-bound component.
+                dirty.set_editor_property('SweatMovementGainPerSecond',1.0)
+                dirty.dynamic_material_tick(20.0)
+                dirty.clear_sweat()
+                for name in ['Hunger','Thirst','Sleep']:needs.set_need_current_value(name,90,True)
+                check('physical exertion fixture starts',emotes.request_start_interaction_by_id('Actions.Training.PushUps'))
+                dirty.dynamic_material_tick(20.0)
+                state['sweat_synergy']['twenty_second_gain']=dirty.get_editor_property('SweatPoints')
+                check('real effort and endurance control sweat intake',abs(dirty.get_editor_property('SweatPoints')-9.625)<.001)
+                dirty.add_sweat_points(5.0)
+                check('direct sweat additions are not reduced',abs(dirty.get_editor_property('SweatPoints')-14.625)<.001)
+                training.cancel_training()
+                dirty.dynamic_material_tick(20.0)
+                check('rest fully recovers real effort',dirty.get_editor_property('PhysicalEffort')==0)
+            finally:
+                training.cancel_training()
+                dirty.set_editor_property('SweatMovementGainPerSecond',original['SweatMovementGainPerSecond'])
+                dirty.set_sweat_points(original['SweatPoints'])
+            check('physical pause fixture starts',emotes.request_start_interaction_by_id('Actions.Training.PushUps'))
+            check('physical exercise supports x4',clock.request_time_speed(4))
+            phase('effort_pause_start')
+        elif state['phase']=='effort_pause_start' and age>2:
+            dirty=unreal.DirtyPawnComponent.find_canonical_dirty_pawn_component(pawn)
+            check('live physical effort increases at x4',dirty.get_editor_property('PhysicalEffort')>.5)
+            check('physical exercise accepts pause',clock.toggle_player_pause())
+            state['paused_effort']=[dirty.get_editor_property(property_name) for property_name in ['PhysicalEffort','SweatPoints']]
+            phase('effort_paused')
+        elif state['phase']=='effort_paused' and age>2:
+            dirty=unreal.DirtyPawnComponent.find_canonical_dirty_pawn_component(pawn)
+            check('pause freezes physical effort and sweat',state['paused_effort']==[dirty.get_editor_property(property_name) for property_name in ['PhysicalEffort','SweatPoints']])
+            check('physical exercise resumes',clock.toggle_player_pause())
+            training.cancel_training()
             finish()
         elif state['phase']=='reading' and age>3:
             check('reading is active',training.is_training_active())

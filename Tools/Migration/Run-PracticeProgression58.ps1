@@ -27,7 +27,7 @@ Invoke-ProgressionSaveGuard -ProjectRoot $ProjectRoot -EvidenceDirectory ($repor
 }
 if ($Mode -eq 'Automation') {
  $receipt=Get-Content -LiteralPath ($report+'/index.json') -Raw | ConvertFrom-Json
- if ($receipt.Failed -or $receipt.NotRun -or $receipt.SucceededWithWarnings -or $receipt.Succeeded -lt 22) { throw 'Practice automation failed.' }
+ if ($receipt.Failed -or $receipt.NotRun -or $receipt.SucceededWithWarnings -or $receipt.Succeeded -lt 26) { throw 'Practice automation failed.' }
 } else {
  $path=Join-Path $ProjectRoot ('Saved/Analysis/PracticeProgression/' + $Mode + '/receipt.json')
  if (!(Test-Path -LiteralPath $path) -or (Get-Item -LiteralPath $path).LastWriteTimeUtc -lt $started) { throw 'Practice test interrupted.' }

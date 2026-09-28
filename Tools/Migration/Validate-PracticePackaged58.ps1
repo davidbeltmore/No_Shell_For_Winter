@@ -34,7 +34,9 @@ if ($ok) {
   $clocks[0].speed -eq 1 -and $clocks[1].speed -eq 2 -and $clocks[2].speed -eq 4 -and
   $clocks[3].paused -eq 1 -and $clocks[4].paused -eq 1 -and $clocks[3].hours -eq $clocks[4].hours
 }
-$ok=$ok -and $process.ExitCode -eq 0
-@{passed=$ok;exit_code=$process.ExitCode;reports=$reports;clocks=$clocks} | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 -LiteralPath ($out+'/receipt.json')
+$questErrors=@(Select-String -LiteralPath $log -SimpleMatch "Can't Start the quest")
+$cueConflicts=@(Select-String -LiteralPath $log -SimpleMatch 'Multiple gameplay cues are triggered')
+$ok=$ok -and $process.ExitCode -eq 0 -and $questErrors.Count -eq 0 -and $cueConflicts.Count -eq 0
+@{passed=$ok;exit_code=$process.ExitCode;reports=$reports;clocks=$clocks;quest_errors=$questErrors.Count;cue_conflicts=$cueConflicts.Count} | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 -LiteralPath ($out+'/receipt.json')
 if (!$ok -or $process.ExitCode -ne 0) { throw "Packaged practice validation failed: $out" }
 Write-Host "Packaged practice runtime PASS: $out. Visual inspection remains required."
