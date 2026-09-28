@@ -5,12 +5,25 @@
 #include "ACFSkillTreeComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "InputKeyEventArgs.h"
 #include "Kismet/GameplayStatics.h"
 #include "HAL/IConsoleManager.h"
 
 #if !UE_BUILD_SHIPPING
 namespace
 {
+FAutoConsoleCommandWithWorldAndArgs PracticeKey(TEXT("Project.Practice.Key"), TEXT("Development QA: inject W/O/Y/Escape down/up through the local controller input stack."),
+    FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+    {
+        if (!World || !World->IsGameWorld() || Args.Num() != 2) return;
+        const FKey Key(*Args[0]);
+        if (Key != EKeys::W && Key != EKeys::O && Key != EKeys::Y && Key != EKeys::Escape) return;
+        if (Args[1] != TEXT("down") && Args[1] != TEXT("up")) return;
+        if (auto* Controller = UGameplayStatics::GetPlayerController(World, 0); Controller && Controller->IsLocalController())
+            Controller->InputKey(FInputKeyEventArgs(nullptr, INPUTDEVICEID_NONE, Key,
+                Args[1] == TEXT("down") ? IE_Pressed : IE_Released, FPlatformTime::Cycles64()));
+    }));
 FAutoConsoleCommandWithWorldAndArgs PracticeStart(TEXT("Project.Practice.Start"), TEXT("Start an authored training activity through the Y interaction route."),
     FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
     {

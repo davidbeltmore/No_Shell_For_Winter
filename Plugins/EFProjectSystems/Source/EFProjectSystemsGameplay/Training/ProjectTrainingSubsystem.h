@@ -11,6 +11,7 @@ class APlayerController;
 class APawn;
 class UACFTrainingComponent;
 class UProjectTrainingLockpickWidget;
+class UProjectPracticeWidget;
 class UUserWidget;
 
 struct FProjectTrainingInputStateSnapshot
@@ -87,7 +88,11 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UProjectTrainingLockpickWidget> ActiveWidget;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UProjectPracticeWidget> PracticeWidget;
+
 	FProjectTrainingInputStateSnapshot InputSnapshot;
 	FTimerHandle CloseAfterResultTimerHandle;
 	bool bTrainingOpen = false;
+	bool bPracticeOverlay = false;
 };

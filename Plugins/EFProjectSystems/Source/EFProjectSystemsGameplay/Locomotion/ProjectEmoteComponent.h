@@ -201,6 +201,8 @@ public:
 
 	bool IsCombatLockoutActive(float LockoutSeconds) const;
 	void SetFreeCameraForwardInput(float Value);
+	UFUNCTION(BlueprintCallable, Category = "Training|Camera")
+	void ToggleTrainingFreeCamera();
 	void SetFreeCameraRightInput(float Value);
 	void SetFreeCameraVerticalInput(float Value);
 	void SetFreeCameraBoostActive(bool bActive);

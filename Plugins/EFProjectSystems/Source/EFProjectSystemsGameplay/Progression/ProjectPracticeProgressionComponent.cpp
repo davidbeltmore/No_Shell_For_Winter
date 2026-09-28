@@ -136,6 +136,15 @@ double UProjectPracticeProgressionComponent::GetPracticeEfficiency(FName Attribu
     return 1.0;
 }
 
+float UProjectPracticeProgressionComponent::GetRankProgressNormalized(FName Attribute) const
+{
+    const auto* S = GetDefault<UProjectPracticeSettings>();
+    const int32 Rank = FMath::FloorToInt(GetLearnedRank(Attribute));
+    if (Rank >= S->MaximumAttributeRank) return 1.f;
+    const double Cost = FMath::Max(1.0, S->PracticeForFirstRank * (1.0 + S->RankCostGrowth * Rank));
+    return static_cast<float>(FMath::Clamp(GetPracticeProgress(Attribute) / Cost, 0.0, 1.0));
+}
+
 double UProjectPracticeProgressionComponent::GetRestHours(FName Attribute) const
 {
     const auto* S = GetDefault<UProjectPracticeSettings>();

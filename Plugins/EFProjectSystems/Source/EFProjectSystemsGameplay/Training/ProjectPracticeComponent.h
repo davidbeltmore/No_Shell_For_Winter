@@ -19,6 +19,7 @@ public:
     UFUNCTION(BlueprintCallable, Category="Training") bool ConfigureBook(FName BookId, double RequiredCalendarHours);
     UFUNCTION(BlueprintPure, Category="Training") double GetSessionHours() const { return SessionHours; }
     UFUNCTION(BlueprintPure, Category="Training") double GetSessionDuration() const { return SessionDuration; }
+    UFUNCTION(BlueprintPure, Category="Training") FName GetPracticedAttribute() const { return PracticedAttribute; }
     UFUNCTION(BlueprintPure, Category="Training") double GetBookHours(FName BookId) const { return BookHours.FindRef(BookId); }
     UFUNCTION(BlueprintPure, Category="Training") double GetActivityProgress() const;
     UFUNCTION(BlueprintPure, Category="Training") FText GetPracticeDescription() const;
@@ -30,6 +31,8 @@ protected:
     virtual bool StartTrainingAuthority(FName TrainingId) override;
     virtual void CancelTrainingAuthority() override;
     virtual void CompleteTrainingAuthority(bool bSuccess) override;
+    // All current activities are passive. Keep the portable input/session contract
+    // for future key-sequence challenges, without activating the old timing game.
     virtual bool StartTimingMinigameSessionAuthority(int32, int32, float, float, float) override { return false; }
 private:
     bool NeedsAllowPractice() const;

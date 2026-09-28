@@ -1675,6 +1675,7 @@ void UProjectEmoteSubsystem::ApplyActiveEmoteInputCapture()
 	BindActionKey(EKeys::Comma, IE_Pressed, &ThisClass::HandleAllowedNeedsHudPressed);
 	BindActionKey(EKeys::J, IE_Pressed, &ThisClass::HandleAllowedChronicleExpandPressed);
 	BindActionKey(EKeys::P, IE_Pressed, &ThisClass::HandleAllowedPausePressed, true);
+	BindActionKey(EKeys::O, IE_Pressed, &ThisClass::HandleTrainingCameraTogglePressed);
 
 	static const FKey BlockedKeys[] =
 	{
@@ -1796,6 +1797,11 @@ void UProjectEmoteSubsystem::SetFreeCameraBoostActive(const bool bActive)
 
 void UProjectEmoteSubsystem::HandleToggleMenuPressed()
 {
+	if (auto* Practice = Cast<UProjectPracticeComponent>(TrackedTrainingComponent); Practice && Practice->IsTrainingActive())
+	{
+		Practice->CancelTraining();
+		return;
+	}
 	if (bRuntimeActionActive)
 	{
 		if (ActiveRuntimeActionRequest.bAllowCancel && ActiveRuntimeActionRequest.bCancelWithY)
@@ -1884,6 +1890,11 @@ void UProjectEmoteSubsystem::HandleMenuCancelRequested()
 void UProjectEmoteSubsystem::HandleFreeCameraForwardPressed()
 {
 	SetFreeCameraForwardInput(1.0f);
+}
+
+void UProjectEmoteSubsystem::HandleTrainingCameraTogglePressed()
+{
+	if (TrackedEmoteComponent) TrackedEmoteComponent->ToggleTrainingFreeCamera();
 }
 
 void UProjectEmoteSubsystem::HandleFreeCameraForwardReleased()

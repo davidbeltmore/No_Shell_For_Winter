@@ -3,6 +3,7 @@
 #include "EFProjectUIPalette.h"
 #include "ACFTrainingComponent.h"
 #include "Training/ProjectPracticeComponent.h"
+#include "Training/ProjectPracticeWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
@@ -104,6 +105,17 @@ bool UProjectTrainingSubsystem::OpenTraining(UACFTrainingComponent* TrainingComp
 		BoundTrainingComponent->OnTrainingRejected.AddUniqueDynamic(this, &ThisClass::HandleTrainingRejected);
 	}
 
+	if (auto* Practice = Cast<UProjectPracticeComponent>(TrainingComponent))
+	{
+		if (!PracticeWidget) PracticeWidget = CreateWidget<UProjectPracticeWidget>(ActivePlayerController);
+		if (!PracticeWidget) return false;
+		PracticeWidget->Configure(Practice);
+		if (!PracticeWidget->IsInViewport() && !PracticeWidget->AddToPlayerScreen(100)) PracticeWidget->AddToViewport(100);
+		bPracticeOverlay = true;
+		bTrainingOpen = true;
+		return true; // Animation owns movement/camera; this HUD never captures input.
+	}
+
 	EnsureTrainingWidget(ActivePlayerController);
 	if (!ActiveWidget)
 	{
@@ -156,12 +168,19 @@ void UProjectTrainingSubsystem::CloseTraining(const bool bCancelTraining)
 		ActiveWidget->RemoveFromParent();
 	}
 
-	if (bTrainingOpen)
+	if (PracticeWidget)
+	{
+		PracticeWidget->RemoveFromParent();
+		PracticeWidget->Configure(nullptr);
+	}
+
+	if (bTrainingOpen && !bPracticeOverlay)
 	{
 		RestoreInputCapture();
 	}
 
 	bTrainingOpen = false;
+	bPracticeOverlay = false;
 	ActiveTrainingComponent = nullptr;
 	ActivePawn = nullptr;
 	UnbindFromTrainingComponent();
@@ -176,6 +195,12 @@ void UProjectTrainingSubsystem::HandleTrainingCompleted(const FName TrainingId, 
 {
 	(void)TrainingId;
 	(void)TargetAttribute;
+	if (bPracticeOverlay)
+	{
+		StopTrainingEmote();
+		CloseTraining(false);
+		return;
+	}
 
 	if (ActiveWidget)
 	{

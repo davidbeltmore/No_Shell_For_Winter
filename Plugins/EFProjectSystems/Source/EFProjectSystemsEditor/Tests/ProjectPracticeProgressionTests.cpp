@@ -84,6 +84,7 @@ bool FProjectPracticeNativeTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("Rank earned without points"),Practice->GetLearnedRank(TEXT("Willpower")),1.f);
     const double Fraction=Practice->GetPracticeProgress(TEXT("Willpower"));
     TestTrue(TEXT("Partial progress retained"),Fraction>0.0);
+    TestTrue(TEXT("Rank bar measures learning toward the next rank"),FMath::Abs(Practice->GetRankProgressNormalized(TEXT("Willpower"))-Fraction/108.0)<1.e-6);
     const int32 OldPoints=Skills->GetSkillPoints();
     TestTrue(TEXT("Native XP accepts multi-level reward"),Practice->GrantExperience(250));
     TestEqual(TEXT("One native level counter"),Stats->GetCurrentLevel(),3);

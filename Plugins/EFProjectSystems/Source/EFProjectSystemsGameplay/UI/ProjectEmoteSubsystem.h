@@ -208,6 +208,7 @@ private:
 	void HandleAllowedNeedsHudPressed();
 	void HandleAllowedChronicleExpandPressed();
 	void HandleAllowedPausePressed();
+	void HandleTrainingCameraTogglePressed();
 	void HandleBlockedActiveEmoteInput();
 
 private:

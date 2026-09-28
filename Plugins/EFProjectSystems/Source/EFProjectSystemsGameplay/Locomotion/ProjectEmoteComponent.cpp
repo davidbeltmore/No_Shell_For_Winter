@@ -1027,6 +1027,21 @@ void UProjectEmoteComponent::SetFreeCameraForwardInput(const float Value)
 	FreeCameraForwardInput = FMath::Clamp(Value, -1.0f, 1.0f);
 }
 
+void UProjectEmoteComponent::ToggleTrainingFreeCamera()
+{
+	if (!ActiveInteractionId.ToString().StartsWith(TEXT("Actions.Training."))) return;
+	APlayerController* PlayerController = ResolveOwningPlayerController();
+	if (ActiveFreeCameraActor)
+	{
+		StopFreeCamera(PlayerController);
+		SetComponentTickEnabled(true); // Camera toggle must not stop the active animation/effects.
+	}
+	else
+	{
+		StartFreeCamera(PlayerController);
+	}
+}
+
 void UProjectEmoteComponent::SetFreeCameraRightInput(const float Value)
 {
 	FreeCameraRightInput = FMath::Clamp(Value, -1.0f, 1.0f);
@@ -3717,7 +3732,8 @@ void UProjectEmoteComponent::RestoreBlueprintSceneState()
 
 void UProjectEmoteComponent::StartFreeCamera(APlayerController* PlayerController)
 {
-	if (!bUseFreeCameraDuringEmote || ActiveFreeCameraActor || !PlayerController || !PlayerController->IsLocalController())
+	const bool bTrainingCamera = ActiveInteractionId.ToString().StartsWith(TEXT("Actions.Training."));
+	if ((!bUseFreeCameraDuringEmote && !bTrainingCamera) || ActiveFreeCameraActor || !PlayerController || !PlayerController->IsLocalController())
 	{
 		return;
 	}
@@ -3755,6 +3771,7 @@ void UProjectEmoteComponent::StartFreeCamera(APlayerController* PlayerController
 	if (UCameraComponent* CameraComponent = ActiveFreeCameraActor->GetCameraComponent())
 	{
 		CameraComponent->SetFieldOfView(CameraFov);
+		if (bTrainingCamera) CameraComponent->bConstrainAspectRatio = false;
 	}
 
 	SavedViewTarget = PlayerController->GetViewTarget();

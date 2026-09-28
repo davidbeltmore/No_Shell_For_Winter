@@ -6,6 +6,7 @@ UProjectPracticeSettings::UProjectPracticeSettings()
     {
         auto& D = Activities.AddDefaulted_GetRef();
         D.Id = Id; D.Attribute = Attribute; D.Name = FText::FromString(Name); D.Method = Method; D.DurationHours = Hours;
+        D.Description = FText::FromString(Name);
         D.Animation = FSoftObjectPath(TEXT("/Game/_Game/Animations/Emotes/Sit/Anim_KA_Idle53_Seiza_Loop1.Anim_KA_Idle53_Seiza_Loop1"));
     };
     Add(TEXT("PushUps"), TEXT("Strength"), TEXT("Physical conditioning"), EProjectPracticeMethod::Physical, 3.0);

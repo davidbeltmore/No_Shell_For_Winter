@@ -32,6 +32,7 @@ public:
     static FGameplayAttribute ResolveAttribute(FName Name);
     UFUNCTION(BlueprintPure, Category="Progression") float GetLearnedRank(FName Attribute) const;
     UFUNCTION(BlueprintPure, Category="Progression") double GetPracticeProgress(FName Attribute) const;
+    UFUNCTION(BlueprintPure, Category="Progression") float GetRankProgressNormalized(FName Attribute) const;
     UFUNCTION(BlueprintPure, Category="Progression") double GetPracticeEfficiency(FName Attribute) const;
     UFUNCTION(BlueprintPure, Category="Progression") double GetRestHours(FName Attribute) const;
     UFUNCTION(BlueprintCallable, Category="Progression") double Practice(FName Attribute, double Hours, double Rate, bool bGrantGlobalExperience = true);

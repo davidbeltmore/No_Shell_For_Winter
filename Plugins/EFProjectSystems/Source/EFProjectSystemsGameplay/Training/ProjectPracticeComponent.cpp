@@ -26,8 +26,8 @@ void UProjectPracticeComponent::BeginPlay()
     {
         auto& Entry = TrainingDefinitionOverrides.AddDefaulted_GetRef();
         Entry.TrainingId = D.Id;
-        Entry.DisplayName = D.Name;
-        Entry.Description = FText::FromString(TEXT("Practice gradually. Rest when tired; progress is retained."));
+        Entry.DisplayName = FText::Format(NSLOCTEXT("ProjectPractice", "ExerciseAttribute", "{0} · {1}"), D.Name, FText::FromName(D.Attribute));
+        Entry.Description = FText::Format(NSLOCTEXT("ProjectPractice", "MenuDescription", "{0}. WASD + mouse: camera | Q/E: height | O: camera toggle | Y/Esc: stop."), D.Description);
         Entry.TargetPrimaryAttribute = FGameplayTag::RequestGameplayTag(FName(*(TEXT("RPG.PrimaryAttributes.") + D.Attribute.ToString())), false);
         Entry.TrainingAnimation = TSoftObjectPtr<UAnimationAsset>(D.Animation);
         Entry.SuccessReward = 0.0f; // No completion bonus; all progress is integrated from actual practice.

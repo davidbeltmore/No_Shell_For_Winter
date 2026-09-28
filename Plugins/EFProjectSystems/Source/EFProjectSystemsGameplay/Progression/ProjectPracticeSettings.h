@@ -14,6 +14,7 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectPracticeDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FName Id;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FName Attribute;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FText Name;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FText Description;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) EProjectPracticeMethod Method = EProjectPracticeMethod::Continuous;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) double DurationHours = 0.0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) double PracticePerHour = 25.0;
