@@ -1,4 +1,5 @@
 #include "Combat/ProjectCombatAttributeComponent.h"
+#include "Progression/ProjectAttributeSynergies.h"
 
 #include "Combat/ProjectCombatTypes.h"
 #include "Defeat/ProjectDefeatFlowSettings.h"
@@ -293,7 +294,7 @@ float UProjectCombatAttributeComponent::ApplyQualifiedPainHit(FProjectIncomingHi
 
 	const float RequestedPainDelta = UProjectDefeatFlowSettings::ComputePainFromAppliedDamage(
 		HitContext.AppliedDamage,
-		Settings ? Settings->PainPerAppliedDamage : 0.01f);
+		Settings ? Settings->PainPerAppliedDamage : 0.01f) * FProjectAttributeSynergies::PainGainMultiplier(OwnerActor);
 	if (RequestedPainDelta <= KINDA_SMALL_NUMBER)
 	{
 		return 0.f;

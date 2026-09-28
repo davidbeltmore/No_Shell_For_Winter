@@ -1,4 +1,5 @@
 #include "DirtyPawnComponent.h"
+#include "DirtyPawnEffort.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Texture.h"
@@ -1786,6 +1787,25 @@ float UDirtyPawnComponent::GetMaxWashableDirtyAlphaInRange(float MinHeight, floa
 	return MaxAlpha;
 }
 
+FDirtyPawnSweatActivityMultiplier& UDirtyPawnComponent::ActivitySweatGainResolver()
+{
+	static FDirtyPawnSweatActivityMultiplier Resolver;
+	return Resolver;
+}
+
+FDirtyPawnSweatActivityMultiplier& UDirtyPawnComponent::PhysicalEffortResolver()
+{
+	static FDirtyPawnSweatActivityMultiplier Resolver;
+	return Resolver;
+}
+
+float UDirtyPawnComponent::GetActivitySweatGainMultiplier() const
+{
+	const auto& Resolver = ActivitySweatGainResolver();
+	const float Scale = Resolver.IsBound() ? Resolver.Execute(GetOwner()) : 1.f;
+	return FMath::IsFinite(Scale) ? FMath::Clamp(Scale, 0.1f, 10.f) : 1.f;
+}
+
 bool UDirtyPawnComponent::ApplySweatActivity(float GainPerSecond, float DeltaSeconds)
 {
 	if (GainPerSecond <= 0.0f || DeltaSeconds <= 0.0f)
@@ -1801,7 +1821,8 @@ bool UDirtyPawnComponent::ApplySweatActivity(float GainPerSecond, float DeltaSec
 
 	SweatMaxPoints = FMath::Max(SweatMaxPoints, 0.001f);
 	SweatIdleSeconds = 0.0f;
-	SweatPoints = FMath::Clamp(SweatPoints + GainPerSecond * DeltaSeconds, 0.0f, SweatMaxPoints);
+	const float GainScale = GetActivitySweatGainMultiplier();
+	SweatPoints = FMath::Clamp(SweatPoints + GainPerSecond * GainScale * DeltaSeconds, 0.0f, SweatMaxPoints);
 	if (GetSweatNormalizedValue() >= FMath::Clamp(SweatPersistenceThreshold, 0.0f, 1.0f))
 	{
 		bSweatPersistentFloorActive = true;
@@ -1832,45 +1853,36 @@ bool UDirtyPawnComponent::UpdateSweatState(float DeltaSeconds)
 		return false;
 	}
 
-	float GainPerSecond = 0.0f;
+	float Intensity = 0.0f;
 	AActor* Owner = GetOwner();
 	if (Owner)
 	{
 		const FVector Velocity = Owner->GetVelocity();
 		const float GroundSpeed = FVector2D(Velocity.X, Velocity.Y).Size();
 		const float RunningThreshold = FMath::Max(SweatRunningSpeedThreshold, 0.0f);
-		const bool bRunning = GroundSpeed >= RunningThreshold;
-
-		bool bJumping = false;
 		if (const ACharacter* CharacterOwner = Cast<ACharacter>(Owner))
 		{
 			if (const UCharacterMovementComponent* CharacterMovement = CharacterOwner->GetCharacterMovement())
 			{
-				bJumping = CharacterMovement->IsFalling();
+				// Passive falls, flying/free camera, and walking are not physical exercise.
+				if (CharacterMovement->IsMovingOnGround() && GroundSpeed > FMath::Max(RunningThreshold, 1.f)) Intensity = 1.f;
+				if (CharacterOwner->bWasJumping && CharacterMovement->IsFalling() && Velocity.Z > 0.f) Intensity = FMath::Max(Intensity, .7f);
 			}
 		}
 
-		bool bAltRollActivity = false;
-		if (const APawn* PawnOwner = Cast<APawn>(Owner))
+		const auto& Resolver = PhysicalEffortResolver();
+		if (Resolver.IsBound())
 		{
-			if (const APlayerController* PlayerController = Cast<APlayerController>(PawnOwner->GetController()))
-			{
-				const bool bAltHeld = PlayerController->IsInputKeyDown(EKeys::LeftAlt)
-					|| PlayerController->IsInputKeyDown(EKeys::RightAlt);
-				const float MeaningfulSpeed = FMath::Max(RunningThreshold * 0.25f, 120.0f);
-				bAltRollActivity = bAltHeld && GroundSpeed >= MeaningfulSpeed;
-			}
-		}
-
-		if (bRunning || bJumping || bAltRollActivity)
-		{
-			GainPerSecond = FMath::Max(GainPerSecond, SweatMovementGainPerSecond);
+			const float Activity = Resolver.Execute(Owner);
+			if (FMath::IsFinite(Activity)) Intensity = FMath::Max(Intensity, FMath::Clamp(Activity, 0.f, 1.f));
 		}
 	}
 
-	if (GainPerSecond > 0.0f)
+	const float EffectiveSeconds = FDirtyPawnEffort::Advance(PhysicalEffort, Intensity, DeltaSeconds,
+		EffortRiseSeconds, EffortRecoverySeconds, SweatEffortThreshold);
+	if (EffectiveSeconds > 0.0f && SweatMovementGainPerSecond > 0.0f)
 	{
-		return ApplySweatActivity(GainPerSecond, DeltaSeconds);
+		return ApplySweatActivity(SweatMovementGainPerSecond, EffectiveSeconds);
 	}
 
 	bool bChanged = false;

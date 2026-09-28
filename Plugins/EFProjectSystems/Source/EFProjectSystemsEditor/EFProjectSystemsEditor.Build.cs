@@ -36,6 +36,9 @@ public class EFProjectSystemsEditor : ModuleRules
 		{
 			"ACFTrainingSystem",
 			"AdvancedRPGSystem",
+			"AGSGraphRuntime",
+			"AscentQuestSystem",
+			"DirtyPawnRuntime",
 			"AscentGASRuntime",
 			"CharacterController",
 			"UnrealEd",

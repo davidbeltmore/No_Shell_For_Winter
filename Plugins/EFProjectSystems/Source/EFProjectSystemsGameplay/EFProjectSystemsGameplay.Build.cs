@@ -62,7 +62,8 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"ActionsSystem",
 			"CharacterController",
 			"CollisionsManager",
-			"AscentSaveSystem"
+			"AscentSaveSystem",
+			"AscentQuestSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

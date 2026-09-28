@@ -1,5 +1,6 @@
 #include "Training/ProjectPracticeComponent.h"
 #include "Progression/ProjectPracticeSettings.h"
+#include "Progression/ProjectAttributeSynergies.h"
 #include "Progression/ProjectPracticeProgressionComponent.h"
 #include "DayCycle/ProjectDayCycleSettings.h"
 #include "DayCycle/ProjectDayCycleSubsystem.h"
@@ -106,7 +107,8 @@ bool UProjectPracticeComponent::StartTrainingAuthority(FName Id)
         PracticeLock = FindNearbyLock();
         if (!PracticeLock.IsValid()) return false;
         SessionDuration = (0.25 + 2.75 * FMath::Clamp(PracticeLock->Difficulty, 1, 100) / 100.0)
-            / (1.0 + 0.01 * Progression->GetLearnedRank(TEXT("Cunning")));
+            / (1.0 + 0.01 * (FProjectAttributeSynergies::EffectiveRank(GetOwner(), TEXT("Cunning"))
+                + FProjectAttributeSynergies::IntelligenceLockpickBonus(GetOwner())));
     }
     ActiveTrainingId = Id;
     ActiveTrainingStartTime = GetWorld()->GetTimeSeconds();

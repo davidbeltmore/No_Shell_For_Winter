@@ -18,6 +18,7 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectPracticeDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite) EProjectPracticeMethod Method = EProjectPracticeMethod::Continuous;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) double DurationHours = 0.0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) double PracticePerHour = 25.0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", ClampMax="1")) float PhysicalEffortIntensity = 0.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) FSoftObjectPath Animation;
 };
 
@@ -37,5 +38,9 @@ public:
     UPROPERTY(Config, EditAnywhere, Category="Recovery", meta=(ClampMin="0.01")) double RecoveryPerCalendarHour = 2.0;
     UPROPERTY(Config, EditAnywhere, Category="Recovery", meta=(ClampMin="0.01")) double RecoveryDebtScale = 12.0;
     UPROPERTY(Config, EditAnywhere, Category="Activities") TArray<FProjectPracticeDefinition> Activities;
+    UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0", ClampMax="0.9")) float ConstitutionMaximumPainReduction = 0.25f;
+    UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0", ClampMax="0.9")) float EnduranceMaximumSweatReduction = 0.30f;
+    UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0")) float IntelligenceLockpickContribution = 0.05f;
+    UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0")) int32 IntelligenceMaximumLockpickBonus = 5;
     const FProjectPracticeDefinition* Find(FName Id) const;
 };

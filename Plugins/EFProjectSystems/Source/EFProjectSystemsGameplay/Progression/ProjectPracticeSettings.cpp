@@ -23,6 +23,10 @@ UProjectPracticeSettings::UProjectPracticeSettings()
     Add(TEXT("Celerity"), TEXT("Celerity"), TEXT("Footwork"), EProjectPracticeMethod::Physical, 1.5);
     for (auto& D : Activities)
     {
+        if (D.Method == EProjectPracticeMethod::Physical) D.PhysicalEffortIntensity = .65f;
+        if (D.Id == TEXT("PushUps") || D.Id == TEXT("JumpRope")) D.PhysicalEffortIntensity = 1.f;
+        if (D.Id == TEXT("Balance")) D.PhysicalEffortIntensity = .35f;
+        if (D.Id == TEXT("Constitution")) D.PhysicalEffortIntensity = .45f;
         if (D.Method == EProjectPracticeMethod::Physical)
             D.Animation = FSoftObjectPath(TEXT("/Game/_Game/Animations/Emotes/General/Anim_KA_Idle05_Stretch.Anim_KA_Idle05_Stretch"));
         if (D.Id == TEXT("RehearseSpeech"))

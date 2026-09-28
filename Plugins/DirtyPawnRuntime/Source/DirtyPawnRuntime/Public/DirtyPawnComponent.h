@@ -8,6 +8,7 @@ class UMaterialInterface;
 class USkeletalMeshComponent;
 class UTexture;
 class AActor;
+DECLARE_DELEGATE_RetVal_OneParam(float, FDirtyPawnSweatActivityMultiplier, const AActor*);
 
 UENUM(BlueprintType)
 enum class EDirtyPawnPrewarmState : uint8
@@ -359,6 +360,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Dirty Pawn|Sweat")
 	void AddSweatPoints(float DeltaSweatPoints);
 
+	/** Optional project-owned policy. The portable plugin has no RPG dependency. */
+	static FDirtyPawnSweatActivityMultiplier& ActivitySweatGainResolver();
+	/** Optional gameplay provider: only explicitly physical activities return a positive intensity. */
+	static FDirtyPawnSweatActivityMultiplier& PhysicalEffortResolver();
+	UFUNCTION(BlueprintPure, Category = "Dirty Pawn|Sweat")
+	float GetActivitySweatGainMultiplier() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Dirty Pawn|Sweat")
 	void ClearSweat();
 
@@ -699,8 +707,17 @@ public:
 	float SweatMaxPoints = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Sweat", meta = (ClampMin = "0.0"))
-	// Running, jumping, and rolling should require 100 seconds of activity to reach 100% sweat.
+	// Maximum sweat rate after physical effort warms up.
 	float SweatMovementGainPerSecond = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Dirty Pawn|Effort")
+	float PhysicalEffort = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Effort", meta = (ClampMin = "0.01"))
+	float EffortRiseSeconds = 10.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Effort", meta = (ClampMin = "0.01"))
+	float EffortRecoverySeconds = 20.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Effort", meta = (ClampMin = "0", ClampMax = "0.99"))
+	float SweatEffortThreshold = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Sweat", meta = (ClampMin = "0.0"))
 	float SweatIntimacyGainPerSecond = 2.0f;

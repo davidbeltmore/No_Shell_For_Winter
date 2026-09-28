@@ -1,4 +1,5 @@
 #include "Lockpicking/ProjectLockpickableComponent.h"
+#include "Progression/ProjectAttributeSynergies.h"
 
 #include "Components/ACFInventoryComponent.h"
 #include "Components/ACFInteractableComponent.h"
@@ -538,14 +539,14 @@ int32 UProjectLockpickableComponent::ResolveCunningLevel(APawn* Pawn) const
 
 	if (const UProjectInnerDoctrineComponent* Component = Pawn->FindComponentByClass<UProjectInnerDoctrineComponent>())
 	{
-		return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning);
+		return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning) + FProjectAttributeSynergies::IntelligenceLockpickBonus(Pawn);
 	}
 
 	if (const AController* Controller = Pawn->GetController())
 	{
 		if (const UProjectInnerDoctrineComponent* Component = Controller->FindComponentByClass<UProjectInnerDoctrineComponent>())
 		{
-			return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning);
+			return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning) + FProjectAttributeSynergies::IntelligenceLockpickBonus(Pawn);
 		}
 	}
 

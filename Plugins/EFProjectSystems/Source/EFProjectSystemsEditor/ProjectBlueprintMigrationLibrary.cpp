@@ -10,8 +10,44 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "UObject/UnrealType.h"
+#include "K2Node_CallFunction.h"
+#include "EdGraphSchema_K2.h"
+#include "Progression/ProjectQuestStartComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectBlueprintMigration, Log, All);
+
+bool UProjectBlueprintMigrationLibrary::AdaptDefaultQuestStart(UBlueprint* Blueprint)
+{
+    if (!Blueprint || Blueprint->GetPathName()!=TEXT("/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP.ACFUltimatePlayerControllerBP")) return false;
+    TArray<UEdGraph*> Graphs; Blueprint->GetAllGraphs(Graphs);
+    UK2Node_CallFunction* Original=nullptr;
+    for (auto* Graph:Graphs) for (UEdGraphNode* Node:Graph->Nodes)
+    {
+        auto* Call=Cast<UK2Node_CallFunction>(Node);
+        if (!Call) continue;
+        if (Call->FunctionReference.GetMemberName()==TEXT("StartQuestWhenReady")) return Blueprint->Status==BS_UpToDate;
+        if (Call->GetFName()==TEXT("K2Node_CallFunction_14") && Call->FunctionReference.GetMemberName()==TEXT("StartQuest")) Original=Call;
+    }
+    if (!Original || !Original->FindPin(TEXT("ReturnValue"))->LinkedTo.IsEmpty() || !Original->FindPin(TEXT("then"))->LinkedTo.IsEmpty()) return false;
+    auto* Graph=Original->GetGraph();
+    auto* Replacement=NewObject<UK2Node_CallFunction>(Graph);
+    Replacement->SetFromFunction(UProjectQuestStartComponent::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UProjectQuestStartComponent,StartQuestWhenReady)));
+    Graph->AddNode(Replacement,false,false); Replacement->CreateNewGuid(); Replacement->PostPlacedNewNode(); Replacement->AllocateDefaultPins();
+    Replacement->NodePosX=Original->NodePosX; Replacement->NodePosY=Original->NodePosY;
+    const auto* Schema=Graph->GetSchema();
+    for (auto* Pin:Original->Pins)
+    {
+        if (Pin->LinkedTo.IsEmpty()) continue;
+        auto* NewPin=Replacement->FindPin(Pin->PinName==UEdGraphSchema_K2::PN_Self ? FName(TEXT("Manager")) : Pin->PinName);
+        if (!NewPin) return false;
+        const auto Links=Pin->LinkedTo;
+        for (auto* Link:Links) if (!Schema->TryCreateConnection(NewPin,Link)) return false;
+    }
+    FBlueprintEditorUtils::RemoveNode(Blueprint,Original,true);
+    FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+    FKismetEditorUtilities::CompileBlueprint(Blueprint);
+    return Blueprint->Status==BS_UpToDate;
+}
 
 namespace
 {

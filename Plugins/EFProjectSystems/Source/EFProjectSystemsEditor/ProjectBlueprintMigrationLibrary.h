@@ -13,6 +13,9 @@ class EFPROJECTSYSTEMSEDITOR_API UProjectBlueprintMigrationLibrary : public UBlu
 	GENERATED_BODY()
 
 public:
+	/** Replaces only the sample controller's automatic start call; compiles without saving. */
+	UFUNCTION(BlueprintCallable, Category = "Project|Migration")
+	static bool AdaptDefaultQuestStart(UBlueprint* Blueprint);
 	/**
 	 * Restores the legacy TattooShop character contract after its parent was
 	 * intentionally excluded from migration. The target parent and Blueprint

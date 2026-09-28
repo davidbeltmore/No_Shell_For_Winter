@@ -8,6 +8,8 @@
 #include "GameplayTagContainer.h"
 #include "Intimacy/ProjectIntimacyPartnerComponent.h"
 #include "Modules/ModuleManager.h"
+#include "DirtyPawnComponent.h"
+#include "Progression/ProjectAttributeSynergies.h"
 
 namespace ProjectSystemsGameplayModulePrivate
 {
@@ -79,6 +81,8 @@ class FEFProjectSystemsGameplayModule : public IModuleInterface
 public:
 	virtual void StartupModule() override
 	{
+		UDirtyPawnComponent::ActivitySweatGainResolver().BindStatic(&FProjectAttributeSynergies::SweatGainMultiplier);
+		UDirtyPawnComponent::PhysicalEffortResolver().BindStatic(&FProjectAttributeSynergies::PhysicalEffortIntensity);
 		IdentityChangedHandle = EFCharacterCreationGameplayHooks::OnIdentityChanged().AddStatic(&ProjectSystemsGameplayModulePrivate::HandleCharacterCreationIdentityChanged);
 		check(!CalystoPopulationBridge.IsValid());
 		CalystoPopulationBridge = MakeUnique<FProjectCalystoPopulationBridge>();
@@ -94,6 +98,8 @@ public:
 
 	virtual void ShutdownModule() override
 	{
+		UDirtyPawnComponent::ActivitySweatGainResolver().Unbind();
+		UDirtyPawnComponent::PhysicalEffortResolver().Unbind();
 		if (CalystoContentAttemptProvider.IsValid())
 		{
 			IModularFeatures::Get().UnregisterModularFeature(

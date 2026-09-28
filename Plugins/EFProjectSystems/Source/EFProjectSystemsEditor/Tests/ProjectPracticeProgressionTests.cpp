@@ -1,6 +1,19 @@
 #include "Misc/AutomationTest.h"
 #include "Progression/ProjectPracticeMath.h"
 #include "Progression/ProjectPracticeSettings.h"
+#include "Progression/ProjectAttributeSynergies.h"
+#include "Progression/ProjectGameplayCueManager.h"
+#include "AbilitySystemGlobals.h"
+#include "GameplayCueNotify_Static.h"
+#include "AssetRegistry/AssetData.h"
+#include "Progression/ProjectQuestStartComponent.h"
+#include "Graph/AQSQuest.h"
+#include "Graph/AQSStartQuestNode.h"
+#include "Graph/AQSObjectiveNode.h"
+#include "AQSQuestObjective.h"
+#include "AQSQuestTargetComponent.h"
+#include "DirtyPawnComponent.h"
+#include "DirtyPawnEffort.h"
 #include <limits>
 #include "Progression/ProjectPracticeProgressionComponent.h"
 #include "Progression/ProjectDoctrineAttributeSet.h"
@@ -23,6 +36,122 @@
 #include "GameFramework/Pawn.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPhysicalEffortTest, "NoShellForWinter.Practice.PhysicalEffort", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectPhysicalEffortTest::RunTest(const FString& Parameters)
+{
+    float Effort=0.f;
+    TestEqual(TEXT("Brief movement stays below sweat threshold"), FDirtyPawnEffort::Advance(Effort,1.f,2.f,10.f,20.f,.25f),0.f);
+    TestTrue(TEXT("Effort warms gradually"),FMath::IsNearlyEqual(Effort,.2f));
+    const float Before=Effort;
+    TestEqual(TEXT("Pause adds no sweat"),FDirtyPawnEffort::Advance(Effort,1.f,0.f,10.f,20.f,.25f),0.f);
+    TestEqual(TEXT("Pause freezes effort"),Effort,Before);
+    float Reference=0.f;
+    const float Whole=FDirtyPawnEffort::Advance(Reference,1.f,20.f,10.f,20.f,.25f);
+    TestTrue(TEXT("Exact warmup integration"),FMath::IsNearlyEqual(Whole,13.75f));
+    for (const float Speed : {1.f,2.f,4.f})
+    {
+        float Split=0.f, Sum=0.f;
+        for (int32 Tick=0;Tick<static_cast<int32>(1200/Speed);++Tick)
+            Sum+=FDirtyPawnEffort::Advance(Split,1.f,Speed/60.f,10.f,20.f,.25f);
+        TestTrue(TEXT("Same simulation duration at x1/x2/x4"),FMath::IsNearlyEqual(Sum,Whole,.002f));
+    }
+    TestEqual(TEXT("Rest does not create sweat"),FDirtyPawnEffort::Advance(Reference,0.f,20.f,10.f,20.f,.25f),0.f);
+    TestEqual(TEXT("Rest fully recovers effort"),Reference,0.f);
+    TestEqual(TEXT("Quiet activity never builds effort"),FDirtyPawnEffort::Advance(Reference,0.f,3600.f,10.f,20.f,.25f),0.f);
+    const auto* Settings=GetDefault<UProjectPracticeSettings>();
+    for (const auto& Definition : Settings->Activities)
+        TestEqual(*Definition.Id.ToString(),Definition.PhysicalEffortIntensity>0.f,Definition.Method==EProjectPracticeMethod::Physical);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPracticeQuestTest, "NoShellForWinter.Practice.QuestTargetAvailability", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectPracticeQuestTest::RunTest(const FString& Parameters)
+{
+    auto* World=UWorld::CreateWorld(EWorldType::Game,false);
+    auto* OtherWorld=UWorld::CreateWorld(EWorldType::Game,false);
+    auto* Quest=NewObject<UAQSQuest>();
+    auto* Start=NewObject<UAQSStartQuestNode>(Quest);
+    auto* Node=NewObject<UAQSObjectiveNode>(Quest);
+    auto* Objective=NewObject<UAQSQuestObjective>(Node);
+    Quest->AllNodes={Start,Node}; Start->ChildrenNodes.Add(Node);
+    FindFProperty<FObjectPropertyBase>(Node->GetClass(),TEXT("Objective"))->SetObjectPropertyValue_InContainer(Node,Objective);
+    auto* References=FindFProperty<FArrayProperty>(Objective->GetClass(),TEXT("ReferencedActors"))->ContainerPtrToValuePtr<TArray<TSoftObjectPtr<AActor>>>(Objective);
+    References->Add(TSoftObjectPtr<AActor>(FSoftObjectPath(TEXT("/Game/MissingQuestWorld.MissingQuestWorld:PersistentLevel.Target"))));
+    TestFalse(TEXT("Unavailable map defers quest without loading it"),UProjectQuestStartComponent::AreInitialTargetsReady(Quest,World));
+    auto* Target=World->SpawnActor<AActor>(); (*References)[0]=Target;
+    TestFalse(TEXT("Actor alone is insufficient without its quest target component"),UProjectQuestStartComponent::AreInitialTargetsReady(Quest,World));
+    auto* TargetComponent=NewObject<UAQSQuestTargetComponent>(Target); Target->AddInstanceComponent(TargetComponent); TargetComponent->RegisterComponent();
+    TestTrue(TEXT("Available first objective can start normally"),UProjectQuestStartComponent::AreInitialTargetsReady(Quest,World));
+    TestFalse(TEXT("Editor or other-world actors cannot satisfy runtime targets"),UProjectQuestStartComponent::AreInitialTargetsReady(Quest,OtherWorld));
+    auto* Later=NewObject<UAQSObjectiveNode>(Quest); Node->ChildrenNodes.Add(Later); Quest->AllNodes.Add(Later);
+    auto* LaterObjective=DuplicateObject(Objective,Later);
+    FindFProperty<FObjectPropertyBase>(Later->GetClass(),TEXT("Objective"))->SetObjectPropertyValue_InContainer(Later,LaterObjective);
+    auto* LaterReferences=FindFProperty<FArrayProperty>(LaterObjective->GetClass(),TEXT("ReferencedActors"))->ContainerPtrToValuePtr<TArray<TSoftObjectPtr<AActor>>>(LaterObjective);
+    (*LaterReferences)[0]=TSoftObjectPtr<AActor>(FSoftObjectPath(TEXT("/Game/LaterWorld.LaterWorld:PersistentLevel.Target")));
+    TestTrue(TEXT("Later objectives may legitimately require another map"),UProjectQuestStartComponent::AreInitialTargetsReady(Quest,World));
+    World->DestroyWorld(false); OtherWorld->DestroyWorld(false);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPracticeCueTest, "NoShellForWinter.Practice.CanonicalHitCue", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectPracticeCueTest::RunTest(const FString& Parameters)
+{
+    const FString Root=TEXT("/Game/FullSample/Blueprints/GAS/Cues/");
+    auto* Hit=LoadClass<UGameplayCueNotify_Static>(nullptr,*(Root+TEXT("ACF_DefaultHit_GC.ACF_DefaultHit_GC_C")));
+    auto* Reaction=LoadClass<UGameplayCueNotify_Static>(nullptr,*(Root+TEXT("ACF_DefaultReaction_GC.ACF_DefaultReaction_GC_C")));
+    if (!TestNotNull(TEXT("Canonical hit cue remains loadable"),Hit) || !TestNotNull(TEXT("Legacy reaction asset remains loadable"),Reaction)) return false;
+    TestEqual(TEXT("Same native feedback implementation"),Hit->GetSuperClass(),Reaction->GetSuperClass());
+    for (TFieldIterator<FProperty> P(Hit->GetSuperClass()); P; ++P)
+        TestTrue(*FString::Printf(TEXT("Feedback defaults identical: %s"),*P->GetName()),P->Identical_InContainer(Hit->GetDefaultObject(),Reaction->GetDefaultObject()));
+    for (FName Event : {FName(TEXT("OnExecute")),FName(TEXT("OnActive")),FName(TEXT("WhileActive")),FName(TEXT("OnRemove")),FName(TEXT("K2_HandleGameplayCue"))})
+        TestEqual(*FString::Printf(TEXT("Both assets route %s identically"),*Event.ToString()),Hit->FindFunctionByName(Event),Reaction->FindFunctionByName(Event));
+    auto* Manager=UAbilitySystemGlobals::Get().GetGameplayCueManager();
+    TestTrue(TEXT("Production GAS uses project cue registration"),Manager->IsA<UProjectGameplayCueManager>());
+    TestTrue(TEXT("Canonical hit is registered"),Manager->ShouldLoadGameplayCueAssetData(FAssetData(Hit->ClassGeneratedBy)));
+    TestFalse(TEXT("Identical alias does not compete for the same tag"),Manager->ShouldLoadGameplayCueAssetData(FAssetData(Reaction->ClassGeneratedBy)));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPracticeSynergiesTest, "NoShellForWinter.Practice.AttributeSynergies", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectPracticeSynergiesTest::RunTest(const FString& Parameters)
+{
+    auto* Settings=GetMutableDefault<UProjectPracticeSettings>();
+    TGuardValue<bool> Enabled(Settings->bEnabled, true);
+    UWorld* World=UWorld::CreateWorld(EWorldType::Game,false);
+    AActor* Owner=World->SpawnActor<AActor>();
+    auto* ASC=NewObject<UAbilitySystemComponent>(Owner);
+    Owner->AddInstanceComponent(ASC); ASC->RegisterComponent(); ASC->InitAbilityActorInfo(Owner,Owner);
+    ASC->AddAttributeSetSubobject(NewObject<UACFPrimaryAttributeSet>(Owner));
+    TestEqual(TEXT("No rank means no pain discount"),FProjectAttributeSynergies::PainGainMultiplier(Owner),1.f);
+    TestEqual(TEXT("No rank means no sweat discount"),FProjectAttributeSynergies::SweatGainMultiplier(Owner),1.f);
+    const auto Constitution=UProjectPracticeProgressionComponent::ResolveAttribute(TEXT("Constitution"));
+    const auto Endurance=UProjectPracticeProgressionComponent::ResolveAttribute(TEXT("Endurance"));
+    const auto Intelligence=UProjectPracticeProgressionComponent::ResolveAttribute(TEXT("Intelligence"));
+    ASC->SetNumericAttributeBase(Constitution,Settings->MaximumAttributeRank);
+    ASC->SetNumericAttributeBase(Endurance,Settings->MaximumAttributeRank);
+    auto* Dirty=NewObject<UDirtyPawnComponent>(Owner);
+    TestTrue(TEXT("Portable sweat callback resolves effective endurance at use time"),FMath::IsNearlyEqual(Dirty->GetActivitySweatGainMultiplier(),1.f-Settings->EnduranceMaximumSweatReduction));
+    Dirty->SetSweatPoints(10.f); Dirty->AddSweatPoints(5.f);
+    TestEqual(TEXT("Direct sweat changes retain their absolute meaning"),Dirty->SweatPoints,15.f);
+    TestTrue(TEXT("Constitution bounds pain intake reduction"),FMath::IsNearlyEqual(FProjectAttributeSynergies::PainGainMultiplier(Owner),1.f-Settings->ConstitutionMaximumPainReduction));
+    TestTrue(TEXT("Endurance bounds activity sweat reduction"),FMath::IsNearlyEqual(FProjectAttributeSynergies::SweatGainMultiplier(Owner),1.f-Settings->EnduranceMaximumSweatReduction));
+    ASC->SetNumericAttributeBase(Intelligence,0.f);
+    auto* Effect=NewObject<UGameplayEffect>(); Effect->DurationPolicy=EGameplayEffectDurationType::Infinite;
+    auto& Mod=Effect->Modifiers.AddDefaulted_GetRef(); Mod.Attribute=Intelligence;
+    Mod.ModifierOp=EGameplayModOp::Additive; Mod.ModifierMagnitude=FScalableFloat(10000.f);
+    const auto Handle=ASC->ApplyGameplayEffectToSelf(Effect,1.f,ASC->MakeEffectContext());
+    TestTrue(TEXT("Equipment intelligence contributes a bounded lock bonus"),FProjectAttributeSynergies::IntelligenceLockpickBonus(Owner)>0 && FProjectAttributeSynergies::IntelligenceLockpickBonus(Owner)<=Settings->IntelligenceMaximumLockpickBonus);
+    TestEqual(TEXT("Equipment did not become learned intelligence"),ASC->GetNumericAttributeBase(Intelligence),0.f);
+    ASC->RemoveActiveGameplayEffect(Handle);
+    TestEqual(TEXT("Unequip removes the lock bonus"),FProjectAttributeSynergies::IntelligenceLockpickBonus(Owner),0);
+    Settings->bEnabled=false;
+    TestEqual(TEXT("Disabled progression leaves legacy pain intact"),FProjectAttributeSynergies::PainGainMultiplier(Owner),1.f);
+    TestEqual(TEXT("Disabled progression leaves legacy sweat intact"),FProjectAttributeSynergies::SweatGainMultiplier(Owner),1.f);
+    TestEqual(TEXT("Disabled progression also leaves portable sweat intake intact"),Dirty->GetActivitySweatGainMultiplier(),1.f);
+    TestEqual(TEXT("Malformed reduction fails to neutral"),FProjectAttributeSynergies::BoundedReduction(100,100,std::numeric_limits<float>::quiet_NaN()),1.f);
+    World->DestroyWorld(false);
+    return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPracticeMathTest, "NoShellForWinter.Practice.IntegrationAndRecovery", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FProjectPracticeMathTest::RunTest(const FString& Parameters)
 {
