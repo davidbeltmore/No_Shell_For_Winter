@@ -2,6 +2,8 @@
 #include "DayCycle/ProjectDayCycleSubsystem.h"
 
 #include "ACFTrainingComponent.h"
+#include "Training/ProjectPracticeComponent.h"
+#include "Progression/ProjectPracticeSettings.h"
 #include "ContentPolicy/ProjectContentPolicySubsystem.h"
 #include "EFProjectInputSettings.h"
 #include "EFCharacterCreationSubsystem.h"
@@ -632,7 +634,8 @@ UACFTrainingComponent* UProjectEmoteSubsystem::EnsureTrainingComponent(APawn* Pa
 	UACFTrainingComponent* TrainingComponent = Pawn->FindComponentByClass<UACFTrainingComponent>();
 	if (!TrainingComponent)
 	{
-		TrainingComponent = NewObject<UACFTrainingComponent>(Pawn, UACFTrainingComponent::StaticClass(), TEXT("ACFTrainingComponent"));
+		UClass* TrainingClass = GetDefault<UProjectPracticeSettings>()->bEnabled ? UProjectPracticeComponent::StaticClass() : UACFTrainingComponent::StaticClass();
+		TrainingComponent = NewObject<UACFTrainingComponent>(Pawn, TrainingClass, TEXT("ACFTrainingComponent"));
 		if (TrainingComponent)
 		{
 			Pawn->AddInstanceComponent(TrainingComponent);
@@ -929,7 +932,7 @@ void UProjectEmoteSubsystem::StartTrainingInteractionById(const FName Interactio
 	const int32 CunningLevel = ResolveTrainingCunningLevel(TrackedPlayerPawn);
 	const float SpeedMultiplier = UProjectLockpickableComponent::ComputeSpeedMultiplier(Difficulty, CunningLevel);
 	const float TargetHalfRange = UProjectLockpickableComponent::ComputeTargetHalfRange(Difficulty, CunningLevel);
-	if (!TrainingComponent->StartTimingMinigameSession(Difficulty, CunningLevel, SpeedMultiplier, TargetHalfRange, 0.5f))
+	if (!Cast<UProjectPracticeComponent>(TrainingComponent) && !TrainingComponent->StartTimingMinigameSession(Difficulty, CunningLevel, SpeedMultiplier, TargetHalfRange, 0.5f))
 	{
 		TrainingComponent->CancelTraining();
 		return;

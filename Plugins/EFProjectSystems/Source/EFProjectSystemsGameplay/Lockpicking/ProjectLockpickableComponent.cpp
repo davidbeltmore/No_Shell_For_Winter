@@ -538,14 +538,14 @@ int32 UProjectLockpickableComponent::ResolveCunningLevel(APawn* Pawn) const
 
 	if (const UProjectInnerDoctrineComponent* Component = Pawn->FindComponentByClass<UProjectInnerDoctrineComponent>())
 	{
-		return Component->GetAttributeLevel(EProjectDoctrineAttribute::Cunning);
+		return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning);
 	}
 
 	if (const AController* Controller = Pawn->GetController())
 	{
 		if (const UProjectInnerDoctrineComponent* Component = Controller->FindComponentByClass<UProjectInnerDoctrineComponent>())
 		{
-			return Component->GetAttributeLevel(EProjectDoctrineAttribute::Cunning);
+			return Component->GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Cunning);
 		}
 	}
 

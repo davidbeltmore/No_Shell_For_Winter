@@ -1,4 +1,5 @@
 #include "CharacterBackground/UI/ProjectCharacterBackgroundCreationWidget.h"
+#include "Progression/ProjectPracticeSettings.h"
 
 #include "EFProjectUIPalette.h"
 #include "CharacterBackground/ProjectCharacterBackgroundComponent.h"
@@ -873,7 +874,8 @@ void UProjectCharacterBackgroundCreationWidget::RefreshEffectPanel()
 	}
 	else if (CurrentStep == EProjectCharacterBackgroundCreationStep::Profession)
 	{
-		EffectTitleText->SetText(LOCTEXT("GainModifiersTitle", "DXP Gain"));
+		EffectTitleText->SetText(GetDefault<UProjectPracticeSettings>()->bEnabled
+			? LOCTEXT("LearningModifiersTitle", "Learning rate") : LOCTEXT("GainModifiersTitle", "DXP Gain"));
 		for (const FProjectDxpGainModifier& Modifier : BackgroundComponent->GetSelectedProfessionData().GainModifiers)
 		{
 			AddEffectRow(BuildGainLine(Modifier.AttributeID, Modifier.GainMultiplier), Modifier.GainMultiplier < 1.0f);
@@ -932,10 +934,13 @@ void UProjectCharacterBackgroundCreationWidget::RefreshDescriptionPanel()
 		Text = FString::Printf(TEXT("Backstory: %s\nProfession: %s"), *Summary.BackstoryName.ToString(), *Summary.ProfessionName.ToString());
 		if (IsChangingExistingProfile())
 		{
-			Text += TEXT("\n\nChanging this profile resets current Run DXP to 0 and clears run attribute levels. Meta DXP is preserved.");
+			Text += GetDefault<UProjectPracticeSettings>()->bEnabled
+				? TEXT("\n\nChanging this profile replaces background bonuses. Learned progress and skills are retained.")
+				: TEXT("\n\nChanging this profile resets current Run DXP to 0 and clears run attribute levels. Meta DXP is preserved.");
 		}
 	}
 
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) Text.ReplaceInline(TEXT("DXP gain"), TEXT("learning rate"));
 	DescriptionText->SetText(FText::FromString(Text));
 
 }
@@ -1001,7 +1006,9 @@ void UProjectCharacterBackgroundCreationWidget::RefreshFooter()
 		}
 		else if (IsChangingExistingProfile())
 		{
-			FooterStatusText->SetText(LOCTEXT("FooterChangingProfile", "Profile change will reset current Run DXP and run attribute levels."));
+			FooterStatusText->SetText(GetDefault<UProjectPracticeSettings>()->bEnabled
+				? LOCTEXT("FooterChangingLearningProfile", "Background bonuses change; learned progress is retained.")
+				: LOCTEXT("FooterChangingProfile", "Profile change will reset current Run DXP and run attribute levels."));
 			FooterStatusText->SetColorAndOpacity(ProjectCharacterBackgroundCreationPrivate::WarningTint());
 		}
 		else
@@ -1186,7 +1193,9 @@ FText UProjectCharacterBackgroundCreationWidget::BuildProfessionSubtitle(const F
 		if (bAllSameMultiplier)
 		{
 			return FText::Format(
-				LOCTEXT("AllProfessionAttributesLine", "All DXP attributes x{0}"),
+				GetDefault<UProjectPracticeSettings>()->bEnabled
+					? LOCTEXT("AllProfessionPracticeLine", "All Doctrine learning rates x{0}")
+					: LOCTEXT("AllProfessionAttributesLine", "All DXP attributes x{0}"),
 				FText::FromString(FString::Printf(TEXT("%.2f"), FirstMultiplier)));
 		}
 	}

@@ -1,4 +1,5 @@
 #include "InnerDoctrine/ProjectInnerDoctrineExchangeMenuWidget.h"
+#include "Progression/ProjectPracticeSettings.h"
 
 #include "EFProjectUIPalette.h"
 #include "EFProjectUISettings.h"
@@ -1213,11 +1214,13 @@ void UProjectInnerDoctrineExchangeMenuWidget::RefreshVisualState()
 	if (RunDxpValueText)
 	{
 		RunDxpValueText->SetText(FText::AsNumber(CachedSnapshot.CurrentRunDxp));
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled && RunDxpLabelText) RunDxpLabelText->SetText(LOCTEXT("UnifiedXP", "Experience"));
 	}
 
 	if (MetaDxpValueText)
 	{
 		MetaDxpValueText->SetText(FText::AsNumber(CachedSnapshot.MetaBankDxp));
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled && MetaDxpLabelText) MetaDxpLabelText->SetText(LOCTEXT("UnifiedSkills", "Skill points"));
 	}
 
 	RefreshAttributeRows();
@@ -1652,6 +1655,12 @@ void UProjectInnerDoctrineExchangeMenuWidget::RefreshDetailPanel()
 
 void UProjectInnerDoctrineExchangeMenuWidget::RefreshFooterState()
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		if (FooterControlsText) FooterControlsText->SetText(LOCTEXT("PracticeControls", "W/S navigate   |   Q/Esc close"));
+		if (FooterStatusText) FooterStatusText->SetText(LOCTEXT("PracticeProgress", "Attributes improve through practice. Open Y > Training to practise."));
+		return;
+	}
 	if (!FooterControlsText)
 	{
 		return;
@@ -1916,6 +1925,7 @@ FProjectInnerDoctrineExchangeDetailDisplayData UProjectInnerDoctrineExchangeMenu
 	DetailData.CostText = SelectedEntry->RowData.Cost > 0
 		? FText::Format(LOCTEXT("SelectedCostText", "Next ascent costs {0} DXP"), FText::AsNumber(SelectedEntry->RowData.Cost))
 		: LOCTEXT("AlreadyMaxedText", "Already maxed");
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) DetailData.CostText = LOCTEXT("PracticeAttribute", "Improves through practice; no points required.");
 	DetailData.MilestoneFiveText = BuildMilestoneStatusText(SelectedEntry->MilestoneFiveLabel, SelectedEntry->bMilestoneFiveUnlocked);
 	DetailData.MilestoneTenText = BuildMilestoneStatusText(SelectedEntry->MilestoneTenLabel, SelectedEntry->bMilestoneTenUnlocked);
 	DetailData.FlavorText = SelectedEntry->DetailDescription;

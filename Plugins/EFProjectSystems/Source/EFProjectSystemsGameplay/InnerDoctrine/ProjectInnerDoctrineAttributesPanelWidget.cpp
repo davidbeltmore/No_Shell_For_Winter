@@ -1,4 +1,5 @@
 #include "InnerDoctrine/ProjectInnerDoctrineAttributesPanelWidget.h"
+#include "Progression/ProjectPracticeSettings.h"
 
 #include "EFProjectUIPalette.h"
 #include "Blueprint/WidgetTree.h"
@@ -173,11 +174,13 @@ void UProjectInnerDoctrineAttributesPanelWidget::ApplyPanelState(
 	if (RunSummaryValueText)
 	{
 		RunSummaryValueText->SetText(FText::AsNumber(CurrentRunDxp));
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled && RunSummaryLabelText) RunSummaryLabelText->SetText(FText::FromString(TEXT("XP")));
 	}
 
 	if (MetaSummaryValueText)
 	{
 		MetaSummaryValueText->SetText(FText::AsNumber(MetaBankDxp));
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled && MetaSummaryLabelText) MetaSummaryLabelText->SetText(FText::FromString(TEXT("SKILLS")));
 	}
 
 	if (AttributesWrapBox && bUsingNativeFallbackTree)

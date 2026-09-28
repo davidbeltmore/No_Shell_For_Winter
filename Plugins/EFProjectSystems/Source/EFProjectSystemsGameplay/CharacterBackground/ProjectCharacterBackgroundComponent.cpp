@@ -1,6 +1,7 @@
 #include "CharacterBackground/ProjectCharacterBackgroundComponent.h"
 
 #include "CharacterBackground/ProjectCharacterBackgroundSettings.h"
+#include "Progression/ProjectPracticeSettings.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/Actor.h"
 #include "Misc/PackageName.h"
@@ -437,7 +438,9 @@ FProjectCharacterBackgroundSummary UProjectCharacterBackgroundComponent::BuildSu
 			: FText::FromName(Modifier.AttributeID);
 
 		Summary.GainModifierLines.Add(FText::Format(
-			LOCTEXT("GainModifierSummaryLine", "{0} DXP gain {1}"),
+			GetDefault<UProjectPracticeSettings>()->bEnabled
+				? LOCTEXT("PracticeModifierSummaryLine", "{0} learning rate {1}")
+				: LOCTEXT("GainModifierSummaryLine", "{0} DXP gain {1}"),
 			AttributeName,
 			ProjectCharacterBackgroundComponentPrivate::FormatMultiplier(Modifier.GainMultiplier)));
 	}

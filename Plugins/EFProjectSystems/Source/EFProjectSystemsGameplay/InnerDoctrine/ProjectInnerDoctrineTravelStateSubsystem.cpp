@@ -1,6 +1,8 @@
 #include "InnerDoctrine/ProjectInnerDoctrineTravelStateSubsystem.h"
 
 #include "Survival/ProjectCurseTypes.h"
+#include "Progression/ProjectProgressionState.h"
+#include "Engine/GameInstance.h"
 
 void UProjectInnerDoctrineTravelStateSubsystem::StoreCurseState(
 	const float CurrentCurse,
@@ -38,6 +40,7 @@ uint64 UProjectInnerDoctrineTravelStateSubsystem::GetLifecycleGeneration() const
 
 void UProjectInnerDoctrineTravelStateSubsystem::NotifyNewGameStarted()
 {
+	if (auto* Progression = GetGameInstance()->GetSubsystem<UProjectProgressionTravelState>()) Progression->ResetForNewCharacter();
 	ResetCurseState();
 	++LifecycleGeneration;
 }

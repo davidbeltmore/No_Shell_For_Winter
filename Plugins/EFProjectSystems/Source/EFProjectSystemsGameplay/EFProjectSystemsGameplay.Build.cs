@@ -51,6 +51,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"AscentCombatFramework",
 			"AscentTeams",
 			"AscentGASRuntime",
+			"AscentSkillTree",
 			"AscentTargetingSystem",
 			"CinematicCameraManager",
 			"AIFramework",
@@ -69,7 +70,8 @@ public class EFProjectSystemsGameplay : ModuleRules
 				"ApplicationCore",
 				"EFEquipmentRuntime",
 				"NetCore",
-				"Json"
+				"Json",
+				"AGSGraphRuntime"
 		});
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)

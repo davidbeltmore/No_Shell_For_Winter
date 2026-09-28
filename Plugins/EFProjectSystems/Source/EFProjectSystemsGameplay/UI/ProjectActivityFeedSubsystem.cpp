@@ -1,4 +1,5 @@
 #include "UI/ProjectActivityFeedSubsystem.h"
+#include "Progression/ProjectPracticeSettings.h"
 
 #include "EFProjectUISettings.h"
 #include "EFProjectInputSettings.h"
@@ -1668,15 +1669,16 @@ void UProjectActivityFeedSubsystem::FlushPendingExperience()
 		return;
 	}
 
+	const bool bLegacyDoctrineExperience = bPendingExperienceIsDoctrine && !GetDefault<UProjectPracticeSettings>()->bEnabled;
 	AddFeedEntry(
 		ProjectActivityFeedPrivate::MakeGainEntry(
 			EProjectActivityFeedChannel::Experience,
-			bPendingExperienceIsDoctrine
+			bLegacyDoctrineExperience
 				? FText::Format(LOCTEXT("DoctrineExperienceGainFormat", "+{0} DXP"), FText::AsNumber(PendingExperienceAmount))
 				: FText::Format(LOCTEXT("ExperienceGainFormat", "+{0} EXP"), FText::AsNumber(PendingExperienceAmount)),
-			bPendingExperienceIsDoctrine ? TEXT("DXP") : TEXT("EXP"),
+			bLegacyDoctrineExperience ? TEXT("DXP") : TEXT("EXP"),
 			FText::Format(LOCTEXT("ExperienceGainPrimaryFormat", "+{0}"), FText::AsNumber(PendingExperienceAmount)),
-			FText::FromString(bPendingExperienceIsDoctrine ? TEXT("DXP") : TEXT("EXP"))));
+			FText::FromString(bLegacyDoctrineExperience ? TEXT("DXP") : TEXT("EXP"))));
 
 	bHasPendingExperience = false;
 	bPendingExperienceIsDoctrine = false;
@@ -1763,7 +1765,7 @@ void UProjectActivityFeedSubsystem::PollLevelingBridge(const float CurrentTimeSe
 		TrackedInnerDoctrineComponent = TrackedPlayerPawn->FindComponentByClass<UProjectInnerDoctrineComponent>();
 	}
 
-	if (TrackedInnerDoctrineComponent)
+	if (TrackedInnerDoctrineComponent && !GetDefault<UProjectPracticeSettings>()->bEnabled)
 	{
 		const double NumericExperience = static_cast<double>(TrackedInnerDoctrineComponent->GetCurrentRunDxp());
 		if (!bHasObservedExperience)

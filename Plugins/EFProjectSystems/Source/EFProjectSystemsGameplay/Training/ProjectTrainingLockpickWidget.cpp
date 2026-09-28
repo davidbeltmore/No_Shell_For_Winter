@@ -1,6 +1,7 @@
 #include "Training/ProjectTrainingLockpickWidget.h"
 
 #include "ACFTrainingComponent.h"
+#include "Training/ProjectPracticeComponent.h"
 #include "ACFTrainingTypes.h"
 #include "EFProjectUIPalette.h"
 #include "Blueprint/WidgetTree.h"
@@ -514,6 +515,22 @@ void UProjectTrainingLockpickWidget::RefreshVisualState()
 	}
 
 	const float PulseValue = TrainingComponent ? TrainingComponent->GetCurrentTimingPulseValue() : 0.0f;
+	if (const auto* Practice = Cast<UProjectPracticeComponent>(TrainingComponent))
+	{
+		if (TrainingTitleText && bHasDefinition) TrainingTitleText->SetText(Definition.DisplayName);
+		if (TrainingStatText) TrainingStatText->SetText(Practice->GetPracticeDescription());
+		if (TrainingHintText) TrainingHintText->SetText(LOCTEXT("PracticeHint", "F6/F7/F8: speed\nP: pause | Y: stop"));
+		if (TrainingConfirmButton) TrainingConfirmButton->SetVisibility(ESlateVisibility::Collapsed);
+		if (TrainingTargetRange) TrainingTargetRange->SetVisibility(ESlateVisibility::Collapsed);
+		// The legacy timing track reaches into its hint area. Continuous practice
+		// keeps the same panel, with a shorter track so low progress cannot cover text.
+		if (auto* TrackSlot = TrainingTrackInner ? Cast<UCanvasPanelSlot>(TrainingTrackInner->Slot) : nullptr)
+			TrackSlot->SetSize(FVector2D(TrackSlot->GetSize().X, 200.f));
+		if (auto* TrackSlot = TrainingTrackOuter ? Cast<UCanvasPanelSlot>(TrainingTrackOuter->Slot) : nullptr)
+			TrackSlot->SetSize(FVector2D(TrackSlot->GetSize().X, 210.f));
+		RefreshTrackGeometry(static_cast<float>(Practice->GetActivityProgress()));
+		return;
+	}
 	const bool bReady = TrainingComponent && TrainingComponent->IsCurrentTimingPulseInTargetRange();
 
 	LastPulseValue = PulseValue;

@@ -1,4 +1,5 @@
 #include "InnerDoctrine/ProjectInnerDoctrineExchangeAttributeRowWidget.h"
+#include "Progression/ProjectPracticeSettings.h"
 
 #include "EFProjectUIPalette.h"
 #include "Blueprint/WidgetTree.h"
@@ -598,6 +599,7 @@ void UProjectInnerDoctrineExchangeAttributeRowWidget::RefreshVisuals()
 		CostText->SetText(FText::Format(
 			FText::FromString(TEXT("Cost {0}")),
 			FText::AsNumber(CurrentDisplayData.Cost)));
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled) CostText->SetText(FText::FromString(TEXT("Practice")));
 		if (bUsingNativeFallbackTree)
 		{
 			CostText->SetColorAndOpacity(FSlateColor(

@@ -17,6 +17,7 @@ public class EFProjectSystemsEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
+			"AscentSkillTree",
 			"CoreUObject",
 			"Engine",
 			"GameplayTags",

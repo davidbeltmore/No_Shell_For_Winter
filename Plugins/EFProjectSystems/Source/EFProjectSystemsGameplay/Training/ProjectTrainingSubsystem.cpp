@@ -2,6 +2,7 @@
 
 #include "EFProjectUIPalette.h"
 #include "ACFTrainingComponent.h"
+#include "Training/ProjectPracticeComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
@@ -118,7 +119,9 @@ bool UProjectTrainingSubsystem::OpenTraining(UACFTrainingComponent* TrainingComp
 	}
 
 	ActiveWidget->Configure(ActiveTrainingComponent, ActivePawn);
-	ActiveWidget->ShowFeedback(NSLOCTEXT("ProjectTraining", "Ready", "Time the center"), EFProjectUIPalette::SecondaryText(0.95f));
+	ActiveWidget->ShowFeedback(Cast<UProjectPracticeComponent>(ActiveTrainingComponent)
+		? NSLOCTEXT("ProjectTraining", "PracticeReady", "Learning through practice")
+		: NSLOCTEXT("ProjectTraining", "Ready", "Time the center"), EFProjectUIPalette::SecondaryText(0.95f));
 
 	if (!bTrainingOpen)
 	{
@@ -176,7 +179,11 @@ void UProjectTrainingSubsystem::HandleTrainingCompleted(const FName TrainingId, 
 
 	if (ActiveWidget)
 	{
-		if (Result == EACFTrainingSessionResult::Succeeded)
+		if (Cast<UProjectPracticeComponent>(ActiveTrainingComponent))
+		{
+			ActiveWidget->ShowFeedback(NSLOCTEXT("ProjectTraining", "PracticeRetained", "Progress retained. Rest to recover efficiency."), EFProjectUIPalette::Positive());
+		}
+		else if (Result == EACFTrainingSessionResult::Succeeded)
 		{
 			ActiveWidget->ShowFeedback(
 				FText::Format(NSLOCTEXT("ProjectTraining", "Succeeded", "Success +{0}"), FText::AsNumber(FMath::RoundToInt(RewardValue))),
@@ -294,7 +301,9 @@ void UProjectTrainingSubsystem::ApplyInputCapture(UUserWidget* WidgetToFocus, co
 			Character->StopJumping();
 			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
 			{
-				InputSnapshot.bHasSavedMovementState = true;
+				// The emote may already own the movement lock. Do not later restore its
+				// MOVE_None after the emote has correctly restored walking.
+				InputSnapshot.bHasSavedMovementState = Movement->MovementMode != MOVE_None;
 				InputSnapshot.PreviousMovementMode = Movement->MovementMode;
 				InputSnapshot.PreviousCustomMovementMode = Movement->CustomMovementMode;
 				Movement->StopMovementImmediately();
@@ -459,7 +468,8 @@ void UProjectTrainingSubsystem::StopTrainingEmote()
 {
 	if (ActivePawn)
 	{
-		if (UProjectEmoteComponent* EmoteComponent = ActivePawn->FindComponentByClass<UProjectEmoteComponent>())
+		if (UProjectEmoteComponent* EmoteComponent = ActivePawn->FindComponentByClass<UProjectEmoteComponent>();
+			EmoteComponent && (EmoteComponent->IsEmoteActive() || EmoteComponent->IsEmoteTransitionPending()))
 		{
 			EmoteComponent->StopEmote();
 		}

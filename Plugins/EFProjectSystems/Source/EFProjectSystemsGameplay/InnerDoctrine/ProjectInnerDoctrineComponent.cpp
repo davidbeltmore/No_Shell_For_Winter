@@ -1,4 +1,7 @@
 #include "InnerDoctrine/ProjectInnerDoctrineComponent.h"
+#include "Progression/ProjectPracticeProgressionComponent.h"
+#include "Progression/ProjectPracticeSettings.h"
+#include "ACFSkillTreeComponent.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -119,6 +122,7 @@ UProjectInnerDoctrineComponent::UProjectInnerDoctrineComponent()
 void UProjectInnerDoctrineComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	UProjectPracticeProgressionComponent::Ensure(GetOwner());
 
 	PassiveCurseDecaySuppressionSources.Reset();
 	InitializeAttributeStorage();
@@ -215,11 +219,21 @@ void UProjectInnerDoctrineComponent::TickComponent(
 
 int32 UProjectInnerDoctrineComponent::GetCurrentRunDxp() const
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		const auto* Stats = GetOwner() ? GetOwner()->FindComponentByClass<UACFGASStatisticsComponent>() : nullptr;
+		return Stats ? Stats->GetCurrentExp() : 0;
+	}
 	return CurrentRunDxp;
 }
 
 int32 UProjectInnerDoctrineComponent::GetMetaBankDxp() const
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		const auto* Skills = GetOwner() ? GetOwner()->FindComponentByClass<UACFSkillTreeComponent>() : nullptr;
+		return Skills ? Skills->GetSkillPoints() : 0;
+	}
 	return MetaBankDxp;
 }
 
@@ -230,12 +244,44 @@ bool UProjectInnerDoctrineComponent::IsDoctrineMasteryModeEnabled() const
 
 int32 UProjectInnerDoctrineComponent::GetAttributeLevel(const EProjectDoctrineAttribute Attribute) const
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		const auto* ASC = GetOwner() ? GetOwner()->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
+		const auto GasAttribute = UProjectPracticeProgressionComponent::ResolveAttribute(
+			FName(*StaticEnum<EProjectDoctrineAttribute>()->GetNameStringByValue(static_cast<int64>(Attribute))));
+		return ASC && GasAttribute.IsValid() && ASC->HasAttributeSetForAttribute(GasAttribute)
+			? FMath::FloorToInt(ASC->GetNumericAttributeBase(GasAttribute)) : 0;
+	}
 	const int32 Index = ToAttributeIndex(Attribute);
 	return AttributeLevels.IsValidIndex(Index) ? AttributeLevels[Index] : 0;
 }
 
+int32 UProjectInnerDoctrineComponent::GetEffectiveAttributeLevel(EProjectDoctrineAttribute Attribute) const
+{
+	if (!GetDefault<UProjectPracticeSettings>()->bEnabled) return GetAttributeLevel(Attribute);
+	const auto* ASC = GetOwner() ? GetOwner()->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
+	const auto GasAttribute = UProjectPracticeProgressionComponent::ResolveAttribute(
+		FName(*StaticEnum<EProjectDoctrineAttribute>()->GetNameStringByValue(static_cast<int64>(Attribute))));
+	return ASC && GasAttribute.IsValid() && ASC->HasAttributeSetForAttribute(GasAttribute)
+		? FMath::Max(0, FMath::FloorToInt(ASC->GetNumericAttribute(GasAttribute))) : 0;
+}
+
+void UProjectInnerDoctrineComponent::NotifyLearnedAttributeChanged(EProjectDoctrineAttribute Attribute, int32 OldLevel, int32 NewLevel)
+{
+	ApplyPassiveAttributeEffects();
+	OnAttributeLevelChanged.Broadcast(Attribute, OldLevel, NewLevel, 0);
+	BroadcastMilestonesForLevelRange(Attribute, OldLevel, NewLevel);
+}
+
+void UProjectInnerDoctrineComponent::RefreshLearnedAttributeEffects()
+{
+	RefreshCachedComponents();
+	ApplyPassiveAttributeEffects(); // Restore metadata without replaying earned milestones.
+}
+
 int32 UProjectInnerDoctrineComponent::GetUpgradeCost(const EProjectDoctrineAttribute Attribute) const
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) return 0;
 	if (!IsAttributeIndexValid(Attribute))
 	{
 		return 0;
@@ -251,8 +297,8 @@ int32 UProjectInnerDoctrineComponent::GetUpgradeCost(const EProjectDoctrineAttri
 FProjectInnerDoctrineSnapshot UProjectInnerDoctrineComponent::BuildSnapshot() const
 {
 	FProjectInnerDoctrineSnapshot Snapshot;
-	Snapshot.CurrentRunDxp = CurrentRunDxp;
-	Snapshot.MetaBankDxp = MetaBankDxp;
+	Snapshot.CurrentRunDxp = GetCurrentRunDxp();
+	Snapshot.MetaBankDxp = GetMetaBankDxp();
 	Snapshot.bDoctrineMasteryMode = bDoctrineMasteryMode;
 	Snapshot.Madness = GetSensationCurrent(MadnessName);
 	Snapshot.MadnessMax = FMath::Max(GetSensationMax(MadnessName), ResolveBaseSensationMax(MadnessName));
@@ -294,6 +340,14 @@ int32 UProjectInnerDoctrineComponent::GrantDxp(
 	const int32 Amount,
 	const EProjectDoctrineExperienceSource Source)
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		// Native ACF owns kill XP. Practice owns training XP; neither is paid twice by legacy callers.
+		if (Source == EProjectDoctrineExperienceSource::Combat || Source == EProjectDoctrineExperienceSource::Training ||
+			Source == EProjectDoctrineExperienceSource::MaturePresentation || Amount <= 0) return 0;
+		auto* Practice = UProjectPracticeProgressionComponent::Ensure(GetOwner());
+		return Practice && Practice->GrantExperience(Amount) ? Amount : 0;
+	}
 	if (Amount <= 0 || Source == EProjectDoctrineExperienceSource::MaturePresentation)
 	{
 		return 0;
@@ -346,6 +400,7 @@ int32 UProjectInnerDoctrineComponent::GrantDxpWithAttributeAffinity(
 
 bool UProjectInnerDoctrineComponent::SpendDxpOnAttribute(const EProjectDoctrineAttribute Attribute)
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) return false;
 	if (!IsAttributeIndexValid(Attribute))
 	{
 		return false;
@@ -376,6 +431,12 @@ bool UProjectInnerDoctrineComponent::ApplyFreeAttributeLevels(
 	const EProjectDoctrineAttribute Attribute,
 	const int32 Delta)
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		auto* Practice = UProjectPracticeProgressionComponent::Ensure(GetOwner());
+		return Practice && IsAttributeIndexValid(Attribute) && Practice->AddBackgroundRanks(
+			FName(*StaticEnum<EProjectDoctrineAttribute>()->GetNameStringByValue(static_cast<int64>(Attribute))), Delta);
+	}
 	if (!IsAttributeIndexValid(Attribute) || Delta <= 0)
 	{
 		return false;
@@ -401,6 +462,12 @@ bool UProjectInnerDoctrineComponent::ApplyFreeAttributeLevels(
 
 void UProjectInnerDoctrineComponent::ResetRunProgressForBackgroundChange()
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		if (auto* Practice = UProjectPracticeProgressionComponent::Ensure(GetOwner())) Practice->ResetBackgroundRanks();
+		ClearDxpGainMultipliers();
+		return;
+	}
 	const int32 OldRun = CurrentRunDxp;
 	const int32 OldMeta = MetaBankDxp;
 	CurrentRunDxp = 0;
@@ -475,6 +542,7 @@ float UProjectInnerDoctrineComponent::GetDxpGainMultiplierForAttribute(
 
 int32 UProjectInnerDoctrineComponent::WithdrawMetaDxp(const int32 RequestedAmount)
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) return 0;
 	const int32 Amount = RequestedAmount <= 0 ? MetaBankDxp : FMath::Min(RequestedAmount, MetaBankDxp);
 	if (Amount <= 0)
 	{
@@ -498,6 +566,12 @@ void UProjectInnerDoctrineComponent::HandleRunDeath()
 	bCombatStateActive = false;
 	LastCombatImpactTimeSeconds = -FLT_MAX;
 	ProcessedFloorTransitionIds.Reset();
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+	{
+		const auto* DeathSettings = UProjectInnerDoctrineSettings::Get();
+		ClampCurseAfterDefeat_Implementation(DeathSettings ? DeathSettings->DefeatCurseClamp : 60.f);
+		return;
+	}
 
 	const int32 OldRun = CurrentRunDxp;
 	const int32 OldMeta = MetaBankDxp;
@@ -828,7 +902,7 @@ float UProjectInnerDoctrineComponent::ModifyIncomingHealthDamage(
 	if (IsOrdinaryPhysicalDamage(DamageType) || IsSpellLikeDamage(DamageType))
 	{
 		const float FlatNegation = UProjectInnerDoctrineSettings::ComputeDefensiveFlatDamageNegation(
-			GetAttributeLevel(EProjectDoctrineAttribute::Defensive),
+			GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Defensive),
 			Settings ? Settings->DefensiveFlatDamageNegationPerLevel : 4.f);
 		OutFlatNegatedDamage = FMath::Min(Remaining, FlatNegation);
 		Remaining -= OutFlatNegatedDamage;
@@ -865,12 +939,12 @@ void UProjectInnerDoctrineComponent::ModifyOutgoingDamageSpec(
 	float FlatBonus = 0.f;
 	if (IsSpellLikeDamage(InOutDamageSpec.DamageType))
 	{
-		FlatBonus += static_cast<float>(GetAttributeLevel(EProjectDoctrineAttribute::Faith))
+		FlatBonus += static_cast<float>(GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Faith))
 			* (Settings ? Settings->FaithSpellDamagePerLevel : 2.f);
 	}
 	else
 	{
-		FlatBonus += static_cast<float>(GetAttributeLevel(EProjectDoctrineAttribute::Offensive))
+		FlatBonus += static_cast<float>(GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Offensive))
 			* (Settings ? Settings->OffensiveDamagePerLevel : 2.f);
 
 		(void)TargetActor;
@@ -1137,6 +1211,7 @@ void UProjectInnerDoctrineComponent::InitializeAttributeStorage()
 
 void UProjectInnerDoctrineComponent::LoadPersistentState()
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) return;
 	const UProjectInnerDoctrineSettings* Settings = UProjectInnerDoctrineSettings::Get();
 	const FString SlotName = Settings ? Settings->SaveSlotName : TEXT("ProjectInnerDoctrineV1");
 	const int32 UserIndex = Settings ? Settings->SaveUserIndex : 0;
@@ -1155,6 +1230,7 @@ void UProjectInnerDoctrineComponent::LoadPersistentState()
 
 void UProjectInnerDoctrineComponent::SavePersistentState() const
 {
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled) return;
 	const UProjectInnerDoctrineSettings* Settings = UProjectInnerDoctrineSettings::Get();
 	const FString SlotName = Settings ? Settings->SaveSlotName : TEXT("ProjectInnerDoctrineV1");
 	const int32 UserIndex = Settings ? Settings->SaveUserIndex : 0;
@@ -1318,7 +1394,7 @@ float UProjectInnerDoctrineComponent::CalculateDynamicMaximum(
 		{
 			UProjectInnerDoctrineSettings::AccumulateDynamicMaxRule(
 				Rule,
-				GetAttributeLevel(Rule.Attribute),
+				GetEffectiveAttributeLevel(Rule.Attribute),
 				Flat,
 				Multiplier);
 		}
@@ -1405,7 +1481,7 @@ void UProjectInnerDoctrineComponent::ApplyFaithPassiveAttributeEffects()
 
 	const UProjectInnerDoctrineSettings* Settings = UProjectInnerDoctrineSettings::Get();
 	const float DesiredBonus = UProjectInnerDoctrineSettings::ComputeFaithPassiveBonus(
-		GetAttributeLevel(EProjectDoctrineAttribute::Faith),
+		GetEffectiveAttributeLevel(EProjectDoctrineAttribute::Faith),
 		Settings ? Settings->FaithSpellDefensePerLevel : 1.f);
 	if (FMath::IsNearlyEqual(AppliedFaithSpellDefenseBonus, DesiredBonus, 0.001f))
 	{

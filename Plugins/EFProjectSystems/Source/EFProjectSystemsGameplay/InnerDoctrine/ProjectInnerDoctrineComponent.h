@@ -77,6 +77,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Inner Doctrine")
 	int32 GetAttributeLevel(EProjectDoctrineAttribute Attribute) const;
+	UFUNCTION(BlueprintPure, Category = "Inner Doctrine")
+	int32 GetEffectiveAttributeLevel(EProjectDoctrineAttribute Attribute) const;
+	void NotifyLearnedAttributeChanged(EProjectDoctrineAttribute Attribute, int32 OldLevel, int32 NewLevel);
+	void RefreshLearnedAttributeEffects();
 
 	UFUNCTION(BlueprintPure, Category = "Inner Doctrine")
 	int32 GetUpgradeCost(EProjectDoctrineAttribute Attribute) const;
