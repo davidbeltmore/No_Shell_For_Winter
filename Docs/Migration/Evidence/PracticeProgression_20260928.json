@@ -1,0 +1,317 @@
+{
+  "utc": "2026-09-28T21:11:12.019274+00:00",
+  "source_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "snapshot": "1ef4e63a45a2aeada805acedb4392674cb0ecb07",
+  "builds": {
+    "editor": "Saved/Analysis/PracticeProgression/editor_build33.log",
+    "game": "Saved/Analysis/PracticeProgression/game_build33.log",
+    "status": "PASS"
+  },
+  "automation": {
+    "receipt": "Saved/Analysis/PracticeProgression/Automation_20260928_155743/index.json",
+    "passed": 22,
+    "failed": 0,
+    "warnings": 0
+  },
+  "pie": {
+    "receipt": "Saved/Analysis/PracticeProgression/Visual_20260928_155223/receipt.json",
+    "exit_code": 0,
+    "checks": [
+      {
+        "name": "Blueprint compiles: /Game/FullSample/Player",
+        "passed": true
+      },
+      {
+        "name": "Blueprint compiles: /Game/TattooShop/Blueprints/TSCharacter/BP_TSChar",
+        "passed": true
+      },
+      {
+        "name": "project practice adapter on real player",
+        "passed": true
+      },
+      {
+        "name": "validated curve adapters are active",
+        "passed": true
+      },
+      {
+        "name": "one native ASC",
+        "passed": true
+      },
+      {
+        "name": "twelve training activities",
+        "passed": true
+      },
+      {
+        "name": "attributes cannot be purchased",
+        "passed": true
+      },
+      {
+        "name": "reinitialization does not duplicate starting effects",
+        "passed": true
+      },
+      {
+        "name": "need proportions survive learned rank change",
+        "passed": true
+      },
+      {
+        "name": "sensations retain absolute value",
+        "passed": true
+      },
+      {
+        "name": "Curse maximum remains 100",
+        "passed": true
+      },
+      {
+        "name": "practice improves real GAS rank",
+        "passed": true
+      },
+      {
+        "name": "Doctrine reads GAS rank",
+        "passed": true
+      },
+      {
+        "name": "native direct XP grants only one skill point",
+        "passed": true
+      },
+      {
+        "name": "native skill tree has an available skill",
+        "passed": true
+      },
+      {
+        "name": "native skill purchase spends once",
+        "passed": true
+      },
+      {
+        "name": "native respec refunds exactly",
+        "passed": true
+      },
+      {
+        "name": "death preserves learned rank",
+        "passed": true
+      },
+      {
+        "name": "book metadata accepted",
+        "passed": true
+      },
+      {
+        "name": "training starts from real Y interaction route",
+        "passed": true
+      },
+      {
+        "name": "reading is active",
+        "passed": true
+      },
+      {
+        "name": "reading accrues time",
+        "passed": true
+      },
+      {
+        "name": "reading has no timing minigame",
+        "passed": true
+      },
+      {
+        "name": "one minimal passive practice HUD",
+        "passed": true
+      },
+      {
+        "name": "old central minigame panel is absent",
+        "passed": true
+      },
+      {
+        "name": "training uses a free camera",
+        "passed": true
+      },
+      {
+        "name": "W moves the free camera",
+        "passed": true
+      },
+      {
+        "name": "free camera leaves the trainee in place",
+        "passed": true
+      },
+      {
+        "name": "O returns to the character camera",
+        "passed": true
+      },
+      {
+        "name": "camera toggle preserves practice",
+        "passed": true
+      },
+      {
+        "name": "O restores the free camera",
+        "passed": true
+      },
+      {
+        "name": "x4 available during reading",
+        "passed": true
+      },
+      {
+        "name": "x4 reading advances",
+        "passed": true
+      },
+      {
+        "name": "pause accepted",
+        "passed": true
+      },
+      {
+        "name": "pause freezes practice",
+        "passed": true
+      },
+      {
+        "name": "pause resumes",
+        "passed": true
+      },
+      {
+        "name": "cancelled training stopped",
+        "passed": true
+      },
+      {
+        "name": "cancel restores movement",
+        "passed": true
+      },
+      {
+        "name": "resume book from Y",
+        "passed": true
+      },
+      {
+        "name": "book retains partial progress",
+        "passed": true
+      },
+      {
+        "name": "critical needs stop training",
+        "passed": true
+      },
+      {
+        "name": "full ALS world saved",
+        "passed": true
+      }
+    ],
+    "input": "PlayerController InputKey; OS W independently passed in run30"
+  },
+  "persistence": {
+    "reload_travel_new_character": "Saved/Analysis/PracticeProgression/Reload_20260928_131532/receipt.json",
+    "respawn": "Saved/Analysis/PracticeProgression/Respawn_20260928_130431/receipt.json",
+    "status": "PASS before final HUD revision"
+  },
+  "cook": {
+    "log": "Saved/Analysis/PracticeProgression/Package_20260928_155926/uat.log",
+    "packages": 6214,
+    "errors": 0,
+    "warnings_in_cook_summary": 37,
+    "uat_exit_code": 0,
+    "maps": [
+      "HUB",
+      "StorySelection",
+      "MenuMap"
+    ]
+  },
+  "packaged": {
+    "receipt": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_160740/receipt.json",
+    "results": {
+      "reports": [
+        {
+          "activity": "ReadBook",
+          "practice": 0.076675556,
+          "active": 1,
+          "perks": 0,
+          "paused": 0,
+          "hours": 0.003068109
+        },
+        {
+          "activity": "ReadBook",
+          "practice": 0.508143689,
+          "active": 1,
+          "perks": 0,
+          "paused": 0,
+          "hours": 0.02037362
+        },
+        {
+          "activity": "ReadBook",
+          "practice": 2.009676906,
+          "active": 1,
+          "perks": 0,
+          "paused": 0,
+          "hours": 0.081142903
+        },
+        {
+          "activity": "ReadBook",
+          "practice": 2.960637295,
+          "active": 1,
+          "perks": 0,
+          "paused": 1,
+          "hours": 0.120075682
+        },
+        {
+          "activity": "ReadBook",
+          "practice": 2.960637295,
+          "active": 1,
+          "perks": 0,
+          "paused": 1,
+          "hours": 0.120075682
+        },
+        {
+          "activity": "ReadBook",
+          "practice": 3.133657877,
+          "active": 1,
+          "perks": 0,
+          "paused": 0,
+          "hours": 0.127197035
+        }
+      ],
+      "exit_code": 0,
+      "clocks": [
+        {
+          "hours": 0.031573461,
+          "paused": 0,
+          "speed": 1
+        },
+        {
+          "hours": 0.04898174,
+          "paused": 0,
+          "speed": 2
+        },
+        {
+          "hours": 0.110616684,
+          "paused": 0,
+          "speed": 4
+        },
+        {
+          "hours": 0.148437132,
+          "paused": 1,
+          "speed": 1
+        },
+        {
+          "hours": 0.148437132,
+          "paused": 1,
+          "speed": 1
+        },
+        {
+          "hours": 0.155709739,
+          "paused": 0,
+          "speed": 1
+        }
+      ],
+      "passed": true
+    },
+    "visual": "PASS: white exercise/attribute/time/rank HUD; scene visible, DirtyPawn wrapper loaded",
+    "screenshots": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_160740/UserData/Saved/Screenshots/Windows"
+  },
+  "protected": {
+    "receipt": "Saved/Analysis/PracticeProgression/protected_after_package33.json",
+    "files": 7900,
+    "differences": []
+  },
+  "backups": {
+    "manifest": "Saved/Backups/ProgressionV2_20260928_104559/manifest.json",
+    "files_verified": 141,
+    "old_slots_archived": 6,
+    "conversion_applied": false
+  },
+  "pending": [
+    "Inherited cook/plugin warnings and HUB sample quest error remain open. See migration report.",
+    "Twelve-activity runtime assertions passed in Activities24; that older runner crashed on shutdown. Final Visual32 uses corrected notification cleanup and exits normally.",
+    "No Calysto runtime testing, as requested.",
+    "Animation reuse and abstract book metadata; no new book/lockpick props or twelve bespoke animations."
+  ]
+}

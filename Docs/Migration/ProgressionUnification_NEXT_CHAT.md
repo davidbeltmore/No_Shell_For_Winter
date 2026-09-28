@@ -1,5 +1,7 @@
 # Texto para copiar al siguiente chat
 
+> Actualización 2026-09-28: este texto describe el piloto histórico. Para continuar, usar [PracticeProgression_20260928.md](PracticeProgression_20260928.md), sus decisiones aprobadas y evidencia. Los atributos ahora se aprenden por práctica, los puntos de nivel son exclusivamente para habilidades y las partidas antiguas están respaldadas/archivadas. No volver a activar compra de atributos ni convertir DXP/Meta. Calysto queda fuera de las pruebas por petición del usuario.
+
 Trabaja en D:\Projects UE5\NoShellForWinter (UE 5.8, ACF Ultimate instalado). LustAsDeadlySin es el origen de sólo lectura. Lee AGENTS.md y aplica noshellforwinter-unreal-mcp y survival-needs-sensations-workbench.
 
 Quiero continuar la unificación de experiencia, nivel, puntos, atributos y habilidades sobre ACF, sin cambiar el diseño visual del HUD Inner State, Inner Doctrine ni los atributos nativos. Doctrine debe ser un conjunto adicional en el mismo ASC; no quiero otro ASC, otro nivel ni dos economías sincronizadas. Las necesidades mantienen su simulación y sus reglas; no se convierten en atributos comprables.
