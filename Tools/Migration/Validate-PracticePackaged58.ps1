@@ -2,6 +2,12 @@ param([Parameter(Mandatory)][string]$StagedRoot, [string]$ProjectRoot='D:\Projec
 $ErrorActionPreference='Stop'
 $exe=Join-Path $StagedRoot 'NoShellForWinter/Binaries/Win64/NoShellForWinter.exe'
 if (!(Test-Path -LiteralPath $exe)) { throw "Missing executable: $exe" }
+$packageRoot=Split-Path (Split-Path $StagedRoot -Parent) -Parent
+$registry=Join-Path $packageRoot 'Cooked/Windows/NoShellForWinter/AssetRegistry.bin'
+if (!(Test-Path -LiteralPath $registry)) { throw 'Missing cooked registry evidence.' }
+$registryNames=[Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($registry))
+$legacyCuePresent=$registryNames.Contains('ACF_DefaultReaction_GC') -and $registryNames.Contains('ACF_DefaultHit_GC')
+if (!$legacyCuePresent) { throw 'Cook omitted a public compatibility cue asset.' }
 $out=Join-Path $ProjectRoot ('Saved/Analysis/PracticeProgression/PackagedQA_'+(Get-Date -Format yyyyMMdd_HHmmss))
 [void][IO.Directory]::CreateDirectory($out)
 $commands=@('90:Project.Time.Hud','100:Project.Practice.Start ReadBook','120:Project.Practice.Report','121:Project.Time.Report',
@@ -37,6 +43,6 @@ if ($ok) {
 $questErrors=@(Select-String -LiteralPath $log -SimpleMatch "Can't Start the quest")
 $cueConflicts=@(Select-String -LiteralPath $log -SimpleMatch 'Multiple gameplay cues are triggered')
 $ok=$ok -and $process.ExitCode -eq 0 -and $questErrors.Count -eq 0 -and $cueConflicts.Count -eq 0
-@{passed=$ok;exit_code=$process.ExitCode;reports=$reports;clocks=$clocks;quest_errors=$questErrors.Count;cue_conflicts=$cueConflicts.Count} | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 -LiteralPath ($out+'/receipt.json')
+@{passed=$ok;exit_code=$process.ExitCode;reports=$reports;clocks=$clocks;quest_errors=$questErrors.Count;cue_conflicts=$cueConflicts.Count;legacy_cue_in_cooked_registry=$legacyCuePresent} | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 -LiteralPath ($out+'/receipt.json')
 if (!$ok -or $process.ExitCode -ne 0) { throw "Packaged practice validation failed: $out" }
 Write-Host "Packaged practice runtime PASS: $out. Visual inspection remains required."
