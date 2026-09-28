@@ -44,7 +44,7 @@ public:
 	bool ConfirmTimingMinigame();
 
 	UFUNCTION(BlueprintCallable, Category = "ACF Training")
-	bool CanStartTraining(FName TrainingId, FText& OutReason) const;
+	virtual bool CanStartTraining(FName TrainingId, FText& OutReason) const;
 
 	UFUNCTION(BlueprintCallable, Category = "ACF Training")
 	bool GetTrainingProgress(FName TrainingId, float& OutProgress) const;
@@ -173,10 +173,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerConfirmTimingMinigame();
 
-	bool StartTrainingAuthority(FName TrainingId);
-	void CancelTrainingAuthority();
-	void CompleteTrainingAuthority(bool bSuccess);
-	bool StartTimingMinigameSessionAuthority(int32 Difficulty, int32 CunningLevel, float SpeedMultiplier, float TargetHalfRange, float TargetCenter);
+	virtual bool StartTrainingAuthority(FName TrainingId);
+	virtual void CancelTrainingAuthority();
+	virtual void CompleteTrainingAuthority(bool bSuccess);
+	virtual bool StartTimingMinigameSessionAuthority(int32 Difficulty, int32 CunningLevel, float SpeedMultiplier, float TargetHalfRange, float TargetCenter);
 	bool ConfirmTimingMinigameAuthority();
 	void ClearTimingMinigameSession();
 
