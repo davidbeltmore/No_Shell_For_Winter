@@ -8,6 +8,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameplayEffect.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "ACFTrainingComponent"
 
@@ -445,6 +446,7 @@ void UACFTrainingComponent::ServerConfirmTimingMinigame_Implementation()
 
 bool UACFTrainingComponent::StartTrainingAuthority(FName TrainingId)
 {
+	if (UGameplayStatics::IsGamePaused(this)) return false;
 	FText Reason;
 	if (!CanStartTraining(TrainingId, Reason))
 	{
@@ -485,6 +487,7 @@ void UACFTrainingComponent::CancelTrainingAuthority()
 
 void UACFTrainingComponent::CompleteTrainingAuthority(bool bSuccess)
 {
+	if (UGameplayStatics::IsGamePaused(this)) return;
 	if (ActiveTrainingId.IsNone())
 	{
 		return;
@@ -524,6 +527,7 @@ void UACFTrainingComponent::CompleteTrainingAuthority(bool bSuccess)
 
 bool UACFTrainingComponent::StartTimingMinigameSessionAuthority(int32 Difficulty, int32 CunningLevel, float SpeedMultiplier, float TargetHalfRange, float TargetCenter)
 {
+	if (UGameplayStatics::IsGamePaused(this)) return false;
 	if (!IsTrainingActive())
 	{
 		return false;
@@ -542,6 +546,7 @@ bool UACFTrainingComponent::StartTimingMinigameSessionAuthority(int32 Difficulty
 
 bool UACFTrainingComponent::ConfirmTimingMinigameAuthority()
 {
+	if (UGameplayStatics::IsGamePaused(this)) return false;
 	if (!IsTimingMinigameSessionActive())
 	{
 		return false;

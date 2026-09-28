@@ -1,0 +1,25 @@
+{
+  "reportCreatedOn": "2026.09.28-07.03.48",
+  "succeeded": 4,
+  "succeededWithWarnings": 0,
+  "failed": 0,
+  "notRun": 0,
+  "tests": [
+    {
+      "name": "EFProjectSystems.DayCycle.Math",
+      "state": "Success"
+    },
+    {
+      "name": "NoShellForWinter.TimeControl.ClockSaveRoundTrip",
+      "state": "Success"
+    },
+    {
+      "name": "NoShellForWinter.TimeControl.NeedRateEquivalence",
+      "state": "Success"
+    },
+    {
+      "name": "NoShellForWinter.TimeControl.ScaleAndCalendar",
+      "state": "Success"
+    }
+  ]
+}

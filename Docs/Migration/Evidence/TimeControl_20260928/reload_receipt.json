@@ -1,0 +1,12 @@
+{
+  "started": 58851.25,
+  "phase": "loading",
+  "expected_hours": 0.5098437916239105,
+  "blueprints": [],
+  "since": 58861.843,
+  "retains_pause_after_external_release": true,
+  "restored_hours": 0.5151771250367166,
+  "speed": 1.0,
+  "loaded": true,
+  "error": ""
+}

@@ -11,6 +11,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Survival/ProjectSurvivalNeedsSubsystem.h"
 #include "UI/ProjectWidgetClassResolver.h"
 
@@ -45,10 +46,18 @@ void UProjectDayCycleSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UProjectDayCycleSubsystem::Deinitialize()
 {
+	ShutdownTimeControl();
 	RemoveHudWidget();
 	StateActor = nullptr;
 	LocalPlayerController = nullptr;
 	Super::Deinitialize();
+}
+
+void UProjectDayCycleSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	// Spawn before ALS enumerates loadable actors, including a fresh disk-load world.
+	ResolveOrCreateStateActor();
 }
 
 void UProjectDayCycleSubsystem::Tick(const float DeltaTime)
@@ -62,9 +71,10 @@ void UProjectDayCycleSubsystem::Tick(const float DeltaTime)
 
 	ResolveOrCreateStateActor();
 	ResolveLocalPlayerController();
+	UpdateTimeControl();
 	EnsureHudWidget();
 
-	HudRefreshAccumulator += FMath::Max(0.0f, DeltaTime);
+	HudRefreshAccumulator += UGameplayStatics::IsGamePaused(GetWorld()) ? 0.1f : FMath::Max(0.0f, DeltaTime);
 	const float RefreshInterval = FMath::Clamp(Settings ? Settings->HudRefreshIntervalSeconds : 0.1f, 0.02f, 1.0f);
 	if (HudRefreshAccumulator >= RefreshInterval)
 	{
@@ -90,7 +100,7 @@ bool UProjectDayCycleSubsystem::IsTickableInEditor() const
 
 bool UProjectDayCycleSubsystem::IsTickableWhenPaused() const
 {
-	return false;
+	return true;
 }
 
 FProjectDayCycleSnapshot UProjectDayCycleSubsystem::GetCurrentSnapshot() const
@@ -104,7 +114,7 @@ FProjectDayCycleSnapshot UProjectDayCycleSubsystem::GetCurrentSnapshot() const
 	{
 		const UProjectDayCycleSettings* Settings = UProjectDayCycleSettings::Get();
 		Snapshot.DayNumber = FMath::Max(1, Settings ? Settings->InitialDayNumber : 1);
-		Snapshot.DayLengthSeconds = FMath::Max(1.0f, Settings ? Settings->DayLengthSeconds : 600.0f);
+		Snapshot.DayLengthSeconds = FMath::Max(1.0f, Settings ? Settings->DayLengthSeconds : 1800.0f);
 	}
 
 	Snapshot.FloorNumber = 1;
@@ -118,6 +128,9 @@ FProjectDayCycleSnapshot UProjectDayCycleSubsystem::GetCurrentSnapshot() const
 			}
 		}
 	}
+	Snapshot.TimeSpeed = UGameplayStatics::GetGlobalTimeDilation(GetWorld());
+	Snapshot.bPaused = UGameplayStatics::IsGamePaused(GetWorld());
+	Snapshot.TimeControlMessage = TimeControlMessage;
 	return Snapshot;
 }
 

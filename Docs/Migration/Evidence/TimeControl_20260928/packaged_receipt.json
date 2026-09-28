@@ -1,0 +1,43 @@
+﻿{
+    "reports":  [
+                    {
+                        "hours":  0.034016749,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.052817391,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  2
+                    },
+                    {
+                        "hours":  0.105040559,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  4
+                    },
+                    {
+                        "hours":  0.138352804,
+                        "reason":  "Resume time before changing its speed.",
+                        "paused":  1,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.138352804,
+                        "reason":  "Resume time before changing its speed.",
+                        "paused":  1,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.146030415,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  1
+                    }
+                ],
+    "exit_code":  0,
+    "isolated_user_dir":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\PackagedQA_20260928_025422\\UserData",
+    "passed":  true
+}

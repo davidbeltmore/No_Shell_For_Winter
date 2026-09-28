@@ -32,7 +32,16 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectDayCycleSnapshot
 	float PhaseProgress = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Day Cycle")
-	float DayLengthSeconds = 600.0f;
+	float DayLengthSeconds = 1800.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time Control")
+	float TimeSpeed = 1.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time Control")
+	bool bPaused = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time Control")
+	FText TimeControlMessage;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Day Cycle")
 	bool bIsRunning = false;

@@ -3,6 +3,7 @@
 #include "Combat/ProjectCombatAttributeComponent.h"
 #include "Survival/ProjectSurvivalNeedsSettings.h"
 #include "Survival/ProjectSurvivalStatusComponent.h"
+#include "DayCycle/ProjectDayCycleSettings.h"
 
 namespace
 {
@@ -52,6 +53,9 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 	}
 
 	bool bChanged = false;
+	const auto* ClockSettings = UProjectDayCycleSettings::Get();
+	const float CalendarRate = ClockSettings && ClockSettings->bPreserveCalendarNeedRates
+		? 600.f / FMath::Max(1.f, ClockSettings->DayLengthSeconds) : 1.f;
 	for (FProjectSurvivalNeedState& Need : Needs)
 	{
 		if (Need.NeedName.IsNone())
@@ -62,7 +66,7 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 		if (Need.DecayPerSecond > 0.f)
 		{
 			const float OldValue = Need.CurrentValue;
-			float EffectiveDecayPerSecond = Need.DecayPerSecond * FMath::Max(0.f, NeedsDecayMultiplier);
+			float EffectiveDecayPerSecond = Need.DecayPerSecond * CalendarRate * FMath::Max(0.f, NeedsDecayMultiplier);
 			if (StatusComponent)
 			{
 				EffectiveDecayPerSecond *= StatusComponent->GetNeedDecayMultiplier(Need.NeedName);
@@ -79,7 +83,7 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 		if (Need.RecoveryPerSecond > 0.f && Need.CurrentValue < Need.MaxValue)
 		{
 			const float OldValue = Need.CurrentValue;
-			Need.CurrentValue = ClampToEntryRange(Need.CurrentValue + (Need.RecoveryPerSecond * DeltaTime), 0.f, Need.MaxValue);
+			Need.CurrentValue = ClampToEntryRange(Need.CurrentValue + (Need.RecoveryPerSecond * CalendarRate * DeltaTime), 0.f, Need.MaxValue);
 			if (!FMath::IsNearlyEqual(OldValue, Need.CurrentValue))
 			{
 				bChanged = true;

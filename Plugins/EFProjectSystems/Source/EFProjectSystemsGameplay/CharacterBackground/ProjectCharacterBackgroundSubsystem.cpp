@@ -1,4 +1,5 @@
 #include "CharacterBackground/ProjectCharacterBackgroundSubsystem.h"
+#include "DayCycle/ProjectDayCycleSubsystem.h"
 
 #include "CharacterBackground/ProjectCharacterBackgroundComponent.h"
 #include "CharacterBackground/ProjectCharacterBackgroundSaveGame.h"
@@ -368,7 +369,11 @@ void UProjectCharacterBackgroundSubsystem::ApplyStoryInputCapture()
 	{
 		InputSnapshot.bHasSavedPauseState = true;
 		InputSnapshot.bWasPaused = UGameplayStatics::IsGamePaused(World);
-		if (!InputSnapshot.bWasPaused)
+		if (auto* Clock = World->GetSubsystem<UProjectDayCycleSubsystem>())
+		{
+			Clock->SetPauseReason(TEXT("CharacterBackground"), true);
+		}
+		else if (!InputSnapshot.bWasPaused)
 		{
 			UGameplayStatics::SetGamePaused(World, true);
 		}
@@ -480,7 +485,9 @@ void UProjectCharacterBackgroundSubsystem::RestoreStoryInputCapture()
 	{
 		if (UWorld* World = TrackedPlayerController ? TrackedPlayerController->GetWorld() : nullptr)
 		{
-			UGameplayStatics::SetGamePaused(World, InputSnapshot.bWasPaused);
+			if (auto* Clock = World->GetSubsystem<UProjectDayCycleSubsystem>())
+				Clock->SetPauseReason(TEXT("CharacterBackground"), false);
+			else UGameplayStatics::SetGamePaused(World, InputSnapshot.bWasPaused);
 		}
 	}
 

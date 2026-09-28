@@ -1,0 +1,189 @@
+{
+  "phase": "loading",
+  "started": 56867.703,
+  "since": 56909.14,
+  "checks": [
+    {
+      "name": "30 minute day",
+      "passed": true
+    },
+    {
+      "name": "unsupported speed rejected",
+      "passed": true
+    },
+    {
+      "name": "request x1",
+      "passed": true
+    },
+    {
+      "name": "calendar advanced x1",
+      "passed": true
+    },
+    {
+      "name": "native dilation x1",
+      "passed": true
+    },
+    {
+      "name": "hunger follows calendar x1",
+      "passed": true
+    },
+    {
+      "name": "request x2",
+      "passed": true
+    },
+    {
+      "name": "calendar advanced x2",
+      "passed": true
+    },
+    {
+      "name": "native dilation x2",
+      "passed": true
+    },
+    {
+      "name": "hunger follows calendar x2",
+      "passed": true
+    },
+    {
+      "name": "request x4",
+      "passed": true
+    },
+    {
+      "name": "calendar advanced x4",
+      "passed": true
+    },
+    {
+      "name": "native dilation x4",
+      "passed": true
+    },
+    {
+      "name": "hunger follows calendar x4",
+      "passed": true
+    },
+    {
+      "name": "player pause accepted",
+      "passed": true
+    },
+    {
+      "name": "calendar frozen",
+      "passed": true
+    },
+    {
+      "name": "hunger frozen",
+      "passed": true
+    },
+    {
+      "name": "modal retains pause",
+      "passed": true
+    },
+    {
+      "name": "last owner resumes",
+      "passed": true
+    },
+    {
+      "name": "resume at x1",
+      "passed": true
+    },
+    {
+      "name": "calendar resumes",
+      "passed": true
+    },
+    {
+      "name": "real hostile training dummy available",
+      "passed": true
+    },
+    {
+      "name": "accelerate before threat enters radius",
+      "passed": true
+    },
+    {
+      "name": "nearby hostile cancels acceleration",
+      "passed": true
+    },
+    {
+      "name": "nearby hostile rejects acceleration",
+      "passed": true
+    },
+    {
+      "name": "critical need rejects acceleration",
+      "passed": true
+    },
+    {
+      "name": "ALS world saved to disk",
+      "passed": true
+    },
+    {
+      "name": "calendar survives map travel",
+      "passed": true
+    },
+    {
+      "name": "travel restores normal speed",
+      "passed": true
+    },
+    {
+      "name": "StorySelection modal retains pause",
+      "passed": true
+    },
+    {
+      "name": "StorySelection rejects acceleration while modal paused",
+      "passed": true
+    },
+    {
+      "name": "ALS world loaded",
+      "passed": true
+    },
+    {
+      "name": "load restores saved calendar",
+      "passed": true
+    },
+    {
+      "name": "load restores x1",
+      "passed": true
+    }
+  ],
+  "pawn": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0",
+  "speed_index": 3,
+  "eligibility": "",
+  "sample_start": [
+    0.22002272903919226,
+    99.1198959350586,
+    56887.906
+  ],
+  "samples": [
+    {
+      "speed": 1,
+      "hours": 0.05459962278604511,
+      "hunger_used": 0.2252197265625,
+      "real_seconds": 4.093000000000757
+    },
+    {
+      "speed": 2,
+      "hours": 0.11789220849672956,
+      "hunger_used": 0.4696197509765625,
+      "real_seconds": 4.078000000001339
+    },
+    {
+      "speed": 4,
+      "hours": 0.22473838865756993,
+      "hunger_used": 0.8989410400390625,
+      "real_seconds": 4.046999999998661
+    }
+  ],
+  "frozen": [
+    0.44880144834518443,
+    98.20479583740234
+  ],
+  "resume_hours": 0.44880144834518443,
+  "threat_actor": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_1",
+  "threat_location": [
+    3480.0,
+    2660.0,
+    88.0
+  ],
+  "saved_hours": 0.5098437916239105,
+  "save_success": true,
+  "travel_hours": 0.5098437916239105,
+  "story_eligibility": "None",
+  "story_reason": "Resume time before changing its speed.",
+  "load_success": true,
+  "error": ""
+}

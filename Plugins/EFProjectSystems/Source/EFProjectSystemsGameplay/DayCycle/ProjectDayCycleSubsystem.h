@@ -14,6 +14,7 @@ public:
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 	virtual bool IsTickable() const override;
@@ -26,12 +27,48 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Day Cycle")
 	class AProjectDayCycleStateActor* GetDayCycleStateActor() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool RequestTimeSpeed(float Speed);
+
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool TogglePlayerPause();
+
+	// Named owners prevent closing a modal from releasing another owner's pause.
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool SetPauseReason(FName Reason, bool bPause);
+
+	UFUNCTION(BlueprintPure, Category = "Time Control")
+	bool CanFastForward(FText& OutReason) const;
+
+	UFUNCTION(BlueprintPure, Category = "Time Control")
+	double GetCalendarHours() const;
+
+	bool RouteTimeKey(const struct FKeyEvent& Event);
+	bool ShouldBlockPausedGameplayInput() const;
+	bool HasTimeInputFocus() const;
+	static bool IsSupportedSpeed(float Speed);
+	static double SimulationSecondsToCalendarHours(double Seconds, double DaySeconds);
+
 private:
 	void ResolveOrCreateStateActor();
 	void ResolveLocalPlayerController();
 	void EnsureHudWidget();
 	void RefreshHud();
 	void RemoveHudWidget();
+	void UpdateTimeControl();
+	void ShutdownTimeControl();
+	UFUNCTION()
+	void HandleTimeOwnerDamaged(AActor* Actor, float Damage, const class UDamageType* Type, class AController* Instigator, AActor* Causer);
+
+	TSharedPtr<class IInputProcessor> TimeInputProcessor;
+	TSet<FName> PauseReasons;
+	TWeakObjectPtr<class APawn> TimePlayerPawn;
+	float RequestedSpeed = 1.f;
+	bool bOwnsEnginePause = false;
+	double LastSafetyCheck = -1.0;
+	float DamageBlockUntil = 0.f;
+	float LastAcceleratedHealth = -1.f;
+	FText TimeControlMessage;
 
 	UPROPERTY(Transient)
 	TObjectPtr<class AProjectDayCycleStateActor> StateActor;

@@ -1,0 +1,24 @@
+{
+  "started": 57002.359,
+  "phase": "loading",
+  "expected_hours": 0.5098437916239105,
+  "blueprints": [
+    {
+      "path": "/Game/FullSample/Player",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/UI/CharacterBackground/WBP_ProjectCharacterBackgroundCreationWidget",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "since": 57003.703,
+  "loaded": true,
+  "restored_hours": 0.5151771250367166,
+  "speed": 1.0,
+  "error": ""
+}

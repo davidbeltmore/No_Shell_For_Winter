@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/App.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/UnrealType.h"
 
 #include <initializer_list>
@@ -80,7 +81,9 @@ void UProjectBreathingFadeComponent::TickComponent(float DeltaTime, ELevelTick T
 		return;
 	}
 
-	const float EffectiveDeltaTime = DeltaTime > 0.0f ? DeltaTime : FApp::GetDeltaTime();
+	if (GetWorld() && GetWorld()->IsGameWorld() && UGameplayStatics::IsGamePaused(this)) return;
+	const float EffectiveDeltaTime = GetWorld() && GetWorld()->IsGameWorld()
+		? FMath::Max(0.f, DeltaTime) : (DeltaTime > 0.f ? DeltaTime : FApp::GetDeltaTime());
 	PhaseTimeSeconds += FMath::Max(EffectiveDeltaTime, 0.0f);
 
 	float PhaseDuration = GetCurrentPhaseDuration();

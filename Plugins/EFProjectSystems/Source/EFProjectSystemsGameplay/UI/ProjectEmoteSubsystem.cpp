@@ -1,4 +1,5 @@
 #include "UI/ProjectEmoteSubsystem.h"
+#include "DayCycle/ProjectDayCycleSubsystem.h"
 
 #include "ACFTrainingComponent.h"
 #include "ContentPolicy/ProjectContentPolicySubsystem.h"
@@ -111,7 +112,7 @@ void UProjectEmoteSubsystem::Tick(float DeltaTime)
 
 	if (IsGamePauseBlockingEmoteFlow())
 	{
-		CleanupMenuAndEmoteState();
+		return; // Suspend the action and its input capture; resume the same session.
 	}
 
 	RefreshActiveEmoteInputCapture();
@@ -2081,14 +2082,7 @@ void UProjectEmoteSubsystem::HandleAllowedPausePressed()
 		return;
 	}
 
-	const bool bWasPaused = UGameplayStatics::IsGamePaused(World);
-	if (!bWasPaused)
-	{
-		CleanupMenuAndEmoteState();
-		RestoreActiveEmoteInputCapture();
-	}
-
-	UGameplayStatics::SetGamePaused(World, !bWasPaused);
+	if (auto* Clock = World->GetSubsystem<UProjectDayCycleSubsystem>()) Clock->TogglePlayerPause();
 }
 
 void UProjectEmoteSubsystem::HandleBlockedActiveEmoteInput()

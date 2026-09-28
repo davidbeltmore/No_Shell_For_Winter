@@ -3,6 +3,7 @@
 #include "Components/ACFInventoryComponent.h"
 #include "Components/ACFInteractableComponent.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
@@ -416,6 +417,7 @@ float UProjectLockpickableComponent::ComputeTargetHalfRange(const int32 InDiffic
 
 void UProjectLockpickableComponent::StartLockpickSession(APawn* Pawn, const FString& OriginalInteractionType)
 {
+	if (UGameplayStatics::IsGamePaused(this)) return;
 	if (IsSessionActive() || !CanPawnAttemptLockpick(Pawn))
 	{
 		return;
@@ -441,6 +443,7 @@ void UProjectLockpickableComponent::StartLockpickSession(APawn* Pawn, const FStr
 
 void UProjectLockpickableComponent::ConfirmLockpickSession(APawn* Pawn, const int32 SessionId)
 {
+	if (UGameplayStatics::IsGamePaused(this)) return;
 	if (bResolvingAttempt || !Pawn || SessionId == INDEX_NONE || SessionId != ActiveSessionId || ActivePawn != Pawn || IsInFailureCooldown())
 	{
 		return;
