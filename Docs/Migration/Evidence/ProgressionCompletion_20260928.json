@@ -1,0 +1,215 @@
+{
+  "utc": "2026-09-28T22:44:14.265625+00:00",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "source_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "snapshot": "5cd26b8951fd9ba8cc86edcaf0b86c9d135b099a",
+  "scope": [
+    "HUB",
+    "StorySelection"
+  ],
+  "calysto_runtime_tested": false,
+  "builds": {
+    "editor": {
+      "status": "PASS",
+      "log": "Saved\\Analysis\\PracticeProgression\\editor_build40.log"
+    },
+    "game": {
+      "status": "PASS",
+      "log": "Saved\\Analysis\\PracticeProgression\\game_build40.log"
+    }
+  },
+  "runtime_gates": {
+    "activities": {
+      "status": "PASS",
+      "receipt": "Saved\\Analysis\\PracticeProgression\\Activities_20260928_171657\\receipt.json",
+      "checks": 81,
+      "save_guard_restored": true,
+      "quest_start_errors": 0,
+      "cue_collisions": 0
+    },
+    "visual": {
+      "status": "PASS",
+      "receipt": "Saved\\Analysis\\PracticeProgression\\Visual_20260928_171955\\receipt.json",
+      "checks": 46,
+      "save_guard_restored": true,
+      "quest_start_errors": 0,
+      "cue_collisions": 0
+    },
+    "reload": {
+      "status": "PASS",
+      "receipt": "Saved\\Analysis\\PracticeProgression\\Reload_20260928_172229\\receipt.json",
+      "checks": 22,
+      "save_guard_restored": true,
+      "quest_start_errors": 0,
+      "cue_collisions": 0
+    }
+  },
+  "effort_live_evidence": {
+    "endurance": {
+      "learned_endurance": 100.0,
+      "component": "<Object '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.DirtyPawnRuntime' (0x000001C01AE2B400) Class 'DirtyPawnComponent'>",
+      "multiplier": 0.699999988079071,
+      "twenty_second_gain": 9.625
+    },
+    "pause_snapshot": [
+      0.8489609360694885,
+      23.41915512084961
+    ]
+  },
+  "automation": {
+    "status": "PASS",
+    "succeeded": 26,
+    "failed": 0,
+    "warnings": 0,
+    "receipt": "Saved/Analysis/PracticeProgression/Automation_20260928_171523/index.json",
+    "scope_note": "Project suite; unrelated startup Engine smoke diagnostics documented separately."
+  },
+  "package": {
+    "status": "PASS",
+    "log": "Saved\\Analysis\\PracticeProgression\\Package_20260928_173428\\uat.log",
+    "cooked_packages": 6214,
+    "cook_errors": 0,
+    "cook_warnings": 35,
+    "maps": [
+      "HUB",
+      "StorySelection",
+      "MenuMap"
+    ]
+  },
+  "packaged_runtime": {
+    "status": "PASS",
+    "receipt": "Saved\\Analysis\\PracticeProgression\\PackagedQA_20260928_174009\\receipt.json",
+    "passed": true,
+    "exit_code": 0,
+    "cue_conflicts": 0,
+    "quest_errors": 0,
+    "reports": [
+      {
+        "activity": "ReadBook",
+        "practice": 0.067937699,
+        "active": 1,
+        "perks": 0,
+        "paused": 0,
+        "hours": 0.002718361
+      },
+      {
+        "activity": "ReadBook",
+        "practice": 0.468437667,
+        "active": 1,
+        "perks": 0,
+        "paused": 0,
+        "hours": 0.01877818
+      },
+      {
+        "activity": "ReadBook",
+        "practice": 1.60147381,
+        "active": 1,
+        "perks": 0,
+        "paused": 0,
+        "hours": 0.064537695
+      },
+      {
+        "activity": "ReadBook",
+        "practice": 2.347565122,
+        "active": 1,
+        "perks": 0,
+        "paused": 1,
+        "hours": 0.094936138
+      },
+      {
+        "activity": "ReadBook",
+        "practice": 2.347565122,
+        "active": 1,
+        "perks": 0,
+        "paused": 1,
+        "hours": 0.094936138
+      },
+      {
+        "activity": "ReadBook",
+        "practice": 2.495182642,
+        "active": 1,
+        "perks": 0,
+        "paused": 0,
+        "hours": 0.100975987
+      }
+    ],
+    "legacy_cue_in_cooked_registry": true,
+    "clocks": [
+      {
+        "hours": 0.023763255,
+        "paused": 0,
+        "speed": 1
+      },
+      {
+        "hours": 0.039951509,
+        "paused": 0,
+        "speed": 2
+      },
+      {
+        "hours": 0.0860878,
+        "paused": 0,
+        "speed": 4
+      },
+      {
+        "hours": 0.115824094,
+        "paused": 1,
+        "speed": 1
+      },
+      {
+        "hours": 0.115824094,
+        "paused": 1,
+        "speed": 1
+      },
+      {
+        "hours": 0.12200614,
+        "paused": 0,
+        "speed": 1
+      }
+    ]
+  },
+  "visual_qa": {
+    "status": "PASS",
+    "reviewed": [
+      {
+        "path": "Saved\\Analysis\\PracticeProgression\\Visual\\minimal_practice_before_input00004.png",
+        "sha256": "770630e9529d02da2cec808c56734b74dc61c3510252ea0ff25f86de790d1193"
+      },
+      {
+        "path": "Saved\\Analysis\\PracticeProgression\\PackagedQA_20260928_174009\\UserData\\Saved\\Screenshots\\Windows\\practice_x400000.png",
+        "sha256": "6ebe37ff0d7ee638abb665e07ba977fb7f86d560d98a3dbfbced0da493d8857c"
+      },
+      {
+        "path": "Saved\\Analysis\\PracticeProgression\\PackagedQA_20260928_174009\\UserData\\Saved\\Screenshots\\Windows\\practice_paused00000.png",
+        "sha256": "e289164632f971f8c4d94c4871a069805fcf10e9ab8ee502f4aa0215f508f013"
+      }
+    ]
+  },
+  "protected": {
+    "utc": "2026-09-28T22:42:13.437797+00:00",
+    "checked": 7900,
+    "differences": [],
+    "snapshot": "5cd26b8951fd9ba8cc86edcaf0b86c9d135b099a"
+  },
+  "asset_hashes": {
+    "Content/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP.uasset": "dfa085c0092615b9b669434785dd863bb450f58873c02570b0b0d1b2ff8cd71e",
+    "Content/_Game/Data/Progression/DT_ProjectAttributesSetByCallers.uasset": "50da8a989628072bca725015cc9a99f56eb620a51995e1de0c7a67ea1366c909",
+    "Content/_Game/Hub/HUB.umap": "1f7df72f77516f8f96b197af1cd660106a7d145dad6e6d047dcdeeb018ffc5c3"
+  },
+  "legacy_asset_compatibility": {
+    "status": "PASS load/decompression only",
+    "evidence": "Saved/Analysis/ProgressionRemaining/legacy_compatibility.json",
+    "full_climbing_bow_gameplay": "PENDING"
+  },
+  "remaining": [
+    "Protected ACF/Daz/Engine compatibility diagnostics",
+    "Engine startup smoke/localization diagnostics",
+    "PCGExtendedToolkit/UECPCore/external service diagnostics",
+    "MorphPhysics/Blink protected mesh compatibility",
+    "Full legacy climbing/bow/sample quest scenarios",
+    "Long-term player balance; Calysto runtime excluded"
+  ],
+  "superseded_package": {
+    "path": "Saved/Analysis/PracticeProgression/Package_20260928_172905",
+    "reason": "Cook omitted legacy Reaction cue; corrected and verified in final package."
+  }
+}

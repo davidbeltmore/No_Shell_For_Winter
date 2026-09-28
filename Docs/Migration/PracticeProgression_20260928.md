@@ -1,5 +1,7 @@
 # Progresión por práctica y entrenamiento — UE 5.8
 
+> Continuación actual: [ProgressionCompletion_20260928.md](ProgressionCompletion_20260928.md). Incluye sudor por esfuerzo físico, sinergias efectivas, adaptador de misiones, cue canónico y evidencia posterior a build33. Las tablas de este documento conservan la evidencia histórica; consultar la continuación para los pendientes resueltos.
+
 Estado: **PRÁCTICA Y HUD VALIDADOS EN PIE Y PAQUETE**. La migración general conserva incidencias heredadas pendientes; no declara cero advertencias.
 Destino: D:/Projects UE5/NoShellForWinter. LustAsDeadlySin permanece en solo lectura.
 Base: ca254270; matemáticas/extensiones: e18a7966; integración de XP, guardado y entrenamiento: 40645f03; HUD/cámara: 04fbf585; carga inicial sin slot: cfa03050; activación/config/assets: 1ef4e63a.

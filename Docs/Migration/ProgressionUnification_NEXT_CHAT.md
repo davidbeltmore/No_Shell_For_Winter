@@ -1,5 +1,7 @@
 # Texto para copiar al siguiente chat
 
+> Estado más reciente: [ProgressionCompletion_20260928.md](ProgressionCompletion_20260928.md), continuación del plan de práctica con sudor por esfuerzo físico. El texto del piloto que sigue es histórico y no debe reactivar compra de atributos ni DXP.
+
 > Actualización 2026-09-28: este texto describe el piloto histórico. Para continuar, usar [PracticeProgression_20260928.md](PracticeProgression_20260928.md), sus decisiones aprobadas y evidencia. Los atributos ahora se aprenden por práctica, los puntos de nivel son exclusivamente para habilidades y las partidas antiguas están respaldadas/archivadas. No volver a activar compra de atributos ni convertir DXP/Meta. Calysto queda fuera de las pruebas por petición del usuario.
 
 Trabaja en D:\Projects UE5\NoShellForWinter (UE 5.8, ACF Ultimate instalado). LustAsDeadlySin es el origen de sólo lectura. Lee AGENTS.md y aplica noshellforwinter-unreal-mcp y survival-needs-sensations-workbench.
