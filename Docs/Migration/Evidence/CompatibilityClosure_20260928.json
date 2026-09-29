@@ -1,0 +1,6907 @@
+{
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "source_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "baseline": "c9993314b38704cc89f3d579a8fcfb797ddfb38f",
+  "code_snapshot": "2d5d606e7ab7fedbc99033daabeee6f478debd4f",
+  "overall": "INCOMPLETE_GLOBAL_COMPATIBILITY",
+  "implementation_commits": [
+    "41e348a1",
+    "825b4d93",
+    "4f8f238c",
+    "7f890d27",
+    "6d4740eb",
+    "4cc0f6dd",
+    "5913a772",
+    "2d5d606e"
+  ],
+  "gates": {
+    "editor_build": {
+      "path": "Saved/Analysis/CompatibilityClosure/build_editor_final.log",
+      "sha256": "ce1bb511953830dd5a941a6ad2703c072f0966daa0060b7aff4d7a896681074a",
+      "status": "PASS",
+      "existing_deprecation_warnings": true
+    },
+    "game_build": {
+      "path": "Saved/Analysis/CompatibilityClosure/build_game_spline.log",
+      "sha256": "263e463af7672eecfdfd4a2295c5b3495649b97047a10680750f649a64328f18",
+      "status": "PASS",
+      "existing_deprecation_warnings": true
+    },
+    "automation": {
+      "path": "Saved/Analysis/PracticeProgression/Automation_20260928_204032/index.json",
+      "sha256": "91c93ebe226ca0743dd62f78e9b01beb9e5043a0ae57ce2d0408418e789d458b",
+      "succeeded": 27,
+      "failed": 0,
+      "warnings": 0,
+      "not_run": 0
+    },
+    "Visual_20260928_211117": {
+      "path": "Saved/Analysis/PracticeProgression/Visual_20260928_211117/receipt.json",
+      "sha256": "6826dc0b304ff9e78ab523bbba1b17fd6a00444a419e038dd0ca8cdd26322288",
+      "status": "PASS",
+      "checks": 46
+    },
+    "Activities_20260928_211322": {
+      "path": "Saved/Analysis/PracticeProgression/Activities_20260928_211322/receipt.json",
+      "sha256": "63719862c57ee3606055ed5fba064d8c96b9c971f1fdee8a7b1d54ea18b78607",
+      "status": "PASS",
+      "checks": 81
+    },
+    "Reload_20260928_211611": {
+      "path": "Saved/Analysis/PracticeProgression/Reload_20260928_211611/receipt.json",
+      "sha256": "b9e5ad2c08a33668c9aabc409cafe33b106dd7866d61a79c002405339f915db6",
+      "status": "PASS",
+      "checks": 23
+    },
+    "Respawn_20260928_211822": {
+      "path": "Saved/Analysis/PracticeProgression/Respawn_20260928_211822/receipt.json",
+      "sha256": "3b81bc3f37464ee76941e647152592ccad0c18bf5b8e8988f10b1589dc26c8ad",
+      "status": "PASS",
+      "checks": 24
+    },
+    "blueprint_global": {
+      "path": "Saved/Artifacts/PendingValidation/BlueprintCompile/20260928_212357/AllProjectBlueprintCompile.json",
+      "sha256": "8ce17e44101add7e602bf737e09e108fbf2aacd7704dc223fba79ca926676182",
+      "status": "FAIL",
+      "compiled": 901,
+      "failures": [
+        "/Game/Calysto/Shared/Blueprint/Controller/BP_CalystoController",
+        "/Game/RealisticBlood/Demo/Characters/Mannequins/Animations/ABP_Manny",
+        "/Game/_MigrationBackup/TattooShop/20260811-231427/WBP_TattooCustomization"
+      ],
+      "on_disk_changes": 0,
+      "ordering": "Before final LevelBlock repair; affected parent/child recompiled separately afterward"
+    },
+    "quest_end_to_end": {
+      "path": "Saved/Analysis/CompatibilityClosure/quest_end_to_end.json",
+      "sha256": "4c933e936b6c0500a42c07fb6dad2623c3f48c4cd8f37e6675fc92ec2d668c84",
+      "result": {
+        "checks": [
+          {
+            "name": "quest waits for missing targets",
+            "pass": true
+          },
+          {
+            "name": "transient path has navigation",
+            "pass": true
+          },
+          {
+            "name": "all runtime quest references remapped",
+            "pass": true
+          },
+          {
+            "name": "deferred quest starts with valid targets",
+            "pass": true
+          },
+          {
+            "name": "expected talk objective",
+            "pass": true
+          },
+          {
+            "name": "active target exists",
+            "pass": true
+          },
+          {
+            "name": "native follow completed without objective skip",
+            "pass": true
+          },
+          {
+            "name": "expected talk objective",
+            "pass": true
+          },
+          {
+            "name": "active target exists",
+            "pass": true
+          },
+          {
+            "name": "expected talk objective",
+            "pass": true
+          },
+          {
+            "name": "active target exists",
+            "pass": true
+          },
+          {
+            "name": "quest completed",
+            "pass": true
+          },
+          {
+            "name": "authored tutorial grants no XP",
+            "pass": true
+          },
+          {
+            "name": "native save completes",
+            "pass": true
+          },
+          {
+            "name": "native load completes",
+            "pass": true
+          },
+          {
+            "name": "completed quest survives load",
+            "pass": true
+          },
+          {
+            "name": "all four objective replays rejected",
+            "pass": true
+          },
+          {
+            "name": "completed quest cannot restart",
+            "pass": true
+          },
+          {
+            "name": "load and replay add no XP",
+            "pass": true
+          }
+        ],
+        "follow_samples": [
+          {
+            "seconds": 0.062000000001717126,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.125,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.1720000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.20300000000133878,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.23400000000037835,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.2649999999994179,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.3280000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.375,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.4220000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.4690000000009604,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.5149999999994179,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.5470000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.5780000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.625,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.6560000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.7030000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.7340000000003783,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.7649999999994179,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.8120000000017171,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.8440000000009604,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.875,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.9060000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.9530000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 0.9840000000003783,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.014999999999418,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.0470000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.0940000000009604,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.125,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.1560000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.1870000000017171,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.2340000000003783,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.264999999999418,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.2970000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.3280000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.375,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.4060000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.4370000000017171,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.4690000000009604,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.5,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.5470000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.5780000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.6090000000003783,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.6560000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.6870000000017171,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.7190000000009604,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.75,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.7970000000022992,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.8280000000013388,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.8590000000003783,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.9060000000026776,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.9370000000017171,
+            "guy": [
+              500.0,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 1.9840000000003783,
+            "guy": [
+              502.7804666464024,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.014999999999418,
+            "guy": [
+              508.40528958272233,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.047000000002299,
+            "guy": [
+              516.5578106408491,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.0940000000009604,
+            "guy": [
+              527.733158563352,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.125,
+            "guy": [
+              542.0882189390838,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.1560000000026776,
+            "guy": [
+              558.316301333919,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.2030000000013388,
+            "guy": [
+              578.244394888163,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.2340000000003783,
+            "guy": [
+              599.8563342587952,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.2810000000026776,
+            "guy": [
+              622.9967751400475,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.312000000001717,
+            "guy": [
+              646.2594934599404,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.3590000000003783,
+            "guy": [
+              668.1543947057728,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.4840000000003783,
+            "guy": [
+              698.4083154098992,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.514999999999418,
+            "guy": [
+              771.2336719827656,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.5780000000013388,
+            "guy": [
+              795.8493322925572,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.6090000000003783,
+            "guy": [
+              825.4338920907978,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.7190000000009604,
+            "guy": [
+              847.3041326599125,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.764999999999418,
+            "guy": [
+              913.174590547562,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.797000000002299,
+            "guy": [
+              940.8063300745491,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.8440000000009604,
+            "guy": [
+              963.3971103327278,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.875,
+            "guy": [
+              984.6062690811161,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.9060000000026776,
+            "guy": [
+              1006.1510705249314,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_FollowNPCObjective_BP_C"
+            ]
+          },
+          {
+            "seconds": 2.9530000000013388,
+            "guy": [
+              1021.3319201640176,
+              500.0,
+              89.69198656082153
+            ],
+            "objectives": [
+              "ACF_TalkToObjective_BP_C"
+            ]
+          }
+        ],
+        "completed": true,
+        "xp_before": 75,
+        "passed": true
+      }
+    },
+    "ladder_time_speeds": {
+      "path": "Saved/Analysis/CompatibilityClosure/ladder_time_speeds.json",
+      "sha256": "73c7fea7d87bd96ce350f49b851945addaf41ba572c8eede41013e3b229820e1",
+      "result": {
+        "cases": [
+          {
+            "speed": 1.0,
+            "game_seconds": 5.165543898940086,
+            "real_seconds": 5.139999999999418,
+            "position": [
+              -1153.9195511977168,
+              2.579169261892801,
+              441.1499981880188
+            ],
+            "movement": "<MovementMode.MOVE_WALKING: 1>",
+            "effort_after": 0.0
+          },
+          {
+            "speed": 2.0,
+            "game_seconds": 5.2241391986608505,
+            "real_seconds": 2.6090000000003783,
+            "position": [
+              -1153.9195512134552,
+              2.5791692617521518,
+              441.14999771118164
+            ],
+            "movement": "<MovementMode.MOVE_WALKING: 1>",
+            "effort_after": 0.0
+          },
+          {
+            "speed": 4.0,
+            "game_seconds": 5.338105991482735,
+            "real_seconds": 1.3280000000013388,
+            "position": [
+              -1153.9195512889953,
+              2.5791692720709825,
+              441.14999771118164
+            ],
+            "movement": "<MovementMode.MOVE_WALKING: 1>",
+            "effort_after": 0.0
+          }
+        ],
+        "passed": true
+      }
+    },
+    "ladder_pause_fixed": {
+      "path": "Saved/Analysis/CompatibilityClosure/ladder_pause_fixed.json",
+      "sha256": "e9139377b178e60aebc68b8badaf834c6172e090b19be314296ebb95c917a177",
+      "result": {
+        "start_game": 179.58095360547304,
+        "start_location": "<Struct 'Vector' (0x000001F66061DC30) {x: 1543.970733, y: 0.000000, z: 126.765648}>",
+        "start_effort": 0.0,
+        "start_sweat": 0.09313112497329712,
+        "end_game": 179.58095360547304,
+        "end_location": "<Struct 'Vector' (0x000001F66066B8A0) {x: 1543.970733, y: 0.000000, z: 126.765648}>",
+        "end_effort": 0.0,
+        "end_sweat": 0.09313112497329712,
+        "pass": true,
+        "start_coordinates": [
+          1543.970733,
+          0.0,
+          126.765648
+        ],
+        "end_coordinates": [
+          1543.970733,
+          0.0,
+          126.765648
+        ],
+        "comparison_note": "Original repr comparison failed only because temporary Vector wrapper addresses differed; original recorded x/y/z values are equal."
+      }
+    },
+    "ladder_dodge_cancel": {
+      "path": "Saved/Analysis/CompatibilityClosure/ladder_dodge_cancel.json",
+      "sha256": "2d464ba1ee543f80d78a6ca1b4d0ee20bc9793fd0201fddea81a45b6650bc218",
+      "result": {
+        "climbing": false,
+        "mode": "<MovementMode.MOVE_WALKING: 1>",
+        "effort_intensity": 0.0,
+        "pass": true
+      }
+    },
+    "bow_pause_clock_fixed": {
+      "path": "Saved/Analysis/CompatibilityClosure/bow_pause_clock_fixed.json",
+      "sha256": "0f366ec6bf222699615f4cba6ac490366b72e5db0a89f5af41d6e5744d3d6053",
+      "result": {
+        "real_start": 48.65062541514635,
+        "game_start": 48.389340199530125,
+        "action_start": 0.0,
+        "real_end": 50.98396027833223,
+        "game_end": 48.389340199530125,
+        "action_end": 0.0,
+        "pass": true
+      }
+    },
+    "bow_simulation_speeds_fixed": {
+      "path": "Saved/Analysis/CompatibilityClosure/bow_simulation_speeds_fixed.json",
+      "sha256": "2f1fbd20e3d718a17fb252ce215b0ba9d93ee9a5c38224135c9da3e7cbdcd12f",
+      "result": [
+        {
+          "speed": 1.0,
+          "allowed": true,
+          "class": "/Game/_Game/Blueprints/Compatibility/BP_ProjectChargedShoot.BP_ProjectChargedShoot_C",
+          "real_start": 73.65064219385386,
+          "game_start": 71.05602211505175,
+          "held_start": 0.0,
+          "real_end": 75.01829998195171,
+          "game_end": 72.4236799031496,
+          "held_end": 1.3676605224609375,
+          "pass": true
+        },
+        {
+          "speed": 2.0,
+          "allowed": true,
+          "class": "/Game/_Game/Blueprints/Compatibility/BP_ProjectChargedShoot.BP_ProjectChargedShoot_C",
+          "real_start": 76.68496759235859,
+          "game_start": 74.09034751355648,
+          "held_start": 0.0,
+          "real_end": 78.01830150187016,
+          "game_end": 76.75701533257961,
+          "held_end": 2.6666641235351562,
+          "pass": true
+        },
+        {
+          "speed": 4.0,
+          "allowed": true,
+          "class": "/Game/_Game/Blueprints/Compatibility/BP_ProjectChargedShoot.BP_ProjectChargedShoot_C",
+          "real_start": 79.68496911227703,
+          "game_start": 80.09035055339336,
+          "held_start": 0.0,
+          "real_end": 81.01830299198627,
+          "game_end": 85.42368607223034,
+          "held_end": 5.333335876464844,
+          "pass": true
+        }
+      ]
+    },
+    "bow_fixed_impact": {
+      "path": "Saved/Analysis/CompatibilityClosure/bow_fixed_impact.json",
+      "sha256": "c70d6ab076d0b27a0fe7396b8b3e1d69b310ca45ac02387d390faafadd5abec1",
+      "result": {
+        "ammo_before": 18,
+        "ammo_after": 17,
+        "health_before": 504.0,
+        "health_after": 462.60076904296875,
+        "world_delta": 0.024775400757789612,
+        "pass": true
+      }
+    },
+    "creator_male_pulse": {
+      "path": "Saved/Analysis/CompatibilityClosure/creator_male_pulse.json",
+      "sha256": "ea254e89f1d5fb23513af50cb88c34a8b7d98f6b3bfc14e9fbeeea4dcfeb3391",
+      "result": {
+        "peak_captured": true,
+        "left_rest": 0.0,
+        "right_rest": 0.0,
+        "ready": true,
+        "body": {
+          "gender": "<CharacterCreationGender.MALE: 1>",
+          "mesh": "/Game/DazToUnreal/Male/Male.Male",
+          "materials": [
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Fingernails.Genesis9_Fingernails' (0x000001EA16EFB800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Legs.Genesis9_Legs' (0x000001EA16EFC800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_MouthCavity.Genesis9_MouthCavity' (0x000001EA16EFD000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Arms.Genesis9_Arms' (0x000001EA16EFA000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Head.Genesis9_Head' (0x000001EA16EFC000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Body.Genesis9_Body' (0x000001EA16EFB000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9/Genesis9_Body.Genesis9_Body' (0x000001EA16EFB000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9Eyelashes/Genesis9Eyelashes_EyelashesLower.Genesis9Eyelashes_EyelashesLower' (0x000001E9ECC91000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9Tear/Genesis9Tear_Tear.Genesis9Tear_Tear' (0x000001E9ECC95000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9Eyes/Genesis9Eyes_EyeMoistureLeft.Genesis9Eyes_EyeMoistureLeft' (0x000001E9ECC96000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SkeletalMesh.MID_Genesis9Eyes_EyeLeft_1' (0x000001E940D68000) Class 'MaterialInstanceDynamic'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9Mouth/Genesis9Mouth_Mouth.Genesis9Mouth_Mouth' (0x000001EA16EFF000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/Genesis9Mouth/Genesis9Mouth_Teeth.Genesis9Mouth_Teeth' (0x000001EA16EFF800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/G9EyebrowsFiberStyle06/G9EyebrowsFiberStyle06_Eyebrows_Primary.G9EyebrowsFiberStyle06_Eyebrows_Primary' (0x000001EA17FB1800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Male/Materials/G9EyebrowsFiberStyle06/G9EyebrowsFiberStyle06_Eyebrows_Secondary.G9EyebrowsFiberStyle06_Eyebrows_Secondary' (0x000001EA17FB2000) Class 'MaterialInstanceConstant'>"
+          ],
+          "ready": true,
+          "morphs": [
+            "Eye Blink Left",
+            "Eye Blink Right",
+            "Eyelid Thickness",
+            "Eyelid Angle Upper Outer",
+            "Eyelid Angle Lower Outer",
+            "Eyeball Position Depth"
+          ]
+        }
+      }
+    },
+    "creator_female_pulse": {
+      "path": "Saved/Analysis/CompatibilityClosure/creator_female_pulse.json",
+      "sha256": "4a574ef030c2499b93d74bcfe6d5512af4b1ba4ca37b44db392ef63f6dabbc32",
+      "result": {
+        "peak_captured": true,
+        "left_rest": 0.0,
+        "right_rest": 0.0,
+        "ready": true,
+        "body": {
+          "gender": "<CharacterCreationGender.FEMALE: 2>",
+          "mesh": "/Game/DazToUnreal/Female/Female.Female",
+          "materials": [
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Fingernails.Genesis9_Fingernails' (0x000001EA16EF6000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Legs.Genesis9_Legs' (0x000001EA16EF7000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Head.Genesis9_Head' (0x000001EA16EF6800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Arms.Genesis9_Arms' (0x000001EA16EF5000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Body.Genesis9_Body' (0x000001EA16EF5800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9/Genesis9_Body.Genesis9_Body' (0x000001EA16EF5800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9Eyelashes/Genesis9Eyelashes_EyelashesLower.Genesis9Eyelashes_EyelashesLower' (0x000001E9ECC95800) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9Eyes/Genesis9Eyes_EyeMoistureLeft.Genesis9Eyes_EyeMoistureLeft' (0x000001E9ECC93000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0.MID_Genesis9Eyes_EyeLeft_2' (0x000001EB841EC800) Class 'MaterialInstanceDynamic'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9Mouth/Genesis9Mouth_Mouth.Genesis9Mouth_Mouth' (0x000001EA16EF9000) Class 'MaterialInstanceConstant'>",
+            "<Object '/Game/DazToUnreal/Female/Materials/Genesis9Mouth/Genesis9Mouth_Teeth.Genesis9Mouth_Teeth' (0x000001EA16EF9800) Class 'MaterialInstanceConstant'>"
+          ],
+          "ready": true,
+          "morphs": [
+            "Eye Blink Left",
+            "Eye Blink Right",
+            "Eyelid Thickness",
+            "Eyelid Angle Upper Outer",
+            "Eyelid Angle Lower Outer",
+            "Eyeball Position Depth"
+          ]
+        }
+      }
+    },
+    "physical_effort_bow_lifecycle": {
+      "path": "Saved/Analysis/CompatibilityClosure/physical_effort_bow_lifecycle.json",
+      "sha256": "6617e95e4986944ec5f139f92897833d667192c2c6afceeb548eeac2e70aa404",
+      "result": [
+        {
+          "game_seconds": 0.13561080396175385,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.01356108020991087,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.27377399802207947,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.027377400547266006,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.404202401638031,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.04042024165391922,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.5312875956296921,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.05312876030802727,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.651689201593399,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.06516891717910767,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.7720867991447449,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.07720867544412613,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 0.8923500031232834,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.08923499286174774,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.0174580067396164,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.10174579173326492,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.1444984078407288,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.11444982886314392,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.2650528103113174,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.1265052706003189,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.3828240036964417,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.1382823884487152,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.5042732059955597,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.15042731165885925,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.623504400253296,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.16235043108463287,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.7375380098819733,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.1737537980079651,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.8462736010551453,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.18462735414505005,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 1.953135997056961,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.19531358778476715,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.064860001206398,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.20648598670959473,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.1737788021564484,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.21737787127494812,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.283087208867073,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.22830870747566223,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.3820392042398453,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.23820391297340393,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.489854797720909,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.24898546934127808,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 2.6025384068489075,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.26025381684303284,
+          "sweat": 0.000671499758027494
+        },
+        {
+          "game_seconds": 2.713041603565216,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.2713041305541992,
+          "sweat": 0.0028986926190555096
+        },
+        {
+          "game_seconds": 2.8314808011054993,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.28314805030822754,
+          "sweat": 0.007017628289759159
+        },
+        {
+          "game_seconds": 2.945914000272751,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.29459136724472046,
+          "sweat": 0.012699187733232975
+        },
+        {
+          "game_seconds": 3.060267999768257,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.30602675676345825,
+          "sweat": 0.020047739148139954
+        },
+        {
+          "game_seconds": 3.1792856007814407,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.3179285228252411,
+          "sweat": 0.029469899833202362
+        },
+        {
+          "game_seconds": 3.293075203895569,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.329307496547699,
+          "sweat": 0.04017007350921631
+        },
+        {
+          "game_seconds": 3.4055591970682144,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.34055590629577637,
+          "sweat": 0.05237302556633949
+        },
+        {
+          "game_seconds": 3.5112335979938507,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.3511233329772949,
+          "sweat": 0.06530959159135818
+        },
+        {
+          "game_seconds": 3.6273155957460403,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.36273154616355896,
+          "sweat": 0.08116430044174194
+        },
+        {
+          "game_seconds": 3.7354988008737564,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.3735498785972595,
+          "sweat": 0.09748969972133636
+        },
+        {
+          "game_seconds": 3.846308007836342,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.38463079929351807,
+          "sweat": 0.1157611832022667
+        },
+        {
+          "game_seconds": 3.9645580053329468,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.3964557945728302,
+          "sweat": 0.1369895040988922
+        },
+        {
+          "game_seconds": 4.080728396773338,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.408072829246521,
+          "sweat": 0.15958374738693237
+        },
+        {
+          "game_seconds": 4.19058720767498,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.4190587103366852,
+          "sweat": 0.18253633379936218
+        },
+        {
+          "game_seconds": 4.323300004005432,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.4323299825191498,
+          "sweat": 0.2123197615146637
+        },
+        {
+          "game_seconds": 4.4543804079294205,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.445438027381897,
+          "sweat": 0.24394525587558746
+        },
+        {
+          "game_seconds": 4.57019479572773,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.2733990550041199
+        },
+        {
+          "game_seconds": 4.690056398510933,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.3040196895599365
+        },
+        {
+          "game_seconds": 4.800758808851242,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.33230045437812805
+        },
+        {
+          "game_seconds": 4.914581209421158,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.3613782823085785
+        },
+        {
+          "game_seconds": 5.038368001580238,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.3930016756057739
+        },
+        {
+          "game_seconds": 5.153509199619293,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.42241641879081726
+        },
+        {
+          "game_seconds": 5.275045201182365,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.4534648060798645
+        },
+        {
+          "game_seconds": 5.405126005411148,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.48669612407684326
+        },
+        {
+          "game_seconds": 5.52155439555645,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.51643967628479
+        },
+        {
+          "game_seconds": 5.638854801654816,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.5464060306549072
+        },
+        {
+          "game_seconds": 5.755812808871269,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.5762848854064941
+        },
+        {
+          "game_seconds": 5.8724444061517715,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.6060803532600403
+        },
+        {
+          "game_seconds": 5.986594796180725,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.6352419853210449
+        },
+        {
+          "game_seconds": 6.091864809393883,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.6621349453926086
+        },
+        {
+          "game_seconds": 6.203461199998856,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.6906440854072571
+        },
+        {
+          "game_seconds": 6.3173564076423645,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.7197405099868774
+        },
+        {
+          "game_seconds": 6.439190000295639,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.7508649230003357
+        },
+        {
+          "game_seconds": 6.551652401685715,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.7795953154563904
+        },
+        {
+          "game_seconds": 6.6699784100055695,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.8098236918449402
+        },
+        {
+          "game_seconds": 6.790600404143333,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.8406385779380798
+        },
+        {
+          "game_seconds": 6.912356004118919,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.8717430830001831
+        },
+        {
+          "game_seconds": 7.034170404076576,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.9028626084327698
+        },
+        {
+          "game_seconds": 7.154795601963997,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.9336783289909363
+        },
+        {
+          "game_seconds": 7.2656248062849045,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.9619914889335632
+        },
+        {
+          "game_seconds": 7.377412796020508,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 0.9905495643615723
+        },
+        {
+          "game_seconds": 7.493183597922325,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.020125150680542
+        },
+        {
+          "game_seconds": 7.6050596088171005,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.0487056970596313
+        },
+        {
+          "game_seconds": 7.725700795650482,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.0795254707336426
+        },
+        {
+          "game_seconds": 7.844781205058098,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.1099464893341064
+        },
+        {
+          "game_seconds": 7.954933196306229,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.1380866765975952
+        },
+        {
+          "game_seconds": 8.071157604455948,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.1677781343460083
+        },
+        {
+          "game_seconds": 8.188121601939201,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.1976585388183594
+        },
+        {
+          "game_seconds": 8.305598810315132,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.2276700735092163
+        },
+        {
+          "game_seconds": 8.413878008723259,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.2553317546844482
+        },
+        {
+          "game_seconds": 8.526461198925972,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.2840930223464966
+        },
+        {
+          "game_seconds": 8.63925039768219,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.3129068613052368
+        },
+        {
+          "game_seconds": 8.757922008633614,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.3432234525680542
+        },
+        {
+          "game_seconds": 8.87832359969616,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.3739820718765259
+        },
+        {
+          "game_seconds": 8.994339600205421,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.4036202430725098
+        },
+        {
+          "game_seconds": 9.113160401582718,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.4339749813079834
+        },
+        {
+          "game_seconds": 9.235109999775887,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.465129017829895
+        },
+        {
+          "game_seconds": 9.346103608608246,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.4934841394424438
+        },
+        {
+          "game_seconds": 9.456701204180717,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.5217381715774536
+        },
+        {
+          "game_seconds": 9.578855603933334,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.552944540977478
+        },
+        {
+          "game_seconds": 9.692563608288765,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.5819931030273438
+        },
+        {
+          "game_seconds": 9.803715601563454,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.6103887557983398
+        },
+        {
+          "game_seconds": 9.918828800320625,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.6397963762283325
+        },
+        {
+          "game_seconds": 10.04548279941082,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.6721522808074951
+        },
+        {
+          "game_seconds": 10.163744807243347,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.7023643255233765
+        },
+        {
+          "game_seconds": 10.282936006784439,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.7328137159347534
+        },
+        {
+          "game_seconds": 10.401510804891586,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.7631056308746338
+        },
+        {
+          "game_seconds": 10.520081609487534,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.7933964729309082
+        },
+        {
+          "game_seconds": 10.642519608139992,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.8246753215789795
+        },
+        {
+          "game_seconds": 10.764941602945328,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.855950117111206
+        },
+        {
+          "game_seconds": 10.890652805566788,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.8880650997161865
+        },
+        {
+          "game_seconds": 11.014150395989418,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.919614553451538
+        },
+        {
+          "game_seconds": 11.125912800431252,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.9481661319732666
+        },
+        {
+          "game_seconds": 11.233316004276276,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 1.9756040573120117
+        },
+        {
+          "game_seconds": 11.350979208946228,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.0056631565093994
+        },
+        {
+          "game_seconds": 11.47386920452118,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.037057399749756
+        },
+        {
+          "game_seconds": 11.591449201107025,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.0670952796936035
+        },
+        {
+          "game_seconds": 11.708949998021126,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.0971128940582275
+        },
+        {
+          "game_seconds": 11.823636397719383,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.1264114379882812
+        },
+        {
+          "game_seconds": 11.94250001013279,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.1567771434783936
+        },
+        {
+          "game_seconds": 12.061416402459145,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.1871562004089355
+        },
+        {
+          "game_seconds": 12.17765760421753,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.2168519496917725
+        },
+        {
+          "game_seconds": 12.298947602510452,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.247837543487549
+        },
+        {
+          "game_seconds": 12.419357597827911,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.2785983085632324
+        },
+        {
+          "game_seconds": 12.538141995668411,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.308943748474121
+        },
+        {
+          "game_seconds": 12.653859198093414,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.338505744934082
+        },
+        {
+          "game_seconds": 12.764929607510567,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.366880416870117
+        },
+        {
+          "game_seconds": 12.876993596553802,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.3955090045928955
+        },
+        {
+          "game_seconds": 12.993830010294914,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.425356864929199
+        },
+        {
+          "game_seconds": 13.110335603356361,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.455120086669922
+        },
+        {
+          "game_seconds": 13.222550809383392,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.4837872982025146
+        },
+        {
+          "game_seconds": 13.334718406200409,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.5124423503875732
+        },
+        {
+          "game_seconds": 13.451064005494118,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.5421648025512695
+        },
+        {
+          "game_seconds": 13.569288402795792,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.5723671913146973
+        },
+        {
+          "game_seconds": 13.686709210276604,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.6023643016815186
+        },
+        {
+          "game_seconds": 13.807718008756638,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.6332781314849854
+        },
+        {
+          "game_seconds": 13.925429210066795,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.6633493900299072
+        },
+        {
+          "game_seconds": 14.039655208587646,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.692530393600464
+        },
+        {
+          "game_seconds": 14.157256007194519,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.7225735187530518
+        },
+        {
+          "game_seconds": 14.277669206261635,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.7533349990844727
+        },
+        {
+          "game_seconds": 14.3958840072155,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.7835350036621094
+        },
+        {
+          "game_seconds": 14.513126403093338,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.8134865760803223
+        },
+        {
+          "game_seconds": 14.629922404885292,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.8433239459991455
+        },
+        {
+          "game_seconds": 14.756871998310089,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.8757553100585938
+        },
+        {
+          "game_seconds": 14.881765201687813,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.9076614379882812
+        },
+        {
+          "game_seconds": 15.002107605338097,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.9384047985076904
+        },
+        {
+          "game_seconds": 15.119571208953857,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.9684128761291504
+        },
+        {
+          "game_seconds": 15.23732240498066,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 2.9984943866729736
+        },
+        {
+          "game_seconds": 15.352055996656418,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.0278050899505615
+        },
+        {
+          "game_seconds": 15.484362006187439,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.0616049766540527
+        },
+        {
+          "game_seconds": 15.605058401823044,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.0924389362335205
+        },
+        {
+          "game_seconds": 15.723365604877472,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.1226625442504883
+        },
+        {
+          "game_seconds": 15.839767202734947,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.1523993015289307
+        },
+        {
+          "game_seconds": 15.963014408946037,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.183884859085083
+        },
+        {
+          "game_seconds": 16.080366000533104,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.213864326477051
+        },
+        {
+          "game_seconds": 16.19171880185604,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.2423112392425537
+        },
+        {
+          "game_seconds": 16.31542520225048,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.273914098739624
+        },
+        {
+          "game_seconds": 16.439521595835686,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.305616617202759
+        },
+        {
+          "game_seconds": 16.5549928098917,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.335115671157837
+        },
+        {
+          "game_seconds": 16.676521599292755,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.3661623001098633
+        },
+        {
+          "game_seconds": 16.792645201086998,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.3958280086517334
+        },
+        {
+          "game_seconds": 16.9133760035038,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.426670789718628
+        },
+        {
+          "game_seconds": 17.03682240843773,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.458207130432129
+        },
+        {
+          "game_seconds": 17.153601199388504,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.4880402088165283
+        },
+        {
+          "game_seconds": 17.273671999573708,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.518714189529419
+        },
+        {
+          "game_seconds": 17.39469200372696,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.549630880355835
+        },
+        {
+          "game_seconds": 17.520052805542946,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.5816564559936523
+        },
+        {
+          "game_seconds": 17.640569999814034,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.6124446392059326
+        },
+        {
+          "game_seconds": 17.758272409439087,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.6425137519836426
+        },
+        {
+          "game_seconds": 17.865807607769966,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.669985294342041
+        },
+        {
+          "game_seconds": 17.97759521007538,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.6985433101654053
+        },
+        {
+          "game_seconds": 18.089548408985138,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.7271435260772705
+        },
+        {
+          "game_seconds": 18.198656797409058,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.755017042160034
+        },
+        {
+          "game_seconds": 18.320686399936676,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.786191463470459
+        },
+        {
+          "game_seconds": 18.442779198288918,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.8173820972442627
+        },
+        {
+          "game_seconds": 18.564327210187912,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.848433494567871
+        },
+        {
+          "game_seconds": 18.689851596951485,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.8805007934570312
+        },
+        {
+          "game_seconds": 18.812836408615112,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.911919355392456
+        },
+        {
+          "game_seconds": 18.938997596502304,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.9441492557525635
+        },
+        {
+          "game_seconds": 19.05573959648609,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 3.973973035812378
+        },
+        {
+          "game_seconds": 19.17575439810753,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.004632949829102
+        },
+        {
+          "game_seconds": 19.293414399027824,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.034691333770752
+        },
+        {
+          "game_seconds": 19.40714120864868,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.06374454498291
+        },
+        {
+          "game_seconds": 19.52000279724598,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.09257698059082
+        },
+        {
+          "game_seconds": 19.636359602212906,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.122302055358887
+        },
+        {
+          "game_seconds": 19.756386801600456,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.152965068817139
+        },
+        {
+          "game_seconds": 19.876669198274612,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.1836934089660645
+        },
+        {
+          "game_seconds": 19.995653599500656,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.214089870452881
+        },
+        {
+          "game_seconds": 20.115246400237083,
+          "phase": "active",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.2446417808532715
+        },
+        {
+          "game_seconds": 20.233888402581215,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.274950981140137
+        },
+        {
+          "game_seconds": 20.353722006082535,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.3055644035339355
+        },
+        {
+          "game_seconds": 20.476037204265594,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.3368120193481445
+        },
+        {
+          "game_seconds": 20.59388880431652,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.366919040679932
+        },
+        {
+          "game_seconds": 20.717504799365997,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.398499011993408
+        },
+        {
+          "game_seconds": 20.843476802110672,
+          "phase": "rest",
+          "intensity": 0.44999998807907104,
+          "effort": 0.44999998807907104,
+          "sweat": 4.430680751800537
+        },
+        {
+          "game_seconds": 20.95616640150547,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.44999998807907104,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.073526799678802,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.4441319704055786,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.18997360765934,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.4383096396923065,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.308710798621178,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.4323727786540985,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.4266360104084,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.42647650837898254,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.546308800578117,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.42049285769462585,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.65881960093975,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.4148673117160797,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.77667200565338,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.40897467732429504,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 21.899384796619415,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.4028390347957611,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.01852920651436,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3968818187713623,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.137638807296753,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.390926331281662,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.247722804546356,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.38542214035987854,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.368381202220917,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.379389226436615,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.486253201961517,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3734956383705139,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.60658960044384,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3674788177013397,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.726986795663834,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.361458957195282,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.84274199604988,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3556711971759796,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 22.950788006186485,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3502689003944397,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.071936801075935,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3442114591598511,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.19365720450878,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.33812543749809265,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.31585520505905,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3320155441761017,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.42574679851532,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.32652097940444946,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.547311201691628,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3204427659511566,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.66604880988598,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3145058751106262,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.776520803570747,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3089822828769684,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 23.891660809516907,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.3032252788543701,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.00987559556961,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.29731452465057373,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.128956004977226,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2913604974746704,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.246667206287384,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2854749262332916,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.36651600897312,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.27948248386383057,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.4763316065073,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2739917039871216,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.59194840490818,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.26821085810661316,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.709451600909233,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2623356878757477,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.82881760597229,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.25636738538742065,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 24.945785209536552,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2505190074443817,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.092869207262993,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2431648075580597,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.21924240887165,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.23684614896774292,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.333693206310272,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.23112361133098602,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.44454200565815,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.22558116912841797,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.55925039947033,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.2198457419872284,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.67889679968357,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.21386341750621796,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.795145601034164,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.20805098116397858,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 25.910366401076317,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.20228993892669678,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.0345596075058,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.196080282330513,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.15427079796791,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.1900947242975235,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.273800000548363,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.18411827087402344,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.39118120074272,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.17824921011924744,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.505513206124306,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.1725326031446457,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.616315200924873,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.16699250042438507,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.72796081006527,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.16141021251678467,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.847583204507828,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.15542909502983093,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 26.961974397301674,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.1497095376253128,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.07552160322666,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.14403218030929565,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.189726009964943,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.13832196593284607,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.30374440550804,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.13262104988098145,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.414961606264114,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.1270601898431778,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.537325605750084,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.12094198912382126,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.648118406534195,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.11540234833955765,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.7615188062191,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.10973232984542847,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.87097319960594,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.10425961017608643,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 27.9833732098341,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0986396074295044,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.098212003707886,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.09289766848087311,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.20842319726944,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.08738710731267929,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.33361680805683,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.08112742751836777,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.450801998376846,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.07526816427707672,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.553268000483513,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.07014486193656921,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.6744824051857,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.06408414244651794,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.7843120098114,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.05859266221523285,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 28.90123200416565,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.05274666100740433,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.016406401991844,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.04698793962597847,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.137418001890182,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.040937360376119614,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.248975604772568,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.03535947948694229,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.37093360722065,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.029261579737067223,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.480899199843407,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.023763298988342285,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.582244008779526,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.01869605854153633,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.6999704092741,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.012809738516807556,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.811654806137085,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0072255185805261135,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 29.92155359685421,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.001730578951537609,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.033997997641563,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.146154806017876,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.259653195738792,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.37441000342369,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.48728920519352,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.601986795663834,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.715602800250053,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.838051199913025,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 30.95368240773678,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.067627608776093,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.1848876029253,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.297941610217094,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.41617800295353,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.540287598967552,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.651946395635605,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.76459200680256,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.87533400952816,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 31.98626759648323,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.10155640542507,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.21578720211983,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.33037120103836,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.44560679793358,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.56165720522404,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.680058002471924,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.79933600127697,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 32.91352039575577,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.032593205571175,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.15058679878712,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.25940519571304,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.375928804278374,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.4992536008358,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.61523520946503,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.730834007263184,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.84734080731869,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 33.96029680967331,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.0725672096014,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.18522399663925,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.29979079961777,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.412146002054214,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.52966679632664,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.637856006622314,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.75383239984512,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.87106440961361,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 34.98845960199833,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.10488119721413,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.22093001008034,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.33888600766659,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.455657601356506,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.565211206674576,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.67027799785137,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.78241519629955,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 35.900506407022476,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.01536360383034,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.13256999850273,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.24760600924492,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.36328640580177,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.51285520195961,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.64010439813137,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.75145760178566,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.86027839779854,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 36.976223200559616,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.09396120905876,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.211808398365974,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.32162719964981,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.47044080495834,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.59271639585495,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.71745000779629,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.84538960456848,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 37.968866407871246,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.11684560775757,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.25561361014843,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.402393206954,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.52028040587902,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.63643880188465,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.76080879569054,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.8784372061491,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 38.986344397068024,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.109603598713875,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.226562798023224,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.33855560421944,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.44859480857849,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.5695848017931,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.68850480020046,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.80428120493889,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 39.92281121015549,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.04139280319214,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.14690721035004,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.257795199751854,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.37151040136814,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.48397000133991,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.6034040004015,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.72286359965801,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.840888008475304,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 40.95143559575081,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.07547800242901,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.20050039887428,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.31065399944782,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.42268840968609,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.53804160654545,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.65298439562321,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.76145200431347,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.88384039700031,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 41.99931479990482,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.114638805389404,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.233311995863914,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.350238397717476,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.46606160700321,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.58357200026512,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.709225207567215,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.83041000366211,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 42.9503868073225,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.06427000463009,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.18054600059986,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.31591600179672,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.43476800620556,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.547943606972694,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.667818799614906,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.775465205311775,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.88339480757713,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 43.99408079683781,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.10883040726185,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.223250806331635,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.33456639945507,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.45031879842281,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.56592799723148,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.67615520954132,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.78924000263214,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 44.89615000784397,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.012012004852295,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.13498640060425,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.25445079803467,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.367622807621956,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.47603200376034,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.59190560877323,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.706143602728844,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.822110801935196,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 45.93943201005459,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.05185320973396,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.162921607494354,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.27943120896816,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.39575120806694,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.50735400617123,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.6261548101902,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.74503120779991,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.85876680910587,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 46.97667680680752,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.10095480084419,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.22496600449085,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.33903320133686,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.449543207883835,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.57492320239544,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.687168806791306,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.807004407048225,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 47.929444402456284,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.04628440737724,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.1541768014431,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.26503239572048,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.386183604598045,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.507351607084274,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.627990409731865,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.75054679811001,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.87032400071621,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 48.97988720238209,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.08795440196991,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.21093600988388,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.32605400681496,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.44050119817257,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.56135840713978,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.673309206962585,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.78329120576382,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 49.898843199014664,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.01494440436363,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.13368400931358,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.244996801018715,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.36673720180988,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.480726808309555,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.591316401958466,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.70912240445614,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.81977319717407,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 50.931976810097694,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.04852280020714,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.16388240456581,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.27295960485935,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.386023595929146,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.508783608675,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.629495203495026,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.741286396980286,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.85207639634609,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 51.96120600402355,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.07648800313473,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.19419799745083,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.31385040283203,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.42551399767399,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.54390239715576,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.65133960545063,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.77137599885464,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 52.892274007201195,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.009168803691864,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.13214920461178,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.250368401408195,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.36576719582081,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.47317120432854,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.58813400566578,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.706884399056435,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.8200424015522,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 53.944076001644135,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.070291608572006,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.18770360946655,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.30133320391178,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.4126708060503,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.52256999909878,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.64122320711613,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.755075603723526,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.877521604299545,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 54.993873596191406,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.112673208117485,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.23766840994358,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.3560516089201,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.469432801008224,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.590546399354935,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.71056480705738,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.82566919922829,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 55.94464160501957,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.06560800969601,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.17774240672588,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.29102399945259,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.406992405653,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.51782640814781,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.629825204610825,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.747763603925705,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.869190007448196,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 56.98349280655384,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.11126720905304,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.226389199495316,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.338012009859085,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.45558360219002,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.57892480492592,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.70235440135002,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.82178960740566,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 57.94265919923782,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.058266401290894,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.164023607969284,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.284828409552574,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.40472599864006,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.51702240109444,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.63748760521412,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.75563159584999,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 58.881870806217194,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.00242520868778,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.131601601839066,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.26342360675335,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.38157920539379,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.51107680797577,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.62993720173836,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.75933080911636,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 59.9073311984539,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.0297964066267,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.14703680574894,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.26395480334759,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.38884960114956,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.5232008099556,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.651524409651756,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.78135320544243,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 60.91588839888573,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.03562840819359,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.14890159666538,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.2584104090929,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.373406410217285,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.48857040703297,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.606400802731514,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.72589761018753,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.834272399544716,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 61.95336440205574,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.06372360885143,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.17849080264568,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.29359160363674,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.41166439652443,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.52594920992851,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.63669119775295,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.74877320230007,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.873742401599884,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 62.99623200297356,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.12464880943298,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.24377520382404,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.35679680109024,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.479972407221794,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.59417760372162,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.70936639606953,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.82082240283489,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 63.94624000787735,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.0588131994009,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.17532719671726,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.29246960580349,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.4133336097002,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.53437800705433,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.65227000415325,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.77364000678062,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 64.88916639983654,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.00646840035915,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.12611240148544,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.24495239555836,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.36466200649738,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.48323440551758,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.60187681019306,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.71589760482311,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.83061720430851,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 65.94562719762325,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.459469318389893
+        },
+        {
+          "game_seconds": 66.05821400880814,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.234295845031738
+        },
+        {
+          "game_seconds": 66.17418719828129,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 4.002349376678467
+        },
+        {
+          "game_seconds": 66.28965599834919,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 3.771411895751953
+        },
+        {
+          "game_seconds": 66.40393760800362,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 3.542848587036133
+        },
+        {
+          "game_seconds": 66.51999440789223,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 3.310734987258911
+        },
+        {
+          "game_seconds": 66.64477400481701,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 3.06117582321167
+        },
+        {
+          "game_seconds": 66.76311559975147,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 2.8244926929473877
+        },
+        {
+          "game_seconds": 66.88531039655209,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 2.5801031589508057
+        },
+        {
+          "game_seconds": 67.00724840164185,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 2.3362271785736084
+        },
+        {
+          "game_seconds": 67.11917720735073,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 2.1123695373535156
+        },
+        {
+          "game_seconds": 67.22827599942684,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 1.894171953201294
+        },
+        {
+          "game_seconds": 67.34541200101376,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 1.6598999500274658
+        },
+        {
+          "game_seconds": 67.45406720042229,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 1.442589521408081
+        },
+        {
+          "game_seconds": 67.57176360487938,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 1.2071967124938965
+        },
+        {
+          "game_seconds": 67.68755120038986,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.9756215214729309
+        },
+        {
+          "game_seconds": 67.80328080058098,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.7441623210906982
+        },
+        {
+          "game_seconds": 67.912543207407,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.5256375074386597
+        },
+        {
+          "game_seconds": 68.0328164100647,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.2850911021232605
+        },
+        {
+          "game_seconds": 68.1495324075222,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.05165910720825195
+        },
+        {
+          "game_seconds": 68.26320999860764,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.37750759720802,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.48360399901867,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.59491200745106,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.70922680199146,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.82288759946823,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 68.9295776039362,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.04588720202446,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.16223320364952,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.28218320012093,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.38986520469189,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.50413040816784,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.60843560099602,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.72162920236588,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.82324880361557,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 69.93731039762497,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.04992079734802,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.16343200206757,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.27280719578266,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.38473960757256,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.4908792078495,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.59847240149975,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.70389319956303,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.8197968006134,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 70.93248319625854,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.04604840278625,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.15415079891682,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.2701780050993,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.38000720739365,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.4995424002409,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.61137720942497,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.72855480015278,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.83690519630909,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 71.95501680672169,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.06509681046009,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.17459800839424,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.28592839837074,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.40095360577106,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.51096320152283,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.62757959961891,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.74042719602585,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.850711196661,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 72.95113000273705,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.06211040914059,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.16722241044044,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.28228721022606,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.38814599812031,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.49940560758114,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.6079252064228,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.71491280198097,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.82414239645004,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 73.93944680690765,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.05266280472279,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.16671280562878,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.27964560687542,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.38605560362339,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.49832320213318,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.61359679698944,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.72048200666904,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.83847640454769,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 74.9490936100483,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.06691960990429,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.17026840150356,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.28223480284214,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.38875479996204,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.50937519967556,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.62927120923996,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.74077440798283,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.85716959834099,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 75.96865040063858,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.07470960915089,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.18251560628414,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.28145480155945,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.39305719733238,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.50182120501995,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.6071320027113,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.72002279758453,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.83173041045666,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 76.94697520136833,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.05722999572754,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.17052119970322,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.28227560222149,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.39400559663773,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.50833600759506,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.62144400179386,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.72622480988503,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.84551359713078,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 77.9666344076395,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.08792319893837,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.20419679582119,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.31434839963913,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.43601320683956,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.54625681042671,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.65202040970325,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.76942999660969,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.88373200595379,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 78.99667680263519,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.11204680800438,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.22736039757729,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.34171159565449,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.45264840126038,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.56036560237408,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.67687480151653,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.78313879668713,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 79.90079760551453,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.01490199565887,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.13175320625305,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.24446439743042,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.35309880971909,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.47067680954933,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.58270719647408,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.69859880208969,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.81575280427933,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 80.93389880657196,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.04163080453873,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.15008680522442,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.2585352063179,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.36472640931606,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.48197880387306,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.5951160043478,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.70579200983047,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.82195720076561,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 81.93553000688553,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.04859159886837,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.15283639729023,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.25810520350933,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.36909399926662,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.4748803973198,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.58370600640774,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.69370280206203,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.80331720411777,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 82.90890000760555,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.01266480982304,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.12444920837879,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.24011559784412,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.3523284047842,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.4682500064373,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.59448680281639,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.70895560085773,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.82013081014156,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 83.93154160678387,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.04412080347538,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.14447359740734,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.24872720241547,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.36526840925217,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.47925880551338,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.59147679805756,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.70803280174732,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.81719440221786,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 84.93294680118561,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.04394400119781,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.1599424034357,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.2662024050951,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.37753599882126,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.49330639839172,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.59991000592709,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.7094203978777,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.82544919848442,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 85.94088040292263,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.04995280504227,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.15742760896683,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.271798402071,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.37746840715408,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.48336800932884,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.59691560268402,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.71125879883766,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.83045360445976,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 86.94299720227718,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.05641439557076,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.17553679645061,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.28790439665318,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.4041288048029,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.52182160317898,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.64264079928398,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.74896520376205,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.86688441038132,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 87.98186600208282,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.09421080350876,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.20801840722561,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.32168960571289,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.43674920499325,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.54291960597038,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.65217240154743,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.76656080782413,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 88.88763719797134,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.00482600927353,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.12145160138607,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.23400960862637,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.34061360359192,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.45747999846935,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.56424559652805,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.67641399800777,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.78996840119362,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 89.90337680280209,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        },
+        {
+          "game_seconds": 90.0147951990366,
+          "phase": "rest",
+          "intensity": 0.0,
+          "effort": 0.0,
+          "sweat": 0.0
+        }
+      ]
+    },
+    "level_block_compile": {
+      "path": "Saved/Analysis/CompatibilityClosure/level_block_compile.json",
+      "sha256": "67e82336a9aabe8170df4acae6c12e8621362c4b9459d9cae8128d2e208ac77a",
+      "result": {
+        "LevelBlock": "<BlueprintStatus.BS_UP_TO_DATE: 3>",
+        "LevelBlock_Traversable": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      }
+    },
+    "level_block_runtime": {
+      "path": "Saved/Analysis/CompatibilityClosure/level_block_runtime.json",
+      "sha256": "56a61faea7053f518f493281b91e0f4354ab151e1a45f95f05e80d5a590be7d5",
+      "result": {
+        "passed": true,
+        "no_visuals_construction_completed": true,
+        "with_visuals_construction_completed": true,
+        "first_actor_selection_preserved": true,
+        "mesh_components": 1
+      }
+    },
+    "cook": {
+      "path": "Saved/Analysis/PracticeProgression/Package_20260928_214148/uat.log",
+      "sha256": "046fde52f59a78ee0110052120deb70f6d517743b219d39524a180ad68e8f48d",
+      "status": "PASS_WITH_WARNINGS",
+      "packages": 6219,
+      "errors": 0,
+      "warnings": 26,
+      "uat_exit_code": 0,
+      "level_block_empty_array_warning": false,
+      "maps": [
+        "HUB",
+        "StorySelection",
+        "MenuMap"
+      ]
+    },
+    "packaged_runtime": {
+      "path": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_214749/receipt.json",
+      "sha256": "83fa48603b6adb6e58317a73cdf70b88bf0f639c48639d8e88d68844def3731d",
+      "result": {
+        "passed": true,
+        "exit_code": 0,
+        "cue_conflicts": 0,
+        "quest_errors": 0,
+        "reports": [
+          {
+            "activity": "ReadBook",
+            "practice": 0.056139467,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.002246161
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 0.351891842,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.014098609
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.313231541,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.052850602
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.933921107,
+            "active": 1,
+            "perks": 0,
+            "paused": 1,
+            "hours": 0.078056431
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.933921107,
+            "active": 1,
+            "perks": 0,
+            "paused": 1,
+            "hours": 0.078056431
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 2.096046142,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.084664479
+          }
+        ],
+        "legacy_cue_in_cooked_registry": true,
+        "clocks": [
+          {
+            "hours": 0.020332857,
+            "paused": 0,
+            "speed": 1
+          },
+          {
+            "hours": 0.032410145,
+            "paused": 0,
+            "speed": 2
+          },
+          {
+            "hours": 0.071227095,
+            "paused": 0,
+            "speed": 4
+          },
+          {
+            "hours": 0.09604207,
+            "paused": 1,
+            "speed": 1
+          },
+          {
+            "hours": 0.09604207,
+            "paused": 1,
+            "speed": 1
+          },
+          {
+            "hours": 0.10275156,
+            "paused": 0,
+            "speed": 1
+          }
+        ]
+      },
+      "scope": "Reading, simulation speeds/pause, startup and cue aliases; not every ladder/bow/quest interaction"
+    },
+    "packaged_visual": [
+      {
+        "path": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_214749/UserData/Saved/Screenshots/Windows/practice_x200000.png",
+        "sha256": "35a3a5da6c0509d19ba2cc0053013cb32f301ca51cd81d68d75a51bb91fb1d31",
+        "inspected": true
+      },
+      {
+        "path": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_214749/UserData/Saved/Screenshots/Windows/practice_x400000.png",
+        "sha256": "16eed9998ccb75ab3f36bcc3c851e53436375964d15eec5c890e22f21f7c8609",
+        "inspected": true
+      },
+      {
+        "path": "Saved/Analysis/PracticeProgression/PackagedQA_20260928_214749/UserData/Saved/Screenshots/Windows/practice_paused00000.png",
+        "sha256": "3c38ea6e9d326b66479efb9770d539b963cd2238ace29ee795016f267b2c7675",
+        "inspected": true
+      }
+    ],
+    "protected": {
+      "path": "Saved/Analysis/CompatibilityClosure/protection_final.json",
+      "sha256": "c10098fd2a2429087aa8643ebb468a6a7ba7bbaf507566746f52d28372b050d2",
+      "result": {
+        "snapshot": "2d5d606e7ab7fedbc99033daabeee6f478debd4f",
+        "checked": 7643,
+        "differences": [],
+        "status": "PASS"
+      }
+    }
+  },
+  "save_guards": [
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_183733/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_193351/SaveGuard/SaveGuard.json",
+      "sha256": "4cbcd2a9f0eaf80f58ab8831edb93b905b5932a4eef1c0caa2bec5a79c60cb27",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_200854/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_202754/SaveGuard/SaveGuard.json",
+      "sha256": "4cbcd2a9f0eaf80f58ab8831edb93b905b5932a4eef1c0caa2bec5a79c60cb27",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_204246/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_205528/SaveGuard/SaveGuard.json",
+      "sha256": "a3f0182bec9f3e7514d5936d923b4ffdaa6e60c93a30857b0319910a1dcb3a1f",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_210035/SaveGuard/SaveGuard.json",
+      "sha256": "a3f0182bec9f3e7514d5936d923b4ffdaa6e60c93a30857b0319910a1dcb3a1f",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_210420/SaveGuard/SaveGuard.json",
+      "sha256": "aeeebc68818b6850de7b480a41678dcdcda679ea467b4a057a85e4f0cdad49ad",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_210915/SaveGuard/SaveGuard.json",
+      "sha256": "aeeebc68818b6850de7b480a41678dcdcda679ea467b4a057a85e4f0cdad49ad",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_212035/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/CompatibilityClosure/Session_20260928_213425/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/PracticeProgression/Activities_20260928_211322/SaveGuard/SaveGuard.json",
+      "sha256": "3f129e7e1d11986fa8b9f7c2fc08e8249ec8ee69acaf694cb5aadf61a01e344a",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/PracticeProgression/Reload_20260928_211611/SaveGuard/SaveGuard.json",
+      "sha256": "549abbecb9824695d6fd0dcd1a1f36a78b38cce7538fe197fd9a66ed2427d52c",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/PracticeProgression/Respawn_20260928_211822/SaveGuard/SaveGuard.json",
+      "sha256": "549abbecb9824695d6fd0dcd1a1f36a78b38cce7538fe197fd9a66ed2427d52c",
+      "restored": true
+    },
+    {
+      "path": "Saved/Analysis/PracticeProgression/Visual_20260928_211117/SaveGuard/SaveGuard.json",
+      "sha256": "ba81d6c2f121938985e1a207aa760491e3f12db1378221c70b0ad1289f9a89e7",
+      "restored": true
+    }
+  ],
+  "log_comparison": {
+    "path": "Saved/Analysis/CompatibilityClosure/log_comparison.json",
+    "sha256": "45d75ac6d95899f1caa8852c74e19839bda4315874c65fe1c6944bed077507dd",
+    "result": {
+      "baseline": {
+        "path": "Saved/Analysis/PracticeProgression/Visual_20260928_183115/editor.log",
+        "counts": {
+          "old_acf_script_import": 2,
+          "missing_blink": 1,
+          "set_font_size": 1,
+          "engine_condition": 12,
+          "free_tier_timeout": 1,
+          "dispatcher_owner": 969
+        }
+      },
+      "final_visual": {
+        "path": "Saved/Analysis/PracticeProgression/Visual_20260928_211117/editor.log",
+        "counts": {
+          "old_acf_script_import": 0,
+          "missing_blink": 0,
+          "set_font_size": 1,
+          "engine_condition": 12,
+          "free_tier_timeout": 1,
+          "dispatcher_owner": 969
+        }
+      }
+    }
+  },
+  "balance": {
+    "evidence": [
+      {
+        "path": "Saved/Analysis/CompatibilityClosure/thirty_day_balance.csv",
+        "sha256": "ba9f3c25d687ccdfe70de69c065ad6b39ecc06dc2c3c0a91b8c90aceac64e144"
+      },
+      {
+        "path": "Saved/Analysis/CompatibilityClosure/mixed_thirty_day_balance.json",
+        "sha256": "958b408cc7de4d1c46d5944033dbd0a8c0af5932885fcd6f242746df3d0d582d"
+      }
+    ],
+    "status": "PASS_MATHEMATICAL_SCOPE",
+    "limits": "Assumes replenishment and available books/locks; not an integrated thirty-day world simulation or human balance approval; no tuning changed."
+  },
+  "limitations_report": "Docs/Migration/CompatibilityClosure_20260928.md",
+  "invalid_fixture": "Initial blink_male_* direct mesh replacement retained Female materials; invalid evidence, no protected mesh saved. Corrected SelectGender captures inspected.",
+  "reusable_skill": "A:/Skills Codex/noshellforwinter-character-action-qa/SKILL.md"
+}
