@@ -34,8 +34,62 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/Pawn.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPracticeLongHorizonTest, "NoShellForWinter.Practice.ThirtyDayBalance", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectPracticeLongHorizonTest::RunTest(const FString& Parameters)
+{
+    const auto* Settings=GetDefault<UProjectPracticeSettings>();
+    FString Report=TEXT("Mathematical balance only; neutral affinity; no needs/health, book completion, lock availability or player-feel certification.\nInitialRank,Schedule,Days,Practice,FinalRank,Remainder,FinalExposure\n");
+    struct FResult { double Gain=0., Progress=0., Exposure=0.; int32 Rank=0; };
+    const auto Simulate=[Settings](int32 InitialRank,int32 Schedule,double Quantum)
+    {
+        FResult R; R.Rank=InitialRank;
+        for (int32 Hour=0;Hour<30*24;++Hour)
+        {
+            // Same attribute: continuous abuse; six hours/day; three separated 2h sessions.
+            const int32 H=Hour%24;
+            const bool Active=Schedule==0 || (Schedule==1 ? H<6 : (H<2 || (H>=6 && H<8) || (H>=12 && H<14)));
+            double Remaining=1.;
+            while (Remaining>1.e-10)
+            {
+                const double Step=FMath::Min(Quantum,Remaining); Remaining-=Step;
+                if (Active)
+                {
+                    const double Gain=25.*ProjectPracticeMath::EffectiveHours(R.Exposure,Step,Settings->ExposureHalfLifeHours);
+                    R.Gain+=Gain; R.Progress+=Gain; R.Exposure+=Step;
+                    while (R.Rank<Settings->MaximumAttributeRank)
+                    {
+                        const double Cost=FMath::Max(1.,Settings->PracticeForFirstRank*(1.+Settings->RankCostGrowth*R.Rank));
+                        if (R.Progress<Cost) break;
+                        R.Progress-=Cost; ++R.Rank;
+                    }
+                    if (R.Rank>=Settings->MaximumAttributeRank) R.Progress=0.;
+                }
+                else R.Exposure=ProjectPracticeMath::Recover(R.Exposure,Step,Settings->RecoveryPerCalendarHour,Settings->RecoveryDebtScale);
+            }
+        }
+        return R;
+    };
+    for (int32 InitialRank:{0,25,75}) for (int32 Schedule:{0,1,2})
+    {
+        const auto Reference=Simulate(InitialRank,Schedule,1./60.);
+        for (double Speed:{2.,4.})
+        {
+            const auto Accelerated=Simulate(InitialRank,Schedule,Speed/60.);
+            TestTrue(TEXT("Thirty days preserve learning per simulation time"),FMath::IsNearlyEqual(Reference.Gain,Accelerated.Gain,1.e-6));
+            TestEqual(TEXT("Thirty days preserve rank"),Reference.Rank,Accelerated.Rank);
+            TestTrue(TEXT("Thirty days preserve recovery debt"),FMath::IsNearlyEqual(Reference.Exposure,Accelerated.Exposure,1.e-6));
+        }
+        Report+=FString::Printf(TEXT("%d,%d,30,%.9f,%d,%.9f,%.9f\n"),InitialRank,Schedule,Reference.Gain,Reference.Rank,Reference.Progress,Reference.Exposure);
+    }
+    TestTrue(TEXT("Rested six-hour sessions outperform continuous repetition"),Simulate(0,1,1.).Gain>Simulate(0,0,1.).Gain);
+    const FString Path=FPaths::ProjectSavedDir()/TEXT("Analysis/CompatibilityClosure/thirty_day_balance.csv");
+    TestTrue(TEXT("Balance evidence written"),FFileHelper::SaveStringToFile(Report,*Path));
+    return true;
+}
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectPhysicalEffortTest, "NoShellForWinter.Practice.PhysicalEffort", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FProjectPhysicalEffortTest::RunTest(const FString& Parameters)
 {

@@ -38,6 +38,11 @@ public:
     UPROPERTY(Config, EditAnywhere, Category="Recovery", meta=(ClampMin="0.01")) double RecoveryPerCalendarHour = 2.0;
     UPROPERTY(Config, EditAnywhere, Category="Recovery", meta=(ClampMin="0.01")) double RecoveryDebtScale = 12.0;
     UPROPERTY(Config, EditAnywhere, Category="Activities") TArray<FProjectPracticeDefinition> Activities;
+    UPROPERTY(Config, EditAnywhere, Category="Physical effort", meta=(ClampMin="0", ClampMax="1")) float AttackEffortIntensity = .8f;
+    UPROPERTY(Config, EditAnywhere, Category="Physical effort", meta=(ClampMin="0", ClampMax="1")) float DodgeEffortIntensity = .8f;
+    UPROPERTY(Config, EditAnywhere, Category="Physical effort", meta=(ClampMin="0", ClampMax="1")) float ShootEffortIntensity = .45f;
+    UPROPERTY(Config, EditAnywhere, Category="Physical effort", meta=(ClampMin="0", ClampMax="1")) float ClimbEffortIntensity = .8f;
+    UPROPERTY(Config, EditAnywhere, Category="Physical effort", meta=(ClampMin="0", ClampMax="1")) float CrawlEffortIntensity = .45f;
     UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0", ClampMax="0.9")) float ConstitutionMaximumPainReduction = 0.25f;
     UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0", ClampMax="0.9")) float EnduranceMaximumSweatReduction = 0.30f;
     UPROPERTY(Config, EditAnywhere, Category="Synergies", meta=(ClampMin="0")) float IntelligenceLockpickContribution = 0.05f;

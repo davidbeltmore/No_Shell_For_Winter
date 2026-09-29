@@ -4,14 +4,68 @@
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Actor.h"
 #include "Training/ProjectPracticeComponent.h"
+#include "Components/ACFAbilitySystemComponent.h"
+#include "Components/ACFLadderComponent.h"
+#include "Actions/ACFAttackAction.h"
+#include "Actions/ACFDirectionalDodgeAction.h"
+#include "Actions/ACFShootAction.h"
+#include "Interfaces/ACFEntityInterface.h"
+#include "Locomotion/ProjectLocomotionOverrideComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 float FProjectAttributeSynergies::PhysicalEffortIntensity(const AActor* Owner)
 {
-    const auto* Training = Owner ? Owner->FindComponentByClass<UProjectPracticeComponent>() : nullptr;
-    if (!Training || !Training->IsTrainingActive()) return 0.f;
-    const auto* Definition = GetDefault<UProjectPracticeSettings>()->Find(Training->GetActiveTrainingId());
-    return Definition && FMath::IsFinite(Definition->PhysicalEffortIntensity)
-        ? FMath::Clamp(Definition->PhysicalEffortIntensity, 0.f, 1.f) : 0.f;
+    if (!IsValid(Owner) || (Owner->Implements<UACFEntityInterface>() && !IACFEntityInterface::Execute_IsEntityAlive(Owner))) return 0.f;
+    const auto* Settings = GetDefault<UProjectPracticeSettings>();
+    float Intensity = 0.f;
+    const auto Include = [&Intensity](float Value)
+    {
+        if (FMath::IsFinite(Value)) Intensity = FMath::Max(Intensity, FMath::Clamp(Value, 0.f, 1.f));
+    };
+    if (const auto* Training = Owner->FindComponentByClass<UProjectPracticeComponent>(); Training && Training->IsTrainingActive())
+        if (const auto* Definition = Settings->Find(Training->GetActiveTrainingId())) Include(Definition->PhysicalEffortIntensity);
+
+    // Read the executing GAS action, never a pressed key, buffered action or montage.
+    // No cached effort source survives cancellation, possession, death or load.
+    if (const auto* Actions = Owner->FindComponentByClass<UACFAbilitySystemComponent>(); Actions && Actions->IsPerformingAction())
+    {
+        const auto* Action = Actions->GetCurrentAction();
+        if (IsValid(Action) && Action->IsActive())
+        {
+            if (Action->IsA<UACFAttackAction>()) Include(Settings->AttackEffortIntensity);
+            else if (Action->IsA<UACFDirectionalDodgeAction>()) Include(Settings->DodgeEffortIntensity);
+            else if (Action->IsA<UACFShootAction>()) Include(Settings->ShootEffortIntensity);
+            else if (Actions->GetCurrentActionTag().MatchesTag(FGameplayTag::RequestGameplayTag(TEXT("Actions.LadderClimb"), false)))
+            {
+                // Sample ladder abilities warp the actor directly: CharacterMovement
+                // velocity remains zero while climbing. Count only an executing ladder
+                // ability in custom movement, not idle attachment or held movement input.
+                const auto* Character = Cast<ACharacter>(Owner);
+                if (Character && Character->GetCharacterMovement()->MovementMode == MOVE_Custom)
+                    Include(Settings->ClimbEffortIntensity);
+            }
+            // The authored bow charge/release use sustained Blueprint actions,
+            // not UACFShootAction. Both were audited in AS_ACF_NewMMBowActions.
+            else if (Actions->GetCurrentMovesetActionsTag().GetTagName() == TEXT("Moveset.Bow") &&
+                (Actions->GetCurrentActionTag().GetTagName() == TEXT("Actions.Shoot") ||
+                 Actions->GetCurrentActionTag().GetTagName() == TEXT("Actions.Release")))
+                Include(Settings->ShootEffortIntensity);
+        }
+    }
+    if (const auto* Character = Cast<ACharacter>(Owner))
+    {
+        const auto* Movement = Character->GetCharacterMovement();
+        if (const auto* Ladder = Owner->FindComponentByClass<UACFLadderComponent>();
+            Ladder && Ladder->IsLadderClimbing() && Ladder->CanClimb() && Movement &&
+            Movement->MovementMode == MOVE_Custom && FMath::Abs(Owner->GetVelocity().Z) > 1.f)
+            Include(Settings->ClimbEffortIntensity);
+        if (const auto* Locomotion = Owner->FindComponentByClass<UProjectLocomotionOverrideComponent>();
+            Locomotion && Locomotion->IsCrawlModeActive() && Movement && Movement->IsMovingOnGround() && Owner->GetVelocity().SizeSquared2D() > 1.f)
+            Include(Settings->CrawlEffortIntensity);
+    }
+    // Concurrent physical activities use the strongest source, not summed sweat.
+    return Intensity;
 }
 
 float FProjectAttributeSynergies::EffectiveRank(const AActor* Owner, FName Attribute)
