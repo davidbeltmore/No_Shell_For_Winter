@@ -35,6 +35,8 @@ public class EFProjectSystemsEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"ACFTrainingSystem",
+			"ActionsSystem",
+			"NavigationSystem",
 			"AdvancedRPGSystem",
 			"AGSGraphRuntime",
 			"AscentQuestSystem",

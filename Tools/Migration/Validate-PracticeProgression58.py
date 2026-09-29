@@ -401,6 +401,7 @@ def tick(delta):
             shot(world,'learned_hud');phase('finish')
         elif state['phase']=='finish' and age>2:finish()
         elif state['phase']=='loading' and age>4 and 'IDLE' in str(save_system(world).get_system_state()).upper():
+            check('load has no lingering physical action effort',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)==0.)
             check('fresh process restores GAS rank',progression.get_learned_rank('Willpower')==expected['rank'])
             check('fresh process restores fractional learning',abs(progression.get_practice_progress('Willpower')-expected['fraction'])<1.e-8)
             check('fresh process restores native level and XP',stats.get_current_level()==expected['level'] and stats.get_current_exp()==expected['xp'])
@@ -410,6 +411,8 @@ def tick(delta):
             check('book hours restored',abs(training.get_book_hours('QA_Book')-expected['book_hours'])<1.e-8)
             check('load does not resume unsupervised training',not training.is_training_active())
             if RESPAWN:
+                check('physical training starts before defeat',emotes.request_start_interaction_by_id('Actions.Training.PushUps'))
+                check('physical source is active before defeat',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)>0.)
                 defeat=pawn.get_component_by_class(cls('ProjectDefeatFlowComponent'))
                 check('real defeat flow starts',defeat.debug_trigger_immediate_defeat('PracticeQA'))
                 phase('defeat');return
@@ -433,6 +436,9 @@ def tick(delta):
             check('new character starts at native level one',stats.get_current_level()==1)
             finish()
         elif state['phase']=='defeat' and age>10:
+            if not state.get('defeat_effort_checked'):
+                check('defeat cancels the physical effort source',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)==0.)
+                state['defeat_effort_checked']=True
             defeat=pawn.get_component_by_class(cls('ProjectDefeatFlowComponent'))
             current=str(defeat.get_current_phase()).upper()
             if 'DEFEATED_SCENE' in current:
@@ -444,6 +450,7 @@ def tick(delta):
             check('respawn preserves skill points',skills.get_skill_points()==expected['skills'] and stats.get_available_perks()==0)
             check('respawn preserves book progress',abs(training.get_book_hours('QA_Book')-expected['book_hours'])<1.e-8)
             check('respawn player is alive',pawn.get_component_by_class(cls('ACFDamageHandlerComponent','AscentCombatFramework')).get_is_alive())
+            check('respawn has no lingering physical action effort',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)==0.)
             finish()
     except Exception:finish(traceback.format_exc())
     finally:state['busy']=False
