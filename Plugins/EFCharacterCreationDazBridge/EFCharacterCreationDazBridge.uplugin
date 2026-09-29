@@ -11,6 +11,10 @@
 		{
 			"Name": "EFCharacterCreation",
 			"Enabled": true
+		},
+		{
+			"Name": "ControlRig",
+			"Enabled": true
 		}
 	],
 	"Modules": [
