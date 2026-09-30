@@ -16,5 +16,11 @@ try {
   -cook -stage -pak -iostore -package -utf8output 2>&1 | Tee-Object -FilePath (Join-Path $out 'uat.log')
  $exitCode = $LASTEXITCODE
 } finally { $ErrorActionPreference = 'Stop' }
+$reportTool = Join-Path $ProjectRoot 'Tools/Migration/Report-KnownWarnings58.py'
+& python $reportTool --log (Join-Path $out 'uat.log') --out (Join-Path $out 'WarningReport')
+$reportExitCode = $LASTEXITCODE
+if ($reportExitCode -ne 0) {
+ Write-Warning "Warning report requires review (exit ${reportExitCode}): $out\WarningReport. Original UAT log retained."
+}
 if ($exitCode -ne 0) { throw "Practice progression package failed (${exitCode}): $out" }
 Write-Host "Practice progression HUB/StorySelection package: $out"
