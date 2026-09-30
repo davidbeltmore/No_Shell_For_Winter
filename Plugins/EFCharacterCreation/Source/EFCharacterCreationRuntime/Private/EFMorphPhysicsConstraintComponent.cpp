@@ -96,6 +96,21 @@ namespace EFMorphPhysicsConstraintPrivate
 			IsValid(SkeletalMesh) ? *SkeletalMesh->GetPathName() : TEXT(""));
 	}
 
+	// A visible follower does not own physics bodies. Only follow an identical mesh:
+	// a compatibility skeleton cannot substitute for a body's extra deform bones.
+	static USkeletalMeshComponent* ResolvePhysicsOwner(USkeletalMeshComponent* Candidate)
+	{
+		if (Candidate)
+		{
+			if (auto* Leader = Cast<USkeletalMeshComponent>(Candidate->LeaderPoseComponent.Get());
+				Leader && Leader != Candidate && Leader->GetSkeletalMeshAsset() == Candidate->GetSkeletalMeshAsset())
+			{
+				return Leader;
+			}
+		}
+		return Candidate;
+	}
+
 	static int32 ScoreMeshComponentForMorphPhysics(const AActor* Owner, const USkeletalMeshComponent* MeshComponent)
 	{
 		if (!IsValid(MeshComponent))
@@ -446,6 +461,7 @@ void UEFMorphPhysicsConstraintComponent::RefreshFromCurrentMorphState()
 	}
 
 	USkeletalMeshComponent* MeshComponent = TargetMeshComponent.Get();
+	ApplyConfiguredPhysicsAsset(MeshComponent);
 	if (!IsValid(MeshComponent) || !IsValid(MeshComponent->GetPhysicsAsset()))
 	{
 		if (bLogSetupWarnings && !bLoggedMissingMeshWarning)
@@ -455,6 +471,14 @@ void UEFMorphPhysicsConstraintComponent::RefreshFromCurrentMorphState()
 			bLoggedMissingMeshWarning = true;
 		}
 		return;
+	}
+
+	if (LastResolvedMeshAsset != MeshComponent->GetSkeletalMeshAsset()
+		|| LastResolvedPhysicsAsset != MeshComponent->GetPhysicsAsset())
+	{
+		CurrentConstraintLimits.Reset();
+		LastResolvedMeshAsset = MeshComponent->GetSkeletalMeshAsset();
+		LastResolvedPhysicsAsset = MeshComponent->GetPhysicsAsset();
 	}
 
 	bLoggedMissingMeshWarning = false;
@@ -519,11 +543,10 @@ void UEFMorphPhysicsConstraintComponent::RefreshFromCurrentMorphState()
 	ConstraintLimitDebug.Reset();
 	for (const TPair<FName, float>& Pair : TargetConstraintLimits)
 	{
-		const float CurrentLimit = CurrentConstraintLimits.Contains(Pair.Key) ? CurrentConstraintLimits.FindRef(Pair.Key) : Pair.Value;
-		ConstraintLimitDebug.Add(FString::Printf(TEXT("%s Current=%.2f Target=%.2f"),
-			*Pair.Key.ToString(),
-			CurrentLimit,
-			Pair.Value));
+		if (const float* CurrentLimit = CurrentConstraintLimits.Find(Pair.Key))
+			ConstraintLimitDebug.Add(FString::Printf(TEXT("%s Current=%.2f Target=%.2f"), *Pair.Key.ToString(), *CurrentLimit, Pair.Value));
+		else
+			ConstraintLimitDebug.Add(FString::Printf(TEXT("%s Current=<unavailable> Target=%.2f"), *Pair.Key.ToString(), Pair.Value));
 	}
 
 	if (bAppliedAnyLimit)
@@ -648,7 +671,7 @@ USkeletalMeshComponent* UEFMorphPhysicsConstraintComponent::ResolveTargetMeshCom
 
 			if (BestCustomizationMesh != nullptr)
 			{
-				return BestCustomizationMesh;
+				return EFMorphPhysicsConstraintPrivate::ResolvePhysicsOwner(BestCustomizationMesh);
 			}
 		}
 	}
@@ -672,7 +695,32 @@ USkeletalMeshComponent* UEFMorphPhysicsConstraintComponent::ResolveTargetMeshCom
 		}
 	}
 
-	return BestMeshComponent;
+	return EFMorphPhysicsConstraintPrivate::ResolvePhysicsOwner(BestMeshComponent);
+}
+
+void UEFMorphPhysicsConstraintComponent::ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent)
+{
+	const auto* Settings = UEFCharacterCreationSettings::Get();
+	if (!MeshComponent || !Settings || !MeshComponent->GetSkeletalMeshAsset()) return;
+	const auto* Override = Settings->MorphPhysicsAssetOverrides.Find(TSoftObjectPtr<USkeletalMesh>(MeshComponent->GetSkeletalMeshAsset()));
+	if (!Override || Override->IsNull()) return;
+	UPhysicsAsset* Asset = Override->LoadSynchronous();
+	if (!Asset || MeshComponent->GetPhysicsAsset() == Asset) return;
+	// Reject incomplete profiles before replacing any live state.
+	for (const auto& Group : ConstraintGroups)
+		for (FName Name : Group.ConstraintNames)
+			if (Asset->FindConstraintIndex(Name) == INDEX_NONE || MeshComponent->GetBoneIndex(Name) == INDEX_NONE)
+			{
+				UE_LOG(LogTemp, Error, TEXT("Morph physics profile %s lacks required branch %s."), *Asset->GetPathName(), *Name.ToString());
+				return;
+			}
+	MeshComponent->SetPhysicsAsset(Asset, true);
+	for (const auto& Group : ConstraintGroups)
+		for (FName Name : Group.ConstraintNames)
+		{
+			MeshComponent->SetAllBodiesBelowSimulatePhysics(Name, true, true);
+			MeshComponent->SetAllBodiesBelowPhysicsBlendWeight(Name, 1.f, false, true);
+		}
 }
 
 void UEFMorphPhysicsConstraintComponent::RebuildMorphLookup(TMap<FString, float>& OutMorphLookup, const USkeletalMeshComponent* MeshComponent) const
@@ -818,14 +866,14 @@ bool UEFMorphPhysicsConstraintComponent::ApplyConstraintLimit(USkeletalMeshCompo
 
 	if (FConstraintInstance* ConstraintInstance = MeshComponent->FindConstraintInstance(ConstraintName))
 	{
-		ConstraintInstance->SetLinearLimitSize(NewLimit);
+		ConstraintInstance->SetLinearLimits(ConstraintInstance->GetLinearXMotion(), ConstraintInstance->GetLinearYMotion(), ConstraintInstance->GetLinearZMotion(), NewLimit);
 		return true;
 	}
 
 	FConstraintInstanceAccessor ConstraintAccessor = MeshComponent->GetConstraintByName(ConstraintName, true);
 	if (FConstraintInstance* ConstraintInstance = ConstraintAccessor.Get())
 	{
-		ConstraintInstance->SetLinearLimitSize(NewLimit);
+		ConstraintInstance->SetLinearLimits(ConstraintInstance->GetLinearXMotion(), ConstraintInstance->GetLinearYMotion(), ConstraintInstance->GetLinearZMotion(), NewLimit);
 		return true;
 	}
 
@@ -834,7 +882,7 @@ bool UEFMorphPhysicsConstraintComponent::ApplyConstraintLimit(USkeletalMeshCompo
 	{
 		if (FConstraintInstance* ConstraintInstance = MeshComponent->GetConstraintInstanceByIndex(ConstraintIndex))
 		{
-			ConstraintInstance->SetLinearLimitSize(NewLimit);
+			ConstraintInstance->SetLinearLimits(ConstraintInstance->GetLinearXMotion(), ConstraintInstance->GetLinearYMotion(), ConstraintInstance->GetLinearZMotion(), NewLimit);
 			return true;
 		}
 	}

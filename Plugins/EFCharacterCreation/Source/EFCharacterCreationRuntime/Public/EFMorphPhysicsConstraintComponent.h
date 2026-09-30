@@ -6,6 +6,8 @@
 
 class UEFCharacterCustomizationComponent;
 class USkeletalMeshComponent;
+class USkeletalMesh;
+class UPhysicsAsset;
 
 USTRUCT(BlueprintType)
 struct EFCHARACTERCREATIONRUNTIME_API FEFMorphPhysicsWeightedMorph
@@ -76,6 +78,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Morph Physics|Debug")
 	FString GetDebugSummary() const;
+	FName GetResolvedTargetMeshName() const { return ResolvedTargetMeshDebugName; }
+	const TArray<FEFMorphPhysicsConstraintGroup>& GetConstraintGroups() const { return ConstraintGroups; }
 
 protected:
 	void HandleMorphStateApplied();
@@ -88,6 +92,7 @@ protected:
 	float ComputeGroupTargetLimit(const FEFMorphPhysicsConstraintGroup& Group, const TMap<FString, float>& MorphLookup, FString& OutDebugLine) const;
 	bool ApplyConstraintLimit(USkeletalMeshComponent* MeshComponent, FName ConstraintName, float NewLimit) const;
 	void RefreshResolvedTargetMeshDebugName();
+	void ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Physics", meta = (DisplayName = "Prefer EF Character Customization Body Mesh", ToolTip = "If enabled and the owner has UEFCharacterCustomizationComponent, this component will reuse its resolved body mesh first."))
@@ -120,6 +125,8 @@ protected:
 private:
 	TWeakObjectPtr<UEFCharacterCustomizationComponent> BoundCustomizationComponent;
 	TWeakObjectPtr<USkeletalMeshComponent> TargetMeshComponent;
+	TWeakObjectPtr<USkeletalMesh> LastResolvedMeshAsset;
+	TWeakObjectPtr<UPhysicsAsset> LastResolvedPhysicsAsset;
 	TMap<FName, float> CurrentConstraintLimits;
 	TMap<FName, float> TargetConstraintLimits;
 	bool bHasPendingInterpolation = false;

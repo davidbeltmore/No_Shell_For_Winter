@@ -36,6 +36,7 @@ public class EFProjectSystemsEditor : ModuleRules
 		{
 			"ACFTrainingSystem",
 			"ActionsSystem",
+			"PhysicsCore",
 			"NavigationSystem",
 			"AdvancedRPGSystem",
 			"AGSGraphRuntime",

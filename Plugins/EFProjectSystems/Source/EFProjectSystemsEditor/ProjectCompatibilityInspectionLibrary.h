@@ -3,6 +3,8 @@
 #include "ProjectCompatibilityInspectionLibrary.generated.h"
 
 class UAQSQuest;
+class UPhysicsAsset;
+class USkeletalMesh;
 /** Editor-only PIE fixtures and narrowly scoped project-owned asset repairs. */
 UCLASS()
 class UProjectCompatibilityInspectionLibrary : public UBlueprintFunctionLibrary
@@ -20,4 +22,10 @@ public:
     static bool RepairPlayerLadderDownMontage();
     UFUNCTION(BlueprintCallable, Category="Project|Compatibility QA")
     static bool InstallPlayerSimulatedBowCharge();
+    /** Repairs only the null base of the RealisticBlood demo's additive upper-body branch. */
+    UFUNCTION(BlueprintCallable, Category="Project|Compatibility QA")
+    static bool RepairBloodDemoAdditiveBase();
+    /** Authors secondary bodies on a project-owned duplicate, never the source mesh/asset. */
+    UFUNCTION(BlueprintCallable, Category="Project|Compatibility QA")
+    static FString AuthorMorphPhysicsCandidate(USkeletalMesh* Mesh, UPhysicsAsset* Candidate);
 };

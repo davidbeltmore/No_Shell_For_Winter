@@ -6,6 +6,8 @@
 #include "EFCharacterCreationSettings.generated.h"
 
 class UUserWidget;
+class USkeletalMesh;
+class UPhysicsAsset;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Character Creation"))
 class EFCHARACTERCREATIONRUNTIME_API UEFCharacterCreationSettings : public UDeveloperSettings
@@ -66,6 +68,10 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Meshes")
 	TArray<FCharacterSkeletalMeshOption> BodyMeshOptions;
+
+	/** Exact mesh-to-physics mappings; applied only to the component that owns simulation. */
+	UPROPERTY(EditAnywhere, Config, Category = "Morph Physics")
+	TMap<TSoftObjectPtr<USkeletalMesh>, TSoftObjectPtr<UPhysicsAsset>> MorphPhysicsAssetOverrides;
 
 	UPROPERTY(EditAnywhere, Config, Category = "Identity")
 	FString DefaultCharacterName = TEXT("Player");
