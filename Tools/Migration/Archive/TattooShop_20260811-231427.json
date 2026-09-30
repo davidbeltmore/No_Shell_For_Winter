@@ -1,0 +1,11 @@
+{
+  "original_path": "Content/_MigrationBackup/TattooShop/20260811-231427/WBP_TattooCustomization.uasset",
+  "original_package": "/Game/_MigrationBackup/TattooShop/20260811-231427/WBP_TattooCustomization",
+  "sha256": "2ea321bd003a45b1871f5a536c6dde0a9ee21cd5451335e7fdc4fd12a5f80996",
+  "bytes": 1179659,
+  "archive": "Tools/Migration/Archive/TattooShop_20260811-231427.zip",
+  "referencers": [],
+  "active_widget": "/Game/TattooShop/Blueprints/Widget/WBP_TattooCustomization.WBP_TattooCustomization",
+  "restore": "Extract the single original entry into a detached project copy first; validate before restoring to the live project.",
+  "retired_through_editor": true
+}
