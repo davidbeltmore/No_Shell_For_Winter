@@ -53,6 +53,8 @@ def requested_report_path():
 
 
 REPORT, REPORT_PATH_ERROR = requested_report_path()
+EXCLUDE_CALYSTO = os.environ.get("CODEX_BLUEPRINT_EXCLUDE_CALYSTO", "") == "1"
+GATE_PREFIX = "UE58_NON_CALYSTO_BLUEPRINT_COMPILE" if EXCLUDE_CALYSTO else "UE58_ALL_PROJECT_BLUEPRINT_COMPILE"
 
 
 def safe_text(value):
@@ -302,6 +304,9 @@ def compile_all_blueprints(payload):
             if not is_blueprint_asset_class(class_name):
                 continue
             package = package_name(asset_data)
+            if EXCLUDE_CALYSTO and ("calysto" in package.lower() or package.startswith("/EFProcedural/")):
+                payload["excluded_blueprints"].append(package)
+                continue
             if not package:
                 add_failure(
                     payload,
@@ -436,6 +441,8 @@ def make_payload():
         "discovered_blueprint_count": 0,
         "compiled_blueprint_count": 0,
         "blueprints": [],
+        "scope_exclusion": "Calysto replacement: explicitly excluded by user on 2026-09-30" if EXCLUDE_CALYSTO else "",
+        "excluded_blueprints": [],
         "failures": [],
         "on_disk_package_changes": [],
         "dirty_content_packages_after_compile": [],
@@ -461,12 +468,12 @@ except BaseException as exc:
 finally:
     PAYLOAD["finished_utc"] = utc_now()
     PAYLOAD["status"] = (
-        "UE58_ALL_PROJECT_BLUEPRINT_COMPILE_PASS"
+        GATE_PREFIX + "_PASS"
         if not PAYLOAD["failures"]
         and PAYLOAD["discovered_blueprint_count"] > 0
         and PAYLOAD["compiled_blueprint_count"] == PAYLOAD["discovered_blueprint_count"]
         and not PAYLOAD["on_disk_package_changes"]
-        else "UE58_ALL_PROJECT_BLUEPRINT_COMPILE_FAIL"
+        else GATE_PREFIX + "_FAIL"
     )
     try:
         write_report(PAYLOAD)

@@ -1,7 +1,7 @@
 """Bounded, SaveGuard-owned editor session for task-specific diagnostic requests.
 Only request files created after this process starts are consumed. No assets saved.
 """
-import contextlib, io, json, time, traceback
+import contextlib, gc, io, json, time, traceback
 from pathlib import Path
 import unreal
 OUT=Path(unreal.Paths.project_saved_dir()).resolve()/'Analysis/CompatibilityClosure'
@@ -18,6 +18,10 @@ def tick(delta):
         if state['quit_at']:
             if time.time()-state['quit_at']>8:
                 unreal.unregister_slate_post_tick_callback(handle)
+                # Release diagnostic UObject wrappers while Python and UE are still live.
+                # Requests may retain objects from a package retired through the editor.
+                scope.clear()
+                gc.collect()
                 unreal.EditorPythonScripting.set_keep_python_script_alive(False)
             return
         if time.time()-started>1800 or (OUT/'close.request').exists() and (OUT/'close.request').stat().st_mtime>started:

@@ -6,7 +6,8 @@ param(
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd_HHmmss'),
     [ValidateRange(120, 7200)]
-    [int]$TimeoutSeconds = 3600
+    [int]$TimeoutSeconds = 3600,
+    [switch]$ExcludeCalysto
 )
 
 <#
@@ -22,6 +23,7 @@ No source, config, plugin content, or Unreal asset is saved by this wrapper.
 #>
 
 $ErrorActionPreference = 'Stop'
+$gatePrefix = if ($ExcludeCalysto) { 'UE58_NON_CALYSTO_BLUEPRINT_COMPILE' } else { 'UE58_ALL_PROJECT_BLUEPRINT_COMPILE' }
 Set-StrictMode -Version Latest
 
 function ConvertTo-SingleQuotedPowerShellLiteral {
@@ -121,6 +123,7 @@ $summary = [ordered]@{
     schema_version = 1
     status = 'IN_PROGRESS'
     failure = $null
+    excluded_calysto = [bool]$ExcludeCalysto
     started_utc = (Get-Date).ToUniversalTime().ToString('o')
     finished_utc = $null
     project = $projectFile
@@ -157,6 +160,7 @@ try {
         CODEX_RUN_MIGRATION_BASELINE_PIE = '1'
         CODEX_MIGRATION_PIE_SCRIPT = $pythonGate
         CODEX_ALL_PROJECT_BLUEPRINT_REPORT = $reportPath
+        CODEX_BLUEPRINT_EXCLUDE_CALYSTO = $(if ($ExcludeCalysto) { '1' } else { '0' })
     }
     foreach ($entry in $environmentValues.GetEnumerator()) {
         $previousEnvironment[$entry.Key] = [Environment]::GetEnvironmentVariable($entry.Key, 'Process')
@@ -214,7 +218,7 @@ try {
     $summary.failure_count = @($gate.failures).Count
     $summary.on_disk_package_change_count = @($gate.on_disk_package_changes).Count
     if (
-        $summary.gate_status -ne 'UE58_ALL_PROJECT_BLUEPRINT_COMPILE_PASS' -or
+        $summary.gate_status -ne ($gatePrefix + '_PASS') -or
         $summary.discovered_blueprint_count -le 0 -or
         $summary.compiled_blueprint_count -ne $summary.discovered_blueprint_count -or
         $summary.failure_count -ne 0 -or
@@ -230,10 +234,10 @@ try {
     if (-not $summary.git_state_unchanged) {
         throw 'The Git worktree changed during all-project Blueprint compilation.'
     }
-    $summary.status = 'UE58_ALL_PROJECT_BLUEPRINT_COMPILE_PASS'
+    $summary.status = $gatePrefix + '_PASS'
 }
 catch {
-    $summary.status = 'UE58_ALL_PROJECT_BLUEPRINT_COMPILE_FAIL'
+    $summary.status = $gatePrefix + '_FAIL'
     $summary.failure = $_.Exception.Message
 }
 finally {
@@ -252,6 +256,6 @@ finally {
 }
 
 Write-Host "All-project Blueprint compile summary: $summaryPath"
-if ($summary.status -ne 'UE58_ALL_PROJECT_BLUEPRINT_COMPILE_PASS') {
+if ($summary.status -ne ($gatePrefix + '_PASS')) {
     throw $summary.failure
 }

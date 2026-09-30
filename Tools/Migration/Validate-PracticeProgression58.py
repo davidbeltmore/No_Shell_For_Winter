@@ -451,6 +451,10 @@ def tick(delta):
             check('respawn preserves book progress',abs(training.get_book_hours('QA_Book')-expected['book_hours'])<1.e-8)
             check('respawn player is alive',pawn.get_component_by_class(cls('ACFDamageHandlerComponent','AscentCombatFramework')).get_is_alive())
             check('respawn has no lingering physical action effort',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)==0.)
+            physics_mesh=next(m for m in pawn.get_components_by_class(unreal.SkeletalMeshComponent) if m.get_name()=='CharacterMesh0')
+            physics_bones=['l_pectoral','r_pectoral','LeftGlute','RightGlute','LeftThighFat','RightThighFat','Belly']
+            check('respawn retains seven simulated morph bodies',all(physics_mesh.is_simulating_physics(b) for b in physics_bones))
+            check('respawn retains morph constraint limits',all(1<=unreal.ConstraintInstanceBlueprintLibrary.get_linear_limits(physics_mesh.get_constraint_by_name(b,True))[-1]<=7 for b in physics_bones))
             finish()
     except Exception:finish(traceback.format_exc())
     finally:state['busy']=False
