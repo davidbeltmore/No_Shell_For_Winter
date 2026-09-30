@@ -72,6 +72,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Morph Physics")
 	void RefreshFromCurrentMorphState();
+	/** Reapply owned secondary-body simulation after collision recreated the physics state. */
+	void RestoreConfiguredPhysicsState();
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Morph Physics")
 	void ResetToRecommendedConstraintGroups();
@@ -92,7 +94,7 @@ protected:
 	float ComputeGroupTargetLimit(const FEFMorphPhysicsConstraintGroup& Group, const TMap<FString, float>& MorphLookup, FString& OutDebugLine) const;
 	bool ApplyConstraintLimit(USkeletalMeshComponent* MeshComponent, FName ConstraintName, float NewLimit) const;
 	void RefreshResolvedTargetMeshDebugName();
-	void ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent);
+	void ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent, bool bRestoreSimulation = false);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morph Physics", meta = (DisplayName = "Prefer EF Character Customization Body Mesh", ToolTip = "If enabled and the owner has UEFCharacterCustomizationComponent, this component will reuse its resolved body mesh first."))

@@ -107,6 +107,17 @@ namespace EFMorphPhysicsConstraintPrivate
 			{
 				return Leader;
 			}
+			// After load/respawn the base Player's visible mesh has no LeaderPoseComponent.
+			// Its collisionless body still has an identical ACharacter physics mesh.
+			if (!Candidate->IsPhysicsCollisionEnabled())
+			{
+				if (const auto* Character = Cast<ACharacter>(Candidate->GetOwner()))
+				{
+					auto* Primary = Character->GetMesh();
+					if (Primary && Primary != Candidate && Primary->GetSkeletalMeshAsset() == Candidate->GetSkeletalMeshAsset())
+						return Primary;
+				}
+			}
 		}
 		return Candidate;
 	}
@@ -638,7 +649,8 @@ USkeletalMeshComponent* UEFMorphPhysicsConstraintComponent::ResolveTargetMeshCom
 
 	if (!TargetMeshComponentName.IsNone())
 	{
-		return EFMorphPhysicsConstraintPrivate::ResolveMeshComponentByName(Owner, TargetMeshComponentName);
+		return EFMorphPhysicsConstraintPrivate::ResolvePhysicsOwner(
+			EFMorphPhysicsConstraintPrivate::ResolveMeshComponentByName(Owner, TargetMeshComponentName));
 	}
 
 	if (bPreferCharacterCustomizationBodyMesh)
@@ -698,14 +710,21 @@ USkeletalMeshComponent* UEFMorphPhysicsConstraintComponent::ResolveTargetMeshCom
 	return EFMorphPhysicsConstraintPrivate::ResolvePhysicsOwner(BestMeshComponent);
 }
 
-void UEFMorphPhysicsConstraintComponent::ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent)
+void UEFMorphPhysicsConstraintComponent::RestoreConfiguredPhysicsState()
+{
+	ApplyConfiguredPhysicsAsset(ResolveTargetMeshComponent(), true);
+	CurrentConstraintLimits.Reset();
+	RefreshFromCurrentMorphState();
+}
+
+void UEFMorphPhysicsConstraintComponent::ApplyConfiguredPhysicsAsset(USkeletalMeshComponent* MeshComponent, bool bRestoreSimulation)
 {
 	const auto* Settings = UEFCharacterCreationSettings::Get();
 	if (!MeshComponent || !Settings || !MeshComponent->GetSkeletalMeshAsset()) return;
 	const auto* Override = Settings->MorphPhysicsAssetOverrides.Find(TSoftObjectPtr<USkeletalMesh>(MeshComponent->GetSkeletalMeshAsset()));
 	if (!Override || Override->IsNull()) return;
 	UPhysicsAsset* Asset = Override->LoadSynchronous();
-	if (!Asset || MeshComponent->GetPhysicsAsset() == Asset) return;
+	if (!Asset || (!bRestoreSimulation && MeshComponent->GetPhysicsAsset() == Asset)) return;
 	// Reject incomplete profiles before replacing any live state.
 	for (const auto& Group : ConstraintGroups)
 		for (FName Name : Group.ConstraintNames)
@@ -714,7 +733,8 @@ void UEFMorphPhysicsConstraintComponent::ApplyConfiguredPhysicsAsset(USkeletalMe
 				UE_LOG(LogTemp, Error, TEXT("Morph physics profile %s lacks required branch %s."), *Asset->GetPathName(), *Name.ToString());
 				return;
 			}
-	MeshComponent->SetPhysicsAsset(Asset, true);
+	if (MeshComponent->GetPhysicsAsset() != Asset) MeshComponent->SetPhysicsAsset(Asset, true);
+	if (!MeshComponent->IsPhysicsCollisionEnabled()) return;
 	for (const auto& Group : ConstraintGroups)
 		for (FName Name : Group.ConstraintNames)
 		{

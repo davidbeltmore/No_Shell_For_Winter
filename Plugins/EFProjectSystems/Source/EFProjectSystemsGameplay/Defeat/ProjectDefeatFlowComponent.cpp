@@ -13,6 +13,7 @@
 #include "Components/ACFAbilitySystemComponent.h"
 #include "Components/ACFThreatManagerComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "EFMorphPhysicsConstraintComponent.h"
 #include "Components/InputComponent.h"
 #include "Defeat/ProjectDefeatBlueprintBridgeComponent.h"
 #include "Defeat/ProjectDefeatCurseClampInterface.h"
@@ -2715,6 +2716,12 @@ void UProjectDefeatFlowComponent::ApplyCharacterMeshCollisionSuppression(const b
 
 	CharacterMesh->SetCollisionEnabled(PreviousCharacterMeshCollisionEnabled);
 	CharacterMesh->SetGenerateOverlapEvents(bPreviousCharacterMeshGenerateOverlapEvents);
+	// NoCollision tears down the skeletal physics state. Restore the owned secondary
+	// bodies and current morph limits only after the original collision is restored.
+	if (auto* MorphPhysics = GetOwner()->FindComponentByClass<UEFMorphPhysicsConstraintComponent>())
+	{
+		MorphPhysics->RestoreConfiguredPhysicsState();
+	}
 
 	bChangedCharacterMeshCollision = false;
 	bPreviousCharacterMeshGenerateOverlapEvents = false;

@@ -13,6 +13,12 @@ OUT.mkdir(parents=True,exist_ok=True)
 editor=unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 settings=unreal.get_default_object(unreal.load_class(None,'/Script/EFProjectSystemsGameplay.ProjectPracticeSettings'))
 settings.set_editor_property('bEnabled',True) # QA process only, never saves project settings.
+if RESPAWN:
+    # This suite is explicitly outside Calysto. Override the test process only;
+    # force a real HUB reload so persistence and component recreation are exercised.
+    defeat_settings=unreal.get_default_object(unreal.load_class(None,'/Script/EFProjectSystemsGameplay.ProjectDefeatFlowSettings'))
+    defeat_settings.set_editor_property('DefeatedMapName','HUB')
+    defeat_settings.set_editor_property('bUseSameMapDefeatedTravelFastPath',False)
 state={'phase':'load','started':time.monotonic(),'since':time.monotonic(),'checks':[]}
 callbacks=[]
 pressed_keys=set()
@@ -444,6 +450,7 @@ def tick(delta):
             if 'DEFEATED_SCENE' in current:
                 emotes.cancel_runtime_action('PracticeQA');return
             if 'NONE' not in current:return
+            check('respawn stays in HUB',unreal.GameplayStatics.get_current_level_name(world,True)=='HUB')
             check('respawn preserves learned rank',progression.get_learned_rank('Willpower')==expected['rank'])
             check('respawn preserves fractional learning',abs(progression.get_practice_progress('Willpower')-expected['fraction'])<1.e-8)
             check('respawn preserves native level and XP',stats.get_current_level()==expected['level'] and stats.get_current_exp()==expected['xp'])
@@ -453,8 +460,17 @@ def tick(delta):
             check('respawn has no lingering physical action effort',unreal.ProjectCompatibilityInspectionLibrary.get_physical_activity_intensity(pawn)==0.)
             physics_mesh=next(m for m in pawn.get_components_by_class(unreal.SkeletalMeshComponent) if m.get_name()=='CharacterMesh0')
             physics_bones=['l_pectoral','r_pectoral','LeftGlute','RightGlute','LeftThighFat','RightThighFat','Belly']
+            state['respawn_physics']={'mesh':physics_mesh.get_skinned_asset().get_path_name(),'collision':str(physics_mesh.get_collision_enabled()),'profile':str(physics_mesh.get_editor_property('physics_asset_override')),'bodies':{b:physics_mesh.is_simulating_physics(b) for b in physics_bones}}
+            state['respawn_physics']['components']=[{'name':m.get_name(),'mesh':str(m.get_skinned_asset()),'leader':str(m.get_editor_property('leader_pose_component')),'collision':str(m.get_collision_enabled()),'override':str(m.get_editor_property('physics_asset_override'))} for m in pawn.get_components_by_class(unreal.SkeletalMeshComponent)]
+            state['respawn_physics']['animation']=[{'name':m.get_name(),'visible':m.is_visible(),'instance':m.get_anim_instance().get_class().get_path_name() if m.get_anim_instance() else None} for m in pawn.get_components_by_class(unreal.SkeletalMeshComponent)]
+            morph_driver=pawn.get_component_by_class(unreal.EFMorphPhysicsConstraintComponent)
+            state['respawn_physics']['driver']=morph_driver.get_debug_summary() if morph_driver else 'missing'
+            state['respawn_physics']['explicit_target']=str(morph_driver.get_editor_property('TargetMeshComponentName')) if morph_driver else 'missing'
             check('respawn retains seven simulated morph bodies',all(physics_mesh.is_simulating_physics(b) for b in physics_bones))
             check('respawn retains morph constraint limits',all(1<=unreal.ConstraintInstanceBlueprintLibrary.get_linear_limits(physics_mesh.get_constraint_by_name(b,True))[-1]<=7 for b in physics_bones))
+            shot(world,'respawn_morph')
+            phase('respawn_visual')
+        elif state['phase']=='respawn_visual' and age>1:
             finish()
     except Exception:finish(traceback.format_exc())
     finally:state['busy']=False
