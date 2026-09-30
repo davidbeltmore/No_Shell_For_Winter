@@ -1,4 +1,72 @@
-# Compatibility validation — 2026-09-28
+# Compatibility continuation - 2026-09-30
+
+Current implementation: `81fb51cd729f100a90c3f3ac739601c23dc8d4fb`. Continuation baseline: `62c2c81d4cf0525ea0a3f791d367e36ef3fa4c1e`.
+Target: `D:/Projects UE5/NoShellForWinter`; source remains read-only. Detailed receipts, artifact hashes, scope limits and residual ownership: [CompatibilityContinuation_20260930.json](Evidence/CompatibilityContinuation_20260930.json).
+
+**The project-owned repairs below are validated in their stated scope. Calysto is excluded. This is not a claim that the entire project or all vendor logs are error-free.** This section supersedes the remaining-work status in the historical 2026-09-28 report retained below.
+
+## RESUELTO
+
+| Item | Change and evidence |
+|---|---|
+| MorphPhysics | Added project-owned `PA_Female_Morph` and `PA_Male_Morph`, each preserving its original bodies and adding the seven required branches. Exact-mesh overrides and a narrow cook directory retain both profiles without editing protected meshes or original physics assets. The driver resolves the actual `CharacterMesh0` physics owner, including collisionless visible meshes without a Leader Pose link after load. |
+| Physics persistence and defeat | Constraint authoring now saves `DefaultProfile`; runtime setters synchronize solver and reflected limits. Defeat collision restoration reapplies the owned simulation and current morph limits. Runtime cache invalidation handles mesh/physics asset changes. Missing constraints are reported as unavailable rather than as successfully applied target values. |
+| RealisticBlood demo | Replaced only the null additive base in `/Game/RealisticBlood/Demo/Characters/Mannequins/Animations/ABP_Manny` with its existing evaluated main pose via a cache. Preserved the Control Rig, upper-body slot and layer branch. Manny and Quinn compile and show normal idle poses. This does not certify every upper-body montage. |
+| Historical TattooShop backup | Registry and text-reference checks found no consumers of the broken 20260811 backup. Its exact bytes are preserved in `Tools/Migration/Archive/TattooShop_20260811-231427.zip` with a hash manifest. The editor retired the obsolete Content asset; the active TattooShop widget remains intact and compiles. |
+| Compass icon references | Two exact package redirects map the old Icon_Circle and Icon_Circle_Border paths to the existing installed ACFU Texture2D assets. Live loads of old/new paths returned the same objects. No invented textures or vendor edits. |
+
+Implementation commits: `a9573c2e`, `cd8e5369`, `db0c76dc`, `69158346`, `81fb51cd`.
+
+## VALIDADO
+
+Most continuation artifacts are under `Saved/Analysis/CompatibilityClosure/Continuation_20260930`. Paths and SHA-256 values are indexed in the evidence JSON.
+
+| Gate | Result |
+|---|---|
+| Editor build | PASS, `build_editor_10.log`; official wrapper, Daz receipt enabled |
+| Game Development build | PASS, `build_game_02.log`; final native repairs included, descriptor and Daz receipt restored |
+| Blueprint compile outside Calysto | **827/827 PASS**, zero failures or on-disk changes; 73 Calysto/project procedural assets explicitly excluded. `Saved/Artifacts/PendingValidation/BlueprintCompile/continuation_20260930/RunSummary.json` |
+| Canonical automation | **27 PASS**, zero failed, not-run or warning results; `Automation_20260930_144616` |
+| General PIE | **177 checks PASS**: Visual 46, Activities 81, Reload 23, HUB-only Respawn 27. Current native progression, effort, rest, pause, save/travel and defeat preservation remain covered |
+| Morph-specific PIE | **29 checks PASS** after cold reload: Female/Male/Female, positive and negative limits, actual simulation, pause and movement; frontal captures reviewed |
+| Ladder with new physics | PASS at x1/x2/x4; approximately 5.15/5.19/5.29 simulated seconds, walking restored and no residual effort |
+| Cook/package | PASS, UAT exit 0. **6,221 packages accounted for: 6,209 cooked and 12 platform-skipped; 0 errors, 26 warnings**. `Package_20260930_151131` |
+| Packaged progression | PASS: reading, x1/x2/x4, pause/resume, cue aliases and absence of premature quest errors. `PackagedQA_20260930_151552` |
+| Packaged morph physics | PASS: Female/Male/Female profiles, **35 live body reports** across five samples, valid constraints, movement input and verified pause/resume. `MorphPackaged_20260930_151612` |
+| Visual review | 12 recorded views: character genders, Manny/Quinn, ladder, reading, HUB respawn and both packaged suites. Packaged gender captures are rear/side views; the frontal comparison was performed in PIE |
+| Protection and saves | **7,643 protected files, zero differences** at snapshot `81fb51cd`. Final suites restored SaveGuard; packaged runs used isolated UserDir. Original user HUB/Chest/doc/tool edits remain untouched and unstaged |
+
+The 827-Blueprint gate and general suites preceded the final native respawn adapter. The final HUB respawn suite recompiled the affected Player/BP_TSChar, and both final builds and package include the adapter. No Blueprint graph changed after the full scoped audit. Prior bow, quest and mathematical balance evidence below remains historical; this continuation does not claim to have rerun every one of those scenarios.
+
+The reviewed package is at `Saved/Analysis/PracticeProgression/Package_20260930_151131/Staged/Windows`.
+
+## Log comparison and fixture corrections
+
+The comparable Visual logs from 2026-09-28 and 2026-09-30 show missing morph-constraint warnings falling from **28 to 0**. Old ACF script-import and missing-blink counts remain zero. SetFontSize remains 1, localized Engine Condition failures 12, external configuration timeout 1, and dispatcher ownership warnings 969. The cook summary remains at 26 warnings. No log suppression, severity reduction, language change or functionality disabling was used to obtain these results.
+
+Intermediate failures were retained: the initial candidate profiles lost their edited limits on reload until DefaultProfile serialization was corrected; the old setter updated the solver without its reflected profile. Respawn then exposed a different visible-mesh relationship on base Player, requiring an identical-primary-mesh fallback.
+
+**Scope correction:** the inherited respawn harness initially used the production default `DungeonGeneration`. Its failed attempts, and a later numerically green attempt hidden behind a dungeon failure overlay, are not accepted as non-Calysto validation. The final harness changes only its process-local defeat settings to HUB, forces a real reload and asserts the destination. `Respawn_20260930_150824` passed all 27 checks with an unobscured gameplay capture. No Calysto repair or validation is claimed.
+
+An earlier diagnostic editor crashed in Python teardown, and another was interrupted. Their original saves were restored. Final diagnostic sessions and validation processes exited cleanly. Test-regenerated `DT_ProjectAttributesSetByCallers` bytes were backed up and restored to the pre-test baseline before packaging.
+
+## PENDIENTE and BLOQUEADO
+
+| Status | Residual / next concrete requirement |
+|---|---|
+| BLOQUEADO | Protected ACFU SetFontSize graph and duplicate DefaultSlot nodes: original vendor graph repair is outside the allowed write scope. Runtime typography impact and exhaustive montage equivalence remain PENDIENTE; a warning alone does not establish broken behavior |
+| BLOQUEADO | Engine English-literal assertions under Spanish locale, MetaHumanCoreTech cook registry query and UECP dispatcher ownership: retain the demonstrated source/paired-test causes below; fixes to Engine/Marketplace implementations are forbidden |
+| BLOQUEADO | Protected Daz/animation metadata and legacy ACF ini/redirect contracts: no mass resave or removal solely to silence warnings |
+| PENDIENTE | Authoritative compatible replacement for vendor Quinn's missing post-process rig; no guessed redirect was added |
+| PENDIENTE | External free_tier_config availability and offline behavior beyond its observed cached fallback; no credentials changed |
+| PENDIENTE | Exhaustive animation/Daz permutations and RealisticBlood upper-body montages beyond the tested views; human balance approval and a continuous integrated multi-day world run are not certified by the earlier mathematical simulations |
+| EXCLUIDO | All Calysto repairs and its execution-dependent PCG checks, per the user's replacement decision |
+
+Reusable guidance was updated and validated at `A:/Skills Codex/noshellforwinter-character-action-qa/SKILL.md` and `references/runtime-api-notes.md`: physics ownership, serialization, cold reload, reflected versus solver limits, defeat restoration, HUB-only respawn and save/process isolation.
+
+---
+
+# Historical compatibility validation — 2026-09-28
 
 Target: D:/Projects UE5/NoShellForWinter. Source: D:/Projects UE5/LustAsDeadlySin (read-only).
 Baseline: c9993314b38704cc89f3d579a8fcfb797ddfb38f.

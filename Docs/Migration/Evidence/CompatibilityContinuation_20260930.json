@@ -1,0 +1,632 @@
+{
+  "baseline_commit": "62c2c81d4cf0525ea0a3f791d367e36ef3fa4c1e",
+  "status": "PROJECT_REPAIRS_VALIDATED_WITH_RESIDUALS",
+  "scope": "Remaining non-Calysto compatibility repairs and validation",
+  "excluded": {
+    "Calysto": "User explicitly excluded all Calysto work on 2026-09-30 because it will be replaced. Do not repair or test its systems."
+  },
+  "protection": {
+    "snapshot": "81fb51cd729f100a90c3f3ac739601c23dc8d4fb",
+    "checked": 7643,
+    "differences": [],
+    "status": "PASS"
+  },
+  "protected_files": 7643,
+  "protected_differences": 0,
+  "user_changes_preserved": [
+    "Content/_Game/Hub/HUB.umap",
+    "Content/_Game/Chest/",
+    "Docs/Migration/ChestMoveRollback.md",
+    "Docs/Migration/ProjectSizeCleanup_20260924.md",
+    "Tools/Migration/Invoke-SafeGeneratedCleanup.ps1"
+  ],
+  "gates": {
+    "EditorBuild": {
+      "status": "PASS",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/build_editor_10.log",
+        "sha256": "29a714aba36e72ec63bd7ad5795e176949955f10e5d409994d2406809e86bdf6"
+      }
+    },
+    "GameBuild": {
+      "status": "PASS",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/build_game_02.log",
+        "sha256": "e91b8cbade887903e894599ce267d50ba35ce310acbf157dbb3d9348632c62c8"
+      }
+    },
+    "BlueprintCompile": {
+      "status": "PASS",
+      "compiled": 827,
+      "failures": 0,
+      "excluded_calysto": 73,
+      "disk_changes": 0,
+      "evidence": {
+        "path": "Saved/Artifacts/PendingValidation/BlueprintCompile/continuation_20260930/RunSummary.json",
+        "sha256": "834d98c5bd7e6e3d442ab7e586f4883535166635d0d485a392164eea7255cd2b"
+      },
+      "scope": "Before final native respawn adapter; final respawn suite recompiles affected Player and BP_TSChar. No Blueprint graph changed afterward."
+    },
+    "Automation": {
+      "status": "PASS",
+      "passed": 27,
+      "failures": 0,
+      "warnings": 0,
+      "evidence": {
+        "path": "Saved/Analysis/PracticeProgression/Automation_20260930_144616/index.json",
+        "sha256": "17e602c4b1d0ae75dc0b3e446d28a2e2805e9cf9c4e55cd89331de670a6f8d65"
+      }
+    },
+    "PIE": {
+      "status": "PASS",
+      "suites": {
+        "Visual": {
+          "checks": 46,
+          "evidence": {
+            "path": "Saved/Analysis/PracticeProgression/Visual_20260930_144725/receipt.json",
+            "sha256": "e438710e725f230559d91c42147498c05a165ca11af3242739d842d8b46f41b1"
+          },
+          "saveguard_restored": true
+        },
+        "Activities": {
+          "checks": 81,
+          "evidence": {
+            "path": "Saved/Analysis/PracticeProgression/Activities_20260930_144934/receipt.json",
+            "sha256": "3a2175127f48369c26d0c0836ee6d966d08c0dc60615ae05d9322b34df869cb5"
+          },
+          "saveguard_restored": true
+        },
+        "Reload": {
+          "checks": 23,
+          "evidence": {
+            "path": "Saved/Analysis/PracticeProgression/Reload_20260930_145218/receipt.json",
+            "sha256": "577430b7bc28d5ca439e9bcaf0752f23f993c4b3ce7a4ca5214f106a2ac54f79"
+          },
+          "saveguard_restored": true
+        },
+        "Respawn": {
+          "checks": 27,
+          "evidence": {
+            "path": "Saved/Analysis/PracticeProgression/Respawn_20260930_150824/receipt.json",
+            "sha256": "b98b6687c61a7367bd988f9dedbc23c6b40cb54689ec806c9b98cd6ca9c42bbc"
+          },
+          "saveguard_restored": true
+        }
+      },
+      "total_checks": 177
+    },
+    "MorphPIE": {
+      "status": "PASS",
+      "checks": 29,
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/morph_runtime.json",
+        "sha256": "b563c5cb157163c935a1b83f06c6c1f66dcbfb9030d07fafcc2ab74b371a0508"
+      },
+      "scope": "Cold reload, Female/Male selection, positive and negative morph limits, pause, movement, return to Female"
+    },
+    "Ladder": {
+      "status": "PASS",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/ladder_time_speeds.json",
+        "sha256": "d240fd6688f8992f7cb459d321b7f43da7445dd9a66bff312078b300bbcdb36b"
+      },
+      "speeds": [
+        1,
+        2,
+        4
+      ]
+    },
+    "RealisticBlood": {
+      "status": "PASS_IN_TESTED_SCOPE",
+      "asset": "/Game/RealisticBlood/Demo/Characters/Mannequins/Animations/ABP_Manny",
+      "compile_evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/blood_repair.json",
+        "sha256": "c25a31d4e3ee7d8132e475e9909ba80546fd61c196915b826aba0801f857d5a4"
+      },
+      "runtime_evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/blood_runtime.json",
+        "sha256": "ed510eb635f1e694472fa2b1ff3cf2f95942cf515476d659fcbc46275d9ae80f"
+      },
+      "scope": "Parent and child compile; Manny and Quinn idle evaluated poses visually reviewed. No claim of exhaustive upper-body montage behavior."
+    },
+    "TattooShopArchive": {
+      "status": "RESUELTO",
+      "archive": {
+        "path": "Tools/Migration/Archive/TattooShop_20260811-231427.zip",
+        "sha256": "ea056508153b2ff1c10895001417073be2112d791c6527125069955420ee67a4"
+      },
+      "manifest": {
+        "path": "Tools/Migration/Archive/TattooShop_20260811-231427.json",
+        "sha256": "fc6c1d9f5ce882c72d7ed70e25ef262267e20fd54bd9b3a7ae9b03c61c0c4670"
+      },
+      "reason": "Historical backup had no registry or project text referencers; original bytes preserved outside cooked Content, retired via editor API. Active widget still compiles."
+    },
+    "CompassIcons": {
+      "status": "RESUELTO",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/compass_redirects.json",
+        "sha256": "a08a83a552f630e454a1163a94e3f5ed85244d509138396b386ff038a30d3158"
+      },
+      "scope": "Both exact legacy icon paths resolve to the existing installed ACFU Texture2D objects."
+    },
+    "CookPackage": {
+      "status": "PASS_WITH_WARNINGS",
+      "packages_accounted": 6221,
+      "packages_cooked": 6209,
+      "platform_skipped": 12,
+      "errors": 0,
+      "warnings": 26,
+      "uat_exit_code": 0,
+      "evidence": {
+        "path": "Saved/Analysis/PracticeProgression/Package_20260930_151131/uat.log",
+        "sha256": "e4f850083415378ce5ebef983f4a91c4ae113bef2fa5664fe919a3175650561d"
+      },
+      "staged": "Saved/Analysis/PracticeProgression/Package_20260930_151131/Staged/Windows"
+    },
+    "PackagedPractice": {
+      "status": "PASS_IN_TESTED_SCOPE",
+      "evidence": {
+        "path": "Saved/Analysis/PracticeProgression/PackagedQA_20260930_151552/receipt.json",
+        "sha256": "22bea229d6cb956deac0775f4a53fc860cfc413baa97d1d8e2507cc2a58a9e56"
+      },
+      "result": {
+        "passed": true,
+        "exit_code": 0,
+        "cue_conflicts": 0,
+        "quest_errors": 0,
+        "reports": [
+          {
+            "activity": "ReadBook",
+            "practice": 0.053993025,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.00216026
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 0.354755395,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.014213527
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.275273877,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.051313916
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.88425472,
+            "active": 1,
+            "perks": 0,
+            "paused": 1,
+            "hours": 0.076034097
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 1.88425472,
+            "active": 1,
+            "perks": 0,
+            "paused": 1,
+            "hours": 0.076034097
+          },
+          {
+            "activity": "ReadBook",
+            "practice": 2.001371533,
+            "active": 1,
+            "perks": 0,
+            "paused": 0,
+            "hours": 0.080804414
+          }
+        ],
+        "legacy_cue_in_cooked_registry": true,
+        "clocks": [
+          {
+            "hours": 0.021948736,
+            "paused": 0,
+            "speed": 1
+          },
+          {
+            "hours": 0.034122634,
+            "paused": 0,
+            "speed": 2
+          },
+          {
+            "hours": 0.071410898,
+            "paused": 0,
+            "speed": 4
+          },
+          {
+            "hours": 0.095722738,
+            "paused": 1,
+            "speed": 1
+          },
+          {
+            "hours": 0.095722738,
+            "paused": 1,
+            "speed": 1
+          },
+          {
+            "hours": 0.100583445,
+            "paused": 0,
+            "speed": 1
+          }
+        ]
+      }
+    },
+    "PackagedMorph": {
+      "status": "PASS_IN_TESTED_SCOPE",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/MorphPackaged_20260930_151612/receipt.json",
+        "sha256": "7c3f7064ecee848057ac20a24a4e8aa03f541283a0c270b75074a0e56a68383d"
+      },
+      "result": {
+        "passed": true,
+        "exit_code": 0,
+        "pause_states": [
+          1,
+          0
+        ],
+        "profiles": [
+          {
+            "profile": "PA_Female_Morph",
+            "mesh": "Female"
+          },
+          {
+            "profile": "PA_Male_Morph",
+            "mesh": "Male"
+          },
+          {
+            "profile": "PA_Male_Morph",
+            "mesh": "Male"
+          },
+          {
+            "profile": "PA_Male_Morph",
+            "mesh": "Male"
+          },
+          {
+            "profile": "PA_Female_Morph",
+            "mesh": "Female"
+          }
+        ],
+        "bodies": [
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "l_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "r_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "Belly"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "l_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "r_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "Belly"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "l_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "r_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "Belly"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "l_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "r_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "Belly"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "l_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "r_pectoral"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightGlute"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "LeftThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "RightThighFat"
+          },
+          {
+            "valid": 1,
+            "sim": 1,
+            "limit": 2,
+            "bone": "Belly"
+          }
+        ],
+        "scope": "Live cooked profiles across gender selection, movement input and pause; screenshots require visual review"
+      }
+    },
+    "VisualReview": {
+      "status": "PASS_IN_REVIEWED_VIEWS",
+      "evidence": {
+        "path": "Saved/Analysis/CompatibilityClosure/Continuation_20260930/visual_review.json",
+        "sha256": "bf080fdb43a7492f908ef798b394c9815aeed95a99417ecca2d5ff4047bc1f84"
+      },
+      "views": 12
+    }
+  },
+  "implementation_snapshot": "81fb51cd729f100a90c3f3ac739601c23dc8d4fb",
+  "commits": [
+    "a9573c2e",
+    "cd8e5369",
+    "db0c76dc",
+    "69158346",
+    "81fb51cd"
+  ],
+  "protection_evidence": {
+    "path": "Saved/Analysis/CompatibilityClosure/protection_continuation_20260930_final.json",
+    "sha256": "7eb3749da4e8e453f4dd38f8abe7b7bda84dd2cfadb1fc56ebbbf60be76f5982"
+  },
+  "log_comparison": {
+    "patterns": {
+      "old_acf_script_import": "Failed to load.*(?:AscentLevelingSystem|AscentGASIntegration)",
+      "missing_blink": "(?i)(?:blink.*(?:missing|not found)|(?:missing|not found).*blink)",
+      "set_font_size": "\\[Compiler\\].*SetFontSize",
+      "engine_condition": "Condition failed",
+      "free_tier_timeout": "HTTP request timed out.*free_tier_config",
+      "dispatcher_owner": "(?i)(?:refus.*unregister|cannot unregister|attempt.*unregister).*",
+      "compass_missing_icon": "(?i)(?:failed|could not|missing).*Icon_Circle",
+      "missing_morph_constraint": "could not find constraint (?:l_pectoral|r_pectoral|LeftGlute|RightGlute|LeftThighFat|RightThighFat|Belly)"
+    },
+    "logs": {
+      "Saved/Analysis/PracticeProgression/Visual_20260928_211117/editor.log": {
+        "old_acf_script_import": 0,
+        "missing_blink": 0,
+        "set_font_size": 1,
+        "engine_condition": 12,
+        "free_tier_timeout": 1,
+        "dispatcher_owner": 969,
+        "compass_missing_icon": 0,
+        "missing_morph_constraint": 28
+      },
+      "Saved/Analysis/PracticeProgression/Visual_20260930_144725/editor.log": {
+        "old_acf_script_import": 0,
+        "missing_blink": 0,
+        "set_font_size": 1,
+        "engine_condition": 12,
+        "free_tier_timeout": 1,
+        "dispatcher_owner": 969,
+        "compass_missing_icon": 0,
+        "missing_morph_constraint": 0
+      }
+    }
+  },
+  "fixture_failures": [
+    "Candidate constraints initially worked in memory but reloaded locked: fixed template DefaultProfile serialization.",
+    "SetLinearLimitSize updated the solver without reflected ProfileInstance; switched to SetLinearLimits, preserving axis modes.",
+    "Earlier respawn runs used inherited DungeonGeneration destination. Three failed physics checks; the next passed 26 checks but showed a dungeon failure overlay. All excluded as valid non-Calysto respawn evidence. Final HUB-only rerun passed 27 checks and visual review.",
+    "Base Player after load had no LeaderPoseComponent on the collisionless visible mesh. Physics now resolves the identical ACharacter mesh; collision restoration reapplies simulation and limits.",
+    "Earlier diagnostic editor exit crashed in Python teardown; another session was interrupted. Original saves were restored; final diagnostic sessions, suites and packaged processes exited cleanly."
+  ],
+  "residuals": {
+    "BLOQUEADO": [
+      {
+        "owner": "ACFU vendor ANS_MapMarker_WBP:SetImage",
+        "issue": "Orphan inFontSize=10 versus current DisplayFontSize=0",
+        "block": "Original vendor graph is protected. Runtime typography impact remains PENDING; do not claim that removing a warning repairs UI."
+      },
+      {
+        "owner": "ACFU vendor ACF_Template_ABP",
+        "issue": "Duplicate DefaultSlot nodes",
+        "block": "Protected vendor graph and public montage contracts; exhaustive montage/branch equivalence is not established."
+      },
+      {
+        "owner": "Engine UnifiedErrorTests.cpp:479-533",
+        "issue": "English-literal assertions under Spanish locale",
+        "block": "Confirmed paired-culture/source evidence in prior closure. Engine changes forbidden; user culture unchanged."
+      },
+      {
+        "owner": "MetaHumanCoreTech",
+        "issue": "Cook AssetRegistry query includes non-disk assets",
+        "block": "Precompiled vendor/Engine implementation; deterministic byte-identical cook not certified."
+      },
+      {
+        "owner": "UECPAIExtModule.cpp:370-374",
+        "issue": "Wrong ownership while unregistering handlers",
+        "block": "Marketplace source protected; no claim that retained handlers are harmless."
+      },
+      {
+        "owner": "Protected Daz/ACFU content and legacy vendor config",
+        "issue": "Empty engine-version metadata, deprecated ini and substring redirects",
+        "block": "No mass vendor resave or removal of compatibility contracts."
+      }
+    ],
+    "PENDIENTE": [
+      "Authoritative replacement for the vendor missing ABP_Quinn_PostProcess reference; no guessed rig redirect.",
+      "External free_tier_config service availability/offline behavior; cached fallback remains, no credentials changed.",
+      "Exhaustive Daz/montage permutations and Compass typography behavior beyond reviewed views.",
+      "Human balance approval and a continuous integrated multi-day world playthrough; prior 30-day mathematical simulations are not human playtesting.",
+      "RealisticBlood upper-body montage permutations beyond its tested idle parent/child poses."
+    ],
+    "EXCLUIDO": [
+      "Calysto and its execution-dependent PCG checks: user-requested replacement scope. No Calysto repair or validation claim."
+    ]
+  },
+  "reusable_skill": {
+    "path": "A:/Skills Codex/noshellforwinter-character-action-qa/SKILL.md",
+    "reference": "references/runtime-api-notes.md",
+    "validation": "skill-creator quick_validate.py PASS",
+    "topics": [
+      "physics owner versus visible mesh",
+      "default-profile serialization",
+      "solver versus reflected limits",
+      "cold reload and gender changes",
+      "defeat restoration",
+      "HUB-only respawn fixture",
+      "SaveGuard and process teardown"
+    ]
+  }
+}
