@@ -27,9 +27,9 @@ namespace EFProjectUIPalette
 	inline FLinearColor AttributeWillpower(float A = 1.0f) { return AccentSoft(A); }
 	inline FLinearColor AttributeOffensive(float A = 1.0f) { return Accent(A); }
 	inline FLinearColor AttributeDefensive(float A = 1.0f) { return AccentMuted(A); }
-	inline FLinearColor AttributeFaith(float A = 1.0f) { return Warning(A); }
+	inline FLinearColor AttributeFaith(float A = 1.0f) { return AccentSoft(A); }
 	inline FLinearColor AttributeCunning(float A = 1.0f) { return Accent(A); }
-	inline FLinearColor AttributeCelerity(float A = 1.0f) { return Warning(A); }
+	inline FLinearColor AttributeCelerity(float A = 1.0f) { return AccentSoft(A); }
 	inline FLinearColor AttributeCharisma(float A = 1.0f) { return AccentSoft(A); }
 
 	inline FLinearColor InnerStateHunger(float A = 1.0f) { return AccentSoft(A); }

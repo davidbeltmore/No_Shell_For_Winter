@@ -48,6 +48,9 @@ UProjectInnerDoctrineSettings::UProjectInnerDoctrineSettings()
 	MilestoneDefinitions = {
 		MakeMilestone(TEXT("SecondBreath"), EProjectDoctrineAttribute::Willpower, 5, LOCTEXT("SecondBreathName", "Second Breath"), LOCTEXT("SecondBreathDesc", "Recover survival needs and reduce Pain and Madness once per floor.")),
 		MakeMilestone(TEXT("UnbrokenMind"), EProjectDoctrineAttribute::Willpower, 10, LOCTEXT("UnbrokenMindName", "Unbroken Mind"), LOCTEXT("UnbrokenMindDesc", "Ignore Fear and Dizzy.")),
+		MakeMilestone(TEXT("CleanFinish"), EProjectDoctrineAttribute::Offensive, 10, LOCTEXT("CleanFinishName", "Clean Finish"), LOCTEXT("CleanFinishDesc", "A qualifying kill on a curse source reduces Curse and briefly strengthens attacks.")),
+		MakeMilestone(TEXT("GuardRecovery"), EProjectDoctrineAttribute::Defensive, 5, LOCTEXT("GuardRecoveryName", "Guard Recovery"), LOCTEXT("GuardRecoveryDesc", "At maximum Pain, a relevant enemy hit can trigger temporary damage absorption.")),
+		MakeMilestone(TEXT("PainSpike"), EProjectDoctrineAttribute::Defensive, 10, LOCTEXT("PainSpikeName", "Pain Spike"), LOCTEXT("PainSpikeDesc", "Strengthens Guard Recovery and permits Tactical Retreat when available.")),
 		MakeMilestone(TEXT("QuietMind"), EProjectDoctrineAttribute::Faith, 5, LOCTEXT("QuietMindName", "Quiet Mind"), LOCTEXT("QuietMindDesc", "Recover Madness over time.")),
 		MakeMilestone(TEXT("SanctifiedRest"), EProjectDoctrineAttribute::Faith, 10, LOCTEXT("SanctifiedRestName", "Sanctified Rest"), LOCTEXT("SanctifiedRestDesc", "Sleep restores half of maximum Madness.")),
 		MakeMilestone(TEXT("SteadyHands"), EProjectDoctrineAttribute::Cunning, 5, LOCTEXT("SteadyHandsName", "Steady Hands"), LOCTEXT("SteadyHandsDesc", "Improve lockpicking and allow more struggle misses.")),

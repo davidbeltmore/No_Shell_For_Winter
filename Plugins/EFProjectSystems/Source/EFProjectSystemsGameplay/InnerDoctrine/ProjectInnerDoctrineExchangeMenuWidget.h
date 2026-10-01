@@ -43,6 +43,7 @@ struct FProjectInnerDoctrineExchangeResolvedEntry
 	int32 SortOrder = 0;
 	bool bMilestoneFiveUnlocked = false;
 	bool bMilestoneTenUnlocked = false;
+	bool bInspectableOnly = false;
 };
 
 USTRUCT(BlueprintType)

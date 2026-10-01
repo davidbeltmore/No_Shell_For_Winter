@@ -1,5 +1,6 @@
 #include "InnerDoctrine/ProjectInnerDoctrineExchangeMenuWidget.h"
 #include "Progression/ProjectPracticeSettings.h"
+#include "Progression/ProjectPracticeProgressionComponent.h"
 
 #include "EFProjectUIPalette.h"
 #include "EFProjectUISettings.h"
@@ -22,6 +23,7 @@
 #include "Engine/Texture2D.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "AbilitySystemComponent.h"
 #include "Input/Reply.h"
 #include "InnerDoctrine/ProjectInnerDoctrineComponent.h"
 #include "InnerDoctrine/ProjectInnerDoctrineSettings.h"
@@ -994,6 +996,9 @@ void UProjectInnerDoctrineExchangeMenuWidget::InitializeVisualTree()
 
 	if (!bUsingNativeFallbackTree)
 	{
+		if (DetailNameText) DetailNameText->SetFont(MakeTitleFont(40, 0));
+		if (DetailMilestoneFiveText) DetailMilestoneFiveText->SetWrapTextAt(236.0f);
+		if (DetailMilestoneTenText) DetailMilestoneTenText->SetWrapTextAt(236.0f);
 		bVisualTreeInitialized = true;
 		return;
 	}
@@ -1141,7 +1146,7 @@ void UProjectInnerDoctrineExchangeMenuWidget::InitializeVisualTree()
 
 	if (DetailNameText)
 	{
-		DetailNameText->SetFont(MakeTitleFont(50, 0));
+		DetailNameText->SetFont(MakeTitleFont(42, 0));
 		DetailNameText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::PrimaryTextTint()));
 		DetailNameText->SetShadowOffset(FVector2D(0.0f, 0.65f));
 		DetailNameText->SetShadowColorAndOpacity(ProjectDoctrineExchangeMenuWidgetPrivate::ShadowTint);
@@ -1155,6 +1160,7 @@ void UProjectInnerDoctrineExchangeMenuWidget::InitializeVisualTree()
 
 	if (DetailCostText)
 	{
+		DetailCostText->SetAutoWrapText(true);
 		DetailCostText->SetFont(MakeBodyFont(31, 0));
 		DetailCostText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::AccentTint()));
 	}
@@ -1171,12 +1177,16 @@ void UProjectInnerDoctrineExchangeMenuWidget::InitializeVisualTree()
 
 	if (DetailMilestoneFiveText)
 	{
+		DetailMilestoneFiveText->SetAutoWrapText(true);
+		DetailMilestoneFiveText->SetWrapTextAt(240.0f);
 		DetailMilestoneFiveText->SetFont(MakeBodyFont(23, 0));
 		DetailMilestoneFiveText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::SecondaryTextTint()));
 	}
 
 	if (DetailMilestoneTenText)
 	{
+		DetailMilestoneTenText->SetAutoWrapText(true);
+		DetailMilestoneTenText->SetWrapTextAt(240.0f);
 		DetailMilestoneTenText->SetFont(MakeBodyFont(23, 0));
 		DetailMilestoneTenText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::SecondaryTextTint()));
 	}
@@ -1278,7 +1288,8 @@ TArray<FProjectInnerDoctrineExchangeResolvedEntry> UProjectInnerDoctrineExchange
 		Entry.RowData.Cost = (*RuntimeState)->NextLevelCost;
 		Entry.RowData.RowWidth = ProjectDoctrineExchangeMenuWidgetPrivate::RowWidth;
 		Entry.RowData.RowHeight = ProjectDoctrineExchangeMenuWidgetPrivate::RowHeight;
-		Entry.RowData.bAffordable = CachedSnapshot.CurrentRunDxp >= (*RuntimeState)->NextLevelCost;
+		Entry.RowData.bAffordable = GetDefault<UProjectPracticeSettings>()->bEnabled
+			|| CachedSnapshot.CurrentRunDxp >= (*RuntimeState)->NextLevelCost;
 		Entry.DetailName = FText::FromString(Entry.RowData.DisplayLabel);
 		Entry.DetailDescription = BuildAttributeFlavor((*RuntimeState)->Attribute);
 		const FProjectDoctrineMilestoneState* MilestoneFive =
@@ -1327,7 +1338,8 @@ TArray<FProjectInnerDoctrineExchangeResolvedEntry> UProjectInnerDoctrineExchange
 		Entry.RowData.Cost = Pair.Value->NextLevelCost;
 		Entry.RowData.RowWidth = ProjectDoctrineExchangeMenuWidgetPrivate::RowWidth;
 		Entry.RowData.RowHeight = ProjectDoctrineExchangeMenuWidgetPrivate::RowHeight;
-		Entry.RowData.bAffordable = CachedSnapshot.CurrentRunDxp >= Pair.Value->NextLevelCost;
+		Entry.RowData.bAffordable = GetDefault<UProjectPracticeSettings>()->bEnabled
+			|| CachedSnapshot.CurrentRunDxp >= Pair.Value->NextLevelCost;
 		Entry.DetailName = FText::FromString(Entry.RowData.DisplayLabel);
 		Entry.DetailDescription = BuildAttributeFlavor(Pair.Value->Attribute);
 		const FProjectDoctrineMilestoneState* MilestoneFive =
@@ -1353,6 +1365,18 @@ TArray<FProjectInnerDoctrineExchangeResolvedEntry> UProjectInnerDoctrineExchange
 			: Pair.Value->bMilestone10Unlocked;
 	}
 
+	for (FProjectInnerDoctrineExchangeResolvedEntry& Entry : BuiltEntries)
+	{
+		const FProjectPracticeDefinition* Practice = GetDefault<UProjectPracticeSettings>()->Activities.FindByPredicate(
+			[&Entry](const FProjectPracticeDefinition& Candidate) { return Candidate.Attribute == Entry.AttributeName; });
+		if (Practice)
+		{
+			Entry.DetailDescription = FText::Format(
+				LOCTEXT("DoctrineDescriptionAndPractice", "{0}\n\nTrain with Y > Training: {1}."),
+				Entry.DetailDescription, Practice->Name);
+		}
+	}
+
 	BuiltEntries.Sort([](const FProjectInnerDoctrineExchangeResolvedEntry& Left, const FProjectInnerDoctrineExchangeResolvedEntry& Right)
 	{
 		if (Left.SortOrder != Right.SortOrder)
@@ -1362,6 +1386,52 @@ TArray<FProjectInnerDoctrineExchangeResolvedEntry> UProjectInnerDoctrineExchange
 
 		return Left.AttributeName.LexicalLess(Right.AttributeName);
 	});
+
+	// ACF owns these five GAS attributes. The altar is an inspector for them;
+	// it must never route their selection into the old doctrine DXP purchase API.
+	if (InnerDoctrineComponent.IsValid())
+	{
+		const AActor* Owner = InnerDoctrineComponent->GetOwner();
+		const UAbilitySystemComponent* ASC = Owner ? Owner->FindComponentByClass<UAbilitySystemComponent>() : nullptr;
+		struct FPrimaryInfo { const TCHAR* Name; const TCHAR* Effect; const TCHAR* PracticeId; };
+		static const FPrimaryInfo PrimaryInfo[] = {
+			{ TEXT("Strength"), TEXT("ACF: increases the MeleeDamage parameter through its configured generation curve."), TEXT("PushUps") },
+			{ TEXT("Intelligence"), TEXT("Improves the project's lockpicking bonus. No other direct ACF conversion is configured."), TEXT("ReadBook") },
+			{ TEXT("Endurance"), TEXT("ACF: increases maximum Stamina and Stamina regeneration through configured curves; reduces the project's maximum sweat."), TEXT("JumpRope") },
+			{ TEXT("Constitution"), TEXT("ACF: increases maximum Health through its configured curve; reduces the project's maximum Pain."), TEXT("Constitution") },
+			{ TEXT("Dexterity"), TEXT("A trainable ACF primary attribute. No direct conversion or passive is configured in this project yet."), TEXT("Balance") }
+		};
+		for (int32 Index = 0; Index < UE_ARRAY_COUNT(PrimaryInfo); ++Index)
+		{
+			const FPrimaryInfo& Info = PrimaryInfo[Index];
+			const FName AttributeName(Info.Name);
+			const FGameplayAttribute GasAttribute = UProjectPracticeProgressionComponent::ResolveAttribute(AttributeName);
+			FProjectInnerDoctrineExchangeResolvedEntry& Entry = BuiltEntries.AddDefaulted_GetRef();
+			Entry.AttributeName = AttributeName;
+			Entry.bInspectableOnly = true;
+			Entry.SortOrder = -100 + Index;
+			Entry.RowData.AttributeName = AttributeName;
+			Entry.RowData.DisplayLabel = Info.Name;
+			Entry.RowData.AccentTint = EFProjectUIPalette::AttributeForName(AttributeName);
+			Entry.RowData.Level = ASC && GasAttribute.IsValid() && ASC->HasAttributeSetForAttribute(GasAttribute)
+				? FMath::Max(0, FMath::FloorToInt(ASC->GetNumericAttribute(GasAttribute))) : 0;
+			Entry.RowData.Cost = 0;
+			Entry.RowData.bAffordable = true;
+			Entry.RowData.RowWidth = ProjectDoctrineExchangeMenuWidgetPrivate::RowWidth;
+			Entry.RowData.RowHeight = ProjectDoctrineExchangeMenuWidgetPrivate::RowHeight;
+			Entry.DetailName = FText::FromName(AttributeName);
+			const FProjectPracticeDefinition* Practice = GetDefault<UProjectPracticeSettings>()->Find(FName(Info.PracticeId));
+			Entry.DetailDescription = FText::Format(
+				LOCTEXT("PrimaryDescription", "{0}\n\nTrain with Y > Training: {1}."),
+				FText::FromString(Info.Effect), Practice ? Practice->Name : FText::FromName(FName(Info.PracticeId)));
+		}
+		BuiltEntries.Sort([](const FProjectInnerDoctrineExchangeResolvedEntry& Left, const FProjectInnerDoctrineExchangeResolvedEntry& Right)
+		{
+			return Left.SortOrder == Right.SortOrder
+				? Left.AttributeName.LexicalLess(Right.AttributeName)
+				: Left.SortOrder < Right.SortOrder;
+		});
+	}
 
 	return BuiltEntries;
 }
@@ -1569,7 +1639,8 @@ void UProjectInnerDoctrineExchangeMenuWidget::RefreshAttributeRows()
 		Entry.RowData.AccentTint =
 			EFProjectUIPalette::AttributeForName(Entry.AttributeName);
 		Entry.RowData.bSelected = (Index == SelectedIndex);
-		Entry.RowData.bAffordable = CachedSnapshot.CurrentRunDxp >= Entry.RowData.Cost;
+		Entry.RowData.bAffordable = GetDefault<UProjectPracticeSettings>()->bEnabled
+			|| Entry.bInspectableOnly || CachedSnapshot.CurrentRunDxp >= Entry.RowData.Cost;
 
 		if (TObjectPtr<UProjectInnerDoctrineExchangeAttributeRowWidget>* ExistingWidget = RowWidgetsByName.Find(Entry.AttributeName))
 		{
@@ -1658,7 +1729,7 @@ void UProjectInnerDoctrineExchangeMenuWidget::RefreshFooterState()
 	if (GetDefault<UProjectPracticeSettings>()->bEnabled)
 	{
 		if (FooterControlsText) FooterControlsText->SetText(LOCTEXT("PracticeControls", "W/S navigate   |   Q/Esc close"));
-		if (FooterStatusText) FooterStatusText->SetText(LOCTEXT("PracticeProgress", "Attributes improve through practice. Open Y > Training to practise."));
+		if (FooterStatusText) FooterStatusText->SetText(LOCTEXT("PracticeProgress", "All attributes: Y > Training"));
 		return;
 	}
 	if (!FooterControlsText)
@@ -1736,7 +1807,7 @@ void UProjectInnerDoctrineExchangeMenuWidget::NavigateSelectionByDirection(const
 void UProjectInnerDoctrineExchangeMenuWidget::ConfirmSelection()
 {
 	const FProjectInnerDoctrineExchangeResolvedEntry* SelectedEntry = GetSelectedEntry();
-	if (!SelectedEntry)
+	if (!SelectedEntry || SelectedEntry->bInspectableOnly || GetDefault<UProjectPracticeSettings>()->bEnabled)
 	{
 		return;
 	}
@@ -1766,7 +1837,10 @@ bool UProjectInnerDoctrineExchangeMenuWidget::HandleMenuKey(const FKey& Key)
 
 	if (Key == EKeys::R)
 	{
-		OnWithdrawRequested.Broadcast();
+		if (!GetDefault<UProjectPracticeSettings>()->bEnabled)
+		{
+			OnWithdrawRequested.Broadcast();
+		}
 		return true;
 	}
 
@@ -1867,19 +1941,19 @@ FText UProjectInnerDoctrineExchangeMenuWidget::BuildAttributeFlavor(const EProje
 	switch (Attribute)
 	{
 	case EProjectDoctrineAttribute::Willpower:
-		return LOCTEXT("WillpowerFlavor", "Expands survival limits and protects the mind from Fear and Dizzy.");
+		return LOCTEXT("WillpowerFlavor", "Passive: raises the maximum of Hunger, Thirst, Sleep, Madness and Pain and resists Curse. The level 10 ability protects against Fear and Dizzy.");
 	case EProjectDoctrineAttribute::Offensive:
-		return LOCTEXT("OffensiveFlavor", "Improves non-magical damage.");
+		return LOCTEXT("OffensiveFlavor", "Passive: adds damage to non-magical attacks.");
 	case EProjectDoctrineAttribute::Defensive:
-		return LOCTEXT("DefensiveFlavor", "Reduces post-armour damage.");
+		return LOCTEXT("DefensiveFlavor", "Passive: reduces damage after armour. Guard Recovery becomes available at level 5.");
 	case EProjectDoctrineAttribute::Faith:
-		return LOCTEXT("FaithFlavor", "Improves magic and calms Madness.");
+		return LOCTEXT("FaithFlavor", "Passive: adds spell damage and spell defense and resists Curse. Higher levels can restore Madness.");
 	case EProjectDoctrineAttribute::Cunning:
-		return LOCTEXT("CunningFlavor", "Improves lockpicking and struggle control and helps retain equipment after defeat.");
+		return LOCTEXT("CunningFlavor", "Passive: improves lockpicking, struggle control and Curse resistance. Higher levels can protect equipment after defeat.");
 	case EProjectDoctrineAttribute::Celerity:
-		return FText::GetEmpty();
+		return LOCTEXT("CelerityFlavor", "No passive or level ability is active yet. This attribute can still be trained and its rank is saved in GAS.");
 	case EProjectDoctrineAttribute::Charisma:
-		return LOCTEXT("CharismaFlavor", "Improves social progression and unlocks optional adult interactions at level 10.");
+		return LOCTEXT("CharismaFlavor", "Supports social progression and companion Curse resistance. Level 10 unlocks optional adult social interactions.");
 	case EProjectDoctrineAttribute::Count:
 	default:
 		break;
@@ -1925,9 +1999,14 @@ FProjectInnerDoctrineExchangeDetailDisplayData UProjectInnerDoctrineExchangeMenu
 	DetailData.CostText = SelectedEntry->RowData.Cost > 0
 		? FText::Format(LOCTEXT("SelectedCostText", "Next ascent costs {0} DXP"), FText::AsNumber(SelectedEntry->RowData.Cost))
 		: LOCTEXT("AlreadyMaxedText", "Already maxed");
-	if (GetDefault<UProjectPracticeSettings>()->bEnabled) DetailData.CostText = LOCTEXT("PracticeAttribute", "Improves through practice; no points required.");
-	DetailData.MilestoneFiveText = BuildMilestoneStatusText(SelectedEntry->MilestoneFiveLabel, SelectedEntry->bMilestoneFiveUnlocked);
-	DetailData.MilestoneTenText = BuildMilestoneStatusText(SelectedEntry->MilestoneTenLabel, SelectedEntry->bMilestoneTenUnlocked);
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled || SelectedEntry->bInspectableOnly)
+		DetailData.CostText = LOCTEXT("PracticeAttribute", "Train to improve");
+	DetailData.MilestoneFiveText = SelectedEntry->MilestoneFiveLabel.IsEmpty()
+		? LOCTEXT("NoMilestoneFive", "Level 5: no ability")
+		: BuildMilestoneStatusText(SelectedEntry->MilestoneFiveLabel, SelectedEntry->bMilestoneFiveUnlocked);
+	DetailData.MilestoneTenText = SelectedEntry->MilestoneTenLabel.IsEmpty()
+		? LOCTEXT("NoMilestoneTen", "Level 10: no ability")
+		: BuildMilestoneStatusText(SelectedEntry->MilestoneTenLabel, SelectedEntry->bMilestoneTenUnlocked);
 	DetailData.FlavorText = SelectedEntry->DetailDescription;
 	DetailData.WatermarkTexture = SelectedEntry->DetailWatermarkTexture;
 	DetailData.AccentTint =
@@ -2123,6 +2202,9 @@ void UProjectInnerDoctrineExchangeDetailPanelWidget::InitializeVisualTree()
 
 	if (!bUsingNativeFallbackTree)
 	{
+		if (DetailNameText) DetailNameText->SetFont(MakeTitleFont(40, 0));
+		if (DetailMilestoneFiveText) DetailMilestoneFiveText->SetWrapTextAt(236.0f);
+		if (DetailMilestoneTenText) DetailMilestoneTenText->SetWrapTextAt(236.0f);
 		bVisualTreeInitialized = true;
 		return;
 	}
@@ -2140,7 +2222,7 @@ void UProjectInnerDoctrineExchangeDetailPanelWidget::InitializeVisualTree()
 
 	if (DetailNameText)
 	{
-		DetailNameText->SetFont(MakeTitleFont(50, 0));
+		DetailNameText->SetFont(MakeTitleFont(42, 0));
 		DetailNameText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::PrimaryTextTint()));
 		DetailNameText->SetShadowOffset(FVector2D(0.0f, 0.65f));
 		DetailNameText->SetShadowColorAndOpacity(ProjectDoctrineExchangeMenuWidgetPrivate::ShadowTint);
@@ -2154,6 +2236,7 @@ void UProjectInnerDoctrineExchangeDetailPanelWidget::InitializeVisualTree()
 
 	if (DetailCostText)
 	{
+		DetailCostText->SetAutoWrapText(true);
 		DetailCostText->SetFont(MakeBodyFont(31, 0));
 		DetailCostText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::AccentTint()));
 	}
@@ -2170,12 +2253,16 @@ void UProjectInnerDoctrineExchangeDetailPanelWidget::InitializeVisualTree()
 
 	if (DetailMilestoneFiveText)
 	{
+		DetailMilestoneFiveText->SetAutoWrapText(true);
+		DetailMilestoneFiveText->SetWrapTextAt(240.0f);
 		DetailMilestoneFiveText->SetFont(MakeBodyFont(23, 0));
 		DetailMilestoneFiveText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::SecondaryTextTint()));
 	}
 
 	if (DetailMilestoneTenText)
 	{
+		DetailMilestoneTenText->SetAutoWrapText(true);
+		DetailMilestoneTenText->SetWrapTextAt(240.0f);
 		DetailMilestoneTenText->SetFont(MakeBodyFont(23, 0));
 		DetailMilestoneTenText->SetColorAndOpacity(FSlateColor(ProjectDoctrineExchangeMenuWidgetPrivate::SecondaryTextTint()));
 	}

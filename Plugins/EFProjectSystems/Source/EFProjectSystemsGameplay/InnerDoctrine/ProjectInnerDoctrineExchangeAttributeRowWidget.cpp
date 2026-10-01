@@ -553,6 +553,15 @@ void UProjectInnerDoctrineExchangeAttributeRowWidget::RefreshVisuals()
 			IconBackgroundBorder->SetBrush(IconBrush);
 		}
 	}
+	if (GetDefault<UProjectPracticeSettings>()->bEnabled && IconBackgroundBorder)
+	{
+		IconBackgroundBorder->SetBrush(FSlateRoundedBoxBrush(
+			EFProjectUIPalette::PanelFillDeep(), 10.0f,
+			FSlateColor(EFProjectUIPalette::OutlineDim()), 1.0f,
+			FVector2f(ProjectInnerDoctrineExchangeAttributeRowWidgetPrivate::IconSize,
+				ProjectInnerDoctrineExchangeAttributeRowWidgetPrivate::IconSize)));
+		IconBackgroundBorder->SetBrushColor(FLinearColor::White);
+	}
 
 	if (IconImage)
 	{
@@ -600,7 +609,11 @@ void UProjectInnerDoctrineExchangeAttributeRowWidget::RefreshVisuals()
 			FText::FromString(TEXT("Cost {0}")),
 			FText::AsNumber(CurrentDisplayData.Cost)));
 		if (GetDefault<UProjectPracticeSettings>()->bEnabled) CostText->SetText(FText::FromString(TEXT("Practice")));
-		if (bUsingNativeFallbackTree)
+		if (GetDefault<UProjectPracticeSettings>()->bEnabled)
+		{
+			CostText->SetColorAndOpacity(FSlateColor(ProjectInnerDoctrineExchangeAttributeRowWidgetPrivate::MetaTint()));
+		}
+		else if (bUsingNativeFallbackTree)
 		{
 			CostText->SetColorAndOpacity(FSlateColor(
 				(CurrentDisplayData.bAffordable || bSelected)
@@ -977,6 +990,58 @@ int32 UProjectInnerDoctrineExchangeRowsGlobalWidget::ApplyRows(
 	TSubclassOf<UProjectInnerDoctrineExchangeAttributeRowWidget> FallbackRowWidgetClass)
 {
 	BuildWidgetTree();
+	// The converted altar Blueprint keeps seven authored doctrine rows in RowsLayout.
+	// Move its fallback container to the top so the five ACF primary rows precede
+	// those secondary rows in both the native tree and the converted Blueprint.
+	if (RowsLayout && ExtraRowsLayout && RowsLayout->GetChildIndex(ExtraRowsLayout) > 0)
+	{
+		struct FPreservedRowSlot
+		{
+			UWidget* Widget = nullptr;
+			FMargin Padding;
+			FSlateChildSize Size;
+			EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
+			EVerticalAlignment VerticalAlignment = VAlign_Fill;
+		};
+		TArray<FPreservedRowSlot> AuthoredRows;
+		for (int32 Index = 0; Index < RowsLayout->GetChildrenCount(); ++Index)
+		{
+			UWidget* Child = RowsLayout->GetChildAt(Index);
+			if (Child && Child != ExtraRowsLayout)
+			{
+				FPreservedRowSlot& Saved = AuthoredRows.AddDefaulted_GetRef();
+				Saved.Widget = Child;
+				if (const UVerticalBoxSlot* RowBoxSlot = Cast<UVerticalBoxSlot>(Child->Slot))
+				{
+					Saved.Padding = RowBoxSlot->GetPadding();
+					Saved.Size = RowBoxSlot->GetSize();
+					Saved.HorizontalAlignment = RowBoxSlot->GetHorizontalAlignment();
+					Saved.VerticalAlignment = RowBoxSlot->GetVerticalAlignment();
+				}
+			}
+		}
+		RowsLayout->ClearChildren();
+		if (UVerticalBoxSlot* PrimarySlot = RowsLayout->AddChildToVerticalBox(ExtraRowsLayout))
+		{
+			PrimarySlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+		for (int32 Index = 0; Index < AuthoredRows.Num(); ++Index)
+		{
+			const FPreservedRowSlot& Saved = AuthoredRows[Index];
+			if (UVerticalBoxSlot* RowBoxSlot = RowsLayout->AddChildToVerticalBox(Saved.Widget))
+			{
+				FMargin RestoredPadding = Saved.Padding;
+				if (Index == 0)
+				{
+					RestoredPadding.Top = FMath::Max(RestoredPadding.Top, 10.0f);
+				}
+				RowBoxSlot->SetPadding(RestoredPadding);
+				RowBoxSlot->SetSize(Saved.Size);
+				RowBoxSlot->SetHorizontalAlignment(Saved.HorizontalAlignment);
+				RowBoxSlot->SetVerticalAlignment(Saved.VerticalAlignment);
+			}
+		}
+	}
 	RuntimeRowsByName.Empty();
 	ClearFallbackRows();
 
