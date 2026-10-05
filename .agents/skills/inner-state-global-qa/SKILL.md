@@ -33,3 +33,9 @@ Run once after a coherent build. Rerun only failed coverage or checks affected b
 ## Hygiene extension
 
 The suite also teleports the disposable player into existing HUB `BP_Water_C_2`, verifies gradual automatic recovery and no Wash-action bonus, then exits and checks recovery stops despite residual wetness. It restores position/movement before baseline and 200-source performance samples. Inspect `hygiene_water_soap.png` as well as `simultaneous.png`. No map saving or dungeon testing. Focused math test: `NoShellForWinter.InnerState.Hygiene.SurfaceWaterAndTime`. The overall watchdog remains 110s, external gameplay cap 120s.
+
+For changes limited to Stimulation's facial expression or card ordering, run `Validate-StimulationFaces58.py` through `RunEditorPython58.py`: real HUB player/HUD, seven exact signed/boundary cases plus two natural crossings, three screenshots, screen-order assertions, 45s maximum. It pauses physiology only while holding exact test values and stops disposable PIE. Inspect all three faces. This focused test avoids rerunning unrelated survival scenarios in PIE; required packaged/build gates still apply.
+
+UE5.8 Python inspection: geometry helpers are exported as `unreal.SlateLibrary` (ScriptName), not `SlateBlueprintLibrary`. Card `CurrentDisplayData` is not reflected and `InnerGlyph`/`ValueText` pointers are protected; locate public glyph/text objects through `ObjectIterator` and their outer-card ownership instead. Read public `Symbol`, `TextBlock.get_text()` and `tool_tip_text`. Preserve failed harness reports; do not change game access modifiers merely to satisfy a Python test.
+
+When exact-value QA pauses physiology, cached UMG geometry may remain zero even though the HUD is painted. Assert actual shared HorizontalBox child indices (Stimulation0,Stress1) through public panel APIs and confirm visual order in the screenshots; do not invent screen coordinates or enable extra widget ticks just for a test.

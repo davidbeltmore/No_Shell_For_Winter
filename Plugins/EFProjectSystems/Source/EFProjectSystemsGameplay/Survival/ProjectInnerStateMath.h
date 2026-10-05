@@ -58,6 +58,8 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectPoisonLedger
 /** World-free building blocks. All times have explicit units. */
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectInnerStateMath
 {
+    /** Shared display category; publication must detect boundaries before integer rounding. */
+    static int32 GetStimulationMoodBand(double Value) { return Value>20.0?1:Value<-20.0?-1:0; }
     static double ApproachHalfLife(double Current, double Target, double Elapsed, double HalfLife);
     static double IntegrateWellbeing(double Current, double NetPointsPerHour, double Hours, double HalfLifeHours);
     static double MoveTowards(double Current, double Target, double MaximumDelta);

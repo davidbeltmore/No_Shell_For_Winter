@@ -6,7 +6,7 @@ Implement the conversation-approved system, preserving the existing comma HUD st
 
 - Primary: Hunger, Thirst, Sleep, Madness, Awareness, Sensation (legacy Pain adapter).
 - Sensation: -100 pleasure, 0 neutral, +100 pain. Composure: -100 terrified, 0 neutral, +100 determined. Stimulation: long-term wellbeing, bipolar.
-- Secondary: Stress, Stimulation, Hygiene, Bathroom, Air, Composure; seventh compact card groups Sickness/Poison/Curse with simultaneous values. Preserve Doctrine attributes outside this compact HUD.
+- Secondary: Stimulation, Stress, Hygiene, Bathroom, Air, Composure; seventh compact card groups Sickness/Poison/Curse with simultaneous values. Preserve Doctrine attributes outside this compact HUD.
 - Poison has no gameplay maximum. Every new exposure adds finite damage debt based on max health at exposure. Healing does not change debt. Fast/normal/slow latency 3/10/30 simulation seconds; rates 1/.5/.25 dose points/s. Total pending >=100 activates waiting doses immediately. No discarded overflow. Antidote cancels eligible debt, not past damage.
 - Awareness is the single physiological unconsciousness gate; no free health on physiological recovery. Active asphyxia + Air zero + Awareness zero is fatal.
 - Slow processes use calendar hours (current day 1800 simulation seconds). Acute processes use simulation seconds, paused with gameplay. All finite values validated; no NaN/infinity accepted.
@@ -112,3 +112,5 @@ Editor build PASS; mathematical automation PASS; Blueprint compile PASS; final P
 ## Hygiene follow-up
 
 The later [Hygiene implementation](HygieneImplementation_20261005.md) supersedes the initial Wash-water prerequisite and Hygiene exposure implementation above. It integrates canonical DirtyPawn area/intensity, actual HUB Water automatic gradual recovery, a soap/bubbles glyph, centralized surface tuning and bounded water gameplay QA. Refer to that ledger for this revision's independent build/runtime/package evidence.
+
+The [Stimulation face and order update](StimulationFaces_20261005.md) places Stimulation first and Stress second. Its circular face is happy above +20, sad below -20, and neutral at both endpoints and between them. Existing coalesced HUD updates select from the unrounded value; survival calculations remain unchanged.

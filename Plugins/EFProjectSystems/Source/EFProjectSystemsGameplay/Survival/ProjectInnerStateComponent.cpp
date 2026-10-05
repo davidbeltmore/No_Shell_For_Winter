@@ -386,6 +386,11 @@ void UProjectInnerStateComponent::Publish(bool bForce)
         const int64* Old = PublishedValues.Find(Entry);
         if (!Old || *Old != Quantized) { PublishedValues.Add(Entry,Quantized); Changed=true; }
     }
+    // A face can change while its displayed integer remains +20 or -20.
+    const FName MoodKey(TEXT("Stimulation.Mood"));
+    const int64 Mood=Math::GetStimulationMoodBand(State.Stimulation);
+    const int64* PreviousMood=PublishedValues.Find(MoodKey);
+    if (!PreviousMood || *PreviousMood!=Mood) { PublishedValues.Add(MoodKey,Mood); Changed=true; }
     if (Changed) OnInnerStateChanged.Broadcast();
 }
 void UProjectInnerStateComponent::SynchronizeStatuses()

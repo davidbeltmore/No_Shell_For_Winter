@@ -1,4 +1,5 @@
 #include "Survival/ProjectInnerStateGlyph.h"
+#include "Survival/ProjectInnerStateMath.h"
 #include "Widgets/SLeafWidget.h"
 #include "Rendering/DrawElements.h"
 
@@ -30,7 +31,16 @@ public:
                 {9.7,3.3},{12,3},{14.3,3.3},{16,4.8},{14.8,6.7},{17,8.3}});
             Line({{20.5,9},{22,6.5},{19.7,5.2},{20.5,3.4}});
         }
-        else if (Symbol==TEXT("Stimulation")) Line({{12,21},{3,12},{2,7},{5,3},{9,3},{12,6},{15,3},{19,3},{22,7},{21,12},{12,21}});
+        else if (Symbol==TEXT("Stimulation") || Symbol==TEXT("StimulationHappy") || Symbol==TEXT("StimulationSad"))
+        {
+            Line({{12,2},{15.8,2.8},{19.1,4.9},{21.2,8.2},{22,12},{21.2,15.8},
+                {19.1,19.1},{15.8,21.2},{12,22},{8.2,21.2},{4.9,19.1},{2.8,15.8},
+                {2,12},{2.8,8.2},{4.9,4.9},{8.2,2.8},{12,2}});
+            Line({{8,8},{8,10}}); Line({{16,8},{16,10}});
+            if (Symbol==TEXT("StimulationHappy")) Line({{7,14},{9,16.5},{12,17.5},{15,16.5},{17,14}});
+            else if (Symbol==TEXT("StimulationSad")) Line({{7,17},{9,14.5},{12,13.5},{15,14.5},{17,17}});
+            else Line({{7,15.5},{17,15.5}});
+        }
         else if (Symbol==TEXT("Hygiene")) { Line({{5,10},{17,10},{20,13},{20,19},{17,22},{5,22},{2,19},{2,13},{5,10}}); Line({{7,14},{15,14},{16,16},{15,18},{7,18}}); Line({{7,3},{9,2},{11,3},{11,5},{9,6},{7,5},{7,3}}); Line({{16,5},{18,4},{20,5},{20,7},{18,8},{16,7},{16,5}}); }
         else if (Symbol==TEXT("Bathroom")) { Line({{4,3},{9,3},{9,12},{21,12},{20,17},{17,19},{17,22},{9,22},{10,17},{6,14},{6,8},{4,8},{4,3}}); Line({{11,9},{21,9}}); }
         else if (Symbol==TEXT("Air")) { Line({{2,7},{15,7},{17,5},{16,2},{13,2},{12,4}}); Line({{2,12},{20,12},{22,10},{22,7},{20,6}}); Line({{2,17},{15,17},{17,19},{16,22},{13,22},{12,20}}); }
@@ -42,6 +52,11 @@ public:
         return Layer;
     }
 };
+FName UProjectInnerStateGlyph::ResolveStimulationSymbol(double Value)
+{
+    const int32 Mood=FProjectInnerStateMath::GetStimulationMoodBand(Value);
+    return Mood>0?FName(TEXT("StimulationHappy")):Mood<0?FName(TEXT("StimulationSad")):FName(TEXT("Stimulation"));
+}
 TSharedRef<SWidget> UProjectInnerStateGlyph::RebuildWidget() { Glyph=SNew(SProjectInnerStateGlyph); SynchronizeProperties(); return Glyph.ToSharedRef(); }
 void UProjectInnerStateGlyph::SynchronizeProperties() { Super::SynchronizeProperties(); if (Glyph) { Glyph->Symbol=Symbol; Glyph->Tint=Tint; Glyph->Invalidate(EInvalidateWidgetReason::Paint); } }
 void UProjectInnerStateGlyph::ReleaseSlateResources(bool bReleaseChildren) { Super::ReleaseSlateResources(bReleaseChildren); Glyph.Reset(); }

@@ -39,3 +39,9 @@ Use small commits and record build, BP, runtime, visual, cook/package evidence. 
 ## Hygiene surface and water
 
 Read `Docs/Migration/HygieneImplementation_20261005.md` before changing Hygiene. Tune `SurfaceHygiene` settings, not DirtyPawn material opacities or HUD numbers. The portable `GetHygieneSurfaceSamples` uses disjoint weighted height bands and actual fade alpha. Preserve union/max overlap, companion-dirt suppression, the 12.5/hour continuous cap and separate effort budget. Water is live contact, not lingering wetness; never award Hygiene on overlap entry. Natural-water ceiling 85 and full-bath 100 are distinct. Test pure/mixed/partial coverage and partition invariance, then the existing HUB Water entry/exit fixture. No additional per-stain timers or material readbacks.
+
+## Stimulation face and card order
+
+Stimulation occupies the first compact card, Stress the second. `FProjectInnerStateMath::GetStimulationMoodBand` owns the unrounded thresholds and `UProjectInnerStateGlyph::ResolveStimulationSymbol` maps the band to a face: happy >20, sad <-20, neutral inclusive [-20,20]. Keep formatting/tooltips keyed by channel name when reordering; authored Doctrine slot identities remain stable. Rendering observes the existing HUD refresh, with no face-specific tick. See `Docs/Migration/StimulationFaces_20261005.md` and the bounded real HUD test `Tools/InnerState/Validate-StimulationFaces58.py` for all three expressions, boundary values and actual screen order.
+
+Preserve the `Publish` mood-band cache: integer-only change detection misses fractional crossings of+20/-20. The existing delegate must notify on a band change even when the displayed number is unchanged. The focused HUD test also checks both natural, unpaused crossings without forcing another refresh.

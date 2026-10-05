@@ -1,3 +1,4 @@
+#include "Survival/ProjectInnerStateGlyph.h"
 #include "InnerDoctrine/ProjectInnerDoctrineWidget.h"
 #include "Survival/ProjectInnerStateComponent.h"
 
@@ -433,7 +434,7 @@ TArray<FProjectInnerDoctrineAttributeCardDisplayData> UProjectInnerDoctrineWidge
         ? InnerDoctrineComponent->GetOwner()->FindComponentByClass<UProjectInnerStateComponent>():nullptr)
     {
         const FName Slots[]={TEXT("Willpower"),TEXT("Offensive"),TEXT("Defensive"),TEXT("Faith"),TEXT("Cunning"),TEXT("Celerity"),TEXT("Charisma")};
-        const FName Entries[]={TEXT("Stress"),TEXT("Stimulation"),TEXT("Hygiene"),TEXT("Bathroom"),TEXT("Air"),TEXT("Composure"),TEXT("Afflictions")};
+        const FName Entries[]={TEXT("Stimulation"),TEXT("Stress"),TEXT("Hygiene"),TEXT("Bathroom"),TEXT("Air"),TEXT("Composure"),TEXT("Afflictions")};
         auto Format=[](double V,bool Signed)
         {
             if (V>=1.e6) return FString::Printf(TEXT("%.1e"),V);
@@ -445,10 +446,14 @@ TArray<FProjectInnerDoctrineAttributeCardDisplayData> UProjectInnerDoctrineWidge
         {
             auto& Card=Cards.AddDefaulted_GetRef(); Card.AttributeName=Slots[I]; Card.InnerStateSymbol=Entries[I];
             Card.AccentTint=EFProjectUIPalette::PrimaryText(); Card.DisplayLabel=Entries[I].ToString();
-            Card.ValueLabel=Format(Inner->GetValue(Entries[I]),I==1||I==5);
+            const double Value=Inner->GetValue(Entries[I]);
+            const bool bStimulation=Entries[I]==TEXT("Stimulation");
+            const bool bComposure=Entries[I]==TEXT("Composure");
+            Card.ValueLabel=Format(Value,bStimulation||bComposure);
+            if (bStimulation) Card.InnerStateSymbol=UProjectInnerStateGlyph::ResolveStimulationSymbol(Value);
             Card.Tooltip=FText::FromString(Card.DisplayLabel+TEXT(": ")+Card.ValueLabel);
-            if (I==1) Card.Tooltip=FText::FromString(FString::Printf(TEXT("Stimulation: %s (-100 depression / 0 neutral / +100 wellbeing)\nCurrent influences: %+.2f per calendar hour"),*Card.ValueLabel,Inner->GetWellbeingRatePerHour()));
-            if (I==5) Card.Tooltip=FText::FromString(TEXT("Composure: ")+Card.ValueLabel+TEXT(" (-100 terrified / 0 neutral / +100 determined)"));
+            if (bStimulation) Card.Tooltip=FText::FromString(FString::Printf(TEXT("Stimulation: %s (-100 depression / 0 neutral / +100 wellbeing)\nCurrent influences: %+.2f per calendar hour"),*Card.ValueLabel,Inner->GetWellbeingRatePerHour()));
+            if (bComposure) Card.Tooltip=FText::FromString(TEXT("Composure: ")+Card.ValueLabel+TEXT(" (-100 terrified / 0 neutral / +100 determined)"));
             if (I==6)
             {
                 FString Details;
