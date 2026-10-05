@@ -134,7 +134,7 @@ double FProjectInnerStateMath::IntegrateWellbeing(double Current, double NetPoin
 {
     if (!FMath::IsFinite(Current) || !FMath::IsFinite(NetPointsPerHour)) return 0.0;
     if (!PositiveFinite(Hours)) return FMath::Clamp(Current, -100.0, 100.0);
-    const double Rate = FMath::Clamp(NetPointsPerHour, -1.5, 1.5);
+    const double Rate = NetPointsPerHour; // Caller owns its configurable forcing cap.
     if (!PositiveFinite(HalfLifeHours)) return FMath::Clamp(Current + Rate * Hours, -100.0, 100.0);
     const double Equilibrium = Rate * HalfLifeHours / FMath::Loge(2.0);
     return FMath::Clamp(ApproachHalfLife(Current, Equilibrium, Hours, HalfLifeHours), -100.0, 100.0);

@@ -13,7 +13,8 @@ enum class EProjectKnockoutReason : uint8
 	GuardRecovery UMETA(DisplayName = "Guard Recovery"),
 	Surrender UMETA(DisplayName = "Surrender"),
 	TacticalRetreat UMETA(DisplayName = "Tactical Retreat"),
-	DebugForced UMETA(DisplayName = "Debug Forced")
+	DebugForced UMETA(DisplayName = "Debug Forced"),
+	Physiological UMETA(DisplayName = "Physiological Unconsciousness")
 };
 
 UENUM(BlueprintType)

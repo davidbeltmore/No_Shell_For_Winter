@@ -1,4 +1,5 @@
 #include "Training/ProjectPracticeComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 #include "Progression/ProjectPracticeSettings.h"
 #include "Progression/ProjectAttributeSynergies.h"
 #include "Progression/ProjectPracticeProgressionComponent.h"
@@ -133,6 +134,7 @@ void UProjectPracticeComponent::TickComponent(float DeltaTime, ELevelTick TickTy
     { Finish(EACFTrainingSessionResult::Cancelled); return; }
     double Hours = UProjectDayCycleSubsystem::SimulationSecondsToCalendarHours(DeltaTime, UProjectDayCycleSettings::Get()->DayLengthSeconds);
     if (SessionDuration > 0.0) Hours = FMath::Min(Hours, FMath::Max(0.0, SessionDuration - SessionHours));
+    if (auto* Inner = GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) Inner->NotifyPractice(Hours, D->Method == EProjectPracticeMethod::Physical);
     SessionPractice += Progression->Practice(PracticedAttribute, Hours, D->PracticePerHour);
     SessionHours += Hours;
     if (D->Method == EProjectPracticeMethod::Book) BookHours.FindOrAdd(SelectedBook) += Hours;

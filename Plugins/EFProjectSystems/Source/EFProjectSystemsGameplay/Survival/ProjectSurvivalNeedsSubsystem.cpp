@@ -1,4 +1,5 @@
 #include "Survival/ProjectSurvivalNeedsSubsystem.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "EFProjectUISettings.h"
 #include "EFProjectInputSettings.h"
@@ -711,6 +712,7 @@ void UProjectSurvivalNeedsSubsystem::EnsureNeedsComponentOnPlayerPawn()
 			DefeatBlueprintBridgeComponent->Activate(true);
 		}
 	}
+	UProjectInnerStateComponent::Ensure(PlayerPawn);
 }
 
 void UProjectSurvivalNeedsSubsystem::EnsureNeedsHudWidget(APlayerController* PlayerController)

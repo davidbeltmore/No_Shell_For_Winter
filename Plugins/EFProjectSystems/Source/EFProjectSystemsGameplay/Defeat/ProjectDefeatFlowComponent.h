@@ -81,6 +81,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Defeat")
 	bool TryRecoverFromKnockoutIfNoNearbyEnemy(FName SourceId = NAME_None);
 
+	/** Inner State owns recovery thresholds; this bridge only owns presentation and input. */
+	UFUNCTION(BlueprintCallable, Category = "Defeat|Inner State")
+	void SetPhysiologicalUnconscious(bool bUnconscious);
+
 	UFUNCTION(BlueprintCallable, Category = "Defeat|Debug")
 	bool DebugTriggerImmediateDefeat(FName SourceId = NAME_None);
 

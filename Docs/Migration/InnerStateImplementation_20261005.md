@@ -22,6 +22,8 @@ Implement the conversation-approved system, preserving the existing comma HUD st
 
 ## Validation budget
 
+User steering during implementation: mandatory REAL gameplay global automation <=120 seconds (including its in-game waits), entirely outside Calysto/dungeon, with simultaneous-needs stress and baseline-vs-loaded performance measurements. A reusable global QA skill and additional focused control/tuning skills are authorized. Full PC interaction authorized. Do not use Calysto fixtures or dungeon maps. Startup/build/cook are separately reported, never disguised as in-game test duration.
+
 - One deterministic suite covering conservation, latency, mixed poison, antidote, heal independence, max-health snapshots, partition invariance, finite bounds, thresholds and recovery; rerun when affected behavior changes.
 - Build after each coherent C++ block; Blueprint compile after asset changes. One focused PIE matrix using representative safe/critical/recovery cases, save/travel roundtrip and HUD screenshot.
 - Performance target: player core with 200 active effects p95 <=0.2 ms/update on reference machine, measured separately from startup/asset loads. Report hardware and actual measurements; target is not a PASS claim.
@@ -48,3 +50,15 @@ Build PENDING; mathematical automation PENDING; Blueprint compile PENDING; PIE P
 - Core files: `Survival/ProjectInnerStateMath.{h,cpp}`, `Survival/ProjectInnerStateSettings.h`, `Tests/ProjectInnerStateMathTests.cpp` in `EFProjectSystemsGameplay`.
 - Reusable commands: `Tools/Migration/Test-InnerState58.ps1`, `Tools/Migration/InnerStateProtection58.py <unique-phase>`.
 - Current runtime is not connected yet; all gameplay/UI/assets gates remain PENDING.
+
+## Block 2 integration snapshot
+
+- Build PASS: `Saved/Migration/InnerState20261005/build_block2e.log`, 12.90 seconds incremental (full block build `build_block2.log`:89.94 seconds). Daz receipt repaired. Intermediate adapter compile errors were corrected in project code; final block build succeeded.
+- Automation PASS: `Saved/Migration/InnerState20261005/Automation_20261005_080741/index.json`:4 passed,0 warnings,0 failed. Added actual component SaveGame serialization and bipolar legacy compatibility checks. This is not the real gameplay gate.
+- Protected invariants PASS: `protected_block2.json`, no changed hashes.
+- Skills PASS (metadata validation): `.agents/skills/inner-state-workbench`, `.agents/skills/inner-state-global-qa`. Runtime harness remains PENDING until implemented/run.
+- Runtime component now bootstraps beside Needs/Defeat outside dungeon-specific systems; ALS/travel capture includes needs and Inner State. Legacy Pain API is harmful-only, while Sensation supports signed values and normalizes the existing dynamic pain maximum to -100..100.
+- Physiological KO uses Awareness, preserves health/pain on waking, and bypasses the combat struggle freeze/invulnerability. Existing nonphysiological combat flow remains intact.
+- New status definitions, ACF poison adapter (asset reparenting PENDING), configurable consumable base (authored items PENDING), concussive damage type (weapon assignment PENDING), GAS stamina modifier, practice/wellbeing/madness links and Y Care menu are compiled.
+- Care: Rest enters ProjectEmote runtime and recovers Sleep at 15.125 points/calendar hour gross (~12.5 net under normal decay). An empty meter takes ~8 hours =10 real minutes at day1800, or~75 seconds at existing8x time speed if permitted. Y cancels. Wash requires water/head above surface; bathroom anywhere costs5 hygiene. Actual animation/menu behavior PENDING gameplay validation.
+- Remaining integration: exposure volumes, existing wash/social/poison assets, item assets and distribution, runtime performance harness, HUD and final gates. No final completion claim.

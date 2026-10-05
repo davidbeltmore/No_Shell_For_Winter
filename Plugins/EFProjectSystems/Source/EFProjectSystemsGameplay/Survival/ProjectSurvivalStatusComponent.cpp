@@ -1,4 +1,5 @@
 #include "Survival/ProjectSurvivalStatusComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "AbilitySystemComponent.h"
 #include "AttributeSet.h"
@@ -770,6 +771,8 @@ float UProjectSurvivalStatusComponent::GetSensationDeltaPerSecond(const FName Se
 			continue;
 		}
 
+		// Upgraded actors integrate severe sleep deprivation in calendar hours.
+		if (Pair.Key == TEXT("Tired") && SensationName == TEXT("Madness") && GetOwner() && GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) continue;
 		for (const FProjectSurvivalStatusSensationModifier& Modifier : Pair.Value.SensationModifiers)
 		{
 			if (Modifier.SensationName == SensationName)
@@ -1136,7 +1139,7 @@ void UProjectSurvivalStatusComponent::UpdateStatuses(const float DeltaTime)
 
 		const bool bTimedActive = !bImmune && IsTimedStatusActive(Definition.StatusName, CurrentTimeSeconds);
 		const bool bForcedActive = !bImmune && ForcedActiveStatusNames.Contains(Definition.StatusName);
-		if (Definition.bTriggersExhaustionSequence && (bNeedIsEmpty || bThresholdActive || bTimedActive || bForcedActive) && !bExhaustionSequenceActive)
+		if (Definition.bTriggersExhaustionSequence && !bWasActive && (bNeedIsEmpty || bThresholdActive || bTimedActive || bForcedActive) && !bExhaustionSequenceActive)
 		{
 			float RemainingDurationSeconds = 0.f;
 			IsTimedStatusActive(Definition.StatusName, CurrentTimeSeconds, &RemainingDurationSeconds);
@@ -1564,6 +1567,15 @@ void UProjectSurvivalStatusComponent::ApplyPeriodicStatusDamage(FName StatusName
 
 void UProjectSurvivalStatusComponent::StartExhaustionSequence(const float DurationOverrideSeconds)
 {
+    if (auto* Inner = GetOwner() ? GetOwner()->FindComponentByClass<UProjectInnerStateComponent>() : nullptr)
+    {
+        FProjectInnerStateInfluence Collapse;
+        Collapse.Source=TEXT("Exhaustion"); Collapse.Family=Collapse.Source;
+        Collapse.Remaining=15; Collapse.bCalendarHours=false; Collapse.AwarenessLossPerSecond=10;
+        Inner->SetInfluence(Collapse);
+        return;
+    }
+
 	if (bExhaustionSequenceActive)
 	{
 		return;

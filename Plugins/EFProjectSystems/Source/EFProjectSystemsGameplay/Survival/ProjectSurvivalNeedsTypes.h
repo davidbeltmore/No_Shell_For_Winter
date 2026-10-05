@@ -26,19 +26,19 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalNeedState
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName NeedName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float CurrentValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float MaxValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float DecayPerSecond;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float RecoveryPerSecond;
 };
 
@@ -55,25 +55,29 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationState
 	{
 	}
 
-	FProjectSurvivalSensationState(FName InSensationName, float InCurrentValue, float InMaxValue, float InPassiveDeltaPerSecond = 0.f)
+	FProjectSurvivalSensationState(FName InSensationName, float InCurrentValue, float InMaxValue, float InPassiveDeltaPerSecond = 0.f, float InMinValue = 0.f)
 		: SensationName(InSensationName)
 		, CurrentValue(InCurrentValue)
 		, MaxValue(InMaxValue)
 		, PassiveDeltaPerSecond(InPassiveDeltaPerSecond)
+		, MinValue(InMinValue)
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName SensationName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float CurrentValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float MaxValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float PassiveDeltaPerSecond;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
+	float MinValue = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -93,10 +97,10 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalNeedDelta
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName EntryName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float DeltaValue;
 };
 
@@ -129,10 +133,10 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalTimedNeedDelta
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName EntryName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float TotalDelta;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
@@ -163,10 +167,10 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalTimedSensationDelta
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName EntryName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float TotalDelta;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
@@ -228,31 +232,31 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalNeedSnapshot
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName NeedName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float CurrentValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float MaxValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float NormalizedValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float MissingPercent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	int32 FilledBars;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	int32 TotalBars;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float DecayPerSecond;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float RecoveryPerSecond;
 };
 
@@ -272,26 +276,29 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalSensationSnapshot
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName SensationName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float CurrentValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float MaxValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float NormalizedValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	int32 FilledBars;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	int32 TotalBars;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float PassiveDeltaPerSecond;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
+	float MinValue = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -308,19 +315,19 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalAttributeProjection
 	{
 	}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName AttributeName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float BaseValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float PenaltyMultiplier;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float EffectiveValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	float PenaltyPercent;
 };
 
@@ -329,16 +336,16 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectSurvivalConsumableEffect
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	FName SourceId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	TArray<FProjectSurvivalNeedDelta> NeedDeltas;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	TArray<FProjectSurvivalNeedDelta> SensationDeltas;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	bool bClampToRange;
 
 	FProjectSurvivalConsumableEffect()

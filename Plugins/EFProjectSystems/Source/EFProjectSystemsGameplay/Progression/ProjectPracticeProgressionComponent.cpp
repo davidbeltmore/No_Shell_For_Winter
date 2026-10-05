@@ -1,4 +1,5 @@
 #include "Progression/ProjectPracticeProgressionComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 #include "Progression/ProjectPracticeSettings.h"
 #include "Progression/ProjectPracticeMath.h"
 #include "Progression/ProjectProgressionBridge.h"
@@ -167,6 +168,7 @@ double UProjectPracticeProgressionComponent::Practice(FName Name, double Hours, 
         for (int32 I=0; I<static_cast<int32>(EProjectDoctrineAttribute::Count); ++I)
             if (StaticEnum<EProjectDoctrineAttribute>()->GetNameStringByValue(I) == Name.ToString())
                 Affinity = Doctrine->GetDxpGainMultiplierForAttribute(static_cast<EProjectDoctrineAttribute>(I));
+    if (const auto* Inner = GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) Affinity *= Inner->GetPracticeMultiplier();
     const double Gain = Rate * FMath::Max(0.01, Affinity) * ProjectPracticeMath::EffectiveHours(State->ExposureHours, Hours, S->ExposureHalfLifeHours);
     State->ExposureHours += Hours;
     RecentPracticeAttribute = Name;

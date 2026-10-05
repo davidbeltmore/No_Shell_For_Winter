@@ -171,6 +171,21 @@ const FProjectSurvivalStatusCatalog& GetProjectSurvivalStatusCatalog()
 			Sweaty
 		};
 
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Stressed"), TEXT("STRESSED"), TEXT("Status.Fear"), 0.f, 0.f, 550, TEXT("Sustained physiological strain; recovery improves after its causes are relieved.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Depressed"), TEXT("DEPRESSED"), TEXT("Status.Exhausted"), 0.f, 0.f, 550, TEXT("Prolonged low wellbeing mildly reduces learning; sustained recovery clears it.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Content"), TEXT("CONTENT"), TEXT("Status.WellFed"), 0.f, 0.f, 550, TEXT("Positive wellbeing mildly improves learning.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Unhygienic"), TEXT("UNHYGIENIC"), TEXT("Status.Dirty"), 0.f, 0.f, 550, TEXT("Poor hygiene lowers wellbeing and increases infection risk on exposure.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("BathroomUrgent"), TEXT("BATHROOM URGENT"), TEXT("Status.Dirty"), 0.f, 0.f, 550, TEXT("Relieve yourself before the two-day deadline.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Sick"), TEXT("SICK"), TEXT("Status.Exhausted"), 0.f, 0.f, 550, TEXT("Illness is progressing. Medicine aids recovery over calendar hours.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("CriticalSickness"), TEXT("CRITICAL ILLNESS"), TEXT("Status.Exhausted"), 0.f, 0.f, 550, TEXT("Critical illness drains health and awareness until severity falls below eighty.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Poisoned"), TEXT("POISONED"), TEXT("Status.Bleeding"), 0.f, 0.f, 550, TEXT("Finite poison debt. Antidote cancels pending damage; healing only restores health.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Breathless"), TEXT("BREATHLESS"), TEXT("Status.Exhausted"), 0.f, 0.f, 550, TEXT("Find breathable air before your reserve runs out.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Disoriented"), TEXT("DISORIENTED"), TEXT("Status.Dizzy"), 0.f, 0.f, 550, TEXT("Awareness is dangerously low.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Terrified"), TEXT("TERRIFIED"), TEXT("Status.Fear"), 0.f, 0.f, 550, TEXT("Threat is straining composure; safety allows gradual recovery.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Determined"), TEXT("DETERMINED"), TEXT("Status.WellFed"), 0.f, 0.f, 550, TEXT("Confidence slightly improves stamina recovery.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("PhysiologicallyUnconscious"), TEXT("UNCONSCIOUS"), TEXT("Status.Exhausted"), 0.f, 0.f, 550, TEXT("Awareness reached zero. Recovery requires resolving acute causes.")));
+		Data.StatusDefinitions.Add(MakeStatus(TEXT("Pleasure"), TEXT("PLEASURE"), TEXT("Status.WellFed"), 0.f, 0.f, 550, TEXT("Negative Sensation represents pleasure rather than pain.")));
+
 		FProjectSurvivalStatusIncomingHitRule BleedingRule;
 		BleedingRule.StatusName = TEXT("Bleeding");
 		BleedingRule.SourceClassNameHints = { TEXT("MeleeMale"), TEXT("ACFMeleeEnemyBP") };

@@ -1,4 +1,6 @@
 #include "Progression/ProjectProgressionState.h"
+#include "Survival/ProjectInnerStateComponent.h"
+#include "Survival/ProjectSurvivalNeedsComponent.h"
 #include "Progression/ProjectPracticeSettings.h"
 #include "Progression/ProjectPracticeProgressionComponent.h"
 #include "Progression/ProjectProgressionBridge.h"
@@ -94,6 +96,8 @@ void AProjectProgressionState::Capture(AActor* Player)
     WriteSnapshot(Stats, Snapshot.Statistics);
     WriteSnapshot(Practice, Snapshot.Practice);
     if (auto* Training = Player->FindComponentByClass<UProjectPracticeComponent>()) WriteSnapshot(Training, Snapshot.Training);
+    if (auto* Inner = Player->FindComponentByClass<UProjectInnerStateComponent>()) WriteSnapshot(Inner, Snapshot.InnerState);
+    if (auto* Needs = Player->FindComponentByClass<UProjectSurvivalNeedsComponent>()) WriteSnapshot(Needs, Snapshot.SurvivalNeeds);
     Snapshot.LearnedAttributes.Reset();
     for (const auto& Attribute : FProjectProgressionBridge::GetPurchasableAttributes())
         if (Stats->GetOwnerAbilityComponent()->HasAttributeSetForAttribute(Attribute))
@@ -128,6 +132,9 @@ bool AProjectProgressionState::Restore(AActor* Player)
     auto* Skills = Player->FindComponentByClass<UACFSkillTreeComponent>();
     auto* Training = Player->FindComponentByClass<UProjectPracticeComponent>();
     if (!Stats || !Practice || !Training || !Skills || !Stats->GetOwnerAbilityComponent()) return false;
+    auto* Inner = Player->FindComponentByClass<UProjectInnerStateComponent>();
+    auto* Needs = Player->FindComponentByClass<UProjectSurvivalNeedsComponent>();
+    if ((!Snapshot.InnerState.IsEmpty() || !Snapshot.SurvivalNeeds.IsEmpty()) && (!Inner || !Needs)) return false;
     Training->CancelTraining();
     ReadSnapshot(Practice, Snapshot.Practice);
     ReadSnapshot(Training, Snapshot.Training);
@@ -217,6 +224,8 @@ bool AProjectProgressionState::Restore(AActor* Player)
             ASC->SetNumericAttributeBase(Attribute, Value.Value);
     }
     if (auto* Doctrine = Player->FindComponentByClass<UProjectInnerDoctrineComponent>()) Doctrine->RefreshLearnedAttributeEffects();
+    if (Needs) { ReadSnapshot(Needs, Snapshot.SurvivalNeeds); Needs->OnInnerStateLoaded(); }
+    if (Inner) { ReadSnapshot(Inner, Snapshot.InnerState); Inner->OnStateLoaded(); }
     Stats->OnAttributeSetModified.Broadcast();
     UE_LOG(LogTemp, Display, TEXT("[PracticeProgression] Restore %s pawn=%s willpower=%.3f level=%d pendingSkills=%d"), *GetWorld()->GetName(), *Player->GetName(), Practice->GetLearnedRank(TEXT("Willpower")), Stats->GetCurrentLevel(), Pending.Num());
     return !bRestoreFailed;

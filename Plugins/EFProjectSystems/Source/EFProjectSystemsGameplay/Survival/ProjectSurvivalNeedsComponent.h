@@ -24,6 +24,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Survival")
 	void ResetToDefaults();
 
+	void OnInnerStateLoaded();
+
 	UFUNCTION(BlueprintCallable, Category = "Survival")
 	bool HasNeed(FName NeedName) const;
 
@@ -134,10 +136,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival", meta = (ClampMin = "0.0"))
 	float NeedsDecayMultiplier;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	TArray<FProjectSurvivalNeedState> Needs;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Survival")
 	TArray<FProjectSurvivalSensationState> Sensations;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Survival")

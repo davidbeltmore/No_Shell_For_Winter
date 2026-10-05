@@ -1,4 +1,5 @@
 #include "Defeat/ProjectDefeatFlowComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "ACFAIController.h"
 #include "AIController.h"
@@ -522,6 +523,7 @@ bool UProjectDefeatFlowComponent::RequestTacticalRetreat(const FName SourceId)
 
 bool UProjectDefeatFlowComponent::TryRecoverFromKnockoutIfNoNearbyEnemy(const FName SourceId)
 {
+	if (CurrentKnockoutReason == EProjectKnockoutReason::Physiological) return false;
 	if (!IsAdvancedDefeatFlowEnabled())
 	{
 		return false;
@@ -858,7 +860,7 @@ void UProjectDefeatFlowComponent::LogDefeatTransition(const TCHAR* EventLabel, A
 
 void UProjectDefeatFlowComponent::UpdatePainDecay(const float DeltaTime)
 {
-	if (CurrentPhase != EProjectDefeatPhase::None || !NeedsComponent || DeltaTime <= 0.f)
+	if ((CurrentPhase != EProjectDefeatPhase::None && CurrentKnockoutReason != EProjectKnockoutReason::Physiological) || !NeedsComponent || DeltaTime <= 0.f)
 	{
 		return;
 	}
@@ -1004,6 +1006,8 @@ bool UProjectDefeatFlowComponent::HasNearbyQualifiedStruggleEnemy() const
 
 void UProjectDefeatFlowComponent::EvaluatePainThreshold()
 {
+	// Awareness is the single physiological knockout gate on upgraded actors.
+	if (GetOwner() && GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) return;
 	if (!NeedsComponent)
 	{
 		return;
@@ -1053,6 +1057,18 @@ void UProjectDefeatFlowComponent::EvaluatePainThreshold()
 	EnterKnockedOut(EProjectKnockoutReason::PainMaxed);
 }
 
+void UProjectDefeatFlowComponent::SetPhysiologicalUnconscious(bool bUnconscious)
+{
+	if (bUnconscious)
+	{
+		if (CurrentPhase == EProjectDefeatPhase::None) EnterKnockedOut(EProjectKnockoutReason::Physiological);
+	}
+	else if (CurrentKnockoutReason == EProjectKnockoutReason::Physiological)
+	{
+		FinishKnockoutRecovery(false);
+	}
+}
+
 void UProjectDefeatFlowComponent::EnterKnockedOut(const EProjectKnockoutReason KnockoutReason)
 {
 	if (CurrentPhase != EProjectDefeatPhase::None)
@@ -1082,8 +1098,12 @@ void UProjectDefeatFlowComponent::EnterKnockedOut(const EProjectKnockoutReason K
 	KnockoutEnteredTimeSeconds = Now;
 	OutOfCombatRecoveryStartTimeSeconds = -1.f;
 
-	SetPainCurrent(GetPainThreshold());
-	ApplyTransientInvulnerability(true);
+	const bool bPhysiological = KnockoutReason == EProjectKnockoutReason::Physiological;
+	if (!bPhysiological)
+	{
+		SetPainCurrent(GetPainThreshold());
+		ApplyTransientInvulnerability(true);
+	}
 	ApplyKnockoutLocomotion(true);
 
 	if (StatusComponent)
@@ -1093,7 +1113,8 @@ void UProjectDefeatFlowComponent::EnterKnockedOut(const EProjectKnockoutReason K
 
 	OnKnockoutStateChanged.Broadcast(CurrentPhase, CurrentKnockoutReason, true);
 	LogDefeatTransition(TEXT("EnteredKnockedOut"), nullptr);
-	BeginStruggleFreeze();
+	if (bPhysiological) ApplyStruggleInputBlock(true);
+	else BeginStruggleFreeze();
 }
 
 void UProjectDefeatFlowComponent::BeginWaitingOutOfCombatRecovery()
@@ -1566,6 +1587,7 @@ void UProjectDefeatFlowComponent::HandleStruggleRoundCompleted(
 
 void UProjectDefeatFlowComponent::FinishKnockoutRecovery(const bool bApplyInventoryPenalty)
 {
+	const bool bPhysiological = CurrentKnockoutReason == EProjectKnockoutReason::Physiological;
 	if (CurrentPhase != EProjectDefeatPhase::KnockedOut && CurrentPhase != EProjectDefeatPhase::Struggle)
 	{
 		return;
@@ -1591,7 +1613,7 @@ void UProjectDefeatFlowComponent::FinishKnockoutRecovery(const bool bApplyInvent
 		StatusComponent->ClearStatus(Settings ? Settings->KnockoutStatusName : TEXT("KnockedOut"));
 	}
 
-	if (CombatAttributeComponent && !CombatAttributeComponent->HealthAttributeName.IsNone())
+	if (!bPhysiological && CombatAttributeComponent && !CombatAttributeComponent->HealthAttributeName.IsNone())
 	{
 		const UProjectDefeatFlowSettings* Settings = UProjectDefeatFlowSettings::Get();
 		const float MaxHealth = FMath::Max(CombatAttributeComponent->GetAttributeMaxValue(CombatAttributeComponent->HealthAttributeName), 1.f);
@@ -1608,7 +1630,7 @@ void UProjectDefeatFlowComponent::FinishKnockoutRecovery(const bool bApplyInvent
 		ScheduleDeferredMovementRestore(1.0f);
 	}
 
-	SetPainCurrent(0.f);
+	if (!bPhysiological) SetPainCurrent(0.f);
 	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 	if (bStruggleWonThisKnockout && ActiveCombatSessionId != 0)
 	{

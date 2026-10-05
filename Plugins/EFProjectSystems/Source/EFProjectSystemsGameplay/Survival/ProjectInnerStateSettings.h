@@ -11,6 +11,7 @@ class EFPROJECTSYSTEMSGAMEPLAY_API UProjectInnerStateSettings : public UDevelope
 {
     GENERATED_BODY()
 public:
+    UPROPERTY(EditAnywhere, Config, Category="Care", meta=(ClampMin="0")) double SleepingRecoveryPerHour = 15.125;
     virtual FName GetCategoryName() const override { return TEXT("EF Project Systems"); }
     UPROPERTY(EditAnywhere, Config, Category="Poison") FProjectPoisonTuning Poison;
     UPROPERTY(EditAnywhere, Config, Category="Runtime", meta=(ClampMin="0.02", ClampMax="1")) double AcuteStepSeconds = 0.1;
@@ -48,4 +49,38 @@ public:
     UPROPERTY(EditAnywhere, Config, Category="Awareness") double ExtremePainGraceSeconds = 5.0;
     UPROPERTY(EditAnywhere, Config, Category="Composure") double FearHalfLifeSeconds = 3.0;
     UPROPERTY(EditAnywhere, Config, Category="Composure") double ConfidenceHalfLifeSeconds = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double HungerStressWeight = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double ThirstStressWeight = 25.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double SleepStressWeight = 30.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double PainStressWeight = 35.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double SicknessStressWeight = 25.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double OverworkStressWeight = 15.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double HygieneStressWeight = 10.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double BathroomStressWeight = 10.0;
+    UPROPERTY(EditAnywhere, Config, Category="Stress", meta=(ClampMin="0")) double TerrorStressWeight = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double StressWellbeingLossPerHour = 0.6;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double HygieneWellbeingLossPerHour = 0.2;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double LonelyWellbeingLossPerHour = 0.25;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double MadnessWellbeingLossPerHour = 0.25;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double SicknessWellbeingLossPerHour = 0.2;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double MaximumWellbeingRatePerHour = 1.5;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double ExerciseWellbeingPerHour = 0.25;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double SocialWellbeingPerHour = 0.25;
+    UPROPERTY(EditAnywhere, Config, Category="Wellbeing", meta=(ClampMin="0")) double RestWellbeingPerHour = 0.2;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double PainCapacityWeight = 40.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double SleepCapacityWeight = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double SicknessCapacityWeight = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double LowHealthCapacityWeight = 30.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double AlcoholCapacityWeight = 40.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double ExertionCapacityWeight = 20.0;
+    UPROPERTY(EditAnywhere, Config, Category="Awareness", meta=(ClampMin="0")) double MaximumCapacityLoss = 80.0;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double DepressionMadnessMultiplier = 1.25;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double ContentMadnessMultiplier = 0.9;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double SevereSleepMadnessPerHour = 0.5;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double SevereHygieneMadnessPerHour = 0.05;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double PleasureReturnPerHour = 10.0;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double StressStaminaPenalty = 0.1;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double ComposureStaminaBonus = 0.05;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double DepressionPracticePenalty = 0.1;
+    UPROPERTY(EditAnywhere, Config, Category="Synergies", meta=(ClampMin="0")) double ContentPracticeBonus = 0.05;
 };

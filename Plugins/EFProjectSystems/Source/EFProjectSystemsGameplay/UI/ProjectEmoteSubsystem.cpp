@@ -1,4 +1,5 @@
 #include "UI/ProjectEmoteSubsystem.h"
+#include "Survival/ProjectInnerStateComponent.h"
 #include "DayCycle/ProjectDayCycleSubsystem.h"
 
 #include "ACFTrainingComponent.h"
@@ -731,6 +732,15 @@ void UProjectEmoteSubsystem::CloseMenu(const bool bScheduleDelayedRecoveryCheck)
 
 bool UProjectEmoteSubsystem::StartInteractionById(const FName InteractionId)
 {
+    if (InteractionId.ToString().StartsWith(TEXT("Actions.Care.")))
+    {
+        auto* Inner=IsValid(TrackedPlayerPawn)?TrackedPlayerPawn->FindComponentByClass<UProjectInnerStateComponent>():nullptr;
+        if (!Inner) return false;
+        const bool Result=Inner->RequestCareAction(FName(*InteractionId.ToString().RightChop(13)));
+        if (Result) CloseMenu(false);
+        return Result;
+    }
+
 	FName TrainingId;
 	if (TryParseTrainingInteractionId(InteractionId, TrainingId))
 	{

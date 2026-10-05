@@ -3,7 +3,7 @@ param(
     [string]$ProjectRoot = 'D:\Projects UE5\NoShellForWinter',
     [string]$EngineRoot = 'D:\Unreal Engine 5\Library\UE_5.8',
     [string]$Filter = 'NoShellForWinter.InnerState',
-    [int]$MinimumExpectedTests = 3
+    [int]$MinimumExpectedTests = 4
 )
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath $ProjectRoot).Path
@@ -13,7 +13,7 @@ $null = New-Item -ItemType Directory -Path $output -Force
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'Tools\Migration\Repair-DazPluginReceipt58.ps1') -ProjectRoot $root
 if ($LASTEXITCODE -ne 0) { throw 'Daz receipt repair failed.' }
 $editor = Join-Path $EngineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
-$arguments = @((Join-Path $root 'NoShellForWinter.uproject'), '-unattended', '-nop4', '-nosplash', '-NullRHI', '-NoSound',
+$arguments = @((Join-Path $root 'NoShellForWinter.uproject'), '/Engine/Maps/Entry', '-unattended', '-nop4', '-nosplash', '-NullRHI', '-NoSound',
     '-NoLoadStartupPackages', '-stdout', '-FullStdOutLogOutput', "-ExecCmds=Automation RunTests $Filter;Quit",
     '-TestExit=Automation Test Queue Empty', "-ReportExportPath=$output", "-ABSLOG=$output\engine.log")
 & $editor @arguments *> (Join-Path $output 'stdout.log')

@@ -1,4 +1,5 @@
 #include "Survival/ProjectSurvivalNeedsComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "Combat/ProjectCombatAttributeComponent.h"
 #include "Survival/ProjectSurvivalNeedsSettings.h"
@@ -14,9 +15,9 @@ namespace
 	static const FName PainName(TEXT("Pain"));
 	static const FName CurseName(TEXT("Curse"));
 
-	float IntegrateSensationValue(const float CurrentValue, const float MaxValue, const float DeltaPerSecond, const float DeltaTime)
+	float IntegrateSensationValue(const float CurrentValue, const float MaxValue, const float DeltaPerSecond, const float DeltaTime, const float MinValue = 0.f)
 	{
-		return FMath::Clamp(CurrentValue + (DeltaPerSecond * FMath::Max(DeltaTime, 0.f)), 0.f, FMath::Max(MaxValue, 0.f));
+		return FMath::Clamp(CurrentValue + (DeltaPerSecond * FMath::Max(DeltaTime, 0.f)), MinValue, FMath::Max(MaxValue, 0.f));
 	}
 }
 
@@ -102,14 +103,16 @@ void UProjectSurvivalNeedsComponent::TickComponent(float DeltaTime, ELevelTick T
 		const float StatusDeltaPerSecond = StatusComponent
 			? StatusComponent->GetSensationDeltaPerSecond(Sensation.SensationName)
 			: 0.f;
-		const float DeltaPerSecond = Sensation.PassiveDeltaPerSecond + StatusDeltaPerSecond;
+		float DeltaPerSecond = Sensation.PassiveDeltaPerSecond + StatusDeltaPerSecond;
+		if (DeltaPerSecond > 0 && Sensation.SensationName == MadnessName && GetOwner())
+			if (const auto* Inner = GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) DeltaPerSecond *= Inner->GetMadnessGainMultiplier();
 		if (FMath::IsNearlyZero(DeltaPerSecond))
 		{
 			continue;
 		}
 
 		const float OldValue = Sensation.CurrentValue;
-		Sensation.CurrentValue = IntegrateSensationValue(Sensation.CurrentValue, Sensation.MaxValue, DeltaPerSecond, DeltaTime);
+		Sensation.CurrentValue = IntegrateSensationValue(Sensation.CurrentValue, Sensation.MaxValue, DeltaPerSecond, DeltaTime, Sensation.MinValue);
 		if (!FMath::IsNearlyEqual(OldValue, Sensation.CurrentValue))
 		{
 			bChanged = true;
@@ -133,6 +136,12 @@ float UProjectSurvivalNeedsComponent::AutomationIntegrateSensationValue(
 	return IntegrateSensationValue(CurrentValue, MaxValue, DeltaPerSecond, DeltaTime);
 }
 #endif
+
+void UProjectSurvivalNeedsComponent::OnInnerStateLoaded()
+{
+	SanitizeState();
+	UpdateCachedPenaltyMultiplier(true);
+}
 
 void UProjectSurvivalNeedsComponent::ResetToDefaults()
 {
@@ -345,10 +354,11 @@ float UProjectSurvivalNeedsComponent::GetExternalNeedDecayMultiplier(const FName
 
 bool UProjectSurvivalNeedsComponent::SetSensationCurrentValue(FName SensationName, float NewValue, bool bBroadcast)
 {
+	if (!FMath::IsFinite(NewValue)) return false;
 	if (FProjectSurvivalSensationState* Sensation = FindSensationMutable(SensationName))
 	{
 		const float OldValue = Sensation->CurrentValue;
-		Sensation->CurrentValue = ClampToEntryRange(NewValue, 0.f, Sensation->MaxValue);
+		Sensation->CurrentValue = ClampToEntryRange(NewValue, SensationName == PainName ? 0.f : Sensation->MinValue, Sensation->MaxValue);
 		if (bBroadcast && !FMath::IsNearlyEqual(OldValue, Sensation->CurrentValue))
 		{
 			BroadcastValueChanged(Sensation->SensationName, OldValue, Sensation->CurrentValue, Sensation->MaxValue, true);
@@ -368,7 +378,7 @@ float UProjectSurvivalNeedsComponent::GetSensationCurrentValue(FName SensationNa
 {
 	if (const FProjectSurvivalSensationState* Sensation = FindSensation(SensationName))
 	{
-		return Sensation->CurrentValue;
+		return SensationName == PainName ? FMath::Max(0.f,Sensation->CurrentValue) : Sensation->CurrentValue;
 	}
 
 	return 0.f;
@@ -402,9 +412,10 @@ bool UProjectSurvivalNeedsComponent::SetSensationMaxValue(FName SensationName, c
 		const float OldValue = Sensation->CurrentValue;
 		const float OldMaxValue = Sensation->MaxValue;
 		Sensation->MaxValue = FMath::Max(NewMaxValue, 0.001f);
+		if (Sensation->SensationName == PainName) Sensation->MinValue = -Sensation->MaxValue;
 		if (bClampCurrentValue)
 		{
-			Sensation->CurrentValue = ClampToEntryRange(Sensation->CurrentValue, 0.f, Sensation->MaxValue);
+			Sensation->CurrentValue = ClampToEntryRange(Sensation->CurrentValue, Sensation->MinValue, Sensation->MaxValue);
 		}
 
 		if (!FMath::IsNearlyEqual(OldMaxValue, Sensation->MaxValue) || !FMath::IsNearlyEqual(OldValue, Sensation->CurrentValue))
@@ -424,12 +435,21 @@ float UProjectSurvivalNeedsComponent::ModifySensationValue(FName SensationName, 
 
 float UProjectSurvivalNeedsComponent::ApplySensationDeltaValue(FName SensationName, float DeltaValue, bool bBroadcast, bool bClampToRange)
 {
+	if (!FMath::IsFinite(DeltaValue)) return 0.f;
+	if (DeltaValue > 0 && SensationName == MadnessName && GetOwner())
+		if (const auto* Inner = GetOwner()->FindComponentByClass<UProjectInnerStateComponent>()) DeltaValue *= Inner->GetMadnessGainMultiplier();
 	if (FProjectSurvivalSensationState* Sensation = FindSensationMutable(SensationName))
 	{
 		const float OldValue = Sensation->CurrentValue;
 		Sensation->CurrentValue = bClampToRange
-			? ClampToEntryRange(Sensation->CurrentValue + DeltaValue, 0.f, Sensation->MaxValue)
+			? ClampToEntryRange(Sensation->CurrentValue + DeltaValue, Sensation->MinValue, Sensation->MaxValue)
 			: Sensation->CurrentValue + DeltaValue;
+        if (SensationName == PainName)
+        {
+            // Legacy pain relief cannot manufacture pleasure; hits cannot use it as armor.
+            Sensation->CurrentValue = DeltaValue <= 0 && OldValue < 0 ? OldValue
+                : ClampToEntryRange(FMath::Max(0.f,OldValue)+DeltaValue,0.f,Sensation->MaxValue);
+        }
 		const float AppliedDelta = Sensation->CurrentValue - OldValue;
 		if (bBroadcast && !FMath::IsNearlyZero(AppliedDelta))
 		{
@@ -496,6 +516,7 @@ TArray<FProjectSurvivalSensationSnapshot> UProjectSurvivalNeedsComponent::BuildS
 	{
 		FProjectSurvivalSensationSnapshot Snapshot;
 		Snapshot.SensationName = Sensation.SensationName;
+		Snapshot.MinValue = Sensation.MinValue;
 		Snapshot.CurrentValue = Sensation.CurrentValue;
 		Snapshot.MaxValue = Sensation.MaxValue;
 		const float MaxValue = FMath::Max(Sensation.MaxValue, 0.001f);
@@ -640,7 +661,8 @@ void UProjectSurvivalNeedsComponent::SanitizeState()
 		}
 
 		Sensation.MaxValue = FMath::Max(Sensation.MaxValue, 0.001f);
-		Sensation.CurrentValue = ClampToEntryRange(Sensation.CurrentValue, 0.f, Sensation.MaxValue);
+		Sensation.MinValue = Sensation.SensationName == PainName ? -Sensation.MaxValue : 0.f;
+		Sensation.CurrentValue = ClampToEntryRange(Sensation.CurrentValue, Sensation.MinValue, Sensation.MaxValue);
 		if (!FMath::IsFinite(Sensation.PassiveDeltaPerSecond))
 		{
 			Sensation.PassiveDeltaPerSecond = 0.f;
@@ -694,6 +716,7 @@ const FProjectSurvivalNeedState* UProjectSurvivalNeedsComponent::FindNeed(FName 
 
 FProjectSurvivalSensationState* UProjectSurvivalNeedsComponent::FindSensationMutable(FName SensationName)
 {
+	if (SensationName == TEXT("Sensation")) SensationName = PainName;
 	return Sensations.FindByPredicate([SensationName](const FProjectSurvivalSensationState& Sensation)
 	{
 		return Sensation.SensationName == SensationName;
@@ -702,6 +725,7 @@ FProjectSurvivalSensationState* UProjectSurvivalNeedsComponent::FindSensationMut
 
 const FProjectSurvivalSensationState* UProjectSurvivalNeedsComponent::FindSensation(FName SensationName) const
 {
+	if (SensationName == TEXT("Sensation")) SensationName = PainName;
 	return Sensations.FindByPredicate([SensationName](const FProjectSurvivalSensationState& Sensation)
 	{
 		return Sensation.SensationName == SensationName;

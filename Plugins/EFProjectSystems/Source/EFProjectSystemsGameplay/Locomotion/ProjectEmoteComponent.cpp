@@ -1226,6 +1226,23 @@ void UProjectEmoteComponent::RebuildMenuNodeCache()
 	}
 
 	AppendTrainingMenuNodes();
+    AddFolderMenuNode(TEXT("Actions.Care"),ProjectEmoteComponentPrivate::RootActionsNodeId,
+        NSLOCTEXT("ProjectEmoteComponent","CareFolder","Care"),90);
+    struct FCareNode { const TCHAR* Id; const TCHAR* Label; const TCHAR* Description; };
+    const FCareNode CareNodes[]={
+        {TEXT("Rest"),TEXT("Rest"),TEXT("Sleep to recover gradually. Y cancels; time controls remain available. Unsafe while poisoned, critically ill or threatened.")},
+        {TEXT("Wash"),TEXT("Wash in water"),TEXT("Bathe while standing in clean water with your head above the surface. A washcloth offers partial cleaning elsewhere.")},
+        {TEXT("Bathroom"),TEXT("Relieve yourself"),TEXT("Relieve bathroom pressure here. Without a sanitary facility, hygiene decreases slightly.")}};
+    for (const auto& Care:CareNodes)
+    {
+        FProjectEmoteMenuNodeDefinition Node;
+        Node.NodeId=FName(*(FString(TEXT("Actions.Care."))+Care.Id)); Node.ParentNodeId=TEXT("Actions.Care");
+        Node.DisplayName=FText::FromString(Care.Label); Node.Description=FText::FromString(Care.Description);
+        Node.NodeType=EProjectEmoteMenuNodeType::Action; Node.VisualIconId=TEXT("Basic");
+        if (Node.NodeId==TEXT("Actions.Care.Rest")) Node.Animation=TSoftObjectPtr<UAnimationAsset>(FSoftObjectPath(TEXT("/Game/_Game/Animations/Emotes/Sit/Anim_KA_Sleep_Sit-Up_Loop.Anim_KA_Sleep_Sit-Up_Loop")));
+        Node.PlaybackMode=EProjectEmotePlaybackMode::Looping;
+        AddMenuNode(Node);
+    }
 
 	ActionInteractions.Reset();
 	ObjectInteractions.Reset();

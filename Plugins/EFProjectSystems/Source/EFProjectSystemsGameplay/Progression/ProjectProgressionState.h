@@ -26,6 +26,8 @@ struct FProjectProgressionSnapshot
     UPROPERTY(SaveGame) TArray<uint8> Statistics;
     UPROPERTY(SaveGame) TArray<uint8> Practice;
     UPROPERTY(SaveGame) TArray<uint8> Training;
+    UPROPERTY(SaveGame) TArray<uint8> InnerState;
+    UPROPERTY(SaveGame) TArray<uint8> SurvivalNeeds;
     UPROPERTY(SaveGame) TMap<FName, float> LearnedAttributes;
     UPROPERTY(SaveGame) TArray<FProjectLearnedSkillSnapshot> Skills;
     UPROPERTY(SaveGame) int32 SkillPoints = 0;

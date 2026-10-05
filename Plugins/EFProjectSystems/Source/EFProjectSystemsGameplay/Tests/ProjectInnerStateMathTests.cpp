@@ -1,5 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Survival/ProjectInnerStateMath.h"
+#include "Survival/ProjectSurvivalNeedsComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 #include "Misc/AutomationTest.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
@@ -88,6 +90,40 @@ bool FProjectInnerStateDynamics::RunTest(const FString&)
     TestEqual(TEXT("Awareness recovery does not overshoot"), M::AdvanceAwareness(0, 100, 0, 4, 2, 40, true), 100.0);
     TestTrue(TEXT("Exposure probability composes across time intervals"), FMath::IsNearlyEqual(M::ExposureProbability(.005, 24),
         1.0 - FMath::Square(1.0 - M::ExposureProbability(.005, 12)), 1.e-9));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectInnerStateBipolarSave,
+    "NoShellForWinter.InnerState.Compatibility.BipolarLegacyAndComponentSave",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectInnerStateBipolarSave::RunTest(const FString&)
+{
+    auto* Needs=NewObject<UProjectSurvivalNeedsComponent>(); Needs->ResetToDefaults();
+    TestTrue(TEXT("Bipolar public adapter accepts pleasure"),Needs->SetSensationCurrentValue(TEXT("Sensation"),-50));
+    TestEqual(TEXT("Pleasure is retained"),Needs->GetSensationCurrentValue(TEXT("Sensation")),-50.f);
+    TestEqual(TEXT("Legacy pain never reports pleasure as pain"),Needs->GetSensationCurrentValue(TEXT("Pain")),0.f);
+    Needs->ModifySensationValue(TEXT("Pain"),-25);
+    TestEqual(TEXT("Legacy analgesia neither creates nor removes pleasure"),Needs->GetSensationCurrentValue(TEXT("Sensation")),-50.f);
+    Needs->ModifySensationValue(TEXT("Pain"),20);
+    TestEqual(TEXT("Pleasure never absorbs a harmful hit"),Needs->GetSensationCurrentValue(TEXT("Pain")),20.f);
+    Needs->ModifySensationValue(TEXT("Pain"),-50);
+    TestEqual(TEXT("Analgesia stops at neutral"),Needs->GetSensationCurrentValue(TEXT("Sensation")),0.f);
+    Needs->SetSensationCurrentValue(TEXT("Sensation"),-75);
+    TArray<uint8> Bytes;
+    { FMemoryWriter W(Bytes); FObjectAndNameAsStringProxyArchive A(W,false); A.ArIsSaveGame=true; Needs->Serialize(A); }
+    Needs->ResetToDefaults();
+    { FMemoryReader R(Bytes); FObjectAndNameAsStringProxyArchive A(R,true); A.ArIsSaveGame=true; Needs->Serialize(A); }
+    Needs->OnInnerStateLoaded();
+    TestEqual(TEXT("Actual component save retains signed value"),Needs->GetSensationCurrentValue(TEXT("Sensation")),-75.f);
+    FProjectInnerStatePersistentState State; State.Awareness=12; State.Hygiene=8; State.BathroomHours=47;
+    State.Poison.AddDose(FGuid::NewGuid(),TEXT("Food"),EProjectPoisonSpeed::Slow,200,300,FProjectPoisonTuning());
+    Bytes.Reset();
+    { FMemoryWriter W(Bytes); FObjectAndNameAsStringProxyArchive A(W,false); A.ArIsSaveGame=true; FProjectInnerStatePersistentState::StaticStruct()->SerializeItem(A,&State,nullptr); }
+    State=FProjectInnerStatePersistentState();
+    { FMemoryReader R(Bytes); FObjectAndNameAsStringProxyArchive A(R,true); A.ArIsSaveGame=true; FProjectInnerStatePersistentState::StaticStruct()->SerializeItem(A,&State,nullptr); }
+    TestEqual(TEXT("Awareness persists"),State.Awareness,12.0);
+    TestEqual(TEXT("Bathroom deadline persists"),State.BathroomHours,47.0);
+    TestEqual(TEXT("Uncapped debt persists"),State.Poison.GetPendingDamage(),600.0);
     return true;
 }
 #endif
