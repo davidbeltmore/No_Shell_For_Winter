@@ -30,6 +30,8 @@ Content is under `/Game/_Game/InnerState`. `BP_SurvivalSupplies` is an ordinary 
 
 Use a stable source ID and refresh/remove only the effect's owned entry. Families prevent farming equivalent benefits. Prefer data/configuration to a new tick or timer. Keep UI a read-only observer. Existing ACF health/status/item contracts remain the integration points; never apply both ACF DOT and the Inner State poison debt for one exposure.
 
+Poison on an ACF enemy uses its native statistics without attaching the player's needs/HUD stack. Death-drop class lifetime is owned by `Compatibility/ProjectACFInventoryCompatibilitySubsystem`; preserve its configured class reference and packaging inclusion when changing ACF death integration. Investigate native crash evidence rather than suppressing death callbacks to make a test pass.
+
 Persistent state must survive ALS save/load and travel via `ProjectProgressionState`. Do not serialize live actor pointers or wall-clock deadlines. Document new fields' neutral defaults for old saves.
 
 Use small commits and record build, BP, runtime, visual, cook/package evidence. Hash protected assets with `Tools/Migration/InnerStateProtection58.py` before/after. Mark absent evidence PENDING. Avoid repeated full suites when focused checks answer the question.

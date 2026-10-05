@@ -3,6 +3,8 @@
 #include "Survival/ProjectInnerStateGameplayAdapters.h"
 #include "AbilitySystemComponent.h"
 #include "ACFStatisticsSet.h"
+#include "ACFGASStatisticsComponent.h"
+#include "ARSFunctionLibrary.h"
 #include "Survival/ProjectSurvivalNeedsComponent.h"
 #include "Survival/ProjectSurvivalStatusComponent.h"
 #include "Survival/ProjectRealtimeSnapshotComponent.h"
@@ -40,7 +42,7 @@ UProjectInnerStateComponent::UProjectInnerStateComponent()
 UProjectInnerStateComponent* UProjectInnerStateComponent::Ensure(AActor* Actor)
 {
     if (!IsValid(Actor)) return nullptr;
-    if (auto* Existing = Actor->FindComponentByClass<UProjectInnerStateComponent>()) return Existing;
+    if (auto* Existing = Actor->FindComponentByClass<UProjectInnerStateComponent>()) { Existing->SetComponentTickEnabled(true); return Existing; }
     auto* Component = NewObject<UProjectInnerStateComponent>(Actor, TEXT("ProjectInnerState"));
     Actor->AddInstanceComponent(Component);
     Component->RegisterComponent();
@@ -113,7 +115,10 @@ double UProjectInnerStateComponent::ReadNeedPercent(FName Name) const
 double UProjectInnerStateComponent::ReadHealthMax() const
 {
     float Current = 0, Maximum = 0;
-    return Resources && Resources->TryReadOwnerResource(TEXT("Health"), Current, Maximum) ? Positive(Maximum) : 0.0;
+    if (Resources && Resources->TryReadOwnerResource(TEXT("Health"), Current, Maximum)) return Positive(Maximum);
+    if (const auto* Stats=GetOwner()?GetOwner()->FindComponentByClass<UACFGASStatisticsComponent>():nullptr)
+        return Positive(Stats->GetMaxValueForStatitstic(UARSFunctionLibrary::GetHealthTag()));
+    return 0;
 }
 double UProjectInnerStateComponent::GetExertion() const
 {
@@ -147,10 +152,20 @@ void UProjectInnerStateComponent::TickComponent(float DeltaTime, ELevelTick Tick
 {
     Super::TickComponent(DeltaTime, TickType, TickFunction);
     if (!GetOwner() || !GetOwner()->HasAuthority() || UGameplayStatics::IsGamePaused(this) || !FMath::IsFinite(DeltaTime) || DeltaTime <= 0 || State.bFatalAsphyxia) return;
-    if (!Needs || !Resources) { ResolveDependencies(); if (!Needs || !Resources) return; }
+    if (!Needs || !Resources) ResolveDependencies();
     if (DamageHandler && !DamageHandler->GetIsAlive()) return;
     const double CpuStart = FPlatformTime::Seconds();
     const auto& Settings = *GetDefault<UProjectInnerStateSettings>();
+    if (!Needs || !Resources)
+    {
+        // ACF enemies do not own the player's survival/HUD stack. Keep the same
+        // poison ledger against their native statistics, without attaching that stack.
+        ApplyPhysiologicalDamage(State.Poison.Advance(DeltaTime,Settings.Poison));
+        Publish();
+        if (State.Poison.GetPendingPoints()<=0) SetComponentTickEnabled(false);
+        LastUpdateMicroseconds=(FPlatformTime::Seconds()-CpuStart)*1.e6; ++UpdateSerial;
+        return;
+    }
     const double Step = FMath::Clamp(Settings.AcuteStepSeconds, .02, 1.0);
     State.StepRemainderSeconds += DeltaTime;
     // Fixed simulation quantum: neither render FPS nor caller subdivision changes the math.
@@ -333,12 +348,26 @@ void UProjectInnerStateComponent::AdvanceSlow(double Hours, const UProjectInnerS
 }
 void UProjectInnerStateComponent::ApplyPhysiologicalDamage(double Damage, bool bFatal)
 {
-    if (!Resources || !FMath::IsFinite(Damage) || Damage <= 0) return;
+    if (!FMath::IsFinite(Damage) || Damage < 0 || (Damage==0 && HealthDebitRoundingRemainder<=0)) return;
     // Exact resource debit bypasses weapon/armor calculations. ACF's health-zero listener owns death.
     TGuardValue<bool> Guard(bApplyingPhysiologicalDamage,true);
     float Health=0, Maximum=0;
-    if (!Resources->TryReadOwnerResource(TEXT("Health"),Health,Maximum) || Health <= 0) return;
-    Resources->ApplyOwnerResourceDelta(TEXT("Health"),-static_cast<float>(FMath::Min(static_cast<double>(Health),Damage)));
+    auto* Stats=GetOwner()?GetOwner()->FindComponentByClass<UACFGASStatisticsComponent>():nullptr;
+    const auto HealthTag=UARSFunctionLibrary::GetHealthTag();
+    const bool bResourceBridge=Resources && Resources->TryReadOwnerResource(TEXT("Health"),Health,Maximum);
+    if (!bResourceBridge && Stats) { Health=Stats->GetCurrentValueForStatitstic(HealthTag); Maximum=Stats->GetMaxValueForStatitstic(HealthTag); }
+    if (Health<=0) return;
+    const double Requested=Damage+HealthDebitRoundingRemainder;
+    if (Requested<=0) { HealthDebitRoundingRemainder=Requested; return; }
+    // Compensate float health debits so many 0.1-second steps cannot leave a
+    // phantom sliver of life after a complete debt. Tolerance is one max-HP float ulp.
+    const double Precision=FMath::Max(1.e-7,Maximum*static_cast<double>(FLT_EPSILON));
+    const float Debit=static_cast<float>(Requested+Precision>=Health?Health:Requested);
+    float Actual=0;
+    if (bResourceBridge) Actual=-Resources->ApplyOwnerResourceDelta(TEXT("Health"),-Debit);
+    else if (Stats) { Stats->ModifyStatistic(HealthTag,-Debit); Actual=Health-Stats->GetCurrentValueForStatitstic(HealthTag); }
+    const double Error=Requested-Actual;
+    HealthDebitRoundingRemainder=FMath::Abs(Error)<=FMath::Max(.001,Precision*4)?Error:0;
     if (bFatal) UE_LOG(LogTemp,Display,TEXT("[InnerState] FatalAsphyxia owner=%s"),*GetNameSafe(GetOwner()));
 }
 void UProjectInnerStateComponent::Publish(bool bForce)
@@ -370,7 +399,7 @@ bool UProjectInnerStateComponent::AddPoison(double Points,EProjectPoisonSpeed Sp
 {
     if (!GetOwner() || !GetOwner()->HasAuthority() || (Statuses && Statuses->IsStatusImmune(TEXT("Poisoned")))) return false;
     const bool Added = State.Poison.AddDose(ExposureId,Toxin,Speed,Points,ReadHealthMax(),GetDefault<UProjectInnerStateSettings>()->Poison);
-    if (Added) { State.DiscoveredAfflictions.Add(TEXT("Poison")); SynchronizeStatuses(); Publish(true); }
+    if (Added) { SetComponentTickEnabled(true); State.DiscoveredAfflictions.Add(TEXT("Poison")); SynchronizeStatuses(); Publish(true); }
     return Added;
 }
 double UProjectInnerStateComponent::UseAntidote(FName Toxin)
@@ -462,6 +491,7 @@ void UProjectInnerStateComponent::NotifyPractice(double Hours,bool bPhysical)
 }
 void UProjectInnerStateComponent::OnStateLoaded()
 {
+    HealthDebitRoundingRemainder=0;
     ResolveDependencies();
     State.Poison.Sanitize();
     // Sanitize persisted clocks without resetting valid progress or incubation.

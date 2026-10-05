@@ -21,7 +21,10 @@ void UEFEquipmentWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection
     if (const auto* Settings = GetDefault<UEFEquipmentSettings>(); Settings->bEnabled)
     {
         if (auto* PickupClass = Settings->WorldPickupClass.LoadSynchronous())
+        {
+            RetainedWorldPickupClass = PickupClass;
             GetMutableDefault<UACFInventorySettings>()->WorldItemClass = PickupClass;
+        }
         else UE_LOG(LogTemp, Error, TEXT("EFEquipment: The configured world pickup class could not be loaded."));
     }
     SpawnHandle = GetWorld()->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UEFEquipmentWorldSubsystem::ActorSpawned));

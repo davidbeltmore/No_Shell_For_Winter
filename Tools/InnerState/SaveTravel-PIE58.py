@@ -26,6 +26,7 @@ def finish(error=''):
     unreal.unregister_slate_post_tick_callback(handle)
     perf.set_editor_property('bThrottleCPUWhenNotForeground',throttle)
     if ed.is_in_play_in_editor(): unreal.EditorLevelLibrary.editor_end_play()
+    unreal.EditorPythonScripting.set_keep_python_script_alive(False)
     unreal.SystemLibrary.quit_editor()
 def saved(ok): st['saved']=bool(ok)
 def loaded(ok): st['loaded']=bool(ok)
@@ -47,6 +48,7 @@ def tick(delta):
             inner.add_poison(9.,unreal.ProjectPoisonSpeed.SLOW,'QA.Travel',exposure)
             clock.set_pause_reason('InnerStateSaveQA',True)
             st['snapshot']={k:inner.get_value(k) for k in ['Stress','Stimulation','Hygiene','Bathroom','Sickness','Awareness','Sensation','Poison']}
+            st['saved_calendar']=inner.get_editor_property('State').get_editor_property('CalendarHours')
             callback=unreal.OnSaveFinished(); callback.bind_callable(saved); delegates.append(callback)
             save.save_game_world('InnerState_QA_World',callback,True,False,'Isolated Inner State QA; restored by SaveGuard')
             phase('saving')
@@ -67,10 +69,18 @@ def tick(delta):
             phase('settle')
         elif st['phase']=='settle' and age>2:
             st['loaded_values']={k:inner.get_value(k) for k in st['snapshot']}
-            check('ALS restores exact saved physiology and debt',all(abs(st['loaded_values'][k]-st['snapshot'][k])<.3 for k in st['snapshot']))
+            st['loaded_calendar']=inner.get_editor_property('State').get_editor_property('CalendarHours')
+            hours=st['loaded_calendar']-st['saved_calendar']
+            # The world resumes after ALS completion; allow only the physically
+            # possible evolution during that measured simulation interval.
+            bounds={'Stress':35.,'Stimulation':3.,'Hygiene':2.5,'Bathroom':100/48,'Sickness':6.,'Sensation':10.,'Awareness':4*75}
+            check('ALS restores saved clocks',0<=hours<.25)
+            check('ALS restores physiology with bounded subsequent simulation',all(abs(st['loaded_values'][k]-st['snapshot'][k])<=rate*hours+.1 for k,rate in bounds.items()))
+            check('ALS preserves exact pending slow poison debt',inner.get_value('Poison')==st['snapshot']['Poison'])
             finish()
     except Exception:
         finish(traceback.format_exc())
 handle=unreal.register_slate_post_tick_callback(tick)
+unreal.EditorPythonScripting.set_keep_python_script_alive(True)
 if not ed.is_in_play_in_editor(): ed.editor_request_begin_play()
 print('Save/travel test scheduled; target-only, 110 second watchdog.')

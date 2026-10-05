@@ -67,6 +67,8 @@ Una deuda total ≥100 activa inmediatamente las dosis pendientes. No aplica tod
 
 25 rápido dura 3 + 25 = 28 s sin tratamiento. 100 rápido con maxHP=200 guarda 200 HP de deuda. Tras recibir 198 HP y curar 50 HP, quedan 2 HP de deuda: sobrevivirás con 50 HP si no hay otras pérdidas. Cambiar maxHP después no recalcula exposiciones anteriores. Antídoto anula deuda pendiente, sin devolver daño pasado. El estado BP de veneno existente conserva su ruta pública y usa este cálculo; su DOT original no corre en paralelo.
 
+El adaptador también funciona en enemigos ACF sin instalarles las necesidades del jugador: aplica la misma deuda a sus estadísticas nativas y suspende su actualización cuando no queda veneno. La deuda se calcula en doble precisión; el descuento sobre la vida de ACF compensa el redondeo de sus valores float para no dejar una fracción residual al liquidar una deuda letal.
+
 ## Contenido y extensión
 
 `/Game/_Game/InnerState/Items`: Antidote, Medicine, Washcloth, HealthPotion (25%), ComfortTea, Analgesic y RottenRation (25 rápido). Se consumen a través del inventario ACF. `Pickups/BP_SurvivalSupplies` agrupa suministros en un pickup colocable; no cambia el mapa HUB del usuario ni regala suministros automáticamente. Los iconos/meshes de inventario son recursos existentes provisionales, editables por item.

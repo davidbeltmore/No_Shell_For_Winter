@@ -160,4 +160,5 @@ private:
     double SleepingHours = 0.0;
     bool bSleeping = false;
     bool bApplyingPhysiologicalDamage = false;
+    double HealthDebitRoundingRemainder = 0;
 };

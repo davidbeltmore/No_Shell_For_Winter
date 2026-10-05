@@ -13,6 +13,9 @@
 #include "Components/ACFStatusEffectManagerComponent.h"
 #include "Components/ACFDamageHandlerComponent.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
+#include "ACFGASStatisticsComponent.h"
+#include "ARSFunctionLibrary.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
@@ -84,6 +87,11 @@ bool AProjectInnerStateQA::UseItem(const FString& Name)
 }
 void AProjectInnerStateQA::Screenshot(const FString& Name)
 { FScreenshotRequest::RequestScreenshot(FPaths::Combine(OutputDirectory,Name+TEXT(".png")),true,false); }
+void AProjectInnerStateQA::HandlePoisonNPCDeath()
+{
+    if(const auto* NPCInner=PoisonNPC?PoisonNPC->FindComponentByClass<UProjectInnerStateComponent>():nullptr)
+        bNPCDebtSettled=NPCInner->GetValue(TEXT("Poison"))<.001;
+}
 void AProjectInnerStateQA::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds); if (bDone) return;
@@ -99,6 +107,25 @@ void AProjectInnerStateQA::Tick(float DeltaSeconds)
         Check(TEXT("real ACF player and survival stack outside dungeon"), !GetWorld()->GetMapName().Contains(TEXT("Dungeon")));
         if (UGameplayStatics::IsGamePaused(this)) { Finish(TEXT("Resume gameplay before running the fixture")); return; }
         Neutral();
+        // Exercise the existing ACF poison on a real enemy without the player's
+        // Needs/HUD components. A 25% health fixture must die from exactly 25 debt,
+        // including native float-health rounding across hundreds of small debits.
+        TArray<AActor*> Characters; UGameplayStatics::GetAllActorsOfClass(this,ACharacter::StaticClass(),Characters);
+        for(AActor* Actor:Characters)
+        {
+            if(Actor==Player || !Actor->GetName().Contains(TEXT("Dummy")) || Actor->FindComponentByClass<UProjectSurvivalNeedsComponent>()) continue;
+            auto* Stats=Actor->FindComponentByClass<UACFGASStatisticsComponent>();
+            auto* Manager=Actor->FindComponentByClass<UACFStatusEffectManagerComponent>();
+            auto* DamageHandler=Actor->FindComponentByClass<UACFDamageHandlerComponent>();
+            if(!Stats || !Manager || !DamageHandler || !DamageHandler->GetIsAlive()) continue;
+            const FGameplayTag Tag=UARSFunctionLibrary::GetHealthTag();
+            const float Maximum=Stats->GetMaxValueForStatitstic(Tag); if(Maximum<=0) continue;
+            PoisonNPC=Cast<ACharacter>(Actor); DamageHandler->OnOwnerDeath.AddUniqueDynamic(this,&ThisClass::HandlePoisonNPCDeath);
+            Stats->ModifyStatistic(Tag,Maximum*.25f-Stats->GetCurrentValueForStatitstic(Tag));
+            if(UClass* Poison=LoadClass<UProjectACFPoisonStatus>(nullptr,TEXT("/Game/FullSample/Blueprints/StatusEffects/ACF_PoisonStatus_BP.ACF_PoisonStatus_BP_C"))) Manager->CreateAndApplyStatusEffect(Poison,Player);
+            break;
+        }
+        Check(TEXT("ACF enemy poison initialized without player survival stack"),PoisonNPC && PoisonNPC->FindComponentByClass<UProjectInnerStateComponent>() && PoisonNPC->FindComponentByClass<UProjectInnerStateComponent>()->GetValue(TEXT("Poison"))==25);
         if (auto* Hud=GetWorld()->GetSubsystem<UProjectSurvivalNeedsSubsystem>()) Hud->SetNeedsHudVisible(true);
         InitialHours=Inner->State.CalendarHours; InitialHunger=Needs->GetNeedCurrentValue(TEXT("Hunger")); Next(0); return;
     }
@@ -236,6 +263,7 @@ void AProjectInnerStateQA::Tick(float DeltaSeconds)
     else if(Stage==8 && Age>=6)
     {
         Check(TEXT("breathing recovers after source removal"),Inner->State.Air>=99 && Inner->State.Awareness>80);
+        Check(TEXT("NPC poison settles full damage debt and reaches exact native health zero"),bNPCDebtSettled);
         // Fatal scenario is last; run only in a disposable PIE/package session.
         Inner->State.Air=0; Inner->State.Awareness=.1; Inner->SetBreathingSource(TEXT("GlobalQA"),0); Next(9);
     }

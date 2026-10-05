@@ -2833,33 +2833,36 @@ void UProjectEmoteComponent::ApplyVisibleMeshLeaderPoseSceneLockForActor(AActor*
 		}
 
 		CandidateMeshComponent->SetLeaderPoseComponent(SourceMeshComponent, true, false);
-		CandidateMeshComponent->RefreshBoneTransforms();
+		// SetLeaderPoseComponent updates the follower. Evaluating its own bones
+		// here is invalid: UE 5.8 releases a follower's component-space arrays.
 	}
 }
 
 void UProjectEmoteComponent::RestoreVisibleMeshLeaderPoseSceneLock()
 {
+	TArray<const FProjectEmoteLeaderPoseSceneLockSnapshot*> ChangedSnapshots;
 	for (const FProjectEmoteLeaderPoseSceneLockSnapshot& Snapshot : LeaderPoseSceneLockSnapshots)
 	{
 		USkeletalMeshComponent* Component = Snapshot.Component.Get();
-		if (!Component)
+		if (!Component || Component->LeaderPoseComponent.Get() == Snapshot.LeaderPoseComponent.Get())
 		{
 			continue;
 		}
 
+		ChangedSnapshots.Add(&Snapshot);
 		Component->SetLeaderPoseComponent(nullptr, true);
 	}
 
-	for (const FProjectEmoteLeaderPoseSceneLockSnapshot& Snapshot : LeaderPoseSceneLockSnapshots)
+	for (const FProjectEmoteLeaderPoseSceneLockSnapshot* Snapshot : ChangedSnapshots)
 	{
-		USkeletalMeshComponent* Component = Snapshot.Component.Get();
+		USkeletalMeshComponent* Component = Snapshot->Component.Get();
 		if (!Component)
 		{
 			continue;
 		}
 
-		Component->SetLeaderPoseComponent(Snapshot.LeaderPoseComponent.Get(), true);
-		Component->RefreshBoneTransforms();
+		Component->SetLeaderPoseComponent(Snapshot->LeaderPoseComponent.Get(), true);
+		if (!Component->LeaderPoseComponent.IsValid()) Component->RefreshBoneTransforms();
 	}
 }
 

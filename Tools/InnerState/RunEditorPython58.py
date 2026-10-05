@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 import time
+import urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -53,7 +54,11 @@ def main():
     finally:
         remote.stop()
         if not before['bRemoteExecution']:
-            client.call(ts, 'set_properties', {'instance': ref, 'values': json.dumps({'bRemoteExecution': False})})
+            try:
+                client.call(ts, 'set_properties', {'instance': ref, 'values': json.dumps({'bRemoteExecution': False})})
+            except (ConnectionError, urllib.error.URLError):
+                if script.name != 'CloseEditor58.py': raise
+                # Closing this editor discards its unsaved transient setting.
 
 
 if __name__ == '__main__':

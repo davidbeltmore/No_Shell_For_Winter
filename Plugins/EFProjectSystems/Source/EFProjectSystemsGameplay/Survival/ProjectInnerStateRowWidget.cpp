@@ -200,10 +200,10 @@ void UProjectInnerStateRowWidget::ApplyDisplayData(const FProjectInnerStateRowDi
 	if (LabelText)
 	{
 		LabelText->SetText(FText::FromString(CurrentDisplayData.DisplayLabel));
-		if (CurrentDisplayData.DisplayLabel == TEXT("AWARENESS"))
+		if (CurrentDisplayData.DisplayLabel == TEXT("AWARENESS") || CurrentDisplayData.DisplayLabel == TEXT("SENSATION"))
 		{
 			FSlateFontInfo Font = LabelText->GetFont();
-			if (Font.Size != 11 || Font.LetterSpacing != 0) { Font.Size = 11; Font.LetterSpacing = 0; LabelText->SetFont(Font); }
+			if (Font.Size != 10 || Font.LetterSpacing != 0) { Font.Size = 10; Font.LetterSpacing = 0; LabelText->SetFont(Font); }
 		}
 		if (bUsingNativeFallbackTree)
 		{

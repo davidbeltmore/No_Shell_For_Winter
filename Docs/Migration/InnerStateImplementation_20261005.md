@@ -18,7 +18,7 @@ Implement the conversation-approved system, preserving the existing comma HUD st
 2. **PASS runtime**: physiology, legacy bridges, awareness/defeat, air/exposure, slow synergies/statuses, component disk and progression snapshot restore. Full ALS/map travel gate recorded below.
 3. **PASS**: seven authored ACF consumables, placeable supplies pickup, existing poison BP adapter, care actions and integration APIs.
 4. **PASS**: compact HUD, vector icons, signed Sensation and three simultaneous afflictions; reusable authoring and bounded global QA skills.
-5. **ACTIVE**: final full ALS/map travel, Game build/cook/package and evidence.
+5. **PASS packaged; final editor confirmation in progress**: Game build/cook/package, full ALS/map travel and final packaged runtime/visual evidence recorded below.
 
 ## Validation budget
 
@@ -39,7 +39,7 @@ User steering during implementation: mandatory REAL gameplay global automation <
 
 ## Completion gates
 
-Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PASS; visual QA PASS; component disk/progression restore PASS; full ALS/map travel PENDING; performance PASS with measured limits below; cook PENDING; packaged validation PENDING; skill metadata validation PASS; protected invariants PASS.
+Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PASS (final compatibility confirmation in progress); visual QA PASS; component disk/progression restore PASS; full ALS/map travel PASS; performance PASS with measured limits below; Game build PASS; cook PASS; packaged validation PASS; skill metadata validation PASS; protected invariants PASS.
 
 ## Block 1 evidence
 
@@ -75,3 +75,32 @@ Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PAS
 - Skills: `.agents/skills/inner-state-workbench`, `.agents/skills/inner-state-global-qa`; authoring, reporting, setting scenarios, calibration, bounded PIE and package scripts under `Tools/InnerState`.
 - Detailed equations, defaults, durations, content routes and extension contract: [InnerStateTuning.md](InnerStateTuning.md).
 - Full ALS save/load + actual HUB→StorySelection travel and Game/cook/package gates still pending at this checkpoint. No final success claim.
+
+## Full persistence evidence
+
+- PASS: `Saved/Migration/InnerState20261005/save_travel.json`, 8 checks, **15.828 s**. Actual ALS disk save, HUB→StorySelection travel, ALS load back to HUB; clocks, signed needs, sickness and exact pending slow poison debt preserved. Subsequent awareness recovery is bounded by elapsed simulation time, not mistaken for load corruption.
+- Original saves restored byte-exact: `Saved/Migration/InnerState20261005/SaveGuard_20261005_035730/SaveGuard.json`. Test slot and metadata retained in `AfterSaveGames`, separate from originals.
+- Earlier fixture failures are retained: wrong Python Guid factory corrected; startup-script premature shutdown while ALS work remained active corrected by `set_keep_python_script_alive(True)`; an overly strict frozen-value assertion replaced with rate bounds over measured simulation time. These were test-driver corrections, not changes to Marketplace or saved user data.
+- Reusable focused runner: `Tools/InnerState/Run-SaveTravel58.ps1`. CPU reference for the preceding gameplay sample: AMD Ryzen7 5800X, 8 cores. Performance observations are specific to this map/workload/hardware.
+
+## Final compatibility corrections
+
+- Editor build PASS: `build_final_editor2.log`, 60.99 s. Game build PASS: `build_final_game2.log`, 58.53 s. Both approved build scripts restored Daz receipt entries. These builds include the NPC poison adapter path and float-health debit compensation.
+- Existing ACF poison now also runs on enemies that lack player Needs/RealtimeResources components, using native ACF health. The global fixture adds native enemy initialization and exact finite-debt death checks (40 checks total).
+- First package `Package_20261005_040212` cooked/staged successfully. Its gameplay `PackagedQA_20261005_040638/report.json` passed 38 functional checks in81.30s, but the runtime log emitted a handled ensure on death: configured `ACF_WorldItem_BP` was not cooked. This is retained as a FAILED final runtime gate, not misreported as delivery success. Project packaging configuration now includes `/AscentCombatFramework/Blueprints/Actors`; no Marketplace edits.
+- The packaged runner now rejects runtime ensures/ACF inventory errors even when functional assertions pass. Awareness label font reduced to10 to preserve clearance from the first pip at1600x1000.
+- Protected invariants PASS: `protected_final2.json`, zero changed hashes against baseline, snapshot based on `c1ae9faa` plus the documented final worktree changes. Final package/gameplay/visual evidence follows after running these corrections.
+- Cook PASS: `Package_20261005_042608/uat.log`, 0 errors/26 warnings, cook205.22s, stage70.18s, total276.70s. Existing missing sample references/empty engine versions remain warnings; protected assets were not resaved to silence them.
+- Runtime `PackagedQA_20261005_043058` FAILED at final player death despite native NPC debt/death passing. Including the class in cook was insufficient: `death_crash_analysis.txt` and `death_crash_settings.txt` show the precompiled helper dereferencing a stale class pointer (memory reused by an SScaleBox). Project-owned `ProjectACFInventoryCompatibilitySubsystem` now explicitly loads the configured class and retains it for the game-instance lifetime; final validation PENDING. This supersedes the earlier cook-only diagnosis.
+- Screenshot in that run confirms Awareness clearance but exposed the same long-label issue on Sensation; both labels now share the compact font. No physiological constants changed for this correction.
+- `Package_20261005_044008` successfully restaged the native-only correction against the preceding cook in53.69s. `PackagedQA_20261005_044120/report.json` passed40 functional checks in81.29s, but the runner correctly FAILED on runtime ensures. Root inspection found EFEquipment replaces the configured pickup class after game-instance initialization; `UEFEquipmentWorldSubsystem` now retains that actual runtime override as well. The default adapter covers the configuration when equipment is disabled.
+- The same run exposed a mesh-transform ensure at rest cancellation. `RestoreVisibleMeshLeaderPoseSceneLock` now changes only altered leader relationships and never refreshes a follower's nonexistent own transform arrays. Protected Female/Player assets are unchanged. These compatibility corrections require the final runtime gate below.
+
+## Accepted final packaged evidence
+
+- Final Editor build: `build_final_editor5.log`,31.58s. Final Game build: `build_final_game4.log`,51.90s. Both PASS with Daz receipts repaired/enabled.
+- `Package_20261005_044904/uat.log`: PASS,68.04s. Native-only restaging reuses the unchanged successful cook from `Package_20261005_042608`; no asset/configuration change occurred between that cook and the final package.
+- **Packaged gameplay PASS**: `PackagedQA_20261005_045035/report.json`,40/40 checks,**79.545s**,actual HUB player and enemy. Process exit0; strict runner found no handled ensure, fatal error or ACF inventory error. Both physiological player death and exact enemy poison debt reach native ACF death without suppressing inventory/currency callbacks.
+- Performance on Ryzen7 5800X: baseline50 samples, loaded51 samples; component median44.20→48.70us,p9597.30→246.80us. Frame median7.166→7.539ms,p958.535→9.359ms.200 simultaneous sources,0 per-influence timers. The1ms safety gate passes; the aspirational0.2ms p95 target is not met. These are measured HUB observations, not a guarantee of zero lag in arbitrary future scenes.
+- Visual PASS: actual `PackagedQA_20261005_045035/simultaneous.png` inspected at1600x1000; compact icons/values, all3 afflictions,signed values and six primary rows visible; both long labels clear their bars.
+- Protected assets/vendor inputs PASS: `protected_final4.json`,zero changed hashes. Both reusable skills pass `quick_validate.py` after final documentation changes.

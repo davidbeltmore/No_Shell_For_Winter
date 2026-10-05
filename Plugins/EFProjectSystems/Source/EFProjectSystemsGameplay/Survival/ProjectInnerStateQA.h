@@ -22,6 +22,9 @@ private:
     double MaximumHealth() const;
     void SetHealth(double Fraction);
     void Screenshot(const FString& Name);
+    UFUNCTION() void HandlePoisonNPCDeath();
+    UPROPERTY() TObjectPtr<class ACharacter> PoisonNPC;
+    bool bNPCDebtSettled=false;
     UPROPERTY() TObjectPtr<class APawn> Player;
     UPROPERTY() TObjectPtr<class UProjectInnerStateComponent> Inner;
     UPROPERTY() TObjectPtr<class UProjectSurvivalNeedsComponent> Needs;

@@ -12,6 +12,9 @@ public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 private:
+    // A soft class and ACF's config CDO alone do not own the runtime override.
+    UPROPERTY(Transient)
+    TObjectPtr<UClass> RetainedWorldPickupClass;
     void ScanPlayers();
     void ActorSpawned(AActor* Actor);
     FTimerHandle ScanTimer;
