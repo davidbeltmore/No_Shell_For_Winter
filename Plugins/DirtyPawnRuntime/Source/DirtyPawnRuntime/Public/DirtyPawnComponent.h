@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
+#include "DirtyPawnHygiene.h"
 #include "DirtyPawnComponent.generated.h"
 
 class UMaterialInstanceDynamic;
@@ -390,6 +391,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Dirty Pawn|Debug")
 	float GetDirtyPawnBodyReferenceHeight() const;
+
+	/** Disjoint height intervals, weighted by approximate body area. Call on the game thread. */
+	void GetHygieneSurfaceSamples(TArray<FDirtyPawnHygieneRegion>& Out) const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dirty Pawn|Setup")
 	bool bAutoInitializeOnBeginPlay = true;
@@ -846,4 +850,5 @@ private:
 	TArray<FDirtyPawnPendingWashBand> PendingWashBands;
 	TArray<FDirtyPawnPendingWetBand> PendingWetPaintBands;
 	TSet<TWeakObjectPtr<AActor>> ActiveWaterSources;
+	TMap<TWeakObjectPtr<AActor>, FDirtyPawnWaterContact> HygieneWaterContacts;
 };

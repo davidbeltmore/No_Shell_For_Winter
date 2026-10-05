@@ -6,6 +6,7 @@ from pathlib import Path
 paths=[]
 for folder in ['/Game/_Game/InnerState','/Game/_Game/Widgets/InnerState','/Game/_Game/Widgets/InnerDoctrine']:
     paths += unreal.EditorAssetLibrary.list_assets(folder, recursive=True, include_folder=False)
+paths += ['/Game/DirtyPawnSystem/Blueprints/BP_Water', '/Game/DirtyPawnSystem/Blueprints/BP_Water_Mud', '/Game/DirtyPawnSystem/Blueprints/BP_Sand', '/Game/DirtyPawnSystem/Blueprints/BP_Snow']
 paths += ['/Game/FullSample/Player', '/Game/FullSample/Blueprints/StatusEffects/ACF_PoisonStatus_BP']
 rows=[]
 for path in paths:

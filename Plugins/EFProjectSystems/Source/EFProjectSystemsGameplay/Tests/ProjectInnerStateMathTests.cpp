@@ -126,4 +126,43 @@ bool FProjectInnerStateBipolarSave::RunTest(const FString&)
     TestEqual(TEXT("Uncapped debt persists"),State.Poison.GetPendingDamage(),600.0);
     return true;
 }
+
+#include "Survival/ProjectHygieneMath.h"
+#include "DirtyPawnComponent.h"
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectHygieneSurfaceTest,
+    "NoShellForWinter.InnerState.Hygiene.SurfaceWaterAndTime",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectHygieneSurfaceTest::RunTest(const FString&)
+{
+    FProjectHygieneTuning T;
+    TArray<FDirtyPawnHygieneRegion> R; R.AddDefaulted(); R[0].Weight=1; R[0].Mud=1;
+    auto E=FProjectHygieneMath::Evaluate(R,T,1,0);
+    TestEqual(TEXT("Full mud exactly eight calendar hours"),FProjectHygieneMath::Advance(100,8,E,T),0.);
+    R[0].Mud=.1;
+    TestTrue(TEXT("Ten percent effective mud is gentle"),FMath::IsNearlyEqual(FProjectHygieneMath::Evaluate(R,T,1,0).LossPerHour,1.115,1.e-8));
+    R[0].Mud=0;R[0].Sand=1;
+    TestEqual(TEXT("Full sand sixteen hours"),FProjectHygieneMath::Advance(100,16,FProjectHygieneMath::Evaluate(R,T,1,0),T),0.);
+    R[0].Mud=1;R[0].Dirt=1;R[0].Blood=1;
+    TestEqual(TEXT("Overlapping material and effort respect continuous cap"),FProjectHygieneMath::Evaluate(R,T,1,10).LossPerHour,12.5);
+    R[0]={};R[0].Weight=.5;R[0].Mud=1;R.AddDefaulted();R[1].Weight=.5;R[1].Sand=1;
+    TestEqual(TEXT("Disjoint halves preserve mixed severity"),FProjectHygieneMath::Evaluate(R,T,1,0).LossPerHour,9.375);
+    R[1].Mud=1;
+    TestTrue(TEXT("Adding mud cannot improve mixed hygiene"),FProjectHygieneMath::Evaluate(R,T,1,0).LossPerHour>=9.375);
+    R.SetNum(1);R[0]={};R[0].Weight=1;R[0].CleanWater=1;
+    E=FProjectHygieneMath::Evaluate(R,T,1,0);
+    TestEqual(TEXT("Clean water gradual net recovery"),FProjectHygieneMath::Advance(20,1,E,T),49.);
+    TestEqual(TEXT("Natural water ceiling"),FProjectHygieneMath::Advance(20,24,E,T),85.);
+    TestEqual(TEXT("Above ceiling does not snap"),FProjectHygieneMath::Advance(100,1,E,T),99.);
+    double Partition=20;for(int I=0;I<100;++I) Partition=FProjectHygieneMath::Advance(Partition,.01,E,T);
+    TestTrue(TEXT("Water time partition invariance"),FMath::IsNearlyEqual(Partition,49.,1.e-8));
+    auto* Dirty=NewObject<UDirtyPawnComponent>();
+    const float Top=Dirty->GetDirtyPawnBodyReferenceHeight();
+    FDirtyPawnPaintBand B;B.State=EDirtyPawnPaintState::Mud;B.MinHeight=0;B.MaxHeight=Top;B.Alpha=.5;B.TargetAlpha=1;
+    Dirty->EnvironmentalPaintBands.Add(B);Dirty->EnvironmentalPaintBands.Add(B);
+    Dirty->GetHygieneSurfaceSamples(R);E=FProjectHygieneMath::Evaluate(R,T,1,0);
+    TestTrue(TEXT("Actual faded alpha and duplicate bands never double coverage"),FMath::IsNearlyEqual(E.LossPerHour,3.875,1.e-5));
+    Dirty->EnvironmentalPaintBands.Reset();Dirty->GetHygieneSurfaceSamples(R);
+    TestEqual(TEXT("No bands means baseline only"),FProjectHygieneMath::Evaluate(R,T,1,0).LossPerHour,1.);
+    return true;
+}
 #endif

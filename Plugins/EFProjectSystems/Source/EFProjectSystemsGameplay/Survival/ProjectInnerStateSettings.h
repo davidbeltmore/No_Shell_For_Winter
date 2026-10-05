@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "Survival/ProjectInnerStateMath.h"
+#include "Survival/ProjectHygieneMath.h"
 #include "ProjectInnerStateSettings.generated.h"
 
 /** Slow rates are per calendar hour; acute rates/delays are per simulation second. */
@@ -26,6 +27,7 @@ public:
     UPROPERTY(EditAnywhere, Config, Category="Wellbeing") double DepressedEntryHours = 48.0;
     UPROPERTY(EditAnywhere, Config, Category="Wellbeing") double DepressedExitHours = 24.0;
     UPROPERTY(EditAnywhere, Config, Category="Hygiene") double HygieneLossPerHour = 1.0;
+    UPROPERTY(EditAnywhere, Config, Category="Hygiene") FProjectHygieneTuning SurfaceHygiene;
     UPROPERTY(EditAnywhere, Config, Category="Hygiene") double ExtraHygieneLossPerDay = 12.0;
     UPROPERTY(EditAnywhere, Config, Category="Hygiene") double ContaminationHazardPerHour = 0.005;
     UPROPERTY(EditAnywhere, Config, Category="Bathroom") double BathroomDeadlineHours = 48.0;

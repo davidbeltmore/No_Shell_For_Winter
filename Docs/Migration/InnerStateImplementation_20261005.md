@@ -108,3 +108,7 @@ Editor build PASS; mathematical automation PASS; Blueprint compile PASS; final P
 - Implementation commits: `74a6ee02` math;`5ebe92af` physiology/persistence;`c1ae9faa` HUD/items/global QA;`e46d5ece` packaged compatibility, NPC poison and final tooling. No unrelated HUB/Chest/cleanup changes were staged.
 - Delivery snapshot: `Saved/Migration/InnerState20261005/delivery_snapshot.json` records final Git identity, task-file SHA256s, accepted reports and Game/staged binary parity. Original failed runs remain available rather than overwritten.
 - Post-PIE protected hash gate: `protected_delivery.json` PASS,zero changes,source commit`e46d5ece`. Fresh final editor runtime log copied to `final_editor_gameplay.log` before leaving the editor open.
+
+## Hygiene follow-up
+
+The later [Hygiene implementation](HygieneImplementation_20261005.md) supersedes the initial Wash-water prerequisite and Hygiene exposure implementation above. It integrates canonical DirtyPawn area/intensity, actual HUB Water automatic gradual recovery, a soap/bubbles glyph, centralized surface tuning and bounded water gameplay QA. Refer to that ledger for this revision's independent build/runtime/package evidence.

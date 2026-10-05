@@ -13,8 +13,13 @@ source=(root/'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Survival/
 settings={k:float(v) for k,v in re.findall(r'double\s+(\w+)\s*=\s*([\d.]+)\s*;', source)}
 poison_source=(root/'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Survival/ProjectInnerStateMath.h').read_text()
 poison={k:float(v) for k,v in re.findall(r'double\s+(\w+)\s*=\s*([\d.]+)\s*;', poison_source)}
+hygiene_source=(root/'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Survival/ProjectHygieneMath.h').read_text()
+hygiene={k:float(v) for k,v in re.findall(r'double\s+(\w+)\s*=\s*([\d.]+)\s*;', hygiene_source)}
 hour=a.day_seconds/24
+surface_times={name:100/(settings['HygieneLossPerHour']+hygiene[name])*hour/60 for name in ('Mud','Sand','Snow','Dirt','Blood','Burn')}
 print(json.dumps({'day_seconds':a.day_seconds,'seconds_per_game_hour':hour,
+ 'full_surface_100_to_0_real_minutes':surface_times,
+ 'water_20_to_85_real_seconds':65/(hygiene['WaterRecoveryPerHour']-settings['HygieneLossPerHour'])*hour,
  'bathroom_deadline_real_minutes':settings['BathroomDeadlineHours']*hour/60,
  'hygiene_100_to_20_real_minutes':80/settings['HygieneLossPerHour']*hour/60,
  'untreated_sickness_25_to_100_real_minutes':75/settings['SicknessGainPerHour']*hour/60,

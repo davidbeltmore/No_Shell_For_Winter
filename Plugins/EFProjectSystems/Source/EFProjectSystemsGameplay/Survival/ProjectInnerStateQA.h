@@ -37,4 +37,7 @@ private:
     int32 Stage=-1;
     bool bPassed=true, bDone=false, bEarlyChecked=false, bNormalChecked=false, bStressShot=false, bKnockoutChecked=false;
     FString OutputDirectory;
+    FVector BeforeWaterLocation=FVector::ZeroVector;
+    double WaterHygiene=0;
+    uint8 BeforeWaterMovement=0;
 };

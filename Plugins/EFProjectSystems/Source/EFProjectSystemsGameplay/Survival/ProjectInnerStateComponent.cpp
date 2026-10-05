@@ -284,14 +284,20 @@ void UProjectInnerStateComponent::AdvanceSlow(double Hours, const UProjectInnerS
     State.ExtraDirtBudget = FMath::Min(Positive(S.ExtraHygieneLossPerDay), State.ExtraDirtBudget + Hours * Positive(S.ExtraHygieneLossPerDay) / 24.0);
     double Contamination = 0;
     for (const auto& Source : ContaminationSources) Contamination = FMath::Max(Contamination, Source.Value);
-    if (Statuses && Statuses->IsStatusActive(TEXT("Dirty"))) Contamination=FMath::Max(Contamination,.25);
+    const double ExternalContamination=Contamination;
     // Sustained locomotion also earns the daily exercise benefit, without counting as repetitive work.
     if (GetExertion()>.5 && !bSleeping) State.ExerciseHours+=Hours;
     if (State.ExerciseHours>=.5 && State.CalendarHours>=State.NextExerciseRewardHour)
     { ApplyBenefit(TEXT("Exercise"),S.ExerciseWellbeingPerHour,12); State.NextExerciseRewardHour=State.CalendarHours+24; State.ExerciseHours=0; }
-    const double ExtraDirt = FMath::Min(State.ExtraDirtBudget, Hours * (.5 * GetExertion() + Contamination));
+    const double ExtraDirt = FMath::Min(State.ExtraDirtBudget, Hours * (.5 * GetExertion()));
     State.ExtraDirtBudget -= ExtraDirt;
-    State.Hygiene = Percent(State.Hygiene - Hours * Positive(S.HygieneLossPerHour) - ExtraDirt);
+    TArray<FDirtyPawnHygieneRegion> Surfaces;
+    if (auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(GetOwner())) Dirty->GetHygieneSurfaceSamples(Surfaces);
+    auto Exposure=FProjectHygieneMath::Evaluate(Surfaces,S.SurfaceHygiene,S.HygieneLossPerHour,Hours>0?ExtraDirt/Hours:0);
+    Contamination=FMath::Max(Contamination,Exposure.Contamination);
+    // Explicit polluted-water/gameplay sources can veto washing; being dirty cannot.
+    if(ExternalContamination>0) Exposure.CleanWaterCoverage=0;
+    State.Hygiene=FProjectHygieneMath::Advance(State.Hygiene,Hours,Exposure,S.SurfaceHygiene);
     State.BathroomHours += Hours;
     const double Deadline = FMath::Max(1.0, S.BathroomDeadlineHours);
     if (State.BathroomHours >= Deadline)
@@ -417,7 +423,7 @@ void UProjectInnerStateComponent::TreatSickness(double Hours) { State.TreatmentH
 void UProjectInnerStateComponent::Wash(bool bFullBath)
 {
     State.Hygiene=bFullBath?100:FMath::Max(State.Hygiene,FMath::Min(75.0,State.Hygiene+25)); State.SevereHygieneHours=0; Publish(true);
-    if (bFullBath) if (auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(GetOwner())) Dirty->SetFadeWashVariablesBand(0,55,true,true,true);
+    if (bFullBath) if (auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(GetOwner())) Dirty->SetFadeWashVariablesBand(0,Dirty->GetDirtyPawnBodyReferenceHeight(),true,true,true);
 }
 bool UProjectInnerStateComponent::RelieveBathroom(bool bSanitary)
 {
@@ -563,10 +569,11 @@ bool UProjectInnerStateComponent::RequestCareAction(FName Action)
     if (Action==TEXT("Bathroom")) return RelieveBathroom(false);
     if (Action==TEXT("Wash"))
     {
-        const auto* Character=Cast<ACharacter>(GetOwner());
-        if (!Character || !Character->GetPhysicsVolume() || !Character->GetPhysicsVolume()->bWaterVolume || GetBreathingAvailability()<1) return false;
         for (const auto& Source:ContaminationSources) if (Source.Value>0) return false;
-        Wash(true); return true;
+        TArray<FDirtyPawnHygieneRegion> Surfaces;
+        if (auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(GetOwner())) Dirty->GetHygieneSurfaceSamples(Surfaces);
+        // Water already washes continuously. Repeating this action cannot grant instant hygiene.
+        return Surfaces.ContainsByPredicate([](const FDirtyPawnHygieneRegion& R){ return R.CleanWater>0; });
     }
     if (Action==TEXT("Rest"))
     {

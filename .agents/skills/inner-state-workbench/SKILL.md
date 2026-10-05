@@ -35,3 +35,7 @@ Poison on an ACF enemy uses its native statistics without attaching the player's
 Persistent state must survive ALS save/load and travel via `ProjectProgressionState`. Do not serialize live actor pointers or wall-clock deadlines. Document new fields' neutral defaults for old saves.
 
 Use small commits and record build, BP, runtime, visual, cook/package evidence. Hash protected assets with `Tools/Migration/InnerStateProtection58.py` before/after. Mark absent evidence PENDING. Avoid repeated full suites when focused checks answer the question.
+
+## Hygiene surface and water
+
+Read `Docs/Migration/HygieneImplementation_20261005.md` before changing Hygiene. Tune `SurfaceHygiene` settings, not DirtyPawn material opacities or HUD numbers. The portable `GetHygieneSurfaceSamples` uses disjoint weighted height bands and actual fade alpha. Preserve union/max overlap, companion-dirt suppression, the 12.5/hour continuous cap and separate effort budget. Water is live contact, not lingering wetness; never award Hygiene on overlap entry. Natural-water ceiling 85 and full-bath 100 are distinct. Test pure/mixed/partial coverage and partition invariance, then the existing HUB Water entry/exit fixture. No additional per-stain timers or material readbacks.

@@ -303,6 +303,7 @@ void UDirtyPawnComponent::BeginPlay()
 void UDirtyPawnComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ActiveWaterSources.Empty();
+	HygieneWaterContacts.Empty();
 	PendingWashBands.Empty();
 	PendingWetPaintBands.Empty();
 	bWashFadeClockActive = false;
@@ -797,6 +798,12 @@ void UDirtyPawnComponent::WaterOverlapBand(AActor* WaterActorReference, float No
 		return;
 	}
 
+	if (WaterActorReference)
+	{
+		for (auto It=HygieneWaterContacts.CreateIterator(); It; ++It) if (!It.Key().IsValid()) It.RemoveCurrent();
+		HygieneWaterContacts.Add(WaterActorReference, {MinHeight, MaxHeight, !bIsMud && !bIsBleach});
+	}
+
 	if (bIsMud)
 	{
 		OverallFadeWetness_Target = 1.0f;
@@ -822,6 +829,7 @@ void UDirtyPawnComponent::EndWaterOverlap(AActor* WaterActorReference)
 	if (WaterActorReference)
 	{
 		ActiveWaterSources.Remove(WaterActorReference);
+		HygieneWaterContacts.Remove(WaterActorReference);
 	}
 
 	if (ActiveWaterSources.Num() <= 0)
@@ -1049,6 +1057,7 @@ void UDirtyPawnComponent::ResetDirtyPawn()
 	const float InactiveHeight = GetReferenceInactiveHeight();
 
 	ActiveWaterSources.Empty();
+	HygieneWaterContacts.Empty();
 	PendingWashBands.Empty();
 	PendingWetPaintBands.Empty();
 	bWashFadeClockActive = false;
@@ -2647,6 +2656,7 @@ void UDirtyPawnComponent::DisableAsDuplicateDirtyPawnComponent()
 	bAutoInitializeOnBeginPlay = false;
 	SetComponentTickEnabled(false);
 	ActiveWaterSources.Empty();
+	HygieneWaterContacts.Empty();
 
 	if (GetLiveDirtyPawnMaterialBindingCount() <= 0)
 	{
@@ -2683,4 +2693,63 @@ void UDirtyPawnComponent::DisableNonCanonicalDirtyPawnComponents()
 			Component->DisableAsDuplicateDirtyPawnComponent();
 		}
 	}
+}
+
+void UDirtyPawnComponent::GetHygieneSurfaceSamples(TArray<FDirtyPawnHygieneRegion>& Out) const
+{
+    Out.Reset();
+    const float Top=FMath::Max(1.f,GetDirtyPawnBodyReferenceHeight());
+    TArray<float, TInlineAllocator<128>> Edges;
+    Edges.Append({0.f,Top*.1f,Top*.5f,Top*.85f,Top});
+    auto AddEdges=[&](float A,float B) { Edges.Add(FMath::Clamp(A,0.f,Top)); Edges.Add(FMath::Clamp(B,0.f,Top)); };
+    for (const auto& B:EnvironmentalPaintBands) AddEdges(B.MinHeight,B.MaxHeight);
+    for (const auto& B:StainPaintBands) AddEdges(B.MinHeight,B.MaxHeight);
+    for (const auto& B:WashPaintBands) AddEdges(B.MinHeight,B.MaxHeight);
+    for (const auto& Pair:HygieneWaterContacts) if(Pair.Key.IsValid()) AddEdges(Pair.Value.MinHeight,Pair.Value.MaxHeight);
+    Edges.Sort();
+    auto Area=[&](float Height)->double
+    {
+        const double Z=FMath::Clamp(double(Height/Top),0.,1.);
+        // Feet 4%, legs 36%, trunk/arms 48%, head/shoulders 12%.
+        if(Z<.1) return Z*.4;
+        if(Z<.5) return .04+(Z-.1)*.9;
+        if(Z<.85) return .4+(Z-.5)*(.48/.35);
+        return .88+(Z-.85)*(.12/.15);
+    };
+    for(int32 I=1; I<Edges.Num(); ++I)
+    {
+        if(Edges[I]-Edges[I-1]<=UE_SMALL_NUMBER) continue;
+        const float Mid=(Edges[I]+Edges[I-1])*.5f;
+        FDirtyPawnHygieneRegion R; R.Weight=Area(Edges[I])-Area(Edges[I-1]);
+        auto Paint=[&](const TArray<FDirtyPawnPaintBand>& Bands)
+        {
+            for(const auto& B:Bands) if(Mid>=B.MinHeight && Mid<=B.MaxHeight)
+            {
+                double A=FMath::Clamp(double(B.Alpha),0.,1.);
+                for(const auto& W:WashPaintBands) if(Mid>=W.MinHeight && Mid<=W.MaxHeight)
+                {
+                    const bool Washes=(B.State==EDirtyPawnPaintState::Blood)?W.bWashBlood:
+                        (B.State==EDirtyPawnPaintState::Smear)?W.bWashSmears:
+                        (B.State==EDirtyPawnPaintState::Sand || B.State==EDirtyPawnPaintState::Snow)?W.bWashSandSnow:true;
+                    if(Washes) A=FMath::Min(A,double(FMath::Clamp(B.Alpha,0.f,1.f))*(1.-FMath::Clamp(double(W.Alpha),0.,1.)));
+                }
+                switch(B.State)
+                {
+                    case EDirtyPawnPaintState::Mud: R.Mud=FMath::Max(R.Mud,A); break;
+                    case EDirtyPawnPaintState::Sand: R.Sand=FMath::Max(R.Sand,A); break;
+                    case EDirtyPawnPaintState::Snow: R.Snow=FMath::Max(R.Snow,A); break;
+                    case EDirtyPawnPaintState::Dirt: case EDirtyPawnPaintState::Smear: R.Dirt=FMath::Max(R.Dirt,A); break;
+                    case EDirtyPawnPaintState::Blood: R.Blood=FMath::Max(R.Blood,A); break;
+                    case EDirtyPawnPaintState::Burn: R.Burn=FMath::Max(R.Burn,A); break;
+                    default: break;
+                }
+            }
+        };
+        Paint(EnvironmentalPaintBands); Paint(StainPaintBands);
+        bool bPolluted=false;
+        for(const auto& Pair:HygieneWaterContacts) if(Pair.Key.IsValid() && Mid>=Pair.Value.MinHeight && Mid<=Pair.Value.MaxHeight)
+        { if(Pair.Value.bClean) R.CleanWater=1; else bPolluted=true; }
+        if(bPolluted) R.CleanWater=0;
+        Out.Add(R);
+    }
 }

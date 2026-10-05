@@ -1,4 +1,8 @@
 #include "Survival/ProjectInnerStateQA.h"
+#include "DirtyPawnComponent.h"
+#include "DirtyPawnVolumeActors.h"
+#include "Components/BoxComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Survival/ProjectInnerStateComponent.h"
 #include "Survival/ProjectInnerStateConsumable.h"
 #include "Survival/ProjectSurvivalNeedsComponent.h"
@@ -127,7 +131,16 @@ void AProjectInnerStateQA::Tick(float DeltaSeconds)
         }
         Check(TEXT("ACF enemy poison initialized without player survival stack"),PoisonNPC && PoisonNPC->FindComponentByClass<UProjectInnerStateComponent>() && PoisonNPC->FindComponentByClass<UProjectInnerStateComponent>()->GetValue(TEXT("Poison"))==25);
         if (auto* Hud=GetWorld()->GetSubsystem<UProjectSurvivalNeedsSubsystem>()) Hud->SetNeedsHudVisible(true);
-        InitialHours=Inner->State.CalendarHours; InitialHunger=Needs->GetNeedCurrentValue(TEXT("Hunger")); Next(0); return;
+        BeforeWaterLocation=Player->GetActorLocation();
+        TArray<AActor*> Waters; UGameplayStatics::GetAllActorsOfClass(this,ADirtyPawnVolumeBase::StaticClass(),Waters);
+        ADirtyPawnVolumeBase* Water=nullptr;
+        for(AActor* A:Waters) if(auto* V=Cast<ADirtyPawnVolumeBase>(A); V && V->VolumeKind==EDirtyPawnVolumeKind::Water && V->GetName().Contains(TEXT("BP_Water_C_2"))) { Water=V; break; }
+        Check(TEXT("existing HUB BP_Water found"),Water!=nullptr);
+        if(!Water) { Finish(TEXT("HUB water fixture missing")); return; }
+        if(auto* C=Cast<ACharacter>(Player)) { BeforeWaterMovement=C->GetCharacterMovement()->MovementMode; C->GetCharacterMovement()->SetMovementMode(MOVE_Flying); C->GetCharacterMovement()->StopMovementImmediately(); }
+        Inner->SetDebugValue(TEXT("Hygiene"),20); WaterHygiene=Inner->State.Hygiene;
+        Player->SetActorLocation(Water->ContactVolume->Bounds.Origin,false,nullptr,ETeleportType::TeleportPhysics);
+        Next(90); return;
     }
     if (!IsValid(Player) || !IsValid(Inner)) { Finish(TEXT("Player was replaced before fixture completed")); return; }
     const double Age=GetWorld()->GetTimeSeconds()-SimulationStarted;
@@ -138,7 +151,30 @@ void AProjectInnerStateQA::Tick(float DeltaSeconds)
         if (Inner->UpdateSerial!=LastSerial)
         { (Stage==0?BaselineCpu:LoadedCpu).Add(Inner->LastUpdateMicroseconds); LastSerial=Inner->UpdateSerial; }
     }
-    if (Stage==0 && Age>=5)
+    if(Stage==90 && Age>=5)
+    {
+        auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(Player);
+        TArray<FDirtyPawnHygieneRegion> R; if(Dirty) Dirty->GetHygieneSurfaceSamples(R);
+        double C=0;for(const auto& Surface:R) C+=Surface.Weight*Surface.CleanWater;
+        Check(TEXT("real water overlap reports body contact"),C>0);
+        Check(TEXT("standing in existing Water gradually restores hygiene"),Inner->State.Hygiene>WaterHygiene && Inner->State.Hygiene<25);
+        const double BeforeAction=Inner->State.Hygiene;
+        Check(TEXT("wash action uses actual Water without instant bonus"),Inner->RequestCareAction(TEXT("Wash")) && Inner->State.Hygiene==BeforeAction);
+        Screenshot(TEXT("hygiene_water_soap"));
+        Player->SetActorLocation(BeforeWaterLocation,false,nullptr,ETeleportType::TeleportPhysics);
+        if(auto* CPlayer=Cast<ACharacter>(Player)) CPlayer->GetCharacterMovement()->SetMovementMode(static_cast<EMovementMode>(BeforeWaterMovement));
+        WaterHygiene=Inner->State.Hygiene;Next(91);
+    }
+    else if(Stage==91 && Age>=3)
+    {
+        auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(Player);
+        TArray<FDirtyPawnHygieneRegion> R; if(Dirty) Dirty->GetHygieneSurfaceSamples(R);
+        double C=0;for(const auto& Surface:R) C+=Surface.Weight*Surface.CleanWater;
+        Check(TEXT("leaving Water clears contact despite lingering wetness"),C==0);
+        Check(TEXT("no recovery after leaving Water"),Inner->State.Hygiene<=WaterHygiene);
+        Neutral();InitialHours=Inner->State.CalendarHours;InitialHunger=Needs->GetNeedCurrentValue(TEXT("Hunger"));Next(0);
+    }
+    else if (Stage==0 && Age>=5)
     {
         Check(TEXT("legacy hunger follows calendar (4/hour)"),FMath::Abs(InitialHunger-Needs->GetNeedCurrentValue(TEXT("Hunger"))-(Inner->State.CalendarHours-InitialHours)*4)<.15);
         Check(TEXT("hygiene and bathroom advance at calendar rate"),Inner->State.Hygiene<100 && Inner->State.BathroomHours>0);

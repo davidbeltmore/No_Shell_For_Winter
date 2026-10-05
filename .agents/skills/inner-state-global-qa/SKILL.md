@@ -29,3 +29,7 @@ Invoke `noshellforwinter-unreal-mcp` and `inner-state-workbench`. The runtime ha
 - Output machine-readable results, map/pawn identity, run duration, screenshot/log paths and exact commit/worktree snapshot under `Saved/InnerStateQA` and the dated migration evidence directory. Mark skipped/unavailable gates PENDING, never PASS. The fixture measures p95 component CPU including its synchronous callbacks; coalesced UI drawing is separately represented by frame samples. Do not conflate background-throttled 3 FPS editor samples with game performance.
 
 Run once after a coherent build. Rerun only failed coverage or checks affected by a subsequent fix. Follow the project build/launch scripts so Daz and its bridge stay enabled in editor receipts. Complete required Blueprint compile and cook/packaged gates separately before declaring the implementation complete.
+
+## Hygiene extension
+
+The suite also teleports the disposable player into existing HUB `BP_Water_C_2`, verifies gradual automatic recovery and no Wash-action bonus, then exits and checks recovery stops despite residual wetness. It restores position/movement before baseline and 200-source performance samples. Inspect `hygiene_water_soap.png` as well as `simultaneous.png`. No map saving or dungeon testing. Focused math test: `NoShellForWinter.InnerState.Hygiene.SurfaceWaterAndTime`. The overall watchdog remains 110s, external gameplay cap 120s.
