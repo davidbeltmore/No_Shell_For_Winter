@@ -18,7 +18,7 @@ Implement the conversation-approved system, preserving the existing comma HUD st
 2. **PASS runtime**: physiology, legacy bridges, awareness/defeat, air/exposure, slow synergies/statuses, component disk and progression snapshot restore. Full ALS/map travel gate recorded below.
 3. **PASS**: seven authored ACF consumables, placeable supplies pickup, existing poison BP adapter, care actions and integration APIs.
 4. **PASS**: compact HUD, vector icons, signed Sensation and three simultaneous afflictions; reusable authoring and bounded global QA skills.
-5. **PASS packaged; final editor confirmation in progress**: Game build/cook/package, full ALS/map travel and final packaged runtime/visual evidence recorded below.
+5. **PASS**: Game build/cook/package, full ALS/map travel and final editor/packaged runtime/visual evidence recorded below. Implementation complete.
 
 ## Validation budget
 
@@ -39,7 +39,7 @@ User steering during implementation: mandatory REAL gameplay global automation <
 
 ## Completion gates
 
-Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PASS (final compatibility confirmation in progress); visual QA PASS; component disk/progression restore PASS; full ALS/map travel PASS; performance PASS with measured limits below; Game build PASS; cook PASS; packaged validation PASS; skill metadata validation PASS; protected invariants PASS.
+Editor build PASS; mathematical automation PASS; Blueprint compile PASS; final PIE PASS; visual QA PASS; component disk/progression restore PASS; full ALS/map travel PASS; performance PASS with measured limits below; Game build PASS; cook PASS; packaged validation PASS; skill metadata validation PASS; protected invariants PASS.
 
 ## Block 1 evidence
 
@@ -104,3 +104,7 @@ Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PAS
 - Performance on Ryzen7 5800X: baseline50 samples, loaded51 samples; component median44.20→48.70us,p9597.30→246.80us. Frame median7.166→7.539ms,p958.535→9.359ms.200 simultaneous sources,0 per-influence timers. The1ms safety gate passes; the aspirational0.2ms p95 target is not met. These are measured HUB observations, not a guarantee of zero lag in arbitrary future scenes.
 - Visual PASS: actual `PackagedQA_20261005_045035/simultaneous.png` inspected at1600x1000; compact icons/values, all3 afflictions,signed values and six primary rows visible; both long labels clear their bars.
 - Protected assets/vendor inputs PASS: `protected_final4.json`,zero changed hashes. Both reusable skills pass `quick_validate.py` after final documentation changes.
+- **Final PIE PASS**: `Saved/InnerStateQA/20261005_045442/report.json`,40/40 checks,79.983s,in`UEDPIE_0_HUB` with`BP_TSChar_C_0`. No handled ensures in the fresh editor log. Component p95 baseline105.40us→loaded173.30us,51/50 samples; median56.80→55.40us. Frame median19.136→19.777ms,p9522.987→26.156ms. These short samples include ordinary scene variation; packaged figures remain the primary gameplay performance reference. PIE was ended and native MCP confirmed `IsPIERunning=false`; HUB remains open.
+- Implementation commits: `74a6ee02` math;`5ebe92af` physiology/persistence;`c1ae9faa` HUD/items/global QA;`e46d5ece` packaged compatibility, NPC poison and final tooling. No unrelated HUB/Chest/cleanup changes were staged.
+- Delivery snapshot: `Saved/Migration/InnerState20261005/delivery_snapshot.json` records final Git identity, task-file SHA256s, accepted reports and Game/staged binary parity. Original failed runs remain available rather than overwritten.
+- Post-PIE protected hash gate: `protected_delivery.json` PASS,zero changes,source commit`e46d5ece`. Fresh final editor runtime log copied to `final_editor_gameplay.log` before leaving the editor open.
