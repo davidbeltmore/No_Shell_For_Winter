@@ -16,7 +16,7 @@ class UACFStatusEffectManagerComponent;
 struct FACFDamageEvent;
 class UAbilitySystemComponent;
 
-/** A source refreshes its own entry. Removing one source cannot clear another. */
+/** Source refreshes itself; a nonempty Family replaces its previous member (anti-stacking). */
 USTRUCT(BlueprintType)
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectInnerStateInfluence
 {
@@ -89,6 +89,9 @@ public:
     UFUNCTION(BlueprintPure, Category="Inner State") double GetValue(FName Entry) const;
     UFUNCTION(BlueprintPure, Category="Inner State") bool IsAfflictionVisible(FName Entry) const;
     UFUNCTION(BlueprintPure, Category="Inner State") double GetWellbeingRatePerHour() const { return LastWellbeingRate; }
+    // Instrumentation samples component work, including status/UI publication, not frame time.
+    double LastUpdateMicroseconds = 0;
+    uint64 UpdateSerial = 0;
     UFUNCTION(BlueprintPure, Category="Inner State") float GetPracticeMultiplier() const;
     UFUNCTION(BlueprintPure, Category="Inner State") float GetMadnessGainMultiplier() const;
     UFUNCTION(BlueprintPure, Category="Inner State") float GetStaminaRecoveryMultiplier() const;

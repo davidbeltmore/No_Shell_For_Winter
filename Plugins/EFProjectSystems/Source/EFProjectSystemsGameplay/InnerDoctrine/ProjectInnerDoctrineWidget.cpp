@@ -1,4 +1,5 @@
 #include "InnerDoctrine/ProjectInnerDoctrineWidget.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "EFProjectUIPalette.h"
 #include "Blueprint/WidgetTree.h"
@@ -428,6 +429,42 @@ float UProjectInnerDoctrineWidget::CalculatePanelHeight(const int32 CardCount) c
 
 TArray<FProjectInnerDoctrineAttributeCardDisplayData> UProjectInnerDoctrineWidget::BuildResolvedCardData() const
 {
+    if (const auto* Inner=InnerDoctrineComponent && InnerDoctrineComponent->GetOwner()
+        ? InnerDoctrineComponent->GetOwner()->FindComponentByClass<UProjectInnerStateComponent>():nullptr)
+    {
+        const FName Slots[]={TEXT("Willpower"),TEXT("Offensive"),TEXT("Defensive"),TEXT("Faith"),TEXT("Cunning"),TEXT("Celerity"),TEXT("Charisma")};
+        const FName Entries[]={TEXT("Stress"),TEXT("Stimulation"),TEXT("Hygiene"),TEXT("Bathroom"),TEXT("Air"),TEXT("Composure"),TEXT("Afflictions")};
+        auto Format=[](double V,bool Signed)
+        {
+            if (V>=1.e6) return FString::Printf(TEXT("%.1e"),V);
+            if (V>=1000) return FString::Printf(TEXT("%.1fk"),V/1000);
+            return FString::Printf(TEXT("%s%.0f"),Signed && V>0?TEXT("+"):TEXT(""),V);
+        };
+        TArray<FProjectInnerDoctrineAttributeCardDisplayData> Cards;
+        for (int32 I=0;I<7;++I)
+        {
+            auto& Card=Cards.AddDefaulted_GetRef(); Card.AttributeName=Slots[I]; Card.InnerStateSymbol=Entries[I];
+            Card.AccentTint=EFProjectUIPalette::PrimaryText(); Card.DisplayLabel=Entries[I].ToString();
+            Card.ValueLabel=Format(Inner->GetValue(Entries[I]),I==1||I==5);
+            Card.Tooltip=FText::FromString(Card.DisplayLabel+TEXT(": ")+Card.ValueLabel);
+            if (I==1) Card.Tooltip=FText::FromString(FString::Printf(TEXT("Stimulation: %s (-100 depression / 0 neutral / +100 wellbeing)\nCurrent influences: %+.2f per calendar hour"),*Card.ValueLabel,Inner->GetWellbeingRatePerHour()));
+            if (I==5) Card.Tooltip=FText::FromString(TEXT("Composure: ")+Card.ValueLabel+TEXT(" (-100 terrified / 0 neutral / +100 determined)"));
+            if (I==6)
+            {
+                FString Details;
+                for (const FName Name:{FName(TEXT("Sickness")),FName(TEXT("Poison")),FName(TEXT("Curse"))})
+                    if (Inner->IsAfflictionVisible(Name))
+                    {
+                        auto& A=Card.Afflictions.AddDefaulted_GetRef(); A.Symbol=Name; A.Value=Format(Inner->GetValue(Name),false);
+                        Details+=FString::Printf(TEXT("%s: %.2f\n"),*Name.ToString(),Inner->GetValue(Name));
+                    }
+                if (Inner->GetValue(TEXT("Poison"))>0) Details+=FString::Printf(TEXT("Pending poison damage: %.2f HP. Antidote cancels debt; healing does not."),Inner->State.Poison.GetPendingDamage());
+                Card.ValueLabel=TEXT("-"); Card.Tooltip=FText::FromString(Details.IsEmpty()?TEXT("No active discovered afflictions."):Details);
+            }
+        }
+        return Cards;
+    }
+
 	TMap<FName, const FProjectDoctrineAttributeState*> RuntimeDataByName;
 	for (const FProjectDoctrineAttributeState& AttributeState : CachedSnapshot.Attributes)
 	{

@@ -21,6 +21,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Engine/GameInstance.h"
+#include "DirtyPawnComponent.h"
 
 namespace
 {
@@ -148,6 +149,7 @@ void UProjectInnerStateComponent::TickComponent(float DeltaTime, ELevelTick Tick
     if (!GetOwner() || !GetOwner()->HasAuthority() || UGameplayStatics::IsGamePaused(this) || !FMath::IsFinite(DeltaTime) || DeltaTime <= 0 || State.bFatalAsphyxia) return;
     if (!Needs || !Resources) { ResolveDependencies(); if (!Needs || !Resources) return; }
     if (DamageHandler && !DamageHandler->GetIsAlive()) return;
+    const double CpuStart = FPlatformTime::Seconds();
     const auto& Settings = *GetDefault<UProjectInnerStateSettings>();
     const double Step = FMath::Clamp(Settings.AcuteStepSeconds, .02, 1.0);
     State.StepRemainderSeconds += DeltaTime;
@@ -164,6 +166,8 @@ void UProjectInnerStateComponent::TickComponent(float DeltaTime, ELevelTick Tick
         }
     }
     Publish();
+    LastUpdateMicroseconds = (FPlatformTime::Seconds()-CpuStart)*1.e6;
+    ++UpdateSerial;
 }
 void UProjectInnerStateComponent::AdvanceAcute(double Seconds, const UProjectInnerStateSettings& S)
 {
@@ -265,6 +269,11 @@ void UProjectInnerStateComponent::AdvanceSlow(double Hours, const UProjectInnerS
     State.ExtraDirtBudget = FMath::Min(Positive(S.ExtraHygieneLossPerDay), State.ExtraDirtBudget + Hours * Positive(S.ExtraHygieneLossPerDay) / 24.0);
     double Contamination = 0;
     for (const auto& Source : ContaminationSources) Contamination = FMath::Max(Contamination, Source.Value);
+    if (Statuses && Statuses->IsStatusActive(TEXT("Dirty"))) Contamination=FMath::Max(Contamination,.25);
+    // Sustained locomotion also earns the daily exercise benefit, without counting as repetitive work.
+    if (GetExertion()>.5 && !bSleeping) State.ExerciseHours+=Hours;
+    if (State.ExerciseHours>=.5 && State.CalendarHours>=State.NextExerciseRewardHour)
+    { ApplyBenefit(TEXT("Exercise"),S.ExerciseWellbeingPerHour,12); State.NextExerciseRewardHour=State.CalendarHours+24; State.ExerciseHours=0; }
     const double ExtraDirt = FMath::Min(State.ExtraDirtBudget, Hours * (.5 * GetExertion() + Contamination));
     State.ExtraDirtBudget -= ExtraDirt;
     State.Hygiene = Percent(State.Hygiene - Hours * Positive(S.HygieneLossPerHour) - ExtraDirt);
@@ -314,7 +323,7 @@ void UProjectInnerStateComponent::AdvanceSlow(double Hours, const UProjectInnerS
     if (Needs && ReadNeedPercent(TEXT("Sleep"))<10) Needs->ModifySensationValue(TEXT("Madness"),static_cast<float>(S.SevereSleepMadnessPerHour*Hours*Math::SeverityBelow(ReadNeedPercent(TEXT("Sleep")),10)));
     if (GetWorld() && GetWorld()->GetGameInstance())
         if (const auto* Social = GetWorld()->GetGameInstance()->GetSubsystem<UProjectSocialSubsystem>())
-            if (Social->HasLivingRecruitedCompanionWithin(GetOwner(),1200)) State.HoursWithoutSocialContact = 0;
+            if (Social->HasLivingRecruitedCompanionWithin(GetOwner(),1200)) NotifySocialContact(true);
     AActor* Enemy = Resources ? Resources->FindNearestRelevantEnemyToOwner() : nullptr;
     SampledThreat = Enemy && FVector::DistSquared(Enemy->GetActorLocation(),GetOwner()->GetActorLocation()) < FMath::Square(1500.f) ? -50 : 0;
     if (RecentThreatSeconds > 0) SampledThreat = FMath::Min(SampledThreat,-80.0);
@@ -379,6 +388,7 @@ void UProjectInnerStateComponent::TreatSickness(double Hours) { State.TreatmentH
 void UProjectInnerStateComponent::Wash(bool bFullBath)
 {
     State.Hygiene=bFullBath?100:FMath::Max(State.Hygiene,FMath::Min(75.0,State.Hygiene+25)); State.SevereHygieneHours=0; Publish(true);
+    if (bFullBath) if (auto* Dirty=UDirtyPawnComponent::FindCanonicalDirtyPawnComponent(GetOwner())) Dirty->SetFadeWashVariablesBand(0,55,true,true,true);
 }
 bool UProjectInnerStateComponent::RelieveBathroom(bool bSanitary)
 {
@@ -400,6 +410,7 @@ void UProjectInnerStateComponent::NotifySocialContact(bool bMeaningful)
 void UProjectInnerStateComponent::NotifySleepCompleted(double SleptHours,bool bRestorative)
 {
     if (!FMath::IsFinite(SleptHours) || SleptHours<4 || !bRestorative) return;
+    if (auto* Doctrine=GetOwner()->FindComponentByClass<UProjectInnerDoctrineComponent>()) Doctrine->NotifySleepCompleted(TEXT("InnerState.Rest"));
     if (State.CalendarHours>=State.NextRestRewardHour)
     { ApplyBenefit(TEXT("Rested"),GetDefault<UProjectInnerStateSettings>()->RestWellbeingPerHour,8); State.NextRestRewardHour=State.CalendarHours+16; }
 }
@@ -524,6 +535,7 @@ bool UProjectInnerStateComponent::RequestCareAction(FName Action)
     {
         const auto* Character=Cast<ACharacter>(GetOwner());
         if (!Character || !Character->GetPhysicsVolume() || !Character->GetPhysicsVolume()->bWaterVolume || GetBreathingAvailability()<1) return false;
+        for (const auto& Source:ContaminationSources) if (Source.Value>0) return false;
         Wash(true); return true;
     }
     if (Action==TEXT("Rest"))

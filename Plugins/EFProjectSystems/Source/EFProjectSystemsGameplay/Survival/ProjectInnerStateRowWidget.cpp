@@ -200,6 +200,11 @@ void UProjectInnerStateRowWidget::ApplyDisplayData(const FProjectInnerStateRowDi
 	if (LabelText)
 	{
 		LabelText->SetText(FText::FromString(CurrentDisplayData.DisplayLabel));
+		if (CurrentDisplayData.DisplayLabel == TEXT("AWARENESS"))
+		{
+			FSlateFontInfo Font = LabelText->GetFont();
+			if (Font.Size != 11 || Font.LetterSpacing != 0) { Font.Size = 11; Font.LetterSpacing = 0; LabelText->SetFont(Font); }
+		}
 		if (bUsingNativeFallbackTree)
 		{
 			LabelText->SetColorAndOpacity(FSlateColor(EFProjectUIPalette::PrimaryText()));
@@ -208,7 +213,7 @@ void UProjectInnerStateRowWidget::ApplyDisplayData(const FProjectInnerStateRowDi
 
 	if (ValueText)
 	{
-		ValueText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), CurrentDisplayData.PercentValue)));
+		ValueText->SetText(FText::FromString(FString::Printf(TEXT("%s%d%s"), CurrentDisplayData.bBipolar && CurrentDisplayData.PercentValue>0?TEXT("+"):TEXT(""), CurrentDisplayData.PercentValue, CurrentDisplayData.bBipolar?TEXT(""):TEXT("%"))));
 		if (bUsingNativeFallbackTree)
 		{
 			ValueText->SetColorAndOpacity(FSlateColor(EFProjectUIPalette::SecondaryText()));
@@ -222,6 +227,8 @@ void UProjectInnerStateRowWidget::ApplyDisplayData(const FProjectInnerStateRowDi
 			AccentTint.CopyWithNewOpacity(0.78f)));
 	}
 
+    if (CurrentDisplayData.bBipolar) SetToolTipText(NSLOCTEXT("InnerState","SensationTooltip","Sensation: -100 pleasure / 0 neutral / +100 extreme pain. Left half shows pleasure; right half shows pain."));
+    else if (CurrentDisplayData.DisplayLabel==TEXT("AWARENESS")) SetToolTipText(NSLOCTEXT("InnerState","AwarenessTooltip","Awareness: at zero you lose consciousness. Pain, illness, oxygen loss, drugs and concussive impacts can reduce it."));
 	RefreshPips();
 	OnInnerStateRowDataApplied(CurrentDisplayData);
 }
@@ -501,7 +508,10 @@ void UProjectInnerStateRowWidget::RefreshPips()
 	const int32 PairCount = FMath::Max(FilledPipImages.Num(), EmptyPipImages.Num());
 	for (int32 PipIndex = 0; PipIndex < PairCount; ++PipIndex)
 	{
-		const bool bFilled = PipIndex < FilledBars;
+		const int32 Half=TotalBars/2;
+        const bool bFilled = CurrentDisplayData.bBipolar
+            ? (CurrentDisplayData.PercentValue<0 ? PipIndex<Half && PipIndex>=Half-FilledBars : PipIndex>=Half && PipIndex<Half+FilledBars)
+            : PipIndex < FilledBars;
 
 		if (FilledPipImages.IsValidIndex(PipIndex))
 		{
@@ -547,7 +557,10 @@ void UProjectInnerStateRowWidget::RefreshPips()
 			continue;
 		}
 
-		const bool bFilled = PipIndex < FilledBars;
+		const int32 Half=TotalBars/2;
+        const bool bFilled = CurrentDisplayData.bBipolar
+            ? (CurrentDisplayData.PercentValue<0 ? PipIndex<Half && PipIndex>=Half-FilledBars : PipIndex>=Half && PipIndex<Half+FilledBars)
+            : PipIndex < FilledBars;
 		if (bUsingNativeFallbackTree)
 		{
 			PipImage->SetBrushFromTexture(ResolveProjectThemeTexture(bFilled ? const_cast<UTexture2D*>(FilledTextureAsset) : const_cast<UTexture2D*>(EmptyTextureAsset)), false);

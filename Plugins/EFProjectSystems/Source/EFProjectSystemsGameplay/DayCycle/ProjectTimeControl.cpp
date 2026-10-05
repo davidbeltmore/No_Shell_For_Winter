@@ -20,6 +20,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Lockpicking/ProjectLockpickingSubsystem.h"
 #include "Survival/ProjectSurvivalNeedsComponent.h"
+#include "Survival/ProjectInnerStateComponent.h"
 #include "Survival/ProjectSurvivalNeedsSubsystem.h"
 #include "Survival/ProjectRealtimeSnapshotComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -95,8 +96,11 @@ bool UProjectDayCycleSubsystem::CanFastForward(FText& OutReason) const
 		return Deny(LOCTEXT("Defeated", "Time acceleration requires a living character."));
 	if (const auto* Needs = Player->FindComponentByClass<UProjectSurvivalNeedsComponent>())
 	{
+		const auto* Inner = Player->FindComponentByClass<UProjectInnerStateComponent>();
+		if (Inner && (Inner->State.bUnconscious || Inner->State.bCriticalSickness || Inner->State.Air<99.9 || Inner->State.Awareness<50 || Inner->GetValue(TEXT("Poison"))>0))
+			return Deny(LOCTEXT("InnerStateCritical", "Resolve oxygen loss, poison or impaired consciousness before accelerating time."));
 		for (const FName Name : { FName(TEXT("Hunger")), FName(TEXT("Thirst")), FName(TEXT("Sleep")) })
-			if (Needs->HasNeed(Name) && Needs->GetNeedNormalizedValue(Name) <= Settings->CriticalNeedFraction)
+			if (!(Name==TEXT("Sleep") && Inner && Inner->IsSleeping()) && Needs->HasNeed(Name) && Needs->GetNeedNormalizedValue(Name) <= Settings->CriticalNeedFraction)
 				return Deny(LOCTEXT("Critical", "A need is critically low. Time returned to normal."));
 	}
 	const auto* Teams = World->GetSubsystem<UACFTeamManagerSubsystem>();

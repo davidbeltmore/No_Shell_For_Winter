@@ -21,6 +21,14 @@ class UVerticalBox;
 class UWrapBox;
 
 USTRUCT(BlueprintType)
+struct FProjectInnerStateAfflictionDisplay
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FName Symbol;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FString Value;
+};
+
+USTRUCT(BlueprintType)
 struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectInnerDoctrineAttributeCardDisplayData
 {
 	GENERATED_BODY()
@@ -52,6 +60,10 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectInnerDoctrineAttributeCardDisplayDat
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inner Doctrine")
 	int32 Level;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inner State") FName InnerStateSymbol;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inner State") FString ValueLabel;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inner State") FText Tooltip;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inner State") TArray<FProjectInnerStateAfflictionDisplay> Afflictions;
 };
 
 UCLASS(BlueprintType, Blueprintable)
@@ -77,6 +89,7 @@ protected:
 	bool BuildDefaultWidgetTree(UWidgetTree* TargetWidgetTree);
 	void InitializeVisualTree();
 	void RefreshVisuals();
+    void RefreshInnerStateVisuals();
 	void RefreshCardBrush(const FLinearColor& AccentTint);
 	virtual FProjectInnerDoctrineAttributeCardDisplayData MakeDesignerPreviewData() const;
 	UTexture2D* ResolveTexture(const TSoftObjectPtr<UTexture2D>& AssetPtr, const TCHAR* FallbackPath) const;
@@ -131,6 +144,10 @@ protected:
 	TObjectPtr<UTextBlock> ValueText;
 
 private:
+    UPROPERTY(Transient) TObjectPtr<class UProjectInnerStateGlyph> InnerGlyph;
+    UPROPERTY(Transient) TObjectPtr<UVerticalBox> AfflictionsBox;
+    UPROPERTY(Transient) TArray<TObjectPtr<class UProjectInnerStateGlyph>> AfflictionGlyphs;
+    UPROPERTY(Transient) TArray<TObjectPtr<UTextBlock>> AfflictionValues;
 	FProjectInnerDoctrineAttributeCardDisplayData CurrentDisplayData;
 	bool bVisualTreeInitialized = false;
 	bool bUsingNativeFallbackTree = false;

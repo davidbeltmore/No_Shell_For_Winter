@@ -2,6 +2,7 @@
 #include "Survival/ProjectSurvivalConsumableBlueprintLibrary.h"
 #include "Survival/ProjectRealtimeSnapshotComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Components/ACFDamageHandlerComponent.h"
 
 UProjectInnerStateConsumable::UProjectInnerStateConsumable()
 {
@@ -13,7 +14,8 @@ UProjectInnerStateConsumable::UProjectInnerStateConsumable()
 bool UProjectInnerStateConsumable::CanBeUsed_Implementation(const APawn* Pawn) const
 {
     const auto* Inner=Pawn?Pawn->FindComponentByClass<UProjectInnerStateComponent>():nullptr;
-    return Inner && !Inner->State.bUnconscious && !Inner->State.bFatalAsphyxia;
+    const auto* Damage=Pawn?Pawn->FindComponentByClass<UACFDamageHandlerComponent>():nullptr;
+    return Inner && (!Damage || Damage->GetIsAlive()) && !Inner->State.bUnconscious && !Inner->State.bFatalAsphyxia;
 }
 void UProjectInnerStateConsumable::OnItemUsed_Implementation(APawn* Target)
 {

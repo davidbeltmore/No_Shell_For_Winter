@@ -1,4 +1,5 @@
 #include "InnerDoctrine/ProjectInnerDoctrineAttributeCardWidget.h"
+#include "Survival/ProjectInnerStateGlyph.h"
 
 #include "EFProjectUIPalette.h"
 #include "Blueprint/WidgetTree.h"
@@ -322,6 +323,7 @@ void UProjectInnerDoctrineAttributeCardWidget::RefreshVisuals()
 			ValueText->SetColorAndOpacity(FSlateColor(AccentTint.CopyWithNewOpacity(0.98f)));
 		}
 	}
+	RefreshInnerStateVisuals();
 }
 
 void UProjectInnerDoctrineAttributeCardWidget::RefreshCardBrush(const FLinearColor& AccentTint)
@@ -843,4 +845,53 @@ FSlateFontInfo UProjectInnerDoctrineAttributeCardWidget::MakeBodyFont(const int3
 	}
 
 	return FontInfo;
+}
+
+void UProjectInnerDoctrineAttributeCardWidget::RefreshInnerStateVisuals()
+{
+    if (!ContentBox || CurrentDisplayData.InnerStateSymbol.IsNone()) return;
+    if (!InnerGlyph)
+    {
+        InnerGlyph=WidgetTree->ConstructWidget<UProjectInnerStateGlyph>();
+        // UPanelWidget::InsertChildAt does not reorder an already-built Slate box.
+        // Reattach only the contents; the authored card/frame remains untouched.
+        ContentBox->ClearChildren();
+        if (auto* ChildSlot=ContentBox->AddChildToVerticalBox(InnerGlyph))
+        { ChildSlot->SetHorizontalAlignment(HAlign_Center); ChildSlot->SetPadding(FMargin(0,0,0,5)); }
+        if (ValueScaleBox) ContentBox->AddChildToVerticalBox(ValueScaleBox)->SetHorizontalAlignment(HAlign_Center);
+        AfflictionsBox=WidgetTree->ConstructWidget<UVerticalBox>();
+        if (auto* ChildSlot=ContentBox->AddChildToVerticalBox(AfflictionsBox)) ChildSlot->SetHorizontalAlignment(HAlign_Center);
+        for (int32 I=0;I<3;++I)
+        {
+            auto* Row=WidgetTree->ConstructWidget<UHorizontalBox>();
+            AfflictionsBox->AddChildToVerticalBox(Row);
+            auto* Size=WidgetTree->ConstructWidget<USizeBox>(); Size->SetWidthOverride(13); Size->SetHeightOverride(15);
+            Row->AddChildToHorizontalBox(Size);
+            auto* Icon=WidgetTree->ConstructWidget<UProjectInnerStateGlyph>(); Size->AddChild(Icon); AfflictionGlyphs.Add(Icon);
+            auto* Value=WidgetTree->ConstructWidget<UTextBlock>(); Value->SetFont(MakeBodyFont(10));
+            if (auto* ChildSlot=Row->AddChildToHorizontalBox(Value)) { ChildSlot->SetPadding(FMargin(3,0,0,0)); ChildSlot->SetVerticalAlignment(VAlign_Center); }
+            AfflictionValues.Add(Value);
+        }
+    }
+    SetVisibility(ESlateVisibility::Visible);
+    SetToolTipText(CurrentDisplayData.Tooltip);
+    const bool bAfflictions=!CurrentDisplayData.Afflictions.IsEmpty();
+    if (ShortLabelText) ShortLabelText->SetVisibility(ESlateVisibility::Collapsed);
+    if (IconImage) IconImage->SetVisibility(ESlateVisibility::Collapsed);
+    InnerGlyph->Symbol=CurrentDisplayData.InnerStateSymbol;
+    InnerGlyph->SynchronizeProperties();
+    InnerGlyph->SetVisibility(bAfflictions?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
+    if (ValueScaleBox) ValueScaleBox->SetVisibility(bAfflictions?ESlateVisibility::Collapsed:ESlateVisibility::SelfHitTestInvisible);
+    if (ValueText) ValueText->SetText(FText::FromString(CurrentDisplayData.ValueLabel));
+    AfflictionsBox->SetVisibility(bAfflictions?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+    for (int32 I=0;I<3;++I)
+    {
+        const bool bShow=CurrentDisplayData.Afflictions.IsValidIndex(I);
+        AfflictionValues[I]->GetParent()->SetVisibility(bShow?ESlateVisibility::SelfHitTestInvisible:ESlateVisibility::Collapsed);
+        if (bShow)
+        {
+            AfflictionGlyphs[I]->Symbol=CurrentDisplayData.Afflictions[I].Symbol; AfflictionGlyphs[I]->SynchronizeProperties();
+            AfflictionValues[I]->SetText(FText::FromString(CurrentDisplayData.Afflictions[I].Value));
+        }
+    }
 }

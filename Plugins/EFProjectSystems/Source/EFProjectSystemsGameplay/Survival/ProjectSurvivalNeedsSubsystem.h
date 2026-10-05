@@ -5,6 +5,8 @@
 #include "Survival/ProjectRealtimeSnapshotComponent.h"
 #include "ProjectSurvivalNeedsSubsystem.generated.h"
 
+class UProjectInnerStateComponent;
+
 UCLASS()
 class EFPROJECTSYSTEMSGAMEPLAY_API UProjectSurvivalNeedsSubsystem : public UTickableWorldSubsystem
 {
@@ -125,4 +127,8 @@ private:
 
 	bool bNeedsHudVisible = false;
 	bool bNeedsMaintenanceTick = true;
+    bool bNeedsDisplayDirty=false, bStatusDisplayDirty=false, bDoctrineDisplayDirty=false;
+    float DisplayRefreshAccumulator=0;
+    UPROPERTY(Transient) TObjectPtr<UProjectInnerStateComponent> BoundInnerStateComponent;
+    UFUNCTION() void HandleInnerStateChanged();
 };

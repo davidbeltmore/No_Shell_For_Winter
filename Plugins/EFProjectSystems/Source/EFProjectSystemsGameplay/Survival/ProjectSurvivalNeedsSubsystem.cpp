@@ -1,5 +1,6 @@
 #include "Survival/ProjectSurvivalNeedsSubsystem.h"
 #include "Survival/ProjectInnerStateComponent.h"
+#include "Survival/ProjectInnerStateExposureVolume.h"
 
 #include "EFProjectUISettings.h"
 #include "EFProjectInputSettings.h"
@@ -80,6 +81,8 @@ void UProjectSurvivalNeedsSubsystem::Initialize(FSubsystemCollectionBase& Collec
 
 void UProjectSurvivalNeedsSubsystem::Deinitialize()
 {
+	if (IsValid(BoundInnerStateComponent)) BoundInnerStateComponent->OnInnerStateChanged.RemoveDynamic(this, &ThisClass::HandleInnerStateChanged);
+	BoundInnerStateComponent = nullptr;
 	UnbindFromTrackedComponents();
 	DetachFromTrackedPlayerController(true);
 
@@ -100,7 +103,17 @@ void UProjectSurvivalNeedsSubsystem::Deinitialize()
 
 void UProjectSurvivalNeedsSubsystem::Tick(float DeltaTime)
 {
-	TryResolveRuntimeContext();
+	if (bNeedsMaintenanceTick) TryResolveRuntimeContext();
+    DisplayRefreshAccumulator+=DeltaTime;
+    if (DisplayRefreshAccumulator>=.2f)
+    {
+        DisplayRefreshAccumulator=0;
+        const bool N=bNeedsDisplayDirty,S=bStatusDisplayDirty,D=bDoctrineDisplayDirty;
+        bNeedsDisplayDirty=bStatusDisplayDirty=bDoctrineDisplayDirty=false;
+        if (N) RefreshNeedsWidget(true);
+        if (S) RefreshStatusWidget(true);
+        if (D) RefreshInnerDoctrineWidget(true);
+    }
 }
 
 TStatId UProjectSurvivalNeedsSubsystem::GetStatId() const
@@ -111,7 +124,7 @@ TStatId UProjectSurvivalNeedsSubsystem::GetStatId() const
 bool UProjectSurvivalNeedsSubsystem::IsTickable() const
 {
 	const UWorld* World = GetWorld();
-	return bNeedsMaintenanceTick && World != nullptr && World->IsGameWorld();
+	return (bNeedsMaintenanceTick || bNeedsDisplayDirty || bStatusDisplayDirty || bDoctrineDisplayDirty) && World != nullptr && World->IsGameWorld();
 }
 
 bool UProjectSurvivalNeedsSubsystem::IsTickableInEditor() const
@@ -219,7 +232,7 @@ void UProjectSurvivalNeedsSubsystem::HandlePenaltyMultiplierChanged(float OldPen
 
 void UProjectSurvivalNeedsSubsystem::HandleStatusChanged(FName StatusName, bool bActive)
 {
-	RefreshStatusWidget(true);
+	RefreshStatusWidget(false);
 }
 
 void UProjectSurvivalNeedsSubsystem::HandleBlackoutChanged(bool bBlackoutActive)
@@ -504,6 +517,7 @@ void UProjectSurvivalNeedsSubsystem::UnbindFromTrackedComponents()
 
 void UProjectSurvivalNeedsSubsystem::RefreshNeedsWidget(const bool bForceVisibleRefresh)
 {
+    if (!bForceVisibleRefresh) { bNeedsDisplayDirty |= TrackedNeedsWidget && TrackedNeedsWidget->IsHudVisible(); return; }
 	if (!TrackedNeedsWidget)
 	{
 		return;
@@ -518,6 +532,7 @@ void UProjectSurvivalNeedsSubsystem::RefreshNeedsWidget(const bool bForceVisible
 
 void UProjectSurvivalNeedsSubsystem::RefreshStatusWidget(const bool bForceVisibleRefresh)
 {
+    if (!bForceVisibleRefresh) { bStatusDisplayDirty |= TrackedStatusWidget && (TrackedStatusWidget->IsHudVisible() || (TrackedStatusComponent && TrackedStatusComponent->IsBlackoutActive())); return; }
 	if (!TrackedStatusWidget)
 	{
 		return;
@@ -532,6 +547,7 @@ void UProjectSurvivalNeedsSubsystem::RefreshStatusWidget(const bool bForceVisibl
 
 void UProjectSurvivalNeedsSubsystem::RefreshInnerDoctrineWidget(const bool bForceVisibleRefresh)
 {
+    if (!bForceVisibleRefresh) { bDoctrineDisplayDirty |= TrackedInnerDoctrineWidget && TrackedInnerDoctrineWidget->IsHudVisible(); return; }
 	if (!TrackedInnerDoctrineWidget)
 	{
 		return;
@@ -712,7 +728,15 @@ void UProjectSurvivalNeedsSubsystem::EnsureNeedsComponentOnPlayerPawn()
 			DefeatBlueprintBridgeComponent->Activate(true);
 		}
 	}
-	UProjectInnerStateComponent::Ensure(PlayerPawn);
+    auto* Inner=UProjectInnerStateComponent::Ensure(PlayerPawn);
+    if (Inner!=BoundInnerStateComponent)
+    {
+        if (BoundInnerStateComponent) BoundInnerStateComponent->OnInnerStateChanged.RemoveDynamic(this,&ThisClass::HandleInnerStateChanged);
+        BoundInnerStateComponent=Inner;
+        TArray<AActor*> Overlapping; PlayerPawn->GetOverlappingActors(Overlapping,AProjectInnerStateExposureVolume::StaticClass());
+        for (auto* Actor:Overlapping) if (auto* Volume=Cast<AProjectInnerStateExposureVolume>(Actor)) Volume->RefreshForActor(PlayerPawn);
+        if (Inner) Inner->OnInnerStateChanged.AddUniqueDynamic(this,&ThisClass::HandleInnerStateChanged);
+    }
 }
 
 void UProjectSurvivalNeedsSubsystem::EnsureNeedsHudWidget(APlayerController* PlayerController)
@@ -824,4 +848,10 @@ void UProjectSurvivalNeedsSubsystem::EnsureStatusHudWidget(APlayerController* Pl
 	}
 
 	RefreshStatusWidget(true);
+}
+
+void UProjectSurvivalNeedsSubsystem::HandleInnerStateChanged()
+{
+    RefreshNeedsWidget(false);
+    RefreshInnerDoctrineWidget(false);
 }

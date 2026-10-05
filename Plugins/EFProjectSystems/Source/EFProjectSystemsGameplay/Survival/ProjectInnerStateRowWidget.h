@@ -70,6 +70,7 @@ struct EFPROJECTSYSTEMSGAMEPLAY_API FProjectInnerStateRowDisplayData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inner State")
 	bool bIsSensation;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inner State") bool bBipolar = false;
 };
 
 UCLASS(BlueprintType, Blueprintable)

@@ -1,4 +1,5 @@
 #include "Survival/ProjectSurvivalNeedsWidget.h"
+#include "Survival/ProjectInnerStateComponent.h"
 
 #include "EFProjectUIPalette.h"
 #include "EFProjectUISettings.h"
@@ -919,6 +920,25 @@ TArray<FProjectInnerStateRowDisplayData> UProjectSurvivalNeedsWidget::BuildResol
 		FinalRows.Add(ResolvedRow.RowData);
 	}
 
+    if (const auto* Inner=NeedsComponent && NeedsComponent->GetOwner()?NeedsComponent->GetOwner()->FindComponentByClass<UProjectInnerStateComponent>():nullptr)
+        for (auto& Row:FinalRows)
+        {
+            // Retain authored row identities/frames and public Blueprint paths.
+            if (Row.EntryName==TEXT("Curse"))
+            {
+                Row.DisplayLabel=TEXT("AWARENESS"); Row.Monogram=TEXT("A"); Row.bIsSensation=false;
+                Row.CurrentValue=static_cast<float>(Inner->GetValue(TEXT("Awareness"))); Row.MaxValue=100;
+                Row.NormalizedValue=Row.CurrentValue/100; Row.PercentValue=FMath::RoundToInt(Row.CurrentValue);
+                Row.FilledBars=FMath::Clamp(FMath::CeilToInt(Row.NormalizedValue*Row.TotalBars),0,Row.TotalBars);
+            }
+            else if (Row.EntryName==TEXT("Pain"))
+            {
+                Row.DisplayLabel=TEXT("SENSATION"); Row.Monogram=TEXT("S"); Row.bBipolar=true;
+                Row.CurrentValue=static_cast<float>(Inner->GetValue(TEXT("Sensation"))); Row.MaxValue=100;
+                Row.NormalizedValue=Row.CurrentValue/100; Row.PercentValue=FMath::RoundToInt(Row.CurrentValue);
+                Row.FilledBars=FMath::Clamp(FMath::CeilToInt(FMath::Abs(Row.NormalizedValue)*Row.TotalBars/2),0,Row.TotalBars/2);
+            }
+        }
 	return FinalRows;
 }
 

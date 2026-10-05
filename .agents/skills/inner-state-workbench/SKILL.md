@@ -18,6 +18,14 @@ Read `Docs/Migration/InnerStateImplementation_20261005.md` for the accepted cont
 5. Preserve legacy `Pain` asset/API identity. Public Sensation is bipolar; negative pleasure must never count as harmful pain. Awareness alone owns physiological unconsciousness and waking must not grant health.
 6. Update the implementation document's timing table and run focused math tests with `Tools/Migration/Test-InnerState58.ps1`. Use `inner-state-global-qa` when runtime behavior changes.
 
+Use `python Tools/InnerState/Calibrate58.py --day-seconds 1800` for a quick read-only timing estimate. Runtime tuning lives in Project Settings > EF Project Systems > Project Inner State (`/Script/EFProjectSystemsGameplay.ProjectInnerStateSettings`); inspect PascalCase properties through MCP or Python `get_editor_property` because this DeveloperSettings class is not automatically exported as `unreal.ProjectInnerStateSettings`.
+
+In disposable gameplay, `Project.InnerState.Report` prints exact values and pending HP debt; `Project.InnerState.Set Awareness 50` and the same command with other channel names seed scenarios. Blueprint APIs on `ProjectInnerStateComponent` expose source-owned breathing/contamination/composure, influences, poison, care and social/sleep events. Do not change constants in glyph/row widgets to tune physiology.
+
+`Tools/InnerState/Author-Assets58.py` idempotently authors the seven ACF consumables, supplies pickup, project concussive damage type and existing poison adapter. Run through `python Tools/InnerState/RunEditorPython58.py Tools/InnerState/Author-Assets58.py` with the target editor ready. Inspect existing asset modifications before regenerating; this script applies its documented defaults.
+
+Content is under `/Game/_Game/InnerState`. `BP_SurvivalSupplies` is an ordinary placeable ACF pickup with antidote, medicine, washcloths, tea, analgesics and a health potion. It does not overwrite HUB or automatically grant free supplies. Future loot/shop tables can reference the same item classes.
+
 ## Adding an effect or item
 
 Use a stable source ID and refresh/remove only the effect's owned entry. Families prevent farming equivalent benefits. Prefer data/configuration to a new tick or timer. Keep UI a read-only observer. Existing ACF health/status/item contracts remain the integration points; never apply both ACF DOT and the Inner State poison debt for one exposure.

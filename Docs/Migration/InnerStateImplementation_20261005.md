@@ -15,10 +15,10 @@ Implement the conversation-approved system, preserving the existing comma HUD st
 ## Blocks / continuation ledger
 
 1. **PASS (math block only)**: deterministic math, poison ledger, tunable settings, three focused automation tests; protected snapshot unchanged.
-2. **ACTIVE**: runtime component, legacy bridges, save/load/travel, awareness/defeat, air/exposure, slow synergies and states.
-3. PENDING: native consumables and authored assets; medicine/antidote/washing/bathroom/sleep/social/exercise integration and accessible player actions.
-4. PENDING: compact HUD with icons, signed Sensation, conditional afflictions; reusable authoring and QA skills.
-5. PENDING: final runtime/visual/cook/package gates and documentation.
+2. **PASS runtime**: physiology, legacy bridges, awareness/defeat, air/exposure, slow synergies/statuses, component disk and progression snapshot restore. Full ALS/map travel gate recorded below.
+3. **PASS**: seven authored ACF consumables, placeable supplies pickup, existing poison BP adapter, care actions and integration APIs.
+4. **PASS**: compact HUD, vector icons, signed Sensation and three simultaneous afflictions; reusable authoring and bounded global QA skills.
+5. **ACTIVE**: final full ALS/map travel, Game build/cook/package and evidence.
 
 ## Validation budget
 
@@ -39,7 +39,7 @@ User steering during implementation: mandatory REAL gameplay global automation <
 
 ## Completion gates
 
-Build PENDING; mathematical automation PENDING; Blueprint compile PENDING; PIE PENDING; visual QA PENDING; save/travel PENDING; performance PENDING; cook PENDING; packaged validation PENDING; skill validation PENDING; invariants PENDING.
+Editor build PASS; mathematical automation PASS; Blueprint compile PASS; PIE PASS; visual QA PASS; component disk/progression restore PASS; full ALS/map travel PENDING; performance PASS with measured limits below; cook PENDING; packaged validation PENDING; skill metadata validation PASS; protected invariants PASS.
 
 ## Block 1 evidence
 
@@ -60,5 +60,18 @@ Build PENDING; mathematical automation PENDING; Blueprint compile PENDING; PIE P
 - Runtime component now bootstraps beside Needs/Defeat outside dungeon-specific systems; ALS/travel capture includes needs and Inner State. Legacy Pain API is harmful-only, while Sensation supports signed values and normalizes the existing dynamic pain maximum to -100..100.
 - Physiological KO uses Awareness, preserves health/pain on waking, and bypasses the combat struggle freeze/invulnerability. Existing nonphysiological combat flow remains intact.
 - New status definitions, ACF poison adapter (asset reparenting PENDING), configurable consumable base (authored items PENDING), concussive damage type (weapon assignment PENDING), GAS stamina modifier, practice/wellbeing/madness links and Y Care menu are compiled.
-- Care: Rest enters ProjectEmote runtime and recovers Sleep at 15.125 points/calendar hour gross (~12.5 net under normal decay). An empty meter takes ~8 hours =10 real minutes at day1800, or~75 seconds at existing8x time speed if permitted. Y cancels. Wash requires water/head above surface; bathroom anywhere costs5 hygiene. Actual animation/menu behavior PENDING gameplay validation.
+- Care: Rest enters ProjectEmote runtime and recovers Sleep at 15.125 points/calendar hour gross (~12.5 net under normal decay). An empty meter takes ~8 hours =10 real minutes at day1800, or~150 seconds at existing4x time speed if permitted (corrected from the earlier unverified 8x estimate). Y cancels. Wash requires uncontaminated water/head above surface; bathroom anywhere costs5 hygiene. Runtime action and recovery verified in block 3.
 - Remaining integration: exposure volumes, existing wash/social/poison assets, item assets and distribution, runtime performance harness, HUD and final gates. No final completion claim.
+
+## Block 3 evidence (2026-10-05)
+
+- Editor build PASS: `build_qa3.log` (16.77 s incremental); full preceding build `build_qa2.log` (59.73 s). Daz receipt repaired and enabled.
+- Blueprint compile PASS: `Saved/Migration/InnerState20261005/blueprint_compile.json`, 22 affected Blueprints including protected Player compiled without resaving it. `assets_authored.json`: ten authored/adapted assets compiled/saved, all BS_UP_TO_DATE.
+- Gameplay PASS: `Saved/InnerStateQA/20261005_034755/report.json`, **38 checks, 82.23 seconds**, actual possessed `BP_TSChar_C_0` in `UEDPIE_0_HUB`. Real ACF inventory consumption, all acute/slow channels, 200 influence sources, signed compatibility, independent poison latencies, >200 debt, healing/antidote, existing ACF poison retrigger, disk serialization, actual progression snapshot restore, critical sickness treatment, physiological knockout/waking, resting, breathing recovery and real ACF death from asphyxia.
+- Performance: baseline component median45.50 us/p95 150.60 us (51 samples); loaded200 median70.70 us/p95 **207.20 us** (50 samples). Frame median19.36→19.79 ms; p95 23.63→25.33 ms. No per-influence timers. Loaded p95 meets the 1 ms gameplay safety gate but is 7.2 us over the aspirational 0.2 ms target; do not label that aspirational target PASS or claim zero lag.
+- First gameplay run `Saved/InnerStateQA/20261005_033700/report.json`: 84.04 s, functional checks passed, performance FAILED (26.81 ms p95; editor background throttling at 3 FPS). Repeated font loading removed and HUD events coalesced at5 Hz; second run temporarily disabled editor background throttling and restored that preference. Failed evidence retained.
+- Visual PASS (human/model inspection of actual rendered screenshot): `Saved/InnerStateQA/20261005_034755/simultaneous.png`. Existing frames/spacing retained, icons above numbers, six primary rows, negative Sensation/Stimulation/Composure, all three conditional afflictions simultaneously visible. Existing Chronicle/status layout outside these panels was not redesigned.
+- Protected invariants PASS: `Saved/Migration/InnerState20261005/protected_block3.json`, zero changed protected hashes. Source tree and Marketplace/Engine plugins untouched; user HUB/Chest changes remain separate.
+- Skills: `.agents/skills/inner-state-workbench`, `.agents/skills/inner-state-global-qa`; authoring, reporting, setting scenarios, calibration, bounded PIE and package scripts under `Tools/InnerState`.
+- Detailed equations, defaults, durations, content routes and extension contract: [InnerStateTuning.md](InnerStateTuning.md).
+- Full ALS save/load + actual HUB→StorySelection travel and Game/cook/package gates still pending at this checkpoint. No final success claim.
