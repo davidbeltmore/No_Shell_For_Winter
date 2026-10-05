@@ -21,7 +21,15 @@ public:
             TArray<FVector2D> P; for (const auto& V:Points) P.Add(Offset+V*Scale);
             FSlateDrawElement::MakeLines(Out,Layer,G.ToPaintGeometry(),P,ESlateDrawEffect::None,Tint*Style.GetColorAndOpacityTint(),true,1.3f);
         };
-        if (Symbol==TEXT("Stress")) Line({{14,2},{5,13},{11,13},{9,22},{19,10},{13,10},{14,2}});
+        if (Symbol==TEXT("Stress"))
+        {
+            // A controlled circle yields at one point: deformed rim and two separated crack edges.
+            Line({{20.5,9},{21,12},{20.7,14.3},{19.8,16.5},{18.4,18.4},{16.5,19.8},
+                {14.3,20.7},{12,21},{9.7,20.7},{7.5,19.8},{5.6,18.4},{4.2,16.5},
+                {3.3,14.3},{3,12},{3.3,9.7},{4.2,7.5},{5.6,5.6},{7.5,4.2},
+                {9.7,3.3},{12,3},{14.3,3.3},{16,4.8},{14.8,6.7},{17,8.3}});
+            Line({{20.5,9},{22,6.5},{19.7,5.2},{20.5,3.4}});
+        }
         else if (Symbol==TEXT("Stimulation")) Line({{12,21},{3,12},{2,7},{5,3},{9,3},{12,6},{15,3},{19,3},{22,7},{21,12},{12,21}});
         else if (Symbol==TEXT("Hygiene")) { Line({{5,10},{17,10},{20,13},{20,19},{17,22},{5,22},{2,19},{2,13},{5,10}}); Line({{7,14},{15,14},{16,16},{15,18},{7,18}}); Line({{7,3},{9,2},{11,3},{11,5},{9,6},{7,5},{7,3}}); Line({{16,5},{18,4},{20,5},{20,7},{18,8},{16,7},{16,5}}); }
         else if (Symbol==TEXT("Bathroom")) { Line({{4,3},{9,3},{9,12},{21,12},{20,17},{17,19},{17,22},{9,22},{10,17},{6,14},{6,8},{4,8},{4,3}}); Line({{11,9},{21,9}}); }
