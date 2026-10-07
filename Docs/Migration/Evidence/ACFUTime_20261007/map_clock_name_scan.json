@@ -1,0 +1,54 @@
+[
+  {
+    "map": "Content\\_Game\\Hub\\HUB.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\_Game\\Locations\\PCGLevel.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\_Game\\Locations\\StorySelection.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\_Game\\Tests\\ChestProcedural.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\FullMap.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\L_UltOpenWorld.umap",
+    "native_clock_name_clues": [
+      "DaySequence"
+    ]
+  },
+  {
+    "map": "Content\\FullSample\\Test.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\Integrations\\SharedAssets\\L_Landscape.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\Integrations\\SharedAssets\\L_SharedGameplay.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\Integrations\\SubMaps\\L_Gameplay.umap",
+    "native_clock_name_clues": [
+      "DaySequence"
+    ]
+  },
+  {
+    "map": "Content\\FullSample\\Integrations\\SubMaps\\L_Routine.umap",
+    "native_clock_name_clues": []
+  },
+  {
+    "map": "Content\\FullSample\\Integrations\\UIIntegrations\\Level\\MenuMap.umap",
+    "native_clock_name_clues": []
+  }
+]

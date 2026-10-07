@@ -1,0 +1,104 @@
+﻿{
+	"devices": [
+		{
+			"deviceName": "HORIZON",
+			"instance": "E9A228C74A90805EC2668795428401A8",
+			"instanceName": "HORIZON-51540",
+			"platform": "WindowsEditor",
+			"oSVersion": "Windows 11 (25H2) [10.0.26200.9457] ",
+			"model": "Default",
+			"gPU": "NVIDIA GeForce RTX 5070 Ti",
+			"cPUModel": "AMD Ryzen 7 5800X 8-Core Processor             ",
+			"rAMInGB": 48,
+			"renderMode": "SM6",
+			"rHI": "",
+			"appInstanceLog": ""
+		}
+	],
+	"reportCreatedOn": "2026.10.07-08.26.13",
+	"succeeded": 5,
+	"succeededWithWarnings": 0,
+	"failed": 0,
+	"notRun": 0,
+	"inProcess": 0,
+	"totalDuration": 0.092926293611526489,
+	"comparisonExported": false,
+	"comparisonExportDirectory": "",
+	"tests": [
+		{
+			"testDisplayName": "Math",
+			"fullTestPath": "EFProjectSystems.DayCycle.Math",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"E9A228C74A90805EC2668795428401A8"
+			],
+			"duration": 0.0079417973756790161,
+			"dateTime": "2026.10.07-08.26.13",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ACFNativeRoutine",
+			"fullTestPath": "NoShellForWinter.TimeControl.ACFNativeRoutine",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"E9A228C74A90805EC2668795428401A8"
+			],
+			"duration": 0.043179001659154892,
+			"dateTime": "2026.10.07-08.26.13",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ClockSaveRoundTrip",
+			"fullTestPath": "NoShellForWinter.TimeControl.ClockSaveRoundTrip",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"E9A228C74A90805EC2668795428401A8"
+			],
+			"duration": 0.018474597483873367,
+			"dateTime": "2026.10.07-08.26.13",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "NeedRateEquivalence",
+			"fullTestPath": "NoShellForWinter.TimeControl.NeedRateEquivalence",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"E9A228C74A90805EC2668795428401A8"
+			],
+			"duration": 0.020766600966453552,
+			"dateTime": "2026.10.07-08.26.13",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		},
+		{
+			"testDisplayName": "ScaleAndCalendar",
+			"fullTestPath": "NoShellForWinter.TimeControl.ScaleAndCalendar",
+			"tags": [],
+			"state": "Success",
+			"deviceInstance": [
+				"E9A228C74A90805EC2668795428401A8"
+			],
+			"duration": 0.0025642998516559601,
+			"dateTime": "2026.10.07-08.26.13",
+			"entries": [],
+			"warnings": 0,
+			"errors": 0,
+			"artifacts": []
+		}
+	]
+}

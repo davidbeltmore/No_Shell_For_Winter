@@ -1,0 +1,297 @@
+{
+  "version": "4.4.2",
+  "engine": "5.8.0",
+  "plugin_build_id": "55116800",
+  "engine_build_id": "55116800",
+  "build_id_matches": true,
+  "modules": [
+    {
+      "module": "AscentCombatFramework",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentCombatFramework.dll",
+      "exists": true
+    },
+    {
+      "module": "AdvancedRPGSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AdvancedRPGSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AIFramework",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AIFramework.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentCoreInterfaces",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentCoreInterfaces.dll",
+      "exists": true
+    },
+    {
+      "module": "CinematicCameraManager",
+      "type": "Runtime",
+      "binary": "UnrealEditor-CinematicCameraManager.dll",
+      "exists": true
+    },
+    {
+      "module": "CollisionsManager",
+      "type": "Runtime",
+      "binary": "UnrealEditor-CollisionsManager.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentTargetingSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentTargetingSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "CraftingSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-CraftingSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "CombinedAnimationsSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-CombinedAnimationsSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "MountSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-MountSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "ExecutionsSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-ExecutionsSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "InventorySystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-InventorySystem.dll",
+      "exists": true
+    },
+    {
+      "module": "MusicManager",
+      "type": "Runtime",
+      "binary": "UnrealEditor-MusicManager.dll",
+      "exists": true
+    },
+    {
+      "module": "SpellActions",
+      "type": "Runtime",
+      "binary": "UnrealEditor-SpellActions.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentSaveSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentSaveSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "ActionsSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-ActionsSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentEditorExtensions",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentEditorExtensions.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentEditor",
+      "type": "UncookedOnly",
+      "binary": "UnrealEditor-AscentEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "CharacterController",
+      "type": "Runtime",
+      "binary": "UnrealEditor-CharacterController.dll",
+      "exists": true
+    },
+    {
+      "module": "VehicleSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-VehicleSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "UnitsSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-UnitsSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "StatusEffectSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-StatusEffectSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentStateMachine",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentStateMachine.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentStateMachineEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentStateMachineEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentComboGraphEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentComboGraphEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentQuestSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentQuestSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentQuestSystemEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentQuestSystemEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AGSGraphRuntime",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AGSGraphRuntime.dll",
+      "exists": true
+    },
+    {
+      "module": "AGSGraphEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AGSGraphEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentDialogueSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentDialogueSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentDialogueSystemEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentDialogueSystemEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentUITools",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentUITools.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentUINavigationSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentUINavigationSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentLoadingScreen",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentLoadingScreen.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentMapsSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentMapsSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentMapsEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentMapsEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentMoralitySystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentMoralitySystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentComboGraph",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentComboGraph.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentCheatManager",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentCheatManager.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentGASEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentGASEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentAttributeEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentAttributeEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentAttributeGraphEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentAttributeGraphEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentGASRuntime",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentGASRuntime.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentSkillTreeEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentSkillTreeEditor.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentSkillTree",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentSkillTree.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentTeams",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentTeams.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentBuildingSystem",
+      "type": "Runtime",
+      "binary": "UnrealEditor-AscentBuildingSystem.dll",
+      "exists": true
+    },
+    {
+      "module": "AscentSaveSystemEditor",
+      "type": "Editor",
+      "binary": "UnrealEditor-AscentSaveSystemEditor.dll",
+      "exists": true
+    }
+  ]
+}

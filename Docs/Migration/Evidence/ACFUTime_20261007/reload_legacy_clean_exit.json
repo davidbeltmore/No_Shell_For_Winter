@@ -1,0 +1,38 @@
+{
+  "started": 50430.343,
+  "phase": "activity_finish",
+  "expected_hours": 0.5098437916239105,
+  "legacy_save": true,
+  "blueprints": [
+    {
+      "path": "/Game/FullSample/Player",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/TattooShop/Blueprints/TSCharacter/BP_TSChar",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/UI/CharacterBackground/WBP_ProjectCharacterBackgroundCreationWidget",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "since": 50452.953,
+  "retains_pause_after_external_release": true,
+  "restored_hours": 0.5151771306991577,
+  "native_hours": 0.5151771306991577,
+  "speed": 1.0,
+  "loaded": true,
+  "activity_clock": 0.5617996454238892,
+  "activity_hours": 0.014291907946268717,
+  "status_remaining": 30.0,
+  "training_clock_error_hours": 2.066294349511999e-08,
+  "status_clock_error_seconds": 1.430511474609375e-06,
+  "frozen_training": 0.13873641331990558,
+  "frozen_status": 20.666662216186523,
+  "frozen_calendar": 0.6862441301345825,
+  "activity_status_pause": true,
+  "book_completed_hours": 0.4,
+  "status_expired": true,
+  "error": ""
+}

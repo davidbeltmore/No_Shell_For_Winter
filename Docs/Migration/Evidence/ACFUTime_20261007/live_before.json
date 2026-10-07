@@ -1,0 +1,12 @@
+{
+  "project": "../../../../../../Projects UE5/NoShellForWinter/",
+  "world": "/Game/_Game/Hub/HUB.HUB",
+  "dirty_content": [],
+  "dirty_maps": [],
+  "day_actors": [],
+  "acf_time_is_day_sequence": true,
+  "day_length": "<Struct 'DaySequenceTime' (0x000001CBB770B554) {}>",
+  "time_per_cycle": "<Struct 'DaySequenceTime' (0x000001CBB770B560) {}>",
+  "initial_time_of_day": "<Struct 'DaySequenceTime' (0x000001CBB770B56C) {}>",
+  "day_sequence_collections": "[\"/Script/DaySequence.DaySequenceCollectionAsset'/DaySequence/DSCA_24hr.DSCA_24hr'\"]"
+}

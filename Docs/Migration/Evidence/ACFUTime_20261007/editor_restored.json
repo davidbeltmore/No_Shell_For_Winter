@@ -1,0 +1,11 @@
+{
+  "project": "D:/Projects UE5/NoShellForWinter/NoShellForWinter.uproject",
+  "implementation_commit": "f6f19e8449ec9a094397ae12d1bd3887f4a14789",
+  "server": "http://127.0.0.1:8000/mcp",
+  "level_tool": "editor_toolset.toolsets.scene.SceneTools.get_current_level",
+  "level": "/Game/_Game/Hub/HUB",
+  "pie_tool": "EditorToolset.EditorAppToolset.IsPIERunning",
+  "pie_running": false,
+  "launcher": "Tools/Migration/Launch-NoShellForWinterEditor58.ps1",
+  "daz_receipt_guard": "PASS"
+}

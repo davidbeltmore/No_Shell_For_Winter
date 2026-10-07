@@ -1,0 +1,130 @@
+﻿{
+    "cook_warnings":  26,
+    "legacy_reload_exit":  0,
+    "package_exit":  0,
+    "source":  [
+                   {
+                       "sha256":  "02F451977F4FC73119E2CFDDC5AE55723A8AE63E03DAAF5E7844D08FB1D14629",
+                       "path":  "Plugins/EFProjectSystems/EFProjectSystems.uplugin"
+                   },
+                   {
+                       "sha256":  "74C4EE27335AF22540A9952CC1EBB9E200A2F7313B51AC66EFE8D17F9915A018",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsEditor/EFProjectSystemsEditor.Build.cs"
+                   },
+                   {
+                       "sha256":  "27261C63707C72BB7338B3B5477D9671A32A36C8E4C5D5A45A386D05DF096F49",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsEditor/Tests/ProjectTimeControlTests.cpp"
+                   },
+                   {
+                       "sha256":  "568EC36E2D5DA33DCE5559C7B9E6E5C85430F354DBC005854107B0926B3BBF52",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectDayCycleStateActor.cpp"
+                   },
+                   {
+                       "sha256":  "1C78CE2138A7430CC713CDC9F9534CAC4039A11E59C425585855C9A812613BBF",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectDayCycleStateActor.h"
+                   },
+                   {
+                       "sha256":  "6077F386B55C87A586D0CFCF781C4405BEE6F51A2AFCE1FA9E6D074E3EFA2AE5",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectDayCycleSubsystem.cpp"
+                   },
+                   {
+                       "sha256":  "B3C2809300BC5C6BA05FA74938884C73D62739241CD4826E905F1FD0D0963C4C",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectTimeControl.cpp"
+                   },
+                   {
+                       "sha256":  "32B8CF3D2A8AA442F0A1777ABAD4C12C7F455C76C6CB8B3689992601155FD58D",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/EFProjectSystemsGameplay.Build.cs"
+                   },
+                   {
+                       "sha256":  "3A15E58737C869C538DF35C5D831ED3BA785C6F3052180AE0CDB79321069BBD0",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/InnerDoctrine/ProjectInnerDoctrineWidget.cpp"
+                   },
+                   {
+                       "sha256":  "7E5458B85B0C471EFFBB1122529F2EC9A598FD3331F336C642D09AA344F29417",
+                       "path":  "Tools/Migration/ACFUTimeProtection58.py"
+                   },
+                   {
+                       "sha256":  "7911CE457E332A948ECAF99DEB709B44F0732C93C0604BF6366AD745325C4405",
+                       "path":  "Tools/Migration/Inspect-ACFUTime58.py"
+                   },
+                   {
+                       "sha256":  "5D4817F0A62389284FD5753C53F72DDE8E1E53516B16D3F5EE56B8C51B1D4860",
+                       "path":  "Tools/Migration/Run-TimeControl58.ps1"
+                   },
+                   {
+                       "sha256":  "2A0ECAE9647297CEBA461DE203EAED69229E80E2154C9713F34B4BA2F915841E",
+                       "path":  "Tools/Migration/Validate-TimeControlPIE58.py"
+                   },
+                   {
+                       "sha256":  "EB1F45DD9360B48703A3E2B834C1D79CFB118E5BD4153A6914313598DF5F4ADF",
+                       "path":  "Tools/Migration/Validate-TimeControlPackaged58.ps1"
+                   },
+                   {
+                       "sha256":  "079D207DC584C0EFAC2BC37615890BA66652158843F210B035009DEBEB8B2DA3",
+                       "path":  "Tools/Migration/Validate-TimeReloadPIE58.py"
+                   }
+               ],
+    "artifacts":  [
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ACFUTime20261007\\editor_build5.log",
+                          "sha256":  "33E023E573F31B8F00D5A1A61BC5E0BE75E61933DCA0EC35D56F911E38F98974",
+                          "bytes":  9920
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ACFUTime20261007\\game_build.log",
+                          "sha256":  "AE3B8F2E0E7213CCB724CC9E44FE9B9D1DF064D0B28FEF3C2793820650C7BED2",
+                          "bytes":  27322
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ACFUTime20261007\\protected_before.json",
+                          "sha256":  "BE307B1B26FCA549A2612528527077300F8D5A41906B1A14ACEDC56A29B22DAF",
+                          "bytes":  1973738
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\Automation_20261007_032516\\index.json",
+                          "sha256":  "811393FCB88B5F9FED0A2BE3AA859ED3639E0DBB9EB326A3FDE1A37D53560416",
+                          "bytes":  2639
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\Visual_20261007_033525\\receipt.json",
+                          "sha256":  "6F564D7251D4E6558B4A5DB6AA9A9B1AD4E188C0DAC6E3B2141B019315C472AC",
+                          "bytes":  7216
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\Reload_20261007_034336\\editor.log",
+                          "sha256":  "C33B05C442A45BDA53811037A12E40380E1AB377291E784D5899CC88F258AC3E",
+                          "bytes":  655065
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\Reload_20261007_034336\\receipt.json",
+                          "sha256":  "9C21B6AAB13FAE00F4495C0DBE38B3C26C375524E65CC6946FADFDAF1C623D4C",
+                          "bytes":  1204
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\Package_20261007_034521\\uat.log",
+                          "sha256":  "52759F8B978066075CC70D990BBDD25DBEB995137D15F80268980580A34152E2",
+                          "bytes":  577690
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\PackagedQA_20261007_034845\\game.log",
+                          "sha256":  "7B6641BB911F05C14BD3BF0D87A80D410A0A5E4C3BC5AF956CE103F4D68892A9",
+                          "bytes":  192011
+                      },
+                      {
+                          "path":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\PackagedQA_20261007_034845\\receipt.json",
+                          "sha256":  "F0203FE4DE5CA9E9E03760EB8C74EE606E74335FDBBE822F5350933211597265",
+                          "bytes":  3281
+                      }
+                  ],
+    "editor_build":  "PASS",
+    "cook_errors":  0,
+    "protected_changed":  0,
+    "packaged_runtime_exit":  0,
+    "target":  "D:\\Projects UE5\\NoShellForWinter",
+    "visual_checks_passed":  72,
+    "game_build":  "PASS",
+    "automation_passed":  5,
+    "implementation_commit":  "f6f19e8449ec9a094397ae12d1bd3887f4a14789",
+    "generated_utc":  "2026-10-07T08:50:47.9178601Z",
+    "protected_files":  7899
+}

@@ -1,0 +1,81 @@
+﻿{
+    "reports":  [
+                    {
+                        "hours":  0.021039359,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.035462555,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  2
+                    },
+                    {
+                        "hours":  0.071986437,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  4
+                    },
+                    {
+                        "hours":  0.096719012,
+                        "reason":  "Resume time before changing its speed.",
+                        "paused":  1,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.096719012,
+                        "reason":  "Resume time before changing its speed.",
+                        "paused":  1,
+                        "speed":  1
+                    },
+                    {
+                        "hours":  0.10249491,
+                        "reason":  "",
+                        "paused":  0,
+                        "speed":  1
+                    }
+                ],
+    "exit_code":  0,
+    "isolated_user_dir":  "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\TimeControl\\PackagedQA_20261007_034845\\UserData",
+    "native_reports":  [
+                           {
+                               "shared":  1,
+                               "calendar":  0.021039359,
+                               "native":  0.021039359,
+                               "apparent":  0.021039359
+                           },
+                           {
+                               "shared":  1,
+                               "calendar":  0.035462555,
+                               "native":  0.035462555,
+                               "apparent":  0.035462555
+                           },
+                           {
+                               "shared":  1,
+                               "calendar":  0.071986437,
+                               "native":  0.071986437,
+                               "apparent":  0.071986437
+                           },
+                           {
+                               "shared":  1,
+                               "calendar":  0.096719012,
+                               "native":  0.096719012,
+                               "apparent":  0.096719012
+                           },
+                           {
+                               "shared":  1,
+                               "calendar":  0.096719012,
+                               "native":  0.096719012,
+                               "apparent":  0.096719012
+                           },
+                           {
+                               "shared":  1,
+                               "calendar":  0.10249491,
+                               "native":  0.10249491,
+                               "apparent":  0.10249491
+                           }
+                       ],
+    "passed":  true
+}
