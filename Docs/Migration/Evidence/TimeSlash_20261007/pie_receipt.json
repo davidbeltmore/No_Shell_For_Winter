@@ -1,0 +1,186 @@
+{
+  "started": 87970.14,
+  "phase": "closed_selector",
+  "checks": [
+    {
+      "label": "Compile /Game/FullSample/Player",
+      "passed": true
+    },
+    {
+      "label": "Compile /Game/FullSample/Integrations/SharedAssets/ACF_PauseMenu_WB",
+      "passed": true
+    },
+    {
+      "label": "Compile /Game/FullSample/Integrations/UIIntegrations/Widgets/Time/ACFTimeTravel_WB",
+      "passed": true
+    },
+    {
+      "label": "Key step 0 Equals",
+      "passed": true
+    },
+    {
+      "label": "Key step 1 Equals",
+      "passed": true
+    },
+    {
+      "label": "Key step 2 Equals",
+      "passed": true
+    },
+    {
+      "label": "Key step 3 Hyphen",
+      "passed": true
+    },
+    {
+      "label": "Key step 4 Hyphen",
+      "passed": true
+    },
+    {
+      "label": "Key step 5 Hyphen",
+      "passed": true
+    },
+    {
+      "label": "Key step 6 Hyphen",
+      "passed": true
+    },
+    {
+      "label": "Key step 7 Equals",
+      "passed": true
+    },
+    {
+      "label": "P opens native ACF menu from timeline pause",
+      "passed": true
+    },
+    {
+      "label": "Equals cannot release native menu pause",
+      "passed": true
+    },
+    {
+      "label": "P closes native menu and preserves timeline pause",
+      "passed": true
+    },
+    {
+      "label": "Slash opens paused wait selector",
+      "passed": true
+    },
+    {
+      "label": "Wait selector shows mouse cursor",
+      "passed": true
+    },
+    {
+      "label": "Confirm short bounded wait",
+      "passed": true
+    },
+    {
+      "label": "Wait starts at x4",
+      "passed": true
+    },
+    {
+      "label": "Wait completes automatically at x1",
+      "passed": true
+    },
+    {
+      "label": "Wait simulated elapsed hours",
+      "passed": true
+    },
+    {
+      "label": "Wait retains native calendar agreement",
+      "passed": true
+    },
+    {
+      "label": "Confirm long cancel fixture",
+      "passed": true
+    },
+    {
+      "label": "Minus cancels wait and steps x4 to x2",
+      "passed": true
+    },
+    {
+      "label": "P opens exactly one native pause menu from running",
+      "passed": true
+    },
+    {
+      "label": "P resumes native menu at x1",
+      "passed": true
+    },
+    {
+      "label": "Slash closes selector without waiting",
+      "passed": true
+    }
+  ],
+  "blueprints": [
+    {
+      "path": "/Game/FullSample/Player",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/SharedAssets/ACF_PauseMenu_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/Time/ACFTimeTravel_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "since": 87998.765,
+  "step": 8,
+  "step_observations": [
+    {
+      "key": "Equals",
+      "speed": 2.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Equals",
+      "speed": 4.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Equals",
+      "speed": 4.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Hyphen",
+      "speed": 2.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Hyphen",
+      "speed": 1.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Hyphen",
+      "speed": 1.0,
+      "paused": true,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Hyphen",
+      "speed": 1.0,
+      "paused": true,
+      "wait_open": false,
+      "native_open": false
+    },
+    {
+      "key": "Equals",
+      "speed": 1.0,
+      "paused": false,
+      "wait_open": false,
+      "native_open": false
+    }
+  ],
+  "wait_start": 0.10595223307609558,
+  "error": ""
+}

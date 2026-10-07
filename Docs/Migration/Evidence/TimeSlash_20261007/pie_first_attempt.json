@@ -1,0 +1,47 @@
+{
+  "started": 87824.515,
+  "phase": "steps",
+  "checks": [
+    {
+      "label": "Compile /Game/FullSample/Player",
+      "passed": true
+    },
+    {
+      "label": "Compile /Game/FullSample/Integrations/SharedAssets/ACF_PauseMenu_WB",
+      "passed": true
+    },
+    {
+      "label": "Compile /Game/FullSample/Integrations/UIIntegrations/Widgets/Time/ACFTimeTravel_WB",
+      "passed": true
+    },
+    {
+      "label": "Key step 0 Equals",
+      "passed": true
+    },
+    {
+      "label": "Key step 1 Equals",
+      "passed": true
+    },
+    {
+      "label": "Key step 2 Equals",
+      "passed": false
+    }
+  ],
+  "blueprints": [
+    {
+      "path": "/Game/FullSample/Player",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/SharedAssets/ACF_PauseMenu_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "path": "/Game/FullSample/Integrations/UIIntegrations/Widgets/Time/ACFTimeTravel_WB",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "since": 87836.343,
+  "step": 2,
+  "error": "Traceback (most recent call last):\n  File \"D:/Projects UE5/NoShellForWinter/Tools/Migration/Validate-TimeKeysPIE58.py\", line 72, in tick\n    check('Key step '+str(state['step'])+' '+name,unreal.GameplayStatics.get_global_time_dilation(world)==speed and unreal.GameplayStatics.is_game_paused(world)==paused)\n  File \"D:/Projects UE5/NoShellForWinter/Tools/Migration/Validate-TimeKeysPIE58.py\", line 16, in check\n    if not passed: raise RuntimeError(label)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Key step 2 Equals\n"
+}

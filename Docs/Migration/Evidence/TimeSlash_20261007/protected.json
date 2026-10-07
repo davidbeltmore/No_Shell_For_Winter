@@ -1,0 +1,9 @@
+{
+  "manifest": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Analysis\\ACFUTime20261007\\protected_slash_release.json",
+  "sha256": "722e01b0f65cd1729c5318f111546cad4583ba212da9046ad74576812a5d788c",
+  "commit": "0c6961bfdcbc2ec5b415b4b0c8af6389678ea2dc",
+  "status": "PASS",
+  "count": 7899,
+  "changed": [],
+  "baseline": "Docs/Migration/Evidence/ACFUTime_20261007/protected_final.json"
+}
