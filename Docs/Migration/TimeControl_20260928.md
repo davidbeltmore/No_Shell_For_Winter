@@ -7,7 +7,7 @@ Starting commit: `5f48f230`. Existing HUB/Chest/cleanup changes are unrelated an
 
 - One world simulation, native global dilation 1/2/4, real engine pause.
 - Default calendar day: 1800 simulation seconds. At x1 one calendar hour is 75 real seconds; at x4 it is 18.75 seconds.
-- Controls: P or Pause toggles player pause; F6/F7/F8 request x1/x2/x4. Existing T/Plus/Minus and gameplay inputs remain assigned to their original actions.
+- Historical controls at this snapshot: P or Pause toggled player pause; F6/F7/F8 requested x1/x2/x4. Superseded by the explicit October 7 request: see `TimeKeys_20261007.md` for -/=, native P menu and apostrophe wait.
 - Acceleration requires standalone, a living initialized pawn with a valid ACF team, and an exact allowed map package (HUB or StorySelection).
 - Nearby hostile ACF teams (30 m), a pursuing ACF AI, damage, critical needs, manual timing minigames, and loading/saving prevent acceleration. Automatic stops do not automatically resume acceleration.
 - Named pause owners compose: releasing a modal's pause cannot release the player's pause. Resume returns to x1.

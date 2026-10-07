@@ -1,0 +1,80 @@
+{
+  "dirty_maps": [],
+  "dirty_content": [],
+  "/Game/FullSample/Integrations/SharedAssets/ACF_PauseMenu_WB": {
+    "type": "<class 'ANSNavPageWidget'>",
+    "methods": [
+      "activate_widget",
+      "bp_on_widget_activated",
+      "bp_on_widget_deactivated",
+      "deactivate_widget",
+      "get_animation_current_time",
+      "get_focused_widget",
+      "go_to_previous_widget",
+      "go_to_widget",
+      "on_focused_widget_changed",
+      "on_widget_removed",
+      "pause_animation",
+      "play_animation_at_time",
+      "play_animation_time_range",
+      "queue_pause_animation",
+      "queue_play_animation_time_range",
+      "set_animation_current_time",
+      "set_desired_focus_widget",
+      "set_focus_to_widget",
+      "tool_tip_widget"
+    ]
+  },
+  "/Game/FullSample/Integrations/UIIntegrations/Widgets/Time/ACFTimeTravel_WB": {
+    "type": "<class 'ANSNavPopUpWidget'>",
+    "methods": [
+      "activate_widget",
+      "bp_on_widget_activated",
+      "bp_on_widget_deactivated",
+      "deactivate_widget",
+      "get_animation_current_time",
+      "get_focused_widget",
+      "go_to_previous_widget",
+      "go_to_widget",
+      "on_focused_widget_changed",
+      "on_widget_removed",
+      "pause_animation",
+      "play_animation_at_time",
+      "play_animation_time_range",
+      "queue_pause_animation",
+      "queue_play_animation_time_range",
+      "set_animation_current_time",
+      "set_desired_focus_widget",
+      "set_focus_to_widget",
+      "tool_tip_widget"
+    ]
+  },
+  "/Game/FullSample/Integrations/Ultimate/Blueprint/Game/ACFUltimatePlayerControllerBP": {
+    "type": "<class 'ACFCompanionsPlayerController'>",
+    "methods": [
+      "custom_time_dilation",
+      "get_actor_time_dilation",
+      "get_game_time_since_creation",
+      "get_input_key_time_down",
+      "get_tickable_when_paused",
+      "runtime_grid",
+      "set_mouse_cursor_widget",
+      "set_tickable_when_paused",
+      "should_perform_full_tick_when_paused"
+    ]
+  },
+  "/Game/FullSample/Blueprints/Game/ACFFullPlayerControllerBP": {
+    "type": "<class 'ACFCompanionsPlayerController'>",
+    "methods": [
+      "custom_time_dilation",
+      "get_actor_time_dilation",
+      "get_game_time_since_creation",
+      "get_input_key_time_down",
+      "get_tickable_when_paused",
+      "runtime_grid",
+      "set_mouse_cursor_widget",
+      "set_tickable_when_paused",
+      "should_perform_full_tick_when_paused"
+    ]
+  }
+}

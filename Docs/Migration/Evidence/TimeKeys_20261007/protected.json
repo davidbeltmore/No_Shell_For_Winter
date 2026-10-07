@@ -1,0 +1,12 @@
+﻿{
+    "files":  7899,
+    "release_sha256":  "B7EFD41A0630F46B3376A3CFC3F01FC6CCE504DD793DF6A3BAFB3FF3AF8DD300",
+    "changed":  [
+
+                ],
+    "release_manifest":  "Saved/Analysis/ACFUTime20261007/protected_input_release.json",
+    "baseline_manifest":  "Docs/Migration/Evidence/ACFUTime_20261007/protected_final.json",
+    "status":  "PASS",
+    "phase":  "input_release",
+    "commit":  "e6f5859b93b331d28d9c889528ae26c04dff7b98"
+}

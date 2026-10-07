@@ -1,0 +1,104 @@
+﻿{
+    "source":  [
+                   {
+                       "sha256":  "24A9C4D6A51EAA176B72B626C0288894131F9BD339872A879482B0011FEAB976",
+                       "path":  "Config/DefaultGame.ini"
+                   },
+                   {
+                       "sha256":  "DA7756CD12AFE7931B847E16F834600121F741B67734D3715EFDD2A8BE6FD8AB",
+                       "path":  "Config/DefaultPlugins.ini"
+                   },
+                   {
+                       "sha256":  "9F8CE82DDEF47E14BB784A54CCF26E974B3408E5BEC6994DB1CA33418AC89F2A",
+                       "path":  "Plugins/EFProjectSystems/EFProjectSystems.uplugin"
+                   },
+                   {
+                       "sha256":  "823183CEEA244C64C72C8136893C0F246D99EB46EF49C60C573DED29B474A3ED",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectDayCycleSubsystem.h"
+                   },
+                   {
+                       "sha256":  "CE53FEE674C45ED055E5715F93DE8795358A627F585648F8936DBC3A76518B50",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectDayCycleWidget.cpp"
+                   },
+                   {
+                       "sha256":  "9F7DD7D5CBFEE84A93D42FDB3D10D1AC824E130B53E99DB26BDD09C93A6B1C78",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectTimeControl.cpp"
+                   },
+                   {
+                       "sha256":  "4F088F21E28DC4FD17CE36C1522E38F8170F94F2119C3EB2D2C69AED50049680",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectTimeMenus.cpp"
+                   },
+                   {
+                       "sha256":  "8D040E18C82F48E8375C7BAB5789DC2A8E832DD02B659B1F6EFF38D867B74CED",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectWaitWidget.cpp"
+                   },
+                   {
+                       "sha256":  "826CF51CB77A6E2294C792685C9C2A4E9DCC940992B98D8A8B25D546ADFBC470",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/DayCycle/ProjectWaitWidget.h"
+                   },
+                   {
+                       "sha256":  "CA4558CDE5C44AAFCB3B29B3C57C156529E517B4D03B5A99BB1F3D6DD5662586",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/EFProjectSystemsGameplay.Build.cs"
+                   },
+                   {
+                       "sha256":  "A057760CDF29F86C4EBEB7FCB3BA06D74A82D433CCA0186DB70DE3188D5F5F66",
+                       "path":  "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/UI/ProjectEmoteSubsystem.cpp"
+                   },
+                   {
+                       "sha256":  "6F29E8226161D8C0B1736AE6E0BC7F0ECC1F1242FFFDDB1299E6D231C1AC3492",
+                       "path":  "Tools/Migration/Inspect-TimeMenus58.py"
+                   },
+                   {
+                       "sha256":  "9BC63E031726319EE939FB8CA7B086856F5F3D721E56B1261DC14434B2D7AA6A",
+                       "path":  "Tools/Migration/Run-TimeKeys58.ps1"
+                   },
+                   {
+                       "sha256":  "8DE465A692244BBF7A35AA5FD638B45C416E93C5C8AD0BB7413A0AEB67787536",
+                       "path":  "Tools/Migration/Validate-TimeKeysPIE58.py"
+                   },
+                   {
+                       "sha256":  "32C98948F9670CEED817C41A91EA33417C58616C41B2C0877A25B15B6962A989",
+                       "path":  "Tools/Migration/Validate-TimeKeysPackaged58.ps1"
+                   }
+               ],
+    "packaged_exit_code":  0,
+    "pie_functional_checks":  26,
+    "packaged_checks":  9,
+    "cook_warnings":  26,
+    "native_pause_visual":  "PASS including keyboard legends",
+    "wait_visual":  "PASS",
+    "commit":  "e6f5859b93b331d28d9c889528ae26c04dff7b98",
+    "artifacts":  [
+                      {
+                          "sha256":  "3EE219EA5DE3FAB574E37AC2E3608BE04310CC31ADF25E137F641A5A15EC4D88",
+                          "path":  "Saved/Analysis/TimeKeys20261007/editor_build4.log"
+                      },
+                      {
+                          "sha256":  "B18DFDE843C586DC4415ECD2F8E1E6923BDF25092AEF1B5B05F1195F3B5BEEBE",
+                          "path":  "Saved/Analysis/TimeKeys20261007/game_build.log"
+                      },
+                      {
+                          "sha256":  "9BBABCF0D81E15EA3F3E8A60BDC59893327F4819FA68E421A598FEACC0DE5CF6",
+                          "path":  "Saved/Analysis/TimeKeys20261007/PIE_20261007_132419/editor.log"
+                      },
+                      {
+                          "sha256":  "8839DBD92F564653A2309ACE7AE381DE94C6F506864B68911E8354E2765885A9",
+                          "path":  "Saved/Analysis/TimeKeys20261007/PIE_20261007_132419/receipt.json"
+                      },
+                      {
+                          "sha256":  "366DB1ED5539E7CC75EEEF04F6F4D8408790A4088B5FC513179691C6F5296955",
+                          "path":  "Saved/Analysis/TimeControl/Package_20261007_133358/uat.log"
+                      },
+                      {
+                          "sha256":  "50799C5FEBC086E94DC759A6FAF2D20A614BC557DF40C4E3B2BC378BD798EAFB",
+                          "path":  "Saved/Analysis/TimeKeys20261007/Packaged_20261007_133739/game.log"
+                      },
+                      {
+                          "sha256":  "7B06164FBE123F400CD7ACC6C062C6569C4B4B11596439C59060564FECD6D114",
+                          "path":  "Saved/Analysis/TimeKeys20261007/Packaged_20261007_133739/receipt.json"
+                      }
+                  ],
+    "protected":  "PASS",
+    "pie_exit_code":  -1073741819,
+    "cook_errors":  0
+}
