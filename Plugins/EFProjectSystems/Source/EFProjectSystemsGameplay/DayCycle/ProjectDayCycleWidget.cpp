@@ -111,7 +111,7 @@ void UProjectDayCycleWidget::ApplySnapshot(const FProjectDayCycleSnapshot& Snaps
 		CurrentTimeText->SetText(FText::Format(LOCTEXT("ClockSpeed", "{0}  {1}"),
 			ProjectDayCycleWidgetPrivate::Format24HourTime(Snapshot.NormalizedDayProgress),
 			Snapshot.bPaused ? LOCTEXT("Paused", "PAUSED") : FText::FromString(FString::Printf(TEXT("x%.0f"), Snapshot.TimeSpeed))));
-		CurrentTimeText->SetToolTipText(FText::Format(LOCTEXT("TimeKeys", "P: Pause/resume | F6: x1 | F7: x2 | F8: x4\n{0}"), Snapshot.TimeControlMessage));
+		CurrentTimeText->SetToolTipText(FText::Format(LOCTEXT("TimeKeysV2", "- / =: Paused, x1, x2, x4 | P: Pause menu | ': Wait\n{0}"), Snapshot.TimeControlMessage));
 	}
 
 	const float SegmentPosition = FMath::Clamp(Snapshot.NormalizedDayProgress, 0.0f, 1.0f) * 3.0f;

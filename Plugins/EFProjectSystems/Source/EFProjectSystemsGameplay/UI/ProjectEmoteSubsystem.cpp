@@ -2106,7 +2106,7 @@ void UProjectEmoteSubsystem::HandleAllowedPausePressed()
 		return;
 	}
 
-	if (auto* Clock = World->GetSubsystem<UProjectDayCycleSubsystem>()) Clock->TogglePlayerPause();
+	if (auto* Clock = World->GetSubsystem<UProjectDayCycleSubsystem>()) Clock->ToggleNativePauseMenu();
 }
 
 void UProjectEmoteSubsystem::HandleBlockedActiveEmoteInput()

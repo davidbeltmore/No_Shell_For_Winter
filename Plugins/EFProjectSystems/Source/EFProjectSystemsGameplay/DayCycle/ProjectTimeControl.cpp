@@ -27,6 +27,9 @@
 #include "ACFTrainingComponent.h"
 #include "UI/ProjectActivityFeedSubsystem.h"
 #include "DaySequenceSubsystem.h"
+#include "DayCycle/ProjectWaitWidget.h"
+#include "ANSUIPlayerSubsystem.h"
+#include "CommonActivatableWidget.h"
 
 #define LOCTEXT_NAMESPACE "ProjectTimeControl"
 
@@ -68,6 +71,11 @@ double UProjectDayCycleSubsystem::GetCalendarHours() const
 
 bool UProjectDayCycleSubsystem::CanFastForward(FText& OutReason) const
 {
+	return CanFastForwardInternal(OutReason, false);
+}
+
+bool UProjectDayCycleSubsystem::CanFastForwardInternal(FText& OutReason, bool bIgnorePlayerPause) const
+{
 	const UWorld* World = GetWorld();
 	const auto* Settings = UProjectDayCycleSettings::Get();
 	const APawn* Player = World && World->GetFirstPlayerController() ? World->GetFirstPlayerController()->GetPawn() : nullptr;
@@ -78,7 +86,7 @@ bool UProjectDayCycleSubsystem::CanFastForward(FText& OutReason) const
 	if (!World->StreamingLevelsPrefix.IsEmpty()) Package.ReplaceInline(*World->StreamingLevelsPrefix, TEXT(""));
 	if (!Settings->FastForwardMaps.ContainsByPredicate([&Package](const FSoftObjectPath& Map) { return Map.GetLongPackageName() == Package; }))
 		return Deny(LOCTEXT("UnsafeMap", "Time acceleration is available in HUB and StorySelection."));
-	if (UGameplayStatics::IsGamePaused(World))
+	if (UGameplayStatics::IsGamePaused(World) && !(bIgnorePlayerPause && PauseReasons.Num() == 1 && PauseReasons.Contains(TEXT("Player")) && !IsTimeMenuOpen()))
 		return Deny(LOCTEXT("Paused", "Resume time before changing its speed."));
 	if (World->GetTimeSeconds() < DamageBlockUntil)
 		return Deny(LOCTEXT("Damage", "Time acceleration stopped after taking damage."));
@@ -194,7 +202,7 @@ bool UProjectDayCycleSubsystem::HasTimeInputFocus() const
 bool UProjectDayCycleSubsystem::ShouldBlockPausedGameplayInput() const
 {
 	return PauseReasons.Num() == 1 && PauseReasons.Contains(TEXT("Player"))
-		&& UGameplayStatics::IsGamePaused(GetWorld()) && HasTimeInputFocus();
+		&& !IsTimeMenuOpen() && UGameplayStatics::IsGamePaused(GetWorld()) && HasTimeInputFocus();
 }
 
 bool UProjectDayCycleSubsystem::RouteTimeKey(const FKeyEvent& Event)
@@ -203,17 +211,23 @@ bool UProjectDayCycleSubsystem::RouteTimeKey(const FKeyEvent& Event)
 	const auto Focused = FSlateApplication::Get().GetKeyboardFocusedWidget();
 	if (Focused.IsValid() && Focused->GetTypeAsString().Contains(TEXT("EditableText"))) return false;
 	const FKey Key = Event.GetKey();
-	if (Key != EKeys::P && Key != EKeys::Pause && Key != EKeys::F6 && Key != EKeys::F7 && Key != EKeys::F8)
+	// P belongs to the native ACF menu. Unshifted top-row -/= own time;
+	// numpad +/- and shifted chords retain their previous interactions.
+	const bool bTimeStep = !Event.IsShiftDown() && (Key == EKeys::Hyphen || Key == EKeys::Equals);
+	const bool bWait = !Event.IsShiftDown() && Key == EKeys::Apostrophe;
+	if (Key != EKeys::P && !bTimeStep && !bWait)
 		return ShouldBlockPausedGameplayInput();
 	if (Event.IsRepeat()) return true;
-	if (Key == EKeys::P || Key == EKeys::Pause) TogglePlayerPause();
-	else RequestTimeSpeed(Key == EKeys::F6 ? 1.f : Key == EKeys::F7 ? 2.f : 4.f);
+	if (Key == EKeys::P) ToggleNativePauseMenu();
+	else if (bWait) ToggleWaitMenu();
+	else StepTimeSpeed(Key == EKeys::Equals ? 1 : -1);
 	return true;
 }
 
 void UProjectDayCycleSubsystem::UpdateTimeControl()
 {
 	if (GetWorld()->GetNetMode() != NM_Standalone) return;
+	if (IsWaiting() && (GetCalendarHours() >= WaitUntilCalendarHours || RequestedSpeed != 4.f)) CancelWait();
 	// Legacy UI owners may release the native pause directly. They must not
 	// release an outstanding player/project pause with it.
 	if (!PauseReasons.IsEmpty() && !UGameplayStatics::IsGamePaused(GetWorld()))
@@ -271,6 +285,9 @@ void UProjectDayCycleSubsystem::HandleTimeOwnerDamaged(AActor*, float Damage, co
 
 void UProjectDayCycleSubsystem::ShutdownTimeControl()
 {
+	WaitUntilCalendarHours = -1.0;
+	CloseWaitMenu();
+	NativePauseMenu = nullptr;
 	if (TimeInputProcessor && FSlateApplication::IsInitialized()) FSlateApplication::Get().UnregisterInputPreProcessor(TimeInputProcessor);
 	TimeInputProcessor.Reset();
 	if (TimePlayerPawn.IsValid()) TimePlayerPawn->OnTakeAnyDamage.RemoveDynamic(this, &ThisClass::HandleTimeOwnerDamaged);
@@ -308,10 +325,25 @@ static FAutoConsoleCommandWithWorld ProjectTimeReport(
 			UE_LOG(LogTemp, Display, TEXT("[ACFTime] shared=%d native=%.9f apparent=%.9f calendar=%.9f"),
 				Actor && Actor == Clock->GetDayCycleStateActor(), Actor ? Actor->GetTimeOfDay() : -1.f,
 				Actor ? Actor->GetApparentTimeOfDay() : -1.f, FMath::Fmod(Clock->GetCalendarHours(), 24.0));
+			UE_LOG(LogTemp, Display, TEXT("[ProjectTimeMenus] native=%d wait=%d waiting=%d"),
+				Clock->IsNativePauseMenuOpen(), Clock->IsWaitMenuOpen(), Clock->IsWaiting());
 		}
 	}));
 
 #if !UE_BUILD_SHIPPING
+// Bounded rendered QA enters the actual Slate input path, including preprocessors.
+static FAutoConsoleCommandWithWorldAndArgs ProjectTimeKey(
+	TEXT("Project.Time.Key"), TEXT("Development QA: inject one time/menu key through Slate."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World || !World->IsGameWorld() || Args.Num() != 1 || !FSlateApplication::IsInitialized()) return;
+		const FKey Key(*Args[0]);
+		if (Key != EKeys::P && Key != EKeys::Hyphen && Key != EKeys::Equals && Key != EKeys::Apostrophe && Key != EKeys::F6 && Key != EKeys::F7 && Key != EKeys::F8 && Key != EKeys::Escape) return;
+		const FKeyEvent Event(Key, FModifierKeysState(), 0, false, 0, 0);
+		FSlateApplication::Get().ProcessKeyDownEvent(Event);
+		FSlateApplication::Get().ProcessKeyUpEvent(Event);
+	}));
+
 static FAutoConsoleCommandWithWorld ProjectTimeHud(
 	TEXT("Project.Time.Hud"), TEXT("Show the existing Needs/Status and clock HUD for rendered time validation."),
 	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)

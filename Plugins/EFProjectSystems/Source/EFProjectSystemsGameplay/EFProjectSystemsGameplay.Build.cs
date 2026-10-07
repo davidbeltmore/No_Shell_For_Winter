@@ -23,6 +23,8 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"ImageWrapper",
 			"InputCore",
 			"UMG",
+			"CommonUI",
+			"AscentUINavigationSystem",
 			"Slate",
 			"SlateCore",
 			"CodeWidgetDesignerBridge",

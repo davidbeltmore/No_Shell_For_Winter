@@ -33,6 +33,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Time Control")
 	bool TogglePlayerPause();
 
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool StepTimeSpeed(int32 Direction);
+
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool ToggleNativePauseMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool ToggleWaitMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	bool ConfirmWait(float CalendarHours);
+
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	void CancelWait();
+
+	UFUNCTION(BlueprintPure, Category = "Time Control")
+	bool IsWaiting() const { return WaitUntilCalendarHours >= 0.0; }
+
+	UFUNCTION(BlueprintPure, Category = "Time Control")
+	bool IsNativePauseMenuOpen() const;
+
+	UFUNCTION(BlueprintPure, Category = "Time Control")
+	bool IsWaitMenuOpen() const;
+
+	void CloseWaitMenu();
+
 	// Named owners prevent closing a modal from releasing another owner's pause.
 	UFUNCTION(BlueprintCallable, Category = "Time Control")
 	bool SetPauseReason(FName Reason, bool bPause);
@@ -50,6 +76,13 @@ public:
 	static double SimulationSecondsToCalendarHours(double Seconds, double DaySeconds);
 
 private:
+	bool CanFastForwardInternal(FText& OutReason, bool bIgnorePlayerPause) const;
+	bool IsTimeMenuOpen() const;
+	double WaitUntilCalendarHours = -1.0;
+	UPROPERTY(Transient)
+	TObjectPtr<class UCommonActivatableWidget> NativePauseMenu;
+	UPROPERTY(Transient)
+	TObjectPtr<class UProjectWaitWidget> WaitMenu;
 	void ResolveOrCreateStateActor();
 	void ResolveLocalPlayerController();
 	void EnsureHudWidget();
