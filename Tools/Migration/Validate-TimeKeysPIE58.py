@@ -69,6 +69,7 @@ def tick(delta):
             key(world,steps[0][0]); phase('steps')
         elif state['phase']=='steps' and age>.35:
             name,speed,paused=steps[state['step']]
+            state.setdefault('step_observations', []).append({'key':name, 'speed':unreal.GameplayStatics.get_global_time_dilation(world), 'paused':unreal.GameplayStatics.is_game_paused(world), 'wait_open':clock.is_wait_menu_open(), 'native_open':clock.is_native_pause_menu_open()})
             check('Key step '+str(state['step'])+' '+name,unreal.GameplayStatics.get_global_time_dilation(world)==speed and unreal.GameplayStatics.is_game_paused(world)==paused)
             state['step']+=1
             if state['step']<len(steps): key(world,steps[state['step']][0]); phase('steps')
@@ -82,9 +83,9 @@ def tick(delta):
             key(world,'P'); phase('native_closed')
         elif state['phase']=='native_closed' and age>.3:
             check('P closes native menu and preserves timeline pause',not active(world,PAUSE) and unreal.GameplayStatics.is_game_paused(world))
-            key(world,'Equals'); key(world,'Apostrophe'); phase('wait_open')
+            key(world,'Equals'); key(world,'Slash'); phase('wait_open')
         elif state['phase']=='wait_open' and age>.5:
-            check('Apostrophe opens paused wait selector',len(active(world,WAIT))==1 and unreal.GameplayStatics.is_game_paused(world))
+            check('Slash opens paused wait selector',len(active(world,WAIT))==1 and unreal.GameplayStatics.is_game_paused(world))
             check('Wait selector shows mouse cursor',unreal.GameplayStatics.get_player_controller(world,0).get_editor_property('show_mouse_cursor'))
             shot(world,'wait_selector')
             phase('wait_confirm')
@@ -97,7 +98,7 @@ def tick(delta):
             check('Wait completes automatically at x1',not clock.is_waiting() and unreal.GameplayStatics.get_global_time_dilation(world)==1)
             check('Wait simulated elapsed hours',clock.get_calendar_hours()-state['wait_start']>=.08)
             check('Wait retains native calendar agreement',abs(clock.get_day_cycle_state_actor().get_time_of_day()-clock.get_calendar_hours()%24)<1/3600)
-            key(world,'Apostrophe'); phase('cancel_open')
+            key(world,'Slash'); phase('cancel_open')
         elif state['phase']=='cancel_open' and age>.3:
             check('Confirm long cancel fixture',clock.confirm_wait(24))
             key(world,'Hyphen'); phase('cancel_wait')
@@ -109,11 +110,11 @@ def tick(delta):
             key(world,'P'); phase('normal_resume')
         elif state['phase']=='normal_resume' and age>.3:
             check('P resumes native menu at x1',not active(world,PAUSE) and not unreal.GameplayStatics.is_game_paused(world) and unreal.GameplayStatics.get_global_time_dilation(world)==1)
-            key(world,'Apostrophe'); phase('close_selector')
+            key(world,'Slash'); phase('close_selector')
         elif state['phase']=='close_selector' and age>.3:
-            key(world,'Apostrophe'); phase('closed_selector')
+            key(world,'Slash'); phase('closed_selector')
         elif state['phase']=='closed_selector' and age>.3:
-            check('Apostrophe closes selector without waiting',not active(world,WAIT) and not clock.is_waiting() and not unreal.GameplayStatics.is_game_paused(world))
+            check('Slash closes selector without waiting',not active(world,WAIT) and not clock.is_waiting() and not unreal.GameplayStatics.is_game_paused(world))
             finish()
     except Exception: finish(traceback.format_exc())
 

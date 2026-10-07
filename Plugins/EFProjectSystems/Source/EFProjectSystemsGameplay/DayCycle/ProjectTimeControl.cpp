@@ -214,7 +214,7 @@ bool UProjectDayCycleSubsystem::RouteTimeKey(const FKeyEvent& Event)
 	// P belongs to the native ACF menu. Unshifted top-row -/= own time;
 	// numpad +/- and shifted chords retain their previous interactions.
 	const bool bTimeStep = !Event.IsShiftDown() && (Key == EKeys::Hyphen || Key == EKeys::Equals);
-	const bool bWait = !Event.IsShiftDown() && Key == EKeys::Apostrophe;
+	const bool bWait = !Event.IsShiftDown() && Key == EKeys::Slash;
 	if (Key != EKeys::P && !bTimeStep && !bWait)
 		return ShouldBlockPausedGameplayInput();
 	if (Event.IsRepeat()) return true;
@@ -338,7 +338,7 @@ static FAutoConsoleCommandWithWorldAndArgs ProjectTimeKey(
 	{
 		if (!World || !World->IsGameWorld() || Args.Num() != 1 || !FSlateApplication::IsInitialized()) return;
 		const FKey Key(*Args[0]);
-		if (Key != EKeys::P && Key != EKeys::Hyphen && Key != EKeys::Equals && Key != EKeys::Apostrophe && Key != EKeys::F6 && Key != EKeys::F7 && Key != EKeys::F8 && Key != EKeys::Escape) return;
+		if (Key != EKeys::P && Key != EKeys::Hyphen && Key != EKeys::Equals && Key != EKeys::Slash && Key != EKeys::F6 && Key != EKeys::F7 && Key != EKeys::F8 && Key != EKeys::Escape) return;
 		const FKeyEvent Event(Key, FModifierKeysState(), 0, false, 0, 0);
 		FSlateApplication::Get().ProcessKeyDownEvent(Event);
 		FSlateApplication::Get().ProcessKeyUpEvent(Event);

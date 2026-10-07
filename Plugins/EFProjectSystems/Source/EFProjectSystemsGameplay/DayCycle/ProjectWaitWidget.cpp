@@ -58,7 +58,7 @@ TSharedRef<SWidget> UProjectWaitWidget::RebuildWidget()
 				+ SVerticalBox::Slot().AutoHeight().Padding(0,0,0,24)
 				[ SNew(SSlider).MinValue(1).MaxValue(24).StepSize(1).Value_Lambda([this]() { return SelectedHours; }).OnValueChanged_Lambda([this](float Value) { SelectedHours = FMath::RoundToFloat(Value); }) ]
 				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0,0,0,24)
-				[ SNew(STextBlock).Text(FText::FromString(TEXT("Advances at x4. Press ' to cancel while waiting."))) ]
+				[ SNew(STextBlock).Text(FText::FromString(TEXT("Advances at x4. Press / to cancel while waiting."))) ]
 				+ SVerticalBox::Slot().AutoHeight()
 				[
 					SNew(SHorizontalBox)

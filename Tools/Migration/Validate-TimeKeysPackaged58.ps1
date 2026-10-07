@@ -8,8 +8,8 @@ $commands=@('90:Project.Time.Hud','100:Project.Time.Report','110:Project.Time.Ke
 '160:Project.Time.Key Equals','200:Project.Time.Report','210:Project.Time.Key P','250:Project.Time.Report',
 '260:Shot SHOWUI filename=keys_native_pause','270:Project.Time.Key Equals','280:Project.Time.Report',
 '300:Project.Time.Key P','320:Project.Time.Key Hyphen','350:Project.Time.Report',
-'380:Project.Time.Key Apostrophe','420:Project.Time.Report',
-'430:Shot SHOWUI filename=keys_wait','450:Project.Time.Key Apostrophe','470:Project.Time.Report','480:Project.Time.Key Equals','490:Project.Time.Report','520:Quit') -join ','
+'380:Project.Time.Key Slash','420:Project.Time.Report',
+'430:Shot SHOWUI filename=keys_wait','450:Project.Time.Key Slash','470:Project.Time.Report','480:Project.Time.Key Equals','490:Project.Time.Report','520:Quit') -join ','
 $log=Join-Path $out 'game.log'
 $launchArguments='/Game/_Game/Hub/HUB -windowed -ResX=1280 -ResY=900 -nosound -unattended -csvNoProcessingThread -csvCaptureFrames=540 -csvExecCmds="'+$commands+'" -UserDir="'+$out+'/UserData" -ABSLOG="'+$log+'"'
 $process=Start-Process -FilePath $exe -ArgumentList $launchArguments -WindowStyle Hidden -PassThru
