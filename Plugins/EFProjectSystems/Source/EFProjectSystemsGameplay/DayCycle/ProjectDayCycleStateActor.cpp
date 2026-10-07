@@ -9,8 +9,10 @@
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
+#include "DaySequenceSubsystem.h"
 
-AProjectDayCycleStateActor::AProjectDayCycleStateActor()
+AProjectDayCycleStateActor::AProjectDayCycleStateActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
@@ -18,12 +20,13 @@ AProjectDayCycleStateActor::AProjectDayCycleStateActor()
 	SetActorHiddenInGame(true);
 	SetCanBeDamaged(false);
 	PrimaryActorTick.bCanEverTick = true;
+	// A clock-only native sequence: no sky, lighting or camera tracks.
+	SetInitialTimeOfDay(0.f);
+	SetTimePerCycle(0.5f);
 }
 
-void AProjectDayCycleStateActor::BeginPlay()
+void AProjectDayCycleStateActor::PostInitializeComponents()
 {
-	Super::BeginPlay();
-
 	if (HasAuthority() && !bCycleInitialized)
 	{
 		const UProjectDayCycleSettings* Settings = UProjectDayCycleSettings::Get();
@@ -40,8 +43,20 @@ void AProjectDayCycleStateActor::BeginPlay()
 		bCycleRunning = !Settings || Settings->bEnableDayCycle;
 		CycleStartServerTimeSeconds = GetCurrentServerTimeSeconds();
 		bCycleInitialized = true;
-		ForceNetUpdate();
 	}
+	SetDayLength(24.f);
+	SetTimePerCycle(DayLengthSeconds / 3600.f);
+	SetInitialTimeOfDay(static_cast<float>(FMath::Frac(ElapsedCalendarDays) * 24.0));
+	SetRunDayCycle(bCycleRunning);
+	Super::PostInitializeComponents();
+}
+
+void AProjectDayCycleStateActor::BeginPlay()
+{
+	Super::BeginPlay();
+	RestoreNativeTime();
+	if (auto* NativeClock = GetWorld()->GetSubsystem<UDaySequenceSubsystem>())
+		NativeClock->SetDaySequenceActor(this);
 }
 
 void AProjectDayCycleStateActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -55,13 +70,26 @@ void AProjectDayCycleStateActor::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	DOREPLIFETIME(ThisClass, ElapsedCalendarDays);
 }
 
-void AProjectDayCycleStateActor::Tick(float DeltaSeconds)
+void AProjectDayCycleStateActor::SequencePlayerUpdated(float CurrentTime, float PreviousTime)
 {
-	Super::Tick(DeltaSeconds);
-	if (HasAuthority() && bCycleRunning && !UGameplayStatics::IsGamePaused(this) && FMath::IsFinite(DeltaSeconds) && DeltaSeconds > 0.f)
+	Super::SequencePlayerUpdated(CurrentTime, PreviousTime);
+	if (HasAuthority() && bCycleInitialized && !bRestoringNativeTime && FMath::IsFinite(CurrentTime))
 	{
-		ElapsedCalendarDays += static_cast<double>(DeltaSeconds) / FMath::Max(1.f, DayLengthSeconds);
+		// DaySequence owns all sub-day advancement. Only retain its completed-day
+		// epoch for the existing ALS save contract; never integrate DeltaSeconds.
+		const float Hours = FMath::Fmod(FMath::Max(0.f, CurrentTime), 24.f);
+		double Days = FMath::FloorToDouble(ElapsedCalendarDays);
+		if (Hours + KINDA_SMALL_NUMBER < LastNativeTimeHours) Days += 1.0;
+		ElapsedCalendarDays = Days + static_cast<double>(Hours) / 24.0;
+		LastNativeTimeHours = Hours;
 	}
+}
+
+void AProjectDayCycleStateActor::RestoreNativeTime()
+{
+	TGuardValue<bool> Restoring(bRestoringNativeTime, true);
+	LastNativeTimeHours = static_cast<float>(FMath::Frac(ElapsedCalendarDays) * 24.0);
+	SetTimeOfDay(LastNativeTimeHours);
 }
 
 void AProjectDayCycleStateActor::PublishTravelState()
@@ -85,6 +113,7 @@ void AProjectDayCycleStateActor::OnLoaded_Implementation()
 {
 	ElapsedCalendarDays = FMath::IsFinite(ElapsedCalendarDays) ? FMath::Max(0.0, ElapsedCalendarDays) : 0.0;
 	InitialDayNumber = FMath::Max(1, InitialDayNumber);
+	RestoreNativeTime();
 	PublishTravelState();
 	if (auto* Clock = GetWorld()->GetSubsystem<UProjectDayCycleSubsystem>()) Clock->RequestTimeSpeed(1.f);
 	ForceNetUpdate();

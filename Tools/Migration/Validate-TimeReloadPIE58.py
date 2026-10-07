@@ -6,8 +6,9 @@ from pathlib import Path
 import unreal
 
 out = Path(unreal.Paths.project_saved_dir()) / 'Analysis/TimeControl'
-expected = json.loads((out / 'Visual/receipt.json').read_text())['saved_hours']
-state = {'started': time.monotonic(), 'phase': 'boot', 'expected_hours': expected, 'blueprints': []}
+legacy = '-TimeLegacySave' in unreal.SystemLibrary.get_command_line()
+expected = json.loads((out / ('Visual_20260928_022101/receipt.json' if legacy else 'Visual/receipt.json')).read_text())['saved_hours']
+state = {'started': time.monotonic(), 'phase': 'boot', 'expected_hours': expected, 'legacy_save': legacy, 'blueprints': []}
 editor = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 handle = None
 
@@ -22,6 +23,13 @@ def save_system(world):
     cls = unreal.load_class(None, '/Script/AscentSaveSystem.ALSLoadAndSaveSubsystem')
     gi = unreal.GameplayStatics.get_game_instance(world).get_path_name()
     return next(x for x in unreal.ObjectIterator(cls) if x.get_path_name().startswith(gi))
+
+def component(world, name):
+    cls = unreal.load_class(None, '/Script/EFProjectSystemsGameplay.' + name)
+    return unreal.GameplayStatics.get_player_pawn(world, 0).get_component_by_class(cls)
+
+def status_remaining(status):
+    return next((s.remaining_duration_seconds for s in status.build_active_status_snapshots() if str(s.status_name) == 'GraceStep'), 0.0)
 
 def tick(delta):
     try:
@@ -67,10 +75,65 @@ def tick(delta):
             state['phase'] = 'loading'
         elif state['phase'] == 'loading' and 'IDLE' in str(save_system(world).get_system_state()).upper():
             state['restored_hours'] = clock.get_calendar_hours()
+            native = clock.get_day_cycle_state_actor()
+            state['native_hours'] = native.get_time_of_day()
+            if abs(state['native_hours'] - state['restored_hours'] % 24) > 1/3600:
+                raise RuntimeError('Native ACF clock differs from restored calendar')
             state['speed'] = unreal.GameplayStatics.get_global_time_dilation(world)
             if abs(state['restored_hours'] - expected) > .15 or state['speed'] != 1:
                 raise RuntimeError('Fresh-process calendar restoration failed')
             state['loaded'] = True
+            state.update(phase='activity_start', since=time.monotonic())
+        elif state['phase'] == 'activity_start' and time.monotonic() - state['since'] > 2:
+            needs = component(world, 'ProjectSurvivalNeedsComponent')
+            for name in ['Hunger', 'Thirst', 'Sleep']:
+                needs.set_need_current_value(name, 90, True)
+            training = component(world, 'ProjectPracticeComponent')
+            if not training.configure_book('ACFTime_QA_Book', 0.4):
+                raise RuntimeError('Cannot configure isolated timed book')
+            emote_class = unreal.load_class(None, '/Script/EFProjectSystemsGameplay.ProjectEmoteSubsystem')
+            emotes = next(x for x in unreal.ObjectIterator(emote_class) if x.get_path_name().startswith(world.get_path_name()))
+            if not emotes.request_start_interaction_by_id('Actions.Training.ReadBook'):
+                raise RuntimeError('Real reading interaction rejected')
+            state.update(phase='activity_ready', since=time.monotonic())
+        elif state['phase'] == 'activity_ready' and time.monotonic() - state['since'] > 1:
+            training = component(world, 'ProjectPracticeComponent')
+            status = component(world, 'ProjectSurvivalStatusComponent')
+            if not training.is_training_active() or not status.apply_status('GraceStep', 30, None):
+                raise RuntimeError('Training/status fixture not active')
+            if not clock.request_time_speed(4):
+                raise RuntimeError('Training fast-forward rejected')
+            state.update(phase='activity_fast', since=time.monotonic(), activity_clock=clock.get_calendar_hours(),
+                         activity_hours=training.get_session_hours(), status_remaining=status_remaining(status))
+        elif state['phase'] == 'activity_fast' and time.monotonic() - state['since'] > 2:
+            training = component(world, 'ProjectPracticeComponent')
+            status = component(world, 'ProjectSurvivalStatusComponent')
+            elapsed = clock.get_calendar_hours() - state['activity_clock']
+            state['training_clock_error_hours'] = abs(training.get_session_hours() - state['activity_hours'] - elapsed)
+            state['status_clock_error_seconds'] = abs(state['status_remaining'] - status_remaining(status) - elapsed*75)
+            if state['training_clock_error_hours'] > .004 or state['status_clock_error_seconds'] > .3:
+                raise RuntimeError('Activity/status duration differs from native calendar')
+            clock.toggle_player_pause()
+            state.update(phase='activity_paused', since=time.monotonic(), frozen_training=training.get_session_hours(),
+                         frozen_status=status_remaining(status), frozen_calendar=clock.get_calendar_hours())
+        elif state['phase'] == 'activity_paused' and time.monotonic() - state['since'] > 2:
+            training = component(world, 'ProjectPracticeComponent')
+            status = component(world, 'ProjectSurvivalStatusComponent')
+            if (training.get_session_hours(), status_remaining(status), clock.get_calendar_hours()) != (state['frozen_training'], state['frozen_status'], state['frozen_calendar']):
+                raise RuntimeError('Paused activity, status or native clock advanced')
+            state['activity_status_pause'] = True
+            clock.toggle_player_pause()
+            if not clock.request_time_speed(4):
+                raise RuntimeError('Activity resume speed rejected')
+            state.update(phase='activity_finish', since=time.monotonic())
+        elif state['phase'] == 'activity_finish' and (clock.get_calendar_hours() - state['activity_clock']) * 75 > 32:
+            training = component(world, 'ProjectPracticeComponent')
+            status = component(world, 'ProjectSurvivalStatusComponent')
+            state['book_completed_hours'] = training.get_book_hours('ACFTime_QA_Book')
+            state['status_expired'] = not status.is_status_active('GraceStep')
+            if training.is_training_active() or state['book_completed_hours'] < .4 - 1e-6 or not state['status_expired']:
+                raise RuntimeError('Timed activity/status did not finish on shared simulation')
+            clock.request_time_speed(1)
             finish()
     except Exception:
         finish(traceback.format_exc())

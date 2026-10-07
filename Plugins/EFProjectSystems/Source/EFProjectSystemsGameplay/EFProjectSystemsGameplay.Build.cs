@@ -19,6 +19,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"DaySequence",
 			"ImageWrapper",
 			"InputCore",
 			"UMG",

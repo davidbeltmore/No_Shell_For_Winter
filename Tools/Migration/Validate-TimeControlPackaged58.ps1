@@ -25,12 +25,19 @@ $reports = @(Select-String -LiteralPath $log -Pattern '\[ProjectTime\] hours=([\
  $m = $_.Matches[0]
  @{hours=[double]::Parse($m.Groups[1].Value,[Globalization.CultureInfo]::InvariantCulture); speed=[double]::Parse($m.Groups[2].Value,[Globalization.CultureInfo]::InvariantCulture); paused=[int]$m.Groups[3].Value; reason=$m.Groups[5].Value}
 })
-$ok = $reports.Count -eq 6
+$nativeReports = @(Select-String -LiteralPath $log -Pattern '\[ACFTime\] shared=([01]) native=([\d.]+) apparent=([\d.]+) calendar=([\d.]+)' | ForEach-Object {
+ $m = $_.Matches[0]
+ @{shared=[int]$m.Groups[1].Value; native=[double]::Parse($m.Groups[2].Value,[Globalization.CultureInfo]::InvariantCulture); apparent=[double]::Parse($m.Groups[3].Value,[Globalization.CultureInfo]::InvariantCulture); calendar=[double]::Parse($m.Groups[4].Value,[Globalization.CultureInfo]::InvariantCulture)}
+})
+$ok = $reports.Count -eq 6 -and $nativeReports.Count -eq 6
+foreach ($native in $nativeReports) {
+ $ok = $ok -and $native.shared -eq 1 -and [Math]::Abs($native.native - $native.calendar) -lt (1.0/3600) -and [Math]::Abs($native.apparent - $native.calendar) -lt (1.0/3600)
+}
 if ($ok) {
  $ok = $reports[0].speed -eq 1 -and $reports[1].speed -eq 2 -and $reports[2].speed -eq 4 -and
   $reports[3].paused -eq 1 -and $reports[4].paused -eq 1 -and $reports[3].hours -eq $reports[4].hours -and
   $reports[5].paused -eq 0 -and $reports[5].speed -eq 1 -and $reports[5].hours -gt $reports[4].hours
 }
-@{passed=$ok; exit_code=$process.ExitCode; reports=$reports; isolated_user_dir=(Join-Path $out 'UserData')} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $out 'receipt.json') -Encoding UTF8
+@{passed=$ok; exit_code=$process.ExitCode; reports=$reports; native_reports=$nativeReports; isolated_user_dir=(Join-Path $out 'UserData')} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $out 'receipt.json') -Encoding UTF8
 if (!$ok -or $process.ExitCode -ne 0) { throw "Packaged time validation failed: $out" }
 Write-Host "Packaged runtime time controls PASS: $out. Screenshots still require visual inspection."

@@ -1,5 +1,6 @@
 param([ValidateSet('Automation','Visual','Reload')][string]$Mode = 'Automation',
       [switch]$CompileBlueprints,
+      [switch]$LegacySave,
       [string]$ProjectRoot = 'D:\Projects UE5\NoShellForWinter')
 $ErrorActionPreference = 'Stop'
 if (@(Get-Process -Name UnrealEditor,UnrealEditor-Cmd -ErrorAction SilentlyContinue).Count) { throw 'Close editor sessions before isolated time validation.' }
@@ -13,14 +14,19 @@ if ($Mode -eq 'Automation') {
  if ($Mode -eq 'Reload') { $script = Join-Path $ProjectRoot 'Tools\Migration\Validate-TimeReloadPIE58.py' }
  $arguments = '-ExecutePythonScript="' + $script + '" -NoSound -ABSLOG="' + $report + '\editor.log"'
  if ($CompileBlueprints) { $arguments += ' -TimeCompileBlueprints' }
+ if ($LegacySave) { $arguments += ' -TimeLegacySave' }
 }
 # Avoid the engine CSV processing-thread/allocator shutdown race in short QA runs.
 $arguments += ' -csvNoProcessingThread'
 . (Join-Path $ProjectRoot 'Tools\Migration\Progression-SaveGuard.ps1')
 Invoke-ProgressionSaveGuard -ProjectRoot $ProjectRoot -EvidenceDirectory ($report + '\SaveGuard') -Action {
  if ($Mode -eq 'Reload') {
-  $fixture = Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'Saved\Analysis\TimeControl') -Filter 'TimeControl_QA_World.sav' -Recurse -File |
+  if ($LegacySave) {
+   $fixture = Get-Item -LiteralPath (Join-Path $ProjectRoot 'Saved\Analysis\TimeControl\Visual_20260928_022101\SaveGuard\AfterSaveGames\TimeControl_QA_World.sav')
+  } else {
+   $fixture = Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'Saved\Analysis\TimeControl') -Filter 'TimeControl_QA_World.sav' -Recurse -File |
    Where-Object { $_.FullName -match 'Visual_[^\\]+\\SaveGuard\\AfterSaveGames' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  }
   if (!$fixture) { throw 'Run the visual save test first.' }
   Copy-Item -LiteralPath $fixture.FullName -Destination (Join-Path $ProjectRoot 'Saved\SaveGames\TimeControl_QA_World.sav') -Force
  }
@@ -28,7 +34,7 @@ Invoke-ProgressionSaveGuard -ProjectRoot $ProjectRoot -EvidenceDirectory ($repor
 }
 if ($Mode -eq 'Automation') {
  $result = Get-Content -LiteralPath (Join-Path $report 'index.json') -Raw | ConvertFrom-Json
- if ($result.Failed -or $result.NotRun -or $result.SucceededWithWarnings -or $result.Succeeded -lt 4) { throw "Time automation failed: $report" }
+ if ($result.Failed -or $result.NotRun -or $result.SucceededWithWarnings -or $result.Succeeded -lt 5) { throw "Time automation failed: $report" }
 } else {
  $receipt = if ($Mode -eq 'Reload') { 'Saved\Analysis\TimeControl\reload.json' } else { 'Saved\Analysis\TimeControl\Visual\receipt.json' }
  $receiptPath = Join-Path $ProjectRoot $receipt

@@ -26,6 +26,7 @@
 #include "HAL/IConsoleManager.h"
 #include "ACFTrainingComponent.h"
 #include "UI/ProjectActivityFeedSubsystem.h"
+#include "DaySequenceSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "ProjectTimeControl"
 
@@ -302,6 +303,11 @@ static FAutoConsoleCommandWithWorld ProjectTimeReport(
 			UE_LOG(LogTemp, Display, TEXT("[ProjectTime] hours=%.9f speed=%.1f paused=%d allowed=%d reason=%s"),
 				Clock->GetCalendarHours(), UGameplayStatics::GetGlobalTimeDilation(World),
 				UGameplayStatics::IsGamePaused(World), Allowed, *Reason.ToString());
+			const auto* Native = World->GetSubsystem<UDaySequenceSubsystem>();
+			const auto* Actor = Native ? Native->GetDaySequenceActor() : nullptr;
+			UE_LOG(LogTemp, Display, TEXT("[ACFTime] shared=%d native=%.9f apparent=%.9f calendar=%.9f"),
+				Actor && Actor == Clock->GetDayCycleStateActor(), Actor ? Actor->GetTimeOfDay() : -1.f,
+				Actor ? Actor->GetApparentTimeOfDay() : -1.f, FMath::Fmod(Clock->GetCalendarHours(), 24.0));
 		}
 	}));
 

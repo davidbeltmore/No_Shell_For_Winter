@@ -34,6 +34,9 @@ public class EFProjectSystemsEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			"DaySequence",
+			"AIFramework",
+			"AIModule",
 			"ACFTrainingSystem",
 			"ActionsSystem",
 			"PhysicsCore",

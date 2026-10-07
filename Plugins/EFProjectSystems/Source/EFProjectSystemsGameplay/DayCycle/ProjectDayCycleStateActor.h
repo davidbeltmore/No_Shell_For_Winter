@@ -2,20 +2,21 @@
 
 #include "CoreMinimal.h"
 #include "DayCycle/ProjectDayCycleTypes.h"
-#include "GameFramework/Info.h"
+#include "DaySequenceActor.h"
 #include "ALSSavableInterface.h"
 #include "ProjectDayCycleStateActor.generated.h"
 
 UCLASS(BlueprintType, NotPlaceable)
-class EFPROJECTSYSTEMSGAMEPLAY_API AProjectDayCycleStateActor : public AInfo, public IALSSavableInterface
+class EFPROJECTSYSTEMSGAMEPLAY_API AProjectDayCycleStateActor : public ADaySequenceActor, public IALSSavableInterface
 {
 	GENERATED_BODY()
 
 public:
-	AProjectDayCycleStateActor();
+	AProjectDayCycleStateActor(const FObjectInitializer& ObjectInitializer);
 
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
+	virtual void Serialize(FArchive& Ar) override { Super::Serialize(Ar); }
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void OnLoaded_Implementation() override;
 
@@ -30,6 +31,11 @@ public:
 	float GetCurrentServerTimeSeconds() const;
 
 private:
+	virtual void SequencePlayerUpdated(float CurrentTime, float PreviousTime) override;
+	void RestoreNativeTime();
+	bool bRestoringNativeTime = false;
+	float LastNativeTimeHours = 0.f;
+
 	UPROPERTY(Replicated, SaveGame)
 	int32 InitialDayNumber = 1;
 

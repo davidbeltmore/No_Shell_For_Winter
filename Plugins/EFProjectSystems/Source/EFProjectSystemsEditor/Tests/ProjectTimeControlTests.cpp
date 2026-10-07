@@ -9,6 +9,11 @@
 #include "Serialization/ObjectAndNameAsStringProxyArchive.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/MemoryReader.h"
+#include "DaySequenceSubsystem.h"
+#include "Components/ACFAIRoutineComponent.h"
+#include "Tasks/ACFRandomPatrolAroundPointTask.h"
+#include "AIController.h"
+#include "GameFramework/Pawn.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectTimeScaleTest, "NoShellForWinter.TimeControl.ScaleAndCalendar",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -59,22 +64,70 @@ bool FProjectTimeSaveTest::RunTest(const FString&)
 {
 	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
 	auto* Clock = World->SpawnActor<AProjectDayCycleStateActor>();
-	Clock->Tick(900.f);
-	TestEqual(TEXT("Half day"), Clock->GetElapsedCalendarDays(), 0.5);
+	// This isolated world has not routed actor initialization/BeginPlay.
+	Clock->PostInitializeComponents();
+	TestTrue(TEXT("Native time can be set"), Clock->SetTimeOfDay(12.f));
+	TestTrue(TEXT("Half day"), FMath::IsNearlyEqual(Clock->GetElapsedCalendarDays(), 0.5, 0.00001));
 	TArray<uint8> Bytes;
 	FMemoryWriter Writer(Bytes);
 	FObjectAndNameAsStringProxyArchive Save(Writer, false);
 	Save.ArIsSaveGame = true;
 	Clock->Serialize(Save);
 	auto* Restored = World->SpawnActor<AProjectDayCycleStateActor>();
+	Restored->PostInitializeComponents();
 	FMemoryReader Reader(Bytes);
 	FObjectAndNameAsStringProxyArchive Load(Reader, false);
 	Load.ArIsSaveGame = true;
 	Restored->Serialize(Load);
 	Restored->OnLoaded_Implementation();
-	TestEqual(TEXT("Calendar restored without wall-clock/offline credit"), Restored->GetElapsedCalendarDays(), 0.5);
-	Restored->Tick(900.f);
+	TestTrue(TEXT("Calendar restored without wall-clock/offline credit"), FMath::IsNearlyEqual(Restored->GetElapsedCalendarDays(), 0.5, 0.00001));
+	TestTrue(TEXT("Native time restored"), FMath::IsNearlyEqual(Restored->GetTimeOfDay(), 12.f));
+	Restored->SetTimeOfDay(0.f);
 	TestEqual(TEXT("Continues from saved day"), Restored->GetElapsedCalendarDays(), 1.0);
+	World->DestroyWorld(false);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FProjectACFNativeTimeTest, "NoShellForWinter.TimeControl.ACFNativeRoutine",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FProjectACFNativeTimeTest::RunTest(const FString&)
+{
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	auto* Clock = World->SpawnActor<AProjectDayCycleStateActor>();
+	Clock->PostInitializeComponents();
+	World->GetSubsystem<UDaySequenceSubsystem>()->SetDaySequenceActor(Clock);
+	auto* Controller = World->SpawnActor<AAIController>();
+	Controller->Possess(World->SpawnActor<APawn>());
+	auto* Routine = NewObject<UACFAIRoutineComponent>(Controller);
+	Controller->AddInstanceComponent(Routine);
+	Routine->RegisterComponent();
+	auto* Schedule = NewObject<UACFAIRoutineDataAsset>(Routine);
+	for (int Hour : {0, 8, 16})
+	{
+		FAIRoutineTask Entry;
+		Entry.TaskTime.Hour = Hour;
+		Entry.TaskTime.Minute = 0;
+		// Native concrete tasks safely do nothing on this generic test controller.
+		Entry.RoutineTask = NewObject<UACFRandomPatrolAroundPointTask>(Schedule);
+		Schedule->DailyTasks.Add(Entry);
+	}
+	Routine->SetRoutineDataAsset(Schedule);
+	for (int Index = 0; Index < 3; ++Index)
+	{
+		const float Hour = Index * 8.f + 1.f;
+		TestTrue(TEXT("Native clock seek"), Clock->SetTimeOfDay(Hour));
+		TestTrue(TEXT("ACF routine reads calendar clock"), FMath::IsNearlyEqual(Routine->GetTimeHours(), Hour, 0.0001f));
+		TestTrue(TEXT("Native routine transitions"), Routine->UpdateByTime());
+		TestEqual(TEXT("Correct native task selected"), Routine->GetLastStartedTask(), Schedule->DailyTasks[Index].RoutineTask);
+		TestFalse(TEXT("No duplicate task start at same time"), Routine->UpdateByTime());
+		TestTrue(TEXT("Calendar matches native time"), FMath::IsNearlyEqual(Clock->GetElapsedCalendarDays() * 24.0, static_cast<double>(Hour), 0.0001));
+		TestEqual(TEXT("HUD phase matches routine slot"), static_cast<int32>(Clock->GetCurrentSnapshot().Phase), Index);
+	}
+	Clock->SetTimeOfDay(0.5f);
+	TestEqual(TEXT("Native midnight advances the day"), Clock->GetCurrentSnapshot().DayNumber, 2);
+	TestTrue(TEXT("Native routine wraps at midnight"), Routine->UpdateByTime());
+	TestEqual(TEXT("Morning task after midnight"), Routine->GetLastStartedTask(), Schedule->DailyTasks[0].RoutineTask);
+	Routine->StopAll();
 	World->DestroyWorld(false);
 	return true;
 }

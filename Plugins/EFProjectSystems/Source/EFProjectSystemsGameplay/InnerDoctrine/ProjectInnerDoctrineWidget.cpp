@@ -1,5 +1,5 @@
-#include "Survival/ProjectInnerStateGlyph.h"
 #include "InnerDoctrine/ProjectInnerDoctrineWidget.h"
+#include "Survival/ProjectInnerStateGlyph.h"
 #include "Survival/ProjectInnerStateComponent.h"
 
 #include "EFProjectUIPalette.h"

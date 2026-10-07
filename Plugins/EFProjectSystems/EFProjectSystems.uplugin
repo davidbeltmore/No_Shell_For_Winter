@@ -10,6 +10,10 @@
 	"EnabledByDefault": true,
 	"Plugins": [
 		{
+			"Name": "DaySequence",
+			"Enabled": true
+		},
+		{
 			"Name": "GameplayAbilities",
 			"Enabled": true
 		},

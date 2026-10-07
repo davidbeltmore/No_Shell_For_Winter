@@ -5,6 +5,7 @@
 #include "DayCycle/ProjectDayCycleSettings.h"
 #include "DayCycle/ProjectDayCycleStateActor.h"
 #include "DayCycle/ProjectDayCycleWidget.h"
+#include "DaySequenceSubsystem.h"
 #include "EFCharacterCreationSubsystem.h"
 #include "EFProjectUISettings.h"
 #include "Engine/GameInstance.h"
@@ -168,6 +169,9 @@ void UProjectDayCycleSubsystem::ResolveOrCreateStateActor()
 		StateActor = World->SpawnActor<AProjectDayCycleStateActor>(AProjectDayCycleStateActor::StaticClass(), SpawnParameters);
 		if (StateActor)
 		{
+			// Make native ACF queries resolve this clock even before actor BeginPlay.
+			if (auto* NativeClock = World->GetSubsystem<UDaySequenceSubsystem>())
+				NativeClock->SetDaySequenceActor(StateActor);
 			UE_LOG(LogProjectDayCycle, Log, TEXT("[ProjectDayCycle] Started a %.1f second day cycle."), StateActor->GetCurrentSnapshot().DayLengthSeconds);
 		}
 	}
