@@ -1,4 +1,5 @@
 #include "EFCharacterCustomizationComponent.h"
+#include "EFBodyPresetCatalog.h"
 
 #include "Animation/MorphTarget.h"
 #include "Animation/Skeleton.h"
@@ -108,6 +109,12 @@ bool UEFCharacterCustomizationComponent::InitializeForActor(AActor* InOwningActo
 
 	DiscoverMeshComponents(InOwningActor);
 	CurrentGender = ResolveInitialGender();
+	if (!bHadRuntimeState)
+	{
+		LastBodyPresetByGender.Reset();
+		const FName AuthoredPreset = GetBodyPresetId();
+		if (!AuthoredPreset.IsNone()) LastBodyPresetByGender.Add(CurrentGender, AuthoredPreset);
+	}
 	BuildMeshSelectionOptions();
 	bMeshCompatible = ValidateCompatibility();
 
@@ -248,6 +255,9 @@ FCharacterCustomizationState UEFCharacterCustomizationComponent::CaptureCurrentS
 	FCharacterCustomizationState State;
 	State.CharacterName = CurrentCharacterName;
 	State.Gender = CurrentGender;
+	State.BodyPresetId = GetBodyPresetId();
+	State.LastBodyPresetByGender = LastBodyPresetByGender;
+	if (!State.BodyPresetId.IsNone()) State.LastBodyPresetByGender.Add(CurrentGender, State.BodyPresetId);
 	State.bPauseAnimation = bPauseAnimation;
 	State.bShowClothes = bShowClothes;
 	State.SkinColor = CurrentSkinColor;
@@ -297,13 +307,22 @@ void UEFCharacterCustomizationComponent::ApplyStateInternal(const FCharacterCust
 	ECharacterCreationGender DesiredGender = NewState.Gender;
 	USkeletalMesh* SelectedBodyMesh = nullptr;
 
-	if (NewState.bHasSelectedBodyMesh && !NewState.SelectedBodyMeshAsset.IsNull())
+	LastBodyPresetByGender = NewState.LastBodyPresetByGender;
+	if (const UEFBodyPresetCatalog* Catalog = UEFBodyPresetCatalog::Get())
+	{
+		const FEFBodyPresetDefinition* Definition = Catalog->Find(NewState.BodyPresetId);
+		if (!Definition && NewState.bHasSelectedBodyMesh) Definition = Catalog->FindMesh(NewState.SelectedBodyMeshAsset);
+		if (!Definition) Definition = Catalog->DefaultForGender(DesiredGender);
+		if (Definition)
+		{
+			SelectedBodyMesh = Definition->Mesh.LoadSynchronous();
+			DesiredGender = Definition->Gender;
+		}
+	}
+	else if (NewState.bHasSelectedBodyMesh && !NewState.SelectedBodyMeshAsset.IsNull())
 	{
 		SelectedBodyMesh = Cast<USkeletalMesh>(NewState.SelectedBodyMeshAsset.TryLoad());
-		if (IsValid(SelectedBodyMesh))
-		{
-			DesiredGender = InferGenderForMesh(SelectedBodyMesh);
-		}
+		if (IsValid(SelectedBodyMesh)) DesiredGender = InferGenderForMesh(SelectedBodyMesh);
 	}
 
 	if (!IsValid(SelectedBodyMesh))
@@ -311,13 +330,13 @@ void UEFCharacterCustomizationComponent::ApplyStateInternal(const FCharacterCust
 		SelectedBodyMesh = ResolveGenderMesh(DesiredGender);
 	}
 
-	CurrentGender = DesiredGender;
-
+	const ECharacterCreationGender PreviousGender = CurrentGender;
 	if (bApplyMeshSelections)
 	{
 		if (IsValid(SelectedBodyMesh))
 		{
-			ApplyBodySkeletalMesh(SelectedBodyMesh);
+			if (!ApplyBodySkeletalMesh(SelectedBodyMesh)) CurrentGender = PreviousGender;
+			else if (const FName Id = GetBodyPresetId(); !Id.IsNone()) LastBodyPresetByGender.Add(CurrentGender, Id);
 		}
 
 		if (NewState.bHasSelectedHairMesh && !NewState.SelectedHairMeshAsset.IsNull())
@@ -539,6 +558,7 @@ bool UEFCharacterCustomizationComponent::SelectGender(ECharacterCreationGender I
 		return false;
 	}
 
+	if (CurrentGender == InGender && !GetBodyPresetId().IsNone()) return true;
 	USkeletalMesh* GenderMesh = ResolveGenderMesh(InGender);
 	if (!IsValid(GenderMesh))
 	{
@@ -547,6 +567,7 @@ bool UEFCharacterCustomizationComponent::SelectGender(ECharacterCreationGender I
 
 	FCharacterCustomizationState State = CaptureCurrentState();
 	State.Gender = InGender;
+	State.BodyPresetId = NAME_None;
 	State.bHasSelectedBodyMesh = true;
 	State.SelectedBodyMeshAsset = FSoftObjectPath(GenderMesh);
 	State.MorphValues.Reset();
@@ -625,8 +646,9 @@ bool UEFCharacterCustomizationComponent::SelectRelativeBodyMeshOption(int32 Dire
 	FCharacterCustomizationState State = CaptureCurrentState();
 	State.bHasSelectedBodyMesh = true;
 	State.SelectedBodyMeshAsset = AvailableBodyMeshOptions[NewIndex].SkeletalMesh.ToSoftObjectPath();
+	State.BodyPresetId = NAME_None;
 	ApplyState(State);
-	return true;
+	return GetActiveBodyMeshComponent() && FSoftObjectPath(GetActiveBodyMeshComponent()->GetSkeletalMeshAsset()) == State.SelectedBodyMeshAsset;
 }
 
 bool UEFCharacterCustomizationComponent::SelectRelativeHairMeshOption(int32 Direction)
@@ -956,6 +978,17 @@ void UEFCharacterCustomizationComponent::BuildMeshSelectionOptions()
 void UEFCharacterCustomizationComponent::BuildBodyMeshOptions()
 {
 	AvailableBodyMeshOptions.Reset();
+	if (const UEFBodyPresetCatalog* Catalog = UEFBodyPresetCatalog::Get())
+	{
+		for (const auto& Definition : Catalog->Bodies)
+		{
+			if (!Definition.bEnabled || Definition.Gender != CurrentGender || Definition.Mesh.IsNull()) continue;
+			FCharacterSkeletalMeshOption& Option = AvailableBodyMeshOptions.AddDefaulted_GetRef();
+			Option.DisplayName = Definition.DisplayName;
+			Option.SkeletalMesh = Definition.Mesh;
+		}
+		return;
+	}
 
 	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
 	USkeletalMeshComponent* ActiveBodySelectionComponent = GetActiveBodyMeshComponent();
@@ -1111,6 +1144,14 @@ void UEFCharacterCustomizationComponent::BuildMorphEntries()
 
 		Entry.MinValue = -3.0f;
 		Entry.MaxValue = 3.0f;
+		if (const auto* Catalog = UEFBodyPresetCatalog::Get())
+			if (const auto* Body = Catalog->Find(GetBodyPresetId()))
+				if (const auto* Profile = Body->MorphProfile.FindByPredicate([&Entry](const auto& M) { return M.MorphName == Entry.MorphName; }))
+				{
+					Entry.MinValue = Profile->Minimum;
+					Entry.MaxValue = Profile->Maximum;
+					Entry.DefaultValue = Profile->DefaultValue;
+				}
 		Entry.DefaultValue = FMath::Clamp(Entry.DefaultValue, Entry.MinValue, Entry.MaxValue);
 
 		USkeletalMeshComponent* TargetMeshComponent = ResolveTargetMeshComponent(Entry);
@@ -1320,20 +1361,8 @@ TArray<FName> UEFCharacterCustomizationComponent::GatherMorphNames(USkeletalMesh
 		}
 	}
 
-#if WITH_EDITOR
-	if (USkeleton* Skeleton = SkeletalMesh->GetSkeleton())
-	{
-		TArray<FName> CurveNames;
-		Skeleton->GetCurveMetaDataNames(CurveNames);
-		for (const FName CurveName : CurveNames)
-		{
-			if (Skeleton->GetCurveMetaDataMorphTarget(CurveName))
-			{
-				MorphNames.AddUnique(CurveName);
-			}
-		}
-	}
-#endif
+	// Skeleton curve metadata can include morphs belonging to other body presets.
+	// Only this mesh's actual targets are available, identically in editor and cook.
 
 	if (MorphNames.Num() == 0)
 	{
@@ -1456,6 +1485,14 @@ USkeletalMeshComponent* UEFCharacterCustomizationComponent::GetActiveBodyMeshCom
 
 USkeletalMesh* UEFCharacterCustomizationComponent::ResolveGenderMesh(ECharacterCreationGender InGender) const
 {
+	if (const UEFBodyPresetCatalog* Catalog = UEFBodyPresetCatalog::Get())
+	{
+		if (const auto* Remembered = Catalog->Find(LastBodyPresetByGender.FindRef(InGender)); Remembered && Remembered->Gender == InGender)
+			if (USkeletalMesh* Mesh = Remembered->Mesh.LoadSynchronous()) return Mesh;
+		for (const auto& Definition : Catalog->Bodies)
+			if (Definition.bEnabled && Definition.Gender == InGender)
+				if (USkeletalMesh* Mesh = Definition.Mesh.LoadSynchronous()) return Mesh;
+	}
 	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
 	if (!Settings)
 	{
@@ -1483,6 +1520,8 @@ ECharacterCreationGender UEFCharacterCustomizationComponent::InferGenderForMesh(
 
 	const UEFCharacterCreationSettings* Settings = UEFCharacterCreationSettings::Get();
 	const FSoftObjectPath MeshPath(SkeletalMesh);
+	if (const UEFBodyPresetCatalog* Catalog = UEFBodyPresetCatalog::Get())
+		if (const auto* Definition = Catalog->FindMesh(MeshPath)) return Definition->Gender;
 	if (Settings)
 	{
 		for (const FCharacterGenderMeshOption& Option : Settings->GenderMeshOptions)
@@ -2197,4 +2236,31 @@ TArray<int32>& UEFCharacterCustomizationComponent::ResolveCachedMaterialSlots(
 	}
 
 	return CachedSlots;
+}
+
+FName UEFCharacterCustomizationComponent::GetBodyPresetId() const
+{
+	const auto* MeshComponent = GetActiveBodyMeshComponent();
+	if (const auto* Catalog = UEFBodyPresetCatalog::Get(); Catalog && MeshComponent)
+		if (const auto* Definition = Catalog->FindMesh(FSoftObjectPath(MeshComponent->GetSkeletalMeshAsset()))) return Definition->PresetId;
+	return NAME_None;
+}
+
+bool UEFCharacterCustomizationComponent::SelectBodyPreset(FName PresetId, bool bResetMorphs)
+{
+	const auto* Catalog = UEFBodyPresetCatalog::Get();
+	const auto* Definition = Catalog ? Catalog->Find(PresetId) : nullptr;
+	if (!Definition || !Definition->Mesh.LoadSynchronous()) return false;
+	FCharacterCustomizationState State = CaptureCurrentState();
+	State.BodyPresetId = PresetId;
+	State.Gender = Definition->Gender;
+	State.bHasSelectedBodyMesh = true;
+	State.SelectedBodyMeshAsset = Definition->Mesh.ToSoftObjectPath();
+	if (bResetMorphs)
+	{
+		State.MorphValues.Reset();
+		CharacterCustomizationComponentPrivate::InitializeMalePlayerMorphState(OwningActor.Get(), State);
+	}
+	ApplyState(State);
+	return GetBodyPresetId() == PresetId;
 }

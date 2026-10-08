@@ -1294,7 +1294,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 
 		UVerticalBox* GenderBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		GenderBorder->SetContent(GenderBox);
-		GenderBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Body mesh")));
+		GenderBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Body preset")));
 
 		UHorizontalBox* GenderRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		GenderBox->AddChildToVerticalBox(GenderRow);

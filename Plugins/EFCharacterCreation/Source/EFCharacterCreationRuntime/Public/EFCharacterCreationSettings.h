@@ -8,6 +8,7 @@
 class UUserWidget;
 class USkeletalMesh;
 class UPhysicsAsset;
+class UEFBodyPresetCatalog;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "EF Character Creation"))
 class EFCHARACTERCREATIONRUNTIME_API UEFCharacterCreationSettings : public UDeveloperSettings
@@ -68,6 +69,10 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Meshes")
 	TArray<FCharacterSkeletalMeshOption> BodyMeshOptions;
+
+	/** Shared player/NPC catalog. Legacy arrays are fallback only when no catalog is available. */
+	UPROPERTY(EditAnywhere, Config, Category = "Meshes")
+	TSoftObjectPtr<UEFBodyPresetCatalog> BodyPresetCatalog = TSoftObjectPtr<UEFBodyPresetCatalog>(FSoftObjectPath(TEXT("/Game/_Game/Data/CharacterCreation/DA_BodyPresets.DA_BodyPresets")));
 
 	/** Exact mesh-to-physics mappings; applied only to the component that owns simulation. */
 	UPROPERTY(EditAnywhere, Config, Category = "Morph Physics")

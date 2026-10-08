@@ -155,6 +155,15 @@ struct FCharacterCustomizationState
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "State")
+	FName BodyPresetId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "State")
+	int32 AppearanceVersion = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "State")
+	TMap<ECharacterCreationGender, FName> LastBodyPresetByGender;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Identity")
 	FString CharacterName;
 

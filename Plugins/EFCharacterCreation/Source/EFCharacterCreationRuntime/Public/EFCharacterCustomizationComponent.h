@@ -64,7 +64,9 @@ public:
 	/** Replays the stored state after an external mesh writer releases ownership. */
 	void ReapplyCurrentMorphState();
 
+	UFUNCTION(BlueprintPure, Category = "EF Character Creation|State")
 	FCharacterCustomizationState CaptureCurrentState() const;
+	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|State")
 	void ApplyState(const FCharacterCustomizationState& NewState);
 	bool SaveCurrentStateAsConfirmed();
 
@@ -113,6 +115,10 @@ public:
 	FString GetCurrentBodyMeshDisplayName() const;
 	FString GetCurrentHairMeshDisplayName() const;
 	bool SelectRelativeBodyMeshOption(int32 Direction);
+	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|Body Presets")
+	bool SelectBodyPreset(FName PresetId, bool bResetMorphs = false);
+	UFUNCTION(BlueprintPure, Category = "EF Character Creation|Body Presets")
+	FName GetBodyPresetId() const;
 	bool SelectRelativeHairMeshOption(int32 Direction);
 	FTransform GetHairRelativeTransform() const;
 	bool SetHairRelativeTransform(const FTransform& InTransform);
@@ -223,6 +229,7 @@ private:
 	FString CompatibilityError;
 	FString CurrentCharacterName;
 	ECharacterCreationGender CurrentGender = ECharacterCreationGender::Female;
+	TMap<ECharacterCreationGender, FName> LastBodyPresetByGender;
 	bool bShowClothes = true;
 	bool bPauseAnimation = false;
 	FLinearColor CurrentSkinColor = FLinearColor::White;

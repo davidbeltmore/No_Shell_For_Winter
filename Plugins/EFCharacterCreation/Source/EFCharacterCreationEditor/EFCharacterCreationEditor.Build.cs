@@ -15,5 +15,6 @@ public class EFCharacterCreationEditor : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.Add("UnrealEd");
+		PrivateDependencyModuleNames.Add("Json");
 	}
 }
