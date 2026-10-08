@@ -1,15 +1,14 @@
 #include "EFBodyPresetCatalog.h"
 #include "EFCharacterCreationSettings.h"
-#include "UObject/StrongObjectPtr.h"
 
 const UEFBodyPresetCatalog* UEFBodyPresetCatalog::Get()
 {
-	static TStrongObjectPtr<UEFBodyPresetCatalog> Cached;
-	const auto& Reference = UEFCharacterCreationSettings::Get()->BodyPresetCatalog;
-	if (Reference.IsNull()) return nullptr;
-	if (!Cached.IsValid() || FSoftObjectPath(Cached.Get()) != Reference.ToSoftObjectPath())
-		Cached.Reset(Reference.LoadSynchronous());
-	return Cached.Get();
+	auto* Settings = GetMutableDefault<UEFCharacterCreationSettings>();
+	const auto& Reference = Settings->BodyPresetCatalog;
+	if (Reference.IsNull()) { Settings->LoadedBodyPresetCatalog=nullptr; return nullptr; }
+	if (!IsValid(Settings->LoadedBodyPresetCatalog) || FSoftObjectPath(Settings->LoadedBodyPresetCatalog) != Reference.ToSoftObjectPath())
+		Settings->LoadedBodyPresetCatalog=Reference.LoadSynchronous();
+	return Settings->LoadedBodyPresetCatalog;
 }
 
 const FEFBodyPresetDefinition* UEFBodyPresetCatalog::Find(FName Id) const

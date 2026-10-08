@@ -73,6 +73,9 @@ public:
 	/** Shared player/NPC catalog. Legacy arrays are fallback only when no catalog is available. */
 	UPROPERTY(EditAnywhere, Config, Category = "Meshes")
 	TSoftObjectPtr<UEFBodyPresetCatalog> BodyPresetCatalog = TSoftObjectPtr<UEFBodyPresetCatalog>(FSoftObjectPath(TEXT("/Game/_Game/Data/CharacterCreation/DA_BodyPresets.DA_BodyPresets")));
+	/** GC-owned cache; no static strong-pointer destructor after UObject shutdown. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEFBodyPresetCatalog> LoadedBodyPresetCatalog;
 
 	/** Exact mesh-to-physics mappings; applied only to the component that owns simulation. */
 	UPROPERTY(EditAnywhere, Config, Category = "Morph Physics")

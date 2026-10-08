@@ -1637,6 +1637,7 @@ bool UEFCharacterCustomizationComponent::ApplyBodySkeletalMesh(USkeletalMesh* Sk
 	if (bMeshCompatible)
 	{
 		BuildMorphEntries();
+		EFCharacterCreationGameplayHooks::NotifyAppearanceMeshStateChanged(OwningActor.Get());
 		return true;
 	}
 
@@ -1655,6 +1656,7 @@ bool UEFCharacterCustomizationComponent::ApplyBodySkeletalMesh(USkeletalMesh* Sk
 	{
 		BuildMorphEntries();
 	}
+	EFCharacterCreationGameplayHooks::NotifyAppearanceMeshStateChanged(OwningActor.Get());
 	return false;
 }
 

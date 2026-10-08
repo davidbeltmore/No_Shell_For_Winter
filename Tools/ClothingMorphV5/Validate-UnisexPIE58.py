@@ -15,6 +15,11 @@ OUT = pathlib.Path(os.environ.get('EF_UNISEX_OUTPUT_DIR', str(pathlib.Path(unrea
 OUT.mkdir(parents=True, exist_ok=True)
 LE = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 ED = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+# Explicit cases let body onboarding exercise an arbitrary catalog without changing
+# the established Female/Male regression run's default scope.
+BODY_CASES = os.environ.get('EF_UNISEX_BODY_PRESETS', 'Female.01,Male.01,Female.01').split(',')
+CATALOG = unreal.load_asset('/Game/_Game/Data/CharacterCreation/DA_BodyPresets')
+DEFINITIONS = {str(r.preset_id): r for r in CATALOG.bodies} if CATALOG else {}
 ITEMS = [
     ('RagShirt', '/Game/_Game/Clothes/Rags01/RagShirt'),
     ('RagPants', '/Game/_Game/Clothes/Rags01/RagPants'),
@@ -53,7 +58,7 @@ def unequip(guid):
 
 
 def current_body():
-    expected = f'/Game/DazToUnreal/{S["gender"]}/{S["gender"]}.{S["gender"]}'
+    expected = S['body_path']
     candidates = [c for c in S['player'].get_components_by_class(unreal.SkeletalMeshComponent)
                   if c.is_visible() and c.get_skeletal_mesh_asset()
                   and c.get_skeletal_mesh_asset().get_path_name() == expected]
@@ -89,10 +94,16 @@ def finish(error=None):
     unreal.SystemLibrary.quit_editor()
 
 
+def select_case(index):
+    preset = BODY_CASES[index]
+    definition = DEFINITIONS[preset]
+    assert S['custom'].select_body_preset(preset, False)
+    S['gender'] = 'Male' if definition.gender == unreal.CharacterCreationGender.MALE else 'Female'
+    S['preset_id'] = preset
+    S['body_path'] = definition.mesh.get_path_name()
+
 def set_gender():
-    name = ('Female', 'Male', 'Female')[S['gender_index']]
-    assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, name.upper()))
-    S['gender'] = name
+    select_case(S['gender_index'])
     transition('ready', 3)
 
 
@@ -101,7 +112,7 @@ def tick(dt):
         return
     S['busy'] = True
     try:
-        if time.monotonic()-S['start'] > 350:
+        if time.monotonic()-S['start'] > 480:
             raise RuntimeError('Bounded unisex PIE timeout: '+S['phase'])
         if time.monotonic() < S['due']:
             return
@@ -224,7 +235,7 @@ def tick(dt):
                 if time.monotonic()-S['due'] < 12:
                     return
                 raise RuntimeError('Gameplay screenshot was not produced')
-            if not S['side'] and S['gender_index'] < 2:
+            if not S['side'] and S['gender_index'] < len(BODY_CASES)-1:
                 S['side'] = True
                 location = S['player'].get_actor_location()
                 camera_location = location + S['player'].get_actor_right_vector()*220 + unreal.Vector(0,0,15)
@@ -235,7 +246,7 @@ def tick(dt):
                 transition('next_gender', .1)
         elif phase == 'next_gender':
             S['gender_index'] += 1
-            if S['gender_index'] < 3:
+            if S['gender_index'] < len(BODY_CASES):
                 set_gender()
             else:
                 for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
@@ -248,8 +259,7 @@ def tick(dt):
             S['index'] += 1
             transition('equip', .1)
         elif phase == 'overlap_equip':
-            S['gender'] = ('Male', 'Female')[S['overlap_gender']]
-            assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, S['gender'].upper()))
+            select_case(S['overlap_gender'])
             for path in (ITEMS[1][1], ITEMS[4][1]):
                 klass = unreal.load_class(None, path+'.'+path.rsplit('/',1)[1]+'_C')
                 equip(klass)
@@ -280,14 +290,13 @@ def tick(dt):
             assert not prop(current_body(), 'mesh_deformer'), 'Body deformer override leaked after final unequip'
             S['report']['checks'].append({'gender': S['gender'], 'coverage_owners': 0, 'status': 'PASS'})
             S['overlap_gender'] += 1
-            if S['overlap_gender'] < 2:
+            if S['overlap_gender'] < len(BODY_CASES)-1:
                 transition('overlap_equip', .1)
             else:
                 S['morph_gender'] = 0
                 transition('morph_equip', .1)
         elif phase == 'morph_equip':
-            S['gender'] = ('Female', 'Male')[S['morph_gender']]
-            assert S['custom'].select_gender(getattr(unreal.CharacterCreationGender, S['gender'].upper()))
+            select_case(S['morph_gender'])
             for path in (ITEMS[0][1], ITEMS[1][1], ITEMS[3][1], ITEMS[4][1]):
                 klass = unreal.load_class(None, path+'.'+path.rsplit('/',1)[1]+'_C')
                 equip(klass)
@@ -333,7 +342,7 @@ def tick(dt):
                 unreal.MathLibrary.find_look_at_rotation(camera_location,location), False, True)
             transition('morph_capture', 0)
         elif phase == 'morph_capture':
-            path = OUT/f'morph_extreme_{S["gender"]}.png'
+            path = OUT/f'morph_extreme_{S["preset_id"]}.png'
             if path.exists():
                 path.unlink()
             unreal.AutomationLibrary.take_high_res_screenshot(1400, 1000, str(path))
@@ -345,7 +354,7 @@ def tick(dt):
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
                 unequip(prop(item, 'item_guid'))
             S['morph_gender'] += 1
-            if S['morph_gender'] < 2:
+            if S['morph_gender'] < len(BODY_CASES)-1:
                 transition('morph_equip', .5)
             else:
                 finish()

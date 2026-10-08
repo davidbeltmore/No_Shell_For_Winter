@@ -14,5 +14,6 @@ public class EFCharacterCreationACFURuntime : ModuleRules
 			"Engine",
 			"GameplayAbilities"
 		});
+		PrivateDependencyModuleNames.AddRange(new string[] { "CharacterController", "GameplayTags" });
 	}
 }

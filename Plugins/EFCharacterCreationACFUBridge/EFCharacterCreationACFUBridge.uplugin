@@ -9,6 +9,10 @@
 	"Installed": false,
 	"Plugins": [
 		{
+			"Name": "AscentCombatFramework",
+			"Enabled": true
+		},
+		{
 			"Name": "EFCharacterCreation",
 			"Enabled": true
 		},

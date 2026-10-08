@@ -1,4 +1,5 @@
 #include "EFMorphPhysicsConstraintComponent.h"
+#include "EFBodyPresetCatalog.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "EFCharacterCreationSettings.h"
@@ -490,6 +491,7 @@ void UEFMorphPhysicsConstraintComponent::RefreshFromCurrentMorphState()
 		CurrentConstraintLimits.Reset();
 		LastResolvedMeshAsset = MeshComponent->GetSkeletalMeshAsset();
 		LastResolvedPhysicsAsset = MeshComponent->GetPhysicsAsset();
+		MissingConstraintWarnings.Reset();
 	}
 
 	bLoggedMissingMeshWarning = false;
@@ -537,8 +539,9 @@ void UEFMorphPhysicsConstraintComponent::RefreshFromCurrentMorphState()
 				CurrentConstraintLimits.FindOrAdd(Pair.Key) = Pair.Value;
 				bAppliedAnyLimit = true;
 			}
-			else if (bLogSetupWarnings)
+			else if (bLogSetupWarnings && !MissingConstraintWarnings.Contains(Pair.Key))
 			{
+				MissingConstraintWarnings.Add(Pair.Key);
 				UE_LOG(LogTemp, Warning, TEXT("EF Morph Physics Constraint Driver on %s could not find constraint %s on mesh %s."),
 					*GetNameSafe(GetOwner()),
 					*Pair.Key.ToString(),
@@ -722,6 +725,12 @@ void UEFMorphPhysicsConstraintComponent::ApplyConfiguredPhysicsAsset(USkeletalMe
 	const auto* Settings = UEFCharacterCreationSettings::Get();
 	if (!MeshComponent || !Settings || !MeshComponent->GetSkeletalMeshAsset()) return;
 	const auto* Override = Settings->MorphPhysicsAssetOverrides.Find(TSoftObjectPtr<USkeletalMesh>(MeshComponent->GetSkeletalMeshAsset()));
+	if (!Override || Override->IsNull())
+	{
+		const auto* Catalog = UEFBodyPresetCatalog::Get();
+		const auto* Body = Catalog ? Catalog->FindMesh(FSoftObjectPath(MeshComponent->GetSkeletalMeshAsset())) : nullptr;
+		Override = Body ? &Body->MorphPhysicsAsset : nullptr;
+	}
 	if (!Override || Override->IsNull()) return;
 	UPhysicsAsset* Asset = Override->LoadSynchronous();
 	if (!Asset || (!bRestoreSimulation && MeshComponent->GetPhysicsAsset() == Asset)) return;

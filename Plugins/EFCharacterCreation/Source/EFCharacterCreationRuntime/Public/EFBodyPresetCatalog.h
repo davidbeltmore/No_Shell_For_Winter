@@ -5,6 +5,8 @@
 #include "EFCharacterCreationTypes.h"
 #include "EFBodyPresetCatalog.generated.h"
 
+class UPhysicsAsset;
+
 USTRUCT(BlueprintType)
 struct EFCHARACTERCREATIONRUNTIME_API FEFBodyMorphProfileEntry
 {
@@ -27,6 +29,8 @@ struct EFCHARACTERCREATIONRUNTIME_API FEFBodyPresetDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) FString DisplayName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) ECharacterCreationGender Gender = ECharacterCreationGender::NotApplicable;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) TSoftObjectPtr<USkeletalMesh> Mesh;
+	/** Optional certified secondary-body physics profile; original mesh assets stay untouched. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) TSoftObjectPtr<UPhysicsAsset> MorphPhysicsAsset;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bEnabled = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bAllowNPC = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0")) float NPCWeight = 1.0f;

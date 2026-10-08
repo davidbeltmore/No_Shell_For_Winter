@@ -11,4 +11,5 @@ public:
 private:
 	FDelegateHandle SetPawnCanMoveHandle;
 	FDelegateHandle CancelPawnAbilitiesHandle;
+	FDelegateHandle AppearanceChangedHandle;
 };

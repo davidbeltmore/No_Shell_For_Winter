@@ -1373,7 +1373,9 @@ bool UEFClothingMorphV3RuntimeComponent::ValidateNativeBinding(
 	const FString SourceIdentity = EFClothingSkeleton::BuildFingerprint(SourceMesh);
 	const FString BodyIdentity = EFClothingSkeleton::BuildFingerprint(BodyMesh);
 	const FString SharedIdentity = EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceMesh->GetSkeleton());
-	if (SourceMesh->GetSkeleton() != BodyMesh->GetSkeleton()
+	if (!EFClothingSkeleton::CanBindBodySkeleton(SourceMesh, BodyMesh)
+		|| (SourceMesh->GetSkeleton() != BodyMesh->GetSkeleton() && Binding->LocalBodySkeletonFingerprint
+			!= EFClothingSkeleton::BuildSharedSkeletonFingerprint(BodyMesh->GetSkeleton()))
 		|| Binding->SourceSkeletonFingerprint.IsEmpty()
 		|| Binding->BodySkeletonFingerprint.IsEmpty()
 		|| Binding->SharedSkeletonFingerprint.IsEmpty()

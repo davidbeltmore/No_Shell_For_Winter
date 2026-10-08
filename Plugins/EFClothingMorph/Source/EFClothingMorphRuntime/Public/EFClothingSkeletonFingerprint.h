@@ -24,6 +24,10 @@ namespace EFClothingSkeleton
 	 */
 	EFCLOTHINGMORPHRUNTIME_API FString BuildContentFingerprint(const USkeletalMesh* Mesh);
 
+	/** Existing shared skeleton contract, or an explicitly declared local body skeleton
+	 * with matching skin-palette bones and their ancestors. Never changes either skeleton. */
+	EFCLOTHINGMORPHRUNTIME_API bool CanBindBodySkeleton(const USkeletalMesh* Source, const USkeletalMesh* Body);
+
 	/** Same USkeleton object plus identical bone count, order, names and parents. */
 	EFCLOTHINGMORPHRUNTIME_API bool AreBoneHierarchiesCompatible(
 		const USkeletalMesh* A,

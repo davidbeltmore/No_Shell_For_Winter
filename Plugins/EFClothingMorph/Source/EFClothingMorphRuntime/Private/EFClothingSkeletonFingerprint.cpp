@@ -9,6 +9,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Rendering/SkeletalMeshRenderData.h"
 
 namespace
 {
@@ -413,6 +414,39 @@ bool EFClothingSkeleton::AreSharedBoneHierarchiesCompatible(
 	if (OutFailureReason)
 	{
 		OutFailureReason->Reset();
+	}
+	return true;
+}
+
+bool EFClothingSkeleton::CanBindBodySkeleton(const USkeletalMesh* Source, const USkeletalMesh* Body)
+{
+	if (!IsValid(Source) || !IsValid(Body) || !Source->GetSkeleton() || !Body->GetSkeleton()) return false;
+	if (Source->GetSkeleton() == Body->GetSkeleton()) return true;
+	if (!Body->GetSkeleton()->GetCompatibleSkeletons().Contains(TSoftObjectPtr<USkeleton>(FSoftObjectPath(Source->GetSkeleton())))) return false;
+	const auto* Render = Source->GetResourceForRendering();
+	if (!Render || Render->LODRenderData.IsEmpty()) return false;
+	const auto& SourceRef = Source->GetRefSkeleton();
+	const auto& BodyRef = Body->GetRefSkeleton();
+	TSet<int32> Required;
+	// Bone maps are the compact palettes actually used by skinning. Include their
+	// ancestors; unused imported internal branches are irrelevant to this garment.
+	for (const auto& LOD : Render->LODRenderData)
+		for (const auto& Section : LOD.RenderSections)
+			for (int32 Bone : Section.BoneMap)
+				while (Bone != INDEX_NONE && !Required.Contains(Bone))
+				{
+					if (Bone < 0 || Bone >= SourceRef.GetNum()) return false;
+					Required.Add(Bone); Bone = SourceRef.GetParentIndex(Bone);
+				}
+	if (Required.IsEmpty()) return false;
+	for (int32 I : Required)
+	{
+		const int32 J = BodyRef.FindBoneIndex(SourceRef.GetBoneName(I));
+		if (J == INDEX_NONE) return false;
+		const int32 ParentA = SourceRef.GetParentIndex(I), ParentB = BodyRef.GetParentIndex(J);
+		const FName NameA = ParentA == INDEX_NONE ? NAME_None : SourceRef.GetBoneName(ParentA);
+		const FName NameB = ParentB == INDEX_NONE ? NAME_None : BodyRef.GetBoneName(ParentB);
+		if (NameA != NameB) return false;
 	}
 	return true;
 }

@@ -479,6 +479,10 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Integrity")
 	FString SharedSkeletonFingerprint;
 
+	/** Required only for a body with its own skeleton; legacy shared bindings stay valid. */
+	UPROPERTY(VisibleAnywhere, Category = "Integrity")
+	FString LocalBodySkeletonFingerprint;
+
 	/** Surface material slots omitted from every compiled body query. */
 	UPROPERTY(VisibleAnywhere, Category = "Surface")
 	TArray<FName> ExcludedBodySurfaceMaterialSlots;

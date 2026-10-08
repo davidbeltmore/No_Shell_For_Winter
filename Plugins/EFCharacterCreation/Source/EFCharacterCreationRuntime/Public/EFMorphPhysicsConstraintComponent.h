@@ -130,6 +130,7 @@ private:
 	TWeakObjectPtr<USkeletalMesh> LastResolvedMeshAsset;
 	TWeakObjectPtr<UPhysicsAsset> LastResolvedPhysicsAsset;
 	TMap<FName, float> CurrentConstraintLimits;
+	TSet<FName> MissingConstraintWarnings;
 	TMap<FName, float> TargetConstraintLimits;
 	bool bHasPendingInterpolation = false;
 	bool bPollMorphStateEveryTick = false;

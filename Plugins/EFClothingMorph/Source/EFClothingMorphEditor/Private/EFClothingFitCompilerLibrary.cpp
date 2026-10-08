@@ -12125,6 +12125,8 @@ namespace EFClothingFitCompilerPrivate
 		Binding->FittedSkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(FittedGarment);
 		Binding->BodySkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(BodySurface);
 		Binding->SharedSkeletonFingerprint = EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton());
+		Binding->LocalBodySkeletonFingerprint = SourceGarment->GetSkeleton() == BodySurface->GetSkeleton() ? FString()
+			: EFClothingSkeleton::BuildSharedSkeletonFingerprint(BodySurface->GetSkeleton());
 		Binding->ExcludedBodySurfaceMaterialSlots = ExcludedBodySurfaceMaterialSlots;
 		Binding->LODPairBindings.Reset();
 		const FGameplayTag GenitalCoverageTag = FGameplayTag::RequestGameplayTag(
@@ -12630,7 +12632,7 @@ namespace EFClothingFitCompilerPrivate
 
 		USkeleton* SharedSkeleton = SourceGarment->GetSkeleton();
 		if (!IsValid(SharedSkeleton)
-			|| BodySurface->GetSkeleton() != SharedSkeleton
+			|| !EFClothingSkeleton::CanBindBodySkeleton(SourceGarment, BodySurface)
 			|| CompatibilityReference->GetSkeleton() != SharedSkeleton
 			|| Binding->SourceContentFingerprint
 				!= EFClothingSkeleton::BuildContentFingerprint(SourceGarment)
@@ -12642,6 +12644,8 @@ namespace EFClothingFitCompilerPrivate
 				!= EFClothingSkeleton::BuildFingerprint(BodySurface)
 			|| Binding->SharedSkeletonFingerprint
 				!= EFClothingSkeleton::BuildSharedSkeletonFingerprint(SharedSkeleton)
+			|| (BodySurface->GetSkeleton() != SharedSkeleton && Binding->LocalBodySkeletonFingerprint
+				!= EFClothingSkeleton::BuildSharedSkeletonFingerprint(BodySurface->GetSkeleton()))
 			|| !Binding->FittedContentFingerprint.IsEmpty()
 			|| !Binding->FittedSkeletonFingerprint.IsEmpty())
 		{
@@ -12949,10 +12953,10 @@ namespace EFClothingFitCompilerPrivate
 			|| !IsValid(BodySurface)
 			|| !IsValid(CompatibilityReference)
 			|| !IsValid(SourceGarment->GetSkeleton())
-			|| SourceGarment->GetSkeleton() != BodySurface->GetSkeleton()
+			|| !EFClothingSkeleton::CanBindBodySkeleton(SourceGarment, BodySurface)
 			|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton())
 		{
-			OutError = TEXT("Native-source binding requires clothing, body, and compatibility meshes to share the exact protected USkeleton object.");
+			OutError = TEXT("Native-source binding requires the canonical clothing skeleton and a certified compatible body skin hierarchy.");
 			return false;
 		}
 
@@ -13044,6 +13048,8 @@ namespace EFClothingFitCompilerPrivate
 		Binding->BodySkeletonFingerprint = EFClothingSkeleton::BuildFingerprint(BodySurface);
 		Binding->SharedSkeletonFingerprint =
 			EFClothingSkeleton::BuildSharedSkeletonFingerprint(SourceGarment->GetSkeleton());
+		Binding->LocalBodySkeletonFingerprint = SourceGarment->GetSkeleton() == BodySurface->GetSkeleton() ? FString()
+			: EFClothingSkeleton::BuildSharedSkeletonFingerprint(BodySurface->GetSkeleton());
 		Binding->ExcludedBodySurfaceMaterialSlots = ExcludedSurfaceSlots;
 		Binding->bLowerBodyMorphGuardEnabled = Row.LowerBodyMorphGuard.bEnabled;
 		Binding->LowerBodyMorphGuardExactBodyMorphNames.Reset();
@@ -13109,7 +13115,7 @@ namespace EFClothingFitCompilerPrivate
 				if (!Row.ReferenceBodySurface.IsNull())
 				{
 					USkeletalMesh* Reference = Row.ReferenceBodySurface.LoadSynchronous();
-					if (!Reference || Reference->GetSkeleton() != BodySurface->GetSkeleton()
+					if (!Reference || Reference->GetSkeleton() != SourceGarment->GetSkeleton()
 						|| !BuildUnisexReferenceShape(BodySurface, Reference, BodyLOD, OutError)) { return false; }
 				}
 				if (Binding->bLowerBodyMorphGuardEnabled
@@ -15587,7 +15593,7 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV3(
 		if (!IsValid(SourceGarment)
 			|| !IsValid(BodySurface)
 			|| SourceGarment->GetSkeleton() != ProtectedSkeleton
-			|| BodySurface->GetSkeleton() != ProtectedSkeleton)
+			|| !EFClothingSkeleton::CanBindBodySkeleton(SourceGarment, BodySurface))
 		{
 			RowResult.Report = TEXT("FAIL: source/body do not share the protected compatibility USkeleton.");
 			return Fail(FString::Printf(
@@ -15883,7 +15889,7 @@ UEFClothingFitCompilerLibrary::ValidateNativeSourceCatalogV4(
 		if (!IsValid(SourceGarment)
 			|| !IsValid(BodySurface)
 			|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton()
-			|| BodySurface->GetSkeleton() != CompatibilityReference->GetSkeleton())
+			|| !EFClothingSkeleton::CanBindBodySkeleton(SourceGarment, BodySurface))
 		{
 			++Result.InvalidRowCount;
 			Issues.Add(FString::Printf(
@@ -16166,7 +16172,7 @@ UEFClothingFitCompilerLibrary::CompileNativeSourceCatalogV4(
 		if (!IsValid(SourceGarment)
 			|| !IsValid(BodySurface)
 			|| SourceGarment->GetSkeleton() != CompatibilityReference->GetSkeleton()
-			|| BodySurface->GetSkeleton() != CompatibilityReference->GetSkeleton())
+			|| !EFClothingSkeleton::CanBindBodySkeleton(SourceGarment, BodySurface))
 		{
 			++Result.FailedRowCount;
 			RowResult.Report = TEXT("FAILED: clothing, body, and compatibility meshes must share the protected skeleton.");
