@@ -36,6 +36,8 @@ public:
 	virtual TStatId GetStatId() const override;
 	virtual bool IsTickable() const override;
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
+	virtual void OnWorldBeginPlay(UWorld& World) override;
+	void RequestAppearanceRestore() { bAppearanceRestorePending = true; }
 
 	/** Pure gate shared with automation; false unless Charisma and presentation policy both allow it. */
 	static bool IsOptionalMatureMorphPresentationAllowedForPolicy(
@@ -104,6 +106,7 @@ private:
 	TMap<TObjectKey<APawn>, FProjectEnemyOptionalMatureMorphState> TrackedOptionalMatureMorphStates;
 	TWeakObjectPtr<UProjectContentPolicySubsystem> ContentPolicySubsystem;
 	bool bInitialPawnScanPending = true;
+	bool bAppearanceRestorePending = false;
 	bool bConfiguredClassesPending = true;
 	bool bOptionalMatureMorphPolicyAllowed = false;
 	double LastOptionalMatureVisibilityPollTimeSeconds = -1.0;

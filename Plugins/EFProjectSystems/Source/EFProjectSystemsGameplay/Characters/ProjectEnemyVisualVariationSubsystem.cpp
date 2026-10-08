@@ -1,4 +1,10 @@
 #include "Characters/ProjectEnemyVisualVariationSubsystem.h"
+#include "Characters/ProjectNPCAppearanceState.h"
+#include "EFBodyPresetCatalog.h"
+#include "ALSLoadAndSaveSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/PackageName.h"
 
 #include "Characters/ProjectEnemyLevelComponent.h"
 #include "Characters/ProjectEnemyLevelSubsystem.h"
@@ -21,6 +27,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectEnemyVisualVariation, Log, All);
 
 namespace ProjectEnemyVisualVariationSubsystemPrivate
 {
+	static bool MatchesConfiguredClass(const UClass* Class, const TArray<TSoftClassPtr<APawn>>& Candidates)
+	{
+		// Compare already loaded ancestry to soft paths; eligibility must not depend
+		// on unrelated enemy classes having been loaded before the spawn callback.
+		for (const UClass* Parent = Class; Parent; Parent = Parent->GetSuperClass())
+			for (const auto& Candidate : Candidates)
+				if (Candidate.ToSoftObjectPath() == FSoftObjectPath(Parent)) return true;
+		return false;
+	}
 	static TObjectKey<UObject> MakeObjectKey(const UObject* Object)
 	{
 		return TObjectKey<UObject>(const_cast<UObject*>(Object));
@@ -204,6 +219,14 @@ void UProjectEnemyVisualVariationSubsystem::Tick(float DeltaTime)
 		return;
 	}
 
+	if (const auto* Save = World->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>(); Save && Save->GetSystemState() != ELoadingState::EIdle) return;
+	if (bAppearanceRestorePending)
+	{
+		bAppearanceRestorePending = false;
+		ProcessedActors.Reset(); PendingActors.Reset();
+		TrackedOptionalMatureMorphStates.Reset();
+		bInitialPawnScanPending = true;
+	}
 	if (bConfiguredClassesPending && ResolveConfiguredClasses())
 	{
 		bConfiguredClassesPending = false;
@@ -259,7 +282,7 @@ bool UProjectEnemyVisualVariationSubsystem::IsTickable() const
 	const UWorld* World = GetWorld();
 	return World != nullptr
 		&& World->IsGameWorld()
-		&& (bInitialPawnScanPending || bConfiguredClassesPending || TrackedOptionalMatureMorphStates.Num() > 0);
+		&& (bAppearanceRestorePending || bInitialPawnScanPending || bConfiguredClassesPending || TrackedOptionalMatureMorphStates.Num() > 0);
 }
 
 bool UProjectEnemyVisualVariationSubsystem::ResolveConfiguredClasses()
@@ -298,7 +321,8 @@ bool UProjectEnemyVisualVariationSubsystem::ResolveConfiguredClasses()
 
 	ResolveClasses(Settings->TargetEnemyClasses, TargetEnemyClasses);
 	ResolveClasses(Settings->OptionalMatureMorphTargetEnemyClasses, OptionalMatureMorphTargetEnemyClasses);
-	return bAllClassesResolved;
+	// Unloaded classes are matched by path at spawn; never poll/load the whole roster.
+	return true;
 }
 
 bool UProjectEnemyVisualVariationSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
@@ -370,7 +394,7 @@ void UProjectEnemyVisualVariationSubsystem::ProcessExistingPawns()
 void UProjectEnemyVisualVariationSubsystem::HandleActorSpawned(AActor* SpawnedActor)
 {
 	APawn* SpawnedPawn = Cast<APawn>(SpawnedActor);
-	if (!ShouldProcessPawn(SpawnedPawn))
+	if (!IsValid(SpawnedPawn))
 	{
 		return;
 	}
@@ -411,6 +435,11 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 		return;
 	}
 
+	if (const auto* Save = GetWorld()->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>(); Save && Save->GetSystemState() != ELoadingState::EIdle)
+	{
+		QueueVariationApplication(Pawn, AttemptIndex);
+		return;
+	}
 	const UProjectEnemyVisualVariationSettings* Settings = UProjectEnemyVisualVariationSettings::Get();
 	const int32 MaxRetryCount = FMath::Max(Settings->InitializationRetryCount, 0);
 
@@ -468,8 +497,30 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 		return;
 	}
 
+	AProjectNPCAppearanceState* AppearanceState = AProjectNPCAppearanceState::Ensure(GetWorld());
+	const FString AppearanceId = AProjectNPCAppearanceState::IdentityFor(Pawn);
+	const int32 AppearanceSeed = AProjectNPCAppearanceState::SeedFor(AppearanceId);
+	FRandomStream AppearanceRandom(AppearanceSeed);
+	if (AppearanceState)
+		if (const auto* Saved = AppearanceState->Records.Find(AppearanceId))
+		{
+			CustomizationComponent->ApplyState(Saved->Appearance);
+			ProjectEnemyVisualVariationSubsystemPrivate::ApplyNativeSkinColorToPawnMeshes(Pawn, *Settings, Saved->Appearance.SkinColor);
+			if (IsOptionalMatureMorphTargetClass(Pawn->GetClass())) InitializeOptionalMatureMorphState(Pawn, CustomizationComponent);
+			MarkActorProcessed(Pawn);
+			return;
+		}
+	const UEFBodyPresetCatalog* BodyCatalog = UEFBodyPresetCatalog::Get();
+	if (BodyCatalog)
+		if (const auto* Body = BodyCatalog->ChooseNPC(CustomizationComponent->GetGender(), AppearanceRandom))
+			if (!CustomizationComponent->SelectBodyPreset(Body->PresetId, true))
+			{
+				UE_LOG(LogProjectEnemyVisualVariation, Warning, TEXT("Body preset %s unavailable; retaining validated current NPC body"), *Body->PresetId.ToString());
+			}
+
 	TArray<FMorphSliderEntry> AllowedEntries;
-	if (!GatherAllowedMorphEntries(CustomizationComponent, AllowedEntries))
+	const bool bHasLegacyMorphs = GatherAllowedMorphEntries(CustomizationComponent, AllowedEntries);
+	if (!bHasLegacyMorphs && (!BodyCatalog || !BodyCatalog->Find(CustomizationComponent->GetBodyPresetId())))
 	{
 		RetryOrFail(TEXT("None of the allowed test morphs were discovered on the spawned pawn."));
 		return;
@@ -490,8 +541,10 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 		}
 	}
 
+	if (bHasLegacyMorphs)
+	{
 	FProjectEnemyMorphRollResult RollResult;
-	if (!FProjectEnemyVisualVariationSelection::RollMorphVariation(AllowedEntries, *Settings, SelectionContext, RollResult)
+	if (!FProjectEnemyVisualVariationSelection::RollMorphVariation(AllowedEntries, *Settings, SelectionContext, AppearanceRandom, RollResult)
 		|| !RollResult.bIsValid
 		|| !AllowedEntries.IsValidIndex(RollResult.SelectedEntryIndex))
 	{
@@ -501,6 +554,16 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 
 	const FMorphSliderEntry& SelectedEntry = AllowedEntries[RollResult.SelectedEntryIndex];
 	CustomizationComponent->ApplyMorph(SelectedEntry, RollResult.MorphValue);
+	}
+	if (BodyCatalog)
+		if (const auto* Body = BodyCatalog->Find(CustomizationComponent->GetBodyPresetId()))
+			for (const auto& Profile : Body->MorphProfile)
+			{
+				if (!Profile.bRandomizeNPC) continue;
+				for (const auto& Entry : CustomizationComponent->GetAvailableMorphEntries())
+					if (Entry.MorphName == Profile.MorphName && Entry.Target == ECharacterCustomizationTarget::Body)
+						CustomizationComponent->ApplyMorph(Entry, AppearanceRandom.FRandRange(Profile.NPCMinimum, Profile.NPCMaximum));
+			}
 	const bool bIsOptionalMatureMorphTarget = IsOptionalMatureMorphTargetClass(Pawn->GetClass());
 	if (bIsOptionalMatureMorphTarget)
 	{
@@ -509,7 +572,7 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 
 	const float SkinBrightnessMin = FMath::Min(Settings->SkinBrightnessMin, Settings->SkinBrightnessMax);
 	const float SkinBrightnessMax = FMath::Max(Settings->SkinBrightnessMin, Settings->SkinBrightnessMax);
-	const float SkinBrightness = FMath::FRandRange(SkinBrightnessMin, SkinBrightnessMax);
+	const float SkinBrightness = AppearanceRandom.FRandRange(SkinBrightnessMin, SkinBrightnessMax);
 	const FLinearColor SkinColor(SkinBrightness, SkinBrightness, SkinBrightness, 1.0f);
 	CustomizationComponent->SetSkinColor(SkinColor);
 	ProjectEnemyVisualVariationSubsystemPrivate::ApplyNativeSkinColorToPawnMeshes(Pawn, *Settings, SkinColor);
@@ -517,6 +580,12 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 	if (bIsOptionalMatureMorphTarget)
 	{
 		InitializeOptionalMatureMorphState(Pawn, CustomizationComponent);
+	}
+	if (AppearanceState)
+	{
+		FProjectNPCAppearanceRecord& Record = AppearanceState->Records.FindOrAdd(AppearanceId);
+		Record.Seed = AppearanceSeed;
+		Record.Appearance = CustomizationComponent->CaptureCurrentState();
 	}
 	MarkActorProcessed(Pawn);
 }
@@ -528,6 +597,7 @@ bool UProjectEnemyVisualVariationSubsystem::ShouldProcessPawn(const APawn* Pawn)
 		return false;
 	}
 
+	if (Pawn->IsPlayerControlled()) return false;
 	if (Pawn->IsTemplate() || Pawn->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
 		return false;
@@ -538,10 +608,7 @@ bool UProjectEnemyVisualVariationSubsystem::ShouldProcessPawn(const APawn* Pawn)
 		return false;
 	}
 
-	if (!IsClassEligibleForVisualVariation(
-		Pawn->GetClass(),
-		TargetEnemyClasses,
-		OptionalMatureMorphTargetEnemyClasses))
+	if (!Pawn->ActorHasTag(TEXT("EF.BodyVariation")) && !IsTargetEnemyClass(Pawn->GetClass()) && !IsOptionalMatureMorphTargetClass(Pawn->GetClass()))
 	{
 		return false;
 	}
@@ -551,38 +618,12 @@ bool UProjectEnemyVisualVariationSubsystem::ShouldProcessPawn(const APawn* Pawn)
 
 bool UProjectEnemyVisualVariationSubsystem::IsTargetEnemyClass(const UClass* ActorClass) const
 {
-	if (!IsValid(ActorClass))
-	{
-		return false;
-	}
-
-	for (const TSubclassOf<APawn>& TargetEnemyClass : TargetEnemyClasses)
-	{
-		if (TargetEnemyClass && ActorClass->IsChildOf(TargetEnemyClass.Get()))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return ProjectEnemyVisualVariationSubsystemPrivate::MatchesConfiguredClass(ActorClass, UProjectEnemyVisualVariationSettings::Get()->TargetEnemyClasses);
 }
 
 bool UProjectEnemyVisualVariationSubsystem::IsOptionalMatureMorphTargetClass(const UClass* ActorClass) const
 {
-	if (!IsValid(ActorClass))
-	{
-		return false;
-	}
-
-	for (const TSubclassOf<APawn>& TargetEnemyClass : OptionalMatureMorphTargetEnemyClasses)
-	{
-		if (TargetEnemyClass && ActorClass->IsChildOf(TargetEnemyClass.Get()))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return ProjectEnemyVisualVariationSubsystemPrivate::MatchesConfiguredClass(ActorClass, UProjectEnemyVisualVariationSettings::Get()->OptionalMatureMorphTargetEnemyClasses);
 }
 
 UEFCharacterCustomizationComponent* UProjectEnemyVisualVariationSubsystem::FindOrCreateCustomizationComponent(APawn* Pawn) const
@@ -679,6 +720,7 @@ void UProjectEnemyVisualVariationSubsystem::ApplyConfiguredOptionalMatureMorphGr
 	}
 
 	const int32 EnemyLevel = ResolveEnemyLevel(Pawn);
+	FRandomStream OptionalRandom(AProjectNPCAppearanceState::SeedFor(AProjectNPCAppearanceState::IdentityFor(Pawn)) ^ 0x41AC27);
 
 	auto GatherConfiguredMorphEntries =
 		[this, CustomizationComponent](const TArray<FName>& MorphNames, TMap<FName, TArray<FMorphSliderEntry>>& OutEntriesByMorph, TArray<FName>& OutAvailableMorphNames)
@@ -716,6 +758,7 @@ void UProjectEnemyVisualVariationSubsystem::ApplyConfiguredOptionalMatureMorphGr
 		GroupOneAvailableMorphNames,
 		Settings->OptionalMatureGroupOneMorphEntries,
 		EnemyLevel,
+		OptionalRandom,
 		GroupOneRollResult))
 	{
 		if (const TArray<FMorphSliderEntry>* SelectedEntries = GroupOneEntriesByMorph.Find(GroupOneRollResult.MorphName))
@@ -739,6 +782,7 @@ void UProjectEnemyVisualVariationSubsystem::ApplyConfiguredOptionalMatureMorphGr
 		Settings->OptionalMatureGroupTwoHighValueMax,
 		Settings->OptionalMatureGroupTwoLowValueMin,
 		Settings->OptionalMatureGroupTwoLowValueMax,
+		OptionalRandom,
 		GroupTwoRollResult))
 	{
 		if (const TArray<FMorphSliderEntry>* SelectedEntries = GroupTwoEntriesByMorph.Find(GroupTwoRollResult.MorphName))
@@ -768,7 +812,7 @@ void UProjectEnemyVisualVariationSubsystem::ApplyConfiguredOptionalMatureMorphGr
 		GroupThreeConditionalEntries))
 	{
 		const bool bApplyConditionalMorph = EnemyLevel >= Settings->OptionalMatureGroupThreeStartLevel
-			&& FMath::FRand() <= FMath::Clamp(
+			&& OptionalRandom.FRand() <= FMath::Clamp(
 				Settings->OptionalMatureGroupThreeConditionalMorphChance,
 				0.0f,
 				1.0f);
@@ -1169,4 +1213,17 @@ void UProjectEnemyVisualVariationSubsystem::ClearActorPending(const AActor* Acto
 	}
 
 	PendingActors.Remove(ProjectEnemyVisualVariationSubsystemPrivate::MakeObjectKey(Actor));
+}
+
+void UProjectEnemyVisualVariationSubsystem::OnWorldBeginPlay(UWorld& World)
+{
+	Super::OnWorldBeginPlay(World);
+	FString MenuMap;
+	GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), MenuMap, GEngineIni);
+	if (!MenuMap.IsEmpty() && UGameplayStatics::GetCurrentLevelName(&World, true) == FPackageName::GetShortName(FPackageName::ObjectPathToPackageName(MenuMap)))
+	{
+		if (auto* Travel = World.GetGameInstance()->GetSubsystem<UProjectNPCAppearanceTravel>()) Travel->Records.Reset();
+		return;
+	}
+	AProjectNPCAppearanceState::Ensure(&World);
 }
