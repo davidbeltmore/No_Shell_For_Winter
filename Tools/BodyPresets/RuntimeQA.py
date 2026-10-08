@@ -17,6 +17,13 @@ worlds=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 result=root/'Saved/BodyPresetsQA/Runtime/runtime.txt'
 previous=result.stat().st_mtime_ns if result.exists() else 0
 state={'started':time.monotonic(),'phase':'ready','due':0}
+
+def request_exit():
+    if '-executepythonscript=' in unreal.SystemLibrary.get_command_line().lower():
+        # Allow the command-line Python runner to finish its Slate notification.
+        unreal.EditorPythonScripting.set_keep_python_script_alive(False)
+    else:
+        unreal.SystemLibrary.quit_editor()
 def tick(dt):
     try:
         now=time.monotonic()
@@ -41,11 +48,11 @@ def tick(dt):
             state.clear()
             import gc
             gc.collect()
-            unreal.SystemLibrary.quit_editor()
+            request_exit()
     except Exception:
         (root/'Saved/BodyPresetsQA/runtime-harness-error.txt').write_text(traceback.format_exc())
         unreal.unregister_slate_post_tick_callback(state['handle'])
         editor.editor_request_end_play()
-        unreal.SystemLibrary.quit_editor()
+        request_exit()
 state['handle']=unreal.register_slate_post_tick_callback(tick)
 editor.editor_request_begin_play()

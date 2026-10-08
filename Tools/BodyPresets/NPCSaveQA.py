@@ -32,6 +32,8 @@ def fixtures(world):
     found = {}
     for pawn in unreal.GameplayStatics.get_all_actors_of_class(world, unreal.Pawn):
         key = next((str(t) for t in pawn.tags if str(t).startswith(prefix)), None)
+        if not key and 'EF.BodyPresetQA.Dynamic' in {str(t) for t in pawn.tags}:
+            key=next((str(t) for t in pawn.tags if str(t).startswith('EF.AppearanceId.')),None)
         if key: found[key] = pawn
     return found
 
@@ -57,8 +59,27 @@ def finish(error=''):
     unreal.unregister_slate_post_tick_callback(handle)
     perf.set_editor_property('bThrottleCPUWhenNotForeground', throttle)
     if editor.is_in_play_in_editor(): unreal.EditorLevelLibrary.editor_end_play()
-    unreal.EditorPythonScripting.set_keep_python_script_alive(False)
-    unreal.SystemLibrary.quit_editor()
+    # Let EndPIE and pending save callbacks finish before Python/engine teardown.
+    # Do not close from the tick stack that still owns pawn/world wrappers.
+    delegates.clear()
+    state['close_due']=time.monotonic()+3
+    state['close_handle']=unreal.register_slate_post_tick_callback(close_tick)
+
+def close_tick(delta):
+    if time.monotonic()<state['close_due']: return
+    unreal.unregister_slate_post_tick_callback(state['close_handle'])
+    globals()['perf']=None
+    globals()['worlds']=None
+    globals()['editor']=None
+    globals()['catalog']=None
+    import gc
+    gc.collect()
+    if '-executepythonscript=' in unreal.SystemLibrary.get_command_line().lower():
+        # Let FEditorPythonExecuter destroy its Slate notification before it
+        # schedules QUIT_EDITOR. Direct quit bypasses that normal exit path.
+        unreal.EditorPythonScripting.set_keep_python_script_alive(False)
+    else:
+        unreal.SystemLibrary.quit_editor()
 
 def saved(ok): state['saved'] = bool(ok)
 def loaded(ok): state['loaded'] = bool(ok)
@@ -81,7 +102,10 @@ def tick(delta):
                 npc = unreal.ProjectRuntimeReflectionLibrary.spawn_actor_by_class_path(world, path,
                     origin + unreal.Vector((i % 4) * 180, (i // 4) * 180, 0), unreal.Rotator())
                 assert npc, path
-                npc.set_editor_property('tags', list(npc.tags) + [prefix + str(i)])
+                # Four actors exercise automatically generated identities, not
+                # hand-authored IDs. ALS must preserve those tags too.
+                tag='EF.BodyPresetQA.Dynamic' if i in (6,7,10,11) else prefix+str(i)
+                npc.set_editor_property('tags', list(npc.tags) + [tag])
                 movement = npc.get_component_by_class(unreal.CharacterMovementComponent)
                 if movement: movement.disable_movement()
                 controller = npc.get_controller()
@@ -93,8 +117,10 @@ def tick(delta):
         elif state['phase'] == 'generated' and age > 8:
             state['before'] = snapshot(world)
             check('12 generated NPC appearances', len(state['before']) == 12)
-            males = [v for k,v in state['before'].items() if int(k[len(prefix):]) < 8]
-            females = [v for k,v in state['before'].items() if int(k[len(prefix):]) >= 8]
+            state['expected_genders']={k:('Female' if 'Female' in npc.get_class().get_name() else 'Male') for k,npc in fixtures(world).items()}
+            check('Four automatic persistent identities',sum(not k.startswith(prefix) for k in state['before'])==4)
+            males = [v for k,v in state['before'].items() if state['expected_genders'][k]=='Male']
+            females = [v for k,v in state['before'].items() if state['expected_genders'][k]=='Female']
             check('Male pool includes both presets', {x['body'] for x in males} == {'Male.01','Male.02'})
             check('Female NPCs remain female', all(x['body'] == 'Female.01' for x in females))
             check('Same body has varied morph values', any(len({json.dumps(x['morphs'],sort_keys=True) for x in males if x['body']==body}) > 1 for body in ['Male.01','Male.02']))

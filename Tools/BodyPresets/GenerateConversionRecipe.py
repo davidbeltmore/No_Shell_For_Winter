@@ -13,7 +13,7 @@ data = source.read_bytes()
 text = data.decode('utf-8-sig')
 body = text.split('// G9 Renaming ')[1].split('Modifier->CommitSkeletonToSkeletalMesh();')[0]
 body = body[body.index('// Rename Spine'):]
-body = '\n'.join(line for line in body.splitlines() if not line.strip().startswith('//'))
+body = '\n'.join(line.rstrip() for line in body.splitlines() if not line.strip().startswith('//'))
 body = re.sub(r'\n\s*\n', '\n', body)
 # The enclosing conversion checked the exact G9 inputs. Every modifier operation
 # must succeed here, unlike the vendor's multi-generation best-effort recipe.

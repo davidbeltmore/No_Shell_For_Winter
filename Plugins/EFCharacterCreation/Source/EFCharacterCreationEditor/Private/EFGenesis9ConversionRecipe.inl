@@ -185,6 +185,6 @@ static bool ApplyGenesis9Recipe(USkeletonModifier* Modifier)
 	RFootRotator.Roll = 0.0f;
 	RFootTransform.SetRotation(FQuat(RFootRotator));
 	if (!Modifier->SetBoneTransform("foot_r", RFootTransform, false)) return false;
-	
+
 	return true;
 }
