@@ -1,0 +1,42 @@
+﻿[
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\AGENTS.md",
+        "Hash":  "8718349B61908C4FDB5F324C7F0B6053EBA06232BA3723D8B5397DFF4673D5EB"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\BodyPresetsAndDazOnboarding_20261008.md",
+        "Hash":  "E56348B8AF7030FBCD60B6F7318DD9E52DCB9CC3190723309D60BB827B71B08D"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\BodyPresets_20261008\\live-inspection.json",
+        "Hash":  "6E733437E58F77013381364353A58DA456532D943D2B8D4DC9A23ACDDD00CA6B"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\BodyPresets_20261008\\conversion-excerpt.log",
+        "Hash":  "D8C17087CD1F0BC821C62BF751ACB1BB237A5AD1A1C4BC85603E189B3E69A338"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\BodyPresets_20261008\\user-validation.txt",
+        "Hash":  "E650A95D06730E630DD31124A1885789D93160751F0D8FEEBB9CEF08344A5F24"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Docs\\Migration\\Evidence\\BodyPresets_20261008\\validation.txt",
+        "Hash":  "047AB4A4A3399671224ED2BCB0BDBF998CD6B1E7C6FFE72EE4F8FC54CF8A1689"
+    },
+    {
+        "Path":  "A:\\Skills Codex\\ef-body-preset-workbench\\SKILL.md",
+        "Hash":  "C88AE103FDB05242BDBD8F099EB5364EB32A5A1199470AF57B3EE957C1A4BD4A"
+    },
+    {
+        "Path":  "A:\\Skills Codex\\ef-body-preset-workbench\\references\\onboarding.md",
+        "Hash":  "BA93737886F3D5D572DCAAC06EEDA938C3B8A8D66EB4F5A151D6482B1A8B991C"
+    },
+    {
+        "Path":  "A:\\Skills Codex\\ef-body-preset-workbench\\agents\\openai.yaml",
+        "Hash":  "E5F2185DFCA033DA54E7E5A2AC09AA91085BEA01FD09A7CF4DC08544CB2F7FB3"
+    },
+    {
+        "Path":  "D:\\Projects UE5\\NoShellForWinter\\Plugins\\EFCharacterCreation\\Source\\EFCharacterCreationRuntime\\Private\\EFCharacterCustomizationComponent.cpp",
+        "Hash":  "7DF3D6C1E55DFF9AD8B70A922911AB7F764B16B58462F9F6AFF8D81CED4FA365"
+    }
+]

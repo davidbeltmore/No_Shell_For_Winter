@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "suite": "Visual_20261008_164909",
+  "reviewed_images": [
+    "0_RagShirt_2_Male.png",
+    "1_RagPants_2_Male.png",
+    "2_RagFootWraps_2_Male_side.png",
+    "3_UnderWearBra_Female_2_Male_side.png",
+    "4_UnderWearPanty_Female_2_Male.png",
+    "5_UnderWearBikini_Female_2_Male_side.png",
+    "morph_extreme_Female.01.png",
+    "morph_extreme_Male.01.png",
+    "morph_extreme_Male.02.png"
+  ],
+  "creator": "Runtime/CreatorMale2.png",
+  "findings": [
+    "Male2 reference pose and pants spike from Visual01 no longer visible",
+    "All six Male2 garment categories reviewed",
+    "Coverage and secondary body motion reviewed with extreme morph movement",
+    "Male creator visibly shows Body preset / Preset 2"
+  ],
+  "limits": "Sampled review of 9 of 45 suite captures plus creator; no every-morph-combination claim"
+}

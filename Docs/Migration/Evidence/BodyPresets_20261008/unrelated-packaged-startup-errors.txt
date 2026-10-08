@@ -1,0 +1,4 @@
+[2026.10.08-22.46.22:403][  0]LogTemp: Error: EFEquipment: The configured world pickup class could not be loaded.
+[2026.10.08-22.46.22:414][  0]LogEFProceduralPCGRuntime: Error: CALYSTO_PCG_CONFIG_INVALID harness_map=DungeonGeneration managed_maps= harness_map_managed=false dungeon_class_configured=false start_point_class_configured=false
+[2026.10.08-22.46.23:302][  0]LogTemp: Error: EFEquipment: The configured world pickup class could not be loaded.
+[2026.10.08-22.46.23:794][  0]LogEFCalystoDungeon: Error: CALYSTO_V6_FAILURE code=SESSION_CORE_INVALID message=Calysto V6 load phase completed without resolving /EFProcedural/Calysto/Internal/PCG/PCG_AddRampsCookedSafe.PCG_AddRampsCookedSafe.

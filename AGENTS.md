@@ -84,3 +84,11 @@ Keep `Docs/Migration` current.
 
 - Invoke `$calysto-dungeon-master` after `$noshellforwinter-unreal-mcp` for any task involving Calysto, `BP_MassiveDungeon`, dungeon floors, procedural size, PCG seeds, enemy/spawner weights, room themes, `End_Point`, the floor door, or the `L > Dungeon Harness` menu.
 - Treat `Plugins/EFProcedural` as the single project-owned master integration. Never patch or save `BP_MassiveDungeon` or Calysto source DataAssets; tune through transient clones and `/Game/_Game/Data/CalystoDungeon`.
+
+## Imported body presets and NPC appearance
+
+- Use `$ef-body-preset-workbench` (`A:/Skills Codex/ef-body-preset-workbench/SKILL.md`) after Unreal MCP for imported DAZ body onboarding, per-gender player presets, and NPC body/morph variety.
+- The user handles DAZ export/import with morphs. Preferred conversion is `Convert To Epic Skeleton > SKM_UEFN_Mannequin`, `Merge Type = New`, replacing the imported body's own skeleton in its own folder. Verify the final mesh skeleton assignment: the installed converter can reassign the shared UEFN skeleton after the New dialog.
+- Adding a preset preserves existing bodies. Do not interpret it as global reference replacement. Player and NPC consumers share `/Game/_Game/Data/CharacterCreation/DA_BodyPresets` with stable IDs and per-body supported morph profiles.
+- Use `Tools/BodyPresets/OnboardBody.py` (inspect, then prepare) and the project-owned G9 adapter. It preserves the intended New/local-skeleton result without the vendor's final shared-skeleton reassignment. Never convert an already-converted mesh again.
+- See `Docs/Migration/BodyPresetsImplementation.md` for measured gates and limitations, and `Docs/Migration/BodyPresetWorkflow.md` for repeatable entry points. A preparation receipt alone does not certify runtime support.

@@ -1,0 +1,454 @@
+{
+  "phase": "settle",
+  "started": 13316.25,
+  "since": 13340.906,
+  "checks": [
+    {
+      "name": "Real HUB player",
+      "passed": true
+    },
+    {
+      "name": "12 generated NPC appearances",
+      "passed": true
+    },
+    {
+      "name": "Four automatic persistent identities",
+      "passed": true
+    },
+    {
+      "name": "Male pool includes both presets",
+      "passed": true
+    },
+    {
+      "name": "Female NPCs remain female",
+      "passed": true
+    },
+    {
+      "name": "Same body has varied morph values",
+      "passed": true
+    },
+    {
+      "name": "NPC generation leaves player selection intact",
+      "passed": true
+    },
+    {
+      "name": "ALS disk save succeeds",
+      "passed": true
+    },
+    {
+      "name": "ALS disk load succeeds",
+      "passed": true
+    },
+    {
+      "name": "All stable identities survive real load",
+      "passed": true
+    },
+    {
+      "name": "Body, profile morphs and skin restore exactly",
+      "passed": true
+    }
+  ],
+  "player_before": "Female.01",
+  "spawn_12_ms": 170.69530000117084,
+  "before": {
+    "EF.AppearanceId.BodyPresetQA.0": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.09568,
+        "Cheek to Jaw Size": 0.26048,
+        "Chin Width": 0.10901,
+        "Jaw Whole Width": 0.11158,
+        "Body Heavy": 0.0532,
+        "Proportion Chest Size": 0.09718
+      },
+      "skin": [
+        1.18713,
+        1.18713,
+        1.18713
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.1": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.15612,
+        "Cheek to Jaw Size": 0.17883,
+        "Chin Width": 0.24007,
+        "Jaw Whole Width": 0.27929,
+        "Body Heavy": 0.13516,
+        "Proportion Chest Size": 0.04524
+      },
+      "skin": [
+        1.1576,
+        1.1576,
+        1.1576
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.2": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.17648,
+        "Cheek to Jaw Size": 0.21064,
+        "Chin Width": 0.13498,
+        "Jaw Whole Width": 0.2351,
+        "Body Heavy": 0.21699,
+        "Proportion Chest Size": 0.1517
+      },
+      "skin": [
+        0.3599,
+        0.3599,
+        0.3599
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.3": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.27698,
+        "Cheek to Jaw Size": 0.25005,
+        "Chin Width": 0.21448,
+        "Jaw Whole Width": 0.02057,
+        "Body Heavy": 0.02018,
+        "Proportion Chest Size": 0.00642
+      },
+      "skin": [
+        0.71094,
+        0.71094,
+        0.71094
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.4": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.11869,
+        "Cheek to Jaw Size": 0.29093,
+        "Chin Width": 0.26341,
+        "Jaw Whole Width": 0.11912,
+        "Body Heavy": 0.20152,
+        "Proportion Chest Size": 0.09676
+      },
+      "skin": [
+        1.12055,
+        1.12055,
+        1.12055
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.5": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.23605,
+        "Cheek to Jaw Size": 0.05403,
+        "Chin Width": 0.05346,
+        "Jaw Whole Width": 0.29549,
+        "Body Heavy": 0.02739,
+        "Proportion Chest Size": 0.07537
+      },
+      "skin": [
+        0.50384,
+        0.50384,
+        0.50384
+      ]
+    },
+    "EF.AppearanceId.30CD590E45C563563E70AA98F8A4BC43": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.03399,
+        "Cheek to Jaw Size": 0.24516,
+        "Chin Width": 0.24724,
+        "Jaw Whole Width": 0.03721,
+        "Body Heavy": 0.0387,
+        "Proportion Chest Size": 0.10604
+      },
+      "skin": [
+        0.57559,
+        0.57559,
+        0.57559
+      ]
+    },
+    "EF.AppearanceId.59B55FB54A8EFD2AFB1FA7AF3DF2D802": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.26416,
+        "Cheek to Jaw Size": 0.24356,
+        "Chin Width": 0.12957,
+        "Jaw Whole Width": 0.29362,
+        "Body Heavy": 0.19436,
+        "Proportion Chest Size": 0.06022
+      },
+      "skin": [
+        1.63337,
+        1.63337,
+        1.63337
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.8": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22381,
+        "Cheek to Jaw Size": 0.06517,
+        "Chin Width": 0.03977,
+        "Jaw Whole Width": 0.26411,
+        "Body Heavy": 0.08043
+      },
+      "skin": [
+        1.63718,
+        1.63718,
+        1.63718
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.9": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22218,
+        "Cheek to Jaw Size": 0.25509,
+        "Chin Width": 0.05111,
+        "Jaw Whole Width": 0.18934,
+        "Body Heavy": 0.06551
+      },
+      "skin": [
+        0.6895,
+        0.6895,
+        0.6895
+      ]
+    },
+    "EF.AppearanceId.CDCF868D454F03DDA575E79AF73A96AF": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.00099,
+        "Cheek to Jaw Size": 0.1807,
+        "Chin Width": 0.28022,
+        "Jaw Whole Width": 0.25077,
+        "Body Heavy": 0.02928
+      },
+      "skin": [
+        0.62326,
+        0.62326,
+        0.62326
+      ]
+    },
+    "EF.AppearanceId.48518D184245DA4C8F93AF8D18C1E616": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.13018,
+        "Cheek to Jaw Size": 0.20258,
+        "Chin Width": 0.24526,
+        "Jaw Whole Width": 0.22954,
+        "Body Heavy": 0.20973
+      },
+      "skin": [
+        0.57778,
+        0.57778,
+        0.57778
+      ]
+    }
+  },
+  "expected_genders": {
+    "EF.AppearanceId.BodyPresetQA.0": "Male",
+    "EF.AppearanceId.BodyPresetQA.1": "Male",
+    "EF.AppearanceId.BodyPresetQA.2": "Male",
+    "EF.AppearanceId.BodyPresetQA.3": "Male",
+    "EF.AppearanceId.BodyPresetQA.4": "Male",
+    "EF.AppearanceId.BodyPresetQA.5": "Male",
+    "EF.AppearanceId.30CD590E45C563563E70AA98F8A4BC43": "Male",
+    "EF.AppearanceId.59B55FB54A8EFD2AFB1FA7AF3DF2D802": "Male",
+    "EF.AppearanceId.BodyPresetQA.8": "Female",
+    "EF.AppearanceId.BodyPresetQA.9": "Female",
+    "EF.AppearanceId.CDCF868D454F03DDA575E79AF73A96AF": "Female",
+    "EF.AppearanceId.48518D184245DA4C8F93AF8D18C1E616": "Female"
+  },
+  "saved": true,
+  "save_seconds": 0.4690000000009604,
+  "loaded": true,
+  "load_seconds": 7.46900000000096,
+  "after": {
+    "EF.AppearanceId.BodyPresetQA.0": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.09568,
+        "Cheek to Jaw Size": 0.26048,
+        "Chin Width": 0.10901,
+        "Jaw Whole Width": 0.11158,
+        "Body Heavy": 0.0532,
+        "Proportion Chest Size": 0.09718
+      },
+      "skin": [
+        1.18713,
+        1.18713,
+        1.18713
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.1": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.15612,
+        "Cheek to Jaw Size": 0.17883,
+        "Chin Width": 0.24007,
+        "Jaw Whole Width": 0.27929,
+        "Body Heavy": 0.13516,
+        "Proportion Chest Size": 0.04524
+      },
+      "skin": [
+        1.1576,
+        1.1576,
+        1.1576
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.2": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.17648,
+        "Cheek to Jaw Size": 0.21064,
+        "Chin Width": 0.13498,
+        "Jaw Whole Width": 0.2351,
+        "Body Heavy": 0.21699,
+        "Proportion Chest Size": 0.1517
+      },
+      "skin": [
+        0.3599,
+        0.3599,
+        0.3599
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.3": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.27698,
+        "Cheek to Jaw Size": 0.25005,
+        "Chin Width": 0.21448,
+        "Jaw Whole Width": 0.02057,
+        "Body Heavy": 0.02018,
+        "Proportion Chest Size": 0.00642
+      },
+      "skin": [
+        0.71094,
+        0.71094,
+        0.71094
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.4": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.11869,
+        "Cheek to Jaw Size": 0.29093,
+        "Chin Width": 0.26341,
+        "Jaw Whole Width": 0.11912,
+        "Body Heavy": 0.20152,
+        "Proportion Chest Size": 0.09676
+      },
+      "skin": [
+        1.12055,
+        1.12055,
+        1.12055
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.5": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.23605,
+        "Cheek to Jaw Size": 0.05403,
+        "Chin Width": 0.05346,
+        "Jaw Whole Width": 0.29549,
+        "Body Heavy": 0.02739,
+        "Proportion Chest Size": 0.07537
+      },
+      "skin": [
+        0.50384,
+        0.50384,
+        0.50384
+      ]
+    },
+    "EF.AppearanceId.30CD590E45C563563E70AA98F8A4BC43": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.03399,
+        "Cheek to Jaw Size": 0.24516,
+        "Chin Width": 0.24724,
+        "Jaw Whole Width": 0.03721,
+        "Body Heavy": 0.0387,
+        "Proportion Chest Size": 0.10604
+      },
+      "skin": [
+        0.57559,
+        0.57559,
+        0.57559
+      ]
+    },
+    "EF.AppearanceId.59B55FB54A8EFD2AFB1FA7AF3DF2D802": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.26416,
+        "Cheek to Jaw Size": 0.24356,
+        "Chin Width": 0.12957,
+        "Jaw Whole Width": 0.29362,
+        "Body Heavy": 0.19436,
+        "Proportion Chest Size": 0.06022
+      },
+      "skin": [
+        1.63337,
+        1.63337,
+        1.63337
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.8": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22381,
+        "Cheek to Jaw Size": 0.06517,
+        "Chin Width": 0.03977,
+        "Jaw Whole Width": 0.26411,
+        "Body Heavy": 0.08043
+      },
+      "skin": [
+        1.63718,
+        1.63718,
+        1.63718
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.9": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22218,
+        "Cheek to Jaw Size": 0.25509,
+        "Chin Width": 0.05111,
+        "Jaw Whole Width": 0.18934,
+        "Body Heavy": 0.06551
+      },
+      "skin": [
+        0.6895,
+        0.6895,
+        0.6895
+      ]
+    },
+    "EF.AppearanceId.CDCF868D454F03DDA575E79AF73A96AF": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.00099,
+        "Cheek to Jaw Size": 0.1807,
+        "Chin Width": 0.28022,
+        "Jaw Whole Width": 0.25077,
+        "Body Heavy": 0.02928
+      },
+      "skin": [
+        0.62326,
+        0.62326,
+        0.62326
+      ]
+    },
+    "EF.AppearanceId.48518D184245DA4C8F93AF8D18C1E616": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.13018,
+        "Cheek to Jaw Size": 0.20258,
+        "Chin Width": 0.24526,
+        "Jaw Whole Width": 0.22954,
+        "Body Heavy": 0.20973
+      },
+      "skin": [
+        0.57778,
+        0.57778,
+        0.57778
+      ]
+    }
+  },
+  "error": "",
+  "passed": true,
+  "elapsed_seconds": 29.686999999999898
+}

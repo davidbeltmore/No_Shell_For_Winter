@@ -1,0 +1,119 @@
+{
+  "snapshot": "0697e0b741fcbe72ccc330b3baf2289eea0a3da7",
+  "artifacts": [
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\fresh-conversion.json",
+      "receipt": "fresh-conversion-final.json",
+      "sha256": "3a8af1298e0cbe7d1a8b23a056bcf09ae9b91df66de6a73dd200d916e50781af"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\onboard-workflow.json",
+      "receipt": "onboard-workflow-final.json",
+      "sha256": "b9de0e21726a1f508ec12a015ae37e7e37a6768c926d042cee9fb1e51634854b"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\npc-save.json",
+      "receipt": "npc-save-final.json",
+      "sha256": "8c055fb85c58b9402ba0e23bd2a13302ce0cd380d594158eaa6b9a6f95a1a5d4"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\clothing-authoring.json",
+      "receipt": "clothing-final.json",
+      "sha256": "d99102a5912f8fa0f41cfab4665b3db5e882c4f1a1cd481c9736895508686a18"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\visual-review03.json",
+      "receipt": "visual-review-final.json",
+      "sha256": "5a6acd1ffee18888d6fd10029508c6d3b13adf36cdf1c1f6bb4f4d521cac6bf2"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\ProtectedAfterPackaging.log",
+      "receipt": "protected-final.log",
+      "sha256": "b90580df866844081cb5fa7b9b71b57f656b1d16ac62d8331173ff2abf2b62bc"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\NativeFinal.log",
+      "receipt": "native-final.log",
+      "sha256": "0ea321e507bb68e91a2770d03d75f8ef3b9e8ad3bf112510e2a62c68df420a64"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261008_174116\\package-result.json",
+      "receipt": "package-final.json",
+      "sha256": "b00dcb82d51e08e2943c53a72391b6549552e5347dcb6ad08af0e8b0cd3d64a7"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_174619\\process-result.json",
+      "receipt": "packaged-process-final.json",
+      "sha256": "ae4f923cfe6afdbe76350d6ed9fa50fbb753a3effb6dd6b537b67d3857e4962d"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_174619\\startup-errors.txt",
+      "receipt": "unrelated-packaged-startup-errors.txt",
+      "sha256": "65a403f992855e17cd6203d72223dd055cabbfbc5456d165a8d794708e0dc02f"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_174619\\UserData\\Saved\\BodyPresetsQA\\Runtime\\runtime.txt",
+      "receipt": "packaged-runtime-final.txt",
+      "sha256": "6cf7b4bc26904bd9a112a0773dccc3744453bc019d0057c23d9eab4cfabf100b"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\NPCSave06.log",
+      "receipt": "npc-process-final.log",
+      "sha256": "8eb192b84a8ccbe4a86bf45b616bae9a1f0ba1a19f301cdcd1e56436fdbd8d66"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\SaveGuard_20261008_174231\\SaveGuard.json",
+      "receipt": "npc-saveguard-final.json",
+      "sha256": "4c5ce3ae2432cbdc184173a04618c8e01f4ef16d2a8da445ac4f0e1087de52c6"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Visual_20261008_164909\\blueprints.json",
+      "receipt": "blueprints-final.json",
+      "sha256": "434a5f9a012e561021d1d82241bab16e80e56da57bff5486c7f93763aaff1ae9"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Baseline\\before.json",
+      "sha256": "34d9571d75c1af5c63d1d8e0ec59e6d9937b263b13deec3c3da418c71ac58a8f",
+      "archived_in_saved": true
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Baseline\\after.json",
+      "sha256": "d370be301d588641b3064ce48f26c8f453766356edd7fa693f0e0b3e294d2c78",
+      "archived_in_saved": true
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\NPCShutdownCdb.log",
+      "sha256": "daac8e3617ddbcee36ec197481713e4a98e8a8f991d7eb4e6a182fc48b7c4739",
+      "archived_in_saved": true
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261008_174116\\uat.log",
+      "sha256": "ef09ee22d05650e812024327121b951db59e6ea97019123d72244a917a49b6d8",
+      "archived_in_saved": true
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_174619\\game.log",
+      "sha256": "359a480e8c0b440d258dbe1746f91522eb8d431c0ead5964580f955370d9f894",
+      "archived_in_saved": true
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Runtime03.log",
+      "receipt": "player-process-final.log",
+      "sha256": "783129b6f3b42b04c3a6f8fd7d8ad714353a1eacf4ea01b6d3ec9b76716e3d71"
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Runtime\\runtime.txt",
+      "receipt": "player-runtime-final.txt",
+      "sha256": "0830a04b30e7c4bc0aef995531d063dc29fbdc7498b18c5c20373308565d47c8"
+    }
+  ],
+  "packaged_visual_review": {
+    "status": "PASS",
+    "reviewed": [
+      "Male.02.png",
+      "CreatorMale2.png"
+    ],
+    "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_174619\\UserData\\Saved\\BodyPresetsQA\\Runtime",
+    "findings": "Animated standing body and visible Preset 2 creator selector; sampled images, not every pose."
+  }
+}

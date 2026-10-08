@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "profiles": {
+    "Male.01": 6,
+    "Male.02": 6,
+    "Female.01": 5
+  },
+  "male2_deformer": "<Object '/DeformerGraph/Deformers/DG_DualQuatSkin_Morph_Cloth.DG_DualQuatSkin_Morph_Cloth' (0x000001BE8F4CE100) Class 'OptimusDeformer'>",
+  "compile": "V4 PASS | enabled=18 ready=18 reused=18 published=18 drafts=0 failed=0 registry=/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry | V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+  "rows": [
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding.",
+    "READY: reused the exact fresh binding."
+  ],
+  "sync": "PASS: EF Clothing Morph V5.1 single-table sync was already current: bodies=3 garments=18 LOD bindings=18 created=0 updated=0 saved=0 drafts=0 migrated-rows=0 lower-body-guards=0.",
+  "elapsed_seconds": 3.5150000000003274
+}

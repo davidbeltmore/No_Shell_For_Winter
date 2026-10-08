@@ -1,0 +1,10 @@
+﻿[2026.10.08-19.56.42:922][332]LogSkeletalMesh: Display: /Game/DazToUnreal/Male2/Male2.Male2 Función ComputeTangents MikkTSpace: calcular un vector normal de longitud cero.
+[2026.10.08-19.56.44:445][332]LogSkeletalMesh: Display: /Game/DazToUnreal/Male2/Male2.Male2 Función ComputeTangents MikkTSpace: calcular un vector normal de longitud cero.
+[2026.10.08-19.56.59:666][332]LogSkeletalMesh: Display: /Game/DazToUnreal/Male2/Male2.Male2 Función ComputeTangents MikkTSpace: calcular un vector normal de longitud cero.
+[2026.10.08-20.03.32:670][409]LogAnimation: Warning: pelvis : Hierarchy does not match hip - root.
+[2026.10.08-20.03.32:671][409]LogAnimation: Warning: pelvis : Hierarchy does not match.
+[2026.10.08-20.04.52:231][409]Message dialog closed, result: Yes, title: Mensaje, text: Male2_Skeleton ya existe. ¿Quieres sustituirlo?
+[2026.10.08-20.04.52:275][409]LogFileHelpers: Saving Package: /Game/DazToUnreal/Male2/Male2_Skeleton
+[2026.10.08-20.04.53:977][409]LogSkeletalMesh: Display: /Game/DazToUnreal/Male2/Male2.Male2 Función ComputeTangents MikkTSpace: calcular un vector normal de longitud cero.
+[2026.10.08-20.05.33:514][231]LogFileHelpers: Saving Package: /Game/DazToUnreal/Male2/Male2_Skeleton
+[2026.10.08-20.05.34:865][231]AssetCheck: Error: [AssetLog] D:\Projects UE5\NoShellForWinter\Content\DazToUnreal\Male2\Male2.uasset: Este recurso de malla esquelética tiene un esqueleto no compatible '/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin'. Asigna un esqueleto compatible con este recurso de malla esquelética.

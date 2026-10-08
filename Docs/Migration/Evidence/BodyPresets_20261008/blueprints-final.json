@@ -1,0 +1,36 @@
+{
+  "compiled_blueprint_count": 7,
+  "compiled_blueprints": [
+    {
+      "asset": "/Game/FullSample/Player.Player",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/UnderWear01/Bra.Bra",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/UnderWear01/Panty.Panty",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/Bikini01/Bikini.Bikini",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/Rags01/RagShirt.RagShirt",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/Rags01/RagPants.RagPants",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    },
+    {
+      "asset": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap",
+      "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+    }
+  ],
+  "saved_assets": false,
+  "schema_version": 1,
+  "status": "UE58_EF_CLOTHING_MORPH_V4_BLUEPRINT_COMPILE_PASS"
+}

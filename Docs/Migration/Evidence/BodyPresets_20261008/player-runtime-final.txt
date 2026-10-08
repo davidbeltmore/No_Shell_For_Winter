@@ -1,0 +1,12 @@
+player_ready=true
+select=Male.01 switch_ms=66.182
+pose=Male.01 components=2 valid=true frame_delta=0.02380
+select=Male.02 switch_ms=75.450
+pose=Male.02 components=2 valid=true frame_delta=0.01956
+select=Female.01 switch_ms=64.843
+pose=Female.01 components=2 valid=true frame_delta=0.03162
+select=Male.02 switch_ms=80.133
+pose=Male.02 components=2 valid=true frame_delta=0.03085
+Male2_movement_cm=314.862
+creator_previous_next_handlers=true male_choices=2
+status=PASS reason=switches, animated poses, movement and creator open; visual review required elapsed_seconds=22.849
