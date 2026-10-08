@@ -16,5 +16,6 @@ public class EFCharacterCreationEditor : ModuleRules
 
 		PrivateDependencyModuleNames.Add("UnrealEd");
 		PrivateDependencyModuleNames.Add("Json");
+		PrivateDependencyModuleNames.AddRange(new string[] { "SkeletalMeshModifiers", "MeshDescription", "AssetRegistry", "PhysicsUtilities" });
 	}
 }
