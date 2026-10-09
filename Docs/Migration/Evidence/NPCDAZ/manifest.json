@@ -1,0 +1,31 @@
+{
+  "implementation_snapshot": "fc8481e1a90810502065cbfbbaa72ce65c509a13",
+  "starting_snapshot": "80e4fd958e77ef0b9737dafaf99637e933f260bc",
+  "package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_031349",
+  "packaged_run": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Packaged_20261009_031849",
+  "source_project_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "target_project": "D:\\Projects UE5\\NoShellForWinter",
+  "files": {
+    "audit-cold-process.json": "6a2ce152c76e022f0a6d72815ea8da63ffb00e229d1606a01948ed4d687692e3",
+    "audit.json": "f154b0ef2aeccdf462f4f9d6d2d34cc6db27e48d88529d9af17b224e12c77d5d",
+    "author.json": "f561a1abfdd8711aa4becb5e8f18fc838085bb1c235fcad79cebe16b5d1761e6",
+    "editor-build02-process.json": "bac7384f212c7ff44cd8f3395d322a2128d67183601a7fbf03b965a527e81233",
+    "final-editor-state.log": "737ef9fb5065675a555d1808c409ea106a3c62f77b71f91796176f8fcfa6858a",
+    "game-build02-process.json": "25eca7b344fafa46ae6a25bcba4d08f1530eb928efd0852ca19d75ebfbe27b49",
+    "hub-first-replacement.json": "5238ed3315508c83ecb60228dd9df7f748effb9aaf7543cb95d60a186045e86f",
+    "hub-replacement.json": "efa3153afec22a2dfe3bb9c18de4c453c50b307e7dd37b86d0aea18b565c5d8e",
+    "npc-save-process.json": "0cff4d2d195f7217767194fa85fe254b7c8c30692304203bbef6633487501e42",
+    "npc-save.json": "5e26a61f7fc884013caeeeff83502bd69fc4e95cfa864064638c2aa9268ac711",
+    "package-process.json": "2619bf1876a06422f1957e98c70c063247036387fb77afec5018e03e9d98f385",
+    "package-result.json": "857a96ad99b92480c19463fbc130da6f1bc15fa7e5f2b47e271cfac05301aa27",
+    "package-retention.json": "85abbe8b285524a725ce97453991582a2817412adb1300eff2885aa7f1f491af",
+    "packaged-process.json": "9591e9ee5c6fcb2ddd6fcddee6549643b2e2a62e08c89a30983486a0d9dc3479",
+    "packaged-roster.png": "9d138a574f824917f8dd205cf08e515bbf3014c5d9ec00520665062fa532cf54",
+    "packaged-runtime.txt": "a0f9f248e99b54886b248036f22e04a7f65e0946bd46e663e30f45e050193509",
+    "pie-host.json": "058314d315f6a3ae2ff8bb154e5301cbdf8f74a67abd87f54b624f60e773a953",
+    "pie-roster.png": "fe16bc1adbb7fa42101d2e12defec846551f7398405bf0260fb805a4897e84b4",
+    "pie-runtime.txt": "d30377a1cfa1aa10ba7639c391bb7cb70c0e8566409a6e257f39d213feb45c30",
+    "protected-summary.json": "5fb56a67de6c66555ace7c45aedaea527f4a5a6795acb901d9f59bff793a6c3a",
+    "saveguard-summary.json": "280097c34d2787bd22b4f5a16c72426f2656f54d9025f9d01381f4161a09370f"
+  }
+}

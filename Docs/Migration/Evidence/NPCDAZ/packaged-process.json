@@ -1,0 +1,10 @@
+{
+    "exit_code":  0,
+    "feature_errors":  0,
+    "limit_seconds":  150,
+    "runtime_pass":  true,
+    "receipts":  [
+                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Packaged_20261009_031849\\UserData\\Saved\\NPCDAZ\\Runtime\\runtime.txt"
+                 ],
+    "seconds":  46.486939899999996
+}

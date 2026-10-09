@@ -93,6 +93,17 @@ Keep `Docs/Migration` current.
 - Use `Tools/BodyPresets/OnboardBody.py` (inspect, then prepare) and the project-owned G9 adapter. It preserves the intended New/local-skeleton result without the vendor's final shared-skeleton reassignment. Never convert an already-converted mesh again.
 - See `Docs/Migration/BodyPresetsImplementation.md` for measured gates and limitations, and `Docs/Migration/BodyPresetWorkflow.md` for repeatable entry points. A preparation receipt alone does not certify runtime support.
 
+## DAZ NPC roster and appearance
+
+- Use `.agents/skills/ef-npc-daz-workbench/SKILL.md` after Unreal MCP for NPC roster,
+  spawn appearance, neutral male morphs and character animation initialization.
+- Extend `Tools/NPC/Roster.json` and `/Game/_Game/Characters/Data/DA_NPCRoster`;
+  preserve owned character Blueprint ancestry and per-variant initializer assets.
+- New male NPC bodies require verified neutral morph defaults. Keep these outside
+  randomization and preserve them during preset onboarding and save migration.
+- Prefer bounded structural checks for all variants and representative runtime QA;
+  measure completion counts, pose/morph assertions, elapsed seconds and failures.
+
 ## Generated validation output retention
 
 - Repeated `Saved/**/Package_*/Cooked` and `Staged` outputs caused the 2026-10-08 size regression. Preserve receipts, logs, screenshots, saves, autosaves and rollback backups; keep one latest successfully validated package instead of accumulating full build copies.

@@ -1,0 +1,23 @@
+{
+  "before": {
+    "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+    "label": "ACF_LevelingGuy_BP",
+    "class": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP",
+    "transform": [
+      -10.0,
+      800.0,
+      88.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "tags": [],
+    "guid": "<Struct 'Guid' (0x0000018D2AC10250) {}>"
+  },
+  "after_guid": "<Struct 'Guid' (0x0000018C087C6E50) {}>",
+  "after_path": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+  "class": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C"
+}

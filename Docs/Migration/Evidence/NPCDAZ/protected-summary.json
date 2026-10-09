@@ -1,0 +1,9 @@
+{
+  "seconds": 28.48,
+  "head": "fc8481e1a90810502065cbfbbaa72ce65c509a13",
+  "changed": [],
+  "status": "PASS",
+  "file_count": 7643,
+  "before_sha256": "f81211ed7196a35ffc751e385c3dd953265bf31dc156e5f60e728ac0a7e6ed7d",
+  "after_sha256": "1819ff6cab0a25e7ff1dd074d88052bf38b4863c5ec97d6311714fe6cf5de72f"
+}

@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "result": "None",
+  "output": [
+    {
+      "type": "Info",
+      "output": "DIRTY_CONTENT=[]\r\n"
+    },
+    {
+      "type": "Info",
+      "output": "DIRTY_MAPS=[]\r\n"
+    }
+  ]
+}

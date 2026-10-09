@@ -1,0 +1,39 @@
+spawn=MeleeEnemy class=/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C synchronous_ms=9.21
+spawn=MeleeEnemy class=/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C synchronous_ms=8.03
+spawn=SkillGuy class=/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C synchronous_ms=10.61
+spawn=SkillGuy class=/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale.ACF_SkillGuy_BPFemale_C synchronous_ms=9.38
+spawn=Vendor class=/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C synchronous_ms=9.43
+spawn=Vendor class=/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C synchronous_ms=9.79
+spawn=Routine class=/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale.ACFGuyRoutine_BPMale_C synchronous_ms=11.27
+spawn=Routine class=/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale.ACFGuyRoutine_BPFemale_C synchronous_ms=8.87
+spawn=Zombie class=/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C synchronous_ms=20.94
+spawn=Zombie class=/Game/_Game/Characters/Female/ACFZombieBPFemale.ACFZombieBPFemale_C synchronous_ms=7.39
+spawn=NPCAI class=/Game/_Game/Characters/Male/ACF_NPCAI_BPMale.ACF_NPCAI_BPMale_C synchronous_ms=238.89
+spawn=NPCAI class=/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale.ACF_NPCAI_BPFemale_C synchronous_ms=10.94
+generated=ACFMeleeEnemyBPMale_C body=Male.01 morph_count=415 neutral=true
+generated=ACFMeleeEnemyBPFemale_C body=Female.01 morph_count=446 neutral=true
+generated=ACF_SkillGuy_BPMale_C body=Male.02 morph_count=416 neutral=true
+generated=ACF_SkillGuy_BPFemale_C body=Female.01 morph_count=446 neutral=true
+generated=ACF_Vendor_BPMale_C body=Male.01 morph_count=415 neutral=true
+generated=ACF_Vendor_BPFemale_C body=Female.01 morph_count=446 neutral=true
+generated=ACFGuyRoutine_BPMale_C body=Male.02 morph_count=416 neutral=true
+generated=ACFGuyRoutine_BPFemale_C body=Female.01 morph_count=446 neutral=true
+generated=ACFZombieBPMale_C body=Male.01 morph_count=415 neutral=true
+generated=ACFZombieBPFemale_C body=Female.01 morph_count=446 neutral=true
+generated=ACF_NPCAI_BPMale_C body=Male.01 morph_count=415 neutral=true
+generated=ACF_NPCAI_BPFemale_C body=Female.01 morph_count=446 neutral=true
+animation=ACFMeleeEnemyBPMale_C hand_delta_cm=3.44924 angle=0.046588
+animation=ACFMeleeEnemyBPFemale_C hand_delta_cm=3.54216 angle=0.046588
+animation=ACF_SkillGuy_BPMale_C hand_delta_cm=3.14269 angle=0.043701
+animation=ACF_SkillGuy_BPFemale_C hand_delta_cm=3.54216 angle=0.046588
+animation=ACF_Vendor_BPMale_C hand_delta_cm=3.44924 angle=0.046588
+animation=ACF_Vendor_BPFemale_C hand_delta_cm=3.54216 angle=0.046588
+animation=ACFGuyRoutine_BPMale_C hand_delta_cm=3.14269 angle=0.043701
+animation=ACFGuyRoutine_BPFemale_C hand_delta_cm=3.54216 angle=0.046588
+animation=ACFZombieBPMale_C hand_delta_cm=5.84702 angle=0.051996
+animation=ACFZombieBPFemale_C hand_delta_cm=6.00177 angle=0.051996
+animation=ACF_NPCAI_BPMale_C hand_delta_cm=3.44924 angle=0.046588
+animation=ACF_NPCAI_BPFemale_C hand_delta_cm=3.54216 angle=0.046588
+legacy_migration=PASS
+restore_12=PASS
+status=PASS reason=12 NPCs: DAZ, neutral, animation and restore elapsed_seconds=11.038

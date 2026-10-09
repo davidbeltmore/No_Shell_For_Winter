@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 37.54,
+  "limit_seconds": 240,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Tools/BodyPresets/RunNPCSaveQA.ps1"
+  ]
+}

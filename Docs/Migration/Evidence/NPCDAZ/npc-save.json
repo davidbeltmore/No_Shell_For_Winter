@@ -1,0 +1,486 @@
+{
+  "phase": "settle",
+  "started": 47332.968,
+  "since": 47348.765,
+  "checks": [
+    {
+      "name": "Real HUB player",
+      "passed": true
+    },
+    {
+      "name": "12 generated NPC appearances",
+      "passed": true
+    },
+    {
+      "name": "Four automatic persistent identities",
+      "passed": true
+    },
+    {
+      "name": "Male pool includes both presets",
+      "passed": true
+    },
+    {
+      "name": "Female NPCs remain female",
+      "passed": true
+    },
+    {
+      "name": "Same body has varied morph values",
+      "passed": true
+    },
+    {
+      "name": "NPC generation leaves player selection intact",
+      "passed": true
+    },
+    {
+      "name": "ALS disk save succeeds",
+      "passed": true
+    },
+    {
+      "name": "ALS disk load succeeds",
+      "passed": true
+    },
+    {
+      "name": "All stable identities survive real load",
+      "passed": true
+    },
+    {
+      "name": "Body, profile morphs and skin restore exactly",
+      "passed": true
+    }
+  ],
+  "player_before": "Female.01",
+  "spawn_12_ms": 135.99880000401754,
+  "before": {
+    "EF.AppearanceId.BodyPresetQA.0": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.09568,
+        "Cheek to Jaw Size": 0.26048,
+        "Chin Width": 0.10901,
+        "Jaw Whole Width": 0.11158,
+        "Body Heavy": 0.0532,
+        "Proportion Chest Size": 0.09718,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.18713,
+        1.18713,
+        1.18713
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.1": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.15612,
+        "Cheek to Jaw Size": 0.17883,
+        "Chin Width": 0.24007,
+        "Jaw Whole Width": 0.27929,
+        "Body Heavy": 0.13516,
+        "Proportion Chest Size": 0.04524,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.1576,
+        1.1576,
+        1.1576
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.2": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.17648,
+        "Cheek to Jaw Size": 0.21064,
+        "Chin Width": 0.13498,
+        "Jaw Whole Width": 0.2351,
+        "Body Heavy": 0.21699,
+        "Proportion Chest Size": 0.1517,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.3599,
+        0.3599,
+        0.3599
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.3": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.27698,
+        "Cheek to Jaw Size": 0.25005,
+        "Chin Width": 0.21448,
+        "Jaw Whole Width": 0.02057,
+        "Body Heavy": 0.02018,
+        "Proportion Chest Size": 0.00642,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.71094,
+        0.71094,
+        0.71094
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.4": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.11869,
+        "Cheek to Jaw Size": 0.29093,
+        "Chin Width": 0.26341,
+        "Jaw Whole Width": 0.11912,
+        "Body Heavy": 0.20152,
+        "Proportion Chest Size": 0.09676,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.12055,
+        1.12055,
+        1.12055
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.5": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.23605,
+        "Cheek to Jaw Size": 0.05403,
+        "Chin Width": 0.05346,
+        "Jaw Whole Width": 0.29549,
+        "Body Heavy": 0.02739,
+        "Proportion Chest Size": 0.07537,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.50384,
+        0.50384,
+        0.50384
+      ]
+    },
+    "EF.AppearanceId.D8F4399B44B05B6F8AE0A4B4A5DBBD04": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.12079,
+        "Cheek to Jaw Size": 0.01273,
+        "Chin Width": 0.07822,
+        "Jaw Whole Width": 0.01281,
+        "Body Heavy": 0.11307,
+        "Proportion Chest Size": 0.26239,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.14571,
+        1.14571,
+        1.14571
+      ]
+    },
+    "EF.AppearanceId.8346B08E46873FBF44F9B1B3E1DD81AC": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.10264,
+        "Cheek to Jaw Size": 0.01084,
+        "Chin Width": 0.0408,
+        "Jaw Whole Width": 0.13966,
+        "Body Heavy": 0.28404,
+        "Proportion Chest Size": 0.26102,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.74454,
+        0.74454,
+        0.74454
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.8": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22381,
+        "Cheek to Jaw Size": 0.06517,
+        "Chin Width": 0.03977,
+        "Jaw Whole Width": 0.26411,
+        "Body Heavy": 0.08043
+      },
+      "skin": [
+        1.63718,
+        1.63718,
+        1.63718
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.9": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22218,
+        "Cheek to Jaw Size": 0.25509,
+        "Chin Width": 0.05111,
+        "Jaw Whole Width": 0.18934,
+        "Body Heavy": 0.06551
+      },
+      "skin": [
+        0.6895,
+        0.6895,
+        0.6895
+      ]
+    },
+    "EF.AppearanceId.1AB99CA04803699F11C2F2A40A4B92E6": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.26539,
+        "Cheek to Jaw Size": 0.26007,
+        "Chin Width": 0.00876,
+        "Jaw Whole Width": 0.14403,
+        "Body Heavy": 0.22824
+      },
+      "skin": [
+        1.36833,
+        1.36833,
+        1.36833
+      ]
+    },
+    "EF.AppearanceId.792B84EC423E79878A5C50A9C9ECBD2A": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.07678,
+        "Cheek to Jaw Size": 0.11465,
+        "Chin Width": 0.07151,
+        "Jaw Whole Width": 0.24945,
+        "Body Heavy": 0.10178
+      },
+      "skin": [
+        0.45184,
+        0.45184,
+        0.45184
+      ]
+    }
+  },
+  "expected_genders": {
+    "EF.AppearanceId.BodyPresetQA.0": "Male",
+    "EF.AppearanceId.BodyPresetQA.1": "Male",
+    "EF.AppearanceId.BodyPresetQA.2": "Male",
+    "EF.AppearanceId.BodyPresetQA.3": "Male",
+    "EF.AppearanceId.BodyPresetQA.4": "Male",
+    "EF.AppearanceId.BodyPresetQA.5": "Male",
+    "EF.AppearanceId.D8F4399B44B05B6F8AE0A4B4A5DBBD04": "Male",
+    "EF.AppearanceId.8346B08E46873FBF44F9B1B3E1DD81AC": "Male",
+    "EF.AppearanceId.BodyPresetQA.8": "Female",
+    "EF.AppearanceId.BodyPresetQA.9": "Female",
+    "EF.AppearanceId.1AB99CA04803699F11C2F2A40A4B92E6": "Female",
+    "EF.AppearanceId.792B84EC423E79878A5C50A9C9ECBD2A": "Female"
+  },
+  "saved": true,
+  "save_seconds": 0.23500000000058208,
+  "loaded": true,
+  "load_seconds": 1.2810000000026776,
+  "after": {
+    "EF.AppearanceId.BodyPresetQA.0": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.09568,
+        "Cheek to Jaw Size": 0.26048,
+        "Chin Width": 0.10901,
+        "Jaw Whole Width": 0.11158,
+        "Body Heavy": 0.0532,
+        "Proportion Chest Size": 0.09718,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.18713,
+        1.18713,
+        1.18713
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.1": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.15612,
+        "Cheek to Jaw Size": 0.17883,
+        "Chin Width": 0.24007,
+        "Jaw Whole Width": 0.27929,
+        "Body Heavy": 0.13516,
+        "Proportion Chest Size": 0.04524,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.1576,
+        1.1576,
+        1.1576
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.2": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.17648,
+        "Cheek to Jaw Size": 0.21064,
+        "Chin Width": 0.13498,
+        "Jaw Whole Width": 0.2351,
+        "Body Heavy": 0.21699,
+        "Proportion Chest Size": 0.1517,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.3599,
+        0.3599,
+        0.3599
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.3": {
+      "body": "Male.01",
+      "morphs": {
+        "Nose Whole Width": 0.27698,
+        "Cheek to Jaw Size": 0.25005,
+        "Chin Width": 0.21448,
+        "Jaw Whole Width": 0.02057,
+        "Body Heavy": 0.02018,
+        "Proportion Chest Size": 0.00642,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.71094,
+        0.71094,
+        0.71094
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.4": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.11869,
+        "Cheek to Jaw Size": 0.29093,
+        "Chin Width": 0.26341,
+        "Jaw Whole Width": 0.11912,
+        "Body Heavy": 0.20152,
+        "Proportion Chest Size": 0.09676,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.12055,
+        1.12055,
+        1.12055
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.5": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.23605,
+        "Cheek to Jaw Size": 0.05403,
+        "Chin Width": 0.05346,
+        "Jaw Whole Width": 0.29549,
+        "Body Heavy": 0.02739,
+        "Proportion Chest Size": 0.07537,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.50384,
+        0.50384,
+        0.50384
+      ]
+    },
+    "EF.AppearanceId.D8F4399B44B05B6F8AE0A4B4A5DBBD04": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.12079,
+        "Cheek to Jaw Size": 0.01273,
+        "Chin Width": 0.07822,
+        "Jaw Whole Width": 0.01281,
+        "Body Heavy": 0.11307,
+        "Proportion Chest Size": 0.26239,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        1.14571,
+        1.14571,
+        1.14571
+      ]
+    },
+    "EF.AppearanceId.8346B08E46873FBF44F9B1B3E1DD81AC": {
+      "body": "Male.02",
+      "morphs": {
+        "Nose Whole Width": 0.10264,
+        "Cheek to Jaw Size": 0.01084,
+        "Chin Width": 0.0408,
+        "Jaw Whole Width": 0.13966,
+        "Body Heavy": 0.28404,
+        "Proportion Chest Size": 0.26102,
+        "DK_Erection": 0.0,
+        "DK_Flacid 03": 1.0
+      },
+      "skin": [
+        0.74454,
+        0.74454,
+        0.74454
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.8": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22381,
+        "Cheek to Jaw Size": 0.06517,
+        "Chin Width": 0.03977,
+        "Jaw Whole Width": 0.26411,
+        "Body Heavy": 0.08043
+      },
+      "skin": [
+        1.63718,
+        1.63718,
+        1.63718
+      ]
+    },
+    "EF.AppearanceId.BodyPresetQA.9": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.22218,
+        "Cheek to Jaw Size": 0.25509,
+        "Chin Width": 0.05111,
+        "Jaw Whole Width": 0.18934,
+        "Body Heavy": 0.06551
+      },
+      "skin": [
+        0.6895,
+        0.6895,
+        0.6895
+      ]
+    },
+    "EF.AppearanceId.1AB99CA04803699F11C2F2A40A4B92E6": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.26539,
+        "Cheek to Jaw Size": 0.26007,
+        "Chin Width": 0.00876,
+        "Jaw Whole Width": 0.14403,
+        "Body Heavy": 0.22824
+      },
+      "skin": [
+        1.36833,
+        1.36833,
+        1.36833
+      ]
+    },
+    "EF.AppearanceId.792B84EC423E79878A5C50A9C9ECBD2A": {
+      "body": "Female.01",
+      "morphs": {
+        "Nose Whole Width": 0.07678,
+        "Cheek to Jaw Size": 0.11465,
+        "Chin Width": 0.07151,
+        "Jaw Whole Width": 0.24945,
+        "Body Heavy": 0.10178
+      },
+      "skin": [
+        0.45184,
+        0.45184,
+        0.45184
+      ]
+    }
+  },
+  "error": "",
+  "passed": true,
+  "elapsed_seconds": 20.81300000000192
+}

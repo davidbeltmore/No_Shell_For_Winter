@@ -216,3 +216,10 @@ choices fully visible and Preset 2 checked. The four previously documented unrel
 startup error lines remain; this UI correction does not certify those other systems.
 Editor reopened through the DAZ-safe launcher. Versioned receipts and image hashes:
 `Docs/Migration/Evidence/BodyPresets_20261008/CheckboxUI/`.
+
+## DAZ NPC roster and neutral-state extension, 2026-10-09
+
+See [NPCDAZ.md](NPCDAZ.md) for the 20-archetype/40-variant owned roster, corrected
+SkillGuy initializer/animation, shared spawn morph variation, male neutral profile
+defaults and one-time legacy-save migration. Its separate evidence ledger records
+bounded Blueprint, PIE, visual, save/load, protected hash and packaged gates.

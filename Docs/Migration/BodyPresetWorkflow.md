@@ -91,3 +91,8 @@ remain enabled. Generated reports live under `Saved/BodyPresetsQA`.
 Warm body changes currently load/apply synchronously. Measured calls and visual
 sampling limits are in the ledger; no seamless crowd-streaming claim is made.
 Non-G9 conversion, hair fitting and network replication require their own work.
+
+NPC integration now uses the owned roster and neutral-profile contract documented
+in [NPCDAZ.md](NPCDAZ.md). Use the versioned `ef-npc-daz-workbench` alongside the
+body preset skill. A new NPC-enabled male body must supply supported neutral morph
+defaults; preserve those independently of randomized body and facial dimensions.

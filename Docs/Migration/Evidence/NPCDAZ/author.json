@@ -1,0 +1,291 @@
+{
+  "assets": [],
+  "variants": [
+    {
+      "id": "BaseCompanion",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFBaseCompanionBPMale.DA_ACFBaseCompanionBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP"
+    },
+    {
+      "id": "BaseCompanion",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFBaseCompanionBPFemale.DA_ACFBaseCompanionBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP"
+    },
+    {
+      "id": "DefenderEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFDefenderEnemyBPMale.DA_ACFDefenderEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP"
+    },
+    {
+      "id": "DefenderEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFDefenderEnemyBPFemale.DA_ACFDefenderEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP"
+    },
+    {
+      "id": "DummyAmbushEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFDummyAmbushEnemyBPMale.DA_ACFDummyAmbushEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP"
+    },
+    {
+      "id": "DummyAmbushEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFDummyAmbushEnemyBPFemale.DA_ACFDummyAmbushEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP"
+    },
+    {
+      "id": "DummyEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFDummyEnemyBPMale.DA_ACFDummyEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP"
+    },
+    {
+      "id": "DummyEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFDummyEnemyBPFemale.DA_ACFDummyEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP"
+    },
+    {
+      "id": "GunEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFGunEnemyBPMale.DA_ACFGunEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP"
+    },
+    {
+      "id": "GunEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFGunEnemyBPFemale.DA_ACFGunEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP"
+    },
+    {
+      "id": "MageEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFMageEnemyBPMale.DA_ACFMageEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP"
+    },
+    {
+      "id": "MageEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFMageEnemyBPFemale.DA_ACFMageEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP"
+    },
+    {
+      "id": "MeleeCompanion",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFMeleeCompanionBPMale.DA_ACFMeleeCompanionBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP"
+    },
+    {
+      "id": "MeleeCompanion",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFMeleeCompanionBPFemale.DA_ACFMeleeCompanionBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP"
+    },
+    {
+      "id": "MeleeEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFMeleeEnemyBPMale.DA_ACFMeleeEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP"
+    },
+    {
+      "id": "MeleeEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFMeleeEnemyBPFemale.DA_ACFMeleeEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP"
+    },
+    {
+      "id": "MMEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFMMEnemyBPMale.DA_ACFMMEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP"
+    },
+    {
+      "id": "MMEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFMMEnemyBPFemale.DA_ACFMMEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP"
+    },
+    {
+      "id": "RangedCompanion",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFRangedCompanionBPMale.DA_ACFRangedCompanionBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP"
+    },
+    {
+      "id": "RangedCompanion",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFRangedCompanionBPFemale.DA_ACFRangedCompanionBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP"
+    },
+    {
+      "id": "RangedEnemy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFRangedEnemyBPMale.DA_ACFRangedEnemyBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP"
+    },
+    {
+      "id": "RangedEnemy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFRangedEnemyBPFemale.DA_ACFRangedEnemyBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP"
+    },
+    {
+      "id": "SkillGuy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_SkillGuy_BPMale.DA_ACF_SkillGuy_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP"
+    },
+    {
+      "id": "SkillGuy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_SkillGuy_BPFemale.DA_ACF_SkillGuy_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP"
+    },
+    {
+      "id": "LevelingGuy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_LevelingGuy_BPMale.DA_ACF_LevelingGuy_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP"
+    },
+    {
+      "id": "LevelingGuy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_LevelingGuy_BPFemale.DA_ACF_LevelingGuy_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP"
+    },
+    {
+      "id": "Vendor",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_Vendor_BPMale.DA_ACF_Vendor_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP"
+    },
+    {
+      "id": "Vendor",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_Vendor_BPFemale.DA_ACF_Vendor_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP"
+    },
+    {
+      "id": "FastTravelGuy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_FastTravelGuy_BPMale.DA_ACF_FastTravelGuy_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP"
+    },
+    {
+      "id": "FastTravelGuy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_FastTravelGuy_BPFemale.DA_ACF_FastTravelGuy_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP"
+    },
+    {
+      "id": "AssetPusher",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_AssetPusher_BPMale.DA_ACF_AssetPusher_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP"
+    },
+    {
+      "id": "AssetPusher",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_AssetPusher_BPFemale.DA_ACF_AssetPusher_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP"
+    },
+    {
+      "id": "Guy",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFGuy_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFGuy_BPMale.DA_ACFGuy_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP"
+    },
+    {
+      "id": "Guy",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFGuy_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFGuy_BPFemale.DA_ACFGuy_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP"
+    },
+    {
+      "id": "Routine",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFGuyRoutine_BPMale.DA_ACFGuyRoutine_BPMale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP"
+    },
+    {
+      "id": "Routine",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFGuyRoutine_BPFemale.DA_ACFGuyRoutine_BPFemale",
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP"
+    },
+    {
+      "id": "Zombie",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACFZombieBPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACFZombieBPMale.DA_ACFZombieBPMale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP"
+    },
+    {
+      "id": "Zombie",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACFZombieBPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACFZombieBPFemale.DA_ACFZombieBPFemale",
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP"
+    },
+    {
+      "id": "NPCAI",
+      "gender": "Male",
+      "path": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale",
+      "data": "/Game/_Game/Characters/Data/Male/DA_ACF_NPCAI_BPMale.DA_ACF_NPCAI_BPMale",
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP"
+    },
+    {
+      "id": "NPCAI",
+      "gender": "Female",
+      "path": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale",
+      "data": "/Game/_Game/Characters/Data/Female/DA_ACF_NPCAI_BPFemale.DA_ACF_NPCAI_BPFemale",
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP"
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "archetypes": 20,
+  "variants_count": 40,
+  "framework_count": 6,
+  "elapsed_seconds": 32.9690000000046
+}

@@ -1,0 +1,26 @@
+{
+  "replaced": [
+    {
+      "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BP_C_1",
+      "label": "ACF_Vendor_BP",
+      "class": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP",
+      "transform": [
+        10.0,
+        1030.0,
+        88.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "tags": [],
+      "guid": "7414E1F54467FAE93B0236B5E37E1F63",
+      "replacement": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C"
+    }
+  ],
+  "status": "PASS",
+  "remaining_source_npcs": 0,
+  "seconds": 0.40600000000267755
+}
