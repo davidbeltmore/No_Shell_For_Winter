@@ -16,7 +16,7 @@ Target, writable:
 ## Authoritative target components
 
 - Unreal Engine 5.8.
-- ACF Ultimate 4.3.5 already installed in target.
+- ACF Ultimate 4.4.2 installed in target (descriptor + Epic manifest audit, 2026-10-09).
 - Current target DazToUnreal.
 - Current `/Game/FullSample/Player.Player`.
 - Frederick.
