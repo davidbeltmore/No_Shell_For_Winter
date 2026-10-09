@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "screenshot": "InfoMale2.png",
+  "findings": [
+    "Info tab visibly shows Body / Skin preset under Gender",
+    "Preset 1 unchecked; Preset 2 checked",
+    "Both options fully visible without scrolling",
+    "Existing Apply/Cancel footer remains visible"
+  ],
+  "automation_scope": "UMG checkbox delegates and Apply/Cancel handlers; not physical mouse input"
+}

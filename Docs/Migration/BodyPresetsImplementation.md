@@ -178,3 +178,41 @@ reopening through the DAZ-safe launcher. Implementation and certification work t
 about 2 h 30 min from the 15:20 start, below the initial 4?8 h planning range.
 No remaining body-feature gate is blocked; the unrelated startup errors and explicit
 coverage limits above remain recorded rather than relabeled as passes.
+
+
+## Creator checkbox correction, 2026-10-08 19:04 Bogota
+
+User feedback showed that the previous Body-only Previous/Next control did not
+provide the expected visible checkbox choices on Info. This is a presentation gap
+in the previous delivery, despite its successful body-switch tests.
+
+Commit `74928f06` adds catalog-driven `Body / Skin preset` checkboxes immediately
+below Gender on Info; Body uses the same builder. Only enabled entries of the
+current gender appear. The selected option cannot be unchecked without choosing
+another; a failed selection refreshes from actual component state. There is no
+hard-coded two-preset limit. Existing saved-appearance PRESETS remain separate.
+
+- Editor build PASS, 69.61 s; game build PASS, 63.82 s.
+- Root creator WBP and Player Blueprint compile PASS without saving either asset.
+- Actual UMG checkbox delegate regression PASS: two male choices, one female
+  choice, one checked, rejection of empty selection, gender memory, both model
+  selections; Apply/reopen retains and Cancel restores the session body.
+- Native PIE suite PASS, 23.821 s; editor exit clean and user saves restored.
+- Reviewed `Saved/BodyPresetsQA/CheckboxUI/InfoMale2.png`: Info shows Preset 1
+  unchecked and Preset 2 checked, fully visible under Gender without scrolling.
+  The Apply/Cancel footer remains visible. This is widget-delegate automation plus
+  visual inspection; no physical mouse-click claim.
+- Protected rehash PASS, 7,643 files, zero changes, 69.39 s.
+- Fresh cook and packaged checkbox regression PENDING at this checkpoint.
+
+The workflow guide and master skill now specify Info as the primary entry point;
+future validation must inspect this first-visible screen, not only hidden tabs.
+
+
+Checkbox correction closeout, 19:09 Bogota: fresh cook/package PASS (UAT 268.03 s),
+packaged checkbox/Apply/Cancel assertions PASS (23.743 s), clean process exit
+(total 34.456 s), zero feature errors. Packaged Info capture reviewed: both male
+choices fully visible and Preset 2 checked. The four previously documented unrelated
+startup error lines remain; this UI correction does not certify those other systems.
+Editor reopened through the DAZ-safe launcher. Versioned receipts and image hashes:
+`Docs/Migration/Evidence/BodyPresets_20261008/CheckboxUI/`.
