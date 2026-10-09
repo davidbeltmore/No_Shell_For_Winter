@@ -1,4 +1,6 @@
 #include "UI/EFCharacterCreationRootWidget.h"
+#include "UI/EFBodyPresetCheckBox.h"
+#include "EFBodyPresetCatalog.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -838,6 +840,34 @@ void UEFCharacterCreationRootWidget::BuildInfoPanel()
 	{
 		ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	}
+	BuildBodyPresetChoices(InfoBox);
+}
+
+void UEFCharacterCreationRootWidget::BuildBodyPresetChoices(UVerticalBox* Parent)
+{
+	const UEFBodyPresetCatalog* Catalog=UEFBodyPresetCatalog::Get();
+	if (!Parent || !Catalog || !CustomizationComponent.IsValid()) return;
+	UVerticalBoxSlot* HeaderSlot=Parent->AddChildToVerticalBox(CreateSectionHeader(TEXT("Body / Skin preset")));
+	HeaderSlot->SetPadding(FMargin(0,18,0,6));
+	for (const FEFBodyPresetDefinition& Definition : Catalog->Bodies)
+	{
+		if (!Definition.bEnabled || Definition.Mesh.IsNull() || Definition.Gender!=CustomizationComponent->GetGender()) continue;
+		auto* Choice=WidgetTree->ConstructWidget<UEFBodyPresetCheckBox>();
+		Choice->InitializeChoice(this,Definition.PresetId,Definition.PresetId==CustomizationComponent->GetBodyPresetId());
+		auto* Label=CreateSectionHeader(Definition.DisplayName);
+		Label->SetAutoWrapText(true);
+		Choice->SetContent(Label);
+		Choice->SetToolTipText(FText::FromString(TEXT("Choose this body's default appearance. Only one preset can be selected.")));
+		UVerticalBoxSlot* Row=Parent->AddChildToVerticalBox(Choice);
+		Row->SetPadding(FMargin(4,5,4,5));
+	}
+}
+
+void UEFCharacterCreationRootWidget::SelectBodyPresetFromUI(FName PresetId)
+{
+	if (!CustomizationComponent.IsValid()) return;
+	CustomizationComponent->SelectBodyPreset(PresetId);
+	RefreshFromComponent();
 }
 
 FString UEFCharacterCreationRootWidget::NavigationKey() const
@@ -1294,33 +1324,7 @@ void UEFCharacterCreationRootWidget::RefreshMorphList()
 
 		UVerticalBox* GenderBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		GenderBorder->SetContent(GenderBox);
-		GenderBox->AddChildToVerticalBox(CreateSectionHeader(TEXT("Body preset")));
-
-		UHorizontalBox* GenderRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		GenderBox->AddChildToVerticalBox(GenderRow);
-
-		UTextBlock* PreviousBodyLabel = nullptr;
-		UButton* PreviousBodyButton = CreateTextButton(TEXT("Previous"), FLinearColor(0.18f, 0.14f, 0.12f, 0.92f), PreviousBodyLabel);
-		PreviousBodyButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleBodyMeshPreviousClicked);
-		if (UHorizontalBoxSlot* BodyButtonSlot = GenderRow->AddChildToHorizontalBox(PreviousBodyButton))
-		{
-			BodyButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
-		}
-
-		UTextBlock* CurrentBodyLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		CurrentBodyLabel->SetText(FText::FromString(Customization->GetCurrentBodyMeshDisplayName()));
-		CharacterCreationRootWidgetPrivate::SetTextSize(CurrentBodyLabel, 14);
-		if (UHorizontalBoxSlot* BodyLabelSlot = GenderRow->AddChildToHorizontalBox(CurrentBodyLabel))
-		{
-			BodyLabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			BodyLabelSlot->SetVerticalAlignment(VAlign_Center);
-			BodyLabelSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
-		}
-
-		UTextBlock* NextBodyLabel = nullptr;
-		UButton* NextBodyButton = CreateTextButton(TEXT("Next"), FLinearColor(0.18f, 0.14f, 0.12f, 0.92f), NextBodyLabel);
-		NextBodyButton->OnClicked.AddDynamic(this, &UEFCharacterCreationRootWidget::HandleBodyMeshNextClicked);
-		GenderRow->AddChildToHorizontalBox(NextBodyButton);
+		BuildBodyPresetChoices(GenderBox);
 	}
 
 	const FString SearchFilter = IsValid(SearchTextBox) ? SearchTextBox->GetText().ToString() : FString();

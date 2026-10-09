@@ -8,7 +8,8 @@ Measured results and outstanding gates: [implementation ledger](BodyPresetsImple
 
 `/Game/_Game/Data/CharacterCreation/DA_BodyPresets` contains Male.01, Male.02 and
 Female.01. Display names are editable; persistent IDs must remain stable. The
-character creator filters this catalog by gender, remembers the last choice for
+character creator shows mutually exclusive preset checkboxes directly below Gender
+on Info (also available under Body), filters this catalog by gender, remembers the last choice for
 each gender, and saves the resolved mesh and preset ID. NPCs use the same catalog,
 eligible weights and supported morph ranges. Their resolved appearance is saved
 through ALS; loading does not roll a new appearance.
@@ -68,7 +69,7 @@ Explicit per-mesh physics settings take precedence over the catalog profile.
 ## Supported test entry points
 
 - `RunRuntimeQA.ps1`: actual HUB PIE selection, evaluated pose, movement, physics,
-  and creator Previous/Next handlers. Guarded user saves.
+  and actual preset checkbox delegates, gender memory, Apply/Cancel and reopen. Guarded user saves.
 - `RunVisualQA.ps1`: six garments across three bodies, coverage ownership, movement
   and extreme morphs; compile seven affected Blueprints and capture images.
 - `RunNPCSaveQA.ps1`: twelve real NPCs, explicit and generated identities, diversity,

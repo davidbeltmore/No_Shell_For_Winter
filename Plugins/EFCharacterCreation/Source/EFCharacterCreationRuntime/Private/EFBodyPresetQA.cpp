@@ -6,6 +6,8 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "UI/EFCharacterCreationRootWidget.h"
+#include "UI/EFBodyPresetCheckBox.h"
+#include "Blueprint/WidgetTree.h"
 #include "Camera/CameraActor.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Containers/Ticker.h"
@@ -172,25 +174,59 @@ struct FBodyPresetRuntimeQA
 			if (!Creator || !Creator->OpenCharacterCreationForAutomation()) return Finish(false,TEXT("Creator failed to open"));
 			auto* Widget=Creator->GetActiveRootWidgetForAutomation();
 			if (!Widget) return Finish(false,TEXT("Creator widget unavailable"));
-			Widget->SelectPresentationCategory(TEXT("Body"));
+			Widget->SelectPresentationCategory(TEXT("Info"));
 			Stage=10; Due=Now+2; return true;
 		}
 		if (Stage==10)
 		{
 			auto* Creator=W->GetGameInstance()->GetSubsystem<UEFCharacterCreationSubsystem>();
 			auto* Widget=Creator?Creator->GetActiveRootWidgetForAutomation():nullptr;
-			UFunction* Previous=Widget?Widget->FindFunction(TEXT("HandleBodyMeshPreviousClicked")):nullptr;
-			UFunction* Next=Widget?Widget->FindFunction(TEXT("HandleBodyMeshNextClicked")):nullptr;
-			if (!Previous || !Next || Custom->GetAvailableBodyMeshOptions().Num()!=2)
-				return Finish(false,TEXT("Creator does not expose the two male preset choices"));
-			Widget->ProcessEvent(Previous,nullptr);
-			if (Custom->GetBodyPresetId()!=TEXT("Male.01")) return Finish(false,TEXT("Creator previous-preset handler failed"));
-			Widget->ProcessEvent(Next,nullptr);
-			if (Custom->GetBodyPresetId()!=TEXT("Male.02")) return Finish(false,TEXT("Creator next-preset handler failed"));
-			Record(TEXT("creator_previous_next_handlers=true male_choices=2"));
-			FScreenshotRequest::RequestScreenshot(Directory / TEXT("CreatorMale2.png"),true,false);
-			Stage=11; Due=Now+2; return true;
-		}
+            auto Choices=[Widget]() {
+                TArray<UWidget*> All; Widget->WidgetTree->GetAllWidgets(All);
+                TArray<UEFBodyPresetCheckBox*> Result;
+                for (UWidget* Item : All) if (auto* Choice=Cast<UEFBodyPresetCheckBox>(Item)) Result.Add(Choice);
+                return Result;
+            };
+            auto Click=[&Choices](FName Id) {
+                for (auto* Choice : Choices()) if (Choice->PresetId==Id) { Choice->SetIsChecked(true); Choice->OnCheckStateChanged.Broadcast(true); return true; }
+                return false;
+            };
+            auto Selected=[&Choices](FName Id,int32 Count) {
+                auto Rows=Choices(); int32 Checked=0; bool Found=false;
+                for (auto* Row : Rows) if (Row->IsChecked()) { ++Checked; Found=Row->PresetId==Id; }
+                return Rows.Num()==Count && Checked==1 && Found;
+            };
+            if (!Widget || !Selected(TEXT("Male.02"),2)) return Finish(false,TEXT("Info does not expose two male checkboxes with one selected"));
+            if (!Click(TEXT("Male.01")) || Custom->GetBodyPresetId()!=TEXT("Male.01") || !Selected(TEXT("Male.01"),2))
+                return Finish(false,TEXT("Preset 1 checkbox did not select atomically"));
+            for (auto* Choice : Choices()) if (Choice->IsChecked()) { Choice->SetIsChecked(false); Choice->OnCheckStateChanged.Broadcast(false); }
+            if (!Selected(TEXT("Male.01"),2)) return Finish(false,TEXT("Selected preset can be unchecked"));
+            Widget->ProcessEvent(Widget->FindFunction(TEXT("HandleGenderFemaleClicked")),nullptr);
+            if (!Selected(TEXT("Female.01"),1)) return Finish(false,TEXT("Female choices not filtered"));
+            Widget->ProcessEvent(Widget->FindFunction(TEXT("HandleGenderMaleClicked")),nullptr);
+            if (!Selected(TEXT("Male.01"),2)) return Finish(false,TEXT("Male selection not remembered"));
+            if (!Click(TEXT("Male.02")) || !Selected(TEXT("Male.02"),2) || Custom->GetBodyPresetId()!=TEXT("Male.02"))
+                return Finish(false,TEXT("Preset 2 checkbox failed"));
+            Record(TEXT("info_checkboxes=true male_choices=2 female_choices=1 exclusive=true gender_memory=true"));
+            FScreenshotRequest::RequestScreenshot(Directory / TEXT("CreatorMale2.png"),true,false);
+            Stage=11; Due=Now+2; return true;
+        }
+        if (Stage==11)
+        {
+            auto* Creator=W->GetGameInstance()->GetSubsystem<UEFCharacterCreationSubsystem>();
+            auto* Widget=Creator->GetActiveRootWidgetForAutomation();
+            Widget->SelectBodyPresetFromUI(TEXT("Male.01"));
+            Widget->ProcessEvent(Widget->FindFunction(TEXT("HandleBackClicked")),nullptr);
+            if (Creator->IsCharacterCreationActive() || Custom->GetBodyPresetId()!=TEXT("Male.02")) return Finish(false,TEXT("Cancel did not restore session body"));
+            if (!Creator->OpenCharacterCreationForAutomation()) return Finish(false,TEXT("Reopen after cancel failed"));
+            Widget=Creator->GetActiveRootWidgetForAutomation();
+            Widget->SelectBodyPresetFromUI(TEXT("Male.01"));
+            Widget->ProcessEvent(Widget->FindFunction(TEXT("HandleStartGameClicked")),nullptr);
+            if (Creator->IsCharacterCreationActive() || Custom->GetBodyPresetId()!=TEXT("Male.01")) return Finish(false,TEXT("Apply did not retain body"));
+            if (!Creator->OpenCharacterCreationForAutomation() || Custom->GetBodyPresetId()!=TEXT("Male.01")) return Finish(false,TEXT("Applied body not retained on reopen"));
+            Record(TEXT("creator_cancel_restores=true apply_reopen_retains=true"));
+            Stage=12; Due=Now+1; return true;
+        }
 		return Finish(true,TEXT("switches, animated poses, movement and creator open; visual review required"));
 	}
 };

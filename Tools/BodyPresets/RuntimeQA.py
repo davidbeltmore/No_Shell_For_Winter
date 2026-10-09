@@ -7,6 +7,15 @@ from pathlib import Path
 import unreal
 
 root=Path(unreal.Paths.project_dir()).resolve()
+compiled=[]
+for path in ('/EFCharacterCreation/UI/WBP_EFCharacterCreationRoot','/Game/FullSample/Player'):
+    blueprint=unreal.load_asset(path)
+    assert isinstance(blueprint,unreal.Blueprint),path
+    unreal.BlueprintEditorLibrary.compile_blueprint(blueprint)
+    status=str(blueprint.get_editor_property('status'))
+    assert 'UPTODATE' in ''.join(c for c in status.upper() if c.isalnum()),(path,status)
+    compiled.append({'asset':path,'status':status})
+(root/'Saved/BodyPresetsQA/creator-blueprints.json').write_text(json.dumps(compiled,indent=2))
 runpy.run_path(str(root/'Tools/BodyPresets/InspectCandidateDetails.py'))
 unreal.EditorPythonScripting.set_keep_python_script_alive(True)
 perf=unreal.get_default_object(unreal.load_class(None,'/Script/UnrealEd.EditorPerformanceSettings'))

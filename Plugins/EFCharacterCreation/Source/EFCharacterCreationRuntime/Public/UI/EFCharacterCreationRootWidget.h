@@ -35,6 +35,7 @@ class EFCHARACTERCREATIONRUNTIME_API UEFCharacterCreationRootWidget : public UUs
 public:
 	void InitializeForSession(UEFCharacterCreationSubsystem* InSubsystem, UEFCharacterCustomizationComponent* InCustomizationComponent);
 	void RefreshFromComponent();
+	void SelectBodyPresetFromUI(FName PresetId);
 	bool TryGetThemeTabState(const UWidget* Widget, bool& bOutIsActive) const;
 
 	UFUNCTION(BlueprintCallable, Category = "EF Character Creation|Automation")
@@ -67,6 +68,7 @@ private:
 	void RefreshPresetList();
 	void RefreshTabVisuals();
 	void BuildInfoPanel();
+	void BuildBodyPresetChoices(UVerticalBox* Parent);
 	void UpdateColorControls();
 	void UpdateColorPreview(UBorder* PreviewBorder, const FLinearColor& Color);
 	FLinearColor MakeColorFromHSVSliders(USlider* HueSlider, USlider* SaturationSlider, USlider* ValueSlider) const;
