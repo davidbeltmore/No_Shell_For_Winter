@@ -64,6 +64,14 @@ try:
         assert not row or row.mesh==mesh,'Stable preset ID already belongs to another mesh'
         assert not row or row.gender==getattr(unreal.CharacterCreationGender,config['gender'].upper()),'Stable preset ID already belongs to another gender'
         assert not any(r.mesh==mesh and str(r.preset_id)!=preset_id for r in rows),'Mesh already registered under a different ID'
+        # A new NPC body must explicitly preserve anatomical rest state. Fail before conversion.
+        neutral=config.get('npc_neutral_morphs')
+        if config['gender']=='Male' and config.get('allow_npc',True):
+            if neutral is None and {'DK_Flacid 03','DK_Erection'}<=set(report['morphs']):
+                neutral={'DK_Flacid 03':1.0,'DK_Erection':0.0}
+            assert neutral, 'NPC male needs validated npc_neutral_morphs for its actual morph names'
+        neutral=neutral or {}
+        assert all(n in report['morphs'] and math.isfinite(float(v)) for n,v in neutral.items()), 'Invalid neutral morph mapping'
         materials=list(mesh.materials)
         for slot,path in config.get('material_overrides',{}).items():
             material=unreal.load_asset(path)
@@ -111,6 +119,17 @@ try:
             assert entry.minimum<=entry.npc_minimum<=entry.npc_maximum<=entry.maximum
             profiles.append(entry)
         if 'morph_profile' in config: row.morph_profile=profiles
+        profiles=list(row.morph_profile)
+        for name,value in neutral.items():
+            entry=next((p for p in profiles if str(p.morph_name)==name),None)
+            if entry is None:
+                entry=unreal.EFBodyMorphProfileEntry(); entry.morph_name=name; profiles.append(entry)
+            entry.default_value=float(value)
+            entry.set_editor_property('npc_neutral',True)
+            entry.randomize_npc=False
+            assert entry.minimum<=entry.default_value<=entry.maximum,'Neutral default outside declared morph range'
+        row.morph_profile=profiles
+        report['npc_neutral_morphs']=neutral
         if config.get('author_secondary_physics',False):
             safe_id=''.join(c if c.isalnum() else '_' for c in preset_id)
             physics_path='/Game/_Game/Characters/Physics/PA_'+safe_id+'_Morph'
@@ -125,7 +144,7 @@ try:
             assert unreal.EditorAssetLibrary.save_loaded_asset(physics)
             row.morph_physics_asset=physics
             report['physics']=result
-        catalog.bodies=rows
+        catalog.set_editor_property('bodies',rows)
         mesh.set_editor_property('materials',materials)
         source=mesh.get_default_mesh_deformer()
         if not source:

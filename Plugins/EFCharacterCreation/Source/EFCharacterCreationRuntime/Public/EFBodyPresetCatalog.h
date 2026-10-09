@@ -17,6 +17,8 @@ struct EFCHARACTERCREATIONRUNTIME_API FEFBodyMorphProfileEntry
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float DefaultValue = 0.0f;
 	/** NPC generation uses only explicitly enabled dimensions, never expression/corrective auto-discovery. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bRandomizeNPC = false;
+	/** Baseline anatomical state; never randomized. Used for legacy NPC appearance migration. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bNPCNeutral = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float NPCMinimum = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float NPCMaximum = 0.35f;
 };

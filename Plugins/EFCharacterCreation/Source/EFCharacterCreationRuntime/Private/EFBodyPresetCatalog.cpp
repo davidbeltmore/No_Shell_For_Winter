@@ -55,7 +55,7 @@ bool UEFBodyPresetCatalog::ValidateDefinition(FString& Error) const
 		TSet<FName> Morphs;
 		for (const auto& M : B.MorphProfile)
 		{
-			if (M.MorphName.IsNone() || Morphs.Contains(M.MorphName) || !FMath::IsFinite(M.Minimum) || !FMath::IsFinite(M.Maximum) ||
+			if (M.MorphName.IsNone() || Morphs.Contains(M.MorphName) || (M.bNPCNeutral && M.bRandomizeNPC) || !FMath::IsFinite(M.Minimum) || !FMath::IsFinite(M.Maximum) ||
 				!FMath::IsFinite(M.DefaultValue) || M.Minimum > M.Maximum || M.DefaultValue < M.Minimum || M.DefaultValue > M.Maximum ||
 				!FMath::IsFinite(M.NPCMinimum) || !FMath::IsFinite(M.NPCMaximum) ||
 				(M.bRandomizeNPC && (M.NPCMinimum < M.Minimum || M.NPCMaximum > M.Maximum || M.NPCMinimum > M.NPCMaximum)))

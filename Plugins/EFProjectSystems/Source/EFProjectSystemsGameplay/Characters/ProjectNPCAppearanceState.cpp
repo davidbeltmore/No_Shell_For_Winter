@@ -9,6 +9,32 @@
 #include "Misc/PackageName.h"
 #include "Misc/Crc.h"
 #include "Async/Async.h"
+#include "EFBodyPresetCatalog.h"
+
+void FProjectNPCAppearanceRecord::MigrateNeutralDefaults()
+{
+	if (GeneratorVersion >= 2) return;
+	const auto* Catalog = UEFBodyPresetCatalog::Get();
+	const auto* Body = Catalog ? Catalog->Find(Appearance.BodyPresetId) : nullptr;
+	if (!Body && Catalog) Body = Catalog->FindMesh(Appearance.SelectedBodyMeshAsset);
+	if (!Body) return;
+	for (const auto& Profile : Body->MorphProfile)
+	{
+		if (!Profile.bNPCNeutral) continue;
+		bool bFound = false;
+		for (auto& Value : Appearance.MorphValues)
+			if (Value.MorphName == Profile.MorphName && Value.Target != ECharacterCustomizationTarget::Clothing)
+			{ Value.Value = Profile.DefaultValue; bFound = true; }
+		if (!bFound)
+		{
+			auto& Value = Appearance.MorphValues.AddDefaulted_GetRef();
+			Value.MorphName = Profile.MorphName;
+			Value.Target = ECharacterCustomizationTarget::Body;
+			Value.Value = Profile.DefaultValue;
+		}
+	}
+	GeneratorVersion = 2;
+}
 
 AProjectNPCAppearanceState::AProjectNPCAppearanceState() { PrimaryActorTick.bCanEverTick = false; }
 AProjectNPCAppearanceState* AProjectNPCAppearanceState::Ensure(UWorld* World)

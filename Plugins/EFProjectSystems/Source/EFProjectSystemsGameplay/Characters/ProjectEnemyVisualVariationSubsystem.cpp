@@ -502,8 +502,9 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 	const int32 AppearanceSeed = AProjectNPCAppearanceState::SeedFor(AppearanceId);
 	FRandomStream AppearanceRandom(AppearanceSeed);
 	if (AppearanceState)
-		if (const auto* Saved = AppearanceState->Records.Find(AppearanceId))
+		if (auto* Saved = AppearanceState->Records.Find(AppearanceId))
 		{
+			Saved->MigrateNeutralDefaults();
 			CustomizationComponent->ApplyState(Saved->Appearance);
 			ProjectEnemyVisualVariationSubsystemPrivate::ApplyNativeSkinColorToPawnMeshes(Pawn, *Settings, Saved->Appearance.SkinColor);
 			if (IsOptionalMatureMorphTargetClass(Pawn->GetClass())) InitializeOptionalMatureMorphState(Pawn, CustomizationComponent);
@@ -511,7 +512,7 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 			return;
 		}
 	const UEFBodyPresetCatalog* BodyCatalog = UEFBodyPresetCatalog::Get();
-	if (BodyCatalog)
+	if (BodyCatalog && !Pawn->ActorHasTag(TEXT("EF.BodyPresetFixed")))
 		if (const auto* Body = BodyCatalog->ChooseNPC(CustomizationComponent->GetGender(), AppearanceRandom))
 			if (!CustomizationComponent->SelectBodyPreset(Body->PresetId, true))
 			{
@@ -584,6 +585,7 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 	if (AppearanceState)
 	{
 		FProjectNPCAppearanceRecord& Record = AppearanceState->Records.FindOrAdd(AppearanceId);
+		Record.GeneratorVersion = 2;
 		Record.Seed = AppearanceSeed;
 		Record.Appearance = CustomizationComponent->CaptureCurrentState();
 	}

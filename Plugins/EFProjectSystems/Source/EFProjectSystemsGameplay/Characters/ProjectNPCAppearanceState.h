@@ -14,6 +14,8 @@ struct FProjectNPCAppearanceRecord
 	UPROPERTY(SaveGame, BlueprintReadOnly) int32 GeneratorVersion = 1;
 	UPROPERTY(SaveGame, BlueprintReadOnly) int32 Seed = 0;
 	UPROPERTY(SaveGame, BlueprintReadOnly) FCharacterCustomizationState Appearance;
+	/** Updates only catalog-declared neutral morphs in old generated NPC records. */
+	void MigrateNeutralDefaults();
 };
 
 UCLASS()
