@@ -92,3 +92,9 @@ Keep `Docs/Migration` current.
 - Adding a preset preserves existing bodies. Do not interpret it as global reference replacement. Player and NPC consumers share `/Game/_Game/Data/CharacterCreation/DA_BodyPresets` with stable IDs and per-body supported morph profiles.
 - Use `Tools/BodyPresets/OnboardBody.py` (inspect, then prepare) and the project-owned G9 adapter. It preserves the intended New/local-skeleton result without the vendor's final shared-skeleton reassignment. Never convert an already-converted mesh again.
 - See `Docs/Migration/BodyPresetsImplementation.md` for measured gates and limitations, and `Docs/Migration/BodyPresetWorkflow.md` for repeatable entry points. A preparation receipt alone does not certify runtime support.
+
+## Generated validation output retention
+
+- Repeated `Saved/**/Package_*/Cooked` and `Staged` outputs caused the 2026-10-08 size regression. Preserve receipts, logs, screenshots, saves, autosaves and rollback backups; keep one latest successfully validated package instead of accumulating full build copies.
+- After successful cook and packaged QA, use `Tools/Migration/Remove-OldValidationPackages.ps1` in dry-run mode first, then `-Apply` within the authorized cleanup scope. It retains the successful body-preset package referenced by `Saved/BodyPresetsQA/latest-package.txt`; verify that package is the intended retained artifact. Never run it during packaging or a packaged game session.
+- Keep `Intermediate/PipInstall`, required binaries and productive assets. Do not force Git LFS pruning when remote verification fails. Record measured before/after bytes and protected comparisons in `Docs/Migration`.
