@@ -10,6 +10,10 @@ project=Path(unreal.Paths.project_dir()); out=project/'Saved/NPCDAZ'; out.mkdir(
 manifest=json.loads((project/'Tools/NPC/Roster.json').read_text())
 root=manifest['root']; e=unreal.EditorAssetLibrary; bel=unreal.BlueprintEditorLibrary
 started=time.monotonic(); report={'assets':[],'variants':[],'errors':[]}; owned={}; replacements={}
+
+def restore_logic(src,bp):
+    result=json.loads(unreal.ProjectCompatibilityInspectionLibrary.sync_owned_npc_logic_defaults(unreal.load_asset(src),bp,True))
+    assert not result.get('error') and not result['errors'],result
 def check_time(): assert time.monotonic()-started<180,'Authoring exceeded 180-second ceiling'
 def backup(p):
     if not p.startswith('/Game/'): return
@@ -44,6 +48,8 @@ def framework(class_path):
     parent=framework(parent_path(old))
     bp=duplicate(src,root+'/Framework/'+src.rsplit('/',1)[1])
     bel.reparent_blueprint(bp,parent)
+    assert bel.compile_blueprint(bp),src
+    restore_logic(src,bp)
     assert bel.compile_blueprint(bp),src
     owned[src]=bp; map_bp(src,bp)
     return bp.generated_class()
@@ -105,6 +111,8 @@ try:
             current_parent=parent_path(bp)
             new_parent=framework(current_parent) if current_parent.startswith(root+'/') else parent
             bel.reparent_blueprint(bp,new_parent); assert bel.compile_blueprint(bp),dst
+            # Reparenting changes SCS component keys; preserve effective source overrides.
+            restore_logic(src,bp)
             actor=cdo(bp); actor.set_editor_property('tags',list(dict.fromkeys([str(t) for t in actor.tags]+['EF.BodyVariation','EF.NPC.'+row['id']])))
             body=unreal.load_asset('/Game/DazToUnreal/'+gender+'/'+gender)
             anim=anims[row.get('animation','Humanoid')]

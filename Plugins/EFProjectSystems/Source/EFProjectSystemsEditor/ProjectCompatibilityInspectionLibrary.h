@@ -12,6 +12,9 @@ class UProjectCompatibilityInspectionLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Compare or restore editable component defaults after reparenting an owned NPC. */
+    UFUNCTION(BlueprintCallable, Category="Project|NPC Authoring")
+    static FString SyncOwnedNPCLogicDefaults(UBlueprint* Source, UBlueprint* Target, bool bApply);
     /** Narrow reference remap inside one owned NPC package; never global consolidation. */
     UFUNCTION(BlueprintCallable, Category="Project|NPC Authoring")
     static int32 RemapOwnedNPCReferences(UObject* Asset, const TMap<UObject*, UObject*>& Replacements);
