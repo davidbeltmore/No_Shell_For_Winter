@@ -1,14 +1,15 @@
 #include "EFBodyPresetCatalog.h"
 #include "EFCharacterCreationSettings.h"
+#include "EFBodyPresetCatalogCache.h"
+#include "Engine/Engine.h"
 
 const UEFBodyPresetCatalog* UEFBodyPresetCatalog::Get()
 {
-	auto* Settings = GetMutableDefault<UEFCharacterCreationSettings>();
-	const auto& Reference = Settings->BodyPresetCatalog;
-	if (Reference.IsNull()) { Settings->LoadedBodyPresetCatalog=nullptr; return nullptr; }
-	if (!IsValid(Settings->LoadedBodyPresetCatalog) || FSoftObjectPath(Settings->LoadedBodyPresetCatalog) != Reference.ToSoftObjectPath())
-		Settings->LoadedBodyPresetCatalog=Reference.LoadSynchronous();
-	return Settings->LoadedBodyPresetCatalog;
+	const auto& Reference = GetDefault<UEFCharacterCreationSettings>()->BodyPresetCatalog;
+	if (GEngine)
+		if (auto* Cache=GEngine->GetEngineSubsystem<UEFBodyPresetCatalogCache>()) return Cache->Resolve(Reference);
+	// Early authoring/commandlet access: no hard reference on the settings CDO.
+	return Reference.LoadSynchronous();
 }
 
 const FEFBodyPresetDefinition* UEFBodyPresetCatalog::Find(FName Id) const
