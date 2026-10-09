@@ -38,14 +38,17 @@ namespace EFEquipmentDeathRouting
         FMulticastScriptDelegate Result; bool Replaced = false;
         for (const auto& Binding : Bindings)
         {
+            // At world shutdown, serialized weak listeners can resolve to null.
+            // Drop expired bindings rather than inserting identical null callbacks.
+            if (!Binding.IsBound()) continue;
             // Reinitialization may have appended the original callback again.
             if (Binding.GetUObject() == Replacement && Binding.GetFunctionName() == ReplacementFunction) continue;
             if (Binding.GetUObject() == Original && Binding.GetFunctionName() == OriginalFunction)
             {
                 if (Replaced) return false;
-                FScriptDelegate Routed; Routed.BindUFunction(Replacement, ReplacementFunction); Result.Add(Routed); Replaced = true;
+                FScriptDelegate Routed; Routed.BindUFunction(Replacement, ReplacementFunction); Result.AddUnique(Routed); Replaced = true;
             }
-            else Result.Add(Binding);
+            else Result.AddUnique(Binding);
         }
         if (Replaced) P->SetMulticastDelegate(Value, MoveTemp(Result));
         return Replaced;
