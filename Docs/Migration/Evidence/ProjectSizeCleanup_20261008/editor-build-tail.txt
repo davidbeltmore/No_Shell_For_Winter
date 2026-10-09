@@ -1,0 +1,22 @@
+  Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.24.0 (build commit  @ 20250404, LLVM 18.1.2)
+Using Visual Studio 14.50.35725 toolchain (C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.50.35717) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+=================================
+Using Unreal Build Accelerator local executor to run 4 action(s)
+  CPU 8 physical cores, 16 logical cores
+  Memory 47.93 GB physical, 30.85 GB/71.93 GB committed
+  UBA Storage capacity 40 GB
+[1/4] Compile [x64] Module.EFCharacterCreationRuntime.cpp
+[2/4] Link [x64] UnrealEditor-EFCharacterCreationRuntime.lib
+   Creando biblioteca D:/Projects UE5/NoShellForWinter/Plugins/EFCharacterCreation/Intermediate/Build/Win64/x64/UnrealEditor/Development/EFCharacterCreationRuntime/UnrealEditor-EFCharacterCreationRuntime.lib y objeto D:/Projects UE5/NoShellForWinter/Plugins/EFCharacterCreation/Intermediate/Build/Win64/x64/UnrealEditor/Development/EFCharacterCreationRuntime/UnrealEditor-EFCharacterCreationRuntime.exp
+[3/4] Link [x64] UnrealEditor-EFCharacterCreationRuntime.dll
+[4/4] WriteMetadata NoShellForWinterEditor.target [NoUba]
+
+Total time in Unreal Build Accelerator local executor: 100.00 seconds
+Output binary: D:\Unreal Engine 5\Library\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe
+
+Result: Succeeded
+Total execution time: 105.70 seconds
+Trace written to file C:\Users\bigin\AppData\Local\UnrealBuildTool\Trace.uba with size 16.0kb
+Restored Daz plugin states in D:\Projects UE5\NoShellForWinter\Binaries\Win64\NoShellForWinterEditor.target
+Daz receipt guard for NoShellForWinterEditor Development: PASS
+NoShellForWinterEditor build and Daz receipt repair: PASS

@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-08",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "source": "D:/Projects UE5/LustAsDeadlySin (untouched)",
+  "base_commit": "4821abcf",
+  "tooling_snapshot": "9495cfbd8ceb26eec5ab83eea80f2873840e7fab",
+  "before": {
+    "bytes": 153948152480,
+    "files": 81262
+  },
+  "after": {
+    "bytes": 54821201697,
+    "files": 79196,
+    "sizes": {
+      ".git": 14466229458,
+      "Saved": 13565327790,
+      "Content": 11111254879,
+      "Intermediate": 10009141808,
+      "Plugins": 4377173789,
+      "Binaries": 1206890138,
+      "Docs": 46293830,
+      "DerivedDataCache": 26275116,
+      "Tools": 7367312,
+      "Build": 4064238,
+      ".claude": 476034,
+      ".agents": 206572,
+      "Source": 205701,
+      "Config": 140120,
+      ".vscode": 115457,
+      "NoShellForWinter.code-workspace": 19783,
+      "README.md": 6291,
+      "AGENTS.md": 5981,
+      "NoShellForWinter.uproject": 3402,
+      "TODO.md": 1733,
+      ".gitattributes": 1105,
+      ".ignore": 609,
+      ".gitignore": 492,
+      ".codex": 59
+    }
+  },
+  "net_reclaimed_bytes": 99126950783,
+  "protection": {
+    "files": 11206,
+    "result": "PASS",
+    "expected_differences": [
+      "D:\\Projects UE5\\NoShellForWinter\\Config\\DefaultGame.ini"
+    ],
+    "unexpected_differences": [],
+    "acf": {
+      "files": 7425,
+      "differences": [],
+      "result": "PASS"
+    }
+  },
+  "historical": {
+    "result": "FAIL",
+    "mismatch_count": 4428,
+    "sets": [
+      {
+        "Name": "ACFU_4_3_5",
+        "Root": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\Marketplace\\ACFUAsce5ab7c1439afbV5",
+        "ExpectedFileCount": 5043,
+        "CurrentFileCount": 7425,
+        "MismatchCount": 4217,
+        "Result": "FAIL"
+      },
+      {
+        "Name": "DazToUnreal_5_8_0_491",
+        "Root": "D:\\Unreal Engine 5\\Library\\UE_5.8\\Engine\\Plugins\\DazToUnreal",
+        "ExpectedFileCount": 213,
+        "CurrentFileCount": 213,
+        "MismatchCount": 0,
+        "Result": "PASS"
+      },
+      {
+        "Name": "Target_Daz_Assets",
+        "Root": "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal",
+        "ExpectedFileCount": 189,
+        "CurrentFileCount": 327,
+        "MismatchCount": 207,
+        "Result": "FAIL"
+      }
+    ],
+    "note": "Historical drift is separate from this task baseline."
+  },
+  "save_restoration": {
+    "restored": true,
+    "original_files": 68,
+    "receipt": "Saved\\CleanupEvidence\\20261008\\SaveGuard_194347\\SaveGuard.json",
+    "sha256": "15878771e9a5a7bcede515c8b40fa1f88f2995b89a0356e12d64d80769cfe6bd"
+  },
+  "local_manifest_hashes": {
+    "Saved\\CleanupEvidence\\20261008\\protected-before.json": "bd5a975adcd4770d6ff51bc246d2c46dc1ab61d9c893a10f98e7136b5e956279",
+    "Saved\\CleanupEvidence\\20261008\\protected-post-validation.json": "45cf77675a6a97656b2f140025727d10c3c11d2c0ee0d8f4fb92cf87b602d8d7",
+    "Saved\\CleanupEvidence\\20261008\\acfu-before.json": "b7cc09f2fa557fe4b20fb9d01108f9512fa6d8ef20d4d65c7af2c344fd5e593b",
+    "Saved\\CleanupEvidence\\20261008\\historical-post-validation.json": "64e7548f93856cece9b184f492d58f505a609c81c2e574fb62e5bb5715379eb5",
+    "Saved\\CleanupEvidence\\20261008\\before.json": "0149488cf62382fc7f4ce819253db354887e9119f5bd2daa3ebf43d8502516f3",
+    "Saved\\CleanupEvidence\\20261008\\after.json": "6e3566abef3a467a457c1654168ac24bd55f63d96ac3c17990542addbb235ebd"
+  },
+  "screenshots": {
+    "Saved\\BodyPresetsQA\\Runtime\\CreatorMale2.png": "e4d5c52e51da9b3275fbb73820bf678a4c9da708d5b03348a84ed25ea2426c9d",
+    "Saved\\BodyPresetsQA\\Runtime\\Male.02.png": "c4c06e400719a22f89da361ea9ee7a113226c39f8bbff5cc3ef6ea5a67aaa794",
+    "Saved\\BodyPresetsQA\\PackagedQA_20261008_195347\\UserData\\Saved\\BodyPresetsQA\\Runtime\\CreatorMale2.png": "c62bcf519d924f3f2381caadc733a4fd4fd1492c607b728d28827b5878426ef5"
+  },
+  "visual_review": "Inspected PIE body/creator and packaged creator. Packaged 1400x1000 preset labels, selection and footer are legible. Narrow docked PIE viewport wraps labels; full UI/resolution matrix remains PENDING.",
+  "scope": "HUB/body/creator smoke validation after generated-output cleanup and known configuration recovery; not whole-migration acceptance."
+}

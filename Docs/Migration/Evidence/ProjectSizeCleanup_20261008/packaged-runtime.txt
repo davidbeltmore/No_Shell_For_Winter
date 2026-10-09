@@ -1,0 +1,13 @@
+player_ready=true
+select=Male.01 switch_ms=88.536
+pose=Male.01 components=2 valid=true frame_delta=0.00758
+select=Male.02 switch_ms=82.232
+pose=Male.02 components=2 valid=true frame_delta=0.00736
+select=Female.01 switch_ms=85.422
+pose=Female.01 components=2 valid=true frame_delta=0.00744
+select=Male.02 switch_ms=77.814
+pose=Male.02 components=2 valid=true frame_delta=0.00810
+Male2_movement_cm=314.421
+info_checkboxes=true male_choices=2 female_choices=1 exclusive=true gender_memory=true
+creator_cancel_restores=true apply_reopen_retains=true
+status=PASS reason=switches, animated poses, movement and creator open; visual review required elapsed_seconds=23.728
