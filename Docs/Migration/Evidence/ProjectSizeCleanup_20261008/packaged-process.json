@@ -1,22 +1,11 @@
 {
-
-    "elapsed_seconds":  40.5894924,
-
-    "exit_code":  0,
-
-    "all_error_count":  0,
-
-    "feature_error_count":  0,
-
-    "scope":  "Body preset runtime; unrelated startup errors require separate review",
-
-    "receipts":  [
-
-                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_195347\\UserData\\Saved\\BodyPresetsQA\\Runtime\\runtime.txt"
-
-                 ],
-
-    "runtime_pass":  true
-
+  "elapsed_seconds": 40.5894924,
+  "exit_code": 0,
+  "all_error_count": 0,
+  "feature_error_count": 0,
+  "scope": "Body preset runtime; unrelated startup errors require separate review",
+  "receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\PackagedQA_20261008_195347\\UserData\\Saved\\BodyPresetsQA\\Runtime\\runtime.txt"
+  ],
+  "runtime_pass": true
 }
-

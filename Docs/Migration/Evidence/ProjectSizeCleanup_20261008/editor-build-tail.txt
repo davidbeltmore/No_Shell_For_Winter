@@ -10,10 +10,8 @@ Using Unreal Build Accelerator local executor to run 4 action(s)
    Creando biblioteca D:/Projects UE5/NoShellForWinter/Plugins/EFCharacterCreation/Intermediate/Build/Win64/x64/UnrealEditor/Development/EFCharacterCreationRuntime/UnrealEditor-EFCharacterCreationRuntime.lib y objeto D:/Projects UE5/NoShellForWinter/Plugins/EFCharacterCreation/Intermediate/Build/Win64/x64/UnrealEditor/Development/EFCharacterCreationRuntime/UnrealEditor-EFCharacterCreationRuntime.exp
 [3/4] Link [x64] UnrealEditor-EFCharacterCreationRuntime.dll
 [4/4] WriteMetadata NoShellForWinterEditor.target [NoUba]
-
 Total time in Unreal Build Accelerator local executor: 100.00 seconds
 Output binary: D:\Unreal Engine 5\Library\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe
-
 Result: Succeeded
 Total execution time: 105.70 seconds
 Trace written to file C:\Users\bigin\AppData\Local\UnrealBuildTool\Trace.uba with size 16.0kb

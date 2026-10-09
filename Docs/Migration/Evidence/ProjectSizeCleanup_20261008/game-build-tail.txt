@@ -10,10 +10,8 @@ Using Unreal Build Accelerator local executor to run 3 action(s)
 [2/3] Link [x64] NoShellForWinter.exe
    Creando biblioteca D:\Projects UE5\NoShellForWinter\Binaries\Win64\NoShellForWinter.lib y objeto D:\Projects UE5\NoShellForWinter\Binaries\Win64\NoShellForWinter.exp
 [3/3] WriteMetadata NoShellForWinter.target [NoUba]
-
 Total time in Unreal Build Accelerator local executor: 94.22 seconds
 Output binary: D:\Projects UE5\NoShellForWinter\Binaries\Win64\NoShellForWinter.exe
-
 Result: Succeeded
 Total execution time: 99.98 seconds
 Trace written to file C:\Users\bigin\AppData\Local\UnrealBuildTool\Trace.uba with size 15.1kb
