@@ -110,6 +110,11 @@ replaces only the player's `HandleCharacterDeath` binding at its original positi
 through the public reflected multicast serialization contract. Keep other
 listeners and their order intact; restore the native binding on teardown and
 reinstall after character initialization. Do not edit Player or native ACF classes.
+During world teardown the serialization round-trip can resolve expired weak
+listeners to null. Skip unbound entries and rebuild with unique bindings while
+preserving the first valid listener order; adding duplicate null callbacks raises
+`ScriptDelegates.h::AddInternal` ensures. Check packaged process shutdown as well
+as the gameplay result when changing this adapter.
 
 `ProcessOwnerDeath` gives each bag its native container drop policy before the
 native death callback. A retained or rejected bag temporarily has zero native drop

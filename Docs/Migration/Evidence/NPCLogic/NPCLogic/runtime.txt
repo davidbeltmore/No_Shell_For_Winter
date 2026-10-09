@@ -1,0 +1,170 @@
+fixture=normal_AI real_E_input authored_HUB_nav_volume ACF_spawner_controller_contract
+spawn=/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C controller=ACF_NPCController_BP_C_2147479967
+service=ACF_LevelingGuy_BPMale_C label=Leveling Guy can_interact=1 detected=ACF_LevelingGuy_BPMale_C_2147480028
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_LevelingGuy_BPMale_C_2147480028 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=I need to level up!
+service_menu=/Game/FullSample/Integrations/Ultimate/UI/ACF_GASLevelUp_WB.ACF_GASLevelUp_WB_C
+spawn=/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C controller=ACF_NPCController_BP_C_2147479617
+service=ACF_LevelingGuy_BPFemale_C label=Leveling Guy can_interact=1 detected=ACF_LevelingGuy_BPFemale_C_2147479677
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_LevelingGuy_BPFemale_C_2147479677 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=I need to level up!
+service_menu=/Game/FullSample/Integrations/Ultimate/UI/ACF_GASLevelUp_WB.ACF_GASLevelUp_WB_C
+spawn=/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C controller=ACF_NPCController_BP_C_2147479281
+service=ACF_Vendor_BPMale_C label=Vendor can_interact=1 detected=ACF_Vendor_BPMale_C_2147479352
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_Vendor_BPMale_C_2147479352 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Show me your goods
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_BuySell_WB.ACF_BuySell_WB_C
+spawn=/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C controller=ACF_NPCController_BP_C_2147478859
+service=ACF_Vendor_BPFemale_C label=Vendor can_interact=1 detected=ACF_Vendor_BPFemale_C_2147478929
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_Vendor_BPFemale_C_2147478929 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Show me your goods
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_BuySell_WB.ACF_BuySell_WB_C
+spawn=/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C controller=ACF_NPCController_BP_C_2147478515
+service=ACF_SkillGuy_BPMale_C label=SkillGuy can_interact=1 detected=ACF_SkillGuy_BPMale_C_2147478577
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_SkillGuy_BPMale_C_2147478577 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Sure!
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACF_SkillTreesNavigation_WBP.ACF_SkillTreesNavigation_WBP_C
+spawn=/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale.ACF_SkillGuy_BPFemale_C controller=ACF_NPCController_BP_C_2147478170
+service=ACF_SkillGuy_BPFemale_C label=SkillGuy can_interact=1 detected=ACF_SkillGuy_BPFemale_C_2147478232
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_SkillGuy_BPFemale_C_2147478232 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Sure!
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACF_SkillTreesNavigation_WBP.ACF_SkillTreesNavigation_WBP_C
+spawn=/Game/_Game/Characters/Male/ACFGuy_BPMale.ACFGuy_BPMale_C controller=BP_ProjectSplineNPCController_C_2147477845
+service=ACFGuy_BPMale_C label=ACF Guy can_interact=1 detected=ACFGuy_BPMale_C_2147477907
+E=ACFGuy_BPMale_C_2147477907 interaction=1 graph_started=0 visible_ui=0 participant_flag=0 dialogue_count=0
+spawn=/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C controller=BP_ProjectSplineNPCController_C_2147477649
+service=ACFGuy_BPFemale_C label=ACF Guy can_interact=1 detected=ACFGuy_BPFemale_C_2147477709
+E=ACFGuy_BPFemale_C_2147477709 interaction=1 graph_started=0 visible_ui=0 participant_flag=0 dialogue_count=0
+spawn=/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C controller=ACF_NPCController_BP_C_2147477411
+enemy=ACFMeleeEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=200.9 advance_cm=200.9 state=AIState.Combat seconds=1.75
+target=BP_TSChar_C_2147481792
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  21. Selector [Selector]
+  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_2147481792(task)
+ tasks=ACFCombatBT::Move To[22]
+Blackboard (asset: ACFAIBB)
+  CombatState: EChaseTarget
+  ComboCounter: 0
+  CommandDuration: 0.000000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 200.874146
+  Paused: false
+  SelfActor: ACFMeleeEnemyBPMale_C_2147477481
+  TargetActor: BP_TSChar_C_2147481792
+  TargetActorDistance: 921.992920
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_2147477311 state=3 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPMale_C_2147477481.Actions Manager debug=AITask_MoveTo_2147477311 (Behavior)
+claimed_resources=Move 
+known_task=AITask_MoveTo_2147477311 state=3 required=Move Logic  claimed=Move 
+spawn=/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C controller=ACF_NPCController_BP_C_2147477100
+enemy=ACFMeleeEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=200.4 advance_cm=200.4 state=AIState.Combat seconds=2.13
+target=BP_TSChar_C_2147481792
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  21. Selector [Selector]
+  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_2147481792(task)
+ tasks=ACFCombatBT::Move To[22]
+Blackboard (asset: ACFAIBB)
+  CombatState: EChaseTarget
+  ComboCounter: 0
+  CommandDuration: 0.500000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 0.000000
+  Paused: false
+  SelfActor: ACFMeleeEnemyBPFemale_C_2147477168
+  TargetActor: BP_TSChar_C_2147481792
+  TargetActorDistance: 991.352173
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_2147476964 state=3 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147477168.Actions Manager debug=AITask_MoveTo_2147476964 (Behavior)
+claimed_resources=Move 
+known_task=AITask_MoveTo_2147476964 state=3 required=Move Logic  claimed=Move 
+spawn=/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C controller=ACFRangedAIControllerBP_C_2147476752
+ranged_attack_state=observed stimulus=player_approaches_200cm
+enemy=ACFGunEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=152.0 advance_cm=-151.3 state=AIState.Combat seconds=6.97
+target=BP_TSChar_C_2147481792
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  24. Simple Parallel [SimpleParallel: finish with main task]
+  26. Selector [Selector]
+  BTTask_ExecuteAction
+ tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])
+Blackboard (asset: ACFAIBB)
+  CombatState: EFlee
+  ComboCounter: 0
+  CommandDuration: 4.000000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 0.000000
+  Paused: false
+  SelfActor: ACFGunEnemyBPMale_C_2147476822
+  TargetActor: BP_TSChar_C_2147481792
+  TargetActorDistance: 283.953094
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_2147476751 state=4 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_2147476822.Actions Manager debug=AITask_MoveTo_2147476751 (Behavior)
+move_task=AITask_MoveTo_2147475582 state=3 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_2147476822.Actions Manager debug=AITask_MoveTo_2147475582 (None)
+claimed_resources=Move 
+known_task=AITask_MoveTo_2147475582 state=3 required=Move  claimed=Move 
+spawn=/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C controller=ACFRangedAIControllerBP_C_2147475334
+ranged_attack_state=observed stimulus=player_approaches_200cm
+enemy=ACFGunEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=150.0 advance_cm=-150.0 state=AIState.Combat seconds=4.26
+target=BP_TSChar_C_2147481792
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  24. Simple Parallel [SimpleParallel: finish with main task]
+  26. Selector [Selector]
+  BTTask_ExecuteAction
+ tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])
+Blackboard (asset: ACFAIBB)
+  CombatState: EFlee
+  ComboCounter: 0
+  CommandDuration: 4.000000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 0.000000
+  Paused: false
+  SelfActor: ACFGunEnemyBPFemale_C_2147475403
+  TargetActor: BP_TSChar_C_2147481792
+  TargetActorDistance: 233.558670
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_2147475333 state=4 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_2147475403.Actions Manager debug=AITask_MoveTo_2147475333 (Behavior)
+move_task=AITask_MoveTo_2147474512 state=3 component=/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_2147475403.Actions Manager debug=AITask_MoveTo_2147474512 (None)
+claimed_resources=Move 
+known_task=AITask_MoveTo_2147474512 state=3 required=Move  claimed=Move 
+status=PASS reason=6 service menus, 2 quest-NPC interaction contracts, 2 melee pursuit and 2 ranged spacing samples elapsed_seconds=92.056

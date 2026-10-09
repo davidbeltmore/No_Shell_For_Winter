@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 350.911,
+  "limit_seconds": 900,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Tools/BodyPresets/Package-BodyPresets58.ps1"
+  ]
+}

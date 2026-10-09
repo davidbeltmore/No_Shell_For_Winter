@@ -1,6 +1,13 @@
 # Project-owned DAZ NPC roster — 2026-10-09
 
-Target: `D:/Projects UE5/NoShellForWinter`, Unreal 5.8, ACFU 4.3.5.
+Target: `D:/Projects UE5/NoShellForWinter`, Unreal 5.8.3, ACFU 4.4.2.
+Version corrected from local descriptor and Epic installation metadata on 2026-10-09;
+the previous 4.3.5 label was stale. Protected files have not changed between tasks.
+
+**Scope correction:** the original runtime gate below validates appearance and
+animation with AI stopped. It did not prove interactions or pursuit. The reported
+`Default Name`/empty dialogue regression requires effective inherited component
+repair; functional logic remains PENDING until the dedicated NPCLogic gates pass.
 Legacy source `D:/Projects UE5/LustAsDeadlySin` was not changed or resaved.
 Starting snapshot: `80e4fd958e77ef0b9737dafaf99637e933f260bc`.
 Pre-existing FullSample assets and unsaved HUB work were preserved separately in
@@ -125,11 +132,16 @@ Use `.agents/skills/ef-npc-daz-workbench/SKILL.md` and the versioned
    `Bounded.py author 210 -- ...`. Internal authoring limit: 180 seconds.
 3. Run `Audit.py` through the same channel (120-second internal gate, 150 outer).
    Expected counts derive from the manifest. No vendor packages are saved.
+   Also run `AuditLogic.py` after authoring/reparenting: compilation and appearance
+   alone do not detect lost inherited SCS defaults. See `NPCLogicRepair.md`.
 4. Run `RunPIE.py` (120 seconds; native watchdog 90) and review the screenshot.
+   For gameplay changes run `RunLogicPIE.py` (180 host / 150 native) and require
+   exact service menus plus natural melee approach/ranged spacing.
 5. For persistence changes use bounded `RunNPCSaveQA.ps1` with SaveGuard (240 outer).
 6. Build through Migration wrappers, package with `Package-BodyPresets58.ps1`
    (900 outer), then `Tools/NPC/ValidatePackaged.ps1 -StagedRoot <package>/Staged`
    (150 internal, 180 outer). Its UserDir is isolated from real saves.
+   Run `-Mode Logic` as well for gameplay changes (210 internal ceiling).
 7. Compare `Protection.py after` against the immutable task baseline. Preserve one
    successfully validated package using the project's dry-run/apply retention tool.
 

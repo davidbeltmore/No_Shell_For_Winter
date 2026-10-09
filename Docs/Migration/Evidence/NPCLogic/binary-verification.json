@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "expected": "a69171c9ac8a5ae0d864a6dfe4118ba2ac5f686644df5d2bfb3cf1637fd49a11",
+  "actual": "a69171c9ac8a5ae0d864a6dfe4118ba2ac5f686644df5d2bfb3cf1637fd49a11",
+  "staged_executable": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_182537\\Staged\\Windows\\NoShellForWinter\\Binaries\\Win64\\NoShellForWinter.exe",
+  "method": "scoped native executable/debug-symbol refresh; unchanged cooked assets/config",
+  "copied": [
+    "NoShellForWinter.exe",
+    "NoShellForWinter.pdb"
+  ],
+  "snapshot": "1276d7e6b5ba6a2765b018738a396998f1fdbe2a",
+  "seconds": 14.155026899999939
+}

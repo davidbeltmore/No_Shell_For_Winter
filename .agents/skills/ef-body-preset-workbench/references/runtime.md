@@ -121,8 +121,12 @@ CharacterMesh0 animation source. Require bone motion on both components.
 
 Physics profile precedence is explicit settings override, then catalog row. Resolve
 the actual simulation owner and verify live constraints and IsSimulatingPhysics;
-the visible follower does not necessarily own simulation. A catalog is retained by
-a GC-owned settings UPROPERTY, never by a static strong UObject pointer.
+the visible follower does not necessarily own simulation. The loaded catalog is
+retained by `UEFBodyPresetCatalogCache`, an EngineSubsystem. A settings CDO can be
+in the packaged disregard-for-GC set: its hard reference to a runtime-loaded asset
+crashes on collection even when short PIE tests pass. Never restore the old settings
+UPROPERTY cache or a static strong UObject pointer with a late shutdown destructor.
+When changing ownership, verify collection and clean exit in a packaged session.
 
 The raw FBX reproduced the same 3,077 zero normals and four zero tangents as Male2
 before conversion. Keep this geometry/import warning separate from skeletal hierarchy

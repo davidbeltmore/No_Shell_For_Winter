@@ -1,0 +1,128 @@
+fixture=normal_AI real_E_input authored_HUB_nav_volume ACF_spawner_controller_contract
+spawn=/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C controller=ACF_NPCController_BP_C_7
+enemy=ACFMeleeEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=206.9 advance_cm=206.9 state=AIState.Combat seconds=3.74
+target=BP_TSChar_C_0
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  21. Selector [Selector]
+  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_0(task)
+ tasks=ACFCombatBT::Move To[22]
+Blackboard (asset: ACFAIBB)
+  CombatState: Chase Target
+  ComboCounter: 0
+  CommandDuration: 0.500000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 206.888306
+  Paused: false
+  SelfActor: ACFMeleeEnemyBPMale_C_0
+  TargetActor: BP_TSChar_C_0
+  TargetActorDistance: 973.087219
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_7 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFMeleeEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_7 (Behavior)
+claimed_resources=Move 
+known_task=AITask_MoveTo_7 state=3 required=Move Logic  claimed=Move 
+spawn=/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C controller=ACF_NPCController_BP_C_8
+enemy=ACFMeleeEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=211.0 advance_cm=211.0 state=AIState.Combat seconds=2.42
+target=BP_TSChar_C_0
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  21. Selector [Selector]
+  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_0(task)
+ tasks=ACFCombatBT::Move To[22]
+Blackboard (asset: ACFAIBB)
+  CombatState: Chase Target
+  ComboCounter: 0
+  CommandDuration: 0.500000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 210.971710
+  Paused: false
+  SelfActor: ACFMeleeEnemyBPFemale_C_0
+  TargetActor: BP_TSChar_C_0
+  TargetActorDistance: 1027.847290
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_33 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_33 (Behavior)
+claimed_resources=Move 
+known_task=AITask_MoveTo_33 state=3 required=Move Logic  claimed=Move 
+spawn=/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C controller=ACFRangedAIControllerBP_C_0
+ranged_attack_state=observed stimulus=player_approaches_200cm
+enemy=ACFGunEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=153.4 advance_cm=-153.2 state=AIState.Combat seconds=2.27
+target=BP_TSChar_C_0
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  24. Simple Parallel [SimpleParallel: finish with main task]
+  26. Selector [Selector]
+  BTTask_ExecuteAction
+ tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])
+Blackboard (asset: ACFAIBB)
+  CombatState: Ranged Attacks
+  ComboCounter: 0
+  CommandDuration: 4.000000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 153.439285
+  Paused: false
+  SelfActor: ACFGunEnemyBPMale_C_0
+  TargetActor: BP_TSChar_C_0
+  TargetActorDistance: 283.556946
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 0.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_49 state=4 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_49 (Behavior)
+move_task=AITask_MoveTo_77 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_77 (None)
+claimed_resources=Move 
+known_task=AITask_MoveTo_77 state=3 required=Move  claimed=Move 
+spawn=/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C controller=ACFRangedAIControllerBP_C_1
+ranged_attack_state=observed stimulus=player_approaches_200cm
+enemy=ACFGunEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=154.2 advance_cm=-152.4 state=AIState.Combat seconds=4.78
+target=BP_TSChar_C_0
+Behavior tree: ACFBT
+  0. Selector [Selector]
+  16. Run Behavior [RunBehavior: ACFCombatBT]
+Behavior tree: ACFCombatBT
+  0. Selector [Selector]
+  24. Simple Parallel [SimpleParallel: finish with main task]
+  26. Selector [Selector]
+  BTTask_ExecuteAction
+ tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])
+Blackboard (asset: ACFAIBB)
+  CombatState: Flee Away
+  ComboCounter: 0
+  CommandDuration: 4.000000
+  GroupLeadDistance: 0.000000
+  GroupLeader: None
+  HomeDistance: 154.228073
+  Paused: false
+  SelfActor: ACFGunEnemyBPFemale_C_0
+  TargetActor: BP_TSChar_C_0
+  TargetActorDistance: 259.531494
+  TargetLocation: X=800.000 Y=-3200.000 Z=89.650
+  TargetLocationDistance: 340282346638528859811704183484516925440.000000
+
+path_following=3
+postpone_paths=0
+move_task=AITask_MoveTo_98 state=4 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_98 (Behavior)
+move_task=AITask_MoveTo_153 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_153 (None)
+claimed_resources=Move 
+known_task=AITask_MoveTo_153 state=3 required=Move  claimed=Move 
+status=PASS reason=2 melee pursuit and 2 ranged spacing samples elapsed_seconds=27.408

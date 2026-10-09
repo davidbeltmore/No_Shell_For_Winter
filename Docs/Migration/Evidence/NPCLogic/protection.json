@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "count": 7643,
+  "changed": [],
+  "before_snapshot": "adcb779382c4f3d700efc13e712ea543620bc3d7",
+  "after_snapshot": "1276d7e6b5ba6a2765b018738a396998f1fdbe2a",
+  "before_manifest_sha256": "b5e7562a598af926c538bc54f5c8f64a0bbd41ec0125700549d2d081117dfd9b",
+  "after_manifest_sha256": "19435b8d3ebe5abd70f789248d226397eb4130e17464e059362eaac733ba3f0b",
+  "elapsed_seconds": 11.71,
+  "local_before": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCLogic\\Baseline\\before.json",
+  "local_after": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCLogic\\Baseline\\after.json"
+}

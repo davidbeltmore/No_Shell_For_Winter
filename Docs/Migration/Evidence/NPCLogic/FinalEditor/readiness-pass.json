@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 67.623,
+  "limit_seconds": 90,
+  "command": [
+    "python",
+    "Saved/NPCLogic/WaitFinalReady.py"
+  ]
+}

@@ -1,0 +1,337 @@
+{
+  "source_project_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "target_project": "D:\\Projects UE5\\NoShellForWinter",
+  "snapshot": "1276d7e6b5ba6a2765b018738a396998f1fdbe2a",
+  "artifacts": [
+    {
+      "source": "Saved\\NPCLogic\\audit.json",
+      "file": "audit.json",
+      "sha256": "cf511cc42b28998a31ae952883f1623d2bd07d1c9fcb30e6c4dacf8fe3adec86"
+    },
+    {
+      "source": "Saved\\NPCLogic\\repair.json",
+      "file": "repair.json",
+      "sha256": "704021b393a3793c3ca66f5cd959fcdc285c9e832f0730c4c3572c04eab5f626"
+    },
+    {
+      "source": "Saved\\NPCLogic\\navigation-rebuild.json",
+      "file": "navigation-rebuild.json",
+      "sha256": "9af51c4aa5d7dc47343a7e2bfd904b55608017290195771be1ac98441762f17c"
+    },
+    {
+      "source": "Saved\\NPCLogic\\services-pass.txt",
+      "file": "services-pass.txt",
+      "sha256": "54cdb1d9568802c5f48a4180a6cacd2148a0b0ff880f4b78660572f1a656854d"
+    },
+    {
+      "source": "Saved\\NPCLogic\\services-host-pass.json",
+      "file": "services-host-pass.json",
+      "sha256": "5bb32f7b9668c1c757a55fda9be242cf1998fc9af7245c254e73c63728283cd4"
+    },
+    {
+      "source": "Saved\\NPCLogic\\combat-pass.txt",
+      "file": "combat-pass.txt",
+      "sha256": "6ab4d2aeb8c9c33dd4cd9f8ffe198feda94dcfa8960cf6967e9dcd1f75407029"
+    },
+    {
+      "source": "Saved\\NPCLogic\\combat-host-pass.json",
+      "file": "combat-host-pass.json",
+      "sha256": "77c0c2b0952eabb2533ebc32b1f8ac2019189763a2051ade37c1d9d4096c2062"
+    },
+    {
+      "source": "Saved\\NPCLogic\\appearance-pass.txt",
+      "file": "appearance-pass.txt",
+      "sha256": "b4d102188a08942d3cd97033e2af12f7b58bd0f8d775befa4ef8a65248f3e9d3"
+    },
+    {
+      "source": "Saved\\NPCLogic\\appearance-host-pass.json",
+      "file": "appearance-host-pass.json",
+      "sha256": "a4f628944b7dd284985ee3827ec54fd34c586d7f427f8a0f6cd42f1e1256e35a"
+    },
+    {
+      "source": "Saved\\NPCLogic\\native-guy-baseline.txt",
+      "file": "native-guy-baseline.txt",
+      "sha256": "da9c14864fd17c1f40f0d6f843cc6399cef4f98502a795953513bd175637d670"
+    },
+    {
+      "source": "Saved\\NPCLogic\\metahuman-payload.json",
+      "file": "metahuman-payload.json",
+      "sha256": "4d90891a34981c36d5686b91dc88b5c36b40dac67d53518dcd9351b9584fb21e"
+    },
+    {
+      "source": "Saved\\NPCLogic\\ranged-distances.json",
+      "file": "ranged-distances.json",
+      "sha256": "30b746bb5fcef9d2022eaa7e8e092f0650075fb473c8aa369ec73fb975a689c9"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\audit.json",
+      "file": "appearance-structural-audit.json",
+      "sha256": "082aecc3149de29b98b8869afe5430c92fa17b7c88923ad22d32eb56c66d0b9c"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-build15-process.json",
+      "file": "logic-build15-process.json",
+      "sha256": "a05bb8d64334f62bada6a22ac44bb976530064e04f7dcffa0fb173d29d63ae3f"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-game-build-process.json",
+      "file": "logic-game-build-process.json",
+      "sha256": "a1c5ee6f62d2b97c2add38a3d4f0df7ba257c10a1768520486adf831984a1ba5"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-package-process.json",
+      "file": "logic-package-process.json",
+      "sha256": "9a064bbb8b276db05290b9aafb3a640044b85dcb4a28feeeda5d7fb602a1687a"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-protection-final-process.json",
+      "file": "logic-protection-final-process.json",
+      "sha256": "5fcf9daa7bdd1db93e98aebd3644f4776cca08db21e268208bc5a9f6424724cd"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-editor-gc-build-process.json",
+      "file": "logic-editor-gc-build-process.json",
+      "sha256": "7b0e5c587673918d041099b8ceb84962141fa83b05f6b18e7aa2b263c133b1a3"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-game-gc-build-process.json",
+      "file": "logic-game-gc-build-process.json",
+      "sha256": "93b3997ea17b8075e150098b860afc62bf529478582669993bd931cee4fa41c2"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-editor-exit-build-process.json",
+      "file": "logic-editor-exit-build-process.json",
+      "sha256": "52db270929b47d9f904267bd01401b4d1ef1c63f995b502cd55298ba45b70423"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-game-exit-build-process.json",
+      "file": "logic-game-exit-build-process.json",
+      "sha256": "f54c48fcfdf7b0404a6520e969a15f711a95b3b22b6da447fe478a39c259c9f6"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-refresh-executable-process.json",
+      "file": "logic-refresh-executable-process.json",
+      "sha256": "a9a3629f1cc5dda6138b30ca21925b809bb15edfdcc01983212854eb6eade475"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\logic-restage-process.json",
+      "file": "logic-restage-process.json",
+      "sha256": "1b61c1bff7be1b24667f995d660f98d48302c83406161231779772e08b6a0813"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Runtime\\Menu_00.png",
+      "file": "PIE/Menu_00.png",
+      "sha256": "674cc32678a3c8ddb6fe038c9b2eeec6c93bdf7ad76abefefd312082792fbefc"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Runtime\\Menu_02.png",
+      "file": "PIE/Menu_02.png",
+      "sha256": "4c65cb94a1d98f05f0577d14054c84e2070b8fe15633bd4e25f1c0fe271ee454"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Runtime\\Menu_05.png",
+      "file": "PIE/Menu_05.png",
+      "sha256": "32c823b9224d365f7b0b8bf65fbaa44929f996ab085ba576aecdcf3add2a0d0b"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Runtime\\Enemy_00.png",
+      "file": "PIE/Enemy_00.png",
+      "sha256": "4b3a09a4d0dc72c5595afd786036d8fa7a3f687822dc3e88c1ca5ce3f403a040"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\Runtime\\Roster.png",
+      "file": "PIE/Roster.png",
+      "sha256": "3fd05871b7db41a169bf66c862334e5a22433fe99e6eeaa34ea96626c4c77b19"
+    },
+    {
+      "source": "Saved\\BodyPresetsQA\\Package_20261009_182537\\package-result.json",
+      "file": "package-result.json",
+      "sha256": "865a10052d40250db0775cce6c4693456472e323798d8f97ba1c4cc08d48d556"
+    },
+    {
+      "source": "Saved\\BodyPresetsQA\\Package_20261009_182537\\binary-restage.json",
+      "file": "binary-restage.json",
+      "sha256": "ae8ce9530b30a70e126bb3096cde473704e53fbbbc0e472f6ab633fcecfaa415"
+    },
+    {
+      "source": "Saved\\BodyPresetsQA\\Package_20261009_182537\\binary-verification.json",
+      "file": "binary-verification.json",
+      "sha256": "c5eeab0dca62dbda3ed2a1f68cc2f047065f5ce25df6a28d166fa75646cfe886"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_183140\\process.json",
+      "file": "FailedFirstPackage/process.json",
+      "sha256": "3b9a1b8f340e634e59e192a652e663e0bdebac3e5b46f1ae70cc8d73e85ea468"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_184109\\process.json",
+      "file": "FailedShutdownPackage/process.json",
+      "sha256": "3192ded108595e7ce87a95d25c3a5a5e5f0c612e4a0f6a9888441b4ae7efc14b"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_184653\\process.json",
+      "file": "NPCLogic/process.json",
+      "sha256": "6b2238c8741c2b1de9bb6d2f62fa813f761a49ce7fc50be5632b3904186fc6dc"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_184653\\UserData\\Saved\\NPCLogic\\Runtime\\runtime.txt",
+      "file": "NPCLogic/runtime.txt",
+      "sha256": "071b0da940a8caefa87625d4169ba742e1a7525a5e2ee74aaac77f27c185ef04"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_184653\\UserData\\Saved\\NPCLogic\\Runtime\\Menu_02.png",
+      "file": "NPCLogic/Menu_02.png",
+      "sha256": "6e1277c63db07f9539d755850f8e2bc797252634f3d569d4882403ddfb3a7abb"
+    },
+    {
+      "source": "Saved\\NPCLogic\\Packaged_20261009_184653\\UserData\\Saved\\NPCLogic\\Runtime\\Enemy_00.png",
+      "file": "NPCLogic/Enemy_00.png",
+      "sha256": "e3789b696f224a1c06e3a22c3d066ae177e6ac3acbf0a7448452e673fe3cb2d9"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\Packaged_20261009_184853\\process.json",
+      "file": "NPCDAZ/process.json",
+      "sha256": "85720cd5434f2b6af392716c753c4d573dcc1de12f7ba89510c18724c807cac4"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\Packaged_20261009_184853\\UserData\\Saved\\NPCDAZ\\Runtime\\runtime.txt",
+      "file": "NPCDAZ/runtime.txt",
+      "sha256": "ae236cbb9f9457cb86158865a508c9d61468af0ad81ede7337dfeb5b4324f315"
+    },
+    {
+      "source": "Saved\\NPCDAZ\\Packaged_20261009_184853\\UserData\\Saved\\NPCDAZ\\Runtime\\Roster.png",
+      "file": "NPCDAZ/Roster.png",
+      "sha256": "2d475d55bd2a797953312e27a5a625169de34046daa40c9064c9b952a91c2b8e"
+    },
+    {
+      "source": "Saved/NPCDAZ/pie-host.json",
+      "file": "FinalEditor/pie-host.json",
+      "sha256": "ead96474b1d6df81b7691d8b2bc43fbf7b78834d951adbd008cd12b20e3d9054"
+    },
+    {
+      "source": "Saved/NPCDAZ/Runtime/runtime.txt",
+      "file": "FinalEditor/runtime.txt",
+      "sha256": "ced63918f5ccedc5366ece0c8c7267273a62ca44e7b4ae08db18750dff77fd6a"
+    },
+    {
+      "source": "Saved/NPCDAZ/Runtime/Roster.png",
+      "file": "FinalEditor/Roster.png",
+      "sha256": "35c9ed6b205c6b6720931cf2783e3d37ef20cda0095aed740fef3bc9d11af42d"
+    },
+    {
+      "source": "Saved/NPCLogic/final-editor-state.json",
+      "file": "FinalEditor/state.json",
+      "sha256": "dd49ffb92aef765e377f256618eb172095114ed37dba0a1cb9797ef6c1c72929"
+    },
+    {
+      "source": "Saved/NPCDAZ/logic-final-ready-process.json",
+      "file": "FinalEditor/first-readiness-timeout.json",
+      "sha256": "7297a2415938c588040e09b93e30bead825a34f7e7e90006c5e66bd69db72ff7"
+    },
+    {
+      "source": "Saved/NPCDAZ/logic-final-ready-extra-process.json",
+      "file": "FinalEditor/readiness-pass.json",
+      "sha256": "6a9bef084e272e488eeddc751ede64cf5f856796df301a6b8376082ef0754fc5"
+    },
+    {
+      "source": "Saved/NPCDAZ/logic-package-retention-process.json",
+      "file": "package-retention-process.json",
+      "sha256": "cf8ba53aec2398127fbedc3456ba24cac9a57d465fc3a6315a03cf6ce7fd636f"
+    }
+  ],
+  "retained_package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_182537",
+  "owned_asset_hashes": {
+    "Content\\_Game\\Characters\\Animation\\ABP_DAZHumanoid.uasset": "40687a518a73364af2d5b5030d5bdb309b6ecd92729190fc4e65d16b6647c2b7",
+    "Content\\_Game\\Characters\\Animation\\ABP_DAZZombie.uasset": "228068d58c72eafda9f92afbbcf89a09575d7bbc23fd6404a3376543978727af",
+    "Content\\_Game\\Characters\\Data\\DA_NPCRoster.uasset": "524b9e166a0612f87bb9cc0c00cc5cab99a015d3f4edc49e42a46a4d3b75e919",
+    "Content\\_Game\\Characters\\Female\\ACFBaseCompanionBPFemale.uasset": "cfd12cf415ff115bc53d5c79af172f0e541615c663cb4c4a60c899493cdcee6a",
+    "Content\\_Game\\Characters\\Female\\ACFDefenderEnemyBPFemale.uasset": "7477f10bd483d84e5f5ab9e46446ef7df178d9ace7f749025eb62421530dd191",
+    "Content\\_Game\\Characters\\Female\\ACFDummyAmbushEnemyBPFemale.uasset": "b37606f83c7375404fd0ba689f771143175a40fa9712a3a7df46437d219d0f61",
+    "Content\\_Game\\Characters\\Female\\ACFDummyEnemyBPFemale.uasset": "101a7026d93ab4ba8f89884677ee774d18c8f3fa03614c96333a23137cf1849f",
+    "Content\\_Game\\Characters\\Female\\ACFGunEnemyBPFemale.uasset": "8a7b863f0d3b1d396794a35500e3368c2a9e5c5e42abec9a00db54f13b8f97a4",
+    "Content\\_Game\\Characters\\Female\\ACFGuyRoutine_BPFemale.uasset": "2e296969b398c0e4dc898d2297c9fda922dfd95b2d3db9b69b55b85a7d44bbdb",
+    "Content\\_Game\\Characters\\Female\\ACFGuy_BPFemale.uasset": "f4be71a3901e16264133e0cb4b954f60dcf67102b43e2abc2cddd29c095a0cc2",
+    "Content\\_Game\\Characters\\Female\\ACFMageEnemyBPFemale.uasset": "5ea9b87314714227693f3f4cf40556335ddbd16d2def9642e41af92b964788a9",
+    "Content\\_Game\\Characters\\Female\\ACFMeleeCompanionBPFemale.uasset": "e836c8e85270b85dfed1c6e08f9a591458e7c937b48cf05d14abf5caca91127c",
+    "Content\\_Game\\Characters\\Female\\ACFMeleeEnemyBPFemale.uasset": "fc8637a88445edfb0f8a86aab5e9751aef9a334ed1c20e9b94ad92db41e7809e",
+    "Content\\_Game\\Characters\\Female\\ACFMMEnemyBPFemale.uasset": "0bf539925ca90a16e00a9f537455bb90ca99ef3e0ccea041b1bf51a9f6c52aa5",
+    "Content\\_Game\\Characters\\Female\\ACFRangedCompanionBPFemale.uasset": "8565f750c9a733aa064ebac45c8e9d0cac3544caa449b729e71bc6976abd25d8",
+    "Content\\_Game\\Characters\\Female\\ACFRangedEnemyBPFemale.uasset": "2ca7afbff561038a6a8e522cd59ccb541b3633e52a86108976ad299979bc3a48",
+    "Content\\_Game\\Characters\\Female\\ACFZombieBPFemale.uasset": "7978e803f11bad689435f74be4121389eef30a37cfab160454c422c10db34999",
+    "Content\\_Game\\Characters\\Female\\ACF_AssetPusher_BPFemale.uasset": "e71e8fccf4a936788f5842af02321b856cbe31c92971a08b2a1ae09fe2774eff",
+    "Content\\_Game\\Characters\\Female\\ACF_FastTravelGuy_BPFemale.uasset": "63732a726937ad3e064ba63fc79ca582eef39bce67f982019998cd77f4e8ce28",
+    "Content\\_Game\\Characters\\Female\\ACF_LevelingGuy_BPFemale.uasset": "4902270d963954c41d2662df9dcf32be779c534837001ae58f2a92b5004ff97e",
+    "Content\\_Game\\Characters\\Female\\ACF_NPCAI_BPFemale.uasset": "0b9fb9c62cd46cdd706ede862910fd847d5f295bed51450b069c173310c99b64",
+    "Content\\_Game\\Characters\\Female\\ACF_SkillGuy_BPFemale.uasset": "438dfbe7e81027a4d3b227a624cbd0369722d00fbe34c4c7f2f375246f776102",
+    "Content\\_Game\\Characters\\Female\\ACF_Vendor_BPFemale.uasset": "fdef4e6c173233eda7bf9b486505e0cb3d4359e99670b0626e28c187d36c07c9",
+    "Content\\_Game\\Characters\\Framework\\ACFAICharacterBP.uasset": "e90af2a0bfc286f9d221735d916fb2bc50daec14b465e787cd6f2e67a1ef660f",
+    "Content\\_Game\\Characters\\Framework\\ACFBaseCompanionBP.uasset": "581d72be68d8e10621081df5729211f6a9b2bdcc7da1e915f02badefc2019ffe",
+    "Content\\_Game\\Characters\\Framework\\ACFCharacterBP.uasset": "db2e4164f584723a1b6c9060eedb12e1896142772789e73bf753246da6688e76",
+    "Content\\_Game\\Characters\\Framework\\ACFMeleeEnemyBP.uasset": "378fc16c2d7ee5036629ae0ffdc47eb4f1ba9221b9fad0df9a0e4238fc13019b",
+    "Content\\_Game\\Characters\\Framework\\ACF_Enemy_BP.uasset": "696b01eb5fdf38a005e267c0667d681b2be8e62859022ecea041741352caee15",
+    "Content\\_Game\\Characters\\Framework\\ACF_NPC_BP.uasset": "2562dfdd8b473aadbed49e1ce89f29d1ded85a45c1e90a9bb5a7ad38784c6fe7",
+    "Content\\_Game\\Characters\\Male\\ACFBaseCompanionBPMale.uasset": "11e338cc41904ed40dab59817e253eac2f180742ad4541eeca1ca6f6a93dac1e",
+    "Content\\_Game\\Characters\\Male\\ACFDefenderEnemyBPMale.uasset": "c7e0fbb1447a017290f08f3ea39e62cddfcac4f59a2dd4a8c2dd5fb97e436cd8",
+    "Content\\_Game\\Characters\\Male\\ACFDummyAmbushEnemyBPMale.uasset": "5e4a9ac91c2a98d62988ede2cd4068894779f36b1de6c9757415f607e41751fc",
+    "Content\\_Game\\Characters\\Male\\ACFDummyEnemyBPMale.uasset": "47b5c8702ad0d1417dfbdba435af39e489ef1b48d9cdc117652fdce9e7162227",
+    "Content\\_Game\\Characters\\Male\\ACFGunEnemyBPMale.uasset": "fcf4f1fe2a10e00530d2fd4f90564356df477bce8767db197581da180a89a670",
+    "Content\\_Game\\Characters\\Male\\ACFGuyRoutine_BPMale.uasset": "f0c62f0928a0c1c3800c1f5f360c68c77f0fe8e59072277e470840b6f6cb5229",
+    "Content\\_Game\\Characters\\Male\\ACFGuy_BPMale.uasset": "f6ccb22b333de1fb97421109dc671053d911f7e579f5dc772562add94aa43709",
+    "Content\\_Game\\Characters\\Male\\ACFMageEnemyBPMale.uasset": "2110ab588670ef6927cb11193d3556c17efc053919f073a845bfcb110fc0b325",
+    "Content\\_Game\\Characters\\Male\\ACFMeleeCompanionBPMale.uasset": "232130d0e55e4a539592b4c0942ec4d78f06d21c064d29fc13a27fc7306f6d3a",
+    "Content\\_Game\\Characters\\Male\\ACFMeleeEnemyBPMale.uasset": "650e95a1338a6164299861b52df7d3cf55303626c38a1d789f9fb16e43d6c133",
+    "Content\\_Game\\Characters\\Male\\ACFMMEnemyBPMale.uasset": "9f213d33b21b123965e30a658f4ee8fe6fa44322b13c00f31ade09592eb36d6a",
+    "Content\\_Game\\Characters\\Male\\ACFRangedCompanionBPMale.uasset": "96a22ca4704e5eaed3b5d7489ac0dada101bb81c6c2e35eceeb6a0d4dcf41094",
+    "Content\\_Game\\Characters\\Male\\ACFRangedEnemyBPMale.uasset": "9be66d88c03aea967c345bf3d54f396971d9354460feb31d4f530a6ef2447db0",
+    "Content\\_Game\\Characters\\Male\\ACFZombieBPMale.uasset": "df0e8e4779c65962eaca720c4eb00b8dd354b158e15f8a1b5a282dd2270a27ba",
+    "Content\\_Game\\Characters\\Male\\ACF_AssetPusher_BPMale.uasset": "29c55c46b7173cb94fa4a8468b0afa7aaee1e16a96466520d4398aaedd23355f",
+    "Content\\_Game\\Characters\\Male\\ACF_FastTravelGuy_BPMale.uasset": "946674215a73d28a7fb819eb4ecd6c7bc2372d55a2fd5012db3db5d6b02f5181",
+    "Content\\_Game\\Characters\\Male\\ACF_LevelingGuy_BPMale.uasset": "60780ef0d8ab965c3b03e67c0319d4de48553fb0c12159f4263acedf1dbb27a5",
+    "Content\\_Game\\Characters\\Male\\ACF_NPCAI_BPMale.uasset": "a9fa3c9654765d5d0c47b7547201bc3b84e3509cf76281ae494d25be754d913a",
+    "Content\\_Game\\Characters\\Male\\ACF_SkillGuy_BPMale.uasset": "997916dd197c718e6f4668adf1c1cae41cded8c4068ed5f0954daa98d2134c46",
+    "Content\\_Game\\Characters\\Male\\ACF_Vendor_BPMale.uasset": "dc056d44d2f388e96d83d956ca835a727c5a0c1c9e5c228e336e67777cc60fa3",
+    "Content\\_Game\\Characters\\Physics\\PA_Female_Morph.uasset": "533237e1f9d448168bedebc60eb7f39b1bf1e8c1b9caf67ba5d4330a12bcb43d",
+    "Content\\_Game\\Characters\\Physics\\PA_Male2_Morph.uasset": "76123638c3f2f68152339c51b04edc6c0b539befad038fe70a8a2f8a28eb942a",
+    "Content\\_Game\\Characters\\Physics\\PA_Male_Morph.uasset": "e0ccabbc24cb3477dfbe4315a8b29f2191cf37f4508d65436fe080b95dea68a6",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFBaseCompanionBPFemale.uasset": "d4d6d1e91a09816633d6e8ba787b3d00c95a714f312e60ccf9508e2e3265b1f1",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFDefenderEnemyBPFemale.uasset": "18b19e8bc920c53ef3353c47ecef87651598b7eafbe61ba55284073eb9bb98f2",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFDummyAmbushEnemyBPFemale.uasset": "2872527d8752de81bfeec0b79709204a8f47bd8cdefd72c7c3bd49048e36a60d",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFDummyEnemyBPFemale.uasset": "4e302d02cad13e4466d4b07100d1988d62c0446972c45e6c2d2615d6fe9349c3",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFGunEnemyBPFemale.uasset": "2c60bae20df9893ce6b25075a2f19a2ca5653b86a0cd41e6997fa9df26a03b7e",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFGuyRoutine_BPFemale.uasset": "f428c5f2d07fc60235e7e60cb7e9e32b7ccc8e669b5210c403d341c76b110236",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFGuy_BPFemale.uasset": "050061c69c9dfc7fdce27537ff8f0d9734a0aa8594eee93221957d8660cb62a5",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFMageEnemyBPFemale.uasset": "5c726508c8f71f0ee8f243e50b6b7df1b9db39ff0e9b5c32045f884931880ab6",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFMeleeCompanionBPFemale.uasset": "c37472031387b600d19aeac598edbc221ece558831d54b7ce69425bcc3815d17",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFMeleeEnemyBPFemale.uasset": "9f644056338e16e5c11358a73a920ed77f2a2b84f5f2357ed1d0c2742ea3c23d",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFMMEnemyBPFemale.uasset": "f4beb12abf4c548a95bf838a7a8c8615264d5cda51bbdaed16c742fd2d5d49fc",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFRangedCompanionBPFemale.uasset": "9ae355035858468e1e43efc8cc7fe9284b79afdce9072864ea93d2d2f74987db",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFRangedEnemyBPFemale.uasset": "d3f39708d7afa0b8989317df030d9c243b0e49480bc43fdfc714d7b2357e6cd7",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACFZombieBPFemale.uasset": "72b704c7df94a3cf80bec46de1a5b0919d50bcd85567ed4f720fcc688f8d511c",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_AssetPusher_BPFemale.uasset": "256c3950b32c4aebdd654b2ecb27a2ea81751cf41bb8f4c207650df441eae6d3",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_FastTravelGuy_BPFemale.uasset": "8e03d2f621b687c19d6aa743d9ce8dd95895cea9b4dd49515f8e456f58a3a07b",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_LevelingGuy_BPFemale.uasset": "29d10c351ff5a292c1b0b21c7e1f21e013596493d8cd1ecc58dffd03d04f7b98",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_NPCAI_BPFemale.uasset": "99183b72cb336718cf284b5501a8ad36ecb0e6ea580079920303ecfabbfb8d4e",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_SkillGuy_BPFemale.uasset": "94c4d2e678d6bbf0058ee30442f98444329e9335ad9a9ee08417956d95311384",
+    "Content\\_Game\\Characters\\Data\\Female\\DA_ACF_Vendor_BPFemale.uasset": "86a6dc256bced0be5a576ab8c6304be2705a2c5ed71735f4f5830d4dc18dfc4e",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFBaseCompanionBPMale.uasset": "8583127c54db18825b25c6c3093a88d1697f64ee1db32dec8ccfbb69183be24f",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFDefenderEnemyBPMale.uasset": "189262196afe3355b386f28b3c3296122189a9e9c4e277e4dda8de5fffdfa3a9",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFDummyAmbushEnemyBPMale.uasset": "8d22ba0a9e21bad500ea12519c979714a918b815dbcb4597bed301f06c9cfc9f",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFDummyEnemyBPMale.uasset": "081fb154a2570fbf5968a63a3443fb8e0ed992fc87bafc9ba9266264734ea717",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFGunEnemyBPMale.uasset": "4d2d85ed4d8b105406d07e0cd1bde75986c19d740a43ea5287e34f67dc2530f1",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFGuyRoutine_BPMale.uasset": "e96ca8a2399eff35414a354ed038679add9d9d267d4736919a0228edaa127b9e",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFGuy_BPMale.uasset": "70de1793592c8e1454c0d228ae94bcabf3030726ef3bcaf8fead03595e170ad6",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFMageEnemyBPMale.uasset": "5cbf9d1f9dd55a7e81934fb777491ae2629c05e013643a3ef243ea04236179d2",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFMeleeCompanionBPMale.uasset": "cb4501c34e707157218a97cbceb3172f924cb22132f47d5873c796a207ee863a",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFMeleeEnemyBPMale.uasset": "efd13dcae8c1bae0497824b9c161011969ff71614b3117b2a43a8a32cc6a4bc4",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFMMEnemyBPMale.uasset": "4c20ffa0790f6b872c2dede7cd39c94746588d166f4ae358f8e59a061f4f2f77",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFRangedCompanionBPMale.uasset": "4430f2fb7d9dfe92725476100879e54ce368ae5e084b2cbbd829307f325e69a6",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFRangedEnemyBPMale.uasset": "79c69846531ced35cef67a038b5806ab865d7c3e70dc3d9fe1dcb74465845089",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACFZombieBPMale.uasset": "07d2dc9ea8c447da42a03cd4dac848e020b23b369341adad74f9b5cf124a1b30",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_AssetPusher_BPMale.uasset": "3bee17c05467ee23604e648e819fd51857e8aa07d77467e36b76feb0a9bf4c91",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_FastTravelGuy_BPMale.uasset": "b0642d85f5fe9a0e69fa6816d9a9f74488a2a13b7249f0be264fac04dcfb51db",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_LevelingGuy_BPMale.uasset": "0469d597f82197cf53fd369d9e20d3c56fdef5bbdc99b1a89c3e779bbb024a36",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_NPCAI_BPMale.uasset": "851fa40fb843ec92ce588bb66e81257e70155b90cd6e52b5ea2e85318ed298c9",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_SkillGuy_BPMale.uasset": "2e78e1b08fa4f4a66566d4816a89345372a53470ec14325c169d7872af2cfe28",
+    "Content\\_Game\\Characters\\Data\\Male\\DA_ACF_Vendor_BPMale.uasset": "5f7a201f28a1e25ac43756fe091cedcbe96c6beb82c970454a890748a40135d6"
+  }
+}

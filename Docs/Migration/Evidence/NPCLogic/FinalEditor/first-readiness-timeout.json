@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "exit_code": 1,
+  "seconds": 122.161,
+  "limit_seconds": 180,
+  "command": [
+    "python",
+    "Tools/NPC/WaitReady.py"
+  ]
+}

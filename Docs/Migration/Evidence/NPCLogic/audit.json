@@ -1,0 +1,329 @@
+{
+  "variants": [
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale",
+      "compared": 1186,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale",
+      "compared": 1186,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale",
+      "compared": 1064,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale",
+      "compared": 1064,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale",
+      "compared": 1069,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale",
+      "compared": 1069,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale",
+      "compared": 1347,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale",
+      "compared": 1347,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale",
+      "compared": 1261,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale",
+      "compared": 1261,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACFGuy_BPMale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACFGuy_BPFemale",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP",
+      "target": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale",
+      "compared": 1347,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP",
+      "target": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale",
+      "compared": 1347,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP",
+      "target": "/Game/_Game/Characters/Male/ACFZombieBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP",
+      "target": "/Game/_Game/Characters/Female/ACFZombieBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale",
+      "compared": 1076,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    },
+    {
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale",
+      "compared": 1076,
+      "differences": [],
+      "errors": [],
+      "applied": false
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "count": 40,
+  "properties_compared": 45546,
+  "seconds": 0.015000000001236913
+}

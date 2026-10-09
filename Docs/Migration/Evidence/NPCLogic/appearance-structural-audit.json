@@ -1,0 +1,1645 @@
+{
+  "checks": [
+    {
+      "name": "Manifest archetypes match roster",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACFZombieBPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale compiles",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale owned parent",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale spawn variation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale no shared identity",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale upright mesh frame",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale DAZ gender",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale owned animation",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale owned initializer",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale initializer preserves mesh",
+      "passed": true
+    },
+    {
+      "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale initializer preserves animation",
+      "passed": true
+    },
+    {
+      "name": "Two unique variants per archetype",
+      "passed": true
+    },
+    {
+      "name": "Male.01 profile targets exist",
+      "passed": true
+    },
+    {
+      "name": "Male.01 valid neutral profile",
+      "passed": true
+    },
+    {
+      "name": "Male.01 current DK rest contract",
+      "passed": true
+    },
+    {
+      "name": "Male.02 profile targets exist",
+      "passed": true
+    },
+    {
+      "name": "Male.02 valid neutral profile",
+      "passed": true
+    },
+    {
+      "name": "Male.02 current DK rest contract",
+      "passed": true
+    },
+    {
+      "name": "Female.01 profile targets exist",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "status": "PASS",
+  "variant_count": 40,
+  "elapsed_seconds": 5.781000000000859,
+  "check_count": 409
+}

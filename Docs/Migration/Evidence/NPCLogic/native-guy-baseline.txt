@@ -1,0 +1,5 @@
+fixture=normal_AI real_E_input authored_HUB_nav_volume ACF_spawner_controller_contract
+spawn=/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP.ACFGuy_BP_C controller=BP_ProjectSplineNPCController_C_1
+service=ACFGuy_BP_C label=ACF Guy can_interact=1 detected=ACFGuy_BP_C_0
+E=ACFGuy_BP_C_0 interaction=1 graph_started=0 visible_ui=0 participant_flag=0 dialogue_count=0
+status=PASS reason=Requested service/quest interaction sample elapsed_seconds=7.296

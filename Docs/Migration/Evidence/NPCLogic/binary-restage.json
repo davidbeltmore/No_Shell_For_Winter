@@ -1,0 +1,11 @@
+{
+    "exit_code":  0,
+    "staged_binary_sha256":  "",
+    "asset_config_drift":  [
+
+                           ],
+    "cook_snapshot":  "2361abd9",
+    "reused_cook":  true,
+    "expected_binary_sha256":  "AC23DE532227652442C8754B23300DC92F2EEEA62E63C09D01CDBBFDF8878815",
+    "seconds":  82.9957239
+}

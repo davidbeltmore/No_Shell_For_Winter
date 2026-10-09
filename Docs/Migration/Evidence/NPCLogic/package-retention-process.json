@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 6.349,
+  "limit_seconds": 120,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Tools/Migration/Remove-OldValidationPackages.ps1",
+    "-Apply"
+  ]
+}

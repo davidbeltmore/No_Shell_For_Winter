@@ -1,0 +1,32 @@
+{
+  "controller": "/AscentCombatFramework/Blueprints/AI/Controllers/ACFRangedAIControllerBP.ACFRangedAIControllerBP_C",
+  "data": "/AscentCombatFramework/Blueprints/AI/Controllers/Behaviors/DA_ACFRangedCB.DA_ACFRangedCB",
+  "states": [
+    {
+      "combat_state": "<AICombatState.E_FLEE: 4>",
+      "conditions": "[\"/Script/AIFramework.ACFDistanceActionCondition'/AscentCombatFramework/Blueprints/AI/Controllers/Behaviors/DA_ACFRangedCB.DA_ACFRangedCB:ACFDistanceActionCondition_0'\"]",
+      "locomotion_state": "<LocomotionState.E_WALK: 1>",
+      "trigger_chance_percentage": "70.0",
+      "condition_values": [
+        {
+          "Distance": "350.0",
+          "ConditionType": "<ConditionType.E_BELOW: 0>",
+          "NearlyEqualAcceptance": "25.0"
+        }
+      ]
+    },
+    {
+      "combat_state": "<AICombatState.E_RANGED_COMBAT: 2>",
+      "conditions": "[\"/Script/AIFramework.ACFDistanceActionCondition'/AscentCombatFramework/Blueprints/AI/Controllers/Behaviors/DA_ACFRangedCB.DA_ACFRangedCB:ACFDistanceActionCondition_1'\"]",
+      "locomotion_state": "<LocomotionState.E_WALK: 1>",
+      "trigger_chance_percentage": "100.0",
+      "condition_values": [
+        {
+          "Distance": "100.0",
+          "ConditionType": "<ConditionType.E_ABOVE: 2>",
+          "NearlyEqualAcceptance": "25.0"
+        }
+      ]
+    }
+  ]
+}

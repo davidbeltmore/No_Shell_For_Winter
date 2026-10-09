@@ -1,0 +1,136 @@
+{
+  "status": "PASS",
+  "seconds": 1.0,
+  "queries": [
+    {
+      "nav": "RecastNavMesh-Default",
+      "query": [
+        0,
+        0,
+        92
+      ],
+      "projected": [
+        -0.0,
+        -0.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "RecastNavMesh-Default",
+      "query": [
+        1200,
+        0,
+        92
+      ],
+      "projected": [
+        1200.0,
+        0.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "RecastNavMesh-Default",
+      "query": [
+        0,
+        -500,
+        92
+      ],
+      "projected": [
+        -0.0,
+        -500.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "RecastNavMesh-Default",
+      "query": [
+        1200,
+        -500,
+        92
+      ],
+      "projected": [
+        1200.0,
+        -500.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "RecastNavMesh-Default",
+      "query": [
+        1000,
+        -2000,
+        92
+      ],
+      "projected": [
+        1000.0,
+        -2000.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "EFCalystoPlayerNavMesh-Player",
+      "query": [
+        0,
+        0,
+        92
+      ],
+      "projected": [
+        -0.0,
+        -0.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "EFCalystoPlayerNavMesh-Player",
+      "query": [
+        1200,
+        0,
+        92
+      ],
+      "projected": [
+        1200.0,
+        0.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "EFCalystoPlayerNavMesh-Player",
+      "query": [
+        0,
+        -500,
+        92
+      ],
+      "projected": [
+        -0.0,
+        -500.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "EFCalystoPlayerNavMesh-Player",
+      "query": [
+        1200,
+        -500,
+        92
+      ],
+      "projected": [
+        1200.0,
+        -500.0,
+        6.821210263296962e-13
+      ]
+    },
+    {
+      "nav": "EFCalystoPlayerNavMesh-Player",
+      "query": [
+        1000,
+        -2000,
+        92
+      ],
+      "projected": [
+        1000.0,
+        -2000.0,
+        6.821210263296962e-13
+      ]
+    }
+  ]
+}

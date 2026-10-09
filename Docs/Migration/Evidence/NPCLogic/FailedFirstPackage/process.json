@@ -1,0 +1,11 @@
+{
+    "exit_code":  3,
+    "limit_seconds":  210,
+    "feature_errors":  0,
+    "receipts":  [
+                     null
+                 ],
+    "runtime_pass":  false,
+    "mode":  "Logic",
+    "seconds":  100.9243977
+}

@@ -1,0 +1,11 @@
+{
+    "exit_code":  0,
+    "limit_seconds":  210,
+    "feature_errors":  0,
+    "receipts":  [
+                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCLogic\\Packaged_20261009_184653\\UserData\\Saved\\NPCLogic\\Runtime\\runtime.txt"
+                 ],
+    "runtime_pass":  true,
+    "mode":  "Logic",
+    "seconds":  106.892258
+}

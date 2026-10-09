@@ -1,0 +1,44 @@
+fixture=normal_AI real_E_input authored_HUB_nav_volume ACF_spawner_controller_contract
+spawn=/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C controller=ACF_NPCController_BP_C_7
+service=ACF_LevelingGuy_BPMale_C label=Leveling Guy can_interact=1 detected=ACF_LevelingGuy_BPMale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_LevelingGuy_BPMale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=I need to level up!
+service_menu=/Game/FullSample/Integrations/Ultimate/UI/ACF_GASLevelUp_WB.ACF_GASLevelUp_WB_C
+spawn=/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C controller=ACF_NPCController_BP_C_8
+service=ACF_LevelingGuy_BPFemale_C label=Leveling Guy can_interact=1 detected=ACF_LevelingGuy_BPFemale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_LevelingGuy_BPFemale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=I need to level up!
+service_menu=/Game/FullSample/Integrations/Ultimate/UI/ACF_GASLevelUp_WB.ACF_GASLevelUp_WB_C
+spawn=/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C controller=ACF_NPCController_BP_C_9
+service=ACF_Vendor_BPMale_C label=Vendor can_interact=1 detected=ACF_Vendor_BPMale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_Vendor_BPMale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Show me your goods
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_BuySell_WB.ACF_BuySell_WB_C
+spawn=/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C controller=ACF_NPCController_BP_C_10
+service=ACF_Vendor_BPFemale_C label=Vendor can_interact=1 detected=ACF_Vendor_BPFemale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_Vendor_BPFemale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Show me your goods
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/ACF_BuySell_WB.ACF_BuySell_WB_C
+spawn=/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C controller=ACF_NPCController_BP_C_11
+service=ACF_SkillGuy_BPMale_C label=SkillGuy can_interact=1 detected=ACF_SkillGuy_BPMale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_SkillGuy_BPMale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Sure!
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACF_SkillTreesNavigation_WBP.ACF_SkillTreesNavigation_WBP_C
+spawn=/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale.ACF_SkillGuy_BPFemale_C controller=ACF_NPCController_BP_C_12
+service=ACF_SkillGuy_BPFemale_C label=SkillGuy can_interact=1 detected=ACF_SkillGuy_BPFemale_C_0
+dialogue_ui=/AscentCombatFramework/Integrations/Widgets/ACF_MinimalDialogue_WB.ACF_MinimalDialogue_WB_C
+E=ACF_SkillGuy_BPFemale_C_0 interaction=1 graph_started=1 visible_ui=1 participant_flag=0 dialogue_count=1
+response=Sure!
+service_menu=/Game/FullSample/Integrations/UIIntegrations/Widgets/Skills/ACF_SkillTreesNavigation_WBP.ACF_SkillTreesNavigation_WBP_C
+spawn=/Game/_Game/Characters/Male/ACFGuy_BPMale.ACFGuy_BPMale_C controller=BP_ProjectSplineNPCController_C_1
+service=ACFGuy_BPMale_C label=ACF Guy can_interact=1 detected=ACFGuy_BPMale_C_0
+E=ACFGuy_BPMale_C_0 interaction=1 graph_started=0 visible_ui=0 participant_flag=0 dialogue_count=0
+spawn=/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C controller=BP_ProjectSplineNPCController_C_2
+service=ACFGuy_BPFemale_C label=ACF Guy can_interact=1 detected=ACFGuy_BPFemale_C_0
+E=ACFGuy_BPFemale_C_0 interaction=1 graph_started=0 visible_ui=0 participant_flag=0 dialogue_count=0
+status=PASS reason=Requested service/quest interaction sample elapsed_seconds=63.239

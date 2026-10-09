@@ -1,0 +1,7 @@
+[2026.10.09-23.32.11:536][  0]LogUObjectArray: 61 objects are not in the root set, but can never be destroyed because they are in the DisregardForGC set.
+[2026.10.09-23.32.11:536][  0]LogUObjectArray: CloseDisregardForGC: 51390/51390 objects in disregard for GC pool
+[2026.10.09-23.33.17:376][253]LogGarbage: Warning: Disregard for GC object EFCharacterCreationSettings /Script/EFCharacterCreationRuntime.Default__EFCharacterCreationSettings referencing EFBodyPresetCatalog /Game/_Game/Data/CharacterCreation/DA_BodyPresets.DA_BodyPresets which is not part of root set. Property: LoadedBodyPresetCatalog (0x130)
+[2026.10.09-23.33.17:379][253]LogWindows: Error: appError called: Fatal error: [File:D:\build\++UE5\Sync\Engine\Source\Runtime\CoreUObject\Private\UObject\GarbageCollectionVerification.cpp] [Line: 156] 
+Encountered 1 object(s) breaking Disregard for GC assumptions. Please check log for details.
+[2026.10.09-23.33.19:365][253]LogWindows: Error: Fatal error: [File:D:\build\++UE5\Sync\Engine\Source\Runtime\CoreUObject\Private\UObject\GarbageCollectionVerification.cpp] [Line: 156] 
+[2026.10.09-23.33.19:365][253]LogWindows: Error: Encountered 1 object(s) breaking Disregard for GC assumptions. Please check log for details.

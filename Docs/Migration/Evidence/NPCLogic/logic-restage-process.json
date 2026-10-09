@@ -1,0 +1,14 @@
+{
+  "status": "FAIL",
+  "exit_code": 1,
+  "seconds": 83.755,
+  "limit_seconds": 180,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Saved/NPCLogic/RestageBinaries.ps1"
+  ]
+}

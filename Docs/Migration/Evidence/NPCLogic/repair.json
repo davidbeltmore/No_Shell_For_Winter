@@ -1,0 +1,1233 @@
+{
+  "pairs": [
+    {
+      "source": "/AscentCombatFramework/Blueprints/ACFCharacterBP",
+      "target": "/Game/_Game/Characters/Framework/ACFCharacterBP",
+      "compared": 918,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/AscentCombatFramework/Blueprints/AI/AIs/ACFAICharacterBP",
+      "target": "/Game/_Game/Characters/Framework/ACFAICharacterBP",
+      "compared": 954,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/AscentCombatFramework/Blueprints/Actors/ACF_Enemy_BP",
+      "target": "/Game/_Game/Characters/Framework/ACF_Enemy_BP",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+      "target": "/Game/_Game/Characters/Framework/ACFMeleeEnemyBP",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP",
+      "target": "/Game/_Game/Characters/Framework/ACFBaseCompanionBP",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/AscentCombatFramework/Integrations/Actors/ACF_NPC_BP",
+      "target": "/Game/_Game/Characters/Framework/ACF_NPC_BP",
+      "compared": 1241,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFBaseCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACFDefenseStance",
+          "property": "DamagedAttribute",
+          "before": "(AttributeName=\"Stamina\",Attribute=/Script/AscentGASRuntime.ACFStatisticsSet:Stamina,AttributeOwner=\"/Script/CoreUObject.Class'/Script/AscentGASRuntime.ACFStatisticsSet'\")",
+          "expected": "(AttributeName=\"\",Attribute=,AttributeOwner=None)"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDefenderEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACFDefenseStance",
+          "property": "DamagedAttribute",
+          "before": "(AttributeName=\"Stamina\",Attribute=/Script/AscentGASRuntime.ACFStatisticsSet:Stamina,AttributeOwner=\"/Script/CoreUObject.Class'/Script/AscentGASRuntime.ACFStatisticsSet'\")",
+          "expected": "(AttributeName=\"\",Attribute=,AttributeOwner=None)"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale",
+      "compared": 1186,
+      "differences": [
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimTags",
+          "before": "(GameplayTags=((TagName=\"Anims.Executions\")))",
+          "expected": "(GameplayTags=((TagName=\"Anims.Executions\"),(TagName=\"Anims.Ambush\")))"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyAmbushEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale",
+      "compared": 1186,
+      "differences": [
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimTags",
+          "before": "(GameplayTags=((TagName=\"Anims.Executions\")))",
+          "expected": "(GameplayTags=((TagName=\"Anims.Executions\"),(TagName=\"Anims.Ambush\")))"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale",
+      "compared": 1064,
+      "differences": [
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFDummyEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale",
+      "compared": 1064,
+      "differences": [
+        {
+          "component": "ACFAIPatrol",
+          "property": "PatrolType",
+          "before": "EFollowSpline",
+          "expected": "ERandomPoint"
+        },
+        {
+          "component": "ACFAIPatrol",
+          "property": "RandomPatrolRadius",
+          "before": "5000.000000",
+          "expected": "500.000000"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFGunEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale",
+      "compared": 1069,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMageEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale",
+      "compared": 1069,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=35.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=35.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "None",
+          "expected": "human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "None",
+          "expected": "human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=0.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=35.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMeleeEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "None",
+          "expected": "human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "None",
+          "expected": "human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=0.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=35.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFMMEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP",
+      "target": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=35.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedCompanionBP",
+      "target": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "PointName",
+          "before": "human",
+          "expected": "None"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=35.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=0.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP",
+      "target": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/ACFRangedEnemyBP",
+      "target": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale",
+      "compared": 1051,
+      "differences": [],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale",
+      "compared": 1347,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_ACFSkillGuy.ADS_ACFSkillGuy'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[3047D9A2286118E3BC562D7EE066761C]\", \"A0DA16FD47EE42CEFE73F78ADCAB99D1\", \"SkillGuy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.SkillGuy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[3047D9A2286118E3BC562D7EE066761C]\", \"B8BE0B7D4F804CF232347D873C873724\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_SkillGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale",
+      "compared": 1347,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_ACFSkillGuy.ADS_ACFSkillGuy'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[083848943154BC3E8076FD8132F86265]\", \"BA9923214E54AC2A6726CEAE1AC7B979\", \"SkillGuy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.SkillGuy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[083848943154BC3E8076FD8132F86265]\", \"57AFCC2E4A2D1A3751D2DE82454F763B\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_Leveling.ADS_Leveling'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[850AE79118737041A5C725C4B919E57D]\", \"1D39B46F44F169A740E4F1A05F5D8083\", \"Leveling Guy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.LevelingGuy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerTexture",
+          "before": "/Script/Engine.Texture2D'/AscentCombatFramework/UITools/Icons/T_LocationIcon.T_LocationIcon'",
+          "expected": "/Script/Engine.Texture2D'/Engine/Tutorial/SubEditors/TutorialAssets/icon_ShowSkeletalMeshes_40x.icon_ShowSkeletalMeshes_40x'"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[850AE79118737041A5C725C4B919E57D]\", \"08FF813A45E510F0739085AB5166F42D\", \"Leveling Guy\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_LevelingGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_Leveling.ADS_Leveling'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[141F6E551C406025BE943F74148C0449]\", \"0876E9E24E0EB860841198BD8DE454D2\", \"Leveling Guy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.LevelingGuy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerTexture",
+          "before": "/Script/Engine.Texture2D'/AscentCombatFramework/UITools/Icons/T_LocationIcon.T_LocationIcon'",
+          "expected": "/Script/Engine.Texture2D'/Engine/Tutorial/SubEditors/TutorialAssets/icon_ShowSkeletalMeshes_40x.icon_ShowSkeletalMeshes_40x'"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[141F6E551C406025BE943F74148C0449]\", \"463EA97B4C98B039408C95944928B641\", \"Leveling Guy\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale",
+      "compared": 1261,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultWorldDialogue",
+          "before": "None",
+          "expected": "/Script/AscentDialogueSystem.ADSWorldDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_WorldVendor.ADS_WorldVendor'"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_Vendor.ADS_Vendor'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[EB5ECDE54D7B311BA2697B8DC5BC002A]\", \"6B2B02B7453E95BAF6B76EB2283F2B4F\", \"Vendor\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.Blacksmith\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerTexture",
+          "before": "/Script/Engine.Texture2D'/AscentCombatFramework/UITools/Icons/T_LocationIcon.T_LocationIcon'",
+          "expected": "/Script/Engine.Texture2D'/Engine/Tutorial/SubEditors/TutorialAssets/icon_ShowSkeletalMeshes_40x.icon_ShowSkeletalMeshes_40x'"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "None",
+          "expected": "Human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=0.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=51.000000)"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WindowVisibility",
+          "before": "SelfHitTestInvisible",
+          "expected": "Visible"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=220.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=250.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_Vendor_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale",
+      "compared": 1261,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultWorldDialogue",
+          "before": "None",
+          "expected": "/Script/AscentDialogueSystem.ADSWorldDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_WorldVendor.ADS_WorldVendor'"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_Vendor.ADS_Vendor'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[750CA15F3AE47242DA45A6B5BB624A95]\", \"E345CDD94890BD22A78FA48A31D7FBE7\", \"Vendor\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.Blacksmith\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerTexture",
+          "before": "/Script/Engine.Texture2D'/AscentCombatFramework/UITools/Icons/T_LocationIcon.T_LocationIcon'",
+          "expected": "/Script/Engine.Texture2D'/Engine/Tutorial/SubEditors/TutorialAssets/icon_ShowSkeletalMeshes_40x.icon_ShowSkeletalMeshes_40x'"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "CameraEvent",
+          "before": "None",
+          "expected": "Human"
+        },
+        {
+          "component": "ACF TargetPoint",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=0.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=51.000000)"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WindowVisibility",
+          "before": "SelfHitTestInvisible",
+          "expected": "Visible"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "RelativeLocation",
+          "before": "(X=0.000000,Y=0.000000,Z=220.000000)",
+          "expected": "(X=0.000000,Y=0.000000,Z=250.000000)"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_FastTravelGuy.ADS_FastTravelGuy'\")"
+        },
+        {
+          "component": "ACFQuestTargetComponentBP",
+          "property": "TargetTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_FastTravelGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_FastTravelGuy.ADS_FastTravelGuy'\")"
+        },
+        {
+          "component": "ACFQuestTargetComponentBP",
+          "property": "TargetTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_AssetPusher.ADS_AssetPusher'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[629A4C4D474FF4F255A81F82CC67A249]\", \"56EC4032476F0EECB60188831787FC20\", \"Asset Pusher\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        },
+        {
+          "component": "ACFQuestTargetComponentBP",
+          "property": "TargetTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[629A4C4D474FF4F255A81F82CC67A249]\", \"142E07FC49D114CB5CE2C48680978229\", \"Asset Pusher\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACF_AssetPusher_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_AssetPusher.ADS_AssetPusher'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[D565EE87085F2B9A9EE45B0778F58A61]\", \"623252824D3404F503F160B7682ADF84\", \"Asset Pusher\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        },
+        {
+          "component": "ACFQuestTargetComponentBP",
+          "property": "TargetTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.AssetPusher\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[D565EE87085F2B9A9EE45B0778F58A61]\", \"29A2DD0B4006143B7D2475820ABC9564\", \"Asset Pusher\")"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP",
+      "target": "/Game/_Game/Characters/Male/ACFGuy_BPMale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[2AAA112541AC80E6ACA5C9B35C34D1FA]\", \"8A63BCF549A14B1592EBC9A0D8DB0A5B\", \"ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[2AAA112541AC80E6ACA5C9B35C34D1FA]\", \"94D6A4BA42CD4E94F51545B9E91EE12A\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuy_BP",
+      "target": "/Game/_Game/Characters/Female/ACFGuy_BPFemale",
+      "compared": 1241,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[DF5346ABD959AD2CB95971146B0E624B]\", \"DB02B2104F497EBA1F2B0A93636D73CC\", \"ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[DF5346ABD959AD2CB95971146B0E624B]\", \"AA84B7AC4BD189987E040C86F5F16597\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP",
+      "target": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale",
+      "compared": 1347,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultWorldDialogue",
+          "before": "None",
+          "expected": "/Script/AscentDialogueSystem.ADSWorldDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_WorldRoutine.ADS_WorldRoutine'"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_ACFRoutineGuy.ADS_ACFRoutineGuy'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[E117911EB5F69B1C11542909BEB475A7]\", \"7C4B2D484746AE4F6EAF65887A0B10C9\", \"Routine Guy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.Routine\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "bShouldMovePlayer",
+          "before": "True",
+          "expected": "False"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultCameraConfig",
+          "before": "/Script/AscentDialogueSystem.ADSCameraConfigDataAsset'/AscentCombatFramework/Utilities/Camera/ACF_MediumShot.ACF_MediumShot'",
+          "expected": "None"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[E117911EB5F69B1C11542909BEB475A7]\", \"ECF91124425B776CEBE80FA6E94B715E\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACFMotionMatchingComponentBP",
+          "property": "FoleyAudioBank",
+          "before": "None",
+          "expected": "/AscentCombatFramework/Blueprints/AudioClasses/DABP_FoleyAudioBank.DABP_FoleyAudioBank_C'/Game/FullSample/GASP/Audio/Foley/DefaultFoleyEventAudioBank.DefaultFoleyEventAudioBank'"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Integrations/Ultimate/Blueprint/NPCs/ACFGuyRoutine_BP",
+      "target": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale",
+      "compared": 1347,
+      "differences": [
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultWorldDialogue",
+          "before": "None",
+          "expected": "/Script/AscentDialogueSystem.ADSWorldDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_WorldRoutine.ADS_WorldRoutine'"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "Dialogues",
+          "before": "",
+          "expected": "(\"/Script/AscentDialogueSystem.ADSDialogue'/Game/FullSample/Integrations/ATSIntegrations/Graphs/Dialogues/ADS_ACFRoutineGuy.ADS_ACFRoutineGuy'\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "ParticipantNameText",
+          "before": "Default Name",
+          "expected": "NSLOCTEXT(\"[F5572C898A8B1AFBBBFA563B6E9ABC89]\", \"7893E648481910868CB17C9091CBB703\", \"Routine Guy\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "PartecipantTag",
+          "before": "(TagName=\"Character.ACFGuy\")",
+          "expected": "(TagName=\"Character.Routine\")"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "bShouldMovePlayer",
+          "before": "True",
+          "expected": "False"
+        },
+        {
+          "component": "ACFDialogueComponentBP",
+          "property": "DefaultCameraConfig",
+          "before": "/Script/AscentDialogueSystem.ADSCameraConfigDataAsset'/AscentCombatFramework/Utilities/Camera/ACF_MediumShot.ACF_MediumShot'",
+          "expected": "None"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "MarkerName",
+          "before": "NSLOCTEXT(\"[D296229B7358186FBD3BCC9C5B2070F6]\", \"8CA8335F405A004D5BE26CB642F891D4\", \"NPC\")",
+          "expected": "NSLOCTEXT(\"[F5572C898A8B1AFBBBFA563B6E9ABC89]\", \"DFC7EC1645BE965F3AD455A55E2388D3\", \" ACF Guy\")"
+        },
+        {
+          "component": "AMSMapMarker",
+          "property": "OverrideMaterials",
+          "before": "(\"/Script/Engine.Material'/Engine/EngineMaterials/Widget3DPassThrough.Widget3DPassThrough'\")",
+          "expected": "(\"/Script/Engine.MaterialInstanceConstant'/Engine/EngineMaterials/Widget3DPassThrough_Masked_OneSided.Widget3DPassThrough_Masked_OneSided'\")"
+        },
+        {
+          "component": "ACFCombinedAnimSlave",
+          "property": "AnimStartingConditions",
+          "before": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\",\"ACF_CanAmbushCondition_BP_C_0\")",
+          "expected": "(\"ACFIsNotInRagdollCondition_BP_C_0\",\"ACFExecutionCondition_0\")"
+        },
+        {
+          "component": "ACFMotionMatchingComponentBP",
+          "property": "FoleyAudioBank",
+          "before": "None",
+          "expected": "/AscentCombatFramework/Blueprints/AudioClasses/DABP_FoleyAudioBank.DABP_FoleyAudioBank_C'/Game/FullSample/GASP/Audio/Foley/DefaultFoleyEventAudioBank.DefaultFoleyEventAudioBank'"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "WidgetClass",
+          "before": "/Script/UMG.WidgetBlueprintGeneratedClass'/AscentCombatFramework/Blueprints/UI/ACFGAS_HealthBar_WB.ACFGAS_HealthBar_WB_C'",
+          "expected": "None"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP",
+      "target": "/Game/_Game/Characters/Male/ACFZombieBPMale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "TargetedWidget",
+          "property": "bGenerateOverlapEvents",
+          "before": "False",
+          "expected": "True"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "OverrideMaterials",
+          "before": "",
+          "expected": "(None)"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bGenerateOverlapEvents",
+          "before": "False",
+          "expected": "True"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/Blueprints/Characters/Enemies/Zombie/ACFZombieBP",
+      "target": "/Game/_Game/Characters/Female/ACFZombieBPFemale",
+      "compared": 1051,
+      "differences": [
+        {
+          "component": "TargetedWidget",
+          "property": "bGenerateOverlapEvents",
+          "before": "False",
+          "expected": "True"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "OverrideMaterials",
+          "before": "",
+          "expected": "(None)"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bGenerateOverlapEvents",
+          "before": "False",
+          "expected": "True"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP",
+      "target": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale",
+      "compared": 1076,
+      "differences": [
+        {
+          "component": "ACF HealthWidget",
+          "property": "Space",
+          "before": "Screen",
+          "expected": "World"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bVisible",
+          "before": "True",
+          "expected": "False"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bHiddenInGame",
+          "before": "True",
+          "expected": "False"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    },
+    {
+      "source": "/Game/FullSample/MetaHumans/ACF_NPCAI_BP",
+      "target": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale",
+      "compared": 1076,
+      "differences": [
+        {
+          "component": "ACF HealthWidget",
+          "property": "Space",
+          "before": "Screen",
+          "expected": "World"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bVisible",
+          "before": "True",
+          "expected": "False"
+        },
+        {
+          "component": "ACF HealthWidget",
+          "property": "bHiddenInGame",
+          "before": "True",
+          "expected": "False"
+        }
+      ],
+      "errors": [],
+      "applied": true
+    }
+  ],
+  "status": "PASS",
+  "count": 46,
+  "seconds": 15.781000000000859
+}
