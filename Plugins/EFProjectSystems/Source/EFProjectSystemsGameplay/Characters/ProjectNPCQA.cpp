@@ -92,14 +92,16 @@ struct FProjectNPCQA : TSharedFromThis<FProjectNPCQA>
 			Camera=W->SpawnActor<ACameraActor>();
 			const FVector Focus=Origin+FVector(230,270,-10), Eye=Focus+FVector(-1100,0,300);
 			Camera->SetActorLocationAndRotation(Eye,(Focus-Eye).Rotation()); PC->SetViewTarget(Camera.Get());
-			Stage=1; Due=Now+5; return true;
+			// Start the settling window after synchronous asset loads, which can
+			// exceed five seconds on a cold MetaHuman-derived class load.
+			Stage=1; Due=FPlatformTime::Seconds()+5; return true;
 		}
 		if (Stage==1)
 		{
 			for (auto& Weak:Pawns)
 			{
 				auto* P=Weak.Get(); auto* C=P?P->FindComponentByClass<UEFCharacterCustomizationComponent>():nullptr;
-				if (!C || C->GetBodyPresetId().IsNone()) return Finish(false,TEXT("Missing generated DAZ appearance"));
+				if (!C || C->GetBodyPresetId().IsNone()) return Finish(false,TEXT("Missing generated DAZ appearance: ")+GetNameSafe(P));
 				auto* Mesh=P->GetMesh();
 				if (auto* Damage=P->FindComponentByClass<UACFDamageHandlerComponent>(); Damage && !Damage->GetIsAlive()) return Finish(false,TEXT("NPC died during spawn initialization"));
 				if (Mesh->IsSimulatingPhysics(TEXT("pelvis")) || Mesh->GetSocketLocation(TEXT("head")).Z-Mesh->GetSocketLocation(TEXT("foot_l")).Z<75)
