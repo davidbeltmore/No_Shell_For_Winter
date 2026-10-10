@@ -12,7 +12,9 @@ public class EFCharacterCreationACFURuntime : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"GameplayAbilities"
+			"GameplayAbilities",
+			"DeveloperSettings",
+			"InventorySystem"
 		});
 		PrivateDependencyModuleNames.AddRange(new string[] { "CharacterController", "GameplayTags" });
 	}

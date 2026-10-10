@@ -1,0 +1,262 @@
+#include "EFCharacterCustomizationComponent.h"
+#include "Characters/ProjectNPCAppearanceState.h"
+#include "Components/ACFEquipmentComponent.h"
+#include "Components/ACFCharacterMovementComponent.h"
+#include "Components/ACFDamageHandlerComponent.h"
+#include "ItemActors/ACFRangedWeaponActor.h"
+#include "Animation/ACFAnimInstance.h"
+#include "Animation/ACFBaseOverlayLayer.h"
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "Camera/CameraActor.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Containers/Ticker.h"
+#include "Engine/World.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/PlayerController.h"
+#include "HAL/IConsoleManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "UnrealClient.h"
+#include "UObject/UnrealType.h"
+
+#if !UE_BUILD_SHIPPING
+namespace
+{
+// Pose/shooting fixture, not AI certification. Uses actual player and native
+// equipment calls; restores appearance, slot GUIDs, viewpoint and transform.
+struct FGunPoseQA : TSharedFromThis<FGunPoseQA>
+{
+    TWeakObjectPtr<UWorld> World;
+    TWeakObjectPtr<ACharacter> Player, Subject;
+    TWeakObjectPtr<ACameraActor> Camera;
+    TWeakObjectPtr<AACFRangedWeaponActor> StoredGun;
+    TWeakObjectPtr<AActor> OldView;
+    FCharacterCustomizationState OldAppearance;
+    FTransform OldTransform, HoldHand;
+    FRotator OldControl;
+    TArray<FInventoryItem> OldInventory;
+    TArray<FEquippedItem> OldEquipment;
+    FGameplayTag OldWeaponSlot;
+    bool bOldImmortal=false,bQuit=false,bCaptured=false;
+    int32 Index=0,Stage=0,Completed=0;
+    double Start=FPlatformTime::Seconds(),Due=0,NeckBaseline=0,NeckElevationBaseline=0,AmmoBefore=0;
+    FString Events,Directory=FPaths::ProjectSavedDir()/TEXT("GunPose/Runtime");
+    bool IsPlayer() const { return Index>=4; }
+    bool Female() const { return (Index/2)%2!=0; }
+    bool Rifle() const { return Index%2!=0; }
+    void Record(const FString& S)
+    {
+        Events+=S+TEXT("\n"); UE_LOG(LogTemp,Display,TEXT("[GunPose] %s"),*S);
+        IFileManager::Get().MakeDirectory(*Directory,true);
+        FFileHelper::SaveStringToFile(Events,*(Directory/TEXT("progress.txt")));
+    }
+    UACFEquipmentComponent* Equipment(ACharacter* P) const { return P?P->FindComponentByClass<UACFEquipmentComponent>():nullptr; }
+    void ClearNPC()
+    {
+        if (auto* P=Subject.Get(); P && P!=Player.Get())
+        {
+            if (auto* State=AProjectNPCAppearanceState::Ensure(World.Get())) State->Records.Remove(AProjectNPCAppearanceState::IdentityFor(P));
+            if (P->GetController()) P->GetController()->Destroy();
+            P->Destroy();
+        }
+        Subject.Reset();
+    }
+    double Neck(ACharacter* P) const
+    {
+        auto* M=P->GetMesh();
+        return FVector::Distance(M->GetSocketLocation(TEXT("head")),
+            .5*(M->GetSocketLocation(TEXT("clavicle_l"))+M->GetSocketLocation(TEXT("clavicle_r"))));
+    }
+    bool Pose(const TCHAR* Mode)
+    {
+        auto* P=Subject.Get();auto* M=P?P->GetMesh():nullptr;auto* A=M?Cast<UACFAnimInstance>(M->GetAnimInstance()):nullptr;
+        if (!A) return false;
+        auto* C=P->FindComponentByClass<UEFCharacterCustomizationComponent>();
+        const FGameplayTag Tag=FGameplayTag::RequestGameplayTag(Rifle()?TEXT("Moveset.Rifle"):TEXT("Moveset.Pistol"));
+        FOverlayLayer Row; const bool Has=A->GetAnimationOverlay(Tag,Row);
+        const FString Expected=Rifle()?TEXT("ABP_DAZRifleOverlay_C"):TEXT("ABP_DAZPistolOverlay_C");
+        const double Length=Neck(P),Ratio=Length/FMath::Max(NeckBaseline,1.0);
+        const double Elevation=M->GetSocketLocation(TEXT("head")).Z-.5*(M->GetSocketLocation(TEXT("clavicle_l")).Z+M->GetSocketLocation(TEXT("clavicle_r")).Z);
+        Record(FString::Printf(TEXT("head_elevation_cm=%.3f baseline=%.3f"),Elevation,NeckElevationBaseline));
+        const FVector Scale=M->GetSocketTransform(TEXT("head"),RTS_Component).GetScale3D();
+        const auto* Movement=Cast<UACFCharacterMovementComponent>(P->GetCharacterMovement());
+        Record(FString::Printf(TEXT("case=%d role=%s body=%s weapon=%s mode=%s neck_cm=%.3f baseline_cm=%.3f ratio=%.3f head_scale=%s overlay=%s"),
+            Index,IsPlayer()?TEXT("player"):TEXT("npc"),C?*C->GetBodyPresetId().ToString():TEXT("missing"),Rifle()?TEXT("rifle"):TEXT("pistol"),Mode,Length,NeckBaseline,Ratio,*Scale.ToString(),Has?*GetNameSafe(Row.Overlay.Get()):TEXT("missing")));
+        return Has && Row.Overlay && Row.Overlay->GetName()==Expected && A->GetCurrentOverlay()==Tag &&
+            Movement && Movement->GetACFAnimInstance()==A && FMath::IsFinite(Length) && Ratio<1.35 && Elevation>NeckElevationBaseline*.55 &&
+            Scale.GetMin()>.6 && Scale.GetMax()<1.5 &&
+            M->GetSocketLocation(TEXT("head")).Z-M->GetSocketLocation(TEXT("foot_l")).Z>75;
+    }
+    void Shot(const TCHAR* Mode)
+    {
+        FScreenshotRequest::RequestScreenshot(Directory/FString::Printf(TEXT("Case_%02d_%s.png"),Index,Mode),false,false);
+    }
+    bool Finish(bool Pass,const FString& Reason)
+    {
+        ClearNPC();
+        if (auto* P=Player.Get(); P && bCaptured)
+        {
+            auto* E=Equipment(P);E->SheathCurrentWeapon();
+            // Remove only fixture-added identities, never clear the player's inventory.
+            for (const auto& Item:E->GetInventory())
+                if (!OldInventory.ContainsByPredicate([&](const auto& Old){return Old.GetItemGuid()==Item.GetItemGuid();}))
+                { E->UnequipItemByGuid(Item.GetItemGuid());E->RemoveItem(Item,Item.Count); }
+            for (const auto& Slot:E->GetCurrentEquipment().GetEquippedItems())
+                if (!OldEquipment.ContainsByPredicate([&](const auto& Old){return Old.ItemGuid==Slot.ItemGuid && Old.ItemSlot==Slot.ItemSlot;})) E->UnequipItemByGuid(Slot.ItemGuid);
+            for (const auto& Old:OldEquipment)
+            {
+                FEquippedItem Existing;
+                if (E->GetEquippedItem(Old.ItemGuid,Existing) && Existing.ItemSlot==Old.ItemSlot) continue;
+                for (const auto& Item:E->GetInventory()) if (Item.GetItemGuid()==Old.ItemGuid) { E->EquipItemFromInventoryInSlot(Item,Old.ItemSlot);break; }
+            }
+            if (OldWeaponSlot.IsValid()) E->UseEquippedItemBySlot(OldWeaponSlot);
+            auto* C=P->FindComponentByClass<UEFCharacterCustomizationComponent>();if (C) C->ApplyState(OldAppearance);
+            if (auto* M=Cast<UACFCharacterMovementComponent>(P->GetCharacterMovement())) M->SetIsAiming(false);
+            P->SetActorTransform(OldTransform,false,nullptr,ETeleportType::TeleportPhysics);
+            if (auto* D=P->FindComponentByClass<UACFDamageHandlerComponent>()) D->SetIsImmortal(bOldImmortal);
+            if (auto* PC=UGameplayStatics::GetPlayerController(World.Get(),0)) {PC->SetControlRotation(OldControl);if (OldView.IsValid()) PC->SetViewTarget(OldView.Get());}
+            // Native shots consume inventory ammunition. Refund only the original
+            // identities/counts changed by this fixture, retaining current slot flags.
+            for (const auto& Old:OldInventory)
+            {
+                FInventoryItem Current;
+                if (E->GetInventoryListConst().GetItem(Old.GetItemGuid(),Current) && Current.Count!=Old.Count)
+                {
+                    Record(FString::Printf(TEXT("refund=%s old_count=%d current_count=%d"),*GetNameSafe(Old.ItemClass.Get()),Old.Count,Current.Count));
+                    Current.Count=Old.Count;
+                    auto* ListProperty=FindFProperty<FStructProperty>(E->GetClass(),TEXT("InventoryList"));
+                    if (ListProperty && ListProperty->Struct==FACFInventoryList::StaticStruct())
+                        ListProperty->ContainerPtrToValuePtr<FACFInventoryList>(E)->ChangeEntry(Current);
+                }
+            }
+            E->RefreshTotalWeight();
+            const auto Inventory=E->GetInventory();
+            for (const auto& Old:OldInventory) if (!Inventory.ContainsByPredicate([&](const auto& Item){return Item.GetItemGuid()==Old.GetItemGuid() && Item.Count==Old.Count;})) {Pass=false;Record(TEXT("restoration=FAIL inventory identity/count"));}
+            if (Inventory.Num()!=OldInventory.Num() || !C || C->GetBodyPresetId()!=OldAppearance.BodyPresetId) {Pass=false;Record(TEXT("restoration=FAIL appearance/count"));}
+        }
+        if (Camera.IsValid()) Camera->Destroy();
+        Record(FString::Printf(TEXT("status=%s completed=%d/8 reason=%s elapsed_seconds=%.3f"),Pass?TEXT("PASS"):TEXT("FAIL"),Completed,*Reason,FPlatformTime::Seconds()-Start));
+        FFileHelper::SaveStringToFile(Events,*(Directory/TEXT("runtime.txt")));
+        if (bQuit) FPlatformMisc::RequestExit(false);return false;
+    }
+    bool Tick(float)
+    {
+        const double Now=FPlatformTime::Seconds();if (Now-Start>110) return Finish(false,TEXT("110-second watchdog"));
+        auto* W=World.Get();auto* PC=W?UGameplayStatics::GetPlayerController(W,0):nullptr;
+        auto* Hero=PC?Cast<ACharacter>(PC->GetPawn()):nullptr;if (!Hero) return true;if (Now<Due) return true;
+        if (Stage==0 && Now-Start<5) return true;
+        if (Stage==0)
+        {
+            Player=Hero;auto* C=Hero->FindComponentByClass<UEFCharacterCustomizationComponent>();auto* E=Equipment(Hero);
+            if (!C || !E) return Finish(false,TEXT("Player appearance/equipment missing"));
+            OldAppearance=C->CaptureCurrentState();OldTransform=Hero->GetActorTransform();OldControl=PC->GetControlRotation();OldView=PC->GetViewTarget();
+            OldInventory=E->GetInventory();OldEquipment=E->GetCurrentEquipment().GetEquippedItems();
+            for (const auto& Slot:OldEquipment) if (Slot.ItemActor==E->GetCurrentMainWeapon()) OldWeaponSlot=Slot.ItemSlot;
+            if (auto* D=Hero->FindComponentByClass<UACFDamageHandlerComponent>()) {bOldImmortal=D->GetIsImmortal();D->SetIsImmortal(true);}
+            bCaptured=true;Camera=W->SpawnActor<ACameraActor>();Stage=1;Due=Now+1;return true;
+        }
+        if (Stage==1)
+        {
+            if (Index==8) return Finish(true,TEXT("2 weapons x 2 genders x actual player/NPC; native shooting and restoration"));
+            ClearNPC();const FVector At=OldTransform.GetLocation()+FVector(2200,0,20);
+            if (IsPlayer()) Subject=Hero;
+            else
+            {
+                const FString Name=Female()?TEXT("ACFGunEnemyBPFemale"):TEXT("ACFGunEnemyBPMale");const FString Path=TEXT("/Game/_Game/Characters/")+FString(Female()?TEXT("Female/"):TEXT("Male/"))+Name+TEXT(".")+Name+TEXT("_C");
+                auto* Class=LoadClass<ACharacter>(nullptr,*Path);FActorSpawnParameters Params;Params.ObjectFlags|=RF_Transient;Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                Subject=Class?W->SpawnActor<ACharacter>(Class,At,FRotator::ZeroRotator,Params):nullptr;
+                if (!Subject.IsValid()) return Finish(false,TEXT("NPC spawn missing"));
+                Subject->SetActorEnableCollision(false);Subject->GetCharacterMovement()->DisableMovement();
+                if (auto* AI=Cast<AAIController>(Subject->GetController());AI && AI->GetBrainComponent()) AI->GetBrainComponent()->StopLogic(TEXT("Gun pose fixture"));
+            }
+            auto* P=Subject.Get();P->SetActorLocationAndRotation(At,FRotator::ZeroRotator,false,nullptr,ETeleportType::TeleportPhysics);
+            P->GetMesh()->VisibilityBasedAnimTickOption=EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+            const FVector Focus=At+FVector(0,0,50),Eye=Focus+FVector(340,170,30);
+            Camera->SetActorLocationAndRotation(Eye,(Focus-Eye).Rotation());PC->SetViewTarget(Camera.Get());PC->SetControlRotation(FRotator::ZeroRotator);
+            Stage=10;Due=FPlatformTime::Seconds()+3;return true;
+        }
+        if (Stage==10)
+        {
+            auto* P=Subject.Get();auto* C=P?P->FindComponentByClass<UEFCharacterCustomizationComponent>():nullptr;
+            if (!C || !C->SelectBodyPreset(Female()?FName(TEXT("Female.01")):FName(IsPlayer()?TEXT("Male.02"):TEXT("Male.01")),false)) return Finish(false,TEXT("Preset unavailable after initialization"));
+            Equipment(P)->SheathCurrentWeapon();Cast<UACFCharacterMovementComponent>(P->GetCharacterMovement())->SetIsAiming(false);
+            Stage=2;Due=Now+1;return true;
+        }
+        if (Stage==2)
+        {
+            auto* P=Subject.Get();if (!P) return Finish(false,TEXT("Subject lost"));NeckBaseline=Neck(P);
+            NeckElevationBaseline=P->GetMesh()->GetSocketLocation(TEXT("head")).Z-.5*(P->GetMesh()->GetSocketLocation(TEXT("clavicle_l")).Z+P->GetMesh()->GetSocketLocation(TEXT("clavicle_r")).Z);
+            auto* E=Equipment(P);const FString Name=Rifle()?TEXT("ACFAutomaticRifleBP"):TEXT("ACFPistolBP");
+            auto* Class=LoadClass<UACFItem>(nullptr,*(TEXT("/Game/FullSample/Blueprints/Items/Weapons/")+Name+TEXT(".")+Name+TEXT("_C")));
+            if (!Class) return Finish(false,TEXT("Weapon definition missing"));
+            auto Items=E->GetInventory();
+            if (!Items.ContainsByPredicate([&](const auto& I){return I.ItemClass==Class;})) E->AddItemToInventoryByClass(Class,1,false);
+            Items=E->GetInventory();const auto* Item=Items.FindByPredicate([&](const auto& I){return I.ItemClass==Class;});
+            if (!Item) return Finish(false,TEXT("Weapon add failed"));
+            E->EquipItemFromInventory(*Item);FEquippedItem Slot;
+            if (!E->GetEquippedItem(Item->GetItemGuid(),Slot)) return Finish(false,TEXT("Weapon equip failed"));
+            E->UseEquippedItemBySlot(Slot.ItemSlot);Stage=3;Due=Now+1;return true;
+        }
+        if (Stage==3)
+        {
+            if (!Pose(TEXT("hold"))) return Finish(false,TEXT("Held weapon pose/cache contract failed"));
+            Shot(TEXT("hold"));HoldHand=Subject->GetMesh()->GetSocketTransform(TEXT("hand_r"),RTS_Component);
+            Cast<UACFCharacterMovementComponent>(Subject->GetCharacterMovement())->SetIsAiming(true);Stage=4;Due=Now+1;return true;
+        }
+        if (Stage==4)
+        {
+            if (!Pose(TEXT("aim"))) return Finish(false,TEXT("Aimed weapon pose/cache contract failed"));
+            const auto Hand=Subject->GetMesh()->GetSocketTransform(TEXT("hand_r"),RTS_Component);
+            const double Delta=FVector::Distance(Hand.GetLocation(),HoldHand.GetLocation()),Angle=Hand.GetRotation().AngularDistance(HoldHand.GetRotation());
+            Record(FString::Printf(TEXT("aim_transition_cm=%.3f radians=%.3f"),Delta,Angle));
+            if (Delta<1 && Angle<.02) return Finish(false,TEXT("Aim pose did not change"));
+            Shot(TEXT("aim"));auto* Gun=Cast<AACFRangedWeaponActor>(Equipment(Subject.Get())->GetCurrentMainWeapon());
+            if (!Gun || !Gun->CanShoot()) return Finish(false,TEXT("Native shooting unavailable"));
+            AmmoBefore=Gun->GetCurrentAmmo();Gun->ShootAtDirection(FRotator(30,0,0));Stage=5;Due=Now+.5;return true;
+        }
+        if (Stage==5)
+        {
+            auto* Gun=Cast<AACFRangedWeaponActor>(Equipment(Subject.Get())->GetCurrentMainWeapon());
+            if (!Gun || Gun->GetCurrentAmmo()>=AmmoBefore || !Pose(TEXT("after_shoot"))) return Finish(false,TEXT("Native shot/ammo or post-shot pose failed"));
+            Record(FString::Printf(TEXT("native_shot=PASS ammo_before=%.1f ammo_after=%.1f"),AmmoBefore,Gun->GetCurrentAmmo()));
+            Cast<UACFCharacterMovementComponent>(Subject->GetCharacterMovement())->SetIsAiming(false);
+            StoredGun=Gun;Equipment(Subject.Get())->SheathCurrentWeapon();Stage=6;Due=Now+.5;return true;
+        }
+        if (Stage==6)
+        {
+            auto* P=Subject.Get();auto* Gun=StoredGun.Get();auto* Mesh=P?P->GetMesh():nullptr;
+            if (!Gun || !Mesh) return Finish(false,TEXT("Stowed weapon missing"));
+            const FName Name=Gun->GetOnBodySocketName();
+            const bool NativeSocket=Mesh->DoesSocketExist(Name);
+            auto* Reference=LoadObject<USkeletalMesh>(nullptr,TEXT("/AscentCombatFramework/Animation/SkeletalMeshes/SKM_Manny.SKM_Manny"));
+            const auto* Ref=Reference?Reference->FindSocket(Name):nullptr;
+            if (!NativeSocket && !Ref) return Finish(false,TEXT("Stow reference unavailable"));
+            const FName Attach=NativeSocket?Name:Ref->BoneName;
+            const FTransform Expected=NativeSocket?Mesh->GetSocketTransform(Name):FTransform(Ref->RelativeRotation,Ref->RelativeLocation,Ref->RelativeScale)*Mesh->GetSocketTransform(Attach);
+            const double Error=FVector::Distance(Gun->GetActorLocation(),Expected.GetLocation());
+            Record(FString::Printf(TEXT("stow=%s native_socket=%s attach=%s error_cm=%.3f"),*Name.ToString(),NativeSocket?TEXT("true"):TEXT("false"),*Gun->GetRootComponent()->GetAttachSocketName().ToString(),Error));
+            Shot(TEXT("stow"));
+            // The actual player equips native weapons on its configured compatibility
+            // mesh. Require owned skeletal parent and alignment to the visible pose.
+            const auto* Parent=Cast<USkeletalMeshComponent>(Gun->GetRootComponent()->GetAttachParent());
+            Record(FString::Printf(TEXT("stow_parent=%s owner=%s"),*GetNameSafe(Parent),Parent?*GetNameSafe(Parent->GetOwner()):TEXT("missing")));
+            if (!Parent || Parent->GetOwner()!=P || Gun->GetRootComponent()->GetAttachSocketName()!=Attach || Error>2) return Finish(false,TEXT("Stowed weapon attachment contract failed"));
+            ++Index;++Completed;Stage=1;Due=Now+.3;return true;
+        }
+        return true;
+    }
+};
+TWeakPtr<FGunPoseQA> ActiveGunPose;
+FAutoConsoleCommandWithWorldAndArgs GunPoseCommand(TEXT("Project.GunPose.QA"),TEXT("Bounded 110s actual player/NPC gun pose smoke; optional quit."),
+    FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args,UWorld* W)
+    {
+        if (!W || ActiveGunPose.IsValid()) return;
+        auto Test=MakeShared<FGunPoseQA>();Test->World=W;Test->bQuit=Args.Contains(TEXT("quit"));ActiveGunPose=Test;
+        FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Test](float Dt){return Test->Tick(Dt);}));
+    }));
+}
+#endif

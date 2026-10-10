@@ -9,7 +9,49 @@
 #include "Components/ACFCharacterMovementComponent.h"
 #include "Animation/ACFAnimInstance.h"
 #include "Animation/ACFIKLayer.h"
+#include "Animation/ACFBaseOverlayLayer.h"
 #include "UObject/UnrealType.h"
+#include "EFDAZWeaponPoseSettings.h"
+#include "EFDAZWeaponSocketAdapter.h"
+#include "Engine/SkeletalMesh.h"
+
+namespace
+{
+void ConfigureDAZWeaponOverlays(ACharacter* Character, UACFAnimInstance* Anim)
+{
+    auto* Mesh = Character ? Character->GetMesh() : nullptr;
+    auto* Body = Mesh ? Mesh->GetSkeletalMeshAsset() : nullptr;
+    const auto* Settings = GetDefault<UEFDAZWeaponPoseSettings>();
+    if (!Anim || !Body || !Settings->MeshRoots.ContainsByPredicate([Body](const FString& Root)
+        { return !Root.IsEmpty() && Body->GetPathName().StartsWith(Root); })) return;
+    UEFDAZWeaponSocketAdapter::EnsureAndRefresh(Character);
+    auto* Property = FindFProperty<FArrayProperty>(UACFAnimInstance::StaticClass(), TEXT("OverlayLayers"));
+    auto* Inner = Property ? CastField<FStructProperty>(Property->Inner) : nullptr;
+    if (!Inner || Inner->Struct != FOverlayLayer::StaticStruct()) return;
+    auto* Rows = Property->ContainerPtrToValuePtr<TArray<FOverlayLayer>>(Anim);
+    const FGameplayTag Active = Anim->GetCurrentOverlay();
+    bool RefreshActive = false;
+    for (auto& Row : *Rows)
+    {
+        if (!Row.Overlay) continue;
+        const FSoftObjectPath Source(Row.Overlay->GetPathName());
+        const auto* Override = Settings->OverlayOverrides.FindByPredicate([&](const auto& Entry)
+            { return Entry.Source.ToSoftObjectPath() == Source; });
+        if (!Override) continue;
+        UClass* Replacement = Override->Replacement.LoadSynchronous();
+        if (!Replacement || !Replacement->IsChildOf(UACFBaseOverlayLayer::StaticClass()))
+        {
+            UE_LOG(LogTemp, Error, TEXT("[DAZWeaponPose] Invalid replacement for %s"), *Source.ToString());
+            continue;
+        }
+        Row.Overlay = Replacement;
+        RefreshActive |= Row.TagName == Active;
+        UE_LOG(LogTemp, Display, TEXT("[DAZWeaponPose] actor=%s source=%s replacement=%s"),
+            *Character->GetName(), *Source.ToString(), *Replacement->GetPathName());
+    }
+    if (RefreshActive) { Anim->RemoveOverlay(); Anim->SetAnimationOverlay(Active); }
+}
+}
 
 void FEFCharacterCreationACFUBridge::RestoreAnimationAfterBodyChange(AActor* Actor)
 {
@@ -17,9 +59,14 @@ void FEFCharacterCreationACFUBridge::RestoreAnimationAfterBodyChange(AActor* Act
 	UACFCharacterMovementComponent* Movement = Character ? Cast<UACFCharacterMovementComponent>(Character->GetCharacterMovement()) : nullptr;
 	UACFAnimInstance* Current = Character && Character->GetMesh() ? Cast<UACFAnimInstance>(Character->GetMesh()->GetAnimInstance()) : nullptr;
 	UACFAnimInstance* Previous = Movement ? Movement->GetACFAnimInstance() : nullptr;
-	if (!IsValid(Current) || !IsValid(Previous) || Previous == Current) return;
+	if (!IsValid(Current)) return;
+	if (!IsValid(Previous) || Previous == Current)
+	{
+		ConfigureDAZWeaponOverlays(Character, Current);
+		return;
+	}
 
-	// ACF 4.3.5 caches the instance at BeginPlay. Changing skeleton recreates it,
+	// ACF caches the instance at BeginPlay. Changing skeleton recreates it,
 	// losing fragment-authored tables and leaving equipment updates on the old one.
 	// Reflect only the installed ACF contract's protected fields; never copy live
 	// linked instances, delegates, pose state or arbitrary Blueprint properties.
@@ -41,6 +88,7 @@ void FEFCharacterCreationACFUBridge::RestoreAnimationAfterBodyChange(AActor* Act
 		Property->CopyCompleteValue_InContainer(Current, Previous);
 	}
 	Cache->SetObjectPropertyValue_InContainer(Movement, Current);
+	ConfigureDAZWeaponOverlays(Character, Current);
 	const auto ReadTag = [Movement](const TCHAR* Name)
 	{
 		const FStructProperty* Property = FindFProperty<FStructProperty>(Movement->GetClass(), Name);
