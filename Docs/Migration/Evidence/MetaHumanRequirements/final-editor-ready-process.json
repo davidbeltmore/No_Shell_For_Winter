@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 60.814,
+  "limit_seconds": 350,
+  "command": [
+    "python",
+    "Saved/MetaHumanGuidelines/WaitReady.py"
+  ]
+}

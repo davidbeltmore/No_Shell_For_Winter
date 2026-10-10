@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 26.889,
+  "limit_seconds": 180,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Tools/NPC/ValidatePackaged.ps1",
+    "-StagedRoot",
+    "D:/Projects UE5/NoShellForWinter/Saved/BodyPresetsQA/Package_20261009_215742/Staged",
+    "-Mode",
+    "Appearance"
+  ]
+}

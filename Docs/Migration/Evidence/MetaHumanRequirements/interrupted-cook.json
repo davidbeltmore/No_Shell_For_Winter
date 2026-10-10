@@ -1,0 +1,8 @@
+{
+  "status": "INTERRUPTED",
+  "package": "Saved/BodyPresetsQA/Package_20261009_215049",
+  "last_progress": "6253 cooked / 6702 total",
+  "completion_receipt": false,
+  "processes_running_on_resume": false,
+  "reason": "VS Code closed during automation, reported by user; no success receipt"
+}

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 51.78,
+  "limit_seconds": 120,
+  "command": [
+    "python",
+    "Tools/NPC/LogicProtection.py",
+    "after"
+  ]
+}

@@ -1,0 +1,13 @@
+spawn=MeleeEnemy class=/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C synchronous_ms=48.64
+spawn=MeleeEnemy class=/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C synchronous_ms=11.80
+spawn=SkillGuy class=/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C synchronous_ms=219.26
+spawn=SkillGuy class=/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale.ACF_SkillGuy_BPFemale_C synchronous_ms=38.46
+spawn=Vendor class=/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C synchronous_ms=10.60
+spawn=Vendor class=/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C synchronous_ms=10.63
+spawn=Routine class=/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale.ACFGuyRoutine_BPMale_C synchronous_ms=290.55
+spawn=Routine class=/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale.ACFGuyRoutine_BPFemale_C synchronous_ms=38.65
+spawn=Zombie class=/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C synchronous_ms=7.26
+spawn=Zombie class=/Game/_Game/Characters/Female/ACFZombieBPFemale.ACFZombieBPFemale_C synchronous_ms=35.82
+spawn=NPCAI class=/Game/_Game/Characters/Male/ACF_NPCAI_BPMale.ACF_NPCAI_BPMale_C synchronous_ms=9.06
+spawn=NPCAI class=/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale.ACF_NPCAI_BPFemale_C synchronous_ms=7.61
+status=FAIL reason=Missing generated DAZ appearance: ACFMeleeEnemyBPMale_C_0 elapsed_seconds=8.857

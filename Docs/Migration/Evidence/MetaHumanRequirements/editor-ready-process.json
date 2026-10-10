@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "exit_code": 4294967295,
+  "seconds": 86.428,
+  "limit_seconds": 350,
+  "command": [
+    "python",
+    "Saved/MetaHumanGuidelines/WaitReady.py"
+  ]
+}

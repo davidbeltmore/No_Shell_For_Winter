@@ -1,0 +1,220 @@
+{
+  "snapshot": "b58f32d43f0a504dd58913b20e3d1956aab3a15c",
+  "artifacts": {
+    "requirements.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\requirements.json",
+      "sha256": "006204230bb2f6c2bbbafe3d937c177b223e6efa46cf2e8d325b486fbaf10359",
+      "bytes": 818
+    },
+    "compile.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\compile.json",
+      "sha256": "9a3c9ebcded721f7f9e1c25720ce906bf2b0b413214240505deb3330358777d0",
+      "bytes": 286
+    },
+    "preparation.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\preparation.json",
+      "sha256": "972a36173560bcf2386609ca857c88ad3cb9e9574399550469e79e3f9ac13cc1",
+      "bytes": 77
+    },
+    "initial-pie-host.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\initial-pie-host.json",
+      "sha256": "277a534db4423ecbaec3ed95f3897b7af7c4c0402098f34621da608a7d2c7cee",
+      "bytes": 1508
+    },
+    "initial-pie-runtime.txt": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\initial-pie-runtime.txt",
+      "sha256": "098932f1b426a1ea7174f55462acab63db1aa1f14d61000f2dcb99c8f18e7f15",
+      "bytes": 1434
+    },
+    "initial-editor-ui.png": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\initial-editor-ui.png",
+      "sha256": "7ca02708cf085b9a5c32d168ccb0d3bd13a0e0e81d3beaab61ebf374fd72fe87",
+      "bytes": 1787539
+    },
+    "interrupted-cook.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\interrupted-cook.json",
+      "sha256": "fe11ddfdc0a464761010bf420a59013afbe7ac2ed0c4b74a43c15972ee794c37",
+      "bytes": 300
+    },
+    "final-state.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\final-state.json",
+      "sha256": "726aa590b0875dcf70c16bbdc721b315f7f26b6ec1be3de55cb8d0cd4c5d8a29",
+      "bytes": 156
+    },
+    "EditorUI.png": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\EditorUI.png",
+      "sha256": "e04fcfd3edee3b8107a8d4d9d30a5fd4341b7776d5875d9e20d56fc73bf0c58a",
+      "bytes": 1849771
+    },
+    "generated-stability.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\generated-stability.json",
+      "sha256": "476ca6bdffd5da9370b8a6996c356dc3ef0b0729a6cba150c5096315010cebfb",
+      "bytes": 58
+    },
+    "cleanup-dry-run.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\cleanup-dry-run.json",
+      "sha256": "31ba14ea3fa812c1a1b44e2db86f7cfb1769b5855e94ce652e75da714b98b50d",
+      "bytes": 374
+    },
+    "cleanup-applied.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\cleanup-applied.json",
+      "sha256": "2ef44722e13686cb3645dc159d198ab6ee97f5ef9245ff6d3cfd9b3907313559",
+      "bytes": 372
+    },
+    "clothing-freshness.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\ClothingMorphV4QA\\Freshness.json",
+      "sha256": "17f7fe6c4508f153a5cd8cdf37d02eda8ff4bbe0db5d2ce50f0fad375b1b919b",
+      "bytes": 311
+    },
+    "pie-host.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\pie-host.json",
+      "sha256": "52d998b7f0fb0d7a6b98922d1a869b6f8a03b29171cd12b82329c574fe85b1ad",
+      "bytes": 74
+    },
+    "pie-runtime.txt": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Runtime\\runtime.txt",
+      "sha256": "1922a530e5812eeccbd8159be939a711cffd423298dff60a2057bd22c0361cf4",
+      "bytes": 3178
+    },
+    "package-result.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_215742\\package-result.json",
+      "sha256": "334a02b52e338417af5b120b5531e8d7d28fe3ed29428ce37f48f3069e220d8f",
+      "bytes": 141
+    },
+    "package-refresh-result.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_215742\\package-refresh-result.json",
+      "sha256": "5df2cbde7c564f0aa9700eb71e78bf2ff7e7e43b8ef75b38097204d67ed6c8cc",
+      "bytes": 186
+    },
+    "packaged-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Packaged_20261009_222539\\process.json",
+      "sha256": "6ce69f12a6b40b34b630f6ba23b647787f8ace4453efc7946a359b0c74741334",
+      "bytes": 363
+    },
+    "packaged-runtime.txt": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Packaged_20261009_222539\\UserData\\Saved\\NPCDAZ\\Runtime\\runtime.txt",
+      "sha256": "6664c1bd1d70e462dd5453b831ebde3d155a89286e08a8a0e6d85cedbb87951d",
+      "bytes": 3174
+    },
+    "packaged-roster.png": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\Packaged_20261009_222539\\UserData\\Saved\\NPCDAZ\\Runtime\\Roster.png",
+      "sha256": "6dc9ca950f56540dc42a8fadd65092bf884ab8b6d4bfdd67c6ee26e74c9dd333",
+      "bytes": 1614413
+    },
+    "editor-build-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-editor-build-process.json",
+      "sha256": "d0df7208de4cc694d8ffcc48725e73a84124c4316d4e88cfac907c78ccd27488",
+      "bytes": 262
+    },
+    "game-build-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-game-build-process.json",
+      "sha256": "792983979c82d4f8c7b5afd8648f9b814814f4c0f8edffb273ca74d4823d83a2",
+      "bytes": 260
+    },
+    "package-resume-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-package-resume-process.json",
+      "sha256": "a75c850e7ca8f95c3d1ee0f39edaad1dfa30dce17d366dfbeccc54b03d98f74c",
+      "bytes": 256
+    },
+    "package-refresh-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-package-refresh-process.json",
+      "sha256": "3b4a0ed13e5cbe578745b82d6881b79d0186cce849c9c822b74b05b47afe7838",
+      "bytes": 257
+    },
+    "final-packaged-appearance-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-final-packaged-appearance-process.json",
+      "sha256": "5d0d2887db9c422a0af811ff32ac8c324090e8d6777150cafec38fab3bcebfd9",
+      "bytes": 387
+    },
+    "blueprint-compile-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-blueprint-compile-process.json",
+      "sha256": "30609eab51f2e282642548fd98bbd1e4071fb680a1b2807165ef67577ee53d09",
+      "bytes": 215
+    },
+    "requirements-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-requirements-process.json",
+      "sha256": "95db28b3fabe09b7c4283a11e1d33d81dc2441403a4af2fea236bc5d25a5bd58",
+      "bytes": 219
+    },
+    "editor-ready-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-editor-ready-process.json",
+      "sha256": "7447e501ad53c3cc349b77a8bdb9954df878b26456231e57c99cf26a50cf8d77",
+      "bytes": 182
+    },
+    "final-editor-ready-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-final-editor-ready-process.json",
+      "sha256": "2bded8a99751f010fe23b1a5631e3fbd535650fa7849b4dee61510ab8e520dee",
+      "bytes": 173
+    },
+    "published-protection-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-published-protection-process.json",
+      "sha256": "8bb80e5bd8899e0f719c442d9c9fbb7d6711c399252d77810cc7afab98821ea9",
+      "bytes": 176
+    },
+    "final-clothing-audit-process.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCDAZ\\metahuman-final-clothing-audit-process.json",
+      "sha256": "f44fd578dfb1203b88d7c309eff586db5dcacaaf1c08633814787edff957d3f5",
+      "bytes": 219
+    },
+    "protected-summary.json": {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\MetaHumanGuidelines\\protected-summary.json",
+      "sha256": "6b1a16ad56bc8185b7f6f3c2e8c69ce5c47758da792c86a3fbba62fcd1f5dba3",
+      "bytes": 313
+    }
+  },
+  "generated_assets": {
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_EFClothingFitRegistry.uasset": "7112f2b6d1c02315885470e71eda93b9f215405e66261100fa407758ae23bdc9",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_UnderWearPanty_1D108A5B_Female_1FCC5E1D_EFV26Surface_5d7b42ca5290_F6B85F2A48B90C31468DC8BD8627E0B0.uasset": "b8f01a41ee6f85c9d3bcdacb411f0573472932c5182f2b5a3988da710ce1cc74",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_UnderWearPanty_1D108A5B_Female_1FCC5E1D_EFV26Surface_d1adcf9f0541_F483F8A74BA5655C55210B9172782E1C.uasset": "711b48a6b17712f8a0c74f303cf2b505928152c0499ae943ff27cd2275be7be9",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_UnderWearPanty_1D108A5B_Female_1FCC5E1D_EFV2Fit_5d7b42ca5290_F6B85F2A48B90C31468DC8BD8627E0B0.uasset": "78b43a2f0df0962454c5ea6412583dca112860a80cd8f7903af8dcf0a1a579ba",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_UnderWearPanty_1D108A5B_Female_1FCC5E1D_EFV2Fit_d1adcf9f0541_F483F8A74BA5655C55210B9172782E1C.uasset": "87548dc32cf3da9ba3840c9bcf6350e50205628b65988d11ce48f5a3df84f995",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\SK_UnderWearPanty_1D108A5B_EFV2_5d7b42ca5290_F6B85F2A48B90C31468DC8BD8627E0B0.uasset": "e90d4494dd447483f267014a5e7964ca520584f095f24b5c390876f61e62c8af",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\SK_UnderWearPanty_1D108A5B_EFV2_d1adcf9f0541_F483F8A74BA5655C55210B9172782E1C.uasset": "718482739466fe4816badf730331d677f17db01613f335bcde36125f7600dcaf",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V3\\DA_EFClothingFitRegistry.uasset": "64faca548c540618e61bdbc72da3627555bea5c2e1293ebf779ff2333732a8f6",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V3\\DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV3Surface_6C87E7D8469CDE205F3D6582E1B7E6E6.uasset": "57cd456f2108ecd262e4181d2c76d9022cd21bd4ca99ec13397f278539baa35b",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_EFClothingFitRegistry.uasset": "247ffd5d63431ad92da986ac9f81470c88564daec1e0c2034c3b96da71c39a75",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_2445FB7749E47F18D7B90DB9BAB58A79.uasset": "4ef7f79222f49ff06184333c6c233ae579929c15865759b3377279158b61f8ac",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_97EB13004C6C38C37D0310B9BE3D4E1F.uasset": "a9c869c4e5de80975713247341879fd201f2508aa7a4ec1582964029dea85fce",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_4F79027545BB5FE369D2C6B1F85FE15A.uasset": "c611aa3b0aed2a348bd327bf193c17ab3c77523728c71c80e0ccac7abb6d8572",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6DF2D4654E81342BACB93196A165AA48.uasset": "2c8189af1ad9372b57fdb96573973ed211cfa4e410675d8969d68aa13ea4b66e",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_5922AEAB4A43576A80525987FEE69F03.uasset": "293729b0a9a7b4e3b93937f281e047d0caa64432ac51c42b136326cdb45855b9",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_482CD1D044F2EDA615DABC9072CBBE19.uasset": "a5db8981ae4c7d607fc6bab94bd1e05891470d75008f12760bcd6a9b9ca15d62",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_7E7E1968499F81ACC9E2749F470C1E6B.uasset": "a74924c54a41a75d0d98a3a483564435ef09a564ff89fdada9baa0be765f3eba",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_F5EB2ED640B9F362C8E45FB12B24B68D.uasset": "cd42c41e3dcb5bf2df2231bf0352d533690186ad24284d0132ceee000afddaeb",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_A5DC489248EAB1CE55F127B68AD4E48B.uasset": "a16f4956cce2bb76e287b337064aa087b6761c3231142da810a8ec80a6e54fe5",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBikini_Female_5919F4ED_Female_1FCC5E1D_EFV4Surface_F78058BC437D9EC046E8C1A3F6025519.uasset": "12342a88a7611e1dede0b3580d74a30e994f77cc8eb8438d9b315c3eb499891b",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBikini_Female__Body_18b57db069578ab5d79af64c743f465b_5919F4ED_Male2_F04E08FE_EFV4Surface_D8DE28D24AA0643B0AC8FFAE08ECD5CA.uasset": "853c6f628958ef76437c79487be6d4c788d3a94f7b958fc77456e43f7cae1be8",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBikini_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_5919F4ED_Male_DEE4BC74_EFV4Surface_5AF0266D4E4B74739D361A99150E5099.uasset": "bf4983b0c70bcd31d7397c6876a8e1c6629eb264ea0457e1f6423a70361fd48f",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBra_Female_759333BC_Female_1FCC5E1D_EFV4Surface_D7E1D10844F4934CAA461F8609E58FDA.uasset": "93a8a320260392f59b191289d4faa4773273eaa2980730c481bf2715ac5e70b3",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBra_Female__Body_18b57db069578ab5d79af64c743f465b_759333BC_Male2_F04E08FE_EFV4Surface_1CE041714525223BC4EBF69D456A5A56.uasset": "b3cde4eceb8c657888228d65223ecc1625553247e7b9d9d0b6190b62466ec868",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearBra_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_759333BC_Male_DEE4BC74_EFV4Surface_872C2A34464AA75CAD53DBBA86DD4938.uasset": "640edc2eddfbe241bcea33b2d702ea2e0ee496c6cd2667c597a261e85998f550",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearPanty_Female_1D108A5B_Female_1FCC5E1D_EFV4Surface_2556ABA246380C3CF5BC2AB0DAA20250.uasset": "c1664e1dbc6420750099ebcb1acf45f834edd1f144a46928fe1feb7fe2b3d419",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearPanty_Female__Body_18b57db069578ab5d79af64c743f465b_1D108A5B_Male2_F04E08FE_EFV4Surface_DD458FA443C3B1DCAB7E8B822F79D059.uasset": "d06db2b114bcc02518061632e1b934e411e448e8977436ff810d9d865cb6a279",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_UnderWearPanty_Female__Body_b6521f6ed0a418dc5bd8281bff95cd40_1D108A5B_Male_DEE4BC74_EFV4Surface_42947DBE47EC7FEA9577C1A43001FC11.uasset": "b0289340995aa362f328e4c36641ea907b294b7b4d4757d935debdf9f52e9bd8",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\BodyProfiles\\DA_EFBodyProfile_Female.uasset": "c99232bf237457dbe1924cf41f176329022c13fb4fc36947098d5a1689dca50b",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\BodyProfiles\\DA_EFBodyProfile_Male.uasset": "43e2f340dde30964fee0fbd37497634f1b33f3e62ccaf69710052b40aa551207",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\BodyProfiles\\DA_EFBodyProfile_Male2.uasset": "ac681724a3c2450490b4176aeecd82c6ab83ddfd39f637a035c38e3e5fd851c3",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingFitRegistry.uasset": "7bc6da91207762a27bb9059a341653c3360034212aee248f49e30dfaae9b0c90",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingSystemManifest.uasset": "faadbb2fd050dc1dd12adf4b1078d958b4490c18b709a01b53e9fdea3d4a5f68",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps.uasset": "9a0bbf2cb91c7e9572edc19b83ccb373ca636ddea7badfae3e0f9d43dbf05a0d",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps_Body_18b57db069578ab5d79af64c743f465b.uasset": "ca246e49287dab0dc4c16ebcab08813a82b641a8c50f166e948b92202b2742f1",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "370be895c22deb84b975927f8d10fb66937933baa75e13c9d4e493d67e0a2278",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants.uasset": "058a7eb7160c2fc13cbfba774b671599368bb6e339389f37cdf8066f7f28bd69",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_18b57db069578ab5d79af64c743f465b.uasset": "ab9c39e38a9c7a99956b35c5a3944cc7a13defceba3e66d656d19b6d9d66ae16",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "6b7e1099328d29d0458dcb3ed7a28b458e12eb8c133b208547278391324361c0",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt.uasset": "f0f864030a58ddb63777983bf8533dc7768e27ae11619531aeafc6fd4102ac3e",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt_Body_18b57db069578ab5d79af64c743f465b.uasset": "3d98f05bd71ae61e7ca16ed3f680f05d453b1bd16e0177fff05a6238bfc00897",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "14a730d79fb99b125982de7274453838ce36f6a82baa907f7dc6cef5f882a1ff",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBikini_Female.uasset": "6c1a4c8e793e3babd432f3594edfd1e3acf175dfaa818d6ad62f5b495a68124f",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBikini_Female_Body_18b57db069578ab5d79af64c743f465b.uasset": "73f0d6df08ad6756f6cffee290f8bc082b0596b5a71f3620824698abae7d066c",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBikini_Female_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "c1f6e666bee3a80d565e5be52b68758e8a6fef70d46a30bd22845801ac3e014c",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBra_Female.uasset": "c4e03d63724dd3e0d45c6eb98c03ee105b816b4c82c7ade34a009c03cd82ffa0",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBra_Female_Body_18b57db069578ab5d79af64c743f465b.uasset": "c443456c1373187e63136b3f3927f9b5dccbcc286b894bef6acfc52e6b48d27e",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearBra_Female_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "af3833ef9fa2021a07e916e3e1b8caef09730b72d5a203eefb219b8a3edb253c",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearPanty_Female.uasset": "b2bf82a38e236aed3d7e1ca679359074d31661261953edee6a7d9f98c06eb394",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearPanty_Female_Body_18b57db069578ab5d79af64c743f465b.uasset": "c96687331ba1564ce0939614ccac2118a6f1c4a7eded8e2eb15c6b0174d074f9",
+    "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_UnderWearPanty_Female_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset": "6985ca1f2ee2fd4c6df9d21d59e2fabf0cc851ecaf14c6e990817ffe9622d283"
+  },
+  "retained_package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261009_215742",
+  "package_exe_sha256": "ff9d856c2e507275c40551e40f6e7b131197993d7300f0b6a8ed467381210f3a"
+}

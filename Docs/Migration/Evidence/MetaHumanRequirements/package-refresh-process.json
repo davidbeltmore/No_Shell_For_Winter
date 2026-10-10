@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 176.694,
+  "limit_seconds": 480,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Saved/MetaHumanGuidelines/RefreshPackage.ps1"
+  ]
+}

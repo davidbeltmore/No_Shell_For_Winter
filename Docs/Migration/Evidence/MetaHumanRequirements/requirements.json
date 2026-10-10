@@ -1,0 +1,33 @@
+{
+  "plugins": {
+    "LiveLinkControlRig": true,
+    "AppleARKitFaceSupport": true,
+    "DazToUnreal": true,
+    "EFCharacterCreationDazBridge": true
+  },
+  "settings": {
+    "r.GPUSkin.Support16BitBoneIndex": {
+      "authored": "True",
+      "effective": 1
+    },
+    "r.GPUSkin.UnlimitedBoneInfluences": {
+      "authored": "True",
+      "effective": 1
+    },
+    "r.SkinCache.CompileShaders": {
+      "authored": "True",
+      "effective": 1
+    },
+    "SkeletalMesh.UseExperimentalChunking": {
+      "authored": "1",
+      "effective": 1
+    }
+  },
+  "assets": {
+    "/AscentCombatFramework/MetaHumans/Common/Common/Mocap/mh_arkit_mapping_anim": true,
+    "/Game/FullSample/MetaHumans/Hadley/Face/Hadley_FaceMesh": true
+  },
+  "errors": [],
+  "status": "PASS",
+  "seconds": 1.485
+}

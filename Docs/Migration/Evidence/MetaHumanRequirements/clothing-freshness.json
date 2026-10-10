@@ -1,0 +1,12 @@
+{
+  "fresh": true,
+  "enabled_row_count": 18,
+  "valid_binding_count": 18,
+  "draft_row_count": 0,
+  "invalid_row_count": 0,
+  "stale_row_count": 0,
+  "report": "V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+  "manifest_valid": true,
+  "status": "PASS",
+  "seconds": 1.187
+}
