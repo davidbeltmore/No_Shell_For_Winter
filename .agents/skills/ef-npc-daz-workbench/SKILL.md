@@ -69,6 +69,26 @@ The MetaHuman-derived DAZ variant uses a complete DAZ body. Its MetaHuman face,
 clothing and groom payloads must not render over that body. Do not claim DAZ facial
 lip-sync from retaining a MetaHuman-specific component.
 
+Retaining the ACF MetaHuman ancestry can still load Hadley and facial-animation
+dependencies even when their render components are empty. For AssetGuideline
+warnings, inspect the named asset and effective project requirements; an empty
+visible payload does not prove the dependency was removed. The retained sample
+requires `LiveLinkControlRig`, `AppleARKitFaceSupport` and four renderer settings
+recorded in `Tools/NPC/AuditMetaHumanRequirements.py`. Run that read-only audit after
+a protected restart. UE compares exact INI strings as well as plugin enablement;
+CVar defaults alone may not satisfy it. Keep guideline metadata intact, do not
+resave vendor assets to silence warnings, and do not diagnose DAZ gun-pose or AI
+failures from these warnings without separate evidence.
+After changing renderer capabilities, let editor asset/shader preparation finish
+before interpreting a short PIE wall-clock settling failure as a gameplay defect.
+Preserve the failed receipt, record visible preparation state and permit one bounded
+repeat after preparation; do not weaken appearance assertions to obtain a PASS.
+Renderer changes can also trigger the clothing plugin's automatic startup refresh
+of generated bindings. Before packaging, run
+`Tools/ClothingMorphV5/Audit-Freshness58.py` and inspect generated V4/V5 changes;
+refer to `ef-clothing-unisex-workbench` if they need validation. Package the final
+generated state, keeping source meshes and the authoring Director unchanged.
+
 ## Durable authoring
 
 Reparenting a copied Blueprint changes the owning SCS node keys. Existing inherited

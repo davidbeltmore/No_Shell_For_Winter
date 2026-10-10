@@ -17,6 +17,14 @@
 	],
 	"Plugins": [
 		{
+			"Name": "LiveLinkControlRig",
+			"Enabled": true
+		},
+		{
+			"Name": "AppleARKitFaceSupport",
+			"Enabled": true
+		},
+		{
 			"Name": "EFEquipment",
 			"Enabled": true
 		},
