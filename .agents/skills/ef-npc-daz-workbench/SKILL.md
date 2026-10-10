@@ -55,6 +55,9 @@ visual rest; never infer support from a mesh name.
 
 ## Animation traps
 
+For DAZ firearm neck/upper-body deformation, use `ef-daz-firearm-pose-workbench`.
+Its owned overlay policy and bounded pose fixture preserve native gameplay logic.
+
 An AnimInstance pointer alone proves nothing. SkillGuy's original simple template
 has empty moveset/overlay tables and no authored initializer. Use the owned
 initializer and a complete animation template. Skeleton-changing body swaps also

@@ -1,0 +1,83 @@
+head_elevation_cm=18.584 baseline=18.586
+case=0 role=npc body=Male.01 weapon=pistol mode=hold neck_cm=19.137 baseline_cm=19.137 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+head_elevation_cm=18.671 baseline=18.586
+case=0 role=npc body=Male.01 weapon=pistol mode=aim neck_cm=19.138 baseline_cm=19.137 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+aim_transition_cm=80.092 radians=1.538
+head_elevation_cm=18.671 baseline=18.586
+case=0 role=npc body=Male.01 weapon=pistol mode=after_shoot neck_cm=19.138 baseline_cm=19.137 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=PistolEquip native_socket=false attach=spine_03 error_cm=0.000
+stow_parent=CharacterMesh0 owner=ACFGunEnemyBPMale_C_0
+head_elevation_cm=18.760 baseline=18.584
+case=1 role=npc body=Male.01 weapon=rifle mode=hold neck_cm=19.154 baseline_cm=19.137 ratio=1.001 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+head_elevation_cm=18.347 baseline=18.584
+case=1 role=npc body=Male.01 weapon=rifle mode=aim neck_cm=19.126 baseline_cm=19.137 ratio=0.999 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+aim_transition_cm=16.947 radians=0.774
+head_elevation_cm=18.301 baseline=18.584
+case=1 role=npc body=Male.01 weapon=rifle mode=after_shoot neck_cm=19.134 baseline_cm=19.137 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=RifleEquip native_socket=true attach=RifleEquip error_cm=0.000
+stow_parent=CharacterMesh0 owner=ACFGunEnemyBPMale_C_1
+head_elevation_cm=17.713 baseline=17.750
+case=2 role=npc body=Female.01 weapon=pistol mode=hold neck_cm=18.260 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+head_elevation_cm=17.798 baseline=17.750
+case=2 role=npc body=Female.01 weapon=pistol mode=aim neck_cm=18.261 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+aim_transition_cm=82.291 radians=1.538
+head_elevation_cm=17.798 baseline=17.750
+case=2 role=npc body=Female.01 weapon=pistol mode=after_shoot neck_cm=18.261 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=PistolEquip native_socket=false attach=spine_03 error_cm=0.000
+stow_parent=CharacterMesh0 owner=ACFGunEnemyBPFemale_C_0
+head_elevation_cm=17.867 baseline=17.750
+case=3 role=npc body=Female.01 weapon=rifle mode=hold neck_cm=18.275 baseline_cm=18.260 ratio=1.001 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+head_elevation_cm=17.558 baseline=17.750
+case=3 role=npc body=Female.01 weapon=rifle mode=aim neck_cm=18.231 baseline_cm=18.260 ratio=0.998 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+aim_transition_cm=17.800 radians=0.774
+head_elevation_cm=17.512 baseline=17.750
+case=3 role=npc body=Female.01 weapon=rifle mode=after_shoot neck_cm=18.243 baseline_cm=18.260 ratio=0.999 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=RifleEquip native_socket=true attach=RifleEquip error_cm=0.000
+stow_parent=CharacterMesh0 owner=ACFGunEnemyBPFemale_C_1
+head_elevation_cm=18.529 baseline=18.529
+case=4 role=player body=Male.02 weapon=pistol mode=hold neck_cm=19.101 baseline_cm=19.101 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+head_elevation_cm=18.617 baseline=18.529
+case=4 role=player body=Male.02 weapon=pistol mode=aim neck_cm=19.102 baseline_cm=19.101 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+aim_transition_cm=82.732 radians=1.538
+head_elevation_cm=18.617 baseline=18.529
+case=4 role=player body=Male.02 weapon=pistol mode=after_shoot neck_cm=19.102 baseline_cm=19.101 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=PistolEquip native_socket=false attach=spine_03 error_cm=0.000
+stow_parent=CharacterMesh0 owner=BP_TSChar_C_0
+head_elevation_cm=18.741 baseline=18.689
+case=5 role=player body=Male.02 weapon=rifle mode=hold neck_cm=19.124 baseline_cm=19.110 ratio=1.001 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+head_elevation_cm=18.221 baseline=18.689
+case=5 role=player body=Male.02 weapon=rifle mode=aim neck_cm=19.118 baseline_cm=19.110 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+aim_transition_cm=17.621 radians=0.774
+head_elevation_cm=18.192 baseline=18.689
+case=5 role=player body=Male.02 weapon=rifle mode=after_shoot neck_cm=19.122 baseline_cm=19.110 ratio=1.001 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=RifleEquip native_socket=true attach=RifleEquip error_cm=0.000
+stow_parent=SkeletalMesh owner=BP_TSChar_C_0
+head_elevation_cm=17.713 baseline=17.713
+case=6 role=player body=Female.01 weapon=pistol mode=hold neck_cm=18.260 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+head_elevation_cm=17.798 baseline=17.713
+case=6 role=player body=Female.01 weapon=pistol mode=aim neck_cm=18.261 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+aim_transition_cm=81.594 radians=1.538
+head_elevation_cm=17.798 baseline=17.713
+case=6 role=player body=Female.01 weapon=pistol mode=after_shoot neck_cm=18.261 baseline_cm=18.260 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZPistolOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=PistolEquip native_socket=false attach=spine_03 error_cm=0.000
+stow_parent=CharacterMesh0 owner=BP_TSChar_C_0
+head_elevation_cm=17.910 baseline=17.863
+case=7 role=player body=Female.01 weapon=rifle mode=hold neck_cm=18.278 baseline_cm=18.268 ratio=1.001 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+head_elevation_cm=17.403 baseline=17.863
+case=7 role=player body=Female.01 weapon=rifle mode=aim neck_cm=18.262 baseline_cm=18.268 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+aim_transition_cm=17.377 radians=0.774
+head_elevation_cm=17.376 baseline=17.863
+case=7 role=player body=Female.01 weapon=rifle mode=after_shoot neck_cm=18.266 baseline_cm=18.268 ratio=1.000 head_scale=X=1.000 Y=1.000 Z=1.000 overlay=ABP_DAZRifleOverlay_C
+native_shot=PASS ammo_before=10.0 ammo_after=9.0
+stow=RifleEquip native_socket=true attach=RifleEquip error_cm=0.000
+stow_parent=SkeletalMesh owner=BP_TSChar_C_0
+refund=ACF_Bullet_BP_C old_count=60 current_count=56
+refund=ACFHealthPotionBP_C old_count=3 current_count=2
+status=PASS completed=8/8 reason=2 weapons x 2 genders x actual player/NPC; native shooting and restoration elapsed_seconds=65.088

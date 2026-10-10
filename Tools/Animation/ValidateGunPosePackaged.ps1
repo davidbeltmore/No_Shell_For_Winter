@@ -13,12 +13,12 @@ $started=Get-Date
 $process=Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $deadline=(Get-Date).AddSeconds($limit)
 while (!$process.HasExited -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2; $process.Refresh() }
-if (!$process.HasExited) { Stop-Process -Id $process.Id -Force; throw "Packaged NPC QA exceeded $limit seconds: $out" }
+if (!$process.HasExited) { Stop-Process -Id $process.Id -Force; throw "Packaged gun pose QA exceeded $limit seconds: $out" }
 $receipts=@(Get-ChildItem -LiteralPath $out -Recurse -Filter runtime.txt -File | Where-Object { $_.FullName -like ('*'+$suite+'*') })
 $passed=$receipts.Count -eq 1 -and (Select-String -LiteralPath $receipts[0].FullName -Pattern 'status=PASS' -Quiet)
 $errors=@(Select-String -LiteralPath (Join-Path $out 'game.log') -Pattern 'Fatal error[!:]|=== Critical error: ===|Handled ensure:|Blueprint Runtime Error|Failed to (load|find object).*(DA_NPCRoster|Characters/(Male|Female|Data|Framework|Animation))')
 $result=@{mode='GunPose';exit_code=$process.ExitCode;seconds=((Get-Date)-$started).TotalSeconds;runtime_pass=[bool]$passed;feature_errors=$errors.Count;receipts=@($receipts.FullName);limit_seconds=$limit}
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $out 'process.json')
 Set-Content -LiteralPath (Join-Path $ProjectRoot ('Saved\'+$suite+'\latest-packaged.txt')) -Value $out
-if (!$passed -or $process.ExitCode -ne 0 -or $errors.Count) { throw "Packaged NPC QA failed: $out" }
+if (!$passed -or $process.ExitCode -ne 0 -or $errors.Count) { throw "Packaged gun pose QA failed: $out" }
 Write-Host "Packaged gun pose smoke PASS; inspect screenshots: $out"

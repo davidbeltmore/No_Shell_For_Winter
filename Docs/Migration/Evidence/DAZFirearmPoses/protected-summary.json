@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "count_before": 7643,
+  "count_after": 7643,
+  "changed": [],
+  "implementation_snapshot": "a78a8298396caa752b18c6d1aa1e0601678db733",
+  "baseline_receipt_sha256": "393c9c5084082a09c05cb5e6d5c316ede3606a46fa11441ebaab35646bd68fc9",
+  "after_receipt_sha256": "97e4679fd115841947cfd4eb9ab9e962611d807cfb14518621216c98699b1d83",
+  "baseline_seconds": 75.59,
+  "after_seconds": 12.01,
+  "protected_asset_hashes": {
+    "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Female\\Female.uasset": "8c333c85f218b9858cb3bf67e7b9b15abb071a08689917a90a18965a5a75af13",
+    "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Male\\Male.uasset": "ad03e3417ce42997eaebf1b28189692a62bc2126cf707fa75f8c373587dd629c",
+    "D:\\Projects UE5\\NoShellForWinter\\Content\\DazToUnreal\\Multiple\\Multiple.uasset": "3fc4e53877c2ea61a766761e12095fa5f9af48993a2ece6ce131cfcca6bf9583",
+    "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\GASP\\UEFN_Mannequin\\Meshes\\SK_UEFN_Mannequin.uasset": "2f23059e4a1f166030724eb4369ba462302d025f2f4a09079ef95402846a8693",
+    "D:\\Projects UE5\\NoShellForWinter\\Content\\FullSample\\Player.uasset": "c79aee2264d52c3a9f61687a57d3713cbb25441e778979e5c412b82d84b36709"
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "exit_code":  0,
+    "limit_seconds":  180,
+    "feature_errors":  0,
+    "receipts":  [
+                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\GunPose\\Packaged_20261010_144656\\UserData\\Saved\\GunPose\\Runtime\\runtime.txt"
+                 ],
+    "runtime_pass":  true,
+    "mode":  "GunPose",
+    "seconds":  76.663193499999991
+}

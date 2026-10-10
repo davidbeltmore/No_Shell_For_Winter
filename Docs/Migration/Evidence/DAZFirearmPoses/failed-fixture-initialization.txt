@@ -1,0 +1,2 @@
+restoration=FAIL inventory identity/count
+status=FAIL completed=0/8 reason=Preset unavailable elapsed_seconds=1.298

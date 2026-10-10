@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "seconds": 0.5779999999995198,
+  "overlays": [
+    {
+      "source": "/Game/FullSample/GASP/Animations/Overlays/Additive/Weapons/Pistol/ACF_MMPistolAdditiveOverlay",
+      "target": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZPistolOverlay",
+      "profiles": {
+        "Idle": "/Game/_Game/Characters/Animation/Weapons/DA_DAZPistolIdleLayering.DA_DAZPistolIdleLayering",
+        "Aim": "/Game/_Game/Characters/Animation/Weapons/DA_DAZPistolAimLayering.DA_DAZPistolAimLayering"
+      }
+    },
+    {
+      "source": "/Game/FullSample/GASP/Animations/Overlays/Additive/Weapons/Rifle/ACF_MMRifleAdditiveOverlay",
+      "target": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZRifleOverlay",
+      "profiles": {
+        "Idle": "/Game/_Game/Characters/Animation/Weapons/DA_DAZRifleIdleLayering.DA_DAZRifleIdleLayering",
+        "Aim": "/Game/_Game/Characters/Animation/Weapons/DA_DAZRifleAimLayering.DA_DAZRifleAimLayering"
+      }
+    }
+  ],
+  "original_table": [
+    {
+      "tag": "Moveset.SingleHandSword",
+      "class": "/Game/FullSample/GASP/Animations/Overlays/ACF_MMSwordOverlay.ACF_MMSwordOverlay_C"
+    },
+    {
+      "tag": "Moveset.Bow",
+      "class": "/Game/FullSample/GASP/Animations/Overlays/Additive/ACF_BowAdditiveOverlay.ACF_BowAdditiveOverlay_C"
+    },
+    {
+      "tag": "Moveset.Rifle",
+      "class": "/Game/FullSample/GASP/Animations/Overlays/Additive/Weapons/Rifle/ACF_MMRifleAdditiveOverlay.ACF_MMRifleAdditiveOverlay_C"
+    },
+    {
+      "tag": "Moveset.Pistol",
+      "class": "/Game/FullSample/GASP/Animations/Overlays/Additive/Weapons/Pistol/ACF_MMPistolAdditiveOverlay.ACF_MMPistolAdditiveOverlay_C"
+    },
+    {
+      "tag": "Moveset",
+      "class": "/Game/FullSample/Animations/AnimBPs/Overlays/ACF_UnarmedOverlay.ACF_UnarmedOverlay_C"
+    },
+    {
+      "tag": "Moveset.SwordAndShield",
+      "class": "/Game/FullSample/GASP/Animations/Overlays/ACF_MMSwordOverlay.ACF_MMSwordOverlay_C"
+    }
+  ]
+}
