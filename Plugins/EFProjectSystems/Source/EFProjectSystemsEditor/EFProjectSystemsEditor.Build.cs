@@ -62,6 +62,7 @@ public class EFProjectSystemsEditor : ModuleRules
 			"InputCore",
 			"BlueprintGraph",
 			"AnimGraph",
+			"AnimGraphRuntime",
 			"AnimationBlueprintLibrary"
 		});
 	}

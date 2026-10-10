@@ -1,4 +1,5 @@
 #include "Characters/ProjectNPCNavigationSubsystem.h"
+#include "Characters/ProjectActionMovementGateComponent.h"
 #include "ACFAIController.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -35,7 +36,11 @@ void UProjectNPCNavigationSubsystem::ControllerChanged(APawn* Pawn,AController* 
     bool Owned=false;
     for (auto* C=Pawn->GetClass();C;C=C->GetSuperClass())
         if (C->GetPathName().StartsWith(TEXT("/Game/_Game/Characters/"))) {Owned=true;break;}
-    if (Owned) Configure(Pawn,0);
+    if (Owned)
+    {
+        UProjectActionMovementGateComponent::EnsureZombiePolicy(Pawn);
+        Configure(Pawn,0);
+    }
 }
 void UProjectNPCNavigationSubsystem::Configure(TWeakObjectPtr<APawn> Pawn,int32 Attempt)
 {

@@ -6,12 +6,18 @@ class UAQSQuest;
 class UPhysicsAsset;
 class USkeletalMesh;
 class UBlueprint;
+class UAnimBlueprint;
+class UAnimMontage;
+class UACFAbilitySet;
 /** Editor-only PIE fixtures and narrowly scoped project-owned asset repairs. */
 UCLASS()
 class UProjectCompatibilityInspectionLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Adds an UpperBody slot and spine mask only to owned zombie animation/ability assets. */
+    UFUNCTION(BlueprintCallable, Category="Project|Animation Authoring")
+    static bool ConfigureOwnedZombieHitAssets(UAnimBlueprint* Animation, UACFAbilitySet* Abilities, UAnimMontage* LightMontage, FName StartBone=TEXT("spine_01"), int32 BlendDepth=3);
     /** Compare or restore editable component defaults after reparenting an owned NPC. */
     UFUNCTION(BlueprintCallable, Category="Project|NPC Authoring")
     static FString SyncOwnedNPCLogicDefaults(UBlueprint* Source, UBlueprint* Target, bool bApply);
