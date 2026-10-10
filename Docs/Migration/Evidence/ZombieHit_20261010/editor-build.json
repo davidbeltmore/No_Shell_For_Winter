@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "seconds": 16.144,
+  "limit_seconds": 600,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+  ]
+}

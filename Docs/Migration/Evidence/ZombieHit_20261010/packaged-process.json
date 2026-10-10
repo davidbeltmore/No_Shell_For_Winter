@@ -1,0 +1,11 @@
+{
+    "exit_code":  0,
+    "limit_seconds":  180,
+    "feature_errors":  0,
+    "receipts":  [
+                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\ZombieHit\\Packaged_20261010_160655\\UserData\\Saved\\ZombieHit\\Runtime\\runtime.txt"
+                 ],
+    "runtime_pass":  true,
+    "mode":  "ZombieHit",
+    "seconds":  32.5105432
+}

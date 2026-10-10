@@ -1,0 +1,26 @@
+fixture=engine_hitscan_point_damage native_AI no_forced_target_or_MoveTo deadline_seconds=90
+point_impact requested=10.00 applied=9.91 response=Actions.HitLight
+light case=0 samples=11 movement_cm=93.814 leg_motion_rad=1.6456 torso_motion_rad=0.9009 seconds=0.493
+point_impact requested=60.00 applied=58.64 response=Actions.Hit
+case=0 round=0 pre_speed_cm_s=350.00 hit_samples=42 held_seconds=1.434 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=0 advance_cm=100.20 seconds=0.448
+point_impact requested=60.00 applied=60.24 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=0 round=1 pre_speed_cm_s=350.00 hit_samples=13 held_seconds=0.624 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=1 advance_cm=108.05 seconds=0.450
+point_impact requested=60.00 applied=58.45 response=Actions.Hit
+point_impact requested=100000.00 applied=101276.44 response=Actions.Hit
+death case=0 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+point_impact requested=10.00 applied=10.20 response=Actions.HitLight
+light case=1 samples=13 movement_cm=150.616 leg_motion_rad=1.0697 torso_motion_rad=1.3309 seconds=0.445
+point_impact requested=60.00 applied=60.48 response=Actions.Hit
+case=1 round=0 pre_speed_cm_s=350.00 hit_samples=70 held_seconds=1.415 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=0 advance_cm=104.40 seconds=0.443
+point_impact requested=60.00 applied=62.33 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=1 round=1 pre_speed_cm_s=350.00 hit_samples=13 held_seconds=0.452 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=1 advance_cm=105.01 seconds=0.429
+point_impact requested=60.00 applied=61.01 response=Actions.Hit
+point_impact requested=100000.00 applied=98064.05 response=Actions.Hit
+death case=1 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+status=PASS cases=2 seconds=18.821 reason=2 DAZ zombies: planted impacts, repeat, cancellation, death and natural pursuit recovery

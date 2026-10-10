@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "seconds": 0.7970000000004802,
+  "assets": [
+    "/Game/_Game/Characters/Animation/Hits/AS_ZombieLightHit.AS_ZombieLightHit",
+    "/Game/_Game/Characters/Animation/Hits/AM_ZombieLightHit.AM_ZombieLightHit",
+    "/Game/_Game/Characters/Animation/Hits/AS_ZombieReactions.AS_ZombieReactions",
+    "/Game/_Game/Characters/Animation/ABP_DAZZombie.ABP_DAZZombie"
+  ],
+  "slot": "UpperBody",
+  "start_bone": "spine_01",
+  "blend_depth": 3,
+  "light_maximum_calculated_damage": 25,
+  "light_clip_seconds": 0.5652173913043479,
+  "protected_skeleton_modified": false
+}

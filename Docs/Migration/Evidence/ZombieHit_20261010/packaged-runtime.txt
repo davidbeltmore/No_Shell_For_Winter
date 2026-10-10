@@ -1,0 +1,26 @@
+fixture=engine_hitscan_point_damage native_AI no_forced_target_or_MoveTo deadline_seconds=90
+point_impact requested=10.00 applied=10.17 response=Actions.HitLight
+light case=0 samples=23 movement_cm=154.274 leg_motion_rad=1.0347 torso_motion_rad=0.8385 seconds=0.451
+point_impact requested=60.00 applied=59.95 response=Actions.Hit
+case=0 round=0 pre_speed_cm_s=350.00 hit_samples=144 held_seconds=1.421 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=0 advance_cm=101.90 seconds=0.413
+point_impact requested=60.00 applied=61.29 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=0 round=1 pre_speed_cm_s=350.00 hit_samples=19 held_seconds=0.413 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=1 advance_cm=101.71 seconds=0.402
+point_impact requested=60.00 applied=60.25 response=Actions.Hit
+point_impact requested=100000.00 applied=104743.95 response=Actions.Hit
+death case=0 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+point_impact requested=10.00 applied=10.28 response=Actions.HitLight
+light case=1 samples=26 movement_cm=152.907 leg_motion_rad=1.4017 torso_motion_rad=0.9100 seconds=0.446
+point_impact requested=60.00 applied=62.37 response=Actions.Hit
+case=1 round=0 pre_speed_cm_s=350.00 hit_samples=137 held_seconds=1.421 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=0 advance_cm=100.98 seconds=0.407
+point_impact requested=60.00 applied=93.29 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=1 round=1 pre_speed_cm_s=350.00 hit_samples=22 held_seconds=0.419 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=1 advance_cm=100.05 seconds=0.399
+point_impact requested=60.00 applied=61.41 response=Actions.Hit
+point_impact requested=100000.00 applied=99065.37 response=Actions.Hit
+death case=1 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+status=PASS cases=2 seconds=15.863 reason=2 DAZ zombies: planted impacts, repeat, cancellation, death and natural pursuit recovery

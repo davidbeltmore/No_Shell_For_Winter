@@ -1,0 +1,2910 @@
+{
+  "error": "",
+  "seconds": 7.984999999999673,
+  "samples": [
+    {
+      "t": 3.6719999999995707,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.7659999999996217,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.7969999999995707,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.813000000000102,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.82799999999952,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.844000000000051,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.875,
+      "loc": [
+        600.0,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.8909999999996217,
+      "loc": [
+        599.2062967402546,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 40.317543029783714,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.905999999999949,
+      "loc": [
+        597.620063347881,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 80.61521911620805,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.9219999999995707,
+      "loc": [
+        595.4614699575937,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 118.06044006347656,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.938000000000102,
+      "loc": [
+        592.6941310058655,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 154.6967086792008,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.969000000000051,
+      "loc": [
+        589.2213676955731,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 191.781685980711,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 3.9849999999996726,
+      "loc": [
+        584.7270071112575,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 231.53561613202805,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 4.015999999999622,
+      "loc": [
+        573.0502023637096,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 308.9420333381832,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.030999999999949,
+      "loc": [
+        566.6724517792268,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 346.62441604296777,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.046999999999571,
+      "loc": [
+        560.3918077274961,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.063000000000102,
+      "loc": [
+        554.4930474683447,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.094000000000051,
+      "loc": [
+        549.0127466469808,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.109999999999673,
+      "loc": [
+        542.342867687325,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.125,
+      "loc": [
+        536.6153970211549,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.140999999999622,
+      "loc": [
+        530.8560771718426,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.155999999999949,
+      "loc": [
+        524.6274424567623,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.171999999999571,
+      "loc": [
+        518.9001465067072,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.188000000000102,
+      "loc": [
+        513.0636177807851,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.20299999999952,
+      "loc": [
+        506.60289748011064,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.234999999999673,
+      "loc": [
+        499.82000196723175,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.25,
+      "loc": [
+        493.23926734177303,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.265999999999622,
+      "loc": [
+        487.07006218282413,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.280999999999949,
+      "loc": [
+        481.286417677979,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.296999999999571,
+      "loc": [
+        475.46294181046915,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.313000000000102,
+      "loc": [
+        469.62252760676574,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.32799999999952,
+      "loc": [
+        462.90865278242063,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.344000000000051,
+      "loc": [
+        456.8447623252673,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.359999999999673,
+      "loc": [
+        451.06657704709005,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.375,
+      "loc": [
+        445.44505214689207,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.405999999999949,
+      "loc": [
+        439.27245175836515,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.421999999999571,
+      "loc": [
+        432.48581158367824,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.438000000000102,
+      "loc": [
+        426.80265231428575,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.45299999999952,
+      "loc": [
+        420.2986715212269,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.469000000000051,
+      "loc": [
+        414.54869768021535,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.484999999999673,
+      "loc": [
+        408.5676526501579,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.5,
+      "loc": [
+        402.4123765378995,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.515999999999622,
+      "loc": [
+        396.6360466405554,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.530999999999949,
+      "loc": [
+        391.20089689640236,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.00000000000006,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.563000000000102,
+      "loc": [
+        385.14442665873,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.57799999999952,
+      "loc": [
+        378.78139222411346,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.594000000000051,
+      "loc": [
+        372.9797923788233,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.609999999999673,
+      "loc": [
+        366.4850519820852,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.625,
+      "loc": [
+        360.5224525406761,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.640999999999622,
+      "loc": [
+        354.7232674285574,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.655999999999949,
+      "loc": [
+        348.87515267727804,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.671999999999571,
+      "loc": [
+        342.98622737077903,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.688000000000102,
+      "loc": [
+        336.6602575257225,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.70299999999952,
+      "loc": [
+        330.47253767399025,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.719000000000051,
+      "loc": [
+        324.6157418787284,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.75,
+      "loc": [
+        318.79398187993,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.765999999999622,
+      "loc": [
+        312.6605465858979,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.780999999999949,
+      "loc": [
+        306.0444267317457,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.796999999999571,
+      "loc": [
+        299.85635744778347,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.813000000000102,
+      "loc": [
+        294.0487377196355,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.82799999999952,
+      "loc": [
+        287.97718191889953,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.844000000000051,
+      "loc": [
+        281.8422771841092,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.859999999999673,
+      "loc": [
+        276.1738175377054,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.890999999999622,
+      "loc": [
+        269.79202198235225,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.905999999999949,
+      "loc": [
+        263.5711921229763,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.921999999999571,
+      "loc": [
+        257.3957923650546,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.938000000000102,
+      "loc": [
+        251.60563772914838,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.95299999999952,
+      "loc": [
+        245.23133149741125,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.969000000000051,
+      "loc": [
+        239.10297209767532,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 4.984999999999673,
+      "loc": [
+        233.2626974060936,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.0,
+      "loc": [
+        226.89035216716957,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.015999999999622,
+      "loc": [
+        220.87759746609163,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.030999999999949,
+      "loc": [
+        215.29877240208816,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.063000000000102,
+      "loc": [
+        209.55128239838314,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.07799999999952,
+      "loc": [
+        203.39807158706617,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.094000000000051,
+      "loc": [
+        197.18032272903156,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.109999999999673,
+      "loc": [
+        191.69169159976673,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.125,
+      "loc": [
+        186.02631165085268,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.140999999999622,
+      "loc": [
+        179.87191172687244,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.155999999999949,
+      "loc": [
+        174.05575177071523,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.171999999999571,
+      "loc": [
+        168.63365749267768,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.188000000000102,
+      "loc": [
+        162.30905278025102,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.20299999999952,
+      "loc": [
+        156.10043740270567,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.219000000000051,
+      "loc": [
+        149.5844168439312,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.25,
+      "loc": [
+        143.78873257337045,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.265999999999622,
+      "loc": [
+        137.23319748787117,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.280999999999949,
+      "loc": [
+        131.15677701679897,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.296999999999571,
+      "loc": [
+        124.98379199204874,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.313000000000102,
+      "loc": [
+        118.89057269690466,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.32799999999952,
+      "loc": [
+        113.09243718532753,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.344000000000051,
+      "loc": [
+        106.80699756739568,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.375,
+      "loc": [
+        100.39349234102201,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.390999999999622,
+      "loc": [
+        93.47168187050056,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "Actions.Hit",
+      "action": "/Script/AscentCombatFramework.ACFHitAction",
+      "montage": "/Game/FullSample/Animations/SimpleCombat/gideonManny/HitReact_Front_Montage.HitReact_Front_Montage"
+    },
+    {
+      "t": 5.405999999999949,
+      "loc": [
+        85.28287185726595,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.438000000000102,
+      "loc": [
+        78.17650771139097,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.45299999999952,
+      "loc": [
+        71.46347256747913,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.469000000000051,
+      "loc": [
+        64.14871773121786,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.5,
+      "loc": [
+        57.25648252664041,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.515999999999622,
+      "loc": [
+        50.28794723002147,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.530999999999949,
+      "loc": [
+        42.278302073459145,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.563000000000102,
+      "loc": [
+        35.532717578093525,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.57799999999952,
+      "loc": [
+        28.902141921202656,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.594000000000051,
+      "loc": [
+        23.164977118353363,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.609999999999673,
+      "loc": [
+        16.761096924523827,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.625,
+      "loc": [
+        10.479121640305038,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.640999999999622,
+      "loc": [
+        4.022812269608494,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.655999999999949,
+      "loc": [
+        -0.32412722783954084,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 238.69070434570318,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.688000000000102,
+      "loc": [
+        -3.2126756101003853,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 160.97301061250803,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.70299999999952,
+      "loc": [
+        -5.165338586978299,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 101.67842552737237,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.719000000000051,
+      "loc": [
+        -6.284630015482234,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 64.6458669757797,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.734999999999673,
+      "loc": [
+        -8.022241455528658,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 100.17129566702404,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.75,
+      "loc": [
+        -10.303234041356104,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 134.82079358505263,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.765999999999622,
+      "loc": [
+        -13.130664210778184,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 169.07031389595613,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.780999999999949,
+      "loc": [
+        -16.798783495323583,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 205.6074535892989,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.796999999999571,
+      "loc": [
+        -20.81252949799631,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 239.87581738174157,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.813000000000102,
+      "loc": [
+        -25.502138892474626,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 274.82309916554146,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.844000000000051,
+      "loc": [
+        -30.25463901749739,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 306.5713966242247,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.859999999999673,
+      "loc": [
+        -37.127844116737705,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 347.1228210415836,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.875,
+      "loc": [
+        -43.389939575543266,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.890999999999622,
+      "loc": [
+        -48.96550892209039,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.905999999999949,
+      "loc": [
+        -55.03093922798858,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.921999999999571,
+      "loc": [
+        -60.66030418788419,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.938000000000102,
+      "loc": [
+        -65.93221431886182,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.95299999999952,
+      "loc": [
+        -72.17071919058786,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.969000000000051,
+      "loc": [
+        -77.97077918713318,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 5.984999999999673,
+      "loc": [
+        -84.31547364508138,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.0,
+      "loc": [
+        -90.37152404253708,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.015999999999622,
+      "loc": [
+        -96.42218431745992,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.046999999999571,
+      "loc": [
+        -101.92439375733362,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.063000000000102,
+      "loc": [
+        -108.20269478773103,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.07799999999952,
+      "loc": [
+        -113.73209866051899,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.094000000000051,
+      "loc": [
+        -119.40160921131597,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.109999999999673,
+      "loc": [
+        -125.34891447340475,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.125,
+      "loc": [
+        -131.41133418594822,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 349.99999999999915,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.140999999999622,
+      "loc": [
+        -136.9698243803285,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.155999999999949,
+      "loc": [
+        -143.02086929147467,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.171999999999571,
+      "loc": [
+        -148.58397903208956,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.188000000000102,
+      "loc": [
+        -154.30266434614882,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.20299999999952,
+      "loc": [
+        -160.60192870264277,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.219000000000051,
+      "loc": [
+        -167.08011409555897,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.234999999999673,
+      "loc": [
+        -172.62519939159378,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.25,
+      "loc": [
+        -179.05833931927904,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.280999999999949,
+      "loc": [
+        -184.62025864337906,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.296999999999571,
+      "loc": [
+        -191.01983482306227,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.313000000000102,
+      "loc": [
+        -196.67166905765757,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.32799999999952,
+      "loc": [
+        -202.08035974120125,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.344000000000051,
+      "loc": [
+        -207.93568479185328,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.359999999999673,
+      "loc": [
+        -214.2248338675998,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.375,
+      "loc": [
+        -220.06864460473284,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.390999999999622,
+      "loc": [
+        -226.99976457571015,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.421999999999571,
+      "loc": [
+        -232.79047856395468,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.438000000000102,
+      "loc": [
+        -239.46438381736502,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.45299999999952,
+      "loc": [
+        -245.22758914445862,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.469000000000051,
+      "loc": [
+        -251.11409971778616,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.484999999999673,
+      "loc": [
+        -257.07375897382724,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.00000000000165,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.5,
+      "loc": [
+        -263.29826439087617,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.515999999999622,
+      "loc": [
+        -269.74456409280526,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.530999999999949,
+      "loc": [
+        -275.39034454440105,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.546999999999571,
+      "loc": [
+        -281.56098394011485,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 350.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.563000000000102,
+      "loc": [
+        -287.34598202593975,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 346.5523376464844,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.594000000000051,
+      "loc": [
+        -292.7955382613692,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 329.6288146972656,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 6.609999999999673,
+      "loc": [
+        -298.8123320360693,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 313.686767578125,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.625,
+      "loc": [
+        -304.27807221397836,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 296.0855712890625,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.640999999999622,
+      "loc": [
+        -307.7894513564077,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 207.06939888033926,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.655999999999949,
+      "loc": [
+        -310.26497433360754,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 138.89407368502862,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.671999999999571,
+      "loc": [
+        -311.80391569308273,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 94.24533510824406,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.688000000000102,
+      "loc": [
+        -312.8416769883149,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 58.27369610547541,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.70299999999952,
+      "loc": [
+        -313.3982451136245,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 35.84956177739635,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.719000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 17.11331455397967,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.734999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.75,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.780999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.796999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.813000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.82799999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.844000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.859999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.875,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.890999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.905999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.921999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.938000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.95299999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 6.984999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.0,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.015999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.030999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.046999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.063000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.07799999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.094000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.125,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.140999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.155999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.171999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.188000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.20299999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.219000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.234999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.265999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.280999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.296999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.313000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.32799999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.344000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.359999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.375,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.390999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.405999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.438000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.45299999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.469000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.484999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.5,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.515999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.530999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.546999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.563000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.594000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.609999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.625,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.640999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.655999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.671999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.688000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.70299999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.719000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.734999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.75,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.780999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.796999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.813000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.82799999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.844000000000051,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "Actions.Attack",
+      "action": "/AscentCombatFramework/Blueprints/Actions/ACFAttackActionBP.ACFAttackActionBP_C",
+      "montage": "/Game/FullSample/Animations/Zombie/UAL2Zombie_Bite_Montage.UAL2Zombie_Bite_Montage"
+    },
+    {
+      "t": 7.859999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.875,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.890999999999622,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.905999999999949,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.921999999999571,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.938000000000102,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.95299999999952,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    },
+    {
+      "t": 7.984999999999673,
+      "loc": [
+        -313.69360377539766,
+        -3200.0,
+        89.64999961853027
+      ],
+      "speed": 0.0,
+      "tag": "None",
+      "action": "",
+      "montage": ""
+    }
+  ]
+}

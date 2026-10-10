@@ -191,3 +191,9 @@ Read `Docs/Migration/NPCDAZ.md` for measured gates and exact scope. Receipts are
 Every retry needs an observed failure and a concrete correction. Stop expanding
 test coverage once the scoped gates pass. Distinguish authoring, static compile,
 runtime, visual, persistence, cook and packaged gates; unperformed gates are PENDING.
+
+For hit reactions or short actions that slide against locomotion, use
+`ef-animation-movement-calibration`. Owned zombies now use `AS_ZombieReactions`:
+light `Actions.HitLight` overlays the torso while legs walk; strong native
+`Actions.Hit` holds the existing navigation request through the visible reaction.
+Read `Docs/Migration/ZombieHitMovementCalibration.md` before changing that policy.
