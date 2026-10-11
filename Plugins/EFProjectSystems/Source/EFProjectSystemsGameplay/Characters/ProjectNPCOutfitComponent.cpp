@@ -13,7 +13,6 @@
 #include "Engine/SkeletalMesh.h"
 #include "GameFramework/Pawn.h"
 #include "HAL/PlatformTime.h"
-#include "TimerManager.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Engine/GameInstance.h"
 
@@ -34,7 +33,6 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
     if (Saved && ObservedRestoreSerial == Saved->RestoreSerial && State == EProjectNPCOutfitState::Ready) return;
     ObservedRestoreSerial = Saved ? Saved->RestoreSerial : -1;
     if (Load) Load->CancelHandle(); Load.Reset();
-    GetWorld()->GetTimerManager().ClearTimer(CaptureTimer);
     Started = FPlatformTime::Seconds(); Failure.Reset(); State = EProjectNPCOutfitState::Pending;
     Identity = AProjectNPCAppearanceState::IdentityFor(Pawn);
     Equipment = Pawn->FindComponentByClass<UACFEquipmentComponent>();
@@ -173,30 +171,29 @@ void UProjectNPCOutfitComponent::Advance()
 
 void UProjectNPCOutfitComponent::InventoryChanged()
 {
+    if (!IsValid(GetOwner()) || GetOwner()->IsActorBeingDestroyed()) return;
     if (bRestoring || State == EProjectNPCOutfitState::Pending || State == EProjectNPCOutfitState::Loading) return;
     if (auto* Save = GetWorld()->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>(); Save && Save->GetSystemState() != ELoadingState::EIdle) return;
-    bDirty = true;
-    if (!GetWorld()->GetTimerManager().IsTimerActive(CaptureTimer))
-        CaptureTimer = GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UProjectNPCOutfitComponent::CaptureInventory));
+    // Native changes are already published by the coordinator. Snapshot now:
+    // destruction or a save in this same frame must not resurrect a removed item.
+    CaptureInventory();
 }
 
 void UProjectNPCOutfitComponent::CaptureInventory()
 {
-    if (bRestoring || !Equipment || Identity.IsEmpty()) return;
+    if (bRestoring || !Equipment || Identity.IsEmpty() || !IsValid(GetOwner()) || GetOwner()->IsActorBeingDestroyed()) return;
     if (auto* Save = GetWorld()->GetGameInstance()->GetSubsystem<UALSLoadAndSaveSubsystem>(); Save && Save->GetSystemState() != ELoadingState::EIdle) return;
     auto* Saved = AProjectNPCAppearanceState::Ensure(GetWorld());
     auto* Record = Saved ? Saved->Records.Find(Identity) : nullptr;
     if (!Record || Record->OutfitVersion != 1) return;
     FString Error;
     if (!EFEquipmentPersistence::SerializeInventory(Equipment, Record->OutfitInventory, Error)) { Fail(TEXT("Inventory snapshot failed: ") + Error); return; }
-    bDirty = false;
 }
 
 void UProjectNPCOutfitComponent::EndPlay(EEndPlayReason::Type Reason)
 {
     if (Load) Load->CancelHandle(); Load.Reset();
     if (Coordinator) Coordinator->OnStateChanged.RemoveDynamic(this, &UProjectNPCOutfitComponent::InventoryChanged);
-    if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(CaptureTimer);
     // Do not recapture after native ACF teardown has destroyed equipment.
     Super::EndPlay(Reason);
 }

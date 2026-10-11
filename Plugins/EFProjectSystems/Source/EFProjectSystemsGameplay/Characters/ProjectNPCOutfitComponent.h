@@ -39,8 +39,6 @@ private:
     double Started = 0;
     int32 ObservedRestoreSerial = -1;
     bool bRestoring = false;
-    bool bDirty = false;
-    FTimerHandle CaptureTimer;
     void Apply();
     void Fail(const FString& Reason);
     UFUNCTION() void InventoryChanged();

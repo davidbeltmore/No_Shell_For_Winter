@@ -1,0 +1,170 @@
+{
+  "stage": "drain",
+  "checks": [
+    {
+      "name": "Unequip before native removal",
+      "status": "PASS"
+    },
+    {
+      "name": "Native inventory removed shirt",
+      "status": "PASS"
+    },
+    {
+      "name": "Unequip before native removal",
+      "status": "PASS"
+    },
+    {
+      "name": "Native inventory removed shirt",
+      "status": "PASS"
+    },
+    {
+      "name": "Removed item stays removed with exact remaining GUIDs after recreate",
+      "status": "PASS"
+    },
+    {
+      "name": "Appearance body survives recreate",
+      "status": "PASS"
+    },
+    {
+      "name": "Destroy while async outfit load is pending",
+      "status": "PASS"
+    },
+    {
+      "name": "Queue drained after destruction",
+      "status": "PASS"
+    }
+  ],
+  "busy": true,
+  "before": [
+    [
+      {
+        "guid": "0CD1E80643F90F87241EC89DF1DBF33C",
+        "class": "/Game/_Game/Clothes/Rags01/RagShirt.RagShirt_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Chest"
+      },
+      {
+        "guid": "96CFD60E4A2DCADCA46522BC11D7D3D9",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      },
+      {
+        "guid": "B5D99F554AAD0CF63FD73C872422A627",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      }
+    ],
+    [
+      {
+        "guid": "02502B764568F90F30AF539D7ADE3844",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      },
+      {
+        "guid": "23BA137F4FD8824ADA2335AE3293520A",
+        "class": "/Game/_Game/Clothes/Rags01/RagShirt.RagShirt_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Chest"
+      },
+      {
+        "guid": "B4D1EFA44A499EE979E4EF8A951A020A",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      }
+    ]
+  ],
+  "expected": [
+    [
+      {
+        "guid": "96CFD60E4A2DCADCA46522BC11D7D3D9",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      },
+      {
+        "guid": "B5D99F554AAD0CF63FD73C872422A627",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      }
+    ],
+    [
+      {
+        "guid": "02502B764568F90F30AF539D7ADE3844",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      },
+      {
+        "guid": "B4D1EFA44A499EE979E4EF8A951A020A",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      }
+    ]
+  ],
+  "body_before": [
+    "Male.02",
+    "Female.01"
+  ],
+  "after": [
+    [
+      {
+        "guid": "96CFD60E4A2DCADCA46522BC11D7D3D9",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      },
+      {
+        "guid": "B5D99F554AAD0CF63FD73C872422A627",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      }
+    ],
+    [
+      {
+        "guid": "02502B764568F90F30AF539D7ADE3844",
+        "class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Feet"
+      },
+      {
+        "guid": "B4D1EFA44A499EE979E4EF8A951A020A",
+        "class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C",
+        "count": 1,
+        "equipped": true,
+        "slot": "ItemSlot.Armor.Legs"
+      }
+    ]
+  ],
+  "cancel_state": "<ProjectNPCOutfitState.LOADING: 1>",
+  "destroyed_at": 8324.031,
+  "pending_after_destroy": 0,
+  "status": "PASS",
+  "reason": "",
+  "seconds": 18.85900000000038,
+  "evidence_source": "Saved\\NPCOutfits\\Lifecycle\\1791743297544539600\\runtime.json",
+  "evidence_sha256": "0657ec763ecf6b54aa7cf9a269a2318e783be75573e70953ce0dbccfb9ff6f1b",
+  "source_snapshot": {
+    "Plugins\\EFProjectSystems\\Source\\EFProjectSystemsGameplay\\Characters\\ProjectNPCOutfitComponent.cpp": "e5b0df6a58c1c43f3b797c3058ce354f754673891984cd66ce25cf50327f2264",
+    "Tools\\NPC\\Outfits\\LifecycleQA.py": "f09a9d9f494e5a0c0aa09ac560a5f91064764089b437e8a9b4922ff294baf19c"
+  }
+}

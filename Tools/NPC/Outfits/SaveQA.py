@@ -87,8 +87,8 @@ def tick(dt):
                 equipment=pawn.get_component_by_class(unreal.ACFEquipmentComponent)
                 shirt=next(i for i in equipment.get_inventory() if 'RagShirt' in i.item_class.get_path_name())
                 check('Unequip shirt',coordinator.request_unequip(shirt.get_editor_property('item_guid')).success)
-            state['stage']='save'; return
-        if state['stage']=='save':
+            # Save in the same callback as the last mutation. A deferred outfit
+            # snapshot must not silently serialize the previous equipped intent.
             state['before']=snapshot(world)
             callback=unreal.OnSaveFinished(); callback.bind_callable(saved); delegates.append(callback)
             unreal.EFEquipmentSaveLibrary.save_game_world(native_save(world),slot,callback,True,False,'NPC outfit modified inventory QA')
