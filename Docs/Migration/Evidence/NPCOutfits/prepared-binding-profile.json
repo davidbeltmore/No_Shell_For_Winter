@@ -1,0 +1,66 @@
+{
+  "status": "PASS",
+  "scope": "Short install diagnostic; not FPS acceptance",
+  "samples": 30,
+  "install_ms": {
+    "min": 0.71,
+    "max": 3.109,
+    "mean": 1.7885333333333333
+  },
+  "prepared_reuses": 57,
+  "runtime": {
+    "count": 10,
+    "seed": 731,
+    "fixture_version": 2,
+    "body": "Male.01",
+    "archetype": "SkillGuy",
+    "dressed": true,
+    "loading": "warm",
+    "resolution": "X=1595.000 Y=1222.000",
+    "quality": "Current session settings; pair must use identical launch/cvars",
+    "spawn_cpu_ms": 96.16760164499283,
+    "camera": "X=415.000 Y=360.000 Z=449.650 -> X=1315.000 Y=360.000 Z=99.650",
+    "body_initialization_seconds": 0.7544317990541458,
+    "spawn_peak_ms": 657.8145027160645,
+    "seconds": 3.02445549890399,
+    "outfit_ready_seconds": 1.673818401992321,
+    "physical_used_bytes": 10972635136,
+    "pending_after_destroy": 0,
+    "status": "PASS",
+    "reason": "Bounded outfit fixture completed; visual review separate",
+    "elapsed_seconds": 5.710556901991367,
+    "checks": []
+  },
+  "host": {
+    "status": "PASS",
+    "reason": "",
+    "seconds": 28.03100000000086,
+    "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=prepared_profile_01",
+    "immutable_buffers": 1,
+    "prepared_binding": 1,
+    "profile_install": true,
+    "quality": {
+      "sg.ViewDistanceQuality": 3.0,
+      "sg.AntiAliasingQuality": 3.0,
+      "sg.ShadowQuality": 3.0,
+      "sg.GlobalIlluminationQuality": 3.0,
+      "sg.ReflectionQuality": 3.0,
+      "sg.PostProcessQuality": 3.0,
+      "sg.TextureQuality": 3.0,
+      "sg.EffectsQuality": 3.0,
+      "sg.FoliageQuality": 3.0,
+      "sg.ShadingQuality": 3.0,
+      "r.ScreenPercentage": 0.0,
+      "r.VSync": 0.0,
+      "t.MaxFPS": 0.0
+    },
+    "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\prepared_profile_01_warmup\\runtime.json"
+  },
+  "image_review": "Ten fixture NPCs show coherent FullRag at measured gameplay distance; not close seam/morph certification",
+  "sources": {
+    "Saved\\NPCOutfits\\Native\\prepared_profile_01\\runtime.json": "f9e41d101b6919ce5ac1b4e163c91fd9354cbe9929801751b495af51a28d629d",
+    "Saved\\NPCOutfits\\Native\\prepared_profile_01\\host.json": "38b0193862e192707eca1c07abf7f099423fb2d92faf1a5db7cffd91545425da",
+    "Saved\\NPCOutfits\\Native\\prepared_profile_01\\outfits.png": "35707c5f676ca2db2c0eb471c592c67ec6e488bb471953cceb21963314ad6a95",
+    "Saved\\NPCOutfits\\Native\\prepared_profile_01\\install-stages.log": "7ee0b9f463dd1022d825b7436fc6a5369295d05f5938e041aacd86c2a266ee58"
+  }
+}

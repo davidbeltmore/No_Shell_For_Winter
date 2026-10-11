@@ -1,4 +1,6 @@
 #include "EFClothingImmutableGraphProvider.h"
+#include "EFClothingSurfaceBinding.h"
+#include "OptimusDeformer.h"
 #include "ComputeFramework/ComputeGraph.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/SecureHash.h"
@@ -12,6 +14,10 @@
 static TAutoConsoleVariable<int32> CVarImmutableBindingBuffers(
     TEXT("ef.ClothingMorph.ImmutableBindingBuffers"), 1,
     TEXT("Reuse immutable surface-binding arrays. Applied at the next garment installation; 0 retains the stock provider."));
+
+static TAutoConsoleVariable<int32> CVarPreparedBinding(
+    TEXT("ef.ClothingMorph.PreparedBinding"), 1,
+    TEXT("Reuse validated binding installation data while a matching live provider owns it. Next installation only."));
 
 struct FEFClothingImmutableGraphBuffers
 {
@@ -36,6 +42,29 @@ struct FEFClothingImmutableGraphBuffers
     }
 };
 
+struct FEFClothingPreparedGraphBinding
+{
+    struct FProvider
+    {
+        int32 GraphIndex = 0;
+        int32 ProviderIndex = 0;
+        TWeakObjectPtr<UComputeGraph> ComputeGraph;
+        TWeakObjectPtr<UObject> Interface;
+        TArray<UEFClothingImmutableGraphProvider::FVariable> Variables;
+        int32 ParameterBytes = 0;
+        TSharedPtr<FEFClothingImmutableGraphBuffers, ESPMode::ThreadSafe> Buffers;
+    };
+    TWeakObjectPtr<const UEFClothingSurfaceBinding> Binding;
+    TWeakObjectPtr<UOptimusDeformer> Graph;
+    FGuid BuildGuid;
+    FString CompileFingerprint;
+    int32 GarmentLOD = INDEX_NONE;
+    int32 BodyLOD = INDEX_NONE;
+    int32 GraphCount = 0;
+    TArray<FProvider> Providers;
+    TMap<FName, int32> Integers;
+};
+
 namespace
 {
 using FBuffers = FEFClothingImmutableGraphBuffers;
@@ -44,6 +73,25 @@ using FBuffersPtr = TSharedPtr<FBuffers, ESPMode::ThreadSafe>;
 // Weak lookup only: owners and in-flight proxies determine lifetime, never the cache.
 // Limit the lookup even if many different outfits are simultaneously alive.
 TMap<FString, TWeakPtr<FBuffers, ESPMode::ThreadSafe>> BufferLookup;
+// No cache entry owns a UObject or keeps resources alive after the last provider.
+TArray<TWeakPtr<FEFClothingPreparedGraphBinding, ESPMode::ThreadSafe>> PreparedLookup;
+
+TArray<FOptimusDeformerInstanceExecInfo>* GetExecInfos(UOptimusDeformerInstance* Instance)
+{
+    const auto* Property = FindFProperty<FArrayProperty>(Instance->GetClass(), TEXT("ComputeGraphExecInfos"));
+    const auto* Inner = Property ? CastField<FStructProperty>(Property->Inner) : nullptr;
+    return Inner && Inner->Struct->GetFName() == TEXT("OptimusDeformerInstanceExecInfo")
+        ? Property->ContainerPtrToValuePtr<TArray<FOptimusDeformerInstanceExecInfo>>(Instance) : nullptr;
+}
+
+UObject* GetInterface(UComputeGraph* Graph, int32 Index)
+{
+    const auto* Property = FindFProperty<FArrayProperty>(Graph->GetClass(), TEXT("DataInterfaces"));
+    const auto* Inner = Property ? CastField<FObjectPropertyBase>(Property->Inner) : nullptr;
+    if (!Inner) return nullptr;
+    FScriptArrayHelper Values(Property, Property->ContainerPtrToValuePtr<void>(Graph));
+    return Index >= 0 && Index < Values.Num() ? Inner->GetObjectPropertyValue(Values.GetRawPtr(Index)) : nullptr;
+}
 
 class FImmutableProxy final : public FComputeDataProviderRenderProxy
 {
@@ -84,7 +132,8 @@ public:
     }
 };
 
-bool Prepare(UEFClothingImmutableGraphProvider* Adapter, UObject* Source, UObject* Interface, FString& Failure)
+bool Prepare(UEFClothingImmutableGraphProvider* Adapter, UObject* Source, UObject* Interface, FString& Failure,
+    const FBuffersPtr& Reuse = nullptr)
 {
     // UE 5.8 publishes these layouts through reflection, but not public C++ classes.
     // Validate every field before using it; never include private Engine headers or patch assets.
@@ -103,6 +152,7 @@ bool Prepare(UEFClothingImmutableGraphProvider* Adapter, UObject* Source, UObjec
     { Failure = TEXT("Graph parameter size outside adapter bounds"); return false; }
     auto Pending = MakeShared<FBuffers, ESPMode::ThreadSafe>();
     FMD5 Digest;
+    int32 ReusedArrayCount = 0;
     FScriptArrayHelper Values(VariableProperty, VariableProperty->ContainerPtrToValuePtr<void>(Source));
     for (int32 I = 0; I < Values.Num(); ++I)
     {
@@ -130,6 +180,15 @@ bool Prepare(UEFClothingImmutableGraphProvider* Adapter, UObject* Source, UObjec
             auto& Array = Pending->Arrays.AddDefaulted_GetRef();
             Array.Offset = Variable.Offset + DataType->GetArrayShaderValueOffset(J);
             Array.Stride = DataType->GetArrayElementShaderValueSize(J);
+            if (Reuse)
+            {
+                if (!Reuse->Arrays.IsValidIndex(ReusedArrayCount)
+                    || Reuse->Arrays[ReusedArrayCount].Offset != Array.Offset
+                    || Reuse->Arrays[ReusedArrayCount].Stride != Array.Stride)
+                { Failure = TEXT("Prepared graph array layout changed"); return false; }
+                ++ReusedArrayCount;
+                continue;
+            }
             Array.Bytes = ShaderValue.ArrayList[J].ArrayOfValues;
             if (Array.Offset < 0 || Array.Offset + sizeof(FRDGBufferSRVRef) > Adapter->ParameterBytes
                 || Array.Stride <= 0 || Array.Bytes.Num() % Array.Stride != 0)
@@ -142,6 +201,13 @@ bool Prepare(UEFClothingImmutableGraphProvider* Adapter, UObject* Source, UObjec
         }
     }
     if (Pending->Arrays.IsEmpty()) { Failure = TEXT("Surface graph contains no immutable arrays"); return false; }
+    if (Reuse)
+    {
+        if (ReusedArrayCount != Reuse->Arrays.Num())
+        { Failure = TEXT("Prepared graph array count changed"); return false; }
+        Adapter->Buffers = Reuse;
+        return true;
+    }
     uint8 Hash[16]; Digest.Final(Hash);
     const FString Key = BytesToHex(Hash, 16);
     for (auto It = BufferLookup.CreateIterator(); It; ++It) if (!It.Value().IsValid()) It.RemoveCurrent();
@@ -192,6 +258,115 @@ bool UEFClothingImmutableGraphProvider::Install(UOptimusDeformerInstance* Instan
     return true;
 }
 
+bool UEFClothingImmutableGraphProvider::TryInstallPrepared(UOptimusDeformerInstance* Instance,
+    UOptimusDeformer* Graph, const UEFClothingSurfaceBinding* Binding, const FEFClothingSurfaceLODPairBinding& Pair)
+{
+    check(IsInGameThread());
+    if (!CVarImmutableBindingBuffers.GetValueOnGameThread() || !CVarPreparedBinding.GetValueOnGameThread()) return false;
+    auto* Infos = GetExecInfos(Instance);
+    if (!Infos) return false;
+    PreparedLookup.RemoveAll([](const auto& Entry) { return !Entry.IsValid(); });
+    for (const auto& Entry : PreparedLookup)
+    {
+        auto Cached = Entry.Pin();
+        if (!Cached || Cached->Binding.Get() != Binding || Cached->Graph.Get() != Graph
+            || Cached->BuildGuid != Binding->BuildGuid || Cached->CompileFingerprint != Binding->GarmentCompileFingerprint
+            || Cached->GarmentLOD != Pair.GarmentTopology.LODIndex || Cached->BodyLOD != Pair.BodyTopology.LODIndex
+            || Cached->GraphCount != Infos->Num()) continue;
+        int32 GraphProviderCount = 0;
+        for (auto& Info : *Infos)
+            for (const auto& Provider : Info.ComputeGraphInstance.GetDataProviders())
+                if (Provider && Provider->GetClass()->GetFName() == TEXT("OptimusGraphDataProvider")) ++GraphProviderCount;
+        if (GraphProviderCount != Cached->Providers.Num()) return false;
+        TArray<UEFClothingImmutableGraphProvider*> Adapters;
+        for (const auto& Previous : Cached->Providers)
+        {
+            if (!Infos->IsValidIndex(Previous.GraphIndex)) return false;
+            auto& Info = (*Infos)[Previous.GraphIndex];
+            if (!Previous.ComputeGraph.IsValid() || Info.ComputeGraph != Previous.ComputeGraph.Get()) return false;
+            auto& Providers = Info.ComputeGraphInstance.GetDataProviders();
+            if (!Providers.IsValidIndex(Previous.ProviderIndex)) return false;
+            UObject* Source = Providers[Previous.ProviderIndex].Get();
+            UObject* Interface = GetInterface(Info.ComputeGraph, Previous.ProviderIndex);
+            if (!Source || Source->GetClass()->GetFName() != TEXT("OptimusGraphDataProvider")
+                || !Interface || Interface != Previous.Interface.Get()) return false;
+            auto* Adapter = NewObject<UEFClothingImmutableGraphProvider>(Instance);
+            Adapter->Instance = Instance;
+            FString Failure;
+            if (!Prepare(Adapter, Source, Interface, Failure, Previous.Buffers)
+                || Adapter->ParameterBytes != Previous.ParameterBytes
+                || Adapter->Variables.Num() != Previous.Variables.Num()) return false;
+            for (int32 I = 0; I < Adapter->Variables.Num(); ++I)
+            {
+                const auto& A = Adapter->Variables[I]; const auto& B = Previous.Variables[I];
+                if (!(A.Id == B.Id) || A.Offset != B.Offset || A.Size != B.Size) return false;
+            }
+            Adapter->Prepared = Cached;
+            Adapters.Add(Adapter);
+        }
+        // Only immutable counts/LOD identities are replayed. All pose, morph and slider inputs remain live.
+        for (const auto& Integer : Cached->Integers)
+            if (!Instance->SetIntVariable(Integer.Key, Integer.Value)) return false;
+        for (int32 I = 0; I < Adapters.Num(); ++I)
+        {
+            const auto& Previous = Cached->Providers[I];
+            (*Infos)[Previous.GraphIndex].ComputeGraphInstance.GetDataProviders()[Previous.ProviderIndex] = Adapters[I];
+        }
+        return !Adapters.IsEmpty();
+    }
+    return false;
+}
+
+void UEFClothingImmutableGraphProvider::RememberPrepared(UOptimusDeformerInstance* Instance,
+    UOptimusDeformer* Graph, const UEFClothingSurfaceBinding* Binding, const FEFClothingSurfaceLODPairBinding& Pair)
+{
+    check(IsInGameThread());
+    if (!CVarImmutableBindingBuffers.GetValueOnGameThread() || !CVarPreparedBinding.GetValueOnGameThread()
+        || !Binding->BuildGuid.IsValid() || Binding->GarmentCompileFingerprint.IsEmpty()) return;
+    auto* Infos = GetExecInfos(Instance);
+    if (!Infos) return;
+    auto Cached = MakeShared<FEFClothingPreparedGraphBinding, ESPMode::ThreadSafe>();
+    Cached->Binding = Binding; Cached->Graph = Graph; Cached->BuildGuid = Binding->BuildGuid;
+    Cached->CompileFingerprint = Binding->GarmentCompileFingerprint;
+    Cached->GarmentLOD = Pair.GarmentTopology.LODIndex; Cached->BodyLOD = Pair.BodyTopology.LODIndex;
+    Cached->GraphCount = Infos->Num();
+    const TSet<FName> IntegerNames = {
+        TEXT("EF_BindingVertexCount"), TEXT("EF_BodyVertexCount"), TEXT("EF_GarmentLODIndex"), TEXT("EF_BodyLODIndex"),
+        TEXT("EF_NeighborReferenceCount"), TEXT("EF_WeldReferenceCount"), TEXT("EF_WitnessCount"), TEXT("EF_WitnessReferenceCount") };
+    TArray<UEFClothingImmutableGraphProvider*> Adapters;
+    for (int32 G = 0; G < Infos->Num(); ++G)
+    {
+        auto& Info = (*Infos)[G];
+        if (!Info.ComputeGraph) continue;
+        auto& Providers = Info.ComputeGraphInstance.GetDataProviders();
+        for (int32 P = 0; P < Providers.Num(); ++P)
+        {
+            if (Providers[P] && Providers[P]->GetClass()->GetFName() == TEXT("OptimusGraphDataProvider")) return;
+            auto* Adapter = Cast<UEFClothingImmutableGraphProvider>(Providers[P]);
+            if (!Adapter) continue;
+            auto& Previous = Cached->Providers.AddDefaulted_GetRef();
+            Previous.GraphIndex = G; Previous.ProviderIndex = P; Previous.ComputeGraph = Info.ComputeGraph;
+            Previous.Interface = GetInterface(Info.ComputeGraph, P);
+            Previous.ParameterBytes = Adapter->ParameterBytes; Previous.Variables = Adapter->Variables;
+            Previous.Buffers = Adapter->Buffers;
+            for (const auto& Variable : Adapter->Variables)
+            {
+                if (!IntegerNames.Contains(Variable.Id.Name)) continue;
+                const auto& Value = Instance->GetShaderValue(Variable.Id);
+                if (Value.ShaderValue.Num() != sizeof(int32) || !Value.ArrayList.IsEmpty()) return;
+                int32 Integer; FMemory::Memcpy(&Integer, Value.ShaderValue.GetData(), sizeof(Integer));
+                Cached->Integers.Add(Variable.Id.Name, Integer);
+            }
+            Adapters.Add(Adapter);
+        }
+    }
+    if (Adapters.IsEmpty() || Cached->Integers.Num() != IntegerNames.Num()) return;
+    PreparedLookup.RemoveAll([](const auto& Entry) { return !Entry.IsValid(); });
+    if (PreparedLookup.Num() >= 128) return;
+    for (auto* Adapter : Adapters) Adapter->Prepared = Cached;
+    PreparedLookup.Add(Cached);
+}
+
 FComputeDataProviderRenderProxy* UEFClothingImmutableGraphProvider::GetRenderProxy()
 {
     auto* Proxy = new FImmutableProxy;
@@ -209,5 +384,5 @@ FComputeDataProviderRenderProxy* UEFClothingImmutableGraphProvider::GetRenderPro
 
 void UEFClothingImmutableGraphProvider::Reset()
 {
-    Buffers.Reset(); Instance.Reset(); Variables.Reset();
+    Prepared.Reset(); Buffers.Reset(); Instance.Reset(); Variables.Reset();
 }

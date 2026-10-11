@@ -1,0 +1,206 @@
+{
+  "status": "FAIL",
+  "disposition": "WITHDRAWN_AND_RESTORED",
+  "runtime_limit": 256,
+  "sources": {
+    "Saved\\NPCOutfits\\GarmentLOD\\witness-counts.json": "76f49929f7cd47a73a33c43f2bc9d5ee54b9a14ab63ae62fa8826e432a8e6189",
+    "Saved\\NPCOutfits\\Native\\lod_diag10_01_warmup\\runtime.json": "dc8d0038a04c9827eb0e730be2fa9a5c5772237cfa833c7defe24b8ce471c8ea",
+    "Saved\\NPCOutfits\\GarmentLOD\\rollback_1791747842010807800\\rollback.json": "89bf34c40ad289a12001673ab1f51f3c8399fbf167bf740b483aa9b762d40321"
+  },
+  "counts": {
+    "status": "PASS",
+    "seconds": 6.313000000000102,
+    "rows": [
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_C94ECD3142E1551DC2DCA68EDCEFE162.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_C94ECD3142E1551DC2DCA68EDCEFE162",
+        "lod": 0,
+        "vertices": 2176,
+        "witnesses": 22076,
+        "max_incidence": 45,
+        "mean_incidence": 21.501838235294116
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_C94ECD3142E1551DC2DCA68EDCEFE162.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_C94ECD3142E1551DC2DCA68EDCEFE162",
+        "lod": 1,
+        "vertices": 726,
+        "witnesses": 20916,
+        "max_incidence": 502,
+        "mean_incidence": 69.23553719008264
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_F401DDCC4072D5A67E0B84B825FEF70B.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_F401DDCC4072D5A67E0B84B825FEF70B",
+        "lod": 0,
+        "vertices": 2176,
+        "witnesses": 22076,
+        "max_incidence": 45,
+        "mean_incidence": 21.501838235294116
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_F401DDCC4072D5A67E0B84B825FEF70B.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_F401DDCC4072D5A67E0B84B825FEF70B",
+        "lod": 1,
+        "vertices": 726,
+        "witnesses": 20916,
+        "max_incidence": 502,
+        "mean_incidence": 69.23553719008264
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_0CA228EA456CBB5D4A150AB5998F90F5.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_0CA228EA456CBB5D4A150AB5998F90F5",
+        "lod": 0,
+        "vertices": 2176,
+        "witnesses": 22076,
+        "max_incidence": 45,
+        "mean_incidence": 21.501838235294116
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_0CA228EA456CBB5D4A150AB5998F90F5.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_0CA228EA456CBB5D4A150AB5998F90F5",
+        "lod": 1,
+        "vertices": 726,
+        "witnesses": 20916,
+        "max_incidence": 502,
+        "mean_incidence": 69.23553719008264
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_9058E3FD4F422FA3B798C79D594D0357.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_9058E3FD4F422FA3B798C79D594D0357",
+        "lod": 0,
+        "vertices": 9081,
+        "witnesses": 102273,
+        "max_incidence": 64,
+        "mean_incidence": 23.974562272877435
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_9058E3FD4F422FA3B798C79D594D0357.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_9058E3FD4F422FA3B798C79D594D0357",
+        "lod": 1,
+        "vertices": 2455,
+        "witnesses": 106230,
+        "max_incidence": 885,
+        "mean_incidence": 105.840733197556
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_D40ED6FB4167499DA63B8CA2C17FCF91.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_D40ED6FB4167499DA63B8CA2C17FCF91",
+        "lod": 0,
+        "vertices": 9081,
+        "witnesses": 104775,
+        "max_incidence": 73,
+        "mean_incidence": 24.558969276511398
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_D40ED6FB4167499DA63B8CA2C17FCF91.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_D40ED6FB4167499DA63B8CA2C17FCF91",
+        "lod": 1,
+        "vertices": 2455,
+        "witnesses": 108865,
+        "max_incidence": 885,
+        "mean_incidence": 108.44847250509164
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_100459A9436120E41A123E978353532A.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_100459A9436120E41A123E978353532A",
+        "lod": 0,
+        "vertices": 9081,
+        "witnesses": 104775,
+        "max_incidence": 73,
+        "mean_incidence": 24.558969276511398
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_100459A9436120E41A123E978353532A.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_100459A9436120E41A123E978353532A",
+        "lod": 1,
+        "vertices": 2455,
+        "witnesses": 108865,
+        "max_incidence": 885,
+        "mean_incidence": 108.44847250509164
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_66509798473F9A82B1FF92A9ED907851.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_66509798473F9A82B1FF92A9ED907851",
+        "lod": 0,
+        "vertices": 7767,
+        "witnesses": 86217,
+        "max_incidence": 68,
+        "mean_incidence": 23.564696794129006
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_66509798473F9A82B1FF92A9ED907851.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_66509798473F9A82B1FF92A9ED907851",
+        "lod": 1,
+        "vertices": 2156,
+        "witnesses": 80485,
+        "max_incidence": 462,
+        "mean_incidence": 90.05705009276438
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_6D3B0A91403A4CD93E4AD799E11D2080.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_6D3B0A91403A4CD93E4AD799E11D2080",
+        "lod": 0,
+        "vertices": 7767,
+        "witnesses": 86217,
+        "max_incidence": 68,
+        "mean_incidence": 23.564696794129006
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_6D3B0A91403A4CD93E4AD799E11D2080.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_6D3B0A91403A4CD93E4AD799E11D2080",
+        "lod": 1,
+        "vertices": 2156,
+        "witnesses": 80485,
+        "max_incidence": 462,
+        "mean_incidence": 90.05705009276438
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_71A86FFF49610213F06029973FED6261.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_71A86FFF49610213F06029973FED6261",
+        "lod": 0,
+        "vertices": 7767,
+        "witnesses": 86217,
+        "max_incidence": 68,
+        "mean_incidence": 23.564696794129006
+      },
+      {
+        "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_71A86FFF49610213F06029973FED6261.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_71A86FFF49610213F06029973FED6261",
+        "lod": 1,
+        "vertices": 2156,
+        "witnesses": 80485,
+        "max_incidence": 462,
+        "mean_incidence": 90.05705009276438
+      }
+    ]
+  },
+  "runtime_failure": "Initialization/presentation exceeded 20 seconds",
+  "rollback": {
+    "status": "PASS",
+    "tracked": [
+      "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset",
+      "Content/DazToUnreal/RagPants/RagPants.uasset",
+      "Content/DazToUnreal/RagShirt/RagShirt.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_EFClothingFitRegistry.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_4F79027545BB5FE369D2C6B1F85FE15A.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_2445FB7749E47F18D7B90DB9BAB58A79.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_97EB13004C6C38C37D0310B9BE3D4E1F.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_482CD1D044F2EDA615DABC9072CBBE19.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6DF2D4654E81342BACB93196A165AA48.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_5922AEAB4A43576A80525987FEE69F03.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_7E7E1968499F81ACC9E2749F470C1E6B.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_F5EB2ED640B9F362C8E45FB12B24B68D.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_A5DC489248EAB1CE55F127B68AD4E48B.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V5/DA_EFClothingFitRegistry.uasset",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/EFClothingMorphEditor.Build.cs",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingFitCompilerLibrary.cpp",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingNativeMeshAuthoringLibrary.cpp",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Public/EFClothingNativeMeshAuthoringLibrary.h",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Public/EFClothingMorphV3RuntimeComponent.h",
+      "Tools/NPC/Outfits/Measure.py",
+      "Tools/NPC/Outfits/Run.py",
+      "Tools/NPC/Outfits/RunNativePIE.py"
+    ],
+    "archived_experimental_outputs": [
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_C94ECD3142E1551DC2DCA68EDCEFE162.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_F401DDCC4072D5A67E0B84B825FEF70B.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_0CA228EA456CBB5D4A150AB5998F90F5.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_9058E3FD4F422FA3B798C79D594D0357.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_D40ED6FB4167499DA63B8CA2C17FCF91.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_100459A9436120E41A123E978353532A.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_66509798473F9A82B1FF92A9ED907851.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_6D3B0A91403A4CD93E4AD799E11D2080.uasset",
+      "Plugins/EFClothingMorph/Content/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_71A86FFF49610213F06029973FED6261.uasset",
+      "Tools/NPC/Outfits/AuthorGarmentLOD.py",
+      "Tools/NPC/Outfits/CompileGarmentLOD.py",
+      "Tools/NPC/Outfits/InspectGarmentLOD.py",
+      "Tools/NPC/Outfits/InspectWitnessCounts.py"
+    ],
+    "restored_authoring_backups": 26,
+    "reason": "LOD1 exceeded witness incidence bound; retained original LOD0 and bounds"
+  }
+}

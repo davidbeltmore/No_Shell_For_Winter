@@ -502,6 +502,12 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 	bDispatchRecoveryStartedAfterReady = false;
 	EnqueuedFrameCount = 0;
 
+	if (UEFClothingImmutableGraphProvider::TryInstallPrepared(Instance, InSurfaceDeformer, InSurfaceBinding, InLODPair))
+	{
+		if (CVarProfileClothingInstall.GetValueOnGameThread())
+			UE_LOG(LogTemp, Display, TEXT("ClothingInstall PreparedBindingReuse"));
+		return true;
+	}
 	if (!UploadImmutableBinding(InLODPair, OutFailureReason))
 	{
 		Detach();
@@ -512,6 +518,10 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 	{
 		// Optimization failure retains the original, correct provider and reports the reason.
 		UE_LOG(LogTemp, Warning, TEXT("Clothing immutable buffers unavailable: %s"), *AdapterFailure);
+	}
+	else
+	{
+		UEFClothingImmutableGraphProvider::RememberPrepared(Instance, InSurfaceDeformer, InSurfaceBinding, InLODPair);
 	}
 
 	return true;

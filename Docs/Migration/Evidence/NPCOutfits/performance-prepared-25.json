@@ -1,0 +1,43 @@
+{
+  "status": "FAIL",
+  "budget": {
+    "cpu_increment_ms": 2,
+    "gpu_increment_ms": 3,
+    "frame_p95_increment_ms": 4,
+    "warm_ready_seconds": 2
+  },
+  "sources": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_prepared_01_25_bare\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_prepared_01_25_dressed\\runtime.json"
+  ],
+  "reasons": [
+    "cpu_increment_ms exceeds frozen budget",
+    "gpu_increment_ms exceeds frozen budget",
+    "frame_p95_increment_ms exceeds frozen budget",
+    "warm_ready_seconds exceeds frozen budget"
+  ],
+  "fixture_version": 2,
+  "prewarm_receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_prepared_01_25_bare_warmup\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_prepared_01_25_dressed_warmup\\runtime.json"
+  ],
+  "count": 25,
+  "loading": "warm",
+  "measurements": {
+    "cpu_increment_ms": 5.873235343993674,
+    "gpu_increment_ms": 11.576705019409102,
+    "frame_p95_increment_ms": 5.701900482177734,
+    "dressed_frame_p95_ms": 38.40109634399414,
+    "baseline_frame_p95_ms": 32.699195861816406,
+    "spawn_peak_ms": 1357.1633100509644,
+    "warm_ready_seconds": 4.040020700544119,
+    "pending_after_destroy": 0
+  },
+  "acceptance_applies": true,
+  "source_hashes": {
+    "Saved\\NPCOutfits\\Native\\perf_prepared_01_25_bare\\runtime.json": "a05e855681e70ffe84f008469666c5cc2a408c289a66b5e8f62d85c2bdbced69",
+    "Saved\\NPCOutfits\\Native\\perf_prepared_01_25_bare\\host.json": "2e1c44ea27e1bd97d583cf21b54f53783c2667011c33a45909f79f687638b0fa",
+    "Saved\\NPCOutfits\\Native\\perf_prepared_01_25_dressed\\runtime.json": "00b81f99681cc9b1a300fefa507343e4913f75446837ed20673589e02c14fe7d",
+    "Saved\\NPCOutfits\\Native\\perf_prepared_01_25_dressed\\host.json": "b8ca095c4d83f70dc8a14493b2b971a60273e1be5821febba2788f83e97c0c97"
+  }
+}
