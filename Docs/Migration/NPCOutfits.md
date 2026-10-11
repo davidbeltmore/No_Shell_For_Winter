@@ -67,9 +67,10 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Performance 10/25 | FAIL | Frozen budget exceeded; details below |
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
 | Cold loading | PENDING | Preparation passes are not cold packaged loading |
-| All eligible roster audit | PENDING | Not yet authored |
-| Cook and packaged QA | PENDING | Not yet run |
-| Final protection, skills, GitHub publication | PENDING | Not yet run |
+| All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
+| Cook and packaged QA | PASS | Three bodies/archetypes, equip/unequip, explicit GC, zero pending, exit 0 and reviewed images |
+| Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
+| Skills and GitHub publication | PENDING | Skills updated/validated; publication pending |
 
 ## Work preservation
 
@@ -90,9 +91,10 @@ was corrected; final incremental build PASS in `outfits-editor-build3-process.js
 (16.086 s). Daz receipt guards passed. Protected comparison PASS: all 7,643
 files unchanged (`Saved/NPCOutfits/Baseline/after.json`).
 
-Authoring PASS: `Saved/NPCOutfits/author.json`: 4 configured pilot variants,
-36 intentionally unconfigured until rollout. Audit/Blueprint compile PASS:
-40 variants, zero errors, 11.921 s (`Saved/NPCOutfits/audit.json`).
+At pilot commit `bb199a65`, authoring passed with 4 configured variants and 36
+intentionally unconfigured until rollout. Audit/Blueprint compile passed for
+40 variants, zero errors, 11.921 s. The current `author.json` and `audit.json`
+now describe the later full rollout below; they are not the original pilot receipts.
 An inherited duplicate Ammo slot prevented initial rule initialization. Shared
 slot normalization now removes duplicates before testing tag ancestry, preserving
 weapons and all unique native destinations. Failed receipts remain in Saved.
@@ -279,6 +281,88 @@ transient duplicates; roster and authored assets are unchanged. Evidence:
 FPS capture). The final 30 garment installations spend roughly 8–43 ms each in
 `UploadImmutableBinding`; topology validation is much smaller. Full raw timing
 lines and a compact receipt are retained in `Evidence/NPCOutfits/install-profile.json`.
-The three Rag meshes still have only LOD0. Generated LOD1 and independent NPC
-screen-size selection are being prepared; these changes remain PENDING until
-binding certification, visual transition review and matched measurement pass.
+Generated LOD1 at 25% triangles was evaluated and withdrawn. The three garments
+reduced vertices from 7,767/9,081/2,176 to 2,156/2,455/726, but their witness
+workload stayed approximately constant and maximum per-vertex incidence rose to
+462/885/502, above the unchanged runtime limit of 256. The bounded
+`lod_diag10_01` prewarm failed visibly rather than accepting an incorrect fit.
+Compiler freshness alone had not checked this runtime bound and was insufficient
+certification. Both the LOD authoring and independent NPC LOD policy are restored
+to the previously validated state; this is not a performance improvement.
+The complete experimental patch, source/generated packages and rollback receipt
+remain in `Saved/NPCOutfits/GarmentLOD/rollback_1791747842010807800`.
+The exact 3 source packages and catalog backups were restored with the editor
+closed, without changing HUB. Compact evidence: `Evidence/NPCOutfits/lod-experiment.json`.
+
+Prepared binding reuse is being validated. A weak lookup capped at 128 entries
+reuses existing immutable GPU arrays and their installation counts for the same
+loaded binding, BuildGuid, authoring fingerprint, LOD pair and compiled graph.
+Each receiving provider revalidates the reflected variable layout before an
+atomic replacement; a miss uses the established full upload. Provider ownership
+controls lifetime. No UObject, body pose, morph or mutable slider is cached.
+`ef.ClothingMorph.PreparedBinding=0` retains the earlier upload path for A/B.
+Representative runtime, visual and packaged checks now pass for this optimization;
+the frozen 25-NPC performance budget still fails. Runtime commit: `b1d08eb4`.
+
+The first prepared-binding diagnostic passes: final 30 installations take
+0.710–3.109 ms (mean 1.789), with 57 actual prepared reuses across the two groups.
+Ten measured NPCs become ready in 1.674 s and drain to zero pending after teardown.
+The gameplay-distance image is coherent; close morph/transition review is separate.
+Editor/Game builds PASS (10.263 / 43.655 s for final runtime code at this check);
+the restored catalog passes freshness, 18/18 rows and a valid V5 manifest.
+Evidence: `Evidence/NPCOutfits/prepared-binding-profile.json`.
+
+The matched version-2 25-NPC pair still FAILS: added CPU 5.873 ms, GPU 11.577 ms,
+frame p95 5.702 ms and warmed readiness 4.040 s, compared with 7.280 s previously.
+GPU cost remains approximately unchanged, as expected for an installation-only
+optimization. Spawn peak is 1357.163 ms; teardown pending count is zero.
+No capacity or 60 FPS claim follows from this improvement. Exact measurements,
+frozen limits and source hashes: `Evidence/NPCOutfits/performance-prepared-25.json`.
+
+Prepared-binding shared regression PASS in 61.828 s: Female.01/Male.01/Male.02
+extreme morphs, four active garments, 2→1→0 coverage owners and 234–237 cm movement.
+All three captured images were reviewed as coherent. The historical anomaly is
+retained without an invented cause. Evidence/images: `Evidence/NPCOutfits/prepared-binding-visual.json`.
+
+FullRag rollout is authored for all 20 eligible archetypes / 40 gender variants.
+The five named nonhumanoid assets and the existing player/menu exclusions remain
+unchanged. Structural audit and all 40 Blueprint compilations PASS in 11.562 s:
+40 configured, 0 unconfigured, 0 failed variants. An eight-character runtime
+sample covers BaseCompanion, GunEnemy, Vendor and Zombie in both genders, including
+all three registered bodies, with exactly three equipped items and no fitting
+issues (10.469 s). Basic presentation image reviewed; partial occlusion and rear
+characters do not establish close seam/combat quality. Evidence:
+`Evidence/NPCOutfits/rollout.json` and `rollout.png`.
+
+Latest Editor/Game builds including the explicit post-destruction GC fixture PASS
+in 23.030 / 45.627 s. `Project.NPCOutfits.QA ... gc quit` exercises garbage
+collection before normal packaged shutdown. `Tools/NPC/Outfits/ValidatePackaged.ps1`
+uses a fresh isolated UserDir and a 180-second process limit; structural process
+PASS still requires separate screenshot review. Its fresh-process label does not
+pretend that clothes already loaded by HUB are cold resources at fixture spawn.
+
+Cook/package PASS in 329.314 s (900 s bound), retained artifact
+`Saved/BodyPresetsQA/Package_20261011_150042`. Fresh isolated executable cases:
+Male.01/SkillGuy, Female.01/MeleeEnemy and Male.02/Zombie, three NPCs each.
+All three pass native equipment, same-instance removal/reinitialization, explicit
+GC, zero pending requests and normal exit 0. Each observes 36 prepared binding
+reuses; all three logs contain zero errors. Gameplay-distance images reviewed as
+coherent, including native weapons and bent zombie poses. These do not certify
+extreme morphs outside the Editor or isolate first-resource latency from HUB.
+Evidence and published images: `Evidence/NPCOutfits/packaged.json`.
+
+Retention dry-run identified exactly the preceding package's Cooked/Staged
+directories. Apply removed 4,989,040,367 bytes; old receipts/logs remain, and the
+latest-package pointer retains the new validated artifact. No productive assets,
+saves or rollback backups were cleanup targets. Post-package protection PASS:
+7,643 unchanged files in 12.010 s. The four original user saves needed no restore
+after isolated packaged tests. HUB still hashes to
+`C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
+
+Packaged fixture/tools commit: `85138f7b`. The subsequent single-frame GPU
+diagnostic includes the now fully dressed HUB background, not just its ten
+spawned fixtures. Rounded event timings attribute about 8.40 ms of 10.14 ms
+surface compute to the witness kernel (66 garment dispatches), versus about
+0.66 ms each for the two cohesion passes. This directs the next optimization
+at witness evaluation; it is not an acceptance benchmark. Raw named events and
+source hashes are recorded in `Evidence/NPCOutfits/gpu-kernel-profile.json`.

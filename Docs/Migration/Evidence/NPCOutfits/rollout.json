@@ -1,0 +1,1449 @@
+{
+  "status": "PASS",
+  "author": {
+    "status": "PASS",
+    "assets": [
+      "/Game/_Game/Characters/Data/Outfits/DA_FullRag",
+      "/Game/_Game/Characters/Data/DA_NPCRoster"
+    ],
+    "configured": 40,
+    "unconfigured": 0,
+    "errors": [],
+    "seconds": 0.125
+  },
+  "audit": {
+    "status": "PASS",
+    "configured": 40,
+    "unconfigured": 0,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "Roster IDs",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion choices",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion item count",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "BaseCompanion destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "DefenderEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDefenderEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDefenderEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyAmbushEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyAmbushEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyAmbushEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "DummyEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFDummyEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "GunEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "MageEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMageEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMageEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion choices",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion item count",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeCompanion destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeCompanionBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "MeleeEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "MMEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFMMEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFMMEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion choices",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion item count",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedCompanion destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedCompanionBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedCompanionBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "RangedEnemy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFRangedEnemyBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFRangedEnemyBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "SkillGuy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "LevelingGuy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor choices",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor item count",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "Vendor destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "FastTravelGuy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_FastTravelGuy_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_FastTravelGuy_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher choices",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher item count",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "AssetPusher destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_AssetPusher_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_AssetPusher_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy choices",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy item count",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "Guy destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuy_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuy_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine choices",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine item count",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "Routine destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFGuyRoutine_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFGuyRoutine_BPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie choices",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie item count",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "Zombie destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFZombieBPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFZombieBPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACFZombieBPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACFZombieBPFemale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI choices",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI enabled",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI positive total weight",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI valid choice",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI exact authored choice 0",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI item count",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI destination ItemSlot.Armor.Chest",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI destination ItemSlot.Armor.Legs",
+        "status": "PASS"
+      },
+      {
+        "name": "NPCAI destination ItemSlot.Armor.Feet",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Male/ACF_NPCAI_BPMale compile",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale owned",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale variation",
+        "status": "PASS"
+      },
+      {
+        "name": "/Game/_Game/Characters/Female/ACF_NPCAI_BPFemale compile",
+        "status": "PASS"
+      }
+    ],
+    "errors": [],
+    "excluded_nonhumanoid": [
+      "ACFSpiderBP",
+      "ACF_HorseMount_BP",
+      "ACF_WyvernMount_BP",
+      "ACF_Boat_BP",
+      "ACF_EnemyBoat_BP"
+    ],
+    "excluded_non_npc_categories": [
+      "player classes",
+      "ACFMenuCharater_BP"
+    ],
+    "failed_variants": 0,
+    "seconds": 11.561999999999898
+  },
+  "runtime": {
+    "status": "PASS",
+    "parameters": {
+      "preset": "FullRag",
+      "body": "",
+      "archetype": "BaseCompanion,GunEnemy,Vendor,Zombie",
+      "count": 8,
+      "seed": 731,
+      "timeout": 120
+    },
+    "checks": [
+      {
+        "name": "Requested archetypes exist",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPMale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPMale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPMale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPMale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPFemale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPFemale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPFemale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFBaseCompanionBPFemale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPMale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPMale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPMale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPMale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPFemale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPFemale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPFemale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFGunEnemyBPFemale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPMale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPMale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPMale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPMale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPFemale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPFemale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPFemale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACF_Vendor_BPFemale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPMale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPMale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPMale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPMale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPFemale_C_0 three rags",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPFemale_C_0 quantities",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPFemale_C_0 equipped",
+        "status": "PASS"
+      },
+      {
+        "name": "ACFZombieBPFemale_C_0 preset",
+        "status": "PASS"
+      },
+      {
+        "name": "Screenshot captured",
+        "status": "PASS"
+      }
+    ],
+    "errors": [],
+    "actors": [
+      {
+        "class": "/Game/_Game/Characters/Male/ACFBaseCompanionBPMale.ACFBaseCompanionBPMale_C",
+        "body": "Male.01",
+        "ready_seconds": 0.581377200782299,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Female/ACFBaseCompanionBPFemale.ACFBaseCompanionBPFemale_C",
+        "body": "Female.01",
+        "ready_seconds": 0.4077083021402359,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.552,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.552,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.552,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C",
+        "body": "Male.01",
+        "ready_seconds": 0.4122194014489651,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C",
+        "body": "Female.01",
+        "ready_seconds": 0.3799319975078106,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.728,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.728,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.728,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+        "body": "Male.01",
+        "ready_seconds": 0.36492960155010223,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C",
+        "body": "Female.01",
+        "ready_seconds": 0.3424607999622822,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.663,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.663,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.663,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C",
+        "body": "Male.02",
+        "ready_seconds": 0.45431219786405563,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      },
+      {
+        "class": "/Game/_Game/Characters/Female/ACFZombieBPFemale.ACFZombieBPFemale_C",
+        "body": "Female.01",
+        "ready_seconds": 0.44929560273885727,
+        "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.282,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.282,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.282,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+      }
+    ],
+    "visual": "PENDING",
+    "seconds": 10.468999999999141
+  },
+  "visual_review": "PASS for basic FullRag presentation; rear/occluded portions are not close seam or combat certification",
+  "source_sha256": {
+    "Saved\\NPCOutfits\\PIE\\1791748512901692500\\runtime.json": "ec6e1948c1288d3ff88fc695de73b2fa54b42d27586021b967bfe55773e1a46c",
+    "Saved\\NPCOutfits\\PIE\\1791748512901692500\\pilot.png": "552a3721458a58b9ed8b47c14f3e7baa5c781ef3f00da3270282da6ee9b3bc27",
+    "Tools\\NPC\\Roster.json": "2c23938710c390fcd3316f429f8f8219169afbd7f594b4b0b372d3584de5d43e",
+    "Content\\_Game\\Characters\\Data\\DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734"
+  }
+}

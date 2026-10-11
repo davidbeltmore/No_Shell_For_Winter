@@ -71,6 +71,7 @@ python Tools/NPC/Outfits/Run.py RunPIE --count 4 --seed 731
 python Tools/NPC/Outfits/Run.py RunNativePIE --body Male.02 --count 1 --capture 2 --functional 1 --name unique_pilot
 python Tools/NPC/Outfits/Run.py SaveQA
 python Tools/NPC/Outfits/Run.py LifecycleQA
+python Tools/NPC/Outfits/Run.py RunNativePIE --selection --count 16 --seed 731 --name unique_selection
 python Tools/NPC/Outfits/Run.py ClothingRegression --bodies Female.01,Male.01,Male.02
 python Tools/NPC/Outfits/Run.py LogicQA --mode ai
 python Tools/NPC/Outfits/Sweep.py --counts 1 10 25 50 --prefix unique_measurement
@@ -83,8 +84,9 @@ closing that editor, use `-Mode Restore` and verify every prior save hash. This
 covers independent subsystems that write during EndPIE. Keep backups on failures.
 
 Author saves only the definitions and roster, with scoped backups. Audit compiles
-owned variants without saving them. `--require-all` is the rollout gate; do not use
-it to mislabel the intentional four-variant pilot as complete roster coverage.
+owned variants without saving them. `--require-all` is the rollout gate. The
+current FullRag rollout passes all 40 variants; keep explicit configured,
+unconfigured and failed-variant counts when adding or excluding variants.
 Runtime receipts live in `Saved/NPCOutfits`, compact published evidence in
 `Docs/Migration/Evidence/NPCOutfits`. A successful invocation is not runtime PASS:
 require the fresh `runtime.json` and `host.json` where provided.
@@ -93,6 +95,15 @@ Native command `Project.NPCOutfits.QA` accepts count, body, archetype, dressed,
 seed, capture, timeout, name, functional, loading and optional `quit`. It freezes
 fixture navigation for controlled fit/performance work. It does not certify AI;
 use the existing NPC logic fixture for actual interaction and pursuit.
+`gc` forces collection after fixture destruction; the PIE host exposes `--gc`.
+For a cooked build use `Tools/NPC/Outfits/ValidatePackaged.ps1 -StagedRoot ...`
+with optional `-Body`, `-Archetype`, `-Count` and `-Seed`. It requires native
+functional assertions, GC completion, zero pending work, image capture, feature
+logs and a normal process exit. Review the actual image separately. A fresh
+process can preload clothes through HUB; do not call it an isolated cold-resource
+fixture. Use the existing body-preset HUB package wrapper after protected builds
+and clothing freshness checks; its cook includes the owned Characters/Outfits
+and V4/V5 generated directories through DefaultGame.ini.
 
 Measure matched dressed/undressed groups 1, 10, 25; 50 is diagnostic. Capture
 30–45 seconds per group, separate cold from warmed loads, retain raw CPU/GPU/frame
@@ -123,6 +134,28 @@ failed image without claiming its cause is established. The shared regression
 temporarily disables background editor throttling and restores it on completion.
 Use `--immutable-buffers 0` for a matched stock-provider diagnostic, keeping the
 same body sequence. A single-body pass cannot certify the body-transition case.
+
+`--selection` uses transient outfit definitions for repeated weighted generations,
+zero-weight exclusion, fixed instance choices and saved precedence. It does not
+change authored definitions or the roster. The sixteen-identity fixture passed;
+the exact distribution is evidence of deterministic repetition, not a statistical
+claim about a small sample.
+
+`--profile-install` logs installation stages for a short diagnostic. Never use it
+for acceptance FPS captures; `Measure.py` rejects that mode. `--prepared-binding 0`
+retains repeated immutable uploads for A/B. Prepared reuse keeps only weak lookup
+entries (maximum 128); live providers own the immutable buffers, while transforms,
+morphs and runtime sliders remain per-instance. Three fresh packaged body cases
+have passed explicit GC and normal shutdown; repeat after ownership changes.
+`--profile-gpu` records one detailed frame after readiness, with profiler UI off
+and temporary settings restored. It is diagnostic and is rejected by `Measure.py`.
+
+Do not assume garment mesh reduction reduces fitting work. The withdrawn 25%
+Rag LOD experiment retained roughly the same witness count while concentrating up
+to 885 references on a vertex, above the unchanged 256 bound. Catalog freshness
+did not detect that runtime incompatibility. Preserve its failed receipt; original
+garments/bindings were restored. Any future LOD work must certify runtime incidence
+and examine morph/animation transitions as well as render vertex counts.
 
 `LogicQA --mode ai` retries only pursuit/spacing, using the current single authored
 navigation volume to place the existing 1200 cm corridor. The old fixed arena can
