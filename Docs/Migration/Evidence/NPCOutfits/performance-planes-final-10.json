@@ -1,0 +1,58 @@
+{
+  "status": "FAIL",
+  "budget": {
+    "cpu_increment_ms": 2,
+    "gpu_increment_ms": 3,
+    "frame_p95_increment_ms": 4,
+    "warm_ready_seconds": 2
+  },
+  "sources": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_bare\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_dressed\\runtime.json"
+  ],
+  "reasons": [
+    "cpu_increment_ms exceeds frozen budget"
+  ],
+  "fixture_version": 2,
+  "configuration_hashes": {
+    "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+    "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "860253190690d0e53cc86866b765d18075f670ed4c37ab463369ebf6c92d0836",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "1fb4cd3581f03e69d050a16097d64e90a4a7b3a7f3b0aa3864626371d8cf32da",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "762384198393f2704121ce5a6f6d61ce58dee0f73cbf95bb0af0597efc44026b",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "8ab32dd27637771b9a83503328d6498b04eee2848252cda4fa932aaf57bf0f28",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "147c4aa0e70d8c846a1b8671c6f148c8c109963c81e4e6da9615acad22d8311b"
+  },
+  "prewarm_receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_bare_warmup\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_dressed_warmup\\runtime.json"
+  ],
+  "count": 10,
+  "loading": "warm",
+  "measurements": {
+    "cpu_increment_ms": 2.667825908734521,
+    "gpu_increment_ms": 2.6226425564349896,
+    "frame_p95_increment_ms": 2.5502967834472656,
+    "dressed_frame_p95_ms": 30.94169807434082,
+    "baseline_frame_p95_ms": 28.391401290893555,
+    "spawn_peak_ms": 639.4827961921692,
+    "warm_ready_seconds": 1.7363834008574486,
+    "pending_after_destroy": 0
+  },
+  "acceptance_applies": true,
+  "capture_snapshot": "864ddd08",
+  "raw_receipt_hashes": {
+    "Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_bare\\runtime.json": "fb0abd92b07e30acdedfdbc9eac7afbad64b2e52a72c2b5d66887500bbaf253c",
+    "Saved\\NPCOutfits\\Native\\perf_planes_final_01_10_dressed\\runtime.json": "51f2069249de66d48c2bb65e08cc1dc76fae4b21181d7539529d54934e74514d"
+  },
+  "memory_observations": {
+    "bare": {
+      "process_physical_bytes": 10970402816,
+      "scope": "Whole editor process, not isolated garment or GPU memory"
+    },
+    "dressed": {
+      "process_physical_bytes": 10975748096,
+      "scope": "Whole editor process, not isolated garment or GPU memory"
+    }
+  }
+}

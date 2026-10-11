@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "scope": "State preservation and editor usability at the published fitting checkpoint; not completion of the active goal",
+  "code_snapshot": "864ddd08",
+  "goal_status": "ACTIVE",
+  "live_editor": {
+    "project": "D:\\Projects UE5\\NoShellForWinter",
+    "mcp_endpoint": "http://127.0.0.1:8000/mcp",
+    "tool": "EditorToolset.EditorAppToolset.IsPIERunning",
+    "is_pie_running": false,
+    "dirty_packages": [],
+    "read_only_inspection": "Saved/NPCOutfits/inspect.json"
+  },
+  "protected": {
+    "status": "PASS",
+    "count": 7643,
+    "changed": [],
+    "seconds": 74.58,
+    "source": "Saved/NPCOutfits/Baseline"
+  },
+  "user_saves": {
+    "Status": "PASS",
+    "Checked": 4,
+    "Restored": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+    ]
+  },
+  "user_save_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Session_20261011_122051\\user_save_after.json",
+  "user_HUB_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a",
+  "retained_package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261011_155525",
+  "global_skill": "A:/Skills Codex/ef-clothing-unisex-workbench/SKILL.md",
+  "project_skill": ".agents/skills/ef-npc-outfit-workbench/SKILL.md",
+  "skills_validation": "PASS"
+}

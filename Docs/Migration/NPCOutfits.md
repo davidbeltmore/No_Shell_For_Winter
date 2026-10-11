@@ -63,14 +63,14 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Visual fit, movement, morphs, body swap | PENDING | Three-body shared coverage/movement passes; initial visual anomaly retained, controlled follow-up below |
 | Native service interaction | PASS | Six service menus and two quest interaction contracts; SkillGuy clothed images reviewed |
 | Native pursuit / spacing | PASS | Four natural pursuit/spacing samples in a clear authored-nav corridor; fresh gameplay-distance images reviewed |
-| Performance 1 | PENDING | Earlier schema-35.1 prepared pair passed; current graph requires a new capture |
+| Performance 1 | PASS | Schema-36.1 matched prepared 30-second pair; 0.078 ms added CPU, 0.311 ms GPU |
 | Performance 10/25 | FAIL | Frozen budget exceeded; details below |
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
 | Cold loading | PENDING | Preparation passes are not cold packaged loading |
 | All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
 | Cook and packaged QA | PASS | Schema 36.1, three bodies/archetypes, equip/unequip, GC, zero pending, exit 0 and reviewed images |
 | Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
-| Skills and GitHub publication | PENDING | Validated checkpoint through 25821cef published; schema 36.1 remains under validation |
+| Skills and GitHub publication | PASS | Skills validate; fitting checkpoint 864ddd08 pushed to origin/feature/efclothing-v4-multicloth |
 
 ## Work preservation
 
@@ -462,3 +462,43 @@ passes for all 7,643 files in 74.580 s with no changes. User HUB retains SHA256
 Final code builds including startup observations pass: Editor 14.559 s and Game
 50.955 s. A compiler warning in the transient selection fixture was corrected by
 using `TObjectPtr` with its existing GC referencer; selection behavior is unchanged.
+
+### Completed crowd measurements for the packaged fitting revision
+
+Snapshot `864ddd08`; matched prepared 30-second pairs, full roster, same quality,
+camera, body and seed. The 25-NPC pair preceded only startup-observation additions
+to the QA envelope; the fitting graph and runtime producer hashes match this
+checkpoint. Its earlier failure is retained rather than rerun without a relevant
+fitting correction.
+
+| Count | Added CPU ms | Added GPU ms | Added p95 ms | Warm ready s | Result |
+|---|---:|---:|---:|---:|---|
+| 1 | 0.078 | 0.311 | 0.284 | 0.265 | PASS |
+| 10 | 2.668 | 2.623 | 2.550 | 1.736 | FAIL: CPU |
+| 25 | 8.875 | 6.961 | 13.372 | 4.465 | FAIL: all four limits |
+| 50 | 15.160 | 14.174 | 16.291 | 9.524 | Diagnostic, no capacity claim |
+
+All groups leave zero pending outfit work after destruction. Spawn peaks for
+1/10/25/50 are 63.080/639.483/1,339.491/2,624.663 ms. Whole-process physical memory,
+raw-receipt hashes and all sample paths are recorded in
+`Evidence/NPCOutfits/performance-planes-final-{1,10,50}.json` and the existing
+25-NPC receipt. Whole-process memory cannot isolate GPU fitting allocations.
+The scene baseline already exceeds 16.67 ms; this is not a 60-FPS certification.
+
+The selection fixture after its GC-reference correction passes in 16.170 s native
+/ 21.390 s host, preserving weighted repetition, zero weights and saved GUIDs.
+Evidence: `Evidence/NPCOutfits/selection-gc-ownership.json`. The final PIE session
+was closed with no dirty editor packages, four original saves were restored and
+the target editor was reopened through the Daz-safe wrapper.
+
+The persistent goal remains ACTIVE. Remaining acceptance gaps are the 10/25
+performance failures, isolated cold garment/binding-load measurement and the
+unestablished cause of the historical first female extreme-morph anomaly.
+Current representative visual tests pass; that observation does not erase the
+older failure or identify its cause. Do not turn these limits into PASS labels.
+
+Fitting checkpoint `864ddd08` is published to GitHub. Final editor verification
+uses native MCP `EditorToolset.EditorAppToolset.IsPIERunning=false` and a fresh
+read-only inspection with no dirty packages. The project and global clothing
+skills both pass `quick_validate.py`. `Evidence/NPCOutfits/final-state-planes.json`
+records the protected snapshot, user-save restoration and retained package.
