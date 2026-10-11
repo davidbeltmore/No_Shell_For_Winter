@@ -44,7 +44,7 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
     TWeakObjectPtr<ACameraActor> Camera;
     TWeakObjectPtr<AActor> PreviousView;
     TSharedPtr<FJsonObject> Report = MakeShared<FJsonObject>();
-    TArray<TSharedPtr<FJsonValue>> Frames, CPUs, GPUs, Checks;
+    TArray<TSharedPtr<FJsonValue>> Frames, CPUs, GPUs, Checks, GameTimes, RenderTimes, SurfaceTimes, ReconcileTimes;
     FString Directory, Body, Archetype=TEXT("SkillGuy"), Loading=TEXT("warm"), Name=TEXT("run");
     int32 Count=1, Seed=731, Stage=0;
     bool bDressed=true, bQuit=false, bFunctional=false;
@@ -171,12 +171,20 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
         }
         if (Stage==3)
         {
+            double SurfaceMs=0, ReconcileMs=0;
+            for (auto P:Pawns) if (auto* Clothing=P->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
+            { SurfaceMs+=Clothing->GetLastSurfacePassMilliseconds(); ReconcileMs+=Clothing->GetLastReconcileMilliseconds(); }
+            GameTimes.Add(MakeShared<FJsonValueNumber>(FPlatformTime::ToMilliseconds(GGameThreadTime)));
+            RenderTimes.Add(MakeShared<FJsonValueNumber>(FPlatformTime::ToMilliseconds(GRenderThreadTime)));
+            SurfaceTimes.Add(MakeShared<FJsonValueNumber>(SurfaceMs)); ReconcileTimes.Add(MakeShared<FJsonValueNumber>(ReconcileMs));
             Frames.Add(MakeShared<FJsonValueNumber>(Delta*1000));
             CPUs.Add(MakeShared<FJsonValueNumber>(FMath::Max(FPlatformTime::ToMilliseconds(GGameThreadTime),FPlatformTime::ToMilliseconds(GRenderThreadTime))));
             GPUs.Add(MakeShared<FJsonValueNumber>(FPlatformTime::ToMilliseconds(RHIGetGPUFrameCycles())));
             if (Now-CaptureStart<CaptureSeconds) return true;
             Report->SetNumberField(TEXT("seconds"),Now-CaptureStart); Report->SetNumberField(TEXT("outfit_ready_seconds"),ReadyTime);
             Report->SetArrayField(TEXT("frame_ms"),Frames); Report->SetArrayField(TEXT("cpu_ms"),CPUs); Report->SetArrayField(TEXT("gpu_ms"),GPUs);
+            Report->SetArrayField(TEXT("game_ms"),GameTimes); Report->SetArrayField(TEXT("render_ms"),RenderTimes);
+            Report->SetArrayField(TEXT("surface_cpu_ms"),SurfaceTimes); Report->SetArrayField(TEXT("reconcile_cpu_ms"),ReconcileTimes);
             Report->SetNumberField(TEXT("physical_used_bytes"),static_cast<double>(FPlatformMemory::GetStats().UsedPhysical));
             if (bFunctional && bDressed)
             {

@@ -104,7 +104,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "EF Clothing Morph V4")
 	FString GetDebugSummary() const;
 
+    /** Last game-thread tick costs, for paired crowd diagnostics; never used as readiness. */
+    double GetLastSurfacePassMilliseconds() const { return LastSurfacePassMilliseconds; }
+    double GetLastReconcileMilliseconds() const { return LastReconcileMilliseconds; }
+
 private:
+    double LastSurfacePassMilliseconds = 0;
+    double LastReconcileMilliseconds = 0;
 	struct FManagedGarmentState
 	{
 		TWeakObjectPtr<USkeletalMesh> SourceMesh;

@@ -1,0 +1,169 @@
+{
+  "status": "FAIL",
+  "reason": "25-NPC frozen budget not met; 50 diagnostic only",
+  "hardware": "NVIDIA GeForce RTX 5070 Ti, D3D12 adapter 0 (editor log)",
+  "scene": "/Game/_Game/Hub/HUB",
+  "body": "Male.01",
+  "archetype": "SkillGuy",
+  "seed": 731,
+  "capture_seconds": 30,
+  "source_sha256": {
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "6af69bca1f415c70b694d2b46d3d6fc56e2a9064afee8bdb3f9d44aa1ccbdb6d",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "ba84fc8facf22f28bbe6cc812363e52cd14e8baf5ba1cc0d41d04bacc3a374c2",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingSurfaceDeformerBuilderLibrary.cpp": "2a2de1aa3b10311f1953f2a1b4b196bd62116a024da0fcbdece76afc6fd2b4c7",
+    "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "6c9a5348808c3c1833a4770d3fc758e3acf54e759b7c330e08011dec9fd4bc36"
+  },
+  "comparisons": [
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf1_01.json",
+      "status": "FAIL",
+      "count": 1,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 13.954562913847369,
+        "gpu_increment_ms": 1.312184209598544,
+        "frame_p95_increment_ms": 15.347198486328125,
+        "dressed_frame_p95_ms": 56.092098236083984,
+        "baseline_frame_p95_ms": 40.74489974975586,
+        "spawn_peak_ms": 1967.058539390564,
+        "warm_ready_seconds": 1.3971674032509327,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "cpu_increment_ms exceeds frozen budget",
+        "frame_p95_increment_ms exceeds frozen budget"
+      ],
+      "explicit_prewarm": false
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf10_01.json",
+      "status": "FAIL",
+      "count": 10,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 106.8563351197657,
+        "gpu_increment_ms": 58.312174575832145,
+        "frame_p95_increment_ms": 113.705810546875,
+        "dressed_frame_p95_ms": 152.37831115722656,
+        "baseline_frame_p95_ms": 38.67250061035156,
+        "spawn_peak_ms": 1954.548954963684,
+        "warm_ready_seconds": 5.912970099598169,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "cpu_increment_ms exceeds frozen budget",
+        "gpu_increment_ms exceeds frozen budget",
+        "frame_p95_increment_ms exceeds frozen budget",
+        "warm_ready_seconds exceeds frozen budget"
+      ],
+      "explicit_prewarm": false
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf10_cached_01.json",
+      "status": "FAIL",
+      "count": 10,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 8.581011386042196,
+        "gpu_increment_ms": 11.39262677543438,
+        "frame_p95_increment_ms": 10.69260025024414,
+        "dressed_frame_p95_ms": 30.176498413085938,
+        "baseline_frame_p95_ms": 19.483898162841797,
+        "spawn_peak_ms": 2010.7238292694092,
+        "warm_ready_seconds": 4.441169701516628,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "cpu_increment_ms exceeds frozen budget",
+        "gpu_increment_ms exceeds frozen budget",
+        "frame_p95_increment_ms exceeds frozen budget",
+        "warm_ready_seconds exceeds frozen budget"
+      ],
+      "explicit_prewarm": false
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf10_converged_01.json",
+      "status": "FAIL",
+      "count": 10,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 2.968164785089538,
+        "gpu_increment_ms": 4.62559663891454,
+        "frame_p95_increment_ms": 4.744697570800781,
+        "dressed_frame_p95_ms": 29.886600494384766,
+        "baseline_frame_p95_ms": 25.141902923583984,
+        "spawn_peak_ms": 637.355625629425,
+        "warm_ready_seconds": 3.489625498652458,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "cpu_increment_ms exceeds frozen budget",
+        "gpu_increment_ms exceeds frozen budget",
+        "frame_p95_increment_ms exceeds frozen budget",
+        "warm_ready_seconds exceeds frozen budget"
+      ],
+      "explicit_prewarm": true
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf_converged_01_1.json",
+      "status": "PASS",
+      "count": 1,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 0.38344148442761394,
+        "gpu_increment_ms": 0.5152463163280796,
+        "frame_p95_increment_ms": 0.4212970733642578,
+        "dressed_frame_p95_ms": 20.48299789428711,
+        "baseline_frame_p95_ms": 20.06170082092285,
+        "spawn_peak_ms": 171.09189927577972,
+        "warm_ready_seconds": 0.3578155003488064,
+        "pending_after_destroy": 0
+      },
+      "reasons": [],
+      "explicit_prewarm": true
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf_converged_01_25.json",
+      "status": "FAIL",
+      "count": 25,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 7.669562737767773,
+        "gpu_increment_ms": 11.554701767226657,
+        "frame_p95_increment_ms": 10.260299682617188,
+        "dressed_frame_p95_ms": 40.289398193359375,
+        "baseline_frame_p95_ms": 30.029098510742188,
+        "spawn_peak_ms": 2405.2774906158447,
+        "warm_ready_seconds": 9.678598001599312,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "cpu_increment_ms exceeds frozen budget",
+        "gpu_increment_ms exceeds frozen budget",
+        "frame_p95_increment_ms exceeds frozen budget",
+        "warm_ready_seconds exceeds frozen budget"
+      ],
+      "explicit_prewarm": true
+    },
+    {
+      "receipt": "Saved/NPCOutfits/Comparisons/perf_converged_01_50.json",
+      "status": "PENDING",
+      "count": 50,
+      "loading": "warm",
+      "measurements": {
+        "cpu_increment_ms": 16.84738172144784,
+        "gpu_increment_ms": 22.88830022293019,
+        "frame_p95_increment_ms": 22.033798217773438,
+        "dressed_frame_p95_ms": 66.36540222167969,
+        "baseline_frame_p95_ms": 44.33160400390625,
+        "spawn_peak_ms": 4316.474914550781,
+        "warm_ready_seconds": 20.64185480028391,
+        "pending_after_destroy": 0
+      },
+      "reasons": [
+        "Diagnostic measurement; no crowd-capacity acceptance claim"
+      ],
+      "explicit_prewarm": true
+    }
+  ]
+}

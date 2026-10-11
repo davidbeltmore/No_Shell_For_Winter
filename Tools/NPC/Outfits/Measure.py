@@ -27,11 +27,22 @@ def mean(values):
 result = {'status': 'PENDING', 'budget': {'cpu_increment_ms': 2, 'gpu_increment_ms': 3, 'frame_p95_increment_ms': 4, 'warm_ready_seconds': 2},
           'sources': [str(args.undressed.resolve()), str(args.dressed.resolve())], 'reasons': []}
 try:
+    hosts=[json.loads(path.with_name('host.json').read_text(encoding='utf-8-sig')) for path in [args.undressed,args.dressed]]
+    assert all(h.get('status')=='PASS' for h in hosts), 'PIE host did not pass'
+    assert hosts[0].get('quality') and hosts[0]['quality']==hosts[1].get('quality'), 'Missing or unmatched actual quality settings'
+    assert hosts[0].get('immutable_buffers')==hosts[1].get('immutable_buffers'), 'Unmatched provider configuration'
+    if right['loading']=='warm':
+        for host in hosts:
+            assert host.get('prewarm_receipt'), 'Warm acceptance requires explicit preparation in the same PIE world'
+            warm=json.loads(Path(host['prewarm_receipt']).read_text(encoding='utf-8-sig'))
+            assert warm.get('status')=='PASS', 'Resource preparation did not pass'
+        result['prewarm_receipts']=[h['prewarm_receipt'] for h in hosts]
     for key in ['count', 'seed', 'body', 'archetype', 'resolution', 'loading', 'camera', 'quality']:
         assert left[key] == right[key], 'Unmatched comparison: '+key
     assert left['dressed'] is False and right['dressed'] is True, 'Expected undressed then dressed'
     assert left['seconds'] >= 30 and right['seconds'] >= 30, 'Capture shorter than 30 seconds'
     for row in [left, right]:
+        assert row.get('status') == 'PASS', 'Native fixture did not pass'
         for key in ['cpu_ms', 'gpu_ms', 'frame_ms']:
             assert len(row[key]) >= 30 and all(math.isfinite(v) and v > 0 for v in row[key]), 'Missing/invalid samples: '+key
     result['count'] = right['count']
@@ -55,7 +66,7 @@ try:
         for key, limit in result['budget'].items():
             if result['measurements'][key] > limit: result['reasons'].append(key+' exceeds frozen budget')
         result['status'] = 'FAIL' if result['reasons'] else 'PASS'
-except (KeyError, AssertionError, TypeError, ZeroDivisionError) as error:
+except (KeyError, AssertionError, TypeError, ZeroDivisionError, OSError) as error:
     result['reasons'].append(str(error))
 args.output.parent.mkdir(parents=True, exist_ok=True)
 args.output.write_text(json.dumps(result, indent=2), encoding='utf-8')

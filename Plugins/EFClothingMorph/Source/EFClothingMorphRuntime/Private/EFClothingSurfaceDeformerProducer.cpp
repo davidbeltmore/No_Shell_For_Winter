@@ -1,4 +1,5 @@
 #include "EFClothingSurfaceDeformerProducer.h"
+#include "EFClothingImmutableGraphProvider.h"
 
 #include "Animation/MeshDeformerInstance.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -490,6 +491,12 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 	{
 		Detach();
 		return false;
+	}
+	FString AdapterFailure;
+	if (!UEFClothingImmutableGraphProvider::Install(Instance, AdapterFailure))
+	{
+		// Optimization failure retains the original, correct provider and reports the reason.
+		UE_LOG(LogTemp, Warning, TEXT("Clothing immutable buffers unavailable: %s"), *AdapterFailure);
 	}
 
 	return true;

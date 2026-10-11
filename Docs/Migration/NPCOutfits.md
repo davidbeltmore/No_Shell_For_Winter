@@ -53,11 +53,17 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Target/editor/clean initial branch | PASS | MCP and initial Git/process inspection above |
 | Scope and budget frozen | PASS | User accepted before implementation measurement |
 | Protected baseline | PASS | before.json, initial commit above |
-| Shared NPC equipment / FullRag pilot | PENDING | Implementation in progress |
-| Editor/Game build and Blueprint compile | PENDING | Not yet run |
-| Persistence and functional PIE | PENDING | Not yet run |
+| Shared NPC equipment / FullRag pilot | PASS | Four variants, three bodies; evidence below, commit bb199a65 |
+| Editor build and Blueprint compile | PASS | Final incremental Editor build + all 40 owned variants |
+| Game build | PENDING | Not yet run |
+| Pilot persistence and functional PIE | PASS | Modified shirt state, exact disk round trip, no duplicates |
+| Loot / immediate recreate | FAIL | Same-frame removal was lost; synchronous snapshot fix awaiting build/retest |
+| Weighted selection, cancellation | PENDING | Additional scoped checks still required |
 | Visual fit, movement, morphs, body swap | PENDING | Not yet run |
-| Performance 1/10/25/50 | PENDING | Not yet run |
+| Performance 1 | PASS | Explicitly prepared 30-second pair after two optimizations |
+| Performance 10/25 | FAIL | Frozen budget exceeded; details below |
+| Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
+| Cold loading | PENDING | Preparation passes are not cold packaged loading |
 | All eligible roster audit | PENDING | Not yet authored |
 | Cook and packaged QA | PENDING | Not yet run |
 | Final protection, skills, GitHub publication | PENDING | Not yet run |
@@ -107,3 +113,90 @@ GUID/count/equipment/body/morph equality and zero duplicate GUIDs. Loot removal,
 destroy/recreate, weighted-choice tests and cold packaged restoration remain
 PENDING. Four existing user saves are guarded; restoration after the previous
 session verified all four hashes and recovered ProjectIntimacy.sav exactly.
+
+## Initial performance failures (before optimization)
+
+Native fixture receipts passed their functional checks; their paired performance
+comparisons failed. These are different gates. Samples use the existing HUB,
+fixed fixture camera, matching body/seed/resolution and 30-second captures.
+Fixture AI/movement are disabled, so this does not certify active crowd gameplay.
+
+| Warm NPC count | Added CPU ms | Added GPU ms | Added frame p95 ms | Dressed frame p95 ms | Group ready s |
+|---|---:|---:|---:|---:|---:|
+| 1 | 13.955 | 1.312 | 15.347 | 56.092 | 1.397 |
+| 10 | 106.856 | 58.312 | 113.706 | 152.378 | 5.913 |
+
+Evidence: `Saved/NPCOutfits/Comparisons/perf1_01.json` and
+`perf10_01.json`, referencing the four native raw receipts. Both groups reported
+zero pending outfit initialization after destruction. Baseline frame p95 was
+40.745/38.673 ms respectively: the existing scene already exceeds 16.67 ms.
+The incremental clothing failures remain independent of that baseline.
+
+Diagnosis is in progress. Instrumentation has been prepared to separate game,
+render, surface-submission and reconciliation CPU times, but has not yet been
+built or measured in the original pair. Subsequent instrumented diagnostic
+`diag10_instrument_01` (10 seconds, not an acceptance run) measured mean surface
+submission 56.050 ms, reconcile 0.337 ms, game thread 124.188 ms, render thread
+141.768 ms and GPU 59.091 ms. User explicitly authorized closing/compiling/reopening
+after saving HUB. Instrumentation build PASS (36.289 s).
+
+The first targeted optimization is an owned per-instance ComputeFramework provider
+for the existing surface graph, reusing immutable binding arrays across dispatches
+and matching live owners. Scalars and all surface kernels still run every frame.
+It validates reflected UE 5.8 layout before replacing instance providers, without
+changing Engine/Marketplace code or graph assets. Failure retains the original
+providers and logs the cause. A weak lookup is capped at 128 entries; live providers
+and in-flight proxies own resource lifetime. `ef.ClothingMorph.ImmutableBindingBuffers`
+selects the provider on subsequent garment installation for A/B diagnostics.
+An unexported metadata accessor caused a link failure; using exported datatype
+accessors corrected it. The first runtime attempt retained stock providers because
+array values legitimately have zero inline bytes; correcting that bound produced
+build PASS (9.541 s). Protected comparison still passes all 7,643 files.
+
+`diag10_buffers_02` then passed its native fixture and reduced mean surface CPU
+submission from 56.050 to 0.754 ms; game/render/GPU totals were 18.106/22.340/16.786
+ms. Reviewed before/after overview images show the same ten garments and basic
+fit; movement/morph extremes and packaged GPU validation are still PENDING.
+
+The matched 30-second pair `perf10_cached_bare_01` / `perf10_cached_dressed_01`
+still FAILS the frozen budget: added CPU 8.581 ms, GPU 11.393 ms, frame p95
+10.693 ms, readiness 4.441 s, zero queued outfit initialization after destruction.
+Cache optimization is effective, but this is not certification of the requested
+crowd capacity. Original FAIL receipts remain intact.
+
+GPU trace: `Saved/NPCOutfits/Native/diag10_gpu_trace_01/capture.utrace` with Insights
+exports `timers.csv` and `gpu.csv`. The trace includes the engine's buffered
+history; GPU export uses seconds 277–286, within the final fixture capture.
+ComputeFramework kernels remain a large cost. Graph schema 35.1 adds an exact
+fixed-point exit to the witness loop: no tolerance change, six-cycle maximum
+retained for changing vertices. Editor build PASS (24.756 s); owned graph refresh
+PASS in `Saved/ClothingMorphV4QA/SurfaceGraph`, with scoped rollback copies.
+Performance and visual/regression gates for this shader change are PENDING.
+
+The follow-up diagnostic `diag10_convergence_01` measured 9.522 ms GPU mean.
+Subsequent acceptance pairs now explicitly prepare the same dressed group inside
+the same PIE world, destroy it, then measure a fresh group. Actual quality CVars
+and the preparation receipt are mandatory in `Measure.py`; merely labeling a run
+`warm` no longer suffices. Earlier failures remain initial diagnostics, not proof
+of warmed resource residency. The 25-NPC budget itself is unchanged.
+
+| Count | Added CPU ms | Added GPU ms | Added p95 ms | Warm ready s | Result |
+|---|---:|---:|---:|---:|---|
+| 1 | 0.383 | 0.515 | 0.421 | 0.358 | PASS |
+| 10 | 2.968 | 4.626 | 4.745 | 3.490 | FAIL |
+| 25 | 7.670 | 11.555 | 10.260 | 9.679 | FAIL |
+| 50 | 16.847 | 22.888 | 22.034 | 20.642 | Diagnostic |
+
+All four groups drained outfit initialization to zero after destruction. Hardware:
+RTX 5070 Ti, D3D12, viewport 1595x1222, quality groups 3. Controlled animation/AI
+conditions remain as stated above. Compact evidence and exact source hashes:
+`Evidence/NPCOutfits/performance-initial.json`. Raw receipts remain in Saved.
+At 25, bare readiness was 1.583 s and dressed 9.679 s; the clothing initialization
+cost requires further work. Live MCP confirms each Rag mesh has only one LOD;
+shirt/pants/foot wraps have 7,767 / 9,081 / 2,176 vertices respectively.
+
+`LifecycleQA.py` found a separate persistence failure: remove the shirt through
+native inventory and destroy the NPC before the next tick, then recreate with the
+same identity. The deferred snapshot lost that final change. The fix snapshots
+coordinator-published mutations synchronously; validation is PENDING. Cancellation
+was not reached in the failed test and remains PENDING.

@@ -31,7 +31,7 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR AssetObjectPath[] = TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint");
 	constexpr TCHAR GraphSchemaMetadataKey[] = TEXT("EFClothingMorph.SurfaceGraphSchema");
 	constexpr TCHAR PrimarySemanticMetadataKey[] = TEXT("EFClothingMorph.PrimaryBindingSemantic");
-	constexpr TCHAR GraphSchemaVersion[] = TEXT("35.0");
+	constexpr TCHAR GraphSchemaVersion[] = TEXT("35.1");
 	constexpr TCHAR PrimarySemantic[] = TEXT("Garment");
 
 	constexpr TCHAR CustomKernelClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_CustomComputeKernel");
@@ -1541,6 +1541,7 @@ KERNEL
 		ProjectionIteration < 6 && !InvalidWitnessData;
 		++ProjectionIteration)
 	{
+		const float3 IterationStart = ExtraCorrection;
 		[loop]
 		for (int LocalReferenceIndex = 0;
 			LocalReferenceIndex < WitnessRange.y && !InvalidWitnessData;
@@ -1741,6 +1742,15 @@ KERNEL
 				continue;
 			}
 			ExtraCorrection += SafeDirection * (RemainingPushCm / SafeOpeningRate);
+		}
+		// A complete cycle with an identical result is a fixed point. All input
+		// geometry and clearance bounds are invariant within this dispatch, so
+		// repeating that same cycle cannot change the final result. Keep the full
+		// six-cycle ceiling for vertices that continue to change; no tolerance or
+		// distance/visibility quality reduction is introduced.
+		if (all(ExtraCorrection == IterationStart))
+		{
+			break;
 		}
 	}
 	if (!all(isfinite(ExtraCorrection))

@@ -392,6 +392,8 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 	FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    LastSurfacePassMilliseconds = 0;
+    LastReconcileMilliseconds = 0;
 
 	const UEFClothingMorphV2Settings* LegacySettings = GetDefault<UEFClothingMorphV2Settings>();
 	const UEFClothingMorphSettings* Settings = GetDefault<UEFClothingMorphSettings>();
@@ -427,7 +429,9 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 		&& Now >= NextReconcileSeconds;
 	if (bReconcileRequested || bWatchdogDue)
 	{
+        const double ReconcileStart = FPlatformTime::Seconds();
 		ReconcileGarments();
+        LastReconcileMilliseconds = (FPlatformTime::Seconds() - ReconcileStart) * 1000;
 		bReconcileRequested = false;
 		NextReconcileSeconds = Now + WatchdogIntervalSeconds;
 	}
@@ -436,7 +440,9 @@ void UEFClothingMorphV3RuntimeComponent::TickComponent(
 		: 0.0;
 	if (SurfacePassIntervalSeconds <= 0.0 || Now >= NextSurfacePassSeconds)
 	{
+        const double SurfaceStart = FPlatformTime::Seconds();
 		TickSurfacePasses(DeltaTime);
+        LastSurfacePassMilliseconds = (FPlatformTime::Seconds() - SurfaceStart) * 1000;
 		NextSurfacePassSeconds = Now + SurfacePassIntervalSeconds;
 	}
 }
