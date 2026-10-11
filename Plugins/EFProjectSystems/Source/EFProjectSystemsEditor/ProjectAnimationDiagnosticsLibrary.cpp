@@ -1001,6 +1001,107 @@ FString UProjectAnimationDiagnosticsLibrary::CompareMeshPoseToAnimationAtTime(US
 	return ProjectAnimationDiagnostics::CompareMeshPoseToAnimationAtTimeInternal(MeshComponent, AnimationAsset, TimeSeconds, BoneNameContainsCsv, MaxBones);
 }
 
+FString UProjectAnimationDiagnosticsLibrary::StabilizeOwnedBowAimComponentRotations(UAnimSequence* AnimationAsset, UAnimSequence* ReferenceAsset)
+{
+	const FString OwnedRoot = TEXT("/Game/_Game/Characters/Animation/Weapons/BowAim/");
+	if (!AnimationAsset || !ReferenceAsset || AnimationAsset == ReferenceAsset ||
+		!AnimationAsset->GetPathName().StartsWith(OwnedRoot) || !ReferenceAsset->GetPathName().StartsWith(OwnedRoot) ||
+		!AnimationAsset->GetSkeleton() || AnimationAsset->GetSkeleton() != ReferenceAsset->GetSkeleton())
+	{
+		return ProjectAnimationDiagnostics::ErrorJson(TEXT("Matching project-owned bow aim and reference assets are required."));
+	}
+	const IAnimationDataModel* Model = AnimationAsset->GetDataModel();
+	const IAnimationDataModel* ReferenceModel = ReferenceAsset->GetDataModel();
+	if (!Model || !ReferenceModel || Model->GetNumberOfKeys() < 1 || Model->GetNumberOfKeys() > 1000)
+	{
+		return ProjectAnimationDiagnostics::ErrorJson(TEXT("Invalid or oversized animation data model."));
+	}
+	const FReferenceSkeleton& Skeleton = AnimationAsset->GetSkeleton()->GetReferenceSkeleton();
+	const TArray<FName> Selected = {TEXT("spine_01"), TEXT("spine_02"), TEXT("spine_03"), TEXT("spine_04"), TEXT("spine_05"), TEXT("neck_01"), TEXT("neck_02"), TEXT("head")};
+	const TArray<FName> ArmRoots = {TEXT("clavicle_l"), TEXT("clavicle_r")};
+	TArray<FName> Modified = Selected;
+	Modified.Append(ArmRoots);
+	TArray<FName> Tracks, ReferenceTracks;
+	Model->GetBoneTrackNames(Tracks);
+	ReferenceModel->GetBoneTrackNames(ReferenceTracks);
+	TArray<TArray<FTransform>> Keys;
+	Keys.SetNum(Skeleton.GetNum());
+	TArray<FTransform> ReferenceComponents;
+	ReferenceComponents.SetNum(Skeleton.GetNum());
+	for (int32 Bone = 0; Bone < Skeleton.GetNum(); ++Bone)
+	{
+		const FName Name = Skeleton.GetBoneName(Bone);
+		if (Tracks.Contains(Name)) Model->GetBoneTrackTransforms(Name, Keys[Bone]);
+		if (Keys[Bone].IsEmpty()) Keys[Bone].Init(Skeleton.GetRefBonePose()[Bone], Model->GetNumberOfKeys());
+		if (Keys[Bone].Num() != Model->GetNumberOfKeys()) return ProjectAnimationDiagnostics::ErrorJson(TEXT("Mismatched key counts."));
+		TArray<FTransform> ReferenceKeys;
+		if (ReferenceTracks.Contains(Name)) ReferenceModel->GetBoneTrackTransforms(Name, ReferenceKeys);
+		const FTransform Local = ReferenceKeys.IsEmpty() ? Skeleton.GetRefBonePose()[Bone] : ReferenceKeys[0];
+		const int32 Parent = Skeleton.GetParentIndex(Bone);
+		ReferenceComponents[Bone] = Parent == INDEX_NONE ? Local : Local * ReferenceComponents[Parent];
+	}
+	for (const FName Name : Modified)
+	{
+		if (Skeleton.FindBoneIndex(Name) == INDEX_NONE) return ProjectAnimationDiagnostics::ErrorJson(TEXT("Missing neck/head bone."));
+	}
+	double MaximumError = 0.;
+	for (int32 Key = 0; Key < Model->GetNumberOfKeys(); ++Key)
+	{
+		TArray<FTransform> OriginalComponents;
+		OriginalComponents.SetNum(Skeleton.GetNum());
+		for (int32 Bone = 0; Bone < Skeleton.GetNum(); ++Bone)
+		{
+			const int32 Parent = Skeleton.GetParentIndex(Bone);
+			OriginalComponents[Bone] = Parent == INDEX_NONE ? Keys[Bone][Key] : Keys[Bone][Key] * OriginalComponents[Parent];
+		}
+		TArray<FTransform> Components;
+		Components.SetNum(Skeleton.GetNum());
+		for (int32 Bone = 0; Bone < Skeleton.GetNum(); ++Bone)
+		{
+			const int32 Parent = Skeleton.GetParentIndex(Bone);
+			FTransform& Local = Keys[Bone][Key];
+			FTransform Component = Parent == INDEX_NONE ? Local : Local * Components[Parent];
+			const bool bArmRoot = ArmRoots.Contains(Skeleton.GetBoneName(Bone));
+			if (Selected.Contains(Skeleton.GetBoneName(Bone)) || bArmRoot)
+			{
+				// Transfer the removed spine aiming rotation into each arm root;
+				// simply masking the spine also freezes the visible weapon direction.
+				const FQuat DesiredRotation = (bArmRoot ? OriginalComponents[Bone] : ReferenceComponents[Bone]).GetRotation().GetNormalized();
+				Component.SetRotation(DesiredRotation);
+				const FTransform CorrectedLocal = Parent == INDEX_NONE ? Component : Component.GetRelativeTransform(Components[Parent]);
+				Local.SetRotation(CorrectedLocal.GetRotation().GetNormalized());
+				Component = Parent == INDEX_NONE ? Local : Local * Components[Parent];
+				MaximumError = FMath::Max(MaximumError, FMath::RadiansToDegrees(Component.GetRotation().AngularDistance(DesiredRotation)));
+			}
+			if (Local.ContainsNaN()) return ProjectAnimationDiagnostics::ErrorJson(TEXT("Non-finite corrected transform."));
+			Components[Bone] = Component;
+		}
+	}
+	AnimationAsset->Modify();
+	IAnimationDataController& Controller = AnimationAsset->GetController();
+	{
+		IAnimationDataController::FScopedBracket Bracket(Controller, NSLOCTEXT("ProjectAnimationMigration", "BowAimNeck", "Stabilize owned bow aim neck rotations"), false);
+		for (const FName Name : Modified)
+		{
+			TArray<FVector> Positions, Scales;
+			TArray<FQuat> Rotations;
+			for (const FTransform& Transform : Keys[Skeleton.FindBoneIndex(Name)])
+			{
+				Positions.Add(Transform.GetTranslation()); Rotations.Add(Transform.GetRotation()); Scales.Add(Transform.GetScale3D());
+			}
+			if (!Tracks.Contains(Name) && !Controller.AddBoneCurve(Name, false)) return ProjectAnimationDiagnostics::ErrorJson(TEXT("Cannot add corrected track."));
+			if (!Controller.SetBoneTrackKeys(Name, Positions, Rotations, Scales, false)) return ProjectAnimationDiagnostics::ErrorJson(TEXT("Cannot update corrected track."));
+		}
+	}
+	AnimationAsset->MarkPackageDirty();
+	TSharedRef<FJsonObject> Root = ProjectAnimationDiagnostics::MakeRoot();
+	Root->SetBoolField(TEXT("success"), true);
+	Root->SetNumberField(TEXT("key_count"), Model->GetNumberOfKeys());
+	Root->SetNumberField(TEXT("modified_bone_count"), Selected.Num() + ArmRoots.Num());
+	Root->SetNumberField(TEXT("maximum_component_rotation_error_degrees"), MaximumError);
+	return ProjectAnimationDiagnostics::WriteJson(Root);
+}
+
 FString UProjectAnimationDiagnosticsLibrary::RedistributeAdjacentBoneRotation(
 	UAnimSequence* AnimationAsset,
 	const FName LowerBoneName,

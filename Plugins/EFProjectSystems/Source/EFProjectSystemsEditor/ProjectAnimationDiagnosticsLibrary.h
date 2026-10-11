@@ -16,6 +16,9 @@ class EFPROJECTSYSTEMSEDITOR_API UProjectAnimationDiagnosticsLibrary : public UB
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Project|Animation Migration")
+	static FString StabilizeOwnedBowAimComponentRotations(UAnimSequence* AnimationAsset, UAnimSequence* ReferenceAsset);
+
+	UFUNCTION(BlueprintCallable, Category = "Project|Animation Migration")
 	static bool AssignMissingAnimationSkeleton(UAnimationAsset* AnimationAsset, USkeleton* Skeleton);
 
 	UFUNCTION(BlueprintCallable, Category = "Project|Animation Migration")
