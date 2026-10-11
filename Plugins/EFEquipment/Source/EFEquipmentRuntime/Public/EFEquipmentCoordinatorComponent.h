@@ -11,6 +11,7 @@ class UEFEquipmentRuleProfile;
 class UEFEquipmentRulesFragment;
 class UEFContainerInventoryComponent;
 class UACFVendorComponent;
+class APawn;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEFEquipmentChanged);
 
@@ -55,6 +56,9 @@ public:
     static bool NativeEquipGate(UACFItem* Item, UACFEquipmentComponent* Native);
     static bool IsManagedPlayer(const AActor* Actor);
     static UEFEquipmentCoordinatorComponent* FindOrCreate(AActor* Actor);
+    /** Explicit opt-in by the owned NPC outfit integration; no discovery, UI, carry projection or death adapter. */
+    static UEFEquipmentCoordinatorComponent* CreateForNPC(APawn* Pawn);
+    bool IsNPCEquipmentOnly() const { return bNPCEquipmentOnly; }
     bool IsAuthorized(const UACFItem* Item) const;
     UEFContainerInventoryComponent* ResolveContainer(FGuid Guid, FString& Error);
     bool FlushContainers(FString& Error);
@@ -71,6 +75,7 @@ public:
 #endif
 
 private:
+    bool bNPCEquipmentOnly = false;
     UPROPERTY(Transient) TObjectPtr<UACFEquipmentComponent> Equipment;
     UPROPERTY(Transient) TObjectPtr<UEFEquipmentSlotRegistry> Registry;
     UPROPERTY(Transient) TMap<FGuid, TObjectPtr<UEFContainerInventoryComponent>> Containers;

@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameFramework/Pawn.h"
+#include "Characters/ProjectNPCOutfit.h"
 #include "ProjectNPCRoster.generated.h"
 
 USTRUCT(BlueprintType)
@@ -12,6 +13,8 @@ struct FProjectNPCArchetype
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName Role;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftClassPtr<APawn> Male;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftClassPtr<APawn> Female;
+    /** Empty means no outfit integration; one entry is fixed, multiple entries use the appearance seed. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FProjectNPCOutfitChoice> Outfits;
 };
 
 /** Project-owned spawn choices. Source/vendor paths live only in the authoring manifest. */

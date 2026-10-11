@@ -1,0 +1,114 @@
+{
+  "status": "PASS",
+  "parameters": {
+    "preset": "FullRag",
+    "body": "",
+    "archetype": "SkillGuy,MeleeEnemy",
+    "count": 4,
+    "seed": 731,
+    "timeout": 120
+  },
+  "checks": [
+    {
+      "name": "Requested archetypes exist",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPMale_C_0 three rags",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPMale_C_0 quantities",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPMale_C_0 equipped",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPMale_C_0 preset",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPFemale_C_0 three rags",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPFemale_C_0 quantities",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPFemale_C_0 equipped",
+      "status": "PASS"
+    },
+    {
+      "name": "ACFMeleeEnemyBPFemale_C_0 preset",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPMale_C_0 three rags",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPMale_C_0 quantities",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPMale_C_0 equipped",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPMale_C_0 preset",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPFemale_C_0 three rags",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPFemale_C_0 quantities",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPFemale_C_0 equipped",
+      "status": "PASS"
+    },
+    {
+      "name": "ACF_SkillGuy_BPFemale_C_0 preset",
+      "status": "PASS"
+    },
+    {
+      "name": "Screenshot captured",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "actors": [
+    {
+      "class": "/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C",
+      "body": "Male.01",
+      "ready_seconds": 10.909275099635124,
+      "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+    },
+    {
+      "class": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+      "body": "Female.01",
+      "ready_seconds": 0.5717407986521721,
+      "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.724,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.724,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.724,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+    },
+    {
+      "class": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C",
+      "body": "Male.01",
+      "ready_seconds": 10.565203700214624,
+      "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+    },
+    {
+      "class": "/Game/_Game/Characters/Female/ACF_SkillGuy_BPFemale.ACF_SkillGuy_BPFemale_C",
+      "body": "Female.01",
+      "ready_seconds": 10.538245800882578,
+      "clothing": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=3 ready=3 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.145,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Feet:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=0.145,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.000cm,morphActivity=0.145,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=4650] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Feet (skin gap 0.000 cm, surface volume 0.200 cm)."
+    }
+  ],
+  "visual": "PENDING",
+  "seconds": 27.360000000000582
+}

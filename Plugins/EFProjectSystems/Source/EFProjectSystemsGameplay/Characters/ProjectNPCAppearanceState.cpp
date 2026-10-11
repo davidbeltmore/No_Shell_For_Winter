@@ -61,6 +61,7 @@ void AProjectNPCAppearanceState::OnLoaded_Implementation()
 		AsyncTask(ENamedThreads::GameThread, [Weak = TWeakObjectPtr<AProjectNPCAppearanceState>(this)] { if (Weak.IsValid()) Weak->OnLoaded_Implementation(); });
 		return;
 	}
+	++RestoreSerial;
 	Publish();
 	if (auto* Variation = GetWorld()->GetSubsystem<UProjectEnemyVisualVariationSubsystem>()) Variation->RequestAppearanceRestore();
 }

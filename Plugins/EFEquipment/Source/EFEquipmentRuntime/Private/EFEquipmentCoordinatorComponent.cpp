@@ -43,19 +43,30 @@ UEFEquipmentCoordinatorComponent* UEFEquipmentCoordinatorComponent::FindOrCreate
 void UEFEquipmentCoordinatorComponent::BeginPlay()
 {
     Super::BeginPlay(); InitializeEquipment();
-    GetWorld()->GetTimerManager().SetTimer(DiscoveryTimer, this, &UEFEquipmentCoordinatorComponent::PollEquipment, 0.5f, true);
+    if (!bNPCEquipmentOnly) GetWorld()->GetTimerManager().SetTimer(DiscoveryTimer, this, &UEFEquipmentCoordinatorComponent::PollEquipment, 0.5f, true);
+}
+
+UEFEquipmentCoordinatorComponent* UEFEquipmentCoordinatorComponent::CreateForNPC(APawn* Pawn)
+{
+    if (!IsValid(Pawn) || IsManagedPlayer(Pawn) || !Pawn->HasAuthority() || !GetDefault<UEFEquipmentSettings>()->bEnabled) return nullptr;
+    if (auto* Existing = Pawn->FindComponentByClass<UEFEquipmentCoordinatorComponent>()) return Existing->bNPCEquipmentOnly ? Existing : nullptr;
+    auto* Created = NewObject<UEFEquipmentCoordinatorComponent>(Pawn, TEXT("EFEquipmentCoordinator"));
+    Created->bNPCEquipmentOnly = true;
+    Pawn->AddInstanceComponent(Created);
+    Created->RegisterComponent();
+    return Created;
 }
 
 void UEFEquipmentCoordinatorComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
-    RemoveOwnerDeathAdapter();
+    if (!bNPCEquipmentOnly) RemoveOwnerDeathAdapter();
     FString Error; FlushContainers(Error);
     if (auto* Save = GetOwner()->FindComponentByClass<UALSLoadAndSaveComponent>()) Save->OnActorLoaded.RemoveDynamic(this, &UEFEquipmentCoordinatorComponent::HandleActorLoaded);
     if (Equipment)
     {
         Equipment->OnInventoryChanged.RemoveDynamic(this, &UEFEquipmentCoordinatorComponent::HandleInventoryChanged);
         Equipment->OnEquipmentChanged.RemoveDynamic(this, &UEFEquipmentCoordinatorComponent::HandleEquipmentChanged);
-        if (BaseCarryCapacity >= 0) EFEquipmentACF::SetCapacity(Equipment, BaseCarryCapacity);
+        if (!bNPCEquipmentOnly && BaseCarryCapacity >= 0) EFEquipmentACF::SetCapacity(Equipment, BaseCarryCapacity);
     }
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(DiscoveryTimer);
     Super::EndPlay(Reason);
@@ -69,7 +80,10 @@ bool UEFEquipmentCoordinatorComponent::InitializeEquipment(UEFEquipmentSlotRegis
     FString Error;
     if (!Equipment || !Registry || !Registry->Validate(Error) || !EFEquipmentACF::Inventory(Equipment)) return false;
     if (BaseCarryCapacity < 0 && !EFEquipmentACF::Capacity(Equipment, BaseCarryCapacity)) return false;
-    TArray<FGameplayTag> Available = Equipment->GetAvailableEquipmentSlot();
+    TArray<FGameplayTag> Available;
+    // Native NPC templates can contain duplicate Ammo entries. Canonicalize the
+    // list before checking ancestry; duplicates are not reservation conflicts.
+    for (const auto Slot : Equipment->GetAvailableEquipmentSlot()) Available.AddUnique(Slot);
     // Remove the legacy Armor parent. All remaining slots are preserved unless
     // they are ancestors/descendants of an authored slot, which is invalid in ACF.
     Available.Remove(FGameplayTag::RequestGameplayTag(TEXT("ItemSlot.Armor"), false));
@@ -81,7 +95,8 @@ bool UEFEquipmentCoordinatorComponent::InitializeEquipment(UEFEquipmentSlotRegis
     Equipment->SetAvailableEquipmentSlot(Available);
     Equipment->OnInventoryChanged.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleInventoryChanged);
     Equipment->OnEquipmentChanged.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleEquipmentChanged);
-    if (auto* Save = GetOwner()->FindComponentByClass<UALSLoadAndSaveComponent>()) Save->OnActorLoaded.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleActorLoaded);
+    if (!bNPCEquipmentOnly)
+        if (auto* Save = GetOwner()->FindComponentByClass<UALSLoadAndSaveComponent>()) Save->OnActorLoaded.AddUniqueDynamic(this, &UEFEquipmentCoordinatorComponent::HandleActorLoaded);
     bInitialized = true; InstallOwnerDeathAdapter(); RefreshState(); return true;
 }
 
@@ -280,7 +295,7 @@ FEFEquipmentResult UEFEquipmentCoordinatorComponent::RequestUnequip(FGuid Guid)
 FEFEquipmentResult UEFEquipmentCoordinatorComponent::Publish(FEFEquipmentResult Result)
 {
     LastMessage = Result.Message; Result.Revision = Revision; OnStateChanged.Broadcast();
-    if (!Result.bSuccess && !Result.Message.IsEmpty())
+    if (!bNPCEquipmentOnly && !Result.bSuccess && !Result.Message.IsEmpty())
         if (auto* Game = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
             if (auto* UI = Game->GetSubsystem<UANSUIPlayerSubsystem>()) UI->BroadcastNotification(Result.Message, 6.f);
     return Result;
@@ -449,7 +464,7 @@ void UEFEquipmentCoordinatorComponent::RefreshState()
     for (auto It = Containers.CreateIterator(); It; ++It)
         if (!Live.Contains(It.Key())) It.RemoveCurrent(); // Item fragment retains the component until its next owner resolves it.
     Equipment->RefreshTotalWeight();
-    EFEquipmentACF::SetCapacity(Equipment, BaseCarryCapacity - GetEffectiveContainerWeight());
+    if (!bNPCEquipmentOnly) EFEquipmentACF::SetCapacity(Equipment, BaseCarryCapacity - GetEffectiveContainerWeight());
     uint32 Fingerprint = GetTypeHash(BaseCarryCapacity);
     auto HashInventory = [&Fingerprint](UACFInventoryComponent* Inventory)
     {

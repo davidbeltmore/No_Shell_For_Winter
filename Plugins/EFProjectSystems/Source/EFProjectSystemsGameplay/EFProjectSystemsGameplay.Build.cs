@@ -73,6 +73,7 @@ public class EFProjectSystemsGameplay : ModuleRules
 		{
 				"ApplicationCore",
 				"EFEquipmentRuntime",
+                "EFClothingMorphRuntime",
 				"NetCore",
 				"Json",
 				"AGSGraphRuntime"

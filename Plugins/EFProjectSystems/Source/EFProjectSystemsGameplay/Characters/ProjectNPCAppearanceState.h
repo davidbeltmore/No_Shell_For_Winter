@@ -14,6 +14,10 @@ struct FProjectNPCAppearanceRecord
 	UPROPERTY(SaveGame, BlueprintReadOnly) int32 GeneratorVersion = 1;
 	UPROPERTY(SaveGame, BlueprintReadOnly) int32 Seed = 0;
 	UPROPERTY(SaveGame, BlueprintReadOnly) FCharacterCustomizationState Appearance;
+    /** Versioned native inventory envelope, keyed by this same appearance identity. Empty inventory is valid saved state. */
+    UPROPERTY(SaveGame) int32 OutfitVersion = 0;
+    UPROPERTY(SaveGame, BlueprintReadOnly) FName OutfitId;
+    UPROPERTY(SaveGame) TArray<uint8> OutfitInventory;
 	/** Updates only catalog-declared neutral morphs in old generated NPC records. */
 	void MigrateNeutralDefaults();
 };
@@ -37,6 +41,7 @@ public:
 	virtual void EndPlay(EEndPlayReason::Type Reason) override;
 	virtual void OnLoaded_Implementation() override;
 	UPROPERTY(SaveGame) TMap<FString, FProjectNPCAppearanceRecord> Records;
+	int32 RestoreSerial = 0;
 	static AProjectNPCAppearanceState* Ensure(UWorld* World);
 	/** Explicit EF.AppearanceId.* tags override identity; generated IDs are serialized by ALS actor tags. */
 	static FString IdentityFor(APawn* Pawn);

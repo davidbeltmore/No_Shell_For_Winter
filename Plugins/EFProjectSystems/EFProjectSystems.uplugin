@@ -45,6 +45,10 @@
 			"Name": "EFEquipment",
 			"Enabled": true
 		},
+        {
+            "Name": "EFClothingMorph",
+            "Enabled": true
+        },
 		{
 			"Name": "EFProcedural",
 			"Enabled": true

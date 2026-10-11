@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "outfits": [
+    {
+      "id": "FullRag",
+      "asset": "/Game/_Game/Characters/Data/Outfits/DA_FullRag",
+      "items": [
+        {"class": "/Game/_Game/Clothes/Rags01/RagShirt.RagShirt_C", "destination": "ItemSlot.Armor.Chest"},
+        {"class": "/Game/_Game/Clothes/Rags01/RagPants.RagPants_C", "destination": "ItemSlot.Armor.Legs"},
+        {"class": "/Game/_Game/Clothes/Rags01/RagFootWrap.RagFootWrap_C", "destination": "ItemSlot.Armor.Feet"}
+      ]
+    }
+  ]
+}

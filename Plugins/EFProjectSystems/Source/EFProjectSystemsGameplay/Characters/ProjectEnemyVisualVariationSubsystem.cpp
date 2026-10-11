@@ -1,5 +1,6 @@
 #include "Characters/ProjectEnemyVisualVariationSubsystem.h"
 #include "Characters/ProjectNPCAppearanceState.h"
+#include "Characters/ProjectNPCOutfitSubsystem.h"
 #include "EFBodyPresetCatalog.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -509,6 +510,7 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 			ProjectEnemyVisualVariationSubsystemPrivate::ApplyNativeSkinColorToPawnMeshes(Pawn, *Settings, Saved->Appearance.SkinColor);
 			if (IsOptionalMatureMorphTargetClass(Pawn->GetClass())) InitializeOptionalMatureMorphState(Pawn, CustomizationComponent);
 			MarkActorProcessed(Pawn);
+			if (auto* Outfits = GetWorld()->GetSubsystem<UProjectNPCOutfitSubsystem>()) Outfits->AppearanceReady(Pawn);
 			return;
 		}
 	const UEFBodyPresetCatalog* BodyCatalog = UEFBodyPresetCatalog::Get();
@@ -590,6 +592,7 @@ void UProjectEnemyVisualVariationSubsystem::TryApplyVariation(TWeakObjectPtr<APa
 		Record.Appearance = CustomizationComponent->CaptureCurrentState();
 	}
 	MarkActorProcessed(Pawn);
+    if (auto* Outfits = GetWorld()->GetSubsystem<UProjectNPCOutfitSubsystem>()) Outfits->AppearanceReady(Pawn);
 }
 
 bool UProjectEnemyVisualVariationSubsystem::ShouldProcessPawn(const APawn* Pawn) const
