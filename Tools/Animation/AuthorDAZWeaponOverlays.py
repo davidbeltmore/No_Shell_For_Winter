@@ -18,6 +18,11 @@ for weapon in weapons:
             absolute=name in ['Spine','ArmL','ArmR']
             s.set_editor_property('OverlayType',enum.OVERLAY_POSE if absolute else enum.BASE_POSE)
             s.set_editor_property('OverlayWeight',1.0 if absolute or (weapon in ['Rifle','Bow'] and name=='Head') else 0.0)
+            # Bow carry must retain locomotion in the chest. A full torso override
+            # combined with a base-pose head doubled neck/chest divergence on turns.
+            # Keep the absolute pose type (no DAZ additive stretch), blend its weight.
+            if weapon=='Bow' and name=='Spine':
+                s.set_editor_property('OverlayWeight',.2 if mode=='Idle' else .8)
             profile.set_editor_property(name,s)
         e.save_loaded_asset(profile,only_if_is_dirty=False);profiles[mode]=profile
     target=f'{dest}/ABP_DAZ{weapon}Overlay'

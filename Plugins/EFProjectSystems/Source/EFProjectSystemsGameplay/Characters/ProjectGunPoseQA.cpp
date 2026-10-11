@@ -46,6 +46,55 @@ struct FGunPoseQA : TSharedFromThis<FGunPoseQA>
     int32 Index=0,Stage=0,Completed=0;
     double Start=FPlatformTime::Seconds(),Due=0,NeckBaseline=0,NeckElevationBaseline=0,AmmoBefore=0;
     FString Events,Directory=FPaths::ProjectSavedDir()/TEXT("GunPose/Runtime");
+    double MotionStart=0,LastMotionSample=0,MaxCarryNeckAngle=0,MaxAimNeckAngle=0,MotionDistance=0;
+    int32 MotionSamples=0,MotionShot=-1;
+    FVector MotionPrevious;
+    FTransform MotionOrigin;
+    bool MotionTick(double Now)
+    {
+        auto* P=Subject.Get();auto* M=P?P->GetMesh():nullptr;
+        auto* Move=P?Cast<UACFCharacterMovementComponent>(P->GetCharacterMovement()):nullptr;
+        if (!M || !Move || !P->GetController()) return Finish(false,TEXT("Bow movement subject missing"));
+        const double T=Now-MotionStart;
+        if (T>=8)
+        {
+            Move->StopMovementImmediately();Move->SetIsAiming(true);
+            P->SetActorTransform(MotionOrigin,false,nullptr,ETeleportType::TeleportPhysics);AimPitch(0);
+            Record(FString::Printf(TEXT("bow_motion samples=%d distance_cm=%.2f carry_head_chest_max_deg=%.2f aim_head_chest_max_deg=%.2f"),MotionSamples,MotionDistance,MaxCarryNeckAngle,MaxAimNeckAngle));
+            if (MotionSamples<50 || MotionDistance<400 || MaxCarryNeckAngle>32 || MaxAimNeckAngle>45)
+                return Finish(false,TEXT("Bow movement/neck coupling contract failed"));
+            return Fire(Now);
+        }
+        const bool Aiming=T>=3 && T<6;
+        Move->SetIsAiming(Aiming);
+        // Travel back toward the captured player origin. The static fixture is
+        // +2200cm along X; moving farther +X walked off the finite HUB floor.
+        const FRotator Direction(Aiming?30*FMath::Sin(T):0,180+45*FMath::Sin(T*1.2),0);
+        P->GetController()->SetControlRotation(Direction);
+        P->AddMovementInput(FRotator(0,Direction.Yaw,0).Vector(),.65f);
+        const FVector At=P->GetActorLocation(),Focus=At+FVector(0,0,50),Eye=Focus+FVector(340,170,30);
+        Camera->SetActorLocationAndRotation(Eye,(Focus-Eye).Rotation());
+        MotionDistance+=FVector::Distance(At,MotionPrevious);MotionPrevious=At;
+        if (Now-LastMotionSample>=.05)
+        {
+            LastMotionSample=Now;++MotionSamples;
+            const double Angle=FMath::RadiansToDegrees(M->GetSocketQuaternion(TEXT("head")).AngularDistance(M->GetSocketQuaternion(TEXT("spine_05"))));
+            // Allow the native 0.3s stance blend to settle before classifying carry.
+            if (T>1 && T<3 || T>6.5) MaxCarryNeckAngle=FMath::Max(MaxCarryNeckAngle,Angle);
+            if (T>3.5 && T<6) MaxAimNeckAngle=FMath::Max(MaxAimNeckAngle,Angle);
+            const double Elevation=M->GetSocketLocation(TEXT("head")).Z-.5*(M->GetSocketLocation(TEXT("clavicle_l")).Z+M->GetSocketLocation(TEXT("clavicle_r")).Z);
+            if (T>.75 && !Move->IsMovingOnGround())
+                return Finish(false,TEXT("Bow motion fixture left walkable floor"));
+            if (!FMath::IsFinite(Angle) || Neck(P)>NeckBaseline*1.35 || Elevation<NeckElevationBaseline*.7)
+            {
+                Record(FString::Printf(TEXT("motion_failure t=%.3f angle=%.3f neck=%.3f baseline=%.3f elevation=%.3f baseline=%.3f"),T,Angle,Neck(P),NeckBaseline,Elevation,NeckElevationBaseline));
+                return Finish(false,TEXT("Bow moving pose proportion failed"));
+            }
+        }
+        const int32 Frame=FMath::FloorToInt(T);
+        if (Frame!=MotionShot) {MotionShot=Frame;Shot(*FString::Printf(TEXT("motion_%02d"),Frame));}
+        return true;
+    }
     int32 WeaponCount() const { return bBow?1:2; }
     int32 CaseCount() const { return 4*WeaponCount(); }
     bool IsPlayer() const { return Index>=2*WeaponCount(); }
@@ -134,6 +183,7 @@ struct FGunPoseQA : TSharedFromThis<FGunPoseQA>
             if (OldWeaponSlot.IsValid()) E->UseEquippedItemBySlot(OldWeaponSlot);
             auto* C=P->FindComponentByClass<UEFCharacterCustomizationComponent>();if (C) C->ApplyState(OldAppearance);
             if (auto* M=Cast<UACFCharacterMovementComponent>(P->GetCharacterMovement())) M->SetIsAiming(false);
+            P->GetCharacterMovement()->StopMovementImmediately();
             P->SetActorTransform(OldTransform,false,nullptr,ETeleportType::TeleportPhysics);
             if (auto* D=P->FindComponentByClass<UACFDamageHandlerComponent>()) D->SetIsImmortal(bOldImmortal);
             if (auto* PC=UGameplayStatics::GetPlayerController(World.Get(),0)) {PC->SetControlRotation(OldControl);if (OldView.IsValid()) PC->SetViewTarget(OldView.Get());}
@@ -165,7 +215,9 @@ struct FGunPoseQA : TSharedFromThis<FGunPoseQA>
     {
         const double Now=FPlatformTime::Seconds();if (Now-Start>110) return Finish(false,TEXT("110-second watchdog"));
         auto* W=World.Get();auto* PC=W?UGameplayStatics::GetPlayerController(W,0):nullptr;
-        auto* Hero=PC?Cast<ACharacter>(PC->GetPawn()):nullptr;if (!Hero) return true;if (Now<Due) return true;
+        auto* Hero=PC?Cast<ACharacter>(PC->GetPawn()):nullptr;if (!Hero) return true;
+        if (Stage==30) return MotionTick(Now);
+        if (Now<Due) return true;
         if (Stage==0 && Now-Start<5) return true;
         if (Stage==0)
         {
@@ -256,7 +308,17 @@ struct FGunPoseQA : TSharedFromThis<FGunPoseQA>
             if (Angle<.15) return Finish(false,TEXT("Directional bow aim frozen or insufficient"));
             Shot(Stage==20?TEXT("aim_down"):TEXT("aim_up"));
             if (Stage==20) {AimPitch(60);Stage=21;Due=Now+1;return true;}
-            AimPitch(0);return Fire(Now);
+            AimPitch(0);
+            if (IsPlayer())
+            {
+                MotionStart=Now;LastMotionSample=Now;MotionSamples=0;MotionShot=-1;
+                MaxCarryNeckAngle=MaxAimNeckAngle=MotionDistance=0;
+                MotionOrigin=Subject->GetActorTransform();MotionPrevious=MotionOrigin.GetLocation();
+                Subject->SetActorRotation(FRotator(0,180,0));
+                Subject->GetController()->SetControlRotation(FRotator(0,180,0));
+                Stage=30;return true;
+            }
+            return Fire(Now);
         }
         if (Stage==5)
         {
