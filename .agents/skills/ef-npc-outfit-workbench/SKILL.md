@@ -149,6 +149,26 @@ morphs and runtime sliders remain per-instance. Three fresh packaged body cases
 have passed explicit GC and normal shutdown; repeat after ownership changes.
 `--profile-gpu` records one detailed frame after readiness, with profiler UI off
 and temporary settings restored. It is diagnostic and is rejected by `Measure.py`.
+Use `python Tools/NPC/Outfits/SummarizeGPU.py LOG --output NEW.json` to extract
+the last graphics GPU-0 frame and preserve its raw named events. These include
+background HUB garments; do not label the totals as the fixture alone. New host
+receipts hash the roster, graph and runtime sources before PIE, and comparisons
+reject different configurations. Keep prior FAILs when refining the fixture.
+
+Schema 36.1 prepares bounded frame-local witness planes and validates incidence
+once per receiving vertex before the unchanged six-cycle solver. FullRag reserves
+4,870,144 logical plane-buffer bytes per outfit; this is not a measured GPU memory
+total. The 25-NPC frozen budget still fails despite the measured GPU reduction.
+Any shared graph change requires all three bodies, extreme morphs, body swaps,
+movement, coverage ownership and packaged GC/exit validation. Never certify it
+from `Ready`, a short profiler frame or a successful C++ build alone.
+
+Native receipts expose `initial_world_outfits` separately from the QA group:
+definition/item-class residency at request, asynchronous callback durations,
+restoration and engine-relative start/readiness. Use fresh packaged processes for
+startup observations. Residency does not measure OS disk caches; negative stage
+durations mean that stage did not run. Report what was already resident instead
+of relabeling a partly prepared launch as an isolated cold-load benchmark.
 
 Do not assume garment mesh reduction reduces fitting work. The withdrawn 25%
 Rag LOD experiment retained roughly the same witness count while concentrating up

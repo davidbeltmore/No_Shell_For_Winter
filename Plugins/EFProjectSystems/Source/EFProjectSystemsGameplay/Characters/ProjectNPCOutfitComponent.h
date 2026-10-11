@@ -26,6 +26,12 @@ public:
     UPROPERTY(BlueprintReadOnly, Category="Outfit") FName SelectedId;
     UPROPERTY(BlueprintReadOnly, Category="Outfit") FString Failure;
     UPROPERTY(BlueprintReadOnly, Category="Outfit") double ReadySeconds = 0;
+    // Observations for bounded startup QA. No resource eviction or timing gate
+    // depends on these fields; negative durations mean that stage did not run.
+    double EngineSecondsAtStart = -1, EngineSecondsAtReady = -1;
+    double DefinitionLoadSeconds = -1, ItemClassesLoadSeconds = -1;
+    int32 ItemClassesRequested = 0, ItemClassesResidentAtRequest = 0;
+    bool bDefinitionResidentAtRequest = false, bRestoredAtStart = false;
     void Start(const TArray<FProjectNPCOutfitChoice>& Choices);
     void Advance();
     void CaptureInventory();

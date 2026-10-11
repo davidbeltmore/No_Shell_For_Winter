@@ -1,0 +1,44 @@
+{
+  "status": "FAIL",
+  "budget": {
+    "cpu_increment_ms": 2,
+    "gpu_increment_ms": 3,
+    "frame_p95_increment_ms": 4,
+    "warm_ready_seconds": 2
+  },
+  "sources": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_prepass_01_25_bare\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_prepass_01_25_dressed\\runtime.json"
+  ],
+  "reasons": [
+    "cpu_increment_ms exceeds frozen budget",
+    "gpu_increment_ms exceeds frozen budget",
+    "frame_p95_increment_ms exceeds frozen budget",
+    "warm_ready_seconds exceeds frozen budget"
+  ],
+  "fixture_version": 2,
+  "configuration_hashes": {
+    "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+    "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "860253190690d0e53cc86866b765d18075f670ed4c37ab463369ebf6c92d0836",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "1fb4cd3581f03e69d050a16097d64e90a4a7b3a7f3b0aa3864626371d8cf32da",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "762384198393f2704121ce5a6f6d61ce58dee0f73cbf95bb0af0597efc44026b"
+  },
+  "prewarm_receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_prepass_01_25_bare_warmup\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_prepass_01_25_dressed_warmup\\runtime.json"
+  ],
+  "count": 25,
+  "loading": "warm",
+  "measurements": {
+    "cpu_increment_ms": 8.875417016983402,
+    "gpu_increment_ms": 6.960753789073495,
+    "frame_p95_increment_ms": 13.372200012207031,
+    "dressed_frame_p95_ms": 47.52790069580078,
+    "baseline_frame_p95_ms": 34.15570068359375,
+    "spawn_peak_ms": 1339.4912481307983,
+    "warm_ready_seconds": 4.4647711999714375,
+    "pending_after_destroy": 0
+  },
+  "acceptance_applies": true
+}

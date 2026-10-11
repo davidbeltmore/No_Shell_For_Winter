@@ -1,0 +1,253 @@
+{
+  "status": "PASS",
+  "runtime_source": "Saved\\NPCOutfits\\Native\\selection_gc_ownership_01\\runtime.json",
+  "host": {
+    "status": "PASS",
+    "reason": "",
+    "seconds": 21.389999999999418,
+    "command": "Project.NPCOutfits.SelectionQA count=16 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=30 functional=0 loading=warm timeout=120 name=selection_gc_ownership_01",
+    "immutable_buffers": 1,
+    "prepared_binding": 1,
+    "profile_install": false,
+    "profile_gpu": false,
+    "trace": false,
+    "quality": {
+      "sg.ViewDistanceQuality": 3.0,
+      "sg.AntiAliasingQuality": 3.0,
+      "sg.ShadowQuality": 3.0,
+      "sg.GlobalIlluminationQuality": 3.0,
+      "sg.ReflectionQuality": 3.0,
+      "sg.PostProcessQuality": 3.0,
+      "sg.TextureQuality": 3.0,
+      "sg.EffectsQuality": 3.0,
+      "sg.FoliageQuality": 3.0,
+      "sg.ShadingQuality": 3.0,
+      "r.ScreenPercentage": 0.0,
+      "r.VSync": 0.0,
+      "t.MaxFPS": 0.0
+    },
+    "configuration_hashes": {
+      "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+      "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "860253190690d0e53cc86866b765d18075f670ed4c37ab463369ebf6c92d0836",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "1fb4cd3581f03e69d050a16097d64e90a4a7b3a7f3b0aa3864626371d8cf32da",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "762384198393f2704121ce5a6f6d61ce58dee0f73cbf95bb0af0597efc44026b",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "8ab32dd27637771b9a83503328d6498b04eee2848252cda4fa932aaf57bf0f28",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "147c4aa0e70d8c846a1b8671c6f148c8c109963c81e4e6da9615acad22d8311b"
+    },
+    "prewarm_receipt": null
+  },
+  "runtime": {
+    "status": "PASS",
+    "reason": "Weighted fresh-generation repeat, zero weight, fixed instance override and saved inventory precedence",
+    "elapsed_seconds": 16.170243300497532,
+    "samples": [
+      {
+        "round": 0,
+        "index": 0,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 0,
+        "index": 1,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 2,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 0,
+        "index": 3,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 4,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 5,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 6,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 7,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 8,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 0,
+        "index": 9,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 10,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 11,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 12,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 13,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 14,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 15,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 0,
+        "index": 16,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 0,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 1,
+        "index": 1,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 2,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 1,
+        "index": 3,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 4,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 5,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 6,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 7,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 8,
+        "selected": "FullRag",
+        "inventory_entries": 3
+      },
+      {
+        "round": 1,
+        "index": 9,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 10,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 11,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 12,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 13,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 14,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 15,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      },
+      {
+        "round": 1,
+        "index": 16,
+        "selected": "QA.RagLower",
+        "inventory_entries": 2
+      }
+    ],
+    "weighted_count": 16,
+    "seed": 731
+  }
+}

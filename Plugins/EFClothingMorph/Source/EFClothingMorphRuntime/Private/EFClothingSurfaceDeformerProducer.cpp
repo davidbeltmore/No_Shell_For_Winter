@@ -107,9 +107,24 @@ namespace
 
 	bool IsBreastAffectingMorphName(const FName MorphName)
 	{
+		check(IsInGameThread());
+		// Name classification is immutable; weights and the active curve map are
+		// still read on every submission. Bound the name-only cache so arbitrary
+		// runtime curve names cannot retain an ever-growing set or any UObject.
+		static TMap<FName, bool> Classification;
+		if (const bool* Existing = Classification.Find(MorphName))
+		{
+			return *Existing;
+		}
 		const FString Name = MorphName.ToString();
-		return Name.Contains(TEXT("Breast"), ESearchCase::IgnoreCase)
+		const bool bAffectsBreast = Name.Contains(TEXT("Breast"), ESearchCase::IgnoreCase)
 			|| Name.Contains(TEXT("Voluptuous"), ESearchCase::IgnoreCase);
+		if (Classification.Num() >= 4096)
+		{
+			Classification.Reset();
+		}
+		Classification.Add(MorphName, bAffectsBreast);
+		return bAffectsBreast;
 	}
 
 	/**
@@ -877,7 +892,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	// fallback delegate runs during SubmitWork before EndFrameRT, so an unchanged
 	// failure count at the second EndFrameRT is the strongest non-blocking public
 	// confirmation that the surface kernel was validated and submitted.
-	if (!DispatchTelemetry->bRenderConfirmationArmed.Load())
+	if (!bCurrentFailureGenerationValidated && !DispatchTelemetry->bRenderConfirmationArmed.Load())
 	{
 		DispatchTelemetry->bRenderConfirmationArmed.Store(true);
 		const uint32 FailureCountBeforeSubmission = FailureCount;

@@ -1,0 +1,228 @@
+{
+  "status": "PASS",
+  "scope": "Completed diagnostics, not crowd acceptance. Initial ternary trial was slower; explicit uniform branch and per-vertex validation prepass reduce repeated work.",
+  "schema": "36.1",
+  "cases": {
+    "gpu_planes_detail_01": {
+      "host": {
+        "status": "PASS",
+        "reason": "",
+        "seconds": 30.42200000000048,
+        "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=gpu_planes_detail_01",
+        "immutable_buffers": 1,
+        "prepared_binding": 1,
+        "profile_install": false,
+        "profile_gpu": true,
+        "trace": false,
+        "quality": {
+          "sg.ViewDistanceQuality": 3.0,
+          "sg.AntiAliasingQuality": 3.0,
+          "sg.ShadowQuality": 3.0,
+          "sg.GlobalIlluminationQuality": 3.0,
+          "sg.ReflectionQuality": 3.0,
+          "sg.PostProcessQuality": 3.0,
+          "sg.TextureQuality": 3.0,
+          "sg.EffectsQuality": 3.0,
+          "sg.FoliageQuality": 3.0,
+          "sg.ShadingQuality": 3.0,
+          "r.ScreenPercentage": 0.0,
+          "r.VSync": 0.0,
+          "t.MaxFPS": 0.0
+        },
+        "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_planes_detail_01_warmup\\runtime.json"
+      },
+      "graphics": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_planes_detail_01\\gpu-frame.log",
+        "source_sha256": "0ab9533518452f9ffe812e9b889ac02e7558a5c48da38856bb7831dde0fcd54e",
+        "frame": "[2026.10.11-20.31.36:813][494]LogRHI: Display: GPU Profile for Frame 1511 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 66,
+            "total_ms": 0.1,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 66,
+            "total_ms": 0.85,
+            "max_ms": 0.2
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 66,
+            "total_ms": 1.82,
+            "max_ms": 1.17
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 66,
+            "total_ms": 0.79,
+            "max_ms": 0.03
+          },
+          "EF_GarmentWitness": {
+            "count": 66,
+            "total_ms": 11.51,
+            "max_ms": 0.93
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 66,
+            "total_ms": 0.1,
+            "max_ms": 0.01
+          }
+        }
+      },
+      "retained_frame": "Saved\\NPCOutfits\\Native\\gpu_planes_detail_01\\graphics-summary.log",
+      "retained_frame_sha256": "a58d0db6519edb6e579df00235aad080158e1fb89a52db1ee5a0b36c65ea912a",
+      "schema": "36"
+    },
+    "gpu_planes_branch_detail_01": {
+      "host": {
+        "status": "PASS",
+        "reason": "",
+        "seconds": 26.5,
+        "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=gpu_planes_branch_detail_01",
+        "immutable_buffers": 1,
+        "prepared_binding": 1,
+        "profile_install": false,
+        "profile_gpu": true,
+        "trace": false,
+        "quality": {
+          "sg.ViewDistanceQuality": 3.0,
+          "sg.AntiAliasingQuality": 3.0,
+          "sg.ShadowQuality": 3.0,
+          "sg.GlobalIlluminationQuality": 3.0,
+          "sg.ReflectionQuality": 3.0,
+          "sg.PostProcessQuality": 3.0,
+          "sg.TextureQuality": 3.0,
+          "sg.EffectsQuality": 3.0,
+          "sg.FoliageQuality": 3.0,
+          "sg.ShadingQuality": 3.0,
+          "r.ScreenPercentage": 0.0,
+          "r.VSync": 0.0,
+          "t.MaxFPS": 0.0
+        },
+        "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_planes_branch_detail_01_warmup\\runtime.json"
+      },
+      "graphics": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "a31b6a0f482052e3fddb09bb460d4a019705a3656a70f62f60456f7c55fa6c84",
+        "frame": "[2026.10.11-20.35.20:084][437]LogRHI: Display: GPU Profile for Frame 1456 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 66,
+            "total_ms": 0.03,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 66,
+            "total_ms": 0.66,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 66,
+            "total_ms": 0.67,
+            "max_ms": 0.02
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 66,
+            "total_ms": 0.78,
+            "max_ms": 0.03
+          },
+          "EF_GarmentWitness": {
+            "count": 66,
+            "total_ms": 4.13,
+            "max_ms": 0.12
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 66,
+            "total_ms": 0.08,
+            "max_ms": 0.01
+          }
+        }
+      },
+      "retained_frame": "Saved\\NPCOutfits\\Native\\gpu_planes_branch_detail_01\\graphics-summary.log",
+      "retained_frame_sha256": "5c5367122c3eb8b76b9d8d4bb98ac37e24fc7b96e6eb06130a379789ed95216f",
+      "schema": "36"
+    },
+    "gpu_planes_prepass_detail_01": {
+      "host": {
+        "status": "PASS",
+        "reason": "",
+        "seconds": 28.21900000000096,
+        "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=gpu_planes_prepass_detail_01",
+        "immutable_buffers": 1,
+        "prepared_binding": 1,
+        "profile_install": false,
+        "profile_gpu": true,
+        "trace": false,
+        "quality": {
+          "sg.ViewDistanceQuality": 3.0,
+          "sg.AntiAliasingQuality": 3.0,
+          "sg.ShadowQuality": 3.0,
+          "sg.GlobalIlluminationQuality": 3.0,
+          "sg.ReflectionQuality": 3.0,
+          "sg.PostProcessQuality": 3.0,
+          "sg.TextureQuality": 3.0,
+          "sg.EffectsQuality": 3.0,
+          "sg.FoliageQuality": 3.0,
+          "sg.ShadingQuality": 3.0,
+          "r.ScreenPercentage": 0.0,
+          "r.VSync": 0.0,
+          "t.MaxFPS": 0.0
+        },
+        "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_planes_prepass_detail_01_warmup\\runtime.json"
+      },
+      "graphics": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "cdd5adab5b2ad35fb2f34fecf8a5eba344c15ba0c28e6f87205b54a575ac0167",
+        "frame": "[2026.10.11-20.44.56:682][548]LogRHI: Display: GPU Profile for Frame 1567 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 66,
+            "total_ms": 0.07,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 66,
+            "total_ms": 0.67,
+            "max_ms": 0.02
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 66,
+            "total_ms": 0.66,
+            "max_ms": 0.01
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 66,
+            "total_ms": 0.76,
+            "max_ms": 0.02
+          },
+          "EF_GarmentWitness": {
+            "count": 66,
+            "total_ms": 3.78,
+            "max_ms": 0.2
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 66,
+            "total_ms": 0.09,
+            "max_ms": 0.01
+          }
+        }
+      },
+      "retained_frame": "Saved\\NPCOutfits\\Native\\gpu_planes_prepass_detail_01\\graphics-summary.log",
+      "retained_frame_sha256": "098ea4017e42dd91737b3224e877859a03b6f0317eb46acaed4b3c9dc0b6ac97",
+      "schema": "36.1"
+    }
+  },
+  "logical_plane_buffer_bytes_per_FullRag": 4870144,
+  "logical_plane_buffer_bytes_for_25": 121753600,
+  "memory_scope": "Calculated float4 resource capacity, not measured RHI residency/allocator overhead. Denser bindings use full evaluator fallback.",
+  "current_sources": {
+    "Plugins\\EFClothingMorph\\Source\\EFClothingMorphEditor\\Private\\EFClothingSurfaceDeformerBuilderLibrary.cpp": "28671e80fad863430c4078ea6de62422dab051ec670eca04b4f1bf86906a5735",
+    "Plugins\\EFClothingMorph\\Content\\Deformers\\DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+    "Plugins\\EFClothingMorph\\Source\\EFClothingMorphRuntime\\Private\\EFClothingSurfaceDeformerProducer.cpp": "860253190690d0e53cc86866b765d18075f670ed4c37ab463369ebf6c92d0836"
+  }
+}

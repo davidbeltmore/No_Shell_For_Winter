@@ -20,6 +20,7 @@
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "EngineGlobals.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformMemory.h"
@@ -66,6 +67,34 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
     }
     bool Finish(bool Passed, const FString& Reason)
     {
+        // Observe map-owned initializations separately from the prepared fixture.
+        // A fresh process can still have resident dependencies; report that fact
+        // instead of calling every packaged request a cold resource load.
+        TArray<TSharedPtr<FJsonValue>> InitialWorldOutfits;
+        if (auto* W = World.Get()) for (TActorIterator<APawn> It(W); It; ++It)
+        {
+            APawn* Pawn = *It;
+            if (Pawn->Tags.ContainsByPredicate([](FName Tag) { return Tag.ToString().StartsWith(TEXT("EF.AppearanceId.OutfitQA.")); })) continue;
+            auto* Outfit = Pawn->FindComponentByClass<UProjectNPCOutfitComponent>();
+            if (!Outfit || Outfit->EngineSecondsAtStart < 0) continue;
+            auto Row = MakeShared<FJsonObject>();
+            Row->SetStringField(TEXT("actor"),Pawn->GetPathName());
+            Row->SetStringField(TEXT("class"),Pawn->GetClass()->GetPathName());
+            Row->SetStringField(TEXT("outfit"),Outfit->SelectedId.ToString());
+            Row->SetStringField(TEXT("state"),UEnum::GetValueAsString(Outfit->State));
+            Row->SetBoolField(TEXT("restored"),Outfit->bRestoredAtStart);
+            Row->SetBoolField(TEXT("definition_resident_at_request"),Outfit->bDefinitionResidentAtRequest);
+            Row->SetNumberField(TEXT("item_classes_requested"),Outfit->ItemClassesRequested);
+            Row->SetNumberField(TEXT("item_classes_resident_at_request"),Outfit->ItemClassesResidentAtRequest);
+            Row->SetNumberField(TEXT("definition_load_seconds"),Outfit->DefinitionLoadSeconds);
+            Row->SetNumberField(TEXT("item_classes_load_seconds"),Outfit->ItemClassesLoadSeconds);
+            Row->SetNumberField(TEXT("engine_seconds_at_start"),Outfit->EngineSecondsAtStart);
+            Row->SetNumberField(TEXT("engine_seconds_at_ready"),Outfit->EngineSecondsAtReady);
+            Row->SetNumberField(TEXT("initialization_seconds"),Outfit->ReadySeconds);
+            InitialWorldOutfits.Add(MakeShared<FJsonValueObject>(Row));
+        }
+        Report->SetArrayField(TEXT("initial_world_outfits"),InitialWorldOutfits);
+        Report->SetStringField(TEXT("initial_loading_scope"),TEXT("Map-owned initializations, separate from the QA group. Engine-relative timestamps include startup/queue dependencies; async durations include scheduling. Residency observations are not OS disk-cache measurements."));
         DestroyPawns();
         if (auto* W=World.Get())
         {

@@ -31,7 +31,7 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR AssetObjectPath[] = TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint");
 	constexpr TCHAR GraphSchemaMetadataKey[] = TEXT("EFClothingMorph.SurfaceGraphSchema");
 	constexpr TCHAR PrimarySemanticMetadataKey[] = TEXT("EFClothingMorph.PrimaryBindingSemantic");
-	constexpr TCHAR GraphSchemaVersion[] = TEXT("35.1");
+	constexpr TCHAR GraphSchemaVersion[] = TEXT("36.1");
 	constexpr TCHAR PrimarySemantic[] = TEXT("Garment");
 
 	constexpr TCHAR CustomKernelClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_CustomComputeKernel");
@@ -44,6 +44,9 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR BaseKernelName[] = TEXT("EF_GarmentSurfaceBase");
 	constexpr TCHAR CohesionAKernelName[] = TEXT("EF_GarmentShapeCohesionA");
 	constexpr TCHAR CohesionBKernelName[] = TEXT("EF_GarmentShapeCohesionB");
+	constexpr TCHAR PreparedWitnessKernelName[] = TEXT("EF_PrepareWitnessPlanes");
+	constexpr TCHAR PreparedWitnessResourceName[] = TEXT("PreparedWitnessPlane");
+	constexpr TCHAR PreparedWitnessDomain[] = TEXT("Vertex * 16");
 	constexpr TCHAR WitnessKernelName[] = TEXT("EF_GarmentWitness");
 	constexpr TCHAR FinalizeKernelName[] = TEXT("EF_GarmentSeamAndTangentFinalize");
 	constexpr TCHAR BasePositionResourceName[] = TEXT("BaseCorrectedPosition");
@@ -270,7 +273,7 @@ namespace EFClothingSurfaceDeformerBuilder
 		return true;
 	}
 
-	bool SetExecutionDomain(UObject* Object, FString& OutError)
+	bool SetExecutionDomain(UObject* Object, FString& OutError, bool bPreparedWitness = false)
 	{
 		FStructProperty* Property = FindFProperty<FStructProperty>(Object->GetClass(), TEXT("ExecutionDomain"));
 		if (!Property || Property->Struct != FOptimusExecutionDomain::StaticStruct())
@@ -281,7 +284,8 @@ namespace EFClothingSurfaceDeformerBuilder
 
 		Object->Modify();
 		*Property->ContainerPtrToValuePtr<FOptimusExecutionDomain>(Object) =
-			FOptimusExecutionDomain(Optimus::DomainName::Vertex);
+			bPreparedWitness ? FOptimusExecutionDomain(FString(PreparedWitnessDomain))
+				: FOptimusExecutionDomain(Optimus::DomainName::Vertex);
 		FPropertyChangedEvent Event(Property, EPropertyChangeType::ValueSet);
 		Object->PostEditChangeProperty(Event);
 		return true;
@@ -1247,9 +1251,310 @@ KERNEL
 		return Source;
 	}
 
-	const FString& GetWitnessKernelSource()
+	const FString& GetWitnessPlaneEvaluationSource()
 	{
 		static const FString Source = FString(TEXT(R"EFHLSL(
+// One evaluation per face/edge sample. The frame-local plane is independent of
+// the receiving render vertex and of the ordered projection iteration.
+float4 EF_EvaluateWitnessPlane(int WitnessIndex)
+{
+    int BindingVertexCount = ReadEF_BindingVertexCount();
+    int BodyVertexCountValue = ReadEF_BodyVertexCount();
+    int WitnessCountValue = ReadEF_WitnessCount();
+    int WitnessReferenceCountValue = ReadEF_WitnessReferenceCount();
+    if (BindingVertexCount <= 0 || BodyVertexCountValue <= 0
+        || WitnessIndex < 0 || WitnessIndex >= WitnessCountValue
+        || WitnessReferenceCountValue < 0
+        || ReadEF_GarmentLODIndex() < 0 || ReadEF_BodyLODIndex() < 0)
+    {
+        return float4(0.0f, 0.0f, 0.0f, -1.0f);
+    }
+	float RuntimeOffsetCm = ReadEF_GlobalClearanceOffsetCm()
+		+ ReadEF_GarmentClearanceOffsetCm();
+	RuntimeOffsetCm = isfinite(RuntimeOffsetCm) ? RuntimeOffsetCm : 0.0f;
+	float RuntimeInflateCm = ReadEF_GarmentInflateCm();
+	RuntimeInflateCm = isfinite(RuntimeInflateCm)
+		? clamp(RuntimeInflateCm, 0.0f, 2.0f)
+		: 0.0f;
+	float BreastMorphActivity = ReadEF_BreastMorphActivity();
+	float BreastMorphStrength = isfinite(BreastMorphActivity)
+		? saturate(abs(BreastMorphActivity))
+		: 0.0f;
+	float UnderBreastClearanceMaxCm = ReadEF_UnderBreastClearanceMaxCm();
+	UnderBreastClearanceMaxCm = isfinite(UnderBreastClearanceMaxCm)
+		? clamp(UnderBreastClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float LowerBodyMorphActivity = ReadEF_LowerBodyMorphActivity();
+	float LowerBodyMorphStrength = isfinite(LowerBodyMorphActivity)
+		? saturate(max(LowerBodyMorphActivity, 0.0f))
+		: 0.0f;
+	float LowerBodyMorphClearanceMaxCm =
+		ReadEF_LowerBodyMorphClearanceMaxCm();
+	LowerBodyMorphClearanceMaxCm = isfinite(LowerBodyMorphClearanceMaxCm)
+		? clamp(LowerBodyMorphClearanceMaxCm, 0.0f, 0.35f)
+		: 0.0f;
+	float UnderBreastWitnessReserveBudgetCm =
+		BreastMorphStrength * UnderBreastClearanceMaxCm;
+	float LowerBodyMorphWitnessReserveBudgetCm =
+		LowerBodyMorphStrength * LowerBodyMorphClearanceMaxCm;
+	float AutomaticWitnessReserveBudgetCm =
+		UnderBreastWitnessReserveBudgetCm
+		+ LowerBodyMorphWitnessReserveBudgetCm;
+	StructuredBuffer<int2> WitnessRangesBuffer = ReadEF_WitnessRanges();
+	StructuredBuffer<int> WitnessIndicesBuffer = ReadEF_WitnessIndices();
+	StructuredBuffer<int4> PrimaryBodyTriangleAndModeBuffer = ReadEF_BodyTriangleAndMode();
+	StructuredBuffer<float4> PrimaryBarycentricsAndFollowWeightBuffer =
+		ReadEF_BarycentricsAndFollowWeight();
+	StructuredBuffer<float4> RestOffsetAndClearanceCmBuffer =
+		ReadEF_RestOffsetAndClearanceCm();
+	StructuredBuffer<int2> ThicknessReferenceAndLayerBuffer =
+		ReadEF_ThicknessReferenceAndLayer();
+	StructuredBuffer<float> LocalFeatureSizeCmBuffer = ReadEF_LocalFeatureSizeCm();
+	StructuredBuffer<float> UnderBreastGuardWeightsBuffer =
+		ReadEF_UnderBreastGuardWeights();
+	StructuredBuffer<float> LowerBodyMorphGuardWeightsBuffer =
+		ReadEF_LowerBodyMorphGuardWeights();
+	StructuredBuffer<int4> WitnessGarmentVerticesBuffer = ReadEF_WitnessGarmentVertices();
+	StructuredBuffer<float4> WitnessGarmentBarycentricsAndClearanceCmBuffer =
+		ReadEF_WitnessGarmentBarycentricsAndClearanceCm();
+	StructuredBuffer<int4> WitnessBodyVerticesBuffer = ReadEF_WitnessBodyVertices();
+	StructuredBuffer<float4> WitnessBodyBarycentricsAndMaximumCorrectionCmBuffer =
+		ReadEF_WitnessBodyBarycentricsAndMaximumCorrectionCm();
+
+	uint WitnessRangeBufferCount = 0;
+	uint WitnessIndexBufferCount = 0;
+	uint PrimaryBodyTriangleBufferCount = 0;
+	uint PrimaryBarycentricBufferCount = 0;
+	uint RestOffsetBufferCount = 0;
+	uint ThicknessBufferCount = 0;
+	uint LocalFeatureBufferCount = 0;
+	uint UnderBreastGuardBufferCount = 0;
+	uint LowerBodyMorphGuardBufferCount = 0;
+	uint WitnessGarmentVertexBufferCount = 0;
+	uint WitnessGarmentBarycentricBufferCount = 0;
+	uint WitnessBodyVertexBufferCount = 0;
+	uint WitnessBodyBarycentricBufferCount = 0;
+	uint IgnoredStride = 0;
+	WitnessRangesBuffer.GetDimensions(WitnessRangeBufferCount, IgnoredStride);
+	WitnessIndicesBuffer.GetDimensions(WitnessIndexBufferCount, IgnoredStride);
+	PrimaryBodyTriangleAndModeBuffer.GetDimensions(PrimaryBodyTriangleBufferCount, IgnoredStride);
+	PrimaryBarycentricsAndFollowWeightBuffer.GetDimensions(
+		PrimaryBarycentricBufferCount,
+		IgnoredStride);
+	RestOffsetAndClearanceCmBuffer.GetDimensions(RestOffsetBufferCount, IgnoredStride);
+	ThicknessReferenceAndLayerBuffer.GetDimensions(ThicknessBufferCount, IgnoredStride);
+	LocalFeatureSizeCmBuffer.GetDimensions(LocalFeatureBufferCount, IgnoredStride);
+	UnderBreastGuardWeightsBuffer.GetDimensions(
+		UnderBreastGuardBufferCount,
+		IgnoredStride);
+	LowerBodyMorphGuardWeightsBuffer.GetDimensions(
+		LowerBodyMorphGuardBufferCount,
+		IgnoredStride);
+	WitnessGarmentVerticesBuffer.GetDimensions(WitnessGarmentVertexBufferCount, IgnoredStride);
+	WitnessGarmentBarycentricsAndClearanceCmBuffer.GetDimensions(
+		WitnessGarmentBarycentricBufferCount,
+		IgnoredStride);
+	WitnessBodyVerticesBuffer.GetDimensions(WitnessBodyVertexBufferCount, IgnoredStride);
+	WitnessBodyBarycentricsAndMaximumCorrectionCmBuffer.GetDimensions(
+		WitnessBodyBarycentricBufferCount,
+		IgnoredStride);
+	// Optimus variable arrays may expose padded GPU allocation capacity. The scalar
+	// values retain the logical uploaded lengths; buffer dimensions therefore need
+	// to cover those lengths, not equal them byte-for-byte. Every subsequent range
+	// is checked against both the logical count and the real allocation.
+	const bool bInsufficientBufferCapacity = WitnessIndexBufferCount < (uint)WitnessReferenceCountValue
+		|| PrimaryBodyTriangleBufferCount < (uint)BindingVertexCount
+		|| PrimaryBarycentricBufferCount < (uint)BindingVertexCount
+		|| RestOffsetBufferCount < (uint)BindingVertexCount
+		|| ThicknessBufferCount < (uint)BindingVertexCount
+		|| LocalFeatureBufferCount < (uint)BindingVertexCount
+		|| UnderBreastGuardBufferCount < (uint)BindingVertexCount
+		|| LowerBodyMorphGuardBufferCount < (uint)BindingVertexCount
+)EFHLSL")) + TEXT(R"EFHLSL(		|| WitnessGarmentVertexBufferCount < (uint)WitnessCountValue
+		|| WitnessGarmentBarycentricBufferCount < (uint)WitnessCountValue
+		|| WitnessBodyVertexBufferCount < (uint)WitnessCountValue
+		|| WitnessBodyBarycentricBufferCount < (uint)WitnessCountValue;
+
+    if (bInsufficientBufferCapacity)
+    {
+        return float4(0.0f, 0.0f, 0.0f, -1.0f);
+    }
+    uint BodyVertexCount = (uint)BodyVertexCountValue;
+    float4x4 BodyToGarment = ReadEF_BodyToGarmentTransform();
+			int4 GarmentVertices = WitnessGarmentVerticesBuffer[WitnessIndex];
+			float4 GarmentBarycentricsAndClearanceCm =
+				WitnessGarmentBarycentricsAndClearanceCmBuffer[WitnessIndex];
+			int4 BodyVertices = WitnessBodyVerticesBuffer[WitnessIndex];
+			float4 BodyBarycentricsAndMaximumCorrectionCm =
+				WitnessBodyBarycentricsAndMaximumCorrectionCmBuffer[WitnessIndex];
+			if (any(GarmentVertices.xyz < 0)
+				|| any((uint3)GarmentVertices.xyz >= (uint)BindingVertexCount)
+				|| any(BodyVertices.xyz < 0)
+				|| any((uint3)BodyVertices.xyz >= BodyVertexCount)
+				|| !all(isfinite(GarmentBarycentricsAndClearanceCm))
+				|| !all(isfinite(BodyBarycentricsAndMaximumCorrectionCm)))
+			{
+				return float4(0.0f, 0.0f, 0.0f, -1.0f);
+			}
+			float GarmentBarycentricSum = dot(
+				GarmentBarycentricsAndClearanceCm.xyz,
+				float3(1.0f, 1.0f, 1.0f));
+			float BodyBarycentricSum = dot(
+				BodyBarycentricsAndMaximumCorrectionCm.xyz,
+				float3(1.0f, 1.0f, 1.0f));
+			if (abs(GarmentBarycentricSum) <= 1.0e-8f
+				|| abs(BodyBarycentricSum) <= 1.0e-8f)
+			{
+				return float4(0.0f, 0.0f, 0.0f, -1.0f);
+			}
+			float3 GarmentBarycentrics =
+				GarmentBarycentricsAndClearanceCm.xyz / GarmentBarycentricSum;
+			float WitnessUnderBreastGuardWeight =
+				UnderBreastGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
+				+ UnderBreastGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
+				+ UnderBreastGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
+			float WitnessLowerBodyMorphGuardWeight =
+				LowerBodyMorphGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
+				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
+				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
+			if (!isfinite(WitnessUnderBreastGuardWeight)
+				|| WitnessUnderBreastGuardWeight < 0.0f
+				|| WitnessUnderBreastGuardWeight > 1.0f
+				|| !isfinite(WitnessLowerBodyMorphGuardWeight)
+				|| WitnessLowerBodyMorphGuardWeight < 0.0f
+				|| WitnessLowerBodyMorphGuardWeight > 1.0f)
+			{
+				return float4(0.0f, 0.0f, 0.0f, -1.0f);
+			}
+			float3 BodyBarycentrics =
+				BodyBarycentricsAndMaximumCorrectionCm.xyz / BodyBarycentricSum;
+			float3 SamplePosition =
+				ReadBaseCorrectedPosition((uint)GarmentVertices.x) * GarmentBarycentrics.x
+				+ ReadBaseCorrectedPosition((uint)GarmentVertices.y) * GarmentBarycentrics.y
+				+ ReadBaseCorrectedPosition((uint)GarmentVertices.z) * GarmentBarycentrics.z;
+
+
+			float3 BodyP0 = Body::ReadBodyPosition((uint)BodyVertices.x);
+			float3 BodyP1 = Body::ReadBodyPosition((uint)BodyVertices.y);
+			float3 BodyP2 = Body::ReadBodyPosition((uint)BodyVertices.z);
+			BodyP0 = mul(float4(BodyP0, 1.0f), BodyToGarment).xyz;
+			BodyP1 = mul(float4(BodyP1, 1.0f), BodyToGarment).xyz;
+			BodyP2 = mul(float4(BodyP2, 1.0f), BodyToGarment).xyz;
+			float3 UnnormalizedWitnessNormal = cross(BodyP1 - BodyP0, BodyP2 - BodyP0);
+			float WitnessGeometricNormalLengthSquared = dot(
+				UnnormalizedWitnessNormal,
+				UnnormalizedWitnessNormal);
+			if (!all(isfinite(SamplePosition))
+				|| !all(isfinite(BodyP0))
+				|| !all(isfinite(BodyP1))
+				|| !all(isfinite(BodyP2))
+				|| WitnessGeometricNormalLengthSquared <= 1.0e-12f)
+			{
+				return float4(0.0f, 0.0f, 0.0f, -1.0f);
+			}
+			float3 WitnessNormal = UnnormalizedWitnessNormal
+				* rsqrt(WitnessGeometricNormalLengthSquared);
+			float3 BodyAnchor = BodyP0 * BodyBarycentrics.x
+				+ BodyP1 * BodyBarycentrics.y
+				+ BodyP2 * BodyBarycentrics.z;
+			float DynamicVertexClearanceCm[3];
+			int GarmentVertexArray[3] =
+			{
+				GarmentVertices.x,
+				GarmentVertices.y,
+				GarmentVertices.z
+			};
+			[unroll]
+			for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
+			{
+				int GarmentVertexIndex = GarmentVertexArray[CornerIndex];
+				float4 VertexRest = RestOffsetAndClearanceCmBuffer[GarmentVertexIndex];
+				int2 ThicknessReferenceAndLayer =
+					ThicknessReferenceAndLayerBuffer[GarmentVertexIndex];
+				float EffectiveClearanceCm = VertexRest.w;
+				if (ThicknessReferenceAndLayer.y == 1)
+				{
+					int InnerReference = ThicknessReferenceAndLayer.x;
+					if (InnerReference < 0 || InnerReference >= BindingVertexCount)
+					{
+						return float4(0.0f, 0.0f, 0.0f, -1.0f);
+					}
+					float4 InnerRest = RestOffsetAndClearanceCmBuffer[InnerReference];
+					float3 LayerVectorCm = VertexRest.xyz - InnerRest.xyz;
+					float LayerLengthCm = length(LayerVectorCm);
+					if (!all(isfinite(VertexRest))
+						|| !all(isfinite(InnerRest))
+						|| LayerLengthCm <= 1.0e-6f)
+					{
+						return float4(0.0f, 0.0f, 0.0f, -1.0f);
+					}
+					float3 EffectiveRest = InnerRest.xyz
+						+ LayerVectorCm * (RuntimeInflateCm / LayerLengthCm);
+					EffectiveClearanceCm = InnerRest.w
+						+ max(EffectiveRest.z - InnerRest.z, 0.0f);
+				}
+				else if (ThicknessReferenceAndLayer.y == 0
+					&& ThicknessReferenceAndLayer.x < 0)
+				{
+					// V3 single-layer source mesh: use the same certified body-normal
+					// inflate as the vertex pass so face/edge witnesses remain coherent.
+					EffectiveClearanceCm += RuntimeInflateCm;
+				}
+				else if (ThicknessReferenceAndLayer.y != 0)
+				{
+					return float4(0.0f, 0.0f, 0.0f, -1.0f);
+				}
+				DynamicVertexClearanceCm[CornerIndex] = EffectiveClearanceCm;
+			}
+			float DynamicWitnessClearanceCm =
+				DynamicVertexClearanceCm[0] * GarmentBarycentrics.x
+				+ DynamicVertexClearanceCm[1] * GarmentBarycentrics.y
+				+ DynamicVertexClearanceCm[2] * GarmentBarycentrics.z;
+			float WitnessUnderBreastReserveCm =
+)EFHLSL") + TEXT(R"EFHLSL(				UnderBreastWitnessReserveBudgetCm * WitnessUnderBreastGuardWeight;
+			float WitnessLowerBodyMorphReserveCm =
+				LowerBodyMorphWitnessReserveBudgetCm
+				* WitnessLowerBodyMorphGuardWeight;
+			float TargetClearanceCm =
+				max(
+					DynamicWitnessClearanceCm + RuntimeOffsetCm
+						+ WitnessUnderBreastReserveCm
+						+ WitnessLowerBodyMorphReserveCm,
+					0.0f);
+			float RequiredPushCm = max(
+				TargetClearanceCm - dot(SamplePosition - BodyAnchor, WitnessNormal),
+				0.0f);
+
+    return float4(WitnessNormal, RequiredPushCm);
+}
+)EFHLSL");
+		return Source;
+	}
+
+	const FString& GetPreparedWitnessKernelSource()
+	{
+		static const FString Source = GetWitnessPlaneEvaluationSource() + TEXT(R"EFHLSL(
+KERNEL
+{
+    int BindingVertexCount = ReadEF_BindingVertexCount();
+    int WitnessCount = ReadEF_WitnessCount();
+    // All referenced entries are rewritten every frame. Invalid/capacity cases
+    // never expose an earlier pose; the consumer evaluates the full fallback.
+    float4 Plane = float4(0.0f, 0.0f, 0.0f, -1.0f);
+    if (BindingVertexCount > 0 && WitnessCount >= 0
+        && WitnessCount <= BindingVertexCount * 16 && Index < (uint)WitnessCount)
+    {
+        Plane = EF_EvaluateWitnessPlane((int)Index);
+    }
+    WritePreparedWitnessPlane(Index, Plane);
+}
+)EFHLSL");
+		return Source;
+	}
+
+	const FString& GetWitnessKernelSource()
+	{
+		static const FString Source = GetWitnessPlaneEvaluationSource() + FString(TEXT(R"EFHLSL(
 KERNEL
 {
 	float3 BasePosition = ReadBaseCorrectedPosition(Index);
@@ -1527,26 +1832,15 @@ KERNEL
 		max(LocalFeatureSizeCm * 0.25f, 0.0f)
 			+ AutomaticWitnessReserveBudgetCm);
 
-	// Solve every incident face/edge constraint as a small convex half-space
-	// problem local to this render vertex. Requiring every participating corner
-	// to contribute the complete witness deficit is deliberately conservative:
-	// barycentric weights sum to one, therefore the reconstructed face sample is
-	// guaranteed to receive at least that same deficit. Six cyclic projections
-	// make later constraints repair any earlier one that they partially close.
-	// Each projection direction is clipped to the primary vertex-safe half-space,
-	// so this pass can never undo the base pass' skin clearance even when a cloth
-	// triangle spans a concave DAZ region with opposing nearest-surface normals.
-	[unroll]
-	for (int ProjectionIteration = 0;
-		ProjectionIteration < 6 && !InvalidWitnessData;
-		++ProjectionIteration)
-	{
-		const float3 IterationStart = ExtraCorrection;
-		[loop]
-		for (int LocalReferenceIndex = 0;
-			LocalReferenceIndex < WitnessRange.y && !InvalidWitnessData;
-			++LocalReferenceIndex)
-		{
+    // Validate immutable incidence and the frame-local planes once, before
+    // projection. None of these inputs changes during the six ordered cycles.
+    // The correction cap is applied only after all cycles, so accumulating its
+    // minimum here preserves the solver while shortening each repeated step.
+    [loop]
+    for (int LocalReferenceIndex = 0;
+        LocalReferenceIndex < WitnessRange.y && !InvalidWitnessData;
+        ++LocalReferenceIndex)
+    {
 			int WitnessIndex = WitnessIndicesBuffer[WitnessRange.x + LocalReferenceIndex];
 			if (WitnessIndex < 0 || WitnessIndex >= WitnessCountValue)
 			{
@@ -1590,24 +1884,6 @@ KERNEL
 			}
 			float3 GarmentBarycentrics =
 				GarmentBarycentricsAndClearanceCm.xyz / GarmentBarycentricSum;
-			float WitnessUnderBreastGuardWeight =
-				UnderBreastGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
-				+ UnderBreastGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
-				+ UnderBreastGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
-			float WitnessLowerBodyMorphGuardWeight =
-				LowerBodyMorphGuardWeightsBuffer[GarmentVertices.x] * GarmentBarycentrics.x
-				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.y] * GarmentBarycentrics.y
-				+ LowerBodyMorphGuardWeightsBuffer[GarmentVertices.z] * GarmentBarycentrics.z;
-			if (!isfinite(WitnessUnderBreastGuardWeight)
-				|| WitnessUnderBreastGuardWeight < 0.0f
-				|| WitnessUnderBreastGuardWeight > 1.0f
-				|| !isfinite(WitnessLowerBodyMorphGuardWeight)
-				|| WitnessLowerBodyMorphGuardWeight < 0.0f
-				|| WitnessLowerBodyMorphGuardWeight > 1.0f)
-			{
-				InvalidWitnessData = true;
-				break;
-			}
 			float IncidenceWeight = GarmentVertices.x == (int)Index
 				? GarmentBarycentrics.x
 				: (GarmentVertices.y == (int)Index
@@ -1618,112 +1894,60 @@ KERNEL
 				InvalidWitnessData = true;
 				break;
 			}
-			float3 BodyBarycentrics =
-				BodyBarycentricsAndMaximumCorrectionCm.xyz / BodyBarycentricSum;
-			float3 SamplePosition =
-				ReadBaseCorrectedPosition((uint)GarmentVertices.x) * GarmentBarycentrics.x
-				+ ReadBaseCorrectedPosition((uint)GarmentVertices.y) * GarmentBarycentrics.y
-				+ ReadBaseCorrectedPosition((uint)GarmentVertices.z) * GarmentBarycentrics.z;
+
+            // The bounded resource stores sixteen float4 planes per garment
+            // vertex. Denser bindings retain the complete original evaluator.
+            float4 Plane;
+            [branch]
+            if (WitnessCountValue <= BindingVertexCount * 16)
+            {
+                Plane = ReadPreparedWitnessPlane((uint)WitnessIndex);
+            }
+            else
+            {
+                Plane = EF_EvaluateWitnessPlane(WitnessIndex);
+            }
+            if (Plane.w < 0.0f || !all(isfinite(Plane)))
+            {
+                InvalidWitnessData = true;
+                break;
+            }
+    }
 
 )EFHLSL") + TEXT(R"EFHLSL(
-			float3 BodyP0 = Body::ReadBodyPosition((uint)BodyVertices.x);
-			float3 BodyP1 = Body::ReadBodyPosition((uint)BodyVertices.y);
-			float3 BodyP2 = Body::ReadBodyPosition((uint)BodyVertices.z);
-			BodyP0 = mul(float4(BodyP0, 1.0f), BodyToGarment).xyz;
-			BodyP1 = mul(float4(BodyP1, 1.0f), BodyToGarment).xyz;
-			BodyP2 = mul(float4(BodyP2, 1.0f), BodyToGarment).xyz;
-			float3 UnnormalizedWitnessNormal = cross(BodyP1 - BodyP0, BodyP2 - BodyP0);
-			float WitnessGeometricNormalLengthSquared = dot(
-				UnnormalizedWitnessNormal,
-				UnnormalizedWitnessNormal);
-			if (!all(isfinite(SamplePosition))
-				|| !all(isfinite(BodyP0))
-				|| !all(isfinite(BodyP1))
-				|| !all(isfinite(BodyP2))
-				|| WitnessGeometricNormalLengthSquared <= 1.0e-12f)
-			{
-				InvalidWitnessData = true;
-				break;
-			}
-			float3 WitnessNormal = UnnormalizedWitnessNormal
-				* rsqrt(WitnessGeometricNormalLengthSquared);
-			float3 BodyAnchor = BodyP0 * BodyBarycentrics.x
-				+ BodyP1 * BodyBarycentrics.y
-				+ BodyP2 * BodyBarycentrics.z;
-			float DynamicVertexClearanceCm[3];
-			int GarmentVertexArray[3] =
-			{
-				GarmentVertices.x,
-				GarmentVertices.y,
-				GarmentVertices.z
-			};
-			[unroll]
-			for (int CornerIndex = 0; CornerIndex < 3; ++CornerIndex)
-			{
-				int GarmentVertexIndex = GarmentVertexArray[CornerIndex];
-				float4 VertexRest = RestOffsetAndClearanceCmBuffer[GarmentVertexIndex];
-				int2 ThicknessReferenceAndLayer =
-					ThicknessReferenceAndLayerBuffer[GarmentVertexIndex];
-				float EffectiveClearanceCm = VertexRest.w;
-				if (ThicknessReferenceAndLayer.y == 1)
-				{
-					int InnerReference = ThicknessReferenceAndLayer.x;
-					if (InnerReference < 0 || InnerReference >= BindingVertexCount)
-					{
-						InvalidWitnessData = true;
-						break;
-					}
-					float4 InnerRest = RestOffsetAndClearanceCmBuffer[InnerReference];
-					float3 LayerVectorCm = VertexRest.xyz - InnerRest.xyz;
-					float LayerLengthCm = length(LayerVectorCm);
-					if (!all(isfinite(VertexRest))
-						|| !all(isfinite(InnerRest))
-						|| LayerLengthCm <= 1.0e-6f)
-					{
-						InvalidWitnessData = true;
-						break;
-					}
-					float3 EffectiveRest = InnerRest.xyz
-						+ LayerVectorCm * (RuntimeInflateCm / LayerLengthCm);
-					EffectiveClearanceCm = InnerRest.w
-						+ max(EffectiveRest.z - InnerRest.z, 0.0f);
-				}
-				else if (ThicknessReferenceAndLayer.y == 0
-					&& ThicknessReferenceAndLayer.x < 0)
-				{
-					// V3 single-layer source mesh: use the same certified body-normal
-					// inflate as the vertex pass so face/edge witnesses remain coherent.
-					EffectiveClearanceCm += RuntimeInflateCm;
-				}
-				else if (ThicknessReferenceAndLayer.y != 0)
-				{
-					InvalidWitnessData = true;
-					break;
-				}
-				DynamicVertexClearanceCm[CornerIndex] = EffectiveClearanceCm;
-			}
-			if (InvalidWitnessData)
-			{
-				break;
-			}
-			float DynamicWitnessClearanceCm =
-				DynamicVertexClearanceCm[0] * GarmentBarycentrics.x
-				+ DynamicVertexClearanceCm[1] * GarmentBarycentrics.y
-				+ DynamicVertexClearanceCm[2] * GarmentBarycentrics.z;
-			float WitnessUnderBreastReserveCm =
-				UnderBreastWitnessReserveBudgetCm * WitnessUnderBreastGuardWeight;
-			float WitnessLowerBodyMorphReserveCm =
-				LowerBodyMorphWitnessReserveBudgetCm
-				* WitnessLowerBodyMorphGuardWeight;
-			float TargetClearanceCm =
-				max(
-					DynamicWitnessClearanceCm + RuntimeOffsetCm
-						+ WitnessUnderBreastReserveCm
-						+ WitnessLowerBodyMorphReserveCm,
-					0.0f);
-			float RequiredPushCm = max(
-				TargetClearanceCm - dot(SamplePosition - BodyAnchor, WitnessNormal),
-				0.0f);
+	// Solve every incident face/edge constraint as a small convex half-space
+	// problem local to this render vertex. Requiring every participating corner
+	// to contribute the complete witness deficit is deliberately conservative:
+	// barycentric weights sum to one, therefore the reconstructed face sample is
+	// guaranteed to receive at least that same deficit. Six cyclic projections
+	// make later constraints repair any earlier one that they partially close.
+	// Each projection direction is clipped to the primary vertex-safe half-space,
+	// so this pass can never undo the base pass' skin clearance even when a cloth
+	// triangle spans a concave DAZ region with opposing nearest-surface normals.
+	[unroll]
+	for (int ProjectionIteration = 0;
+		ProjectionIteration < 6 && !InvalidWitnessData;
+		++ProjectionIteration)
+	{
+		const float3 IterationStart = ExtraCorrection;
+		[loop]
+		for (int LocalReferenceIndex = 0;
+			LocalReferenceIndex < WitnessRange.y && !InvalidWitnessData;
+			++LocalReferenceIndex)
+		{
+			int WitnessIndex = WitnessIndicesBuffer[WitnessRange.x + LocalReferenceIndex];
+            float4 Plane;
+            [branch]
+            if (WitnessCountValue <= BindingVertexCount * 16)
+            {
+                Plane = ReadPreparedWitnessPlane((uint)WitnessIndex);
+            }
+            else
+            {
+                Plane = EF_EvaluateWitnessPlane(WitnessIndex);
+            }
+			float3 WitnessNormal = Plane.xyz;
+			float RequiredPushCm = Plane.w;
 			float RemainingPushCm = RequiredPushCm - dot(ExtraCorrection, WitnessNormal);
 			if (RemainingPushCm <= 1.0e-5f)
 			{
@@ -2478,6 +2702,7 @@ KERNEL
 		}
 
 		const FOptimusDataDomain VertexDomain(TArray<FName>{ Optimus::DomainName::Vertex });
+		const FOptimusDataDomain PlaneDomain{FString(PreparedWitnessDomain)};
 		const FOptimusDataDomain SingletonDomain;
 		auto AddPositionResource = [Deformer, PrimaryBinding, &VertexDomain, &OutError](
 			const FName ResourceName,
@@ -2515,6 +2740,15 @@ KERNEL
 			return false;
 		}
 
+
+        UOptimusResourceDescription* PreparedWitnessResource =
+            Deformer->AddResource(ResolveVector4Type(), PreparedWitnessResourceName);
+        if (!PreparedWitnessResource) { OutError = TEXT("Cannot create witness plane resource."); return false; }
+        PreparedWitnessResource->ComponentBinding = PrimaryBinding;
+        PreparedWitnessResource->Modify();
+        if (!Deformer->SetResourceDataDomain(PreparedWitnessResource, PlaneDomain, true))
+        { OutError = TEXT("Cannot bind witness plane expression domain."); return false; }
+
 		UOptimusNode* PrimaryBindingNode = Graph->AddComponentBindingGetNode(PrimaryBinding, FVector2D(-2100.0, -300.0));
 		UOptimusNode* BodyBindingNode = Graph->AddComponentBindingGetNode(BodyBinding, FVector2D(-2100.0, 760.0));
 		UOptimusNode* GarmentReadNode = Graph->AddDataInterfaceNode(ReadClass, FVector2D(-1760.0, -340.0));
@@ -2531,6 +2765,8 @@ KERNEL
 		UOptimusNode* CohesionBPositionResourceNode = Graph->AddResourceNode(
 			CohesionBPositionResource,
 			FVector2D(2020.0, -360.0));
+		UOptimusNode* PreparedWitnessKernelNode = Graph->AddNode(KernelClass, FVector2D(2140.0, 400.0));
+		UOptimusNode* PreparedWitnessResourceNode = Graph->AddResourceNode(PreparedWitnessResource, FVector2D(2340.0, 400.0));
 		UOptimusNode* WitnessKernelNode = Graph->AddNode(KernelClass, FVector2D(2400.0, -120.0));
 		UOptimusNode* WitnessPositionResourceNode = Graph->AddResourceNode(
 			WitnessPositionResource,
@@ -2547,6 +2783,8 @@ KERNEL
 			|| !CohesionAPositionResourceNode
 			|| !CohesionBKernelNode
 			|| !CohesionBPositionResourceNode
+			|| !PreparedWitnessKernelNode
+			|| !PreparedWitnessResourceNode
 			|| !WitnessKernelNode
 			|| !WitnessPositionResourceNode
 			|| !FinalizeKernelNode
@@ -2565,6 +2803,9 @@ KERNEL
 			|| !SetValidatedNameProperty(CohesionBKernelNode, TEXT("KernelName"), CohesionBKernelName, OutError)
 			|| !SetExecutionDomain(CohesionBKernelNode, OutError)
 			|| !SetGroupSize(CohesionBKernelNode, OutError)
+			|| !SetValidatedNameProperty(PreparedWitnessKernelNode, TEXT("KernelName"), PreparedWitnessKernelName, OutError)
+			|| !SetExecutionDomain(PreparedWitnessKernelNode, OutError, true)
+			|| !SetGroupSize(PreparedWitnessKernelNode, OutError)
 			|| !SetValidatedNameProperty(WitnessKernelNode, TEXT("KernelName"), WitnessKernelName, OutError)
 			|| !SetExecutionDomain(WitnessKernelNode, OutError)
 			|| !SetGroupSize(WitnessKernelNode, OutError)
@@ -2603,11 +2844,24 @@ KERNEL
 		{
 			MakeBinding(TEXT("CohesivePosition"), ResolveVector3Type(), VertexDomain)
 		};
+		TArray<FOptimusParameterBinding> PreparedWitnessInputs =
+		{
+			MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain)
+		};
+		for (const FVariableSpec& Spec : GetVariableSpecs())
+		{
+			PreparedWitnessInputs.Add(MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+		}
+		const TArray<FOptimusParameterBinding> PreparedWitnessOutputs =
+		{
+			MakeBinding(TEXT("PreparedWitnessPlane"), ResolveVector4Type(), PlaneDomain)
+		};
 		TArray<FOptimusParameterBinding> WitnessInputs =
 		{
 			MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain),
 			MakeBinding(TEXT("BaseTangentX"), ResolveVector4Type(), VertexDomain),
-			MakeBinding(TEXT("BaseTangentZ"), ResolveVector4Type(), VertexDomain)
+			MakeBinding(TEXT("BaseTangentZ"), ResolveVector4Type(), VertexDomain),
+			MakeBinding(TEXT("PreparedWitnessPlane"), ResolveVector4Type(), PlaneDomain)
 		};
 		for (const FVariableSpec& Spec : GetVariableSpecs())
 		{
@@ -2649,6 +2903,9 @@ KERNEL
 			|| !SetParameterBindingArray(CohesionBKernelNode, TEXT("InputBindingArray"), CohesionInputs, OutError)
 			|| !SetParameterBindingArray(CohesionBKernelNode, TEXT("OutputBindingArray"), CohesionOutputs, OutError)
 			|| !SetSecondaryBodyBindings(CohesionBKernelNode, BodyInputs, OutError)
+			|| !SetParameterBindingArray(PreparedWitnessKernelNode, TEXT("InputBindingArray"), PreparedWitnessInputs, OutError)
+			|| !SetParameterBindingArray(PreparedWitnessKernelNode, TEXT("OutputBindingArray"), PreparedWitnessOutputs, OutError)
+			|| !SetSecondaryBodyBindings(PreparedWitnessKernelNode, BodyInputs, OutError)
 			|| !SetParameterBindingArray(WitnessKernelNode, TEXT("InputBindingArray"), WitnessInputs, OutError)
 			|| !SetParameterBindingArray(WitnessKernelNode, TEXT("OutputBindingArray"), WitnessOutputs, OutError)
 			|| !SetSecondaryBodyBindings(WitnessKernelNode, BodyInputs, OutError)
@@ -2662,11 +2919,13 @@ KERNEL
 		IOptimusShaderTextProvider* BaseShaderTextProvider = Cast<IOptimusShaderTextProvider>(BaseKernelNode);
 		IOptimusShaderTextProvider* CohesionAShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionAKernelNode);
 		IOptimusShaderTextProvider* CohesionBShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionBKernelNode);
+		IOptimusShaderTextProvider* PreparedWitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(PreparedWitnessKernelNode);
 		IOptimusShaderTextProvider* WitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(WitnessKernelNode);
 		IOptimusShaderTextProvider* FinalizeShaderTextProvider = Cast<IOptimusShaderTextProvider>(FinalizeKernelNode);
 		if (!BaseShaderTextProvider
 			|| !CohesionAShaderTextProvider
 			|| !CohesionBShaderTextProvider
+			|| !PreparedWitnessShaderTextProvider
 			|| !WitnessShaderTextProvider
 			|| !FinalizeShaderTextProvider)
 		{
@@ -2676,6 +2935,7 @@ KERNEL
 		BaseShaderTextProvider->SetShaderText(GetBaseKernelSource());
 		CohesionAShaderTextProvider->SetShaderText(GetCohesionKernelSource());
 		CohesionBShaderTextProvider->SetShaderText(GetCohesionKernelSource());
+		PreparedWitnessShaderTextProvider->SetShaderText(GetPreparedWitnessKernelSource());
 		WitnessShaderTextProvider->SetShaderText(GetWitnessKernelSource());
 		FinalizeShaderTextProvider->SetShaderText(GetFinalizeKernelSource());
 
@@ -2699,6 +2959,10 @@ KERNEL
 			|| !AddRequiredLink(Graph, BaseKernelNode, TEXT("PreservedTangentX"), WitnessKernelNode, TEXT("Primary Group.BaseTangentX"), OutError)
 			|| !AddRequiredLink(Graph, BaseKernelNode, TEXT("PreservedTangentZ"), WitnessKernelNode, TEXT("Primary Group.BaseTangentZ"), OutError)
 			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), WitnessKernelNode, TEXT("Body.BodyPosition"), OutError)
+			|| !AddRequiredLink(Graph, CohesionBPositionResourceNode, TEXT("GetCohesionBCorrectedPosition"), PreparedWitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"), OutError)
+			|| !AddRequiredLink(Graph, BodyReadNode, TEXT("Position"), PreparedWitnessKernelNode, TEXT("Body.BodyPosition"), OutError)
+			|| !AddRequiredLink(Graph, PreparedWitnessKernelNode, TEXT("PreparedWitnessPlane"), PreparedWitnessResourceNode, TEXT("SetPreparedWitnessPlane"), OutError)
+			|| !AddRequiredLink(Graph, PreparedWitnessResourceNode, TEXT("GetPreparedWitnessPlane"), WitnessKernelNode, TEXT("Primary Group.PreparedWitnessPlane"), OutError)
 			|| !AddRequiredLink(Graph, WitnessKernelNode, TEXT("FinalPosition"), WitnessPositionResourceNode, TEXT("SetWitnessCorrectedPosition"), OutError)
 			|| !AddRequiredLink(Graph, WitnessPositionResourceNode, TEXT("GetWitnessCorrectedPosition"), FinalizeKernelNode, TEXT("Primary Group.WitnessPosition"), OutError)
 			|| !AddRequiredLink(Graph, GarmentReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"), OutError)
@@ -2739,6 +3003,13 @@ KERNEL
 					VariableNode,
 					Spec.Name.ToString(),
 					CohesionBKernelNode,
+					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
+					OutError)
+				|| !AddRequiredLink(
+					Graph,
+					VariableNode,
+					Spec.Name.ToString(),
+					PreparedWitnessKernelNode,
 					FString::Printf(TEXT("Primary Group.%s"), *Spec.Name.ToString()),
 					OutError)
 				|| !AddRequiredLink(
@@ -2820,7 +3091,7 @@ KERNEL
 			if (A.Name != E.Name || A.DataType != E.DataType || A.DataDomain != E.DataDomain)
 			{
 				OutError = FString::Printf(
-					TEXT("Kernel binding %s[%d] does not match schema 35 (%s)."),
+					TEXT("Kernel binding %s[%d] does not match schema 36 (%s)."),
 					*PropertyName.ToString(),
 					Index,
 					*E.Name.ToString());
@@ -2934,11 +3205,13 @@ KERNEL
 			Errors.Add(TEXT("Secondary Body binding is missing or incompatible."));
 		}
 		const FOptimusDataDomain VertexDomain(TArray<FName>{ Optimus::DomainName::Vertex });
+		const FOptimusDataDomain PlaneDomain{FString(PreparedWitnessDomain)};
 		const TArray<UOptimusResourceDescription*>& Resources = Deformer->GetResources();
 		UOptimusResourceDescription* BasePositionResource = nullptr;
 		UOptimusResourceDescription* CohesionAPositionResource = nullptr;
 		UOptimusResourceDescription* CohesionBPositionResource = nullptr;
 		UOptimusResourceDescription* WitnessPositionResource = nullptr;
+		UOptimusResourceDescription* PreparedWitnessResource = nullptr;
 		for (UOptimusResourceDescription* Resource : Resources)
 		{
 			if (Resource && Resource->ResourceName == BasePositionResourceName)
@@ -2953,15 +3226,23 @@ KERNEL
 			{
 				CohesionBPositionResource = Resource;
 			}
+			else if (Resource && Resource->ResourceName == PreparedWitnessResourceName)
+			{
+				PreparedWitnessResource = Resource;
+			}
 			else if (Resource && Resource->ResourceName == WitnessPositionResourceName)
 			{
 				WitnessPositionResource = Resource;
 			}
 		}
-		if (Resources.Num() != 4)
+		if (Resources.Num() != 5)
 		{
-			Errors.Add(FString::Printf(TEXT("Resource count is %d, expected 4."), Resources.Num()));
+			Errors.Add(FString::Printf(TEXT("Resource count is %d, expected 5."), Resources.Num()));
 		}
+        if (!PreparedWitnessResource || PreparedWitnessResource->DataType != ResolveVector4Type()
+            || PreparedWitnessResource->ComponentBinding.Get() != PrimaryBinding
+            || PreparedWitnessResource->DataDomain != PlaneDomain)
+        { Errors.Add(TEXT("Prepared witness resource type, binding or domain is invalid.")); }
 		auto IsValidPositionResource = [PrimaryBinding, &VertexDomain](
 			const UOptimusResourceDescription* Resource,
 			const FName ExpectedName) -> bool
@@ -3018,7 +3299,7 @@ KERNEL
 		else
 		{
 			const TArray<UOptimusNode*>& Nodes = Graph->GetAllNodes();
-			const int32 ExpectedNodeCount = 2 + 3 + 5 + 4 + GetVariableSpecs().Num();
+			const int32 ExpectedNodeCount = 2 + 3 + 6 + 5 + GetVariableSpecs().Num();
 			if (Nodes.Num() != ExpectedNodeCount)
 			{
 				Errors.Add(FString::Printf(TEXT("Node count is %d, expected %d."), Nodes.Num(), ExpectedNodeCount));
@@ -3059,6 +3340,8 @@ KERNEL
 							&& Node->FindPin(TEXT("GetCohesionACorrectedPosition")))
 						|| (Node->FindPin(TEXT("SetCohesionBCorrectedPosition"))
 							&& Node->FindPin(TEXT("GetCohesionBCorrectedPosition")))
+						|| (Node->FindPin(TEXT("SetPreparedWitnessPlane"))
+							&& Node->FindPin(TEXT("GetPreparedWitnessPlane")))
 						|| (Node->FindPin(TEXT("SetWitnessCorrectedPosition"))
 							&& Node->FindPin(TEXT("GetWitnessCorrectedPosition")))))
 				{
@@ -3066,14 +3349,14 @@ KERNEL
 				}
 			}
 
-			if (KernelNodes.Num() != 5
+			if (KernelNodes.Num() != 6
 				|| ReadNodes.Num() != 2
 				|| WriteNodes.Num() != 1
 				|| ComponentNodes.Num() != 2
 				|| VariableNodes.Num() != GetVariableSpecs().Num()
-				|| ResourceNodes.Num() != 4)
+				|| ResourceNodes.Num() != 5)
 			{
-				Errors.Add(TEXT("Required five-kernel/read/write/component/resource/variable node cardinality does not match schema 35."));
+				Errors.Add(TEXT("Required six-kernel/read/write/component/resource/variable node cardinality does not match schema 36."));
 			}
 			else
 			{
@@ -3090,6 +3373,7 @@ KERNEL
 				UOptimusNode* BaseKernelNode = nullptr;
 				UOptimusNode* CohesionAKernelNode = nullptr;
 				UOptimusNode* CohesionBKernelNode = nullptr;
+				UOptimusNode* PreparedWitnessKernelNode = nullptr;
 				UOptimusNode* WitnessKernelNode = nullptr;
 				UOptimusNode* FinalizeKernelNode = nullptr;
 				for (UOptimusNode* KernelNode : KernelNodes)
@@ -3107,6 +3391,10 @@ KERNEL
 					{
 						CohesionBKernelNode = KernelNode;
 					}
+					else if (Name == PreparedWitnessKernelName)
+					{
+						PreparedWitnessKernelNode = KernelNode;
+					}
 					else if (Name == WitnessKernelName)
 					{
 						WitnessKernelNode = KernelNode;
@@ -3120,6 +3408,7 @@ KERNEL
 				UOptimusNode* BasePositionResourceNode = nullptr;
 				UOptimusNode* CohesionAPositionResourceNode = nullptr;
 				UOptimusNode* CohesionBPositionResourceNode = nullptr;
+				UOptimusNode* PreparedWitnessResourceNode = nullptr;
 				UOptimusNode* WitnessPositionResourceNode = nullptr;
 				for (UOptimusNode* ResourceNode : ResourceNodes)
 				{
@@ -3134,6 +3423,10 @@ KERNEL
 					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetCohesionBCorrectedPosition")))
 					{
 						CohesionBPositionResourceNode = ResourceNode;
+					}
+					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetPreparedWitnessPlane")))
+					{
+						PreparedWitnessResourceNode = ResourceNode;
 					}
 					else if (ResourceNode && ResourceNode->FindPin(TEXT("GetWitnessCorrectedPosition")))
 					{
@@ -3177,11 +3470,13 @@ KERNEL
 					|| !CohesionAPositionResourceNode
 					|| !CohesionBKernelNode
 					|| !CohesionBPositionResourceNode
+					|| !PreparedWitnessKernelNode
+					|| !PreparedWitnessResourceNode
 					|| !WitnessKernelNode
 					|| !WitnessPositionResourceNode
 					|| !FinalizeKernelNode)
 				{
-					Errors.Add(TEXT("Explicit Garment/Body routing or named five-kernel chain is incomplete."));
+					Errors.Add(TEXT("Explicit Garment/Body routing or named six-kernel chain is incomplete."));
 				}
 				else
 				{
@@ -3204,6 +3499,10 @@ KERNEL
 						&& ArePinsDirectlyLinked(BaseKernelNode, TEXT("PreservedTangentX"), WitnessKernelNode, TEXT("Primary Group.BaseTangentX"))
 						&& ArePinsDirectlyLinked(BaseKernelNode, TEXT("PreservedTangentZ"), WitnessKernelNode, TEXT("Primary Group.BaseTangentZ"))
 						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), WitnessKernelNode, TEXT("Body.BodyPosition"))
+						&& ArePinsDirectlyLinked(CohesionBPositionResourceNode, TEXT("GetCohesionBCorrectedPosition"), PreparedWitnessKernelNode, TEXT("Primary Group.BaseCorrectedPosition"))
+						&& ArePinsDirectlyLinked(BodyReadNode, TEXT("Position"), PreparedWitnessKernelNode, TEXT("Body.BodyPosition"))
+						&& ArePinsDirectlyLinked(PreparedWitnessKernelNode, TEXT("PreparedWitnessPlane"), PreparedWitnessResourceNode, TEXT("SetPreparedWitnessPlane"))
+						&& ArePinsDirectlyLinked(PreparedWitnessResourceNode, TEXT("GetPreparedWitnessPlane"), WitnessKernelNode, TEXT("Primary Group.PreparedWitnessPlane"))
 						&& ArePinsDirectlyLinked(WitnessKernelNode, TEXT("FinalPosition"), WitnessPositionResourceNode, TEXT("SetWitnessCorrectedPosition"))
 						&& ArePinsDirectlyLinked(WitnessPositionResourceNode, TEXT("GetWitnessCorrectedPosition"), FinalizeKernelNode, TEXT("Primary Group.WitnessPosition"))
 						&& ArePinsDirectlyLinked(GarmentReadNode, TEXT("Position"), FinalizeKernelNode, TEXT("Primary Group.UpstreamGarmentPosition"))
@@ -3215,7 +3514,7 @@ KERNEL
 						&& ArePinsDirectlyLinked(FinalizeKernelNode, TEXT("FinalTangentZ"), WriteNode, TEXT("TangentZ"));
 					if (!bCoreLinksValid)
 					{
-						Errors.Add(TEXT("Core Garment/Body/base/cohesion-A/cohesion-B/witness/finalize/write links do not match schema 35."));
+						Errors.Add(TEXT("Core Garment/Body/base/cohesion-A/cohesion-B/witness/finalize/write links do not match schema 36."));
 					}
 				}
 
@@ -3248,11 +3547,24 @@ KERNEL
 				{
 					MakeBinding(TEXT("CohesivePosition"), ResolveVector3Type(), VertexDomain)
 				};
+				TArray<FOptimusParameterBinding> ExpectedPreparedWitnessInputs =
+				{
+					MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain)
+				};
+				for (const FVariableSpec& Spec : GetVariableSpecs())
+				{
+					ExpectedPreparedWitnessInputs.Add(MakeBinding(Spec.Name, ResolveVariableType(Spec.Type), SingletonDomain));
+				}
+				const TArray<FOptimusParameterBinding> ExpectedPreparedWitnessOutputs =
+				{
+					MakeBinding(TEXT("PreparedWitnessPlane"), ResolveVector4Type(), PlaneDomain)
+				};
 				TArray<FOptimusParameterBinding> ExpectedWitnessInputs =
 				{
 					MakeBinding(TEXT("BaseCorrectedPosition"), ResolveVector3Type(), VertexDomain),
 					MakeBinding(TEXT("BaseTangentX"), ResolveVector4Type(), VertexDomain),
-					MakeBinding(TEXT("BaseTangentZ"), ResolveVector4Type(), VertexDomain)
+					MakeBinding(TEXT("BaseTangentZ"), ResolveVector4Type(), VertexDomain),
+					MakeBinding(TEXT("PreparedWitnessPlane"), ResolveVector4Type(), PlaneDomain)
 				};
 				for (const FVariableSpec& Spec : GetVariableSpecs())
 				{
@@ -3318,6 +3630,15 @@ KERNEL
 				{
 					Errors.Add(Error);
 				}
+                if (!ValidateBindingArray(PreparedWitnessKernelNode, TEXT("InputBindingArray"), ExpectedPreparedWitnessInputs, Error)
+                    || !ValidateBindingArray(PreparedWitnessKernelNode, TEXT("OutputBindingArray"), ExpectedPreparedWitnessOutputs, Error)
+                    || !ValidateSecondaryBodyBindings(PreparedWitnessKernelNode, Error))
+                { Errors.Add(Error); }
+                const FStructProperty* PreparedDomainProperty = PreparedWitnessKernelNode
+                    ? FindFProperty<FStructProperty>(PreparedWitnessKernelNode->GetClass(), TEXT("ExecutionDomain")) : nullptr;
+                if (!PreparedDomainProperty || PreparedDomainProperty->Struct != FOptimusExecutionDomain::StaticStruct()
+                    || PreparedDomainProperty->ContainerPtrToValuePtr<FOptimusExecutionDomain>(PreparedWitnessKernelNode)->AsExpression() != PreparedWitnessDomain)
+                { Errors.Add(TEXT("Prepared witness execution domain is invalid.")); }
 				if (!ValidateBindingArray(WitnessKernelNode, TEXT("InputBindingArray"), ExpectedWitnessInputs, Error))
 				{
 					Errors.Add(Error);
@@ -3346,29 +3667,32 @@ KERNEL
 				const IOptimusShaderTextProvider* BaseShaderTextProvider = Cast<IOptimusShaderTextProvider>(BaseKernelNode);
 				const IOptimusShaderTextProvider* CohesionAShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionAKernelNode);
 				const IOptimusShaderTextProvider* CohesionBShaderTextProvider = Cast<IOptimusShaderTextProvider>(CohesionBKernelNode);
+                const IOptimusShaderTextProvider* PreparedWitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(PreparedWitnessKernelNode);
+                if (!PreparedWitnessShaderTextProvider || PreparedWitnessShaderTextProvider->GetShaderText() != GetPreparedWitnessKernelSource())
+                { Errors.Add(TEXT("Prepared witness shader source is invalid.")); }
 				const IOptimusShaderTextProvider* WitnessShaderTextProvider = Cast<IOptimusShaderTextProvider>(WitnessKernelNode);
 				const IOptimusShaderTextProvider* FinalizeShaderTextProvider = Cast<IOptimusShaderTextProvider>(FinalizeKernelNode);
 				if (!BaseShaderTextProvider || BaseShaderTextProvider->GetShaderText() != GetBaseKernelSource())
 				{
-						Errors.Add(TEXT("Base kernel source differs from the generated schema-35 source."));
+						Errors.Add(TEXT("Base kernel source differs from the generated schema-36 source."));
 				}
 				if (!CohesionAShaderTextProvider
 					|| CohesionAShaderTextProvider->GetShaderText() != GetCohesionKernelSource())
 				{
-						Errors.Add(TEXT("Cohesion-A kernel source differs from the generated schema-35 source."));
+						Errors.Add(TEXT("Cohesion-A kernel source differs from the generated schema-36 source."));
 				}
 				if (!CohesionBShaderTextProvider
 					|| CohesionBShaderTextProvider->GetShaderText() != GetCohesionKernelSource())
 				{
-						Errors.Add(TEXT("Cohesion-B kernel source differs from the generated schema-35 source."));
+						Errors.Add(TEXT("Cohesion-B kernel source differs from the generated schema-36 source."));
 				}
 				if (!WitnessShaderTextProvider || WitnessShaderTextProvider->GetShaderText() != GetWitnessKernelSource())
 				{
-						Errors.Add(TEXT("Witness kernel source differs from the generated schema-35 source."));
+						Errors.Add(TEXT("Witness kernel source differs from the generated schema-36 source."));
 				}
 				if (!FinalizeShaderTextProvider || FinalizeShaderTextProvider->GetShaderText() != GetFinalizeKernelSource())
 				{
-						Errors.Add(TEXT("Seam/tangent finalize kernel source differs from the generated schema-35 source."));
+						Errors.Add(TEXT("Seam/tangent finalize kernel source differs from the generated schema-36 source."));
 				}
 
 				for (const FVariableSpec& Spec : GetVariableSpecs())
@@ -3383,10 +3707,11 @@ KERNEL
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), BaseKernelNode, KernelPinPath)
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), CohesionAKernelNode, KernelPinPath)
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), CohesionBKernelNode, KernelPinPath)
+						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), PreparedWitnessKernelNode, KernelPinPath)
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), WitnessKernelNode, KernelPinPath)
 						|| !ArePinsDirectlyLinked(*VariableNode, Spec.Name.ToString(), FinalizeKernelNode, KernelPinPath))
 					{
-						Errors.Add(FString::Printf(TEXT("Variable node/five-kernel links %s are missing."), *Spec.Name.ToString()));
+						Errors.Add(FString::Printf(TEXT("Variable node/six-kernel links %s are missing."), *Spec.Name.ToString()));
 					}
 				}
 			}
@@ -3410,10 +3735,10 @@ KERNEL
 		}
 
 		OutReport = FString::Printf(
-			TEXT("PASS: %s; Primary=Garment, Secondary=Body, %d variables, %d nodes, BodyToGarment transform, five-pass base/two-stage cohesion/witness/seam-tangent constraint validated."),
+			TEXT("PASS: %s; Primary=Garment, Secondary=Body, %d variables, %d nodes, BodyToGarment transform, six-pass base/two-stage cohesion/prepare-witness/witness/seam-tangent constraint validated."),
 			AssetObjectPath,
 			GetVariableSpecs().Num(),
-			2 + 3 + 5 + 4 + GetVariableSpecs().Num());
+			2 + 3 + 6 + 5 + GetVariableSpecs().Num());
 		return true;
 	}
 

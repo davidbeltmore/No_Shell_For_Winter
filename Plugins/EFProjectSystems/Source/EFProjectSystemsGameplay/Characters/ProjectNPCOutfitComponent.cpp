@@ -15,6 +15,7 @@
 #include "HAL/PlatformTime.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Engine/GameInstance.h"
+#include "CoreGlobals.h"
 
 UProjectNPCOutfitComponent::UProjectNPCOutfitComponent() { PrimaryComponentTick.bCanEverTick = false; }
 
@@ -34,12 +35,17 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
     ObservedRestoreSerial = Saved ? Saved->RestoreSerial : -1;
     if (Load) Load->CancelHandle(); Load.Reset();
     Started = FPlatformTime::Seconds(); Failure.Reset(); State = EProjectNPCOutfitState::Pending;
+    EngineSecondsAtStart = Started - GStartTime;
+    EngineSecondsAtReady = DefinitionLoadSeconds = ItemClassesLoadSeconds = -1;
+    ItemClassesRequested = ItemClassesResidentAtRequest = 0;
+    bDefinitionResidentAtRequest = bRestoredAtStart = false;
     Identity = AProjectNPCAppearanceState::IdentityFor(Pawn);
     Equipment = Pawn->FindComponentByClass<UACFEquipmentComponent>();
     if (!Equipment) { Fail(TEXT("Native equipment missing")); return; }
     const auto* Record = Saved ? Saved->Records.Find(Identity) : nullptr;
     if (!Record) { Fail(TEXT("Appearance must resolve before outfit")); return; }
     bRestoring = Record->OutfitVersion != 0;
+    bRestoredAtStart = bRestoring;
     if (bRestoring)
     {
         if (Record->OutfitVersion != 1 || Record->OutfitInventory.IsEmpty()) { Fail(TEXT("Unsupported or incomplete saved outfit; no items granted")); return; }
@@ -62,16 +68,25 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
         if (Roll < 0) break;
     }
     State = EProjectNPCOutfitState::Loading;
-    Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Selected, FStreamableDelegate::CreateWeakLambda(this, [this, Selected]
+    bDefinitionResidentAtRequest = Selected.ResolveObject() != nullptr;
+    const double DefinitionRequestedAt = FPlatformTime::Seconds();
+    Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Selected, FStreamableDelegate::CreateWeakLambda(this, [this, Selected, DefinitionRequestedAt]
     {
+        DefinitionLoadSeconds = FPlatformTime::Seconds() - DefinitionRequestedAt;
         Definition = Cast<UProjectNPCOutfit>(Selected.ResolveObject());
         FString Error;
         if (!Definition || !Definition->Validate(Error)) { Fail(TEXT("Invalid outfit definition: ") + Error); return; }
         SelectedId = Definition->Id;
         TArray<FSoftObjectPath> Paths;
         for (const auto& Row : Definition->Items) Paths.AddUnique(Row.Item.ToSoftObjectPath());
-        Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Paths, FStreamableDelegate::CreateWeakLambda(this, [this]
-        { if (State == EProjectNPCOutfitState::Loading) State = EProjectNPCOutfitState::Pending; }));
+        ItemClassesRequested = Paths.Num();
+        for (const auto& Path : Paths) ItemClassesResidentAtRequest += Path.ResolveObject() != nullptr ? 1 : 0;
+        const double ClassesRequestedAt = FPlatformTime::Seconds();
+        Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Paths, FStreamableDelegate::CreateWeakLambda(this, [this, ClassesRequestedAt]
+        {
+            ItemClassesLoadSeconds = FPlatformTime::Seconds() - ClassesRequestedAt;
+            if (State == EProjectNPCOutfitState::Loading) State = EProjectNPCOutfitState::Pending;
+        }));
     }));
 }
 
@@ -166,6 +181,7 @@ void UProjectNPCOutfitComponent::Advance()
         if (!Found) return;
     }
     State = EProjectNPCOutfitState::Ready; ReadySeconds = FPlatformTime::Seconds() - Started;
+    EngineSecondsAtReady = FPlatformTime::Seconds() - GStartTime;
     Load.Reset();
 }
 

@@ -24,9 +24,9 @@ namespace
 struct FOutfitSelectionQA : FGCObject, TSharedFromThis<FOutfitSelectionQA>
 {
     TWeakObjectPtr<UWorld> World;
-    UProjectNPCOutfit* Full=nullptr;
-    UProjectNPCOutfit* Alternate=nullptr;
-    UProjectNPCOutfit* Zero=nullptr;
+    TObjectPtr<UProjectNPCOutfit> Full=nullptr;
+    TObjectPtr<UProjectNPCOutfit> Alternate=nullptr;
+    TObjectPtr<UProjectNPCOutfit> Zero=nullptr;
     TArray<TWeakObjectPtr<ACharacter>> Pawns;
     TArray<FString> Identities;
     TArray<FName> FirstSelection;
@@ -102,7 +102,7 @@ struct FOutfitSelectionQA : FGCObject, TSharedFromThis<FOutfitSelectionQA>
                 auto* P=Pawns[I].Get();auto* Outfit=P->FindComponentByClass<UProjectNPCOutfitComponent>();
                 auto* Equipment=P->FindComponentByClass<UACFEquipmentComponent>();
                 if(Outfit->SelectedId!=Full->Id && Outfit->SelectedId!=Alternate->Id) return Finish(false,TEXT("Zero-weight or unrelated roster choice selected"));
-                const auto* Definition=Outfit->SelectedId==Full->Id?Full:Alternate;
+                const UProjectNPCOutfit* Definition=Outfit->SelectedId==Full->Id?Full.Get():Alternate.Get();
                 for(const auto& Item:Definition->Items)
                 {
                     int32 Found=0;

@@ -1,0 +1,37 @@
+{
+  "status": "FAIL",
+  "budget": {
+    "cpu_increment_ms": 2,
+    "gpu_increment_ms": 3,
+    "frame_p95_increment_ms": 4,
+    "warm_ready_seconds": 2
+  },
+  "sources": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_01_25_bare\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_01_25_dressed\\runtime.json"
+  ],
+  "reasons": [
+    "cpu_increment_ms exceeds frozen budget",
+    "gpu_increment_ms exceeds frozen budget",
+    "frame_p95_increment_ms exceeds frozen budget",
+    "warm_ready_seconds exceeds frozen budget"
+  ],
+  "fixture_version": 2,
+  "prewarm_receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_01_25_bare_warmup\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_planes_01_25_dressed_warmup\\runtime.json"
+  ],
+  "count": 25,
+  "loading": "warm",
+  "measurements": {
+    "cpu_increment_ms": 7.58126771326242,
+    "gpu_increment_ms": 7.730395453740327,
+    "frame_p95_increment_ms": 10.861602783203125,
+    "dressed_frame_p95_ms": 50.6598014831543,
+    "baseline_frame_p95_ms": 39.79819869995117,
+    "spawn_peak_ms": 1790.8365726470947,
+    "warm_ready_seconds": 5.3357469998300076,
+    "pending_after_destroy": 0
+  },
+  "acceptance_applies": true
+}

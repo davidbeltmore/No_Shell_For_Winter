@@ -1,5 +1,6 @@
 """Native fixture host: fresh receipt, 120 s internal/150 s external, no asset saves."""
 import argparse
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -29,6 +30,18 @@ assert not args.selection or not (args.prewarm or args.trace), 'Selection QA is 
 assert not args.profile_gpu or (not args.selection and not args.trace), 'Use one GPU diagnostic at a time'
 assert args.name.replace('_','').replace('-','').isalnum()
 root=Path(unreal.Paths.project_dir()).resolve()
+configuration_paths = [
+    'Content/_Game/Characters/Data/DA_NPCRoster.uasset',
+    'Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset',
+    'Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp',
+    'Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp',
+    'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp',
+    'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp',
+    'Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp',
+]
+# Capture before PIE/preparation, never hash files during the measurement window.
+configuration_hashes = {name: hashlib.sha256((root/name).read_bytes()).hexdigest()
+                        for name in configuration_paths}
 out=root/'Saved/NPCOutfits/Native'/args.name
 assert not (out/'runtime.json').exists(), 'Use a fresh name'
 warm_receipt=root/'Saved/NPCOutfits/Native'/(args.name+'_warmup')/'runtime.json'
@@ -73,7 +86,7 @@ def done(error=''):
     unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),prepared_cvar+' '+str(previous_prepared))
     unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),profile_cvar+' '+str(previous_profile))
     for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),key+' '+str(value))
-    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
 
 def tick(dt):
     try:

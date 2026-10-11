@@ -63,14 +63,14 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Visual fit, movement, morphs, body swap | PENDING | Three-body shared coverage/movement passes; initial visual anomaly retained, controlled follow-up below |
 | Native service interaction | PASS | Six service menus and two quest interaction contracts; SkillGuy clothed images reviewed |
 | Native pursuit / spacing | PASS | Four natural pursuit/spacing samples in a clear authored-nav corridor; fresh gameplay-distance images reviewed |
-| Performance 1 | PASS | Explicitly prepared 30-second pair after two optimizations |
+| Performance 1 | PENDING | Earlier schema-35.1 prepared pair passed; current graph requires a new capture |
 | Performance 10/25 | FAIL | Frozen budget exceeded; details below |
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
 | Cold loading | PENDING | Preparation passes are not cold packaged loading |
 | All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
-| Cook and packaged QA | PASS | Three bodies/archetypes, equip/unequip, explicit GC, zero pending, exit 0 and reviewed images |
+| Cook and packaged QA | PASS | Schema 36.1, three bodies/archetypes, equip/unequip, GC, zero pending, exit 0 and reviewed images |
 | Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
-| Skills and GitHub publication | PENDING | Skills updated/validated; publication pending |
+| Skills and GitHub publication | PENDING | Validated checkpoint through 25821cef published; schema 36.1 remains under validation |
 
 ## Work preservation
 
@@ -366,3 +366,99 @@ surface compute to the witness kernel (66 garment dispatches), versus about
 0.66 ms each for the two cohesion passes. This directs the next optimization
 at witness evaluation; it is not an acceptance benchmark. Raw named events and
 source hashes are recorded in `Evidence/NPCOutfits/gpu-kernel-profile.json`.
+
+The validated checkpoint through `25821cef` is published; user HUB remains
+outside the task commits. The schema-35.2 loop pragma trial was withdrawn:
+its single rounded GPU frame measured 8.14 ms witness work versus 8.40 ms before,
+with a worse maximum dispatch (0.43 versus 0.21 ms). This is insufficient evidence
+of a useful improvement. The schema-35.1 source and serialized graph were restored;
+rollback and trial copies remain under `Saved/NPCOutfits/GPU/loop_01`.
+See `Evidence/NPCOutfits/witness-loop-experiment.json`. No acceptance PASS is
+inferred from this diagnostic. The next bounded experiment prepares witness
+planes once per frame, retaining the ordered projection solver and full fallback.
+
+## Frame-local witness preparation (schema 36.1, validation in progress)
+
+The owned graph now prepares each face/edge witness plane once per animated
+frame, after cohesion B. Its receiving vertices reuse that plane through the
+same ordered six-projection solver and exact fixed-point exit. Incidence,
+finite-value and correction-cap validation runs once per receiving vertex;
+no sample, tolerance or animation update is dropped. A bounded `Vertex * 16`
+float4 resource holds the planes. Denser bindings use the complete shared
+evaluator through an explicit shader branch. A ternary first trial executed
+more work and was slower; its evidence is preserved.
+
+The calculated plane capacity is 4,870,144 bytes per FullRag and 121,753,600 bytes
+for 25 outfits, excluding allocator overhead and other resources. This is a
+capacity calculation, not a GPU residency measurement. The buffers belong to
+the per-instance Optimus resource lifecycle; they do not cache an old pose.
+
+Named GPU diagnostics contain 66 garment dispatches, including background HUB
+NPCs. Preparation plus witness resolution measures 4.54 ms (0.76 + 3.78), versus
+8.40 ms for the earlier witness kernel. These rounded single-frame observations
+justify the optimization but cannot certify crowd capacity. Evidence:
+`Evidence/NPCOutfits/prepared-planes-gpu.json`.
+
+The latest matched 30-second 25-NPC pair still **FAILS** all frozen limits:
+added CPU 8.875 ms, GPU 6.961 ms, frame p95 13.372 ms, warmed group readiness
+4.465 s. Baseline/dressed p95 are 34.156/47.528 ms; spawn peak 1,339.491 ms;
+pending work after destruction is zero. Both sides use the fully configured
+roster and schema 36.1. Do not compare their total CPU times directly against
+the older pilot-roster captures. See
+`Evidence/NPCOutfits/performance-planes-prepass-25.json`; the preceding schema-36
+pair is also retained in `performance-planes-25.json`.
+
+Runtime work also avoids repeated name-to-string classification through a
+bounded 4,096-entry name-only cache; active morph weights remain live. Render
+confirmation now arms only for an unvalidated dispatch-failure generation,
+preserving recovery instead of continuously rearming after success. These
+changes do not establish a passing CPU budget.
+
+Editor/Game builds pass for the fitting change (12.592/53.620 s). The shared
+three-body regression passes in 62.188 s with Blueprint compilation, coverage
+2→1→0, body transitions, representative extreme morphs and measured movement.
+All three new screenshots were reviewed: the visible fitted surfaces remain
+coherent. Evidence: `Evidence/NPCOutfits/prepared-planes-visual.json` and
+`planes-morph_extreme_*.png`. The earlier unexplained visual anomaly remains in
+the history; no cause or unrelated animation fix is claimed.
+
+`SummarizeGPU.py LOG --output NEW.json` extracts the last graphics GPU-0 frame,
+records named owned kernels and retains the raw frame. It is diagnostic only.
+New performance hosts hash the roster, graph and relevant runtime sources before
+PIE; `Measure.py` rejects mismatched configurations. Historical receipts without
+these hashes remain historical evidence, not proof of a new configuration.
+
+Initial-load telemetry records definition/item-class residency before requests,
+asynchronous callback durations, engine-relative start/readiness and restoration
+state for map-owned NPCs separately from the prepared QA group. Residency is
+not an OS disk-cache assertion. Packaged observations of these new fields and
+schema-36.1 cook/package/GC gates were subsequently completed below.
+
+### Packaged schema-36.1 checkpoint
+
+Cook/package passes in 336.314 s; retained artifact is
+`Saved/BodyPresetsQA/Package_20261011_155525`. Three fresh processes pass for
+Male.01/SkillGuy, Female.01/MeleeEnemy and Male.02/Zombie. All record zero error
+lines, explicit GC completion, zero pending outfit requests and normal exit 0.
+The three actual screenshots were reviewed for basic FullRag presentation and
+native equipment/pose. See `Evidence/NPCOutfits/packaged-planes.json` and
+`planes-packaged-*.png`. This does not certify packaged extreme-morph closeups.
+
+Each fresh process observes twelve initially placed HUB NPCs reaching Ready.
+The first process spans 12.500–13.640 engine seconds for their readiness; the
+next two span 7.808–8.547 and 7.665–8.369 seconds. Their per-owner initialization
+ranges are 0.229–1.894, 0.131–0.912 and 0.105–0.885 s respectively. Each launch
+records two initially nonresident definition requests but zero nonresident item
+class requests. These measurements therefore describe partially prepared HUB
+startup, separately from the controlled warmed groups. They do not satisfy an
+isolated cold garment/binding-load claim.
+
+Retention dry-run then apply removes exactly 4,991,590,494 bytes from the former
+`Package_20261011_150042/Cooked` and `Staged`; its receipts/logs remain. The latest
+pointer retains the new validated artifact. The post-package protection check
+passes for all 7,643 files in 74.580 s with no changes. User HUB retains SHA256
+`C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
+
+Final code builds including startup observations pass: Editor 14.559 s and Game
+50.955 s. A compiler warning in the transient selection fixture was corrected by
+using `TObjectPtr` with its existing GC referencer; selection behavior is unchanged.

@@ -1,0 +1,70 @@
+{
+  "status": "FAIL",
+  "reason": "Loop pragma does not improve named witness GPU cost; withdraw trial. Single rounded diagnostic frame, not acceptance.",
+  "host": {
+    "status": "PASS",
+    "reason": "",
+    "seconds": 28.29700000000048,
+    "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=gpu_loop_detail_01",
+    "immutable_buffers": 1,
+    "prepared_binding": 1,
+    "profile_install": false,
+    "profile_gpu": true,
+    "trace": false,
+    "quality": {
+      "sg.ViewDistanceQuality": 3.0,
+      "sg.AntiAliasingQuality": 3.0,
+      "sg.ShadowQuality": 3.0,
+      "sg.GlobalIlluminationQuality": 3.0,
+      "sg.ReflectionQuality": 3.0,
+      "sg.PostProcessQuality": 3.0,
+      "sg.TextureQuality": 3.0,
+      "sg.EffectsQuality": 3.0,
+      "sg.FoliageQuality": 3.0,
+      "sg.ShadingQuality": 3.0,
+      "r.ScreenPercentage": 0.0,
+      "r.VSync": 0.0,
+      "t.MaxFPS": 0.0
+    },
+    "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_loop_detail_01_warmup\\runtime.json"
+  },
+  "kernels": {
+    "Daz_DualQuatSkin": {
+      "count": 30,
+      "total_ms": 0.73,
+      "max_ms": 0.06
+    },
+    "DualQuatSkin_Morph_Cloth": {
+      "count": 128,
+      "total_ms": 0.5500000000000003,
+      "max_ms": 0.14
+    },
+    "EF_GarmentSurfaceBase": {
+      "count": 66,
+      "total_ms": 0.04,
+      "max_ms": 0.01
+    },
+    "EF_GarmentShapeCohesionA": {
+      "count": 66,
+      "total_ms": 0.6700000000000004,
+      "max_ms": 0.02
+    },
+    "EF_GarmentShapeCohesionB": {
+      "count": 66,
+      "total_ms": 0.6700000000000004,
+      "max_ms": 0.02
+    },
+    "EF_GarmentWitness": {
+      "count": 66,
+      "total_ms": 8.139999999999999,
+      "max_ms": 0.43
+    },
+    "EF_GarmentSeamAndTangentFinalize": {
+      "count": 66,
+      "total_ms": 0.04,
+      "max_ms": 0.01
+    }
+  },
+  "baseline_witness_ms": 8.4,
+  "rollback": "Saved/NPCOutfits/GPU/loop_01/Backups/DG_EFGarmentSurfaceConstraint.uasset"
+}
