@@ -1,0 +1,125 @@
+{
+  "implementation_commit": "7eeb34d6",
+  "baseline_commit": "19fd703749072fdb636066c8eab713632c94f976",
+  "profiles": [
+    {
+      "path": "/Game/_Game/Characters/Animation/Weapons/DA_DAZBowIdleLayering.DA_DAZBowIdleLayering",
+      "spine_weight": 0.2
+    },
+    {
+      "path": "/Game/_Game/Characters/Animation/Weapons/DA_DAZBowAimLayering.DA_DAZBowAimLayering",
+      "spine_weight": 0.8
+    }
+  ],
+  "before_carry_head_chest_max_degrees": 41.59,
+  "after_comparison_carry_head_chest_max_degrees": 24.71,
+  "build_editor": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 24.271,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+    ]
+  },
+  "build_game": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 34.038,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+    ]
+  },
+  "blueprint": {
+    "status": "PASS",
+    "seconds": 0.23500000000058208,
+    "rows": [
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZBowOverlay.ABP_DAZBowOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      },
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZPistolOverlay.ABP_DAZPistolOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      },
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZRifleOverlay.ABP_DAZRifleOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      }
+    ]
+  },
+  "pie_host": {
+    "status": "PASS",
+    "error": "",
+    "seconds": 64.81199999999808
+  },
+  "pie_motion_lines": [
+    "bow_motion samples=105 distance_cm=2487.64 carry_head_chest_max_deg=22.31 aim_head_chest_max_deg=31.00",
+    "bow_motion samples=108 distance_cm=2489.32 carry_head_chest_max_deg=22.35 aim_head_chest_max_deg=30.23",
+    "status=PASS completed=4/4 reason=bow x 2 genders x actual player/NPC; directional aim, native shooting and restoration elapsed_seconds=59.629"
+  ],
+  "cook": {
+    "scope": "HUB body presets and clothing",
+    "reused_cook": false,
+    "elapsed_seconds": 209.1848867,
+    "exit_code": 0
+  },
+  "cook_path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261010_231159",
+  "packaged": {
+    "exit_code": 0,
+    "limit_seconds": 180,
+    "feature_errors": 0,
+    "receipts": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowPose\\Packaged_20261010_231542\\UserData\\Saved\\BowPose\\Runtime\\runtime.txt"
+    ],
+    "runtime_pass": true,
+    "mode": "BowPose",
+    "seconds": 76.6465056
+  },
+  "packaged_motion_lines": [
+    "bow_motion samples=117 distance_cm=2491.76 carry_head_chest_max_deg=21.66 aim_head_chest_max_deg=30.98",
+    "bow_motion samples=118 distance_cm=2490.85 carry_head_chest_max_deg=21.59 aim_head_chest_max_deg=31.02",
+    "status=PASS completed=4/4 reason=bow x 2 genders x actual player/NPC; directional aim, native shooting and restoration elapsed_seconds=59.465"
+  ],
+  "protected": {
+    "status": "PASS",
+    "count": 7643,
+    "changed": []
+  },
+  "saves": {
+    "Status": "PASS",
+    "Checked": 4,
+    "Restored": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+    ]
+  },
+  "screenshots": [
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowMotion\\PIE\\Case_02_motion_02.png",
+      "sha256": "6c95fe47e8ab3e04abcfdba03cd9311676c65b8947f628ba54dcbfb09f4fe7e5"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowMotion\\PIE\\Case_03_motion_04.png",
+      "sha256": "f5e7911bd4c3db9fdc531d307968160d65636c6165c88ba1d6fa972f12222929"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowMotion\\PIE\\Case_03_motion_07.png",
+      "sha256": "11179c76a35b4cf1916ac0c858e5823bd4ec012fddc64f9b592f8c45eb841dcb"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowPose\\Packaged_20261010_231542\\UserData\\Saved\\BowPose\\Runtime\\Case_03_motion_04.png",
+      "sha256": "616fbb879c6feeffd22a38607a1d4ec4ff8743c286fb670f5a2c01e4992d176d"
+    }
+  ]
+}

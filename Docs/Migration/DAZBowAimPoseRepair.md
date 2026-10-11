@@ -109,3 +109,8 @@ its receipt is Saved/BowPose/publication.json.
 
 Protected baseline: Saved/BowPose/Baseline/before.json, 7,643 files.
 User-save baseline: Saved/BowPose/SaveGuard/user_save_before.json, four saves.
+
+Follow-up: [DAZBowMotionRepair.md](DAZBowMotionRepair.md) addresses unnatural
+head/chest motion missed by this static matrix. Its 0.2 carry / 0.8 aim absolute
+Spine weights supersede the bow's original full-weight torso policy. The owned
+directional aim sample correction described above remains in place.

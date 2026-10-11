@@ -20,6 +20,12 @@ Rifle Head must actively restore BASE_POSE at weight 1: weight 0 left the head
 inherited from the spine override and collapsed it into the chest. Pistol Head
 retains its measured base/zero policy.
 Do not assume this policy suits another weapon, skeleton or ACF version.
+Bow is an exception to full torso weight: use absolute Spine at 0.2 for carry
+and 0.8 for aim, retaining Head BASE_POSE at 1. The former Spine=1 in both
+stances passed static checks but roughly doubled head/chest divergence while
+turning (42 degrees versus 21 unarmed). The corrected carry measured 25 degrees.
+Preserve the absolute pose type; restoring native additive branches is not the
+same as blending the absolute torso pose with locomotion.
 
 `UEFDAZWeaponPoseSettings` maps exact source overlay classes to owned replacements
 only for configured DAZ mesh roots. The existing appearance-change bridge restores
@@ -56,7 +62,7 @@ scales and every other track. Its path guards exclude native assets.
 Validate the resulting runtime pose before treating authoring as a repair.
 Neck correction alone still moved the head with the folding spine. Masking spine
 without compensating arm roots made the weapon direction nearly static. Preserve
-native locomotion and the absolute torso overlay; restrict corrections to owned
+native locomotion and the weighted absolute torso overlay; restrict corrections to owned
 directional aim samples. Explicitly rebind all nine AO SampleData animations after retargeting;
 the batch retarget returned an AO with empty sample references in this repair.
 Do not set AimOffsetAlpha=0 as a fix: require directional hand position/orientation
@@ -79,6 +85,22 @@ require hand orientation delta >=0.15 radians from neutral; incidental breathing
 translation must not count as directional aiming. Explicitly spawn a native
 controller for disposable NPC fixtures when auto-possession is absent, and fail
 if it remains missing. Record visual evidence; metrics alone cannot certify pose.
+
+For unnatural carry motion, compare a short walking/turning trace with unarmed
+locomotion before changing aim samples. Inspect `NewLayering`, `Spine`, `Head`
+and the actual sequence at runtime. Absolute torso and base-pose head can each
+look correct alone but combine poorly during turns. The bow QA now adds an
+8-second moving sequence for each actual player body: carry, aim, release;
+requires >400cm travel, >=50 samples, carry head/chest angle <=32 degrees and
+aim <=45 degrees, plus the existing proportion gates. Review its temporal
+screenshots (`Case_##_motion_##.png`); these scoped limits are regression guards,
+not universal anatomical limits or proof of all animations. A static PASS does
+not certify walking, transition quality, yaw sweeps or visual naturalness.
+Keep the route on walkable floor and assert grounding: the original +X route
+from the static fixture walked off HUB's edge. Its falling animation lowered
+world-vertical head elevation without shortening the neck. Inspect movement mode
+and rendered frames before attributing such a failure to the animation policy.
+Use `Docs/Migration/DAZBowMotionRepair.md` for the temporal regression evidence.
 
 ## Authoring and bounded validation
 
