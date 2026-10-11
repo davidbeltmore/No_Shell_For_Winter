@@ -77,6 +77,19 @@ damage calculation. Prefer composition around the captured configured calculator
 and delegate critical/final damage plus defense to it. A successful build does not
 validate these authored attributes; exercise actual damage before packaging.
 
+For projectile-specific policy, inspect the native collision-to-damage call.
+ACF forwards the shooter as DamageDealer, and penetration damage is shared by
+arrows, grenades and cannonballs. Do not infer arrow identity from that class or
+the shooter's currently equipped weapon. `UProjectArrowImpactContext` records the
+native arrow's pre-damage collision and consumes it once for the same receiver,
+dealer, frame, bone and impact position. No native damage type/FX mapping changes.
+Match ACF's reconstructed hit position: DamageHandler uses the incoming
+FHitResult.Location (sphere center), not ImpactPoint (surface). Comparing the
+surface point rejects valid projectile identity after a sphere sweep.
+Use `RunArrowHitPIE.py` or packaged validation `-Arrow` to exercise deferred native
+arrow spawning and physical flight above the light threshold, plus strong-hit
+regression. The fixture changes only its disposable arrow's base damage.
+
 Project entry points: `Tools/Animation/AuthorZombieHitLayers.py`,
 `RunZombieHitPIE.py`, `ValidateZombieHitPackaged.ps1`, and console
 `Project.ZombieHit.QA`. Read

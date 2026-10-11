@@ -3,7 +3,8 @@ import json,time,unreal
 from pathlib import Path
 
 def run_zombie_hit_qa():
-    out=Path(unreal.Paths.project_dir())/'Saved/ZombieHit'; receipt=out/'Runtime/runtime.txt'
+    arrow=globals().get('ZOMBIE_HIT_MODE','')=='arrow'
+    out=Path(unreal.Paths.project_dir())/('Saved/ArrowHit' if arrow else 'Saved/ZombieHit');out.mkdir(parents=True,exist_ok=True);receipt=out/'Runtime/runtime.txt'
     started=time.monotonic(); old_mtime=receipt.stat().st_mtime_ns if receipt.exists() else 0
     editor=unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
     worlds=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
@@ -20,7 +21,7 @@ def run_zombie_hit_qa():
         if time.monotonic()-started>120: done('120-second host watchdog'); return
         world=worlds.get_game_world()
         if world and unreal.GameplayStatics.get_player_pawn(world,0) and not state['issued']:
-            unreal.SystemLibrary.execute_console_command(world,'Project.ZombieHit.QA'); state['issued']=True
+            unreal.SystemLibrary.execute_console_command(world,'Project.ZombieHit.QA'+(' arrow' if arrow else '')); state['issued']=True
         if state['issued'] and receipt.exists() and receipt.stat().st_mtime_ns!=old_mtime:
             text=receipt.read_text(encoding='utf-8-sig'); done('' if 'status=PASS' in text else text)
     handle=unreal.register_slate_post_tick_callback(tick)

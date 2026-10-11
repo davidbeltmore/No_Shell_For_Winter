@@ -1,14 +1,16 @@
-param([Parameter(Mandatory)][string]$StagedRoot,
+param([Parameter(Mandatory)][string]$StagedRoot, [switch]$Arrow,
       [string]$ProjectRoot='D:\Projects UE5\NoShellForWinter')
 $ErrorActionPreference='Stop'
 $exe=Join-Path $StagedRoot 'NoShellForWinter\Binaries\Win64\NoShellForWinter.exe'
 if (!(Test-Path -LiteralPath $exe)) { $exe=Join-Path $StagedRoot 'Windows\NoShellForWinter\Binaries\Win64\NoShellForWinter.exe' }
 if (!(Test-Path -LiteralPath $exe)) { throw "Missing executable: $exe" }
 $suite='ZombieHit'
+if ($Arrow) {$suite='ArrowHit'}
 $limit=180
 $out=Join-Path $ProjectRoot ('Saved\'+$suite+'\Packaged_'+(Get-Date -Format yyyyMMdd_HHmmss))
 [void][IO.Directory]::CreateDirectory($out)
-$arguments='/Game/_Game/Hub/HUB -windowed -ResX=1600 -ResY=1000 -nosound -unattended -csvNoProcessingThread -csvCaptureFrames=16000 -csvExecCmds="90:Project.'+$suite+'.QA quit" -UserDir="'+(Join-Path $out 'UserData')+'" -ABSLOG="'+(Join-Path $out 'game.log')+'"'
+$modeArgument='';if ($Arrow) {$modeArgument=' arrow'}
+$arguments='/Game/_Game/Hub/HUB -windowed -ResX=1600 -ResY=1000 -nosound -unattended -csvNoProcessingThread -csvCaptureFrames=16000 -csvExecCmds="90:Project.ZombieHit.QA'+$modeArgument+' quit" -UserDir="'+(Join-Path $out 'UserData')+'" -ABSLOG="'+(Join-Path $out 'game.log')+'"'
 $started=Get-Date
 $process=Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $deadline=(Get-Date).AddSeconds($limit)

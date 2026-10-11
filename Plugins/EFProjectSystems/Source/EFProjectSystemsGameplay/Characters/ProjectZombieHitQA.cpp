@@ -19,6 +19,10 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "NavigationSystem.h"
+#include "ItemActors/ACFProjectileActor.h"
+#include "Items/ACFProjectile.h"
+#include "ACMCollisionManagerComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "UnrealClient.h"
 
 #if !UE_BUILD_SHIPPING
@@ -33,6 +37,8 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
     FTransform OldTransform;
     FRotator OldControl;
     bool bOldImmortal=false,bCaptured=false,bQuit=false,bSawReaction=false,bSawBlendTail=false,bLightDone=false;
+    bool bArrow=false;
+    TWeakObjectPtr<AACFProjectileActor> TestArrow;
     int32 Stage=0,Index=0,Round=0,Samples=0,Completed=0;
     double Start=FPlatformTime::Seconds(),Due=0,WindowStart=0,Travel=0,MaxSpeed=0,PreSpeed=0;
     FVector Last,Origin;
@@ -47,6 +53,7 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
     }
     void ClearNPC()
     {
+        if (TestArrow.IsValid()) TestArrow->Destroy();TestArrow.Reset();
         if (auto* P=NPC.Get())
         {
             if (auto* State=AProjectNPCAppearanceState::Ensure(World.Get())) State->Records.Remove(AProjectNPCAppearanceState::IdentityFor(P));
@@ -88,6 +95,26 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
         const float Applied=UGameplayStatics::ApplyPointDamage(P,Damage,FVector(-1,0,0),Contact,Player->GetController(),Player.Get(),UACFDamageType::StaticClass());
         Record(FString::Printf(TEXT("point_impact requested=%.2f applied=%.2f response=%s"),Damage,Applied,*D->GetLastDamageInfo().HitResponseAction.ToString()));
         return Applied>0;
+    }
+    bool ShootArrow()
+    {
+        UClass* ItemClass=LoadClass<UACFProjectile>(nullptr,TEXT("/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C"));
+        auto* Item=ItemClass?ItemClass->GetDefaultObject<UACFProjectile>():nullptr;
+        if (!Item || !Item->ProjectileClass) return false;
+        const FTransform Spawn(FRotator(0,180,0),NPC->GetMesh()->GetSocketLocation(TEXT("spine_03"))+FVector(250,0,0));
+        TestArrow=World->SpawnActorDeferred<AACFProjectileActor>(Item->ProjectileClass,Spawn,Player.Get(),Player.Get(),ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+        if (!TestArrow.IsValid()) return false;
+        TestArrow->InitItemActor(Player.Get(),Item);
+        TestArrow->FinishSpawning(Spawn);
+        // Deliberately above the light damage threshold: certify arrow identity,
+        // not an accidental low-damage flinch. Only this disposable shot changes.
+        auto* Collision=TestArrow->GetCollisionComp();
+        for (auto Pair:Collision->GetDamageTraces()) {Pair.Value.BaseDamage=60;Collision->SetTraceConfig(Pair.Key,Pair.Value);}
+        TestArrow->ActivateDamage();
+        TestArrow->GetProjectileMovementComp()->SetVelocityInLocalSpace(FVector(4000,0,0));
+        TestArrow->GetProjectileMovementComp()->Activate();
+        Record(TEXT("arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged"));
+        return true;
     }
     bool Tick(float)
     {
@@ -145,7 +172,7 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
             if (AI->GetTargetActorBK()!=Player.Get() || P->GetVelocity().Size2D()<100 || Advance<25) return true;
             PreSpeed=P->GetVelocity().Size2D();
             if (auto* Stats=P->FindComponentByClass<UACFGASStatisticsComponent>()) Stats->RefillStat(FGameplayTag::RequestGameplayTag(TEXT("RPG.Statistics.Health")));
-            if (!Hit(bLightDone?60:10)) return Finish(false,TEXT("point damage not applied"));
+            if (!(bArrow && !bLightDone?ShootArrow():Hit(bLightDone?60:10))) return Finish(false,TEXT("damage or arrow launch failed"));
             Last=P->GetActorLocation();Travel=0;MaxSpeed=0;Samples=0;bSawReaction=false;bSawBlendTail=false;WindowStart=Now;
             if (!bLightDone)
             {
@@ -204,6 +231,7 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
         if (Stage==8)
         {
             const bool Light=ASC->GetCurrentActionTag()==FGameplayTag::RequestGameplayTag(TEXT("Actions.HitLight"));
+            if (bArrow && !bSawReaction && !Light && Now-WindowStart<1) return true;
             if (Light)
             {
                 if (Gate->IsHoldingNavigation()) return Finish(false,TEXT("light impact paused locomotion"));
@@ -216,7 +244,18 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
                 return true;
             }
             Record(FString::Printf(TEXT("light case=%d samples=%d movement_cm=%.3f leg_motion_rad=%.4f torso_motion_rad=%.4f seconds=%.3f"),Index,Samples,Travel,LegDelta,TorsoDelta,Now-WindowStart));
+            if (bArrow)
+            {
+                const auto Info=P->FindComponentByClass<UACFDamageHandlerComponent>()->GetLastDamageInfo();
+                Record(FString::Printf(TEXT("arrow_contact final_damage=%.3f response=%s type=%s"),Info.FinalDamage,*Info.HitResponseAction.ToString(),*GetPathNameSafe(Info.DamageClass.Get())));
+            }
             if (!bSawReaction || Samples<4 || Travel<30 || LegDelta<.05 || TorsoDelta<.02) return Finish(false,TEXT("light torso reaction or leg locomotion missing"));
+            if (bArrow)
+            {
+                const auto Info=P->FindComponentByClass<UACFDamageHandlerComponent>()->GetLastDamageInfo();
+                Record(FString::Printf(TEXT("arrow_impact final_damage=%.3f response=%s type=%s"),Info.FinalDamage,*Info.HitResponseAction.ToString(),*GetPathNameSafe(Info.DamageClass.Get())));
+                if (Info.FinalDamage<=25 || Info.HitResponseAction!=FGameplayTag::RequestGameplayTag(TEXT("Actions.HitLight"))) return Finish(false,TEXT("arrow did not prove high-damage light reaction"));
+            }
             bLightDone=true;Stage=2;return true;
         }
         return true;
@@ -227,7 +266,8 @@ FAutoConsoleCommandWithWorldAndArgs ZombieHitCommand(TEXT("Project.ZombieHit.QA"
 FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args,UWorld* World)
 {
     if (!World || ActiveZombieHit.IsValid()) return;
-    auto Test=MakeShared<FZombieHitQA>();Test->World=World;Test->bQuit=Args.Contains(TEXT("quit"));ActiveZombieHit=Test;
+    auto Test=MakeShared<FZombieHitQA>();Test->World=World;Test->bQuit=Args.Contains(TEXT("quit"));Test->bArrow=Args.Contains(TEXT("arrow"));ActiveZombieHit=Test;
+    if (Test->bArrow) Test->Directory=FPaths::ProjectSavedDir()/TEXT("ArrowHit/Runtime");
     FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Test](float Dt){return Test->Tick(Dt);}));
 }));
 }
