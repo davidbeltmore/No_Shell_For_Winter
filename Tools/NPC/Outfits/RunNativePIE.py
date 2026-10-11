@@ -19,7 +19,10 @@ parser.add_argument('--name',default='native_'+str(time.time_ns()))
 parser.add_argument('--immutable-buffers',type=int,choices=[0,1],default=1)
 parser.add_argument('--trace',action='store_true',help='Diagnostic CPU/GPU trace after fixture outfits are ready')
 parser.add_argument('--prewarm',action='store_true',help='Prepare the same dressed group in this PIE world before measuring')
+parser.add_argument('--selection',action='store_true',help='Run bounded weighted/instance/saved-precedence QA with transient definitions')
+parser.add_argument('--profile-install',action='store_true',help='Diagnostic install-stage logging; do not use as a steady-state acceptance capture')
 args=parser.parse_args(globals().get('NPC_OUTFIT_ARGS',[]))
+assert not args.selection or not (args.prewarm or args.trace), 'Selection QA is a separate functional fixture'
 assert args.name.replace('_','').replace('-','').isalnum()
 root=Path(unreal.Paths.project_dir()).resolve()
 out=root/'Saved/NPCOutfits/Native'/args.name
@@ -38,12 +41,14 @@ throttle=perf.get_editor_property('bThrottleCPUWhenNotForeground')
 perf.set_editor_property('bThrottleCPUWhenNotForeground',False)
 buffer_cvar='ef.ClothingMorph.ImmutableBindingBuffers'
 previous_buffers=unreal.SystemLibrary.get_console_variable_int_value(buffer_cvar)
+profile_cvar='ef.ClothingMorph.ProfileInstall'
+previous_profile=unreal.SystemLibrary.get_console_variable_int_value(profile_cvar)
 quality_names=['sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuality','sg.GlobalIlluminationQuality',
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','trace','prewarm']}
-command='Project.NPCOutfits.QA '+' '.join(k+'='+str(v) for k,v in native_args.items())
+native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','trace','prewarm','selection','profile_install']}
+command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 warm_args=dict(native_args,name=args.name+'_warmup',dressed=1,capture=1,functional=0,loading='preparation')
 warm_command='Project.NPCOutfits.QA '+' '.join(k+'='+str(v) for k,v in warm_args.items())
 
@@ -54,6 +59,7 @@ def done(error=''):
     unreal.EditorLevelLibrary.editor_end_play()
     perf.set_editor_property('bThrottleCPUWhenNotForeground',throttle)
     unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),buffer_cvar+' '+str(previous_buffers))
+    unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),profile_cvar+' '+str(previous_profile))
     (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'quality':quality,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
 
 def tick(dt):
@@ -63,6 +69,7 @@ def tick(dt):
         if world and unreal.GameplayStatics.get_player_pawn(world,0) and not state['issued']:
             state['issued']=True
             unreal.SystemLibrary.execute_console_command(world,buffer_cvar+' '+str(args.immutable_buffers))
+            unreal.SystemLibrary.execute_console_command(world,profile_cvar+' '+str(int(args.profile_install)))
             unreal.SystemLibrary.execute_console_command(world,warm_command if args.prewarm else command)
         if args.prewarm and not state['warm_ready']:
             if warm_receipt.exists():

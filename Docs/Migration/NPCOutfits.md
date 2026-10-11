@@ -59,7 +59,7 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Pilot persistence and functional PIE | PASS | Modified shirt state, exact disk round trip, no duplicates |
 | Loot / immediate recreate | PASS | Synchronous snapshot, both genders, exact remaining GUIDs, commit 72c8d694 |
 | Cancellation during load | PASS | Destroy in Loading, zero requests after teardown |
-| Weighted selection | PENDING | Runtime selection/override fixture still required |
+| Weighted selection | PASS | 16 fresh-generation identity repeats, zero weight, fixed instance override and saved GUID precedence |
 | Visual fit, movement, morphs, body swap | PENDING | Three-body shared coverage/movement passes; initial visual anomaly retained, controlled follow-up below |
 | Native service interaction | PASS | Six service menus and two quest interaction contracts; SkillGuy clothed images reviewed |
 | Native pursuit / spacing | PASS | Four natural pursuit/spacing samples in a clear authored-nav corridor; fresh gameplay-distance images reviewed |
@@ -266,3 +266,19 @@ MoveTo, AI behavior change or map save is used for acceptance. Failed diagnostic
 are retained. Fresh dressed melee Male/Female movement screenshots are coherent
 at gameplay distance; see `Evidence/NPCOutfits/logic-corrected.json`.
 Editor/Game builds PASS in 42.685 / 45.415 s, Daz guards restored.
+
+Selection fixture `selection_01` PASS (14.937 s native / 20.219 s host): sixteen
+identities generate fresh twice after deleting only their QA appearance records.
+The 1:3 choices yield FullRag 3 / RagLower 13 both times; zero weight is never
+selected. A seventeenth fixed-override pawn keeps its selected outfit and exact
+inventory GUIDs after recreation with a different override. Definitions are
+transient duplicates; roster and authored assets are unchanged. Evidence:
+`Evidence/NPCOutfits/selection.json`. Editor/Game builds PASS 12.998 / 45.694 s.
+
+`install_profile_01` isolates startup work with opt-in logging (not an acceptance
+FPS capture). The final 30 garment installations spend roughly 8–43 ms each in
+`UploadImmutableBinding`; topology validation is much smaller. Full raw timing
+lines and a compact receipt are retained in `Evidence/NPCOutfits/install-profile.json`.
+The three Rag meshes still have only LOD0. Generated LOD1 and independent NPC
+screen-size selection are being prepared; these changes remain PENDING until
+binding certification, visual transition review and matched measurement pass.

@@ -1,0 +1,216 @@
+{
+  "status": "PASS",
+  "reason": "Weighted fresh-generation repeat, zero weight, fixed instance override and saved inventory precedence",
+  "elapsed_seconds": 14.93747130036354,
+  "samples": [
+    {
+      "round": 0,
+      "index": 0,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 0,
+      "index": 1,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 2,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 0,
+      "index": 3,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 4,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 5,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 6,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 7,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 8,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 0,
+      "index": 9,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 10,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 11,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 12,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 13,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 14,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 15,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 0,
+      "index": 16,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 0,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 1,
+      "index": 1,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 2,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 1,
+      "index": 3,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 4,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 5,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 6,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 7,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 8,
+      "selected": "FullRag",
+      "inventory_entries": 3
+    },
+    {
+      "round": 1,
+      "index": 9,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 10,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 11,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 12,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 13,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 14,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 15,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    },
+    {
+      "round": 1,
+      "index": 16,
+      "selected": "QA.RagLower",
+      "inventory_entries": 2
+    }
+  ],
+  "weighted_count": 16,
+  "seed": 731,
+  "source": "Saved\\NPCOutfits\\Native\\selection_01\\runtime.json",
+  "sha256": "7d36c9b922a0bf2699a1f122e3dccb5ddf66b49502e639020e6f25f985817c7c",
+  "snapshot": "bb4560cc plus ProjectNPCOutfitSelectionQA.cpp; Editor 12.998 s, Game 45.694 s build PASS"
+}

@@ -16,6 +16,20 @@
 #include "SkeletalMeshDeformerHelpers.h"
 #include "SkeletalRenderPublic.h"
 #include "Templates/Atomic.h"
+#include "HAL/IConsoleManager.h"
+
+namespace
+{
+TAutoConsoleVariable<int32> CVarProfileClothingInstall(TEXT("ef.ClothingMorph.ProfileInstall"),0,
+    TEXT("Log bounded installation stages for targeted clothing startup diagnosis."));
+struct FClothingInstallProfile
+{
+    const TCHAR* Stage;
+    double Started;
+    explicit FClothingInstallProfile(const TCHAR* InStage):Stage(InStage),Started(CVarProfileClothingInstall.GetValueOnGameThread()?FPlatformTime::Seconds():0) {}
+    ~FClothingInstallProfile() { if(Started>0) UE_LOG(LogTemp,Display,TEXT("ClothingInstallProfile stage=%s ms=%.3f"),Stage,(FPlatformTime::Seconds()-Started)*1000); }
+};
+}
 
 namespace EFClothingSurfaceGraphContract
 {
@@ -350,6 +364,7 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 	FString& OutFailureReason)
 {
 	check(IsInGameThread());
+	FClothingInstallProfile Profile(TEXT("InstallTotal"));
 	Detach();
 	OutFailureReason.Reset();
 
@@ -1048,6 +1063,7 @@ bool UEFClothingSurfaceDeformerProducer::UploadImmutableBinding(
 	const FEFClothingSurfaceLODPairBinding& InLODPair,
 	FString& OutFailureReason)
 {
+	FClothingInstallProfile Profile(TEXT("UploadImmutableBinding"));
 	UOptimusDeformerInstance* Instance = SurfaceInstance.Get();
 	if (!IsValid(Instance))
 	{
@@ -1387,6 +1403,7 @@ bool UEFClothingSurfaceDeformerProducer::ValidateLiveLODTopology(
 	const FEFClothingSurfaceLODPairBinding& InLODPair,
 	FString& OutFailureReason) const
 {
+	FClothingInstallProfile Profile(TEXT("ValidateLiveLODTopology"));
 	const USkeletalMeshComponent* Garment = GarmentComponent.Get();
 	const USkeletalMeshComponent* Body = BodyComponent.Get();
 	const USkeletalMesh* GarmentMesh = IsValid(Garment) ? Garment->GetSkeletalMeshAsset() : nullptr;
