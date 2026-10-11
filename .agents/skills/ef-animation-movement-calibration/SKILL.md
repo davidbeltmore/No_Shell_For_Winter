@@ -10,6 +10,11 @@ ancestry or initialization, use `ef-npc-daz-workbench`. Keep installed ACFU, the
 source project, protected bodies and Player read-only. Use project-owned adapters
 or owned action assets for a repair.
 
+For future requests to make another damage source react only above the hips,
+follow [upper-body damage policy](references/upper-body-damage-policy.md).
+Reuse the existing light action/torso layer; separate damage classification from
+animation selection and preserve the configured native damage calculation.
+
 ## Diagnose the disagreement
 
 Identify the actual pawn, visible mesh, AnimInstance, active ability, montage,
@@ -89,6 +94,11 @@ surface point rejects valid projectile identity after a sphere sweep.
 Use `RunArrowHitPIE.py` or packaged validation `-Arrow` to exercise deferred native
 arrow spawning and physical flight above the light threshold, plus strong-hit
 regression. The fixture changes only its disposable arrow's base damage.
+On a pursuit timeout, inspect its recorded target, AI/action tags, path status,
+movement hold and native pause flag before changing gameplay. A successful
+recovery followed by an unsuccessful target relocation does not by itself prove
+that the reaction gate remains locked. Preserve failed receipts; an intermittent
+failure without state evidence has an unverified cause, even if a later run passes.
 
 Project entry points: `Tools/Animation/AuthorZombieHitLayers.py`,
 `RunZombieHitPIE.py`, `ValidateZombieHitPackaged.ps1`, and console

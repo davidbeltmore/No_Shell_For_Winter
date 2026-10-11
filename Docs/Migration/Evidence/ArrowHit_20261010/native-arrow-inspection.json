@@ -1,0 +1,229 @@
+[
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.Default__ACF_Arrow_BP_C",
+    "class": "/Game/FullSample/Blueprints/Items/Ammo/ACF_Arrow_BP.ACF_Arrow_BP_C",
+    "properties": [
+      {
+        "name": "ProjectileMesh",
+        "type": "TSoftObjectPtr<UStaticMesh>",
+        "value": "/Game/FullSample/Assets/Items/BowAndArrow/Arrow.Arrow",
+        "owner_class": "/Script/InventorySystem.ACFProjectile"
+      },
+      {
+        "name": "ProjectileClass",
+        "type": "TSubclassOf<AACFProjectileActor>",
+        "value": "/Script/Engine.BlueprintGeneratedClass'/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.ACF_ArrowActor_BP_C'",
+        "owner_class": "/Script/InventorySystem.ACFProjectile"
+      }
+    ]
+  },
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C",
+    "class": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.ACF_ArrowActor_BP_C",
+    "properties": [
+      {
+        "name": "CollisionComp",
+        "type": "TObjectPtr<UACMCollisionManagerComponent>",
+        "value": "/Script/CollisionsManager.ACMCollisionManagerComponent'/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C:Collision Manager Comp'",
+        "owner_class": "/Script/InventorySystem.ACFProjectileActor"
+      },
+      {
+        "name": "ItemDefinition",
+        "type": "UACFItem*",
+        "value": "None",
+        "owner_class": "/Script/InventorySystem.ACFItemActor"
+      },
+      {
+        "name": "ItemOwner",
+        "type": "APawn*",
+        "value": "None",
+        "owner_class": "/Script/InventorySystem.ACFItemActor"
+      },
+      {
+        "name": "bOnlyRelevantToOwner",
+        "type": "uint8",
+        "value": "False",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "bNetUseOwnerRelevancy",
+        "type": "uint8",
+        "value": "False",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "bCanBeDamaged",
+        "type": "uint8",
+        "value": "True",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "bActorEnableCollision",
+        "type": "uint8",
+        "value": "True",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "Owner",
+        "type": "TObjectPtr<AActor>",
+        "value": "None",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "SpawnCollisionHandlingMethod",
+        "type": "ESpawnActorCollisionHandlingMethod",
+        "value": "AlwaysSpawn",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "OnTakeAnyDamage",
+        "type": "FTakeAnyDamageSignature",
+        "value": "()",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "OnTakePointDamage",
+        "type": "FTakePointDamageSignature",
+        "value": "()",
+        "owner_class": "/Script/Engine.Actor"
+      },
+      {
+        "name": "OnTakeRadialDamage",
+        "type": "FTakeRadialDamageSignature",
+        "value": "()",
+        "owner_class": "/Script/Engine.Actor"
+      }
+    ]
+  },
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C:RootComp",
+    "class": "/Script/Engine.SphereComponent",
+    "properties": [
+      {
+        "name": "bTraceComplexOnMove",
+        "type": "uint8",
+        "value": "False",
+        "owner_class": "/Script/Engine.PrimitiveComponent"
+      },
+      {
+        "name": "bApplyImpulseOnDamage",
+        "type": "uint8",
+        "value": "True",
+        "owner_class": "/Script/Engine.PrimitiveComponent"
+      }
+    ]
+  },
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C:Collision Manager Comp",
+    "class": "/Script/CollisionsManager.ACMCollisionManagerComponent",
+    "properties": [
+      {
+        "name": "bAutoApplyDamage",
+        "type": "bool",
+        "value": "True",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "DamageTraces",
+        "type": "TMap",
+        "value": "((\"damage\", (AttackSound=\"/Script/Engine.SoundCue'/Game/FullSample/Audio/Sounds/Explosions/ArrowFly_Cue.ArrowFly_Cue'\",AttackParticle=\"/Script/Engine.ParticleSystem'/Game/FullSample/Assets/ParagonRampage/FX/Particles/Abilities/Primary/FX/ArrowTrail.ArrowTrail'\",DamageTypeClass=\"/Script/Engine.BlueprintGeneratedClass'/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C'\")))",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "SwipeTraceInfo",
+        "type": "FBaseTraceInfo",
+        "value": "(DamageTypeClass=\"/Script/CoreUObject.Class'/Script/Engine.DamageType'\",BaseDamage=0.000000,DamageType=EPoint,GameplayEffect=(Effect=None,Level=1.000000))",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "AreaDamageTraceInfo",
+        "type": "FBaseTraceInfo",
+        "value": "(DamageTypeClass=\"/Script/CoreUObject.Class'/Script/Engine.DamageType'\",BaseDamage=0.000000,DamageType=EPoint,GameplayEffect=(Effect=None,Level=1.000000))",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "OnActorDamaged",
+        "type": "FOnActorDamaged",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "activatedTraces",
+        "type": "TMap",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "AllTraceTimer",
+        "type": "FTimerHandle",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "AreaDamageTimer",
+        "type": "FTimerHandle",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "AreaDamageLoopTimer",
+        "type": "FTimerHandle",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "currentAreaDamage",
+        "type": "FAreaDamageInfo",
+        "value": "(Radius=0.000000,Location=(X=0.000000,Y=0.000000,Z=0.000000),bIsActive=False,AreaLoopTimer=())",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "TraceTimers",
+        "type": "TMap",
+        "value": "()",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "bSingleTimedTraceStarted",
+        "type": "bool",
+        "value": "False",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      },
+      {
+        "name": "bAllTimedTraceStarted",
+        "type": "bool",
+        "value": "False",
+        "owner_class": "/Script/CollisionsManager.ACMCollisionManagerComponent"
+      }
+    ]
+  },
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C:ProjectileMeshComp",
+    "class": "/Script/Engine.StaticMeshComponent",
+    "properties": [
+      {
+        "name": "bTraceComplexOnMove",
+        "type": "uint8",
+        "value": "False",
+        "owner_class": "/Script/Engine.PrimitiveComponent"
+      },
+      {
+        "name": "bApplyImpulseOnDamage",
+        "type": "uint8",
+        "value": "True",
+        "owner_class": "/Script/Engine.PrimitiveComponent"
+      }
+    ]
+  },
+  {
+    "success": true,
+    "target": "/Game/FullSample/Blueprints/ItemActors/ACF_ArrowActor_BP.Default__ACF_ArrowActor_BP_C:ProjectileMovementComp",
+    "class": "/Script/Engine.ProjectileMovementComponent",
+    "properties": []
+  }
+]

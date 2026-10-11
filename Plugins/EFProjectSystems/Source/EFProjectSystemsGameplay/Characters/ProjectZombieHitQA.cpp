@@ -167,7 +167,11 @@ struct FZombieHitQA : TSharedFromThis<FZombieHitQA>
         }
         if (Stage==3)
         {
-            if (Now-WindowStart>6) return Finish(false,TEXT("no natural pre-impact pursuit"));
+            if (Now-WindowStart>6)
+            {
+                Record(FString::Printf(TEXT("pursuit_timeout case=%d round=%d npc=%s player=%s target=%s ai=%s action=%s speed=%.3f path=%d held=%d paused=%d"),Index,Round,*P->GetActorLocation().ToString(),*Player->GetActorLocation().ToString(),*GetNameSafe(AI->GetTargetActorBK()),*AI->GetAIState().ToString(),*ASC->GetCurrentActionTag().ToString(),P->GetVelocity().Size2D(),int32(AI->GetPathFollowingComponent()->GetStatus()),Gate->IsHoldingNavigation(),AI->GetIsPausedBK()));
+                return Finish(false,TEXT("no natural pre-impact pursuit"));
+            }
             const double Advance=FVector::Dist2D(Origin,Player->GetActorLocation())-FVector::Dist2D(P->GetActorLocation(),Player->GetActorLocation());
             if (AI->GetTargetActorBK()!=Player.Get() || P->GetVelocity().Size2D()<100 || Advance<25) return true;
             PreSpeed=P->GetVelocity().Size2D();

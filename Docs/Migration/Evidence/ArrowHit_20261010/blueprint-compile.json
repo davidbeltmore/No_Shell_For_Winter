@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "assets": [
+    {
+      "asset": "/Game/_Game/Characters/Animation/ABP_DAZZombie",
+      "compile": true
+    },
+    {
+      "asset": "/Game/_Game/Characters/Male/ACFZombieBPMale",
+      "compile": true
+    },
+    {
+      "asset": "/Game/_Game/Characters/Female/ACFZombieBPFemale",
+      "compile": true
+    }
+  ],
+  "seconds": 0.6410000000032596
+}

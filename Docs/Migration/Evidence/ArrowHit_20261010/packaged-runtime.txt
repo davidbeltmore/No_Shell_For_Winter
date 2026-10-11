@@ -1,0 +1,30 @@
+fixture=engine_hitscan_point_damage native_AI no_forced_target_or_MoveTo deadline_seconds=90
+arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged
+light case=0 samples=27 movement_cm=168.210 leg_motion_rad=1.0296 torso_motion_rad=0.8497 seconds=0.503
+arrow_contact final_damage=107.436 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+arrow_impact final_damage=107.436 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+point_impact requested=60.00 applied=61.49 response=Actions.Hit
+case=0 round=0 pre_speed_cm_s=350.00 hit_samples=121 held_seconds=1.427 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=0 advance_cm=104.25 seconds=0.423
+point_impact requested=60.00 applied=60.29 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=0 round=1 pre_speed_cm_s=350.00 hit_samples=16 held_seconds=0.421 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=1 advance_cm=103.42 seconds=0.484
+point_impact requested=60.00 applied=59.63 response=Actions.Hit
+point_impact requested=100000.00 applied=100162.81 response=Actions.Hit
+death case=0 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged
+light case=1 samples=30 movement_cm=172.577 leg_motion_rad=1.0710 torso_motion_rad=0.8413 seconds=0.507
+arrow_contact final_damage=103.730 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+arrow_impact final_damage=103.730 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+point_impact requested=60.00 applied=61.59 response=Actions.Hit
+case=1 round=0 pre_speed_cm_s=350.00 hit_samples=123 held_seconds=1.425 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=0 advance_cm=100.02 seconds=0.427
+point_impact requested=60.00 applied=62.52 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=1 round=1 pre_speed_cm_s=350.00 hit_samples=25 held_seconds=0.416 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=1 advance_cm=101.46 seconds=0.700
+point_impact requested=60.00 applied=60.67 response=Actions.Hit
+point_impact requested=100000.00 applied=104214.15 response=Actions.Hit
+death case=1 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+status=PASS cases=2 seconds=16.940 reason=2 DAZ zombies: planted impacts, repeat, cancellation, death and natural pursuit recovery

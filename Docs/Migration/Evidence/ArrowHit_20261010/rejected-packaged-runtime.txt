@@ -1,0 +1,23 @@
+fixture=engine_hitscan_point_damage native_AI no_forced_target_or_MoveTo deadline_seconds=90
+arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged
+light case=0 samples=24 movement_cm=170.903 leg_motion_rad=1.2466 torso_motion_rad=0.8553 seconds=0.519
+arrow_contact final_damage=111.871 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+arrow_impact final_damage=111.871 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+point_impact requested=60.00 applied=62.97 response=Actions.Hit
+case=0 round=0 pre_speed_cm_s=350.00 hit_samples=135 held_seconds=1.420 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=0 advance_cm=100.72 seconds=0.407
+point_impact requested=60.00 applied=59.65 response=Actions.Hit
+interruption=montage_stop blend_seconds=0.15
+case=0 round=1 pre_speed_cm_s=350.00 hit_samples=18 held_seconds=0.418 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=0 round=1 advance_cm=100.49 seconds=0.431
+point_impact requested=60.00 applied=58.63 response=Actions.Hit
+point_impact requested=100000.00 applied=102483.45 response=Actions.Hit
+death case=0 alive=0 speed_cm_s=0.000 displacement_cm=0.000 path_status=0
+arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged
+light case=1 samples=24 movement_cm=132.829 leg_motion_rad=1.6050 torso_motion_rad=0.8913 seconds=0.507
+arrow_contact final_damage=112.373 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+arrow_impact final_damage=112.373 response=Actions.HitLight type=/AscentCombatFramework/Blueprints/DamageTypes/ACFPenetrationDamageType.ACFPenetrationDamageType_C
+point_impact requested=60.00 applied=62.64 response=Actions.Hit
+case=1 round=0 pre_speed_cm_s=350.00 hit_samples=122 held_seconds=1.420 slide_cm=0.000 max_speed_cm_s=0.000 blend_tail=0
+recovery case=1 round=0 advance_cm=101.67 seconds=0.426
+status=FAIL cases=1 seconds=20.118 reason=no natural pre-impact pursuit

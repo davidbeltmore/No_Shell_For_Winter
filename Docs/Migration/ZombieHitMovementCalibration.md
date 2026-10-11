@@ -47,6 +47,9 @@ and missing/blocked light ability retain the native result. Strong reactions sti
 follow native stagger resistance. This is an opt-in owned zombie policy.
 The light threshold is configurable in DefaultGame.ini under
 `/Script/EFProjectSystemsGameplay.ProjectZombieDamageCalculator`.
+Identified arrow impacts subsequently bypass this ceiling and retain the walking
+torso reaction. See `ArrowZombieHitCalibration.md` for the source-identification
+adapter and measured physical-arrow gates; damage magnitude remains native.
 
 Owned `ABP_DAZZombie` retains its existing locomotion/DefaultSlot branch and caches
 that complete pose. An existing `UpperBody` slot is layered over that cache from

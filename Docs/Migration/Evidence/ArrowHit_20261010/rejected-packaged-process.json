@@ -1,0 +1,11 @@
+{
+    "exit_code":  0,
+    "limit_seconds":  180,
+    "feature_errors":  0,
+    "receipts":  [
+                     "D:\\Projects UE5\\NoShellForWinter\\Saved\\ArrowHit\\Packaged_20261010_192430\\UserData\\Saved\\ArrowHit\\Runtime\\runtime.txt"
+                 ],
+    "runtime_pass":  false,
+    "mode":  "ZombieHit",
+    "seconds":  40.4667592
+}

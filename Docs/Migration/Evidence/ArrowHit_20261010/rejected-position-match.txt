@@ -1,0 +1,4 @@
+fixture=engine_hitscan_point_damage native_AI no_forced_target_or_MoveTo deadline_seconds=90
+arrow=ACF_ArrowActor_BP physical_flight trace_base_damage=60 native_damage_type_unchanged
+light case=0 samples=0 movement_cm=0.000 leg_motion_rad=0.0000 torso_motion_rad=0.0000 seconds=1.032
+status=FAIL cases=0 seconds=7.351 reason=light torso reaction or leg locomotion missing

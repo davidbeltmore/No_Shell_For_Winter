@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "method": "Manual inspection of rendered packaged gameplay screenshots, correlated with native action/bone/movement measurements",
+  "receipt_root": "Saved/ArrowHit/Packaged_20261010_193608",
+  "images": ["light_torso_0_0.png", "light_torso_1_0.png"],
+  "observations": ["Both zombie variants show walking legs during upper-body recoil", "Physical arrow remains attached", "No head or neck collapse visible"],
+  "limitations": "Snapshots alone do not prove movement continuity; packaged runtime metrics provide that evidence. PIE images captured editor viewport and are excluded. Bow input/networking not covered."
+}
