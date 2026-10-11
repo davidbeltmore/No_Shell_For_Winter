@@ -33,6 +33,7 @@
 #include "CoreGlobals.h"
 #include "Serialization/JsonSerializer.h"
 #include "UnrealClient.h"
+#include "UObject/GarbageCollection.h"
 
 #if !UE_BUILD_SHIPPING
 namespace
@@ -47,7 +48,7 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
     TArray<TSharedPtr<FJsonValue>> Frames, CPUs, GPUs, Checks, GameTimes, RenderTimes, SurfaceTimes, ReconcileTimes;
     FString Directory, Body, Archetype=TEXT("SkillGuy"), Loading=TEXT("warm"), Name=TEXT("run");
     int32 Count=1, Seed=731, Stage=0;
-    bool bDressed=true, bQuit=false, bFunctional=false;
+    bool bDressed=true, bQuit=false, bFunctional=false, bCollectGarbage=false;
     double Started=FPlatformTime::Seconds(), ReadyStart=0, CaptureStart=0, Due=0, Peak=0, ReadyTime=0;
     float CaptureSeconds=30, Timeout=120;
     TArray<TArray<FGuid>> BeforeIds;
@@ -219,6 +220,11 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
         }
         if (Stage==6)
         {
+            if (bCollectGarbage)
+            {
+                CollectGarbage(RF_NoFlags, true);
+                Report->SetBoolField(TEXT("garbage_collection_completed"),true);
+            }
             const int32 Pending=W->GetSubsystem<UProjectNPCOutfitSubsystem>()->GetPendingCount(); Report->SetNumberField(TEXT("pending_after_destroy"),Pending);
             return Finish(Pending==0,Pending?TEXT("Outstanding initialization"):TEXT("Bounded outfit fixture completed; visual review separate"));
         }
@@ -227,7 +233,7 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
 };
 TWeakPtr<FOutfitQA> ActiveOutfitQA;
 FAutoConsoleCommandWithWorldAndArgs OutfitQACommand(TEXT("Project.NPCOutfits.QA"),
-    TEXT("count=1 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=30 timeout=120 name=run functional=0 loading=warm [quit]"),
+    TEXT("count=1 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=30 timeout=120 name=run functional=0 loading=warm [gc] [quit]"),
     FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args,UWorld* W)
     {
         if (!W || !W->IsGameWorld() || ActiveOutfitQA.IsValid()) return;
@@ -240,6 +246,7 @@ FAutoConsoleCommandWithWorldAndArgs OutfitQACommand(TEXT("Project.NPCOutfits.QA"
         FParse::Value(*Options,TEXT("name="),QA->Name); FParse::Value(*Options,TEXT("loading="),QA->Loading);
         QA->Count=FMath::Clamp(QA->Count,1,50); QA->CaptureSeconds=FMath::Clamp(QA->CaptureSeconds,1.f,45.f); QA->Timeout=FMath::Clamp(QA->Timeout,10.f,180.f);
         QA->bDressed=Dressed!=0; QA->bFunctional=Functional!=0; QA->bQuit=Args.Contains(TEXT("quit"));
+        QA->bCollectGarbage=Args.Contains(TEXT("gc"));
         for (TCHAR Ch:QA->Name) if (!FChar::IsAlnum(Ch) && Ch!=TEXT('_') && Ch!=TEXT('-')) return;
         QA->Directory=FPaths::ProjectSavedDir()/TEXT("NPCOutfits/Native")/QA->Name;
         QA->Report->SetNumberField(TEXT("count"),QA->Count); QA->Report->SetNumberField(TEXT("seed"),QA->Seed);

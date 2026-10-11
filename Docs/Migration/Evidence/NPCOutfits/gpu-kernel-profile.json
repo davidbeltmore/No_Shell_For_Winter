@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "scope": "Single detailed diagnostic GPU frame including background HUB NPCs; rounded 0.01ms timings, not a crowd acceptance capture",
+  "host": {
+    "status": "PASS",
+    "reason": "",
+    "seconds": 33.25,
+    "command": "Project.NPCOutfits.QA count=10 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=gpu_prepared_detail_01",
+    "immutable_buffers": 1,
+    "prepared_binding": 1,
+    "profile_install": false,
+    "profile_gpu": true,
+    "trace": false,
+    "quality": {
+      "sg.ViewDistanceQuality": 3.0,
+      "sg.AntiAliasingQuality": 3.0,
+      "sg.ShadowQuality": 3.0,
+      "sg.GlobalIlluminationQuality": 3.0,
+      "sg.ReflectionQuality": 3.0,
+      "sg.PostProcessQuality": 3.0,
+      "sg.TextureQuality": 3.0,
+      "sg.EffectsQuality": 3.0,
+      "sg.FoliageQuality": 3.0,
+      "sg.ShadingQuality": 3.0,
+      "r.ScreenPercentage": 0.0,
+      "r.VSync": 0.0,
+      "t.MaxFPS": 0.0
+    },
+    "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\gpu_prepared_detail_01_warmup\\runtime.json"
+  },
+  "kernels": {
+    "DualQuatSkin_Morph_Cloth": {
+      "count": 120,
+      "total_ms": 0.21000000000000005,
+      "max_ms": 0.01
+    },
+    "EF_GarmentSurfaceBase": {
+      "count": 66,
+      "total_ms": 0.05,
+      "max_ms": 0.01
+    },
+    "EF_GarmentShapeCohesionA": {
+      "count": 66,
+      "total_ms": 0.6600000000000004,
+      "max_ms": 0.01
+    },
+    "EF_GarmentShapeCohesionB": {
+      "count": 66,
+      "total_ms": 0.6600000000000004,
+      "max_ms": 0.01
+    },
+    "EF_GarmentWitness": {
+      "count": 66,
+      "total_ms": 8.399999999999997,
+      "max_ms": 0.21
+    },
+    "EF_GarmentSeamAndTangentFinalize": {
+      "count": 66,
+      "total_ms": 0.05,
+      "max_ms": 0.01
+    }
+  },
+  "sources": {
+    "Saved\\NPCOutfits\\Native\\gpu_prepared_detail_01\\gpu-frame.log": "7092d488909d650976b495067dd359c10523520c5d950e450c1af1a3f6635f6b",
+    "Saved\\NPCOutfits\\Native\\gpu_prepared_detail_01\\runtime.json": "8cef592fb4c713488c02c23e421b4d8d093d3c0e8929abdfd67114174a3b2fff",
+    "Saved\\NPCOutfits\\Native\\gpu_prepared_detail_01\\host.json": "ab1a8829598753ae2d3341d4e1de86df01f5ae0aec6e4da1dc5e094435aa6680",
+    "Plugins\\EFClothingMorph\\Source\\EFClothingMorphEditor\\Private\\EFClothingSurfaceDeformerBuilderLibrary.cpp": "2a2de1aa3b10311f1953f2a1b4b196bd62116a024da0fcbdece76afc6fd2b4c7"
+  }
+}

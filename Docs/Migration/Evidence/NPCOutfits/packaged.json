@@ -1,0 +1,201 @@
+{
+  "status": "PASS",
+  "package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261011_150042",
+  "cook": {
+    "scope": "HUB body presets and clothing",
+    "reused_cook": false,
+    "elapsed_seconds": 328.56305219999996,
+    "exit_code": 0
+  },
+  "cases": [
+    {
+      "exit_code": 0,
+      "all_error_count": 0,
+      "reason": "",
+      "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261011_150652029\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261011_150652029\\outfits.png",
+      "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261011_150652029\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261011_150652029\\runtime.json",
+      "prepared_reuses": 36,
+      "archetype": "SkillGuy",
+      "runtime": {
+        "count": 3,
+        "seed": 731,
+        "fixture_version": 2,
+        "body": "Male.01",
+        "archetype": "SkillGuy",
+        "dressed": true,
+        "loading": "fresh_process",
+        "resolution": "X=1600.000 Y=1000.000",
+        "quality": "Current session settings; pair must use identical launch/cvars",
+        "spawn_cpu_ms": 26.162099093198776,
+        "camera": "X=300.000 Y=180.000 Z=449.650 -> X=1200.000 Y=180.000 Z=99.650",
+        "body_initialization_seconds": 0.2776587978005409,
+        "spawn_peak_ms": 251.3653039932251,
+        "seconds": 3.0078082010149956,
+        "outfit_ready_seconds": 0.4997792989015579,
+        "physical_used_bytes": 2095472640,
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "status": "PASS",
+        "reason": "Bounded outfit fixture completed; visual review separate",
+        "elapsed_seconds": 6.5870176032185555,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ]
+      },
+      "count": 3,
+      "status": "PASS",
+      "command": "Project.NPCOutfits.QA count=3 body=Male.01 archetype=SkillGuy seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Male_01_20261011_150652029 gc quit",
+      "body": "Male.01",
+      "seconds": 20.4634567,
+      "scope": "Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.",
+      "limit_seconds": 180,
+      "feature_errors": [
+        null
+      ],
+      "visual_review": "PASS for basic garment presentation at the captured gameplay distance; native pose and equipment retained. Not an extreme-morph or close seam certification.",
+      "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\packaged-Male.01.png"
+    },
+    {
+      "exit_code": 0,
+      "all_error_count": 0,
+      "reason": "",
+      "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261011_150737754\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261011_150737754\\outfits.png",
+      "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261011_150737754\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261011_150737754\\runtime.json",
+      "prepared_reuses": 36,
+      "archetype": "MeleeEnemy",
+      "runtime": {
+        "count": 3,
+        "seed": 731,
+        "fixture_version": 2,
+        "body": "Female.01",
+        "archetype": "MeleeEnemy",
+        "dressed": true,
+        "loading": "fresh_process",
+        "resolution": "X=1600.000 Y=1000.000",
+        "quality": "Current session settings; pair must use identical launch/cvars",
+        "spawn_cpu_ms": 24.407200515270233,
+        "camera": "X=300.000 Y=180.000 Z=449.650 -> X=1200.000 Y=180.000 Z=99.650",
+        "body_initialization_seconds": 0.3164658024907112,
+        "spawn_peak_ms": 279.73899245262146,
+        "seconds": 3.003433797508478,
+        "outfit_ready_seconds": 0.5134344026446342,
+        "physical_used_bytes": 1938604032,
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "status": "PASS",
+        "reason": "Bounded outfit fixture completed; visual review separate",
+        "elapsed_seconds": 6.582080699503422,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ]
+      },
+      "count": 3,
+      "status": "PASS",
+      "command": "Project.NPCOutfits.QA count=3 body=Female.01 archetype=MeleeEnemy seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Female_01_20261011_150737754 gc quit",
+      "body": "Female.01",
+      "seconds": 18.2537667,
+      "scope": "Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.",
+      "limit_seconds": 180,
+      "feature_errors": [
+        null
+      ],
+      "visual_review": "PASS for basic garment presentation at the captured gameplay distance; native pose and equipment retained. Not an extreme-morph or close seam certification.",
+      "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\packaged-Female.01.png"
+    },
+    {
+      "exit_code": 0,
+      "all_error_count": 0,
+      "reason": "",
+      "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261011_150829031\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261011_150829031\\outfits.png",
+      "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261011_150829031\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261011_150829031\\runtime.json",
+      "prepared_reuses": 36,
+      "archetype": "Zombie",
+      "runtime": {
+        "count": 3,
+        "seed": 731,
+        "fixture_version": 2,
+        "body": "Male.02",
+        "archetype": "Zombie",
+        "dressed": true,
+        "loading": "fresh_process",
+        "resolution": "X=1600.000 Y=1000.000",
+        "quality": "Current session settings; pair must use identical launch/cvars",
+        "spawn_cpu_ms": 20.529597997665405,
+        "camera": "X=300.000 Y=180.000 Z=449.650 -> X=1200.000 Y=180.000 Z=99.650",
+        "body_initialization_seconds": 0.24642020091414452,
+        "spawn_peak_ms": 225.6186008453369,
+        "seconds": 3.0002157017588615,
+        "outfit_ready_seconds": 0.46034859865903854,
+        "physical_used_bytes": 1799782400,
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "status": "PASS",
+        "reason": "Bounded outfit fixture completed; visual review separate",
+        "elapsed_seconds": 6.520273000001907,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ]
+      },
+      "count": 3,
+      "status": "PASS",
+      "command": "Project.NPCOutfits.QA count=3 body=Male.02 archetype=Zombie seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Male_02_20261011_150829031 gc quit",
+      "body": "Male.02",
+      "seconds": 18.3004788,
+      "scope": "Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.",
+      "limit_seconds": 180,
+      "feature_errors": [
+        null
+      ],
+      "visual_review": "PASS for basic garment presentation at the captured gameplay distance; native pose and equipment retained. Not an extreme-morph or close seam certification.",
+      "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\packaged-Male.02.png"
+    }
+  ],
+  "sources": {
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261011_150652029\\process.json": "c16c309b1f13d0a2dadd05091dd8340215a257c8fa7bc8f785d339a563a463aa",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261011_150652029\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261011_150652029\\outfits.png": "3d728feb1c25ca32b16e597c403cf382efa3c514d29be76532400ab3d565e985",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261011_150652029\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261011_150652029\\runtime.json": "6ec7e592f0d4698bfdaf486a3d2fe4336384198791f4887d220228787668b28d",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261011_150737754\\process.json": "0b367df36f092a5701c2aab56b697f09253a2333c31ec0ff6d4eb72dfa3dbe89",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261011_150737754\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261011_150737754\\outfits.png": "4c86e3e9f25f3f22a61156d76579c0e0301bd061f01483ca99c03298e27a989e",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261011_150737754\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261011_150737754\\runtime.json": "239ec82b89d19dc322a6b8ec35b2f1593c768a51df01b590b7604f57af2617e6",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261011_150829031\\process.json": "c9d72f336f9aa6d39e16221bf74d1339493bae1cb15abca884aab6c0aaced72d",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261011_150829031\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261011_150829031\\outfits.png": "ce886d6521a2e50d9fccfd386180a35af1757677e1f73ddcbf484f41de3e8e8d",
+    "Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261011_150829031\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261011_150829031\\runtime.json": "0a96d1bc86a45a63ed1c73f12a12134f59372215a0e8c65fdd333157bf7211a6"
+  },
+  "retention": {
+    "status": "PASS",
+    "removed_bytes": 4989040367,
+    "removed_package": "Saved/BodyPresetsQA/Package_20261010_231159",
+    "removed_subdirectories": [
+      "Cooked",
+      "Staged"
+    ],
+    "remaining_old_output_bytes": 0,
+    "retained": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261011_150042",
+    "plans": [
+      "Saved\\CleanupEvidence\\20261008\\package-cleanup-plan_20261011_150904118.json",
+      "Saved\\CleanupEvidence\\20261008\\package-cleanup-plan_20261011_150928814.json"
+    ]
+  },
+  "scope": "Three fresh isolated processes. HUB can preload shared garments before the fixture; not isolated cold-resource latency or performance acceptance."
+}

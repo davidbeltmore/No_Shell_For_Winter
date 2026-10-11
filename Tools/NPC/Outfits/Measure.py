@@ -33,6 +33,8 @@ try:
     assert all(h.get('status')=='PASS' for h in hosts), 'PIE host did not pass'
     assert hosts[0].get('quality') and hosts[0]['quality']==hosts[1].get('quality'), 'Missing or unmatched actual quality settings'
     assert hosts[0].get('immutable_buffers')==hosts[1].get('immutable_buffers'), 'Unmatched provider configuration'
+    assert hosts[0].get('prepared_binding',0)==hosts[1].get('prepared_binding',0), 'Unmatched binding preparation configuration'
+    assert not any(h.get(key,False) for h in hosts for key in ['profile_install','profile_gpu','trace']), 'Diagnostic logging/profiling is not an acceptance capture'
     if right['loading']=='warm':
         for host in hosts:
             assert host.get('prewarm_receipt'), 'Warm acceptance requires explicit preparation in the same PIE world'
