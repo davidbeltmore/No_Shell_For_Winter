@@ -15,9 +15,21 @@ OUT = pathlib.Path(os.environ.get('EF_UNISEX_OUTPUT_DIR', str(pathlib.Path(unrea
 OUT.mkdir(parents=True, exist_ok=True)
 LE = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 ED = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
+PERFORMANCE = unreal.get_default_object(unreal.load_class(None, '/Script/UnrealEd.EditorPerformanceSettings'))
+PREVIOUS_THROTTLE = PERFORMANCE.get_editor_property('bThrottleCPUWhenNotForeground')
+PERFORMANCE.set_editor_property('bThrottleCPUWhenNotForeground', False)
 # Explicit cases let body onboarding exercise an arbitrary catalog without changing
 # the established Female/Male regression run's default scope.
 BODY_CASES = os.environ.get('EF_UNISEX_BODY_PRESETS', 'Female.01,Male.01,Female.01').split(',')
+TIMEOUT = float(os.environ.get('EF_UNISEX_TIMEOUT', '480'))
+KEEP_EDITOR = os.environ.get('EF_UNISEX_KEEP_EDITOR') == '1'
+EXTENDED_ONLY = os.environ.get('EF_UNISEX_EXTENDED_ONLY') == '1'
+BUFFER_CVAR = 'ef.ClothingMorph.ImmutableBindingBuffers'
+PREVIOUS_BUFFERS = unreal.SystemLibrary.get_console_variable_int_value(BUFFER_CVAR)
+if 'EF_UNISEX_IMMUTABLE_BUFFERS' in os.environ:
+    requested_buffers = int(os.environ['EF_UNISEX_IMMUTABLE_BUFFERS'])
+    assert requested_buffers in (0, 1)
+    unreal.SystemLibrary.execute_console_command(ED.get_editor_world(), BUFFER_CVAR+' '+str(requested_buffers))
 CATALOG = unreal.load_asset('/Game/_Game/Data/CharacterCreation/DA_BodyPresets')
 DEFINITIONS = {str(r.preset_id): r for r in CATALOG.bodies} if CATALOG else {}
 ITEMS = [
@@ -30,6 +42,7 @@ ITEMS = [
 ]
 S = {'phase': 'load', 'start': time.monotonic(), 'due': 0, 'index': 0, 'gender_index': 0,
      'report': {'status': 'PENDING', 'checks': [], 'screenshots': [], 'saved_assets': False}}
+S['report']['immutable_buffers'] = unreal.SystemLibrary.get_console_variable_int_value(BUFFER_CVAR)
 (OUT/'result.json').write_text(json.dumps(S['report']), encoding='utf-8')
 
 
@@ -86,12 +99,17 @@ def transition(phase, delay=1):
 
 def finish(error=None):
     S['report']['status'] = 'FAIL' if error else 'PASS'
+    S['report']['seconds'] = time.monotonic()-S['start']
+    S['report']['timeout_seconds'] = TIMEOUT
     if error:
         S['report']['error'] = error
     (OUT/'result.json').write_text(json.dumps(S['report'], indent=2), encoding='utf-8')
     unreal.unregister_slate_post_tick_callback(S['callback'])
     unreal.EditorLevelLibrary.editor_end_play()
-    unreal.SystemLibrary.quit_editor()
+    PERFORMANCE.set_editor_property('bThrottleCPUWhenNotForeground', PREVIOUS_THROTTLE)
+    unreal.SystemLibrary.execute_console_command(ED.get_editor_world(), BUFFER_CVAR+' '+str(PREVIOUS_BUFFERS))
+    if not KEEP_EDITOR:
+        unreal.SystemLibrary.quit_editor()
 
 
 def select_case(index):
@@ -112,7 +130,9 @@ def tick(dt):
         return
     S['busy'] = True
     try:
-        if time.monotonic()-S['start'] > 480:
+        peaks = S['report'].setdefault('peak_tick_ms_by_phase', {})
+        peaks[S['phase']] = max(peaks.get(S['phase'], 0), float(dt)*1000)
+        if time.monotonic()-S['start'] > TIMEOUT:
             raise RuntimeError('Bounded unisex PIE timeout: '+S['phase'])
         if time.monotonic() < S['due']:
             return
@@ -157,7 +177,7 @@ def tick(dt):
             # Remove all equipped items only in this transient test session.
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
                 unequip(prop(item, 'item_guid'))
-            if os.environ.get('EF_UNISEX_EXTENDED_ONLY') == '1':
+            if EXTENDED_ONLY:
                 S['index'] = len(ITEMS)
             transition('equip', 2)
         elif phase == 'equip':
@@ -323,6 +343,7 @@ def tick(dt):
                 assert 'READY' in str(S['runtime'].get_garment_runtime_state(meshes[0])).upper()
             assert_coverage(True)
             S['report']['checks'].append({'gender': S['gender'], 'morphs': S['morph_weights'],
+                                         'preset_id': S['preset_id'],
                                          'state': 'Ready', 'summary': S['runtime'].get_debug_summary()})
             S['move_started'] = time.monotonic()
             S['move_origin'] = S['player'].get_actor_location()

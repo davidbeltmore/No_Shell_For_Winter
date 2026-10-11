@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "diagnostic_native_status": null,
+  "seconds": 24.32799999999952,
+  "reason": "",
+  "command": "Project.NPCLogic.QA ai arena_x=1920.000 arena_y=-3232.500",
+  "native_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Logic\\1791745831572459900\\runtime.txt",
+  "runtime_sha256": "16766709f6cbfd22e353e80b98a6e20e68726b5df5bb10bd8d2058c5502697a8",
+  "results": [
+    "enemy=ACFMeleeEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=201.0 advance_cm=201.0 state=AIState.Combat seconds=2.58",
+    "enemy=ACFMeleeEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=203.9 advance_cm=203.9 state=AIState.Combat seconds=2.21",
+    "enemy=ACFGunEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=152.2 advance_cm=-151.9 state=AIState.Combat seconds=1.84",
+    "enemy=ACFGunEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=154.2 advance_cm=-152.8 state=AIState.Combat seconds=1.65",
+    "status=PASS reason=2 melee pursuit and 2 ranged spacing samples elapsed_seconds=22.397"
+  ],
+  "correction": "Choose an unobstructed Pawn-channel corridor inside the authored navigation bounds. Existing placed NPC capsules blocked the previous corridor. No map or AI behavior changes.",
+  "visual": "Reviewed fresh melee Male/Female pursuit images; clothing follows locomotion at gameplay distance. Not a close seam inspection.",
+  "screenshots": [
+    {
+      "path": "Saved\\NPCOutfits\\Logic\\1791745831572459900\\Enemy_00.png",
+      "sha256": "bc04e41e9fd50ee2f6ae3d6beea8085c494936829effd47d901eed0ae4d9228e"
+    },
+    {
+      "path": "Saved\\NPCOutfits\\Logic\\1791745831572459900\\Enemy_01.png",
+      "sha256": "f13a46f546e7c9f1958e2a3a3572a62f9bd7a21d20a2022ca3bb1ee53e770178"
+    }
+  ]
+}

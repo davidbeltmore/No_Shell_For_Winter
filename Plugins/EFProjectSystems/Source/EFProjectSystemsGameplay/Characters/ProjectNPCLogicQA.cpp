@@ -32,6 +32,7 @@
 #include "NavigationPath.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/Parse.h"
 #include "UnrealClient.h"
 
 #if !UE_BUILD_SHIPPING
@@ -287,11 +288,15 @@ struct FNPCLogicQA : TSharedFromThis<FNPCLogicQA>
     }
 };
 TWeakPtr<FNPCLogicQA> ActiveLogic;
-FAutoConsoleCommandWithWorldAndArgs LogicCommand(TEXT("Project.NPCLogic.QA"),TEXT("Bounded 150s real interaction and pursuit QA; optional quit/native."),
+FAutoConsoleCommandWithWorldAndArgs LogicCommand(TEXT("Project.NPCLogic.QA"),TEXT("Bounded 150s real interaction and pursuit QA; optional quit/native, arena_x and arena_y."),
 FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args,UWorld* World)
 {
     if (!World || ActiveLogic.IsValid()) return;
     auto Test=MakeShared<FNPCLogicQA>();Test->World=World;Test->bQuit=Args.Contains(TEXT("quit"));Test->bNative=Args.Contains(TEXT("native"));ActiveLogic=Test;
+    const FString Options=FString::Join(Args,TEXT(" "));
+    FParse::Value(*Options,TEXT("arena_x="),Test->Arena.X);
+    FParse::Value(*Options,TEXT("arena_y="),Test->Arena.Y);
+    if (!FMath::IsFinite(Test->Arena.X) || !FMath::IsFinite(Test->Arena.Y)) return;
     Test->bAIOnly=Args.Contains(TEXT("ai"));Test->bServicesOnly=Args.Contains(TEXT("services"));
     if (Args.Contains(TEXT("guy"))) {Test->Services={TEXT("Guy")};Test->bServicesOnly=true;}
     FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Test](float Dt){return Test->Tick(Dt);}));

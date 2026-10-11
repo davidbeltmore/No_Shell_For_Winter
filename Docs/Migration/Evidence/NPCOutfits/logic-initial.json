@@ -1,0 +1,17 @@
+{
+  "status": "FAIL",
+  "reason": "Native pursuit corridor lies outside current authored HUB navigation bounds",
+  "services": {
+    "menus": 6,
+    "quest_interactions": 2,
+    "status": "PASS"
+  },
+  "native_seconds": 63.074,
+  "host_seconds": 65.047,
+  "sources": {
+    "Saved\\NPCLogic\\Runtime\\runtime.txt": "b8ce272154dd036124dd3b4ccfd4c5fbf0cfb618efe8d0fc846d558412713546",
+    "Saved\\NPCLogic\\pie-host.json": "e4070ac479afd6d6089d7173890fb46e0de7169c431394608280f77bfcc2625b",
+    "Saved\\NPCLogic\\navigation-editor.json": "adc1875b0b98878ccc8835b32446c31bfe3cd8df91ef5ae957df71bcc19d98a1"
+  },
+  "retry": "PENDING: existing corridor translated inside actual bounds; no map edit"
+}

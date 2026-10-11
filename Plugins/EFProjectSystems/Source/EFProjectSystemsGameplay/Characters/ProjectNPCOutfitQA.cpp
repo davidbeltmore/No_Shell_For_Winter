@@ -103,7 +103,9 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
                 auto* P=W->SpawnActorDeferred<ACharacter>(Class,FTransform(FRotator(0,180,0),Location),nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
                 if (!P) return Finish(false,TEXT("Spawn failed"));
                 const FString Id=FString::Printf(TEXT("EF.AppearanceId.OutfitQA.%d.%d"),Seed,I); Identities.Add(Id); P->Tags.Add(FName(*Id));
-                auto* Outfit=NewObject<UProjectNPCOutfitComponent>(P,TEXT("ProjectNPCOutfit")); Outfit->bEnabled=bDressed;
+                // The fixture requests its final body before admitting clothing,
+                // matching production initialization instead of fitting twice.
+                auto* Outfit=NewObject<UProjectNPCOutfitComponent>(P,TEXT("ProjectNPCOutfit")); Outfit->bEnabled=false;
                 P->AddInstanceComponent(Outfit); Outfit->RegisterComponent();
                 UGameplayStatics::FinishSpawningActor(P,P->GetActorTransform());
                 Pawns.Add(P); P->SetActorEnableCollision(false); P->GetCharacterMovement()->DisableMovement();
@@ -124,15 +126,17 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
             {
                 auto* P=Weak.Get(); auto* Custom=P?P->FindComponentByClass<UEFCharacterCustomizationComponent>():nullptr;
                 if (!Custom || Custom->GetBodyPresetId().IsNone()) return true;
-                if (bDressed)
-                {
-                    auto* Outfit=P->FindComponentByClass<UProjectNPCOutfitComponent>();
-                    if (Outfit->State==EProjectNPCOutfitState::Failed) return Finish(false,Outfit->Failure);
-                    if (Outfit->State!=EProjectNPCOutfitState::Ready) return true;
-                }
+                auto* Saved=AProjectNPCAppearanceState::Ensure(W);
+                if (!Saved || !Saved->Records.Contains(AProjectNPCAppearanceState::IdentityFor(P))) return true;
             }
             if (!Body.IsEmpty()) for (auto Weak:Pawns)
                 if (!Weak->FindComponentByClass<UEFCharacterCustomizationComponent>()->SelectBodyPreset(FName(*Body),true)) return Finish(false,TEXT("Body selection rejected"));
+            Report->SetNumberField(TEXT("body_initialization_seconds"),FPlatformTime::Seconds()-ReadyStart);
+            if (bDressed) for (auto Weak:Pawns)
+            {
+                Weak->FindComponentByClass<UProjectNPCOutfitComponent>()->bEnabled=true;
+                W->GetSubsystem<UProjectNPCOutfitSubsystem>()->AppearanceReady(Weak.Get());
+            }
             Stage=2; return true;
         }
         if (Stage==2)
@@ -144,6 +148,9 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
                 auto* Native=P->FindComponentByClass<UACFEquipmentComponent>();
                 if (bDressed)
                 {
+                    auto* Outfit=P->FindComponentByClass<UProjectNPCOutfitComponent>();
+                    if (Outfit->State==EProjectNPCOutfitState::Failed) return Finish(false,Outfit->Failure);
+                    if (Outfit->State!=EProjectNPCOutfitState::Ready) return true;
                     int32 Rags=0;
                     for (const auto& Item:Native->GetInventory()) if (Item.ItemClass->GetPathName().StartsWith(TEXT("/Game/_Game/Clothes/Rags01/")))
                     { if (Item.Count!=1 || !Item.bIsEquipped) return Finish(false,TEXT("Rag quantity/equip mismatch")); ++Rags; }
@@ -172,7 +179,7 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
         if (Stage==3)
         {
             double SurfaceMs=0, ReconcileMs=0;
-            for (auto P:Pawns) if (auto* Clothing=P->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
+            for (auto P:Pawns) if (P.IsValid()) if (auto* Clothing=P->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
             { SurfaceMs+=Clothing->GetLastSurfacePassMilliseconds(); ReconcileMs+=Clothing->GetLastReconcileMilliseconds(); }
             GameTimes.Add(MakeShared<FJsonValueNumber>(FPlatformTime::ToMilliseconds(GGameThreadTime)));
             RenderTimes.Add(MakeShared<FJsonValueNumber>(FPlatformTime::ToMilliseconds(GRenderThreadTime)));
@@ -236,6 +243,7 @@ FAutoConsoleCommandWithWorldAndArgs OutfitQACommand(TEXT("Project.NPCOutfits.QA"
         for (TCHAR Ch:QA->Name) if (!FChar::IsAlnum(Ch) && Ch!=TEXT('_') && Ch!=TEXT('-')) return;
         QA->Directory=FPaths::ProjectSavedDir()/TEXT("NPCOutfits/Native")/QA->Name;
         QA->Report->SetNumberField(TEXT("count"),QA->Count); QA->Report->SetNumberField(TEXT("seed"),QA->Seed);
+        QA->Report->SetNumberField(TEXT("fixture_version"),2);
         QA->Report->SetStringField(TEXT("body"),QA->Body); QA->Report->SetStringField(TEXT("archetype"),QA->Archetype);
         QA->Report->SetBoolField(TEXT("dressed"),QA->bDressed); QA->Report->SetStringField(TEXT("loading"),QA->Loading);
         FVector2D Size; if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(Size);

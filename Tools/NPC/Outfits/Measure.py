@@ -27,6 +27,8 @@ def mean(values):
 result = {'status': 'PENDING', 'budget': {'cpu_increment_ms': 2, 'gpu_increment_ms': 3, 'frame_p95_increment_ms': 4, 'warm_ready_seconds': 2},
           'sources': [str(args.undressed.resolve()), str(args.dressed.resolve())], 'reasons': []}
 try:
+    assert left.get('fixture_version',1)==right.get('fixture_version',1), 'Unmatched initialization fixture version'
+    result['fixture_version']=right.get('fixture_version',1)
     hosts=[json.loads(path.with_name('host.json').read_text(encoding='utf-8-sig')) for path in [args.undressed,args.dressed]]
     assert all(h.get('status')=='PASS' for h in hosts), 'PIE host did not pass'
     assert hosts[0].get('quality') and hosts[0]['quality']==hosts[1].get('quality'), 'Missing or unmatched actual quality settings'

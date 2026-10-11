@@ -1,0 +1,76 @@
+{
+  "status": "PENDING",
+  "reason": "Warm stock/cache and fresh-editor cached sequences are visually coherent. Original Female anomaly remains unexplained; recorded 125 ms background Slate steps require a controlled non-throttled visual gate.",
+  "runs": [
+    {
+      "source": "Saved\\NPCOutfits\\ClothingRegression\\1791743639483277300\\result.json",
+      "sha256": "675f84b15b5cb8cbe5f6803e360e19b8215e595881bddc4b433d0e6352b03a24",
+      "structural_status": "PASS",
+      "visual_status": "PASS",
+      "immutable_buffers": 0,
+      "seconds": 66.13999999999942,
+      "screenshots": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743639483277300\\morph_extreme_Female.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743639483277300\\morph_extreme_Male.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743639483277300\\morph_extreme_Male.02.png"
+      ]
+    },
+    {
+      "source": "Saved\\NPCOutfits\\ClothingRegression\\1791743743939845800\\result.json",
+      "sha256": "107b8306a61ee8b10074a03baf1b6c12cc625e626509b5b52ece0314c783b0d5",
+      "structural_status": "PASS",
+      "visual_status": "PASS",
+      "immutable_buffers": 1,
+      "seconds": 66.8130000000001,
+      "screenshots": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743743939845800\\morph_extreme_Female.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743743939845800\\morph_extreme_Male.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791743743939845800\\morph_extreme_Male.02.png"
+      ]
+    },
+    {
+      "source": "Saved\\NPCOutfits\\ClothingRegression\\1791744093306137300\\result.json",
+      "sha256": "57a40a26df811e021df36a85ec081f406780a2fa4fbd4a862b54d626960982dc",
+      "structural_status": "PASS",
+      "visual_status": "PASS",
+      "immutable_buffers": 1,
+      "session": "fresh Editor after restoring user saves",
+      "seconds": 68.23400000000038,
+      "screenshots": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791744093306137300\\morph_extreme_Female.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791744093306137300\\morph_extreme_Male.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791744093306137300\\morph_extreme_Male.02.png"
+      ],
+      "peak_tick_ms_by_phase": {
+        "load": 8.444800972938538,
+        "play": 125.0,
+        "player": 125.0,
+        "equip": 59.83290076255798,
+        "overlap_equip": 125.0,
+        "overlap_prepare": 125.0,
+        "overlap_two": 125.0,
+        "overlap_one": 125.0,
+        "overlap_zero": 125.0,
+        "morph_equip": 125.0,
+        "morph_ready": 125.0,
+        "morph_movement": 125.0,
+        "morph_capture": 125.0,
+        "morph_done": 125.0
+      }
+    },
+    {
+      "source": "Saved\\NPCOutfits\\ClothingRegression\\1791744600153364600\\result.json",
+      "sha256": "07d98981cc1a39c1f1461c28d80679c1a989a41104ab649370459a552c4801e8",
+      "structural_status": "PASS",
+      "visual_status": "PASS",
+      "immutable_buffers": 1,
+      "session": "Background throttle explicitly disabled and restored",
+      "seconds": 64.719,
+      "screenshots": [
+        "Saved\\NPCOutfits\\ClothingRegression\\1791744600153364600\\morph_extreme_Female.01.png",
+        "Saved\\NPCOutfits\\ClothingRegression\\1791744600153364600\\morph_extreme_Male.01.png",
+        "Saved\\NPCOutfits\\ClothingRegression\\1791744600153364600\\morph_extreme_Male.02.png"
+      ]
+    }
+  ]
+}

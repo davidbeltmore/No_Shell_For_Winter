@@ -5,6 +5,10 @@ description: Author, audit and repair NoShellForWinter owned DAZ NPCs, inherited
 
 # DAZ NPC workbench
 
+For NPC garment presets, shared equipment admission and outfit save/performance
+QA, use `ef-npc-outfit-workbench` and `Docs/Migration/NPCOutfits.md`. Keep the
+existing roster and appearance identity as the authority; do not fork them.
+
 Start with `noshellforwinter-unreal-mcp`. Inspect live target context read-only before
 authoring. Use `ef-body-preset-workbench` when changing the body catalog. Source game,
 installed ACFU, DAZ plugins and protected player/body assets remain read-only.

@@ -55,11 +55,14 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Protected baseline | PASS | before.json, initial commit above |
 | Shared NPC equipment / FullRag pilot | PASS | Four variants, three bodies; evidence below, commit bb199a65 |
 | Editor build and Blueprint compile | PASS | Final incremental Editor build + all 40 owned variants |
-| Game build | PENDING | Not yet run |
+| Game build | PASS | Development builds with protected descriptor/receipt restoration |
 | Pilot persistence and functional PIE | PASS | Modified shirt state, exact disk round trip, no duplicates |
-| Loot / immediate recreate | FAIL | Same-frame removal was lost; synchronous snapshot fix awaiting build/retest |
-| Weighted selection, cancellation | PENDING | Additional scoped checks still required |
-| Visual fit, movement, morphs, body swap | PENDING | Not yet run |
+| Loot / immediate recreate | PASS | Synchronous snapshot, both genders, exact remaining GUIDs, commit 72c8d694 |
+| Cancellation during load | PASS | Destroy in Loading, zero requests after teardown |
+| Weighted selection | PENDING | Runtime selection/override fixture still required |
+| Visual fit, movement, morphs, body swap | PENDING | Three-body shared coverage/movement passes; initial visual anomaly retained, controlled follow-up below |
+| Native service interaction | PASS | Six service menus and two quest interaction contracts; SkillGuy clothed images reviewed |
+| Native pursuit / spacing | PASS | Four natural pursuit/spacing samples in a clear authored-nav corridor; fresh gameplay-distance images reviewed |
 | Performance 1 | PASS | Explicitly prepared 30-second pair after two optimizations |
 | Performance 10/25 | FAIL | Frozen budget exceeded; details below |
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
@@ -198,5 +201,68 @@ shirt/pants/foot wraps have 7,767 / 9,081 / 2,176 vertices respectively.
 `LifecycleQA.py` found a separate persistence failure: remove the shirt through
 native inventory and destroy the NPC before the next tick, then recreate with the
 same identity. The deferred snapshot lost that final change. The fix snapshots
-coordinator-published mutations synchronously; validation is PENDING. Cancellation
-was not reached in the failed test and remains PENDING.
+coordinator-published mutations synchronously and rejects mutations during actor
+destruction. Editor/Game builds PASS (17.004 / 34.668 s). The follow-up lifecycle
+fixture PASS in 18.859 s: both Male.02 and Female.01 preserve removal and exact
+remaining GUIDs after immediate recreation; destruction during `Loading` cancels
+with zero queued requests. Receipt:
+`Saved/NPCOutfits/Lifecycle/1791743297544539600/runtime.json`.
+
+The earlier crowd fixture selected its requested body after the initial outfit
+was ready, causing two fits during initialization. Fixture version 2 selects the
+final body before admitting clothing, records body initialization separately and
+requires equal fixture versions in comparisons. This is a measurement correction,
+not a runtime speedup; the older receipts and failures remain intact. New matched
+version-2 25-NPC pair `perf_fixture2_01_25` still FAILS: added CPU 7.405 ms,
+GPU 11.618 ms, frame p95 9.878 ms, warmed readiness 7.280 s and spawn peak
+1325.740 ms. No pending outfit work after destruction. Correcting the fixture
+does not remove the crowd-capacity failure.
+
+Same-frame unequip then real ALS disk save/load PASS in 6.453 s, preserving
+GUID/count/equip/body/morph state without duplicates; compact evidence is
+`Evidence/NPCOutfits/save-same-frame.json`.
+
+Shared fitting regression after the provider/graph optimization: structural
+coverage ownership and movement checks PASS for Female.01, Male.01 and Male.02
+(66.094 s), but visual review FAILS the Female.01 extreme-morph capture. Male
+captures are coherent. An isolated Female.01 run with stock providers is visually
+coherent, but it omits the preceding body changes; the identical full sequence
+with stock providers must distinguish cache behavior from body transition state.
+Do not treat the script's structural `PASS` as visual certification. Evidence:
+`Evidence/NPCOutfits/clothing-regression.json`.
+
+The matched full stock-provider sequence (66.140 s) and subsequent cached-provider
+sequence (66.813 s) both pass structural checks and have coherent reviewed images
+for all three bodies. This does not reproduce the initial Female anomaly; its
+cause is not established. Preserve that failed image and check a fresh editor
+session before closing the visual gate. Compact A/B evidence:
+`Evidence/NPCOutfits/clothing-ab.json`. Protection after these runs PASS: all
+7,643 protected files unchanged (57.030 s).
+
+A fresh-editor cached run after restoring the four user saves also passes the
+three-body structural/visual sequence (68.234 s). It records 125 ms Slate steps;
+the shared visual script had not disabled background editor throttling. The script
+now temporarily disables it like the other runtime hosts and restores it on exit.
+The controlled follow-up `1791744600153364600` passes all three reviewed bodies
+in 64.719 s, still with some 125 ms Slate steps. This does not establish throttling
+as the cause. The original anomaly is not claimed fixed or attributed to the
+provider; subsequent warm, fresh and controlled runs did not reproduce it.
+
+Native logic run: six service menus and two quest interaction contracts passed,
+including dressed SkillGuy screenshots. The run then failed before pursuit with
+`No navigation on authored HUB volume` (63.074 s native / 65.047 s host). Live
+read-only `InspectNavigation.py` finds the current bounds centered at
+(2520, -2420, 30), extent (1250, 1250, 100), so the old fixed corridor is outside
+the map's current navigable area. `LogicQA.py` chooses the same 1200 cm native
+pursuit corridor inside that existing volume; it does not move/rebuild/save it.
+Native QA accepts `arena_x` / `arena_y`; unchanged AI/controller logic still has
+to project, perceive the player, produce a path and move naturally. The retry is
+now PASS: four native pursuit/spacing samples, 24.328 s host. The first relocated
+corridor was still blocked by a placed enemy capsule: project sight uses
+`ECC_Pawn`, whereas `LineOfSightTo` used Visibility and returned true. The fixture
+now checks a 100 cm radius Pawn-profile corridor before play. It selects
+(1920, -3232.5) here. No source registration, listener refresh, target override,
+MoveTo, AI behavior change or map save is used for acceptance. Failed diagnostics
+are retained. Fresh dressed melee Male/Female movement screenshots are coherent
+at gameplay distance; see `Evidence/NPCOutfits/logic-corrected.json`.
+Editor/Game builds PASS in 42.685 / 45.415 s, Daz guards restored.
