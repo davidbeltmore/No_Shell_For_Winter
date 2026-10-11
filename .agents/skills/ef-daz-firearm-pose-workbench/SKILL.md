@@ -1,9 +1,9 @@
 ---
 name: ef-daz-firearm-pose-workbench
-description: Diagnose and repair NoShellForWinter DAZ firearm neck/upper-body deformation through owned ACF overlay profiles, and run bounded player/NPC pose validation.
+description: Diagnose and repair NoShellForWinter DAZ firearm and bow neck/upper-body deformation through owned ACF overlay and aim assets, with bounded directional player/NPC pose validation.
 ---
 
-# DAZ firearm poses
+# DAZ weapon poses
 
 Start with `noshellforwinter-unreal-mcp`, then identify the actual PIE pawn, body,
 AnimInstance, active overlay tag/class and equipped weapon. Template assignments
@@ -38,11 +38,54 @@ uses no polling tick, and never adds sockets to shared protected meshes. Setting
 limit the fallback to configured names and DAZ roots. Check draw, sheath and body
 swaps: an equipped weapon appearing on the ground is not an animation-layer fix.
 
+## Bow directional aim regression
+
+Always inspect neutral aim and control pitch +/-60 degrees. Neutral-only checks
+missed the bow head collapse. Identify BOTH the legacy `AimOffset` asset and the
+modern `Aim_Center/Up/Down/Left/Right` fields; native bow mixes a UE4-skeleton AO
+with modern rifle/bow samples. A Head BASE_POSE profile does not necessarily mask
+the later additive aim branch. Never assume a firearm fix covers bow.
+
+For mesh-space additive aim, removing local neck tracks does not remove inherited
+component rotation from animated spine parents. The editor-only
+`StabilizeOwnedBowAimComponentRotations` helper stabilizes spine_01..spine_05 and
+neck_01/neck_02/head component rotations against an owned center reference. It
+transfers the original component aiming rotations into clavicle_l/r local tracks
+so the arm/weapon direction survives the spine mask. It preserves translations,
+scales and every other track. Its path guards exclude native assets.
+Validate the resulting runtime pose before treating authoring as a repair.
+Neck correction alone still moved the head with the folding spine. Masking spine
+without compensating arm roots made the weapon direction nearly static. Preserve
+native locomotion and the absolute torso overlay; restrict corrections to owned
+directional aim samples. Explicitly rebind all nine AO SampleData animations after retargeting;
+the batch retarget returned an AO with empty sample references in this repair.
+Do not set AimOffsetAlpha=0 as a fix: require directional hand position/orientation
+changes, otherwise aiming can silently freeze while the neck looks correct.
+
+Use `AuthorDAZBowOverlay.py` for complete owned bow authoring, bounded to 90 seconds
+internally and 120 seconds externally. It uses a short owned non-additive center
+reference instead of repeatedly recompressing the large legacy base sequence.
+Treat that reference as immutable once consumed. To change its policy, create a
+new owned reference path; editing a loaded shared reference stalled compression.
+The persistent author reuses a complete owned set. If the set is partial, restore
+missing assets from Git or author a reviewed versioned set; do not bulk overwrite
+loaded samples and references. Native reload selects arrows when a player's old
+ammo slot still contains bullets; certify shots through inventory count decrease.
+Keep failed receipts; a host timeout does not cancel a blocked editor operation.
+Use `RunBowPosePIE.py` and `ValidateGunPosePackaged.ps1 -Bow` for the four gender /
+player-NPC cases, including directional aim and native arrow consumption. Require
+head elevation >70% of the unarmed baseline and neck ratio <1.35. At +/-60 degrees
+require hand orientation delta >=0.15 radians from neutral; incidental breathing
+translation must not count as directional aiming. Explicitly spawn a native
+controller for disposable NPC fixtures when auto-possession is absent, and fail
+if it remains missing. Record visual evidence; metrics alone cannot certify pose.
+
 ## Authoring and bounded validation
 
 - Run `Tools/Animation/AuthorDAZWeaponOverlays.py` through the project's localhost
   editor Python runner (90-second internal ceiling). It compiles/saves only the
-  two owned overlays and four owned layering profiles.
+  selected owned overlays/profiles (default two firearm overlays and four profiles).
+  Run the complete bow wrapper above when adding or rebuilding bow aim assets.
 - Layer profile fields are EditDefaultsOnly. Edit owned asset/CDO copies. For
   reflected overlay struct arrays, construct fresh `unreal.OverlayLayer` rows and
   assign the full array; mutating retrieved wrappers silently failed to persist.
@@ -61,3 +104,4 @@ swaps: an equipped weapon appearing on the ground is not an animation-layer fix.
   safely closing the editor.
 
 Measured diagnosis and gate evidence belong in `Docs/Migration/DAZFirearmPoseRepair.md`.
+Bow direction and reference-space evidence belongs in `Docs/Migration/DAZBowAimPoseRepair.md`.

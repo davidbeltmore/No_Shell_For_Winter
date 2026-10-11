@@ -1,0 +1,146 @@
+{
+  "implementation_snapshot": "4005d387",
+  "baseline_snapshot": "c32f13412df75b768d16b27e9bc3f1d2f938481a",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "source_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "owned_overlay": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZBowOverlay",
+  "owned_reference": "/Game/_Game/Characters/Animation/Weapons/BowAim/DAZ_BowAim_CenterReference",
+  "editor_build": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 17.914,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+    ]
+  },
+  "game_build": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 35.893,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+    ]
+  },
+  "compile": {
+    "status": "PASS",
+    "seconds": 0.21799999999711872,
+    "rows": [
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZBowOverlay.ABP_DAZBowOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      },
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZPistolOverlay.ABP_DAZPistolOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      },
+      {
+        "asset": "/Game/_Game/Characters/Animation/Weapons/ABP_DAZRifleOverlay.ABP_DAZRifleOverlay",
+        "status": "<BlueprintStatus.BS_UP_TO_DATE: 3>"
+      }
+    ]
+  },
+  "authoring": {
+    "samples": 9,
+    "corrected_bones_per_sample": 10,
+    "maximum_component_rotation_error_degrees": 0,
+    "idempotent_host": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 4.863,
+      "limit_seconds": 120,
+      "command": [
+        "python",
+        "Tools/InnerState/RunEditorPython58.py",
+        "Tools/Animation/AuthorDAZBowOverlay.py"
+      ]
+    }
+  },
+  "pie": {
+    "bow": "status=PASS completed=4/4 reason=bow x 2 genders x actual player/NPC; directional aim, native shooting and restoration elapsed_seconds=43.607",
+    "firearms": "status=PASS completed=8/8 reason=2 weapons x 2 genders x actual player/NPC; native shooting and restoration elapsed_seconds=65.003"
+  },
+  "cook": {
+    "scope": "HUB body presets and clothing",
+    "reused_cook": false,
+    "elapsed_seconds": 257.0569694,
+    "exit_code": 0
+  },
+  "packaged": {
+    "bow": {
+      "exit_code": 0,
+      "limit_seconds": 180,
+      "feature_errors": 0,
+      "receipts": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\BowPose\\Packaged_20261010_204939\\UserData\\Saved\\BowPose\\Runtime\\runtime.txt"
+      ],
+      "runtime_pass": true,
+      "mode": "BowPose",
+      "seconds": 60.762346799999996
+    },
+    "firearms": {
+      "exit_code": 0,
+      "limit_seconds": 180,
+      "feature_errors": 0,
+      "receipts": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\GunPose\\Packaged_20261010_205107\\UserData\\Saved\\GunPose\\Runtime\\runtime.txt"
+      ],
+      "runtime_pass": true,
+      "mode": "GunPose",
+      "seconds": 78.5333586
+    }
+  },
+  "visual_review": {
+    "status": "PASS",
+    "screenshot": "Saved/BowPose/Packaged_20261010_204939/UserData/Saved/BowPose/Runtime/Case_03_aim_down.png",
+    "finding": "Head remains outside torso; directional arms retained"
+  },
+  "protected": {
+    "status": "PASS",
+    "files": 7643,
+    "changed": [],
+    "snapshot": "4005d387d6848a8ead1fe3b38b510d1f93f34102"
+  },
+  "saves": {
+    "Status": "PASS",
+    "Checked": 4,
+    "Restored": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+    ]
+  },
+  "editor": {
+    "status": "PASS",
+    "pie": false,
+    "dirty_packages": []
+  },
+  "retention": {
+    "removed_bytes": 4988694884,
+    "retained_package": "Saved/BodyPresetsQA/Package_20261010_204511",
+    "receipt": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 5.165,
+      "limit_seconds": 120,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Remove-OldValidationPackages.ps1",
+        "-Apply"
+      ]
+    }
+  }
+}
