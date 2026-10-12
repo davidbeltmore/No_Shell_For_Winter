@@ -40,5 +40,5 @@ receipt = {'status': status, 'seconds': time.monotonic()-start, 'reason': reason
 print(json.dumps(receipt))
 print(out)
 if status != 'PASS':
-    print((out/'host.log').read_text(encoding='utf-8'))
+    print((out/'host.log').read_text(encoding='utf-8', errors='replace'))
     raise SystemExit(1)

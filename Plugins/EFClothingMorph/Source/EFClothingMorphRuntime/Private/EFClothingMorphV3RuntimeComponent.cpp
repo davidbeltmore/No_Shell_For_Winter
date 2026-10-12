@@ -1598,6 +1598,16 @@ void UEFClothingMorphV3RuntimeComponent::TickSurfacePasses(const float DeltaTime
 
 		const int32 GarmentLODIndex = FMath::Max(GarmentComponent->GetPredictedLODLevel(), 0);
 		const int32 BodyLODIndex = FMath::Max(BodyComponent->GetPredictedLODLevel(), 0);
+		if (State.RequestedBindingLODIndex != GarmentLODIndex)
+		{
+			// Select the exact V5 payload before installing a changed garment LOD.
+			// Installing against the previous selection causes another teardown
+			// when reconciliation catches up, even if both LODs share one payload.
+			ReleaseProducer(State);
+			State.RuntimeState = EEFClothingMorphV3RuntimeState::Loading;
+			bReconcileRequested = true;
+			continue;
+		}
 		if (IsValid(Producer)
 			&& !Producer->IsInstalledFor(
 				GarmentComponent,

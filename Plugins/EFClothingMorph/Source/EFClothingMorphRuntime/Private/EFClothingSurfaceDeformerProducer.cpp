@@ -384,6 +384,12 @@ bool UEFClothingSurfaceDeformerProducer::Install(
 {
 	check(IsInGameThread());
 	FClothingInstallProfile Profile(TEXT("InstallTotal"));
+	if (CVarProfileClothingInstall.GetValueOnGameThread())
+	{
+		UE_LOG(LogTemp, Display, TEXT("ClothingInstallRequest component=%s garment_lod=%d body_lod=%d binding=%s"),
+			*GetPathNameSafe(InGarmentComponent), InLODPair.GarmentTopology.LODIndex,
+			InLODPair.BodyTopology.LODIndex, *GetPathNameSafe(InSurfaceBinding));
+	}
 	Detach();
 	OutFailureReason.Reset();
 

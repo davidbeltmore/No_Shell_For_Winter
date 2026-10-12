@@ -847,3 +847,68 @@ restoration. The final protected comparison passes: 7,643 files unchanged in
 preserved after closing the editor; the editor is reopened through the protected
 launcher. The outfit skill validates. The candidate remains opt-in and no new
 package supersedes the validated `Package_20261011_214531` artifact.
+
+## Reconcile the requested LOD before installing its producer (2026-10-11)
+
+The next bounded installation diagnostic adds component paths and exact LOD pairs
+to the existing opt-in profile log. `install_identity_02` records 54 garments
+(12 map NPCs plus two groups of three): 48 perform `0/0 -> 1/0 -> 1/0`, six
+perform `0/0 -> 1/0`, for 156 installations. The surface tick was installing
+the new LOD against the previous requested payload selection; reconciliation
+subsequently invalidated that identity and installed the same LOD again.
+
+`UEFClothingMorphV3RuntimeComponent::TickSurfacePasses` now releases that producer
+and requests reconciliation when the predicted garment LOD differs from the
+requested binding LOD. Selection of the exact V5 payload precedes installation.
+Body-only LOD changes retain their existing path. No cache ownership, shader,
+solver, admission limit, deadline or threshold changes are involved.
+
+`install_reconcile_01` confirms exactly `0/0 -> 1/0` for all 54 garments: 108
+installations, with no passthrough warnings. Both diagnostics complete with native
+and host PASS. Total installation CPU is 919.082 ms before / 717.543 ms after
+across the full diagnostic interval, including cold initial immutable uploads;
+these totals are not steady frame costs or a crowd acceptance result. Raw logs,
+component sequences and fresh receipts remain under `Saved/NPCOutfits/Native`.
+`SummarizeInstall.py` retains source hashes, stage counts and per-component LOD
+sequences without labeling a diagnostic as a performance PASS.
+
+The three bounded transition cases (`lod_transitions_male01_01`,
+`lod_transitions_female01_01`, `lod_transitions_male02_01`) each check nine garments
+through forced LOD 0, LOD 1, LOD 0 and automatic selection. Host/native PASS,
+four completed steps, zero pending after destruction, explicit GC. All twelve
+actual images were reviewed and show coherent clothing at the fixture distance.
+Representative images and receipts are in `Evidence/NPCOutfits/lod-reconcile.json`.
+This covers forced LOD transitions on ordinary poses; extreme NPC morphs at LOD1
+and natural near/far camera transitions remain PENDING. High-resolution capture
+can re-enter Slate callbacks; the host now guards re-entry and marks screenshot
+requests before invoking the capture API. Acceptance comparisons reject this
+diagnostic mode. Subsequent receipts also hash the Python host itself.
+
+The matched, prepared, 30-second version-3 pair `perf_lod_reconcile_01_25` remains
+FAIL: CPU +5.908605 ms, GPU +4.623237 ms, frame p95 +6.553299 ms and readiness
+5.368716 s. Bare/dressed p95 are 33.832199/40.385498 ms; pending work is zero.
+Readiness is lower than the prior 6.184630 s observation, but exceeds 2 s.
+Changes in steady CPU/frame timing between separate pairs are not attributed to
+this initialization-only correction. No thresholds are changed.
+
+The shared LOD0 player regression `ClothingRegression/1791780570160364000`
+passes in 62.078 s with 15 coverage/morph/movement checks and Blueprint compile
+PASS. All three actual extreme-morph screenshots were reviewed and are coherent.
+The previously retained intermittent Female visual anomaly remains unexplained;
+this pass does not establish its cause. The first identity diagnostic invocation
+could not connect while the restarted editor was still loading; it did not start
+PIE. Its FAIL receipt is retained, and the runner now decodes failure logs with
+replacement for non-UTF8 Windows error text rather than masking the error.
+
+The independent NPC LOD candidate remains disabled by default. This correction
+does not certify its remaining performance, full visual, cook or packaged gates;
+the retained validated package still contains runtime `70ba613f`.
+
+Checkpoint builds: identity instrumentation Editor PASS 54.882 s, corrected
+Editor PASS 23.987 s, Development Game PASS 49.750 s; Daz descriptor and receipt
+guards pass. The protected comparison passes in 45.470 s with 7,643 unchanged
+files. All six saves are restored after each editor session (`233006`, `233831`,
+`234309`); HUB retains SHA256
+`C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
+The outfit skill validates, Python tools compile, and the diff whitespace check
+passes. The editor is reopened through the protected launcher.

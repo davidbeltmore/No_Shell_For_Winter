@@ -20,6 +20,7 @@ parser.add_argument('--name',default='native_'+str(time.time_ns()))
 parser.add_argument('--immutable-buffers',type=int,choices=[0,1],default=1)
 parser.add_argument('--prepared-binding',type=int,choices=[0,1],default=1)
 parser.add_argument('--inspect-lod',action='store_true',help='One runtime LOD snapshot; diagnostic only')
+parser.add_argument('--lod-transitions',action='store_true',help='Bounded forced LOD 0/1/0/automatic fit checks and images; diagnostic only')
 parser.add_argument('--independent-npc-lod',type=int,choices=[0,1],default=0)
 parser.add_argument('--parameter-cache',type=int,choices=[0,1],default=1)
 parser.add_argument('--gc',action='store_true',help='Force native GC after fixture destruction')
@@ -31,9 +32,11 @@ parser.add_argument('--profile-install',action='store_true',help='Diagnostic ins
 args=parser.parse_args(globals().get('NPC_OUTFIT_ARGS',[]))
 assert not args.selection or not (args.prewarm or args.trace), 'Selection QA is a separate functional fixture'
 assert not args.profile_gpu or (not args.selection and not args.trace), 'Use one GPU diagnostic at a time'
+assert not args.lod_transitions or (args.dressed == 1 and args.independent_npc_lod == 1 and args.capture >= 20 and not args.selection), 'LOD transitions require dressed independent LOD and >=20 seconds capture'
 assert args.name.replace('_','').replace('-','').isalnum()
 root=Path(unreal.Paths.project_dir()).resolve()
 configuration_paths = [
+    'Tools/NPC/Outfits/RunNativePIE.py',
     'Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset',
     'Content/DazToUnreal/RagShirt/RagShirt.uasset',
     'Content/DazToUnreal/RagPants/RagPants.uasset',
@@ -81,7 +84,7 @@ quality_names=['sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuali
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','trace','profile_gpu','prewarm','selection','profile_install','gc']}
+native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','lod_transitions','trace','profile_gpu','prewarm','selection','profile_install','gc']}
 command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 assert not (args.selection and args.gc), 'GC fixture uses the standard outfit command'
 if args.gc: command+=' gc'
@@ -89,6 +92,8 @@ warm_args=dict(native_args,name=args.name+'_warmup',dressed=1,capture=1,function
 warm_command='Project.NPCOutfits.QA '+' '.join(k+'='+str(v) for k,v in warm_args.items())
 
 def done(error=''):
+    if args.lod_transitions and not error and len(state.get('lod_transitions', [])) != 4:
+        error='LOD transition sequence did not complete before native fixture teardown'
     unreal.unregister_slate_post_tick_callback(handle)
     restore_world=worlds.get_game_world()
     if state.get('trace_started'):
@@ -101,9 +106,45 @@ def done(error=''):
     unreal.SystemLibrary.execute_console_command(restore_world,profile_cvar+' '+str(previous_profile))
     for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(restore_world,key+' '+str(value))
     unreal.EditorLevelLibrary.editor_end_play()
-    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'lod_transitions_requested':args.lod_transitions,'lod_transitions':state.get('lod_transitions',[]),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+
+def check_lod_transitions(world):
+    records=state.setdefault('lod_transitions', [])
+    if len(records)==4: return
+    pawns=[p for p in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.Pawn)
+           if any(str(t).startswith('EF.AppearanceId.OutfitQA.') for t in p.tags)]
+    if len(pawns)!=args.count or not all(p.get_component_by_class(unreal.ProjectNPCOutfitComponent).state==unreal.ProjectNPCOutfitState.READY for p in pawns): return
+    meshes=[m for p in pawns for m in p.get_components_by_class(unreal.SkeletalMeshComponent)
+            if m.get_editor_property('skeletal_mesh_asset') and m.get_editor_property('skeletal_mesh_asset').get_name() in ['RagShirt','RagPants','RagFootWraps']]
+    assert len(meshes)==args.count*3, 'Expected three live garments per fixture pawn'
+    now=time.monotonic()
+    forced=[1,2,1,0][len(records)]
+    if 'lod_change_at' not in state:
+        for mesh in meshes: mesh.set_forced_lod(forced)
+        state['lod_change_at']=now
+        return
+    assert now-state['lod_change_at']<8, 'LOD transition did not settle within eight seconds'
+    summaries=[p.get_component_by_class(unreal.EFClothingMorphV3RuntimeComponent).get_debug_summary() for p in pawns]
+    lods=[m.get_predicted_lod_level() for m in meshes]
+    ready=all('managed=3 ready=3 warming=0 passthrough=0 issues=0' in s for s in summaries)
+    ready=ready and all(m.is_visible() for m in meshes) and (forced==0 or all(l==forced-1 for l in lods))
+    ready=ready and all(f'{m.get_name()}:Ready[gLOD={m.get_predicted_lod_level()},' in summaries[i//3]
+                        for i,m in enumerate(meshes))
+    if now-state['lod_change_at']<.5 or not ready: return
+    path=out/f'lod_transition_{len(records)}.png'
+    if not state.get('lod_image_requested'):
+        state['lod_image_requested']=now
+        unreal.AutomationLibrary.take_high_res_screenshot(1400,1000,str(path))
+        return
+    if not path.exists() or path.stat().st_size==0 or now-state['lod_image_requested']<.25: return
+    records.append({'forced_lod':forced,'actual_lods':lods,'seconds':now-state['lod_change_at'],
+                    'summaries':summaries,'image':str(path)})
+    state.pop('lod_change_at')
+    state.pop('lod_image_requested')
 
 def tick(dt):
+    if state.get('in_tick'): return
+    state['in_tick']=True
     try:
         if time.monotonic()-started>150: done('150-second host ceiling'); return
         world=worlds.get_game_world()
@@ -128,6 +169,8 @@ def tick(dt):
             result=json.loads(receipt.read_text(encoding='utf-8-sig'))
             done('' if result['status']=='PASS' else result.get('reason','Native FAIL'))
             return
+        if args.lod_transitions and world and state['issued']:
+            check_lod_transitions(world)
         if args.inspect_lod and world and state['issued'] and not state.get('lod_snapshot'):
             pawns=[p for p in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.Pawn)
                    if any(str(t).startswith('EF.AppearanceId.OutfitQA.') for t in p.tags)]
@@ -155,6 +198,7 @@ def tick(dt):
                     for key,value in gpu_settings.items(): unreal.SystemLibrary.execute_console_command(world,key+' '+str(value))
                     unreal.SystemLibrary.execute_console_command(world,'ProfileGPU')
     except Exception as error: done(str(error)); raise
+    finally: state['in_tick']=False
 handle=unreal.register_slate_post_tick_callback(tick)
 editor.editor_request_begin_play()
 print('Native outfit PIE scheduled: '+str(out))

@@ -147,6 +147,22 @@ retains repeated immutable uploads for A/B. Prepared reuse keeps only weak looku
 entries (maximum 128); live providers own the immutable buffers, while transforms,
 morphs and runtime sliders remain per-instance. Three fresh packaged body cases
 have passed explicit GC and normal shutdown; repeat after ownership changes.
+Installation diagnostics also identify the exact component, binding and LOD pair.
+Use `SummarizeInstall.py LOG --output NEW.json` on a retained bounded log interval.
+Do not infer per-component retries from aggregate totals alone. The opt-in LOD
+candidate exposed a 0/0 -> 1/0 -> 1/0 sequence: the surface tick installed a new
+LOD before reconciling its requested V5 payload. Reconcile that selection first;
+the corrected diagnostic observed exactly 0/0 -> 1/0 for all 54 components.
+This does not by itself satisfy the crowd readiness/performance budget.
+
+`RunNativePIE --count 3 --capture 20 --independent-npc-lod 1 --lod-transitions`
+checks forced LOD 0/1/0/automatic, live component LOD, three Ready fitted garments
+per pawn, visibility and a screenshot per step. Run representative bodies with
+their existing archetypes; review images separately. It is diagnostic, rejected
+by `Measure.py`, and does not prove extreme morphs or natural camera-distance
+transitions. The host guards Slate callback re-entry during high-resolution
+screenshots. `Sweep.py --independent-npc-lod 1` selects the experimental policy
+for both sides of a matched pair; its default remains zero.
 `--profile-gpu` records one detailed frame after readiness, with profiler UI off
 and temporary settings restored. It is diagnostic and is rejected by `Measure.py`.
 Use `python Tools/NPC/Outfits/SummarizeGPU.py LOG --output NEW.json` to extract

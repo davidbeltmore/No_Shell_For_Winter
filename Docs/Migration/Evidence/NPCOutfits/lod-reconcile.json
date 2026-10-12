@@ -1,0 +1,505 @@
+{
+  "baseline_commit": "e898f04f",
+  "scope": "Garment LOD payload reconciliation; opt-in candidate remains experimental",
+  "performance_gate": "FAIL",
+  "candidate_cook_package_gate": "PENDING",
+  "install_diagnostics": {
+    "install_identity_02": {
+      "host_status": "PASS",
+      "host_seconds": 30.139999999999418,
+      "runtime_status": "PASS",
+      "summary": {
+        "scope": "Diagnostic only; includes every component in the supplied log interval",
+        "log": "Saved\\NPCOutfits\\Native\\install_identity_02\\install-profile.log",
+        "log_sha256": "52b0b9a62c20bf710f540e7b6050094b7dc2881937a3c0dc18e3b161c14d1500",
+        "stages": {
+          "ValidateLiveLODTopology": {
+            "count": 156,
+            "total_ms": 192.84,
+            "mean_ms": 1.236,
+            "max_ms": 3.716
+          },
+          "UploadImmutableBinding": {
+            "count": 18,
+            "total_ms": 460.554,
+            "mean_ms": 25.586,
+            "max_ms": 57.383
+          },
+          "InstallTotal": {
+            "count": 156,
+            "total_ms": 919.082,
+            "mean_ms": 5.892,
+            "max_ms": 82.595
+          }
+        },
+        "prepared_reuse": 138,
+        "component_count": 54,
+        "install_count_distribution": {
+          "3": 48,
+          "2": 6
+        },
+        "lod_sequence_distribution": {
+          "0/0 -> 1/0 -> 1/0": 48,
+          "0/0 -> 1/0": 6
+        },
+        "passthrough_reasons": {
+          "LOD changed; the exact V3 pair will be rebound without hiding the source.": 54
+        }
+      },
+      "configuration_hashes": {
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "717855d4b5f983b89a372fd7066660e12712cd14163d4932b5588e086297dac3",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9c52618b8ceba7fc71d9c6bf148d63a8a8771ccf7ddd598dd1bf397a249b26a1"
+      }
+    },
+    "install_reconcile_01": {
+      "host_status": "PASS",
+      "host_seconds": 19.922000000005937,
+      "runtime_status": "PASS",
+      "summary": {
+        "scope": "Diagnostic only; includes every component in the supplied log interval",
+        "log": "Saved\\NPCOutfits\\Native\\install_reconcile_01\\install-profile.log",
+        "log_sha256": "5a7575a293872223fcf7ad1bdf5b2fcb44bda051e96f1fec20ed664276883784",
+        "stages": {
+          "ValidateLiveLODTopology": {
+            "count": 108,
+            "total_ms": 110.385,
+            "mean_ms": 1.022,
+            "max_ms": 3.071
+          },
+          "UploadImmutableBinding": {
+            "count": 18,
+            "total_ms": 398.986,
+            "mean_ms": 22.166,
+            "max_ms": 42.49
+          },
+          "InstallTotal": {
+            "count": 108,
+            "total_ms": 717.543,
+            "mean_ms": 6.644,
+            "max_ms": 60.604
+          }
+        },
+        "prepared_reuse": 90,
+        "component_count": 54,
+        "install_count_distribution": {
+          "2": 54
+        },
+        "lod_sequence_distribution": {
+          "0/0 -> 1/0": 54
+        },
+        "passthrough_reasons": {}
+      },
+      "configuration_hashes": {
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9c52618b8ceba7fc71d9c6bf148d63a8a8771ccf7ddd598dd1bf397a249b26a1"
+      }
+    }
+  },
+  "transitions": [
+    {
+      "body": "Male.01",
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "host_seconds": 29.093999999997322,
+      "host_path": "Saved\\NPCOutfits\\Native\\lod_transitions_male01_01\\host.json",
+      "host_sha256": "2cebed04829f44ffce3c48b20d65e5832b9be3bd610963c19a923cf7d7a3e070",
+      "pending_after_destroy": 0,
+      "snapshots": [
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 2.312999999994645,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male01_01\\lod_transition_0.png",
+          "image_sha256": "2f0e1a22b3b059bcf5f68a0183e32f8638b39b919922f517bddb370162e00939",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 2,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 1.062999999994645,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male01_01\\lod_transition_1.png",
+          "image_sha256": "195daf41fba01a9640a76938240d95163ab36ba893304f53ed3422d7f247d4a3",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 0.9380000000019209,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male01_01\\lod_transition_2.png",
+          "image_sha256": "a3e9f6c9cf729e26407279d89d35737beb48d4de7b6455f962a43bd2977398f0",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 0,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 0.9380000000019209,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male01_01\\lod_transition_3.png",
+          "image_sha256": "2b7d1e327565a1954b4066c00aaa7d548b336f8faad863cc8207f7d2566c10ad",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        }
+      ]
+    },
+    {
+      "body": "Female.01",
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "host_seconds": 26.640999999995984,
+      "host_path": "Saved\\NPCOutfits\\Native\\lod_transitions_female01_01\\host.json",
+      "host_sha256": "71a7efaa70a62230dbd02b9d3839ee0f71d27efc78e144443a5251c6f3d197a0",
+      "pending_after_destroy": 0,
+      "snapshots": [
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 0.9689999999973224,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_female01_01\\lod_transition_0.png",
+          "image_sha256": "f434746172c9ed55b69217fcf3a04613f715d60cb55c799ddadb91f59d211c88",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 2,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 0.9380000000019209,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_female01_01\\lod_transition_1.png",
+          "image_sha256": "1ae6cd1969d55c7c840faf493ef78b6955be66dbb8f4e9b81aac4049858542c0",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 0.9530000000013388,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_female01_01\\lod_transition_2.png",
+          "image_sha256": "f357bda8ff35d64772be1f7441501b7bc71cf0c23aa67586768bd532495023a4",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 0,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 0.9369999999980791,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_female01_01\\lod_transition_3.png",
+          "image_sha256": "6115e816350e652e43b848e77b2ced37a2cf6262cc7a41647ad38908a1319d3e",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        }
+      ]
+    },
+    {
+      "body": "Male.02",
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "host_seconds": 29.139999999999418,
+      "host_path": "Saved\\NPCOutfits\\Native\\lod_transitions_male02_01\\host.json",
+      "host_sha256": "bc7114a7c9504d15a4c8010dc57ede75d9e46f9e5de85199d888d6fe09ee5f41",
+      "pending_after_destroy": 0,
+      "snapshots": [
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 1.0930000000007567,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male02_01\\lod_transition_0.png",
+          "image_sha256": "536050f8c5577a83e0f898e6f1942d3fddc0b98658a0cdade56817f0a3e9ce29",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 2,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 0.9369999999980791,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male02_01\\lod_transition_1.png",
+          "image_sha256": "d4fbef55776144bcbcab7c5413761fd310552703b68bad88820a89d8bee1b45c",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 1,
+          "actual_lods": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "seconds": 0.9219999999986612,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male02_01\\lod_transition_2.png",
+          "image_sha256": "a5ac46f02bb768715875ed6d6dd869d78ad5d425d57a25a12b954a39e7db9c82",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        },
+        {
+          "forced_lod": 0,
+          "actual_lods": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "seconds": 0.9219999999986612,
+          "image": "Saved\\NPCOutfits\\Native\\lod_transitions_male02_01\\lod_transition_3.png",
+          "image_sha256": "ec459084f152d219763355c6487b1f721d5f8d24b03ebfe2ea8200eacbcf0c45",
+          "visual_review": "PASS: coherent visible clothing at fixture distance; not extreme-morph or natural-camera certification"
+        }
+      ]
+    }
+  ],
+  "builds": {
+    "outfits-editor-install-identity-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 54.882,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "outfits-editor-lod-reconcile-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 23.987,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "outfits-game-lod-reconcile-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 49.75,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+      ]
+    }
+  },
+  "performance": {
+    "status": "FAIL",
+    "budget": {
+      "cpu_increment_ms": 2,
+      "gpu_increment_ms": 3,
+      "frame_p95_increment_ms": 4,
+      "warm_ready_seconds": 2
+    },
+    "sources": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_reconcile_01_25_bare\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_reconcile_01_25_dressed\\runtime.json"
+    ],
+    "reasons": [
+      "cpu_increment_ms exceeds frozen budget",
+      "gpu_increment_ms exceeds frozen budget",
+      "frame_p95_increment_ms exceeds frozen budget",
+      "warm_ready_seconds exceeds frozen budget"
+    ],
+    "fixture_version": 3,
+    "configuration_hashes": {
+      "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+      "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+      "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+      "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+      "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+      "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9c52618b8ceba7fc71d9c6bf148d63a8a8771ccf7ddd598dd1bf397a249b26a1"
+    },
+    "prewarm_receipts": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_reconcile_01_25_bare_warmup\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_reconcile_01_25_dressed_warmup\\runtime.json"
+    ],
+    "count": 25,
+    "loading": "warm",
+    "measurements": {
+      "cpu_increment_ms": 5.908605081453125,
+      "gpu_increment_ms": 4.623237006870631,
+      "frame_p95_increment_ms": 6.5532989501953125,
+      "dressed_frame_p95_ms": 40.385498046875,
+      "baseline_frame_p95_ms": 33.83219909667969,
+      "spawn_peak_ms": 1283.126950263977,
+      "warm_ready_seconds": 5.368716102093458,
+      "pending_after_destroy": 0
+    },
+    "acceptance_applies": true
+  },
+  "shared_LOD0_regression": {
+    "path": "Saved\\NPCOutfits\\ClothingRegression\\1791780570160364000\\result.json",
+    "sha256": "a4f59a33a669d096c141231b389593458c4938479dcea8a83a1d7872b222443f",
+    "status": "PASS",
+    "seconds": 62.07800000000134,
+    "checks": 15,
+    "blueprint_compile": "PASS",
+    "visual_review": "PASS: three actual extreme-morph/movement captures reviewed; historical anomaly cause remains PENDING"
+  },
+  "protection": {
+    "seconds": 45.47,
+    "head": "e898f04f4cd0987f5c2dd532a9d70d8b04b620db",
+    "changed": [],
+    "status": "PASS",
+    "hash_count": 7643,
+    "receipt_sha256": "2412ca0b5a8983bde1aaaf4a08678b5a0fd37cf3bd4245c0883f7ebf115ee2e1"
+  },
+  "save_restoration": {
+    "Session_20261011_233006": {
+      "Status": "PASS",
+      "Checked": 6,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    },
+    "Session_20261011_233831": {
+      "Status": "PASS",
+      "Checked": 6,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    },
+    "Session_20261011_234309": {
+      "Status": "PASS",
+      "Checked": 6,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    }
+  },
+  "user_hub_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a"
+}

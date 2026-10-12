@@ -41,6 +41,7 @@ try:
     assert hosts[0].get('parameter_cache',0)==hosts[1].get('parameter_cache',0), 'Unmatched parameter update configuration'
     assert hosts[0].get('independent_npc_lod',0)==hosts[1].get('independent_npc_lod',0), 'Unmatched NPC LOD configuration'
     assert not any(h.get('inspect_lod') for h in hosts), 'LOD inspection is diagnostic only'
+    assert not any(h.get('lod_transitions_requested') for h in hosts), 'LOD transitions are diagnostic only'
     assert hosts[0].get('configuration_hashes') == hosts[1].get('configuration_hashes'), 'Unmatched roster, graph or runtime source configuration'
     result['configuration_hashes'] = hosts[1].get('configuration_hashes')
     assert not any(h.get(key,False) for h in hosts for key in ['profile_install','profile_gpu','trace']), 'Diagnostic logging/profiling is not an acceptance capture'
