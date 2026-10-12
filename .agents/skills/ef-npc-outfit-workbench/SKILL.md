@@ -220,3 +220,13 @@ does not prove cold resources. The wrapper rejects any logged Error, preserves
 the loading trace, and still requires GC, empty pending work and normal exit.
 This does not establish OS disk-cache state or automatically prove nonresident
 binding payloads; inspect the loading trace for those assets.
+
+Outfit roster, definition and garment-class requests use the same high streaming
+priority as clothing bindings. Admission remains one owner/frame, at most four
+active owners, with the existing 20-second deadline. Named handles distinguish
+the three stages. Failure text records the pre-failure state, elapsed time,
+handle completion/cancellation and loaded/requested asset counts before canceling.
+Do not diagnose a missing definition callback as a fitting or GPU failure. Check
+the surrounding async-loading backlog and actual project streaming settings;
+do not silently increase deadlines or global loading budgets. A first-PIE startup
+run after a fresh editor launch is separate from a prepared performance pair.

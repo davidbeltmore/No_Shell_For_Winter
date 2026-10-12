@@ -21,9 +21,15 @@ UProjectNPCOutfitComponent::UProjectNPCOutfitComponent() { PrimaryComponentTick.
 
 void UProjectNPCOutfitComponent::Fail(const FString& Reason)
 {
-    Failure = Reason; State = EProjectNPCOutfitState::Failed;
+    int32 LoadedCount = 0, RequestedCount = 0;
+    if (Load) Load->GetLoadedCount(LoadedCount, RequestedCount);
+    Failure = FString::Printf(TEXT("%s [state=%s elapsed=%.3fs handle=%s loading=%d completed=%d canceled=%d assets=%d/%d]"),
+        *Reason, *UEnum::GetValueAsString(State), FPlatformTime::Seconds() - Started,
+        Load ? *Load->GetDebugName() : TEXT("none"), Load && Load->IsLoadingInProgress(),
+        Load && Load->HasLoadCompleted(), Load && Load->WasCanceled(), LoadedCount, RequestedCount);
+    State = EProjectNPCOutfitState::Failed;
     if (Load) Load->CancelHandle(); Load.Reset();
-    UE_LOG(LogTemp, Error, TEXT("NPCOutfits FAIL %s: %s"), *GetNameSafe(GetOwner()), *Reason);
+    UE_LOG(LogTemp, Error, TEXT("NPCOutfits FAIL %s: %s"), *GetNameSafe(GetOwner()), *Failure);
 }
 
 void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Choices)
@@ -86,8 +92,12 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
         {
             ItemClassesLoadSeconds = FPlatformTime::Seconds() - ClassesRequestedAt;
             if (State == EProjectNPCOutfitState::Loading) State = EProjectNPCOutfitState::Pending;
-        }));
-    }));
+        }), FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.ItemClasses"));
+    }), FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.Definition"));
+    // These admitted owners already have a presentation deadline. Match the
+    // clothing binding priority instead of queuing their prerequisites behind
+    // background loads. The subsystem still admits one owner/frame, at most four
+    // active; no synchronous flush or deadline extension is introduced.
 }
 
 void UProjectNPCOutfitComponent::Apply()

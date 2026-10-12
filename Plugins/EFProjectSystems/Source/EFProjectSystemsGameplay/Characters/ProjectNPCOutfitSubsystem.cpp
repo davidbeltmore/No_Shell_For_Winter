@@ -21,7 +21,7 @@ void UProjectNPCOutfitSubsystem::AppearanceReady(APawn* Pawn)
             Roster = Cast<UProjectNPCRoster>(Path.ResolveObject());
             bRosterFailed = !Roster;
             if (bRosterFailed) UE_LOG(LogTemp, Error, TEXT("NPCOutfits FAIL: roster could not load"));
-        }));
+        }), FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.Roster"));
     }
 }
 bool UProjectNPCOutfitSubsystem::DoesSupportWorldType(EWorldType::Type Type) const { return Type == EWorldType::Game || Type == EWorldType::PIE; }

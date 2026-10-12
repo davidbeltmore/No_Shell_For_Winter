@@ -68,7 +68,7 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
 | Cold loading | PASS | Isolated packaged initial NPC: definition, three garment classes and binding streaming path initially nonresident; no OS disk-cache claim |
 | All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
-| Cook and packaged QA | PASS | Exact parameter comparison revision, three bodies/archetypes plus isolated cold map, equip/unequip, GC, zero pending, exit 0 and reviewed images |
+| Cook and packaged QA | PASS | High-priority prerequisite revision: three bodies/archetypes, 25-NPC HUB group and isolated cold map; equip/unequip, GC, zero pending, exit 0 and reviewed images |
 | Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
 | Skills and GitHub publication | PASS | Skills validate; exact parameter comparison and isolated packaged loading published in 8bbc72b1 and 74b38d95 |
 
@@ -616,3 +616,63 @@ skill validation, Python compilation and Git whitespace checks pass. The only
 uncommitted asset is the user's previously saved HUB; it remains excluded from
 outfit commits. Further performance work remains necessary, with no new
 acceptance claim or adjustment to the frozen budget.
+
+### Bounded prerequisite loading under editor backlog
+
+The retained first-PIE failure occurred before the outfit definition callback:
+no item classes had been requested. Its log records 136 pending async packages.
+Project settings use a 1 ms asynchronous loading time slice with the loading
+thread disabled. Those settings remain unchanged. Outfit roster, definition and
+item-class requests now use `FStreamableManager::AsyncLoadHighPriority`, matching
+the binding requests they precede. Admission remains one owner/frame, at most
+four active owners, and the existing 20-second deadline remains unchanged.
+Named streamable handles and failure diagnostics now retain the pre-failure
+state, elapsed time, loading/completed/canceled flags and loaded/requested counts.
+
+Editor and Game builds pass in 41.343 / 53.352 s with restored Daz receipts.
+The first PIE after a fresh editor start (`priority_first_pie_01`) passes with
+25 dressed NPCs, explicit GC and zero pending work. Group readiness: 13.087685 s;
+body initialization: 2.552304 s. Two initial map NPCs request a nonresident
+definition, whose callbacks take 6.021442 / 5.936143 s, reaching Ready at
+6.863554 / 6.778175 s. All 12 initial map NPCs report Ready. The host takes
+23.125 s; the reviewed crowd image is coherent at gameplay distance. The short
+3-second capture is a startup diagnostic, not prepared performance acceptance.
+Different editor starts have uncontrolled OS caches and background work; this
+pass does not establish priority alone as the cause of the previous timeout.
+
+Lifecycle regression `1791773000951735400` passes in 8.375 s: both genders retain
+exact remaining inventory GUIDs/body after immediate recreation; destruction
+while loading drains the queue. Six current save files were backed up, including
+two earlier QA saves, and restored after the editor closed. All four original
+user-save hashes still match the initial session.
+
+Cook/package passes in 255.344 s. Retained artifact:
+`Saved/BodyPresetsQA/Package_20261011_214531`. Fresh packaged processes pass:
+
+| Case | Count | Process seconds | Result |
+|---|---:|---:|---|
+| Isolated cold map, Male.01/SkillGuy | 3 QA + 1 initial | 32.558 | PASS |
+| HUB Male.01/SkillGuy | 25 | 20.294 | PASS |
+| HUB Female.01/MeleeEnemy | 3 | 18.263 | PASS |
+| HUB Male.02/Zombie | 3 | 18.268 | PASS |
+
+Each process has zero logged Errors, normal exit 0, explicit GC and zero pending
+work. Four actual images were reviewed. The isolated initial NPC starts with a
+nonresident definition and three nonresident garment classes; callbacks take
+0.013398 / 0.018606 s, full outfit initialization 0.838381 s. Engine-relative
+start/ready times are 21.797559 / 22.635940 s. The larger full-process startup
+compared with the previous package is not presented as a priority improvement.
+Native QA groups remain separate from the isolated initial NPC observation.
+Source hashes, original failure, build/runtime receipts and images:
+`Evidence/NPCOutfits/load-priority.json`.
+
+After successful validation, retention dry-run/apply removes 4,991,701,361 bytes
+from the previous package's Cooked/Staged directories, preserving receipts/logs.
+The frozen prepared CPU/GPU/p95/readiness failures remain unchanged. No new
+steady-state acceptance run is claimed for a loading-only change. The historical
+female visual anomaly remains documented without an established cause.
+
+Protected comparison passes again: 7,643 files, zero changes, 34.620 s. User HUB
+still hashes to `C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
+The last package's two removed directories are confirmed absent; its receipts
+remain, and the latest-package pointer resolves to the validated 214531 artifact.
