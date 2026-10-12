@@ -1,5 +1,13 @@
 # NPC outfits
 
+Latest delivery decision (2026-10-12): the user accepts current performance and
+defers further optimization. The original numeric 10/25-NPC budget results remain
+FAIL; they no longer block this delivery. See
+[performance follow-up](NPCOutfitPerformanceFollowup.md) for the latest measurements,
+recommended next investigations and the LOD restriction. Historical sections
+below preserve earlier decisions; the final delivery section supersedes their
+then-pending release status.
+
 Current direction (2026-10-12): the user reports that earlier LOD work broke
 animation and gameplay. The independent garment LOD experiment is withdrawn;
 do not pursue LOD-based optimization or enable it for this task. FullRag's
@@ -1194,3 +1202,76 @@ no dirty packages. User HUB work is preserved separately from outfit commits.
 The LOD withdrawal is validated; the persistent goal remains active because
 the frozen 10/25-NPC performance budget still fails. Further optimization must
 preserve existing LOD selection and native animation/gameplay behavior.
+
+## Final delivery: schema 36.2 and accepted performance (2026-10-12)
+
+The user's later instruction accepts the current performance and defers further
+optimization. This supersedes the performance release blocker above; it does not
+turn failed measurements into passes. The latest prepared 1/10/25-NPC table and
+recommendations are in [NPCOutfitPerformanceFollowup.md](NPCOutfitPerformanceFollowup.md).
+The final evidence bundle is `Evidence/NPCOutfits/final-delivery.json`.
+
+Schema 36.2 fuses witness incidence validation into the first ordered projection
+cycle, preserving checks, fallback, six-cycle ceiling, exact fixed-point exit,
+per-frame updates and resource bounds. Only the owned graph builder and serialized
+graph change after snapshot `7d3823d0`. There is no further LOD, animation,
+equipment or persistence code change. The sampled all-scene witness kernel falls
+from 5.89 to 5.04 ms; this is not a CPU or whole-frame acceptance claim.
+
+Editor build PASS in 41.144 s and Game build PASS in 28.796 s, each below 600 s.
+The refreshed graph compiles with six kernels, 38 variables and 54 nodes.
+Pre-cook freshness PASS: 18/18 bindings, zero stale/invalid/draft rows, valid
+V5 manifest. Shared clothing regression PASS in 63.515 s (120 s bound), with
+15 checks, Blueprint compilation, three bodies, extreme morphs, movement,
+body replacement and overlapping coverage ownership. All three actual images
+were reviewed and copied into the final evidence bundle. Overall fit remains
+coherent with no broad collapse; authored rag holes remain. The earlier isolated
+Female anomaly is preserved as history with cause unproven, not relabeled fixed.
+
+Unchanged subsystem gates are reused with exact receipt paths/hashes: all 40
+eligible variants configured and compiled; weighted/fixed selection and saved
+precedence; disk restoration with exact GUID/count/equipment/body/morph identity;
+same-frame item removal/recreation; resident and pending-async cancellation;
+six service menus and two quest interactions; two melee pursuit and two ranged
+spacing samples using native ACF controllers. The older failed AI corridor is
+distinct from the successful current-nav fixture. The five nonhumanoid archetypes
+remain excluded. These representative checks are not a full gameplay catalogue.
+
+Final package, protection, retention and editor/publication closure are recorded
+below once completed. The budget results and historical diagnostic failures stay
+available for a future optimization task; no additional optimization is planned
+for this delivery.
+
+Fresh cook/package PASS: `Saved/BodyPresetsQA/Package_20261012_020734`,
+378.177 s native / 378.598 s bounded host (900 s ceiling). The three fresh
+packaged cases below all pass equipment mutation, preserved intent after
+reinitialization, explicit GC, zero pending work, zero logged Errors and normal
+exit. Their actual images were reviewed and published with the final evidence.
+
+| Process | Scope | Seconds |
+|---|---|---:|
+| `outfit_Male_01_20261012_021359225` | Cold-item map, 3 SkillGuy | 20.500567 |
+| `outfit_Female_01_20261012_021433943` | HUB, 3 MeleeEnemy | 18.260025 |
+| `outfit_Male_02_20261012_021454796` | HUB, 3 Zombie | 18.275293 |
+
+The separate placed cold-item NPC starts with a nonresident definition and
+three nonresident item classes, then reaches Ready in 1.593755 s. This does not
+control OS disk caches or measure a 25-NPC cold group. The three-second packaged
+captures are functional checks, not replacement steady-performance samples.
+
+Final protected comparison PASS: all 7,643 files unchanged in 27.56 s.
+`Session_20261012_015312` restored and verified all seven prior save files after
+editor closure. User-saved HUB remains byte-identical to the session snapshot
+(`c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a`).
+The required cleanup dry run selected only the old validated
+`Package_20261012_013142/{Cooked,Staged}`. Apply removed 4,991,793,153 bytes;
+the next dry run has zero targets. Receipts, logs and rollback backups remain.
+`latest-package.txt` now points to the newly validated `Package_20261012_020734`.
+
+Final editor closure PASS: guarded launch PID 66960, both DAZ plugins enabled,
+HUB loaded, no PIE and no dirty packages. Fresh MCP and native read-only inspection
+confirm the original single LOD/vertex counts for all three garments and independent
+NPC LOD zero. Skills validate. Required implementation gates are complete with
+performance explicitly accepted/deferred by the user. This delivery is identified
+by the commit containing `final-delivery.json`; Git publication is verified after
+commit. The user-owned HUB modification is deliberately preserved outside it.

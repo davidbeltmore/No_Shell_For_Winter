@@ -1,0 +1,1367 @@
+{
+  "status": "PASS_FUNCTIONAL_USER_ACCEPTED_PERFORMANCE",
+  "parent_snapshot": "7d3823d0f5972a65d87b0e95d2e058833c1f7882",
+  "target": "D:\\Projects UE5\\NoShellForWinter",
+  "source_read_only": "D:/Projects UE5/LustAsDeadlySin",
+  "decision": {
+    "date": "2026-10-12",
+    "performance": "USER_ACCEPTED_DEFERRED",
+    "original_budget_status_25": "FAIL",
+    "user_instruction": "Considero que el rendimiento actual es manejable, mas adelante lo re-verificaremos; terminar el plan y documentar recomendaciones futuras.",
+    "lod": "Original single LOD retained. Independent NPC LOD disabled; no animation-frequency reduction. New LOD experiments require explicit user request."
+  },
+  "schema": "36.2",
+  "limitations": [
+    "Performance limits unchanged; latest 10/25 pairs fail.",
+    "GPU profile is one rounded frame across all scene garments, not fixture-only or CPU improvement.",
+    "Prior Female extreme-morph anomaly did not recur in controlled checks; original cause remains unproven.",
+    "Three representative bodies and bounded gameplay checks do not certify every animation."
+  ],
+  "builds": {
+    "editor": {
+      "path": "Saved\\NPCDAZ\\outfit_witness_fusion_editor-process.json",
+      "sha256": "a8d5673b353f86c8b82db18566981fee064a0b7ef98b3a6f5a5498e7bd1d7146",
+      "receipt": {
+        "status": "PASS",
+        "exit_code": 0,
+        "seconds": 41.144,
+        "limit_seconds": 600,
+        "command": [
+          "powershell",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+        ]
+      }
+    },
+    "game": {
+      "path": "Saved\\NPCDAZ\\outfit_final_game-process.json",
+      "sha256": "6cc5ddb00f0668f2892137845b7b0ec29d7769740d65970d2ca3fa3bbae00544",
+      "receipt": {
+        "status": "PASS",
+        "exit_code": 0,
+        "seconds": 28.796,
+        "limit_seconds": 600,
+        "command": [
+          "powershell",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+        ]
+      }
+    },
+    "package": {
+      "path": "Saved\\NPCDAZ\\outfit_final_package-process.json",
+      "sha256": "ee164a7525b46e8bdb5a2b1c3d1e44657eefe79d2a074e16faca818498b98368",
+      "receipt": {
+        "status": "PASS",
+        "exit_code": 0,
+        "seconds": 378.598,
+        "limit_seconds": 900,
+        "command": [
+          "powershell",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "Tools/BodyPresets/Package-BodyPresets58.ps1",
+          "-AdditionalMap",
+          "/Game/_Game/QA/NPCOutfitColdStart"
+        ]
+      }
+    }
+  },
+  "graph": {
+    "path": "Saved\\ClothingMorphV4QA\\SurfaceGraph\\1791787958290391200\\result.json",
+    "sha256": "9bbac364646d409b0fe5e6592554614464c55e430908b3d62664cae6c21d6075",
+    "receipt": {
+      "status": "PASS",
+      "rebuilt": true,
+      "asset": "/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint",
+      "report": "PASS: /EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint\nPASS: /EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint; Primary=Garment, Secondary=Body, 38 variables, 54 nodes, BodyToGarment transform, six-pass base/two-stage cohesion/prepare-witness/witness/seam-tangent constraint validated.\nOptimus status: Compiled.\n[Info] DG_EFGarmentSurfaceConstraint/UpdateGraph_ComputeGraph/EF_GarmentSurfaceBase_OptimusNode_CustomComputeKernel: Loaded PCD3D_SM6 shaders from DDC.\n[Info] DG_EFGarmentSurfaceConstraint/UpdateGraph_ComputeGraph/EF_GarmentShapeCohesionA_OptimusNode_CustomComputeKernel_0: Loaded PCD3D_SM6 shaders from DDC.\n[Info] DG_EFGarmentSurfaceConstraint/UpdateGraph_ComputeGraph/EF_GarmentShapeCohesionB_OptimusNode_CustomComputeKernel_1: Loaded PCD3D_SM6 shaders from DDC.\n[Info] DG_EFGarmentSurfaceConstraint/UpdateGraph_ComputeGraph/EF_PrepareWitnessPlanes_OptimusNode_CustomComputeKernel_2: Loaded PCD3D_SM6 shaders from DDC.\n[Info] DG_EFGarmentSurfaceConstraint/UpdateGraph_ComputeGraph/EF_GarmentSeamAndTangentFinalize_OptimusNode_CustomComputeKernel_4: Loaded PCD3D_SM6 shaders from DDC.\nRebuilt=true; saved atomically after successful validation/compile.",
+      "seconds": 0.23399999999674037
+    }
+  },
+  "freshness": {
+    "path": "Saved\\NPCOutfits\\WitnessFusion\\final-freshness.json",
+    "sha256": "e265fe48d0601cf78a644d5cff15572f93885e38be67eb2c86a59c1f609f67f5",
+    "receipt": {
+      "fresh": true,
+      "enabled_row_count": 18,
+      "valid_binding_count": 18,
+      "draft_row_count": 0,
+      "invalid_row_count": 0,
+      "stale_row_count": 0,
+      "report": "V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+      "manifest_valid": true,
+      "status": "PASS",
+      "seconds": 1.297
+    }
+  },
+  "source_hashes": {
+    "Plugins/EFClothingMorph/Source/EFClothingMorphEditor/Private/EFClothingSurfaceDeformerBuilderLibrary.cpp": "c1c8b4bea73e8f47410dfc820cb4b1b3eeefa66a15f023b18191953e58809cf0",
+    "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "78fdc23815742de27e612e6d1308e2d9b7a0e4a4fb9e6b3456cff7376749e2e7"
+  },
+  "gpu": {
+    "before": {
+      "path": "Saved\\NPCOutfits\\GPU\\witness_fused_before_01.json",
+      "sha256": "dbfa3e708582f056294b4b74b8b5ff1349e8508e3c1fee55a5f4b075d67c8d23",
+      "receipt": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "c95920c4c376d7f36c4a509669cbe821a2dd4c72e77f3fe5b5cdcb4ebbc63582",
+        "retained_frame_sha256": "5ebb87cc9cf955ab373ff3185536e8d35fdc162c5505d0288e0e044d5126150b",
+        "frame": "[2026.10.12-06.47.22:067][729]LogRHI: Display: GPU Profile for Frame 2748 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 111,
+            "total_ms": 0.07,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 111,
+            "total_ms": 1.28,
+            "max_ms": 0.03
+          },
+          "EF_GarmentWitness": {
+            "count": 111,
+            "total_ms": 5.89,
+            "max_ms": 0.08
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 111,
+            "total_ms": 0.13,
+            "max_ms": 0.01
+          }
+        }
+      }
+    },
+    "after": {
+      "path": "Saved\\NPCOutfits\\GPU\\witness_fused_after_01.json",
+      "sha256": "6a822f0badb3c3bf9b3a097e7a0e8faa53b37eeb5fc02780d055cb12c473516f",
+      "receipt": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "c474556b9ca202a458ab802a1d77d6778f6ffdac8536eda0b317683ef50a9cc5",
+        "retained_frame_sha256": "842a4b76c48c3faa954ca93dfa2205b05b14af32f5d317c59461ee96c85a785c",
+        "frame": "[2026.10.12-06.53.40:986][412]LogRHI: Display: GPU Profile for Frame 1431 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 111,
+            "total_ms": 0.1,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 111,
+            "total_ms": 1.42,
+            "max_ms": 0.18
+          },
+          "EF_GarmentWitness": {
+            "count": 111,
+            "total_ms": 5.04,
+            "max_ms": 0.07
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 111,
+            "total_ms": 0.24,
+            "max_ms": 0.01
+          }
+        }
+      }
+    }
+  },
+  "gpu_controls": {
+    "before": {
+      "path": "Saved\\NPCOutfits\\Native\\witness_fused_before_01\\host.json",
+      "sha256": "7b7e294c9f1b7c59ae6f55df7e6dbb01962a61d75d304266be3d1e526e7430ba",
+      "receipt": {
+        "status": "PASS",
+        "reason": "",
+        "seconds": 33.43800000000192,
+        "command": "Project.NPCOutfits.QA count=25 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=witness_fused_before_01 gc",
+        "immutable_buffers": 1,
+        "prepared_binding": 1,
+        "parameter_cache": 1,
+        "independent_npc_lod": 0,
+        "inspect_lod": false,
+        "lod_snapshot": null,
+        "lod_quality_requested": false,
+        "lod_transitions_requested": false,
+        "lod_transitions": [],
+        "profile_install": false,
+        "profile_gpu": true,
+        "trace": false,
+        "quality": {
+          "r.SkeletalMeshLODBias": 2.0,
+          "r.SkeletalMeshLODRadiusScale": 1.0,
+          "Project.NPCOutfits.UseResidentPrerequisites": 1.0,
+          "sg.ViewDistanceQuality": 3.0,
+          "sg.AntiAliasingQuality": 3.0,
+          "sg.ShadowQuality": 3.0,
+          "sg.GlobalIlluminationQuality": 3.0,
+          "sg.ReflectionQuality": 3.0,
+          "sg.PostProcessQuality": 3.0,
+          "sg.TextureQuality": 3.0,
+          "sg.EffectsQuality": 3.0,
+          "sg.FoliageQuality": 3.0,
+          "sg.ShadingQuality": 3.0,
+          "r.ScreenPercentage": 0.0,
+          "r.VSync": 0.0,
+          "t.MaxFPS": 0.0
+        },
+        "configuration_hashes": {
+          "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+          "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "1ae46a78aa30b73d78708e430bd5827cb59f3184169d1aa9606a9a45009cfae9",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "bf058590a051fe88d3730745b49d693b427bffa61b7a25e0129517ac825a6302",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "d73e789c5c8858f02ada200308987d1d1e1f149ec71e3997384f746299cbf452",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "1333fc96a8907b5556f7191669d069d605a41e838e4f2850bf4467c86b25923d",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+        },
+        "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\witness_fused_before_01_warmup\\runtime.json"
+      }
+    },
+    "after": {
+      "path": "Saved\\NPCOutfits\\Native\\witness_fused_after_01\\host.json",
+      "sha256": "399120477179565ceb1f2d2866a532e5c9e991cef9647ecd21fee2b99f41ac79",
+      "receipt": {
+        "status": "PASS",
+        "reason": "",
+        "seconds": 29.76600000000326,
+        "command": "Project.NPCOutfits.QA count=25 body=Male.01 archetype=SkillGuy dressed=1 seed=731 capture=3.0 functional=0 loading=warm timeout=120 name=witness_fused_after_01 gc",
+        "immutable_buffers": 1,
+        "prepared_binding": 1,
+        "parameter_cache": 1,
+        "independent_npc_lod": 0,
+        "inspect_lod": false,
+        "lod_snapshot": null,
+        "lod_quality_requested": false,
+        "lod_transitions_requested": false,
+        "lod_transitions": [],
+        "profile_install": false,
+        "profile_gpu": true,
+        "trace": false,
+        "quality": {
+          "r.SkeletalMeshLODBias": 2.0,
+          "r.SkeletalMeshLODRadiusScale": 1.0,
+          "Project.NPCOutfits.UseResidentPrerequisites": 1.0,
+          "sg.ViewDistanceQuality": 3.0,
+          "sg.AntiAliasingQuality": 3.0,
+          "sg.ShadowQuality": 3.0,
+          "sg.GlobalIlluminationQuality": 3.0,
+          "sg.ReflectionQuality": 3.0,
+          "sg.PostProcessQuality": 3.0,
+          "sg.TextureQuality": 3.0,
+          "sg.EffectsQuality": 3.0,
+          "sg.FoliageQuality": 3.0,
+          "sg.ShadingQuality": 3.0,
+          "r.ScreenPercentage": 0.0,
+          "r.VSync": 0.0,
+          "t.MaxFPS": 0.0
+        },
+        "configuration_hashes": {
+          "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+          "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "1ae46a78aa30b73d78708e430bd5827cb59f3184169d1aa9606a9a45009cfae9",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "bf058590a051fe88d3730745b49d693b427bffa61b7a25e0129517ac825a6302",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "d73e789c5c8858f02ada200308987d1d1e1f149ec71e3997384f746299cbf452",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "1333fc96a8907b5556f7191669d069d605a41e838e4f2850bf4467c86b25923d",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "78fdc23815742de27e612e6d1308e2d9b7a0e4a4fb9e6b3456cff7376749e2e7",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+        },
+        "prewarm_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\witness_fused_after_01_warmup\\runtime.json"
+      }
+    }
+  },
+  "performance": [
+    {
+      "path": "Saved\\NPCOutfits\\Comparisons\\perf_witness_fused_01_1.json",
+      "sha256": "a68b257126e37d1ab5e0c0e1a01f0d4bf2099bb888a59a0ed09582236117c687",
+      "receipt": {
+        "status": "PASS",
+        "budget": {
+          "cpu_increment_ms": 2,
+          "gpu_increment_ms": 3,
+          "frame_p95_increment_ms": 4,
+          "warm_ready_seconds": 2
+        },
+        "sources": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_1_bare\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_1_dressed\\runtime.json"
+        ],
+        "reasons": [],
+        "fixture_version": 3,
+        "max_active_initializations": 4,
+        "configuration_hashes": {
+          "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+          "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "1ae46a78aa30b73d78708e430bd5827cb59f3184169d1aa9606a9a45009cfae9",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "bf058590a051fe88d3730745b49d693b427bffa61b7a25e0129517ac825a6302",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "d73e789c5c8858f02ada200308987d1d1e1f149ec71e3997384f746299cbf452",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "1333fc96a8907b5556f7191669d069d605a41e838e4f2850bf4467c86b25923d",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "78fdc23815742de27e612e6d1308e2d9b7a0e4a4fb9e6b3456cff7376749e2e7",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+        },
+        "prewarm_receipts": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_1_bare_warmup\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_1_dressed_warmup\\runtime.json"
+        ],
+        "count": 1,
+        "loading": "warm",
+        "measurements": {
+          "cpu_increment_ms": 0.09644800591010139,
+          "gpu_increment_ms": 0.2524429447631453,
+          "frame_p95_increment_ms": 0.27109718322753906,
+          "dressed_frame_p95_ms": 24.221498489379883,
+          "baseline_frame_p95_ms": 23.950401306152344,
+          "spawn_peak_ms": 70.17870247364044,
+          "warm_ready_seconds": 0.2862823009490967,
+          "pending_after_destroy": 0
+        },
+        "acceptance_applies": true
+      }
+    },
+    {
+      "path": "Saved\\NPCOutfits\\Comparisons\\perf_witness_fused_01_10.json",
+      "sha256": "fc908d9c7e34173da47e8ef0e4bd32a3a28a5d03e8ab915256b363f672eb198b",
+      "receipt": {
+        "status": "FAIL",
+        "budget": {
+          "cpu_increment_ms": 2,
+          "gpu_increment_ms": 3,
+          "frame_p95_increment_ms": 4,
+          "warm_ready_seconds": 2
+        },
+        "sources": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_10_bare\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_10_dressed\\runtime.json"
+        ],
+        "reasons": [
+          "cpu_increment_ms exceeds frozen budget"
+        ],
+        "fixture_version": 3,
+        "max_active_initializations": 4,
+        "configuration_hashes": {
+          "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+          "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "1ae46a78aa30b73d78708e430bd5827cb59f3184169d1aa9606a9a45009cfae9",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "bf058590a051fe88d3730745b49d693b427bffa61b7a25e0129517ac825a6302",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "d73e789c5c8858f02ada200308987d1d1e1f149ec71e3997384f746299cbf452",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "1333fc96a8907b5556f7191669d069d605a41e838e4f2850bf4467c86b25923d",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "78fdc23815742de27e612e6d1308e2d9b7a0e4a4fb9e6b3456cff7376749e2e7",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+        },
+        "prewarm_receipts": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_10_bare_warmup\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_10_dressed_warmup\\runtime.json"
+        ],
+        "count": 10,
+        "loading": "warm",
+        "measurements": {
+          "cpu_increment_ms": 2.774013276334127,
+          "gpu_increment_ms": 2.1190103411039773,
+          "frame_p95_increment_ms": 3.5415992736816406,
+          "dressed_frame_p95_ms": 31.935699462890625,
+          "baseline_frame_p95_ms": 28.394100189208984,
+          "spawn_peak_ms": 523.9123106002808,
+          "warm_ready_seconds": 1.506183099001646,
+          "pending_after_destroy": 0
+        },
+        "acceptance_applies": true
+      }
+    },
+    {
+      "path": "Saved\\NPCOutfits\\Comparisons\\perf_witness_fused_01_25.json",
+      "sha256": "c8c8cf74886cc011774f2242423a8fac5ef8eddbe736cfe4e241851125333f2b",
+      "receipt": {
+        "status": "FAIL",
+        "budget": {
+          "cpu_increment_ms": 2,
+          "gpu_increment_ms": 3,
+          "frame_p95_increment_ms": 4,
+          "warm_ready_seconds": 2
+        },
+        "sources": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_25_bare\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_25_dressed\\runtime.json"
+        ],
+        "reasons": [
+          "cpu_increment_ms exceeds frozen budget",
+          "gpu_increment_ms exceeds frozen budget",
+          "frame_p95_increment_ms exceeds frozen budget",
+          "warm_ready_seconds exceeds frozen budget"
+        ],
+        "fixture_version": 3,
+        "max_active_initializations": 4,
+        "configuration_hashes": {
+          "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+          "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "1ae46a78aa30b73d78708e430bd5827cb59f3184169d1aa9606a9a45009cfae9",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "bf058590a051fe88d3730745b49d693b427bffa61b7a25e0129517ac825a6302",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "d73e789c5c8858f02ada200308987d1d1e1f149ec71e3997384f746299cbf452",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "1333fc96a8907b5556f7191669d069d605a41e838e4f2850bf4467c86b25923d",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "78fdc23815742de27e612e6d1308e2d9b7a0e4a4fb9e6b3456cff7376749e2e7",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+        },
+        "prewarm_receipts": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_25_bare_warmup\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_witness_fused_01_25_dressed_warmup\\runtime.json"
+        ],
+        "count": 25,
+        "loading": "warm",
+        "measurements": {
+          "cpu_increment_ms": 8.590836058031073,
+          "gpu_increment_ms": 6.185557761547667,
+          "frame_p95_increment_ms": 11.363101959228516,
+          "dressed_frame_p95_ms": 46.6775016784668,
+          "baseline_frame_p95_ms": 35.31439971923828,
+          "spawn_peak_ms": 1383.4103345870972,
+          "warm_ready_seconds": 4.130818899720907,
+          "pending_after_destroy": 0
+        },
+        "acceptance_applies": true
+      }
+    }
+  ],
+  "shared_regression": {
+    "path": "Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\result.json",
+    "sha256": "30e547c8541f21e22e309a9626a72c2b273ec3ac366635e6623a07bb48e38508",
+    "receipt": {
+      "status": "PASS",
+      "checks": [
+        {
+          "gender": "Female",
+          "coverage_owners": 2,
+          "status": "PASS"
+        },
+        {
+          "gender": "Female",
+          "coverage_owners": 1,
+          "status": "PASS"
+        },
+        {
+          "gender": "Female",
+          "coverage_owners": 0,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 2,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 1,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 0,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 2,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 1,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "coverage_owners": 0,
+          "status": "PASS"
+        },
+        {
+          "gender": "Female",
+          "morphs": {
+            "Breasts Large": 1.85,
+            "Body Voluptuous": 1.0
+          },
+          "preset_id": "Female.01",
+          "state": "Ready",
+          "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.200cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.350cm,lowerGuardVerts=4289]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm)."
+        },
+        {
+          "gender": "Female",
+          "moving_morph_distance_cm": 233.43441742410494,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "preset_id": "Male.01",
+          "state": "Ready",
+          "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+        },
+        {
+          "gender": "Male",
+          "moving_morph_distance_cm": 236.82968321950173,
+          "status": "PASS"
+        },
+        {
+          "gender": "Male",
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "preset_id": "Male.02",
+          "state": "Ready",
+          "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+        },
+        {
+          "gender": "Male",
+          "moving_morph_distance_cm": 232.6339655828536,
+          "status": "PASS"
+        }
+      ],
+      "screenshots": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Female.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Male.01.png",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Male.02.png"
+      ],
+      "saved_assets": false,
+      "immutable_buffers": 1,
+      "diagnostic_max_fps": null,
+      "diagnostic_max_fps_scope": "After garment readiness, during morph movement/capture only; resource preparation uses the original cap.",
+      "peak_tick_ms_by_phase": {
+        "load": 125.0,
+        "play": 125.0,
+        "player": 125.0,
+        "equip": 87.43879944086075,
+        "overlap_equip": 26.129499077796936,
+        "overlap_prepare": 95.76459974050522,
+        "overlap_two": 82.87030458450317,
+        "overlap_one": 37.352897226810455,
+        "overlap_zero": 29.796700924634933,
+        "morph_equip": 26.464100927114487,
+        "morph_ready": 125.0,
+        "morph_movement": 44.5437990128994,
+        "morph_capture": 32.829198986291885,
+        "morph_done": 125.0
+      },
+      "blueprint_compile": "PASS",
+      "seconds": 63.51499999999942,
+      "timeout_seconds": 120.0
+    }
+  },
+  "shared_images": [
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Female.01.png",
+      "published_image": "final-shared-morph_extreme_Female.01.png",
+      "sha256": "a9f34fb0bb32549df432368350b21607f3346f14f565ff268f9980d3c166cfc7",
+      "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Male.01.png",
+      "published_image": "final-shared-morph_extreme_Male.01.png",
+      "sha256": "fd0812cd88c1a9b64d2349a637d31c3bec4856692a59179a67952752f684ecc6",
+      "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+    },
+    {
+      "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791788071529004200\\morph_extreme_Male.02.png",
+      "published_image": "final-shared-morph_extreme_Male.02.png",
+      "sha256": "af3da7213bdc130a85e93d98ef748a4324682e626596cbc244fdcb60c134907c",
+      "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+    }
+  ],
+  "unchanged_logic_evidence": {
+    "rollout": {
+      "path": "Docs\\Migration\\Evidence\\NPCOutfits\\rollout.json",
+      "sha256": "347e318765ac4c58e2cf32d38db6bf4d9602eccb8f099b1965d88ce27f8a060c",
+      "summary": {
+        "status": "PASS",
+        "configured": 40,
+        "unconfigured": 0,
+        "failed": 0,
+        "author_status": "PASS",
+        "audit_status": "PASS"
+      }
+    },
+    "selection": {
+      "path": "Docs\\Migration\\Evidence\\NPCOutfits\\selection-gc-ownership.json",
+      "sha256": "14bc875e9427d72c28a4d01cfddb249cff9b7a1ead2d318105b4b83c54059d97",
+      "summary": {
+        "status": "PASS",
+        "runtime_status": "PASS",
+        "reason": "Weighted fresh-generation repeat, zero weight, fixed instance override and saved inventory precedence"
+      }
+    },
+    "services": {
+      "path": "Docs\\Migration\\Evidence\\NPCOutfits\\logic-initial.json",
+      "sha256": "91c2c699691eb9476ea91ec70bdf6a0155eba2c9f50bac24479217a77be21041",
+      "summary": {
+        "status": "FAIL",
+        "services": {
+          "menus": 6,
+          "quest_interactions": 2,
+          "status": "PASS"
+        },
+        "reason": "Native pursuit corridor lies outside current authored HUB navigation bounds",
+        "scope_note": "Only the six service menus and two quest interactions PASS here; the old AI fixture failed. AI is separately revalidated in the current authored navigation bounds."
+      }
+    },
+    "ai": {
+      "path": "Saved\\NPCOutfits\\Logic\\1791786620471900700\\runtime.json",
+      "sha256": "9132408fa1118346eac1c14e48561457f77d6f7245c388f363b13e3d0b759ee5",
+      "summary": {
+        "status": "PASS",
+        "seconds": 24.68800000000192,
+        "reason": ""
+      }
+    },
+    "lifecycle": {
+      "path": "Saved\\NPCOutfits\\Lifecycle\\1791781983217733500\\runtime.json",
+      "sha256": "5640a1d8811d3d65fcc3d2c47e2f2e915d65b48e5bfef3868d06c2615e8c788a",
+      "summary": {
+        "status": "PASS",
+        "seconds": 18.297000000005937,
+        "checks": [
+          {
+            "name": "Unequip before native removal",
+            "status": "PASS"
+          },
+          {
+            "name": "Native inventory removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Unequip before native removal",
+            "status": "PASS"
+          },
+          {
+            "name": "Native inventory removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Removed item stays removed with exact remaining GUIDs after recreate",
+            "status": "PASS"
+          },
+          {
+            "name": "Appearance body survives recreate",
+            "status": "PASS"
+          },
+          {
+            "name": "Destroy with resident prerequisites before equip",
+            "status": "PASS"
+          },
+          {
+            "name": "Queue drained after destruction",
+            "status": "PASS"
+          },
+          {
+            "name": "Destroy while async outfit load is pending",
+            "status": "PASS"
+          },
+          {
+            "name": "Queue drained after destruction",
+            "status": "PASS"
+          }
+        ],
+        "reason": ""
+      }
+    },
+    "disk_save": {
+      "path": "Saved\\NPCOutfits\\Save\\1791781723844339600\\runtime.json",
+      "sha256": "b9db5bb5eebed92c93aefb876a649c0a0f6f451d5ce6b455aca0a8221790d331",
+      "summary": {
+        "status": "PASS",
+        "seconds": 7.297000000005937,
+        "checks": [
+          {
+            "name": "Unequip shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Unequip shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Disk save succeeded",
+            "status": "PASS"
+          },
+          {
+            "name": "Alter state after save",
+            "status": "PASS"
+          },
+          {
+            "name": "Alter state after save",
+            "status": "PASS"
+          },
+          {
+            "name": "Disk load succeeded",
+            "status": "PASS"
+          },
+          {
+            "name": "Exact GUID/count/equipment/body/morph restoration",
+            "status": "PASS"
+          },
+          {
+            "name": "No duplicate GUIDs",
+            "status": "PASS"
+          }
+        ],
+        "reason": ""
+      }
+    }
+  },
+  "package": {
+    "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261012_020734",
+    "cook": {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261012_020734\\package-result.json",
+      "sha256": "2d53bcd738731e3d3dee7af71ce3b9caa173e056cc782caa0e36f0b4381c720f",
+      "receipt": {
+        "scope": "HUB body presets and clothing",
+        "reused_cook": false,
+        "elapsed_seconds": 378.1769745,
+        "exit_code": 0
+      }
+    },
+    "executable_sha256": "e721035670f977e14857431f17a191b34bbaf3bcf03ef8a91266a1a8ddc2d23e",
+    "cases": [
+      {
+        "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_021359225\\process.json",
+        "sha256": "4eb04b23712895156da8fb9cfbb9efee4c6518354333046e3d8bdb50f4ec9314",
+        "summary": {
+          "status": "PASS",
+          "seconds": 20.500566799999998,
+          "body": "Male.01",
+          "archetype": "SkillGuy",
+          "count": 3,
+          "map": "/Game/_Game/QA/NPCOutfitColdStart",
+          "exit_code": 0,
+          "all_error_count": 0,
+          "prepared_reuses": 6,
+          "require_cold_items": true
+        },
+        "native": {
+          "status": "PASS",
+          "pending_after_destroy": 0,
+          "garbage_collection_completed": true,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_0",
+              "class": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 0,
+              "definition_load_seconds": 0.01559709757566452,
+              "item_classes_load_seconds": 0.020224500447511673,
+              "engine_seconds_at_start": 7.683978199958801,
+              "engine_seconds_at_ready": 9.27773329988122,
+              "initialization_seconds": 1.5937550999224186
+            }
+          ]
+        },
+        "image": {
+          "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_021359225\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261012_021359225\\outfits.png",
+          "published_image": "final-packaged-Male.01.png",
+          "sha256": "6899eb732e6f44d929bb1414d5f737e6a6c993eb80032c1178d981cae4bc0b6b",
+          "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+        }
+      },
+      {
+        "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_021433943\\process.json",
+        "sha256": "f30a107fe0bc16fc4e6781fc04ed10c34d98f32fa540f4bdf32612cf149184ff",
+        "summary": {
+          "status": "PASS",
+          "seconds": 18.2600248,
+          "body": "Female.01",
+          "archetype": "MeleeEnemy",
+          "count": 3,
+          "map": "/Game/_Game/Hub/HUB",
+          "exit_code": 0,
+          "all_error_count": 0,
+          "prepared_reuses": 36,
+          "require_cold_items": false
+        },
+        "native": {
+          "status": "PASS",
+          "pending_after_destroy": 0,
+          "garbage_collection_completed": true,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.371951296925545,
+              "engine_seconds_at_ready": 8.503596998751163,
+              "initialization_seconds": 0.13164570182561874
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.01884320005774498,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.47246889770031,
+              "engine_seconds_at_ready": 7.803162898868322,
+              "initialization_seconds": 1.3306940011680126
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.80321029946208,
+              "engine_seconds_at_ready": 8.487293299287558,
+              "initialization_seconds": 0.6840829998254776
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_2",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.098054897040129,
+              "engine_seconds_at_ready": 8.426749397069216,
+              "initialization_seconds": 0.32869450002908707
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_3",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.972121238708496e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.180590599775314,
+              "engine_seconds_at_ready": 8.426759097725153,
+              "initialization_seconds": 0.24616849794983864
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeCompanionBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 9.98377799987793e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 7.812246698886156,
+              "engine_seconds_at_ready": 8.08713660016656,
+              "initialization_seconds": 0.27488990128040314
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 2.0973384380340576e-06,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.087204899638891,
+              "engine_seconds_at_ready": 8.371907100081444,
+              "initialization_seconds": 0.2847020998597145
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 1.2032687664031982e-06,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.851691197603941,
+              "engine_seconds_at_ready": 8.098027899861336,
+              "initialization_seconds": 0.2463367022573948
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.868113599717617,
+              "engine_seconds_at_ready": 8.180552698671818,
+              "initialization_seconds": 0.31243909895420074
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.009700998663902283,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 6.481616400182247,
+              "engine_seconds_at_ready": 7.803146697580814,
+              "initialization_seconds": 1.3215302973985672
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 9.015202522277832e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.490801498293877,
+              "engine_seconds_at_ready": 7.812227699905634,
+              "initialization_seconds": 1.3214262016117573
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPFemale_C_2",
+              "class": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 9.685754776000977e-08,
+              "engine_seconds_at_start": 6.504212897270918,
+              "engine_seconds_at_ready": 7.868086099624634,
+              "initialization_seconds": 1.363873202353716
+            }
+          ]
+        },
+        "image": {
+          "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_021433943\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261012_021433943\\outfits.png",
+          "published_image": "final-packaged-Female.01.png",
+          "sha256": "9c2b98bb72addb705b27c5e207d44dc1bb969256b9ffcac21e446691196ed6ad",
+          "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+        }
+      },
+      {
+        "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_021454796\\process.json",
+        "sha256": "84ef6552f0c6e6d9b6e49c953043b8317d1192e96f50f3771742f61fa2c43dfa",
+        "summary": {
+          "status": "PASS",
+          "seconds": 18.275292699999998,
+          "body": "Male.02",
+          "archetype": "Zombie",
+          "count": 3,
+          "map": "/Game/_Game/Hub/HUB",
+          "exit_code": 0,
+          "all_error_count": 0,
+          "prepared_reuses": 36,
+          "require_cold_items": false
+        },
+        "native": {
+          "status": "PASS",
+          "pending_after_destroy": 0,
+          "garbage_collection_completed": true,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.977949619293213e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 8.609665099531412,
+              "engine_seconds_at_ready": 8.72881269827485,
+              "initialization_seconds": 0.11914759874343872
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.021219398826360703,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 6.604958198964596,
+              "engine_seconds_at_ready": 8.041557598859072,
+              "initialization_seconds": 1.436599399894476
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.041607297956944,
+              "engine_seconds_at_ready": 8.701536800712347,
+              "initialization_seconds": 0.6599294021725655
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_2",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.316835399717093,
+              "engine_seconds_at_ready": 8.609557997435331,
+              "initialization_seconds": 0.29272259771823883
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_3",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 8.4702835008502,
+              "engine_seconds_at_ready": 8.645744800567627,
+              "initialization_seconds": 0.1754612997174263
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeCompanionBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 8.05166569724679,
+              "engine_seconds_at_ready": 8.306609697639942,
+              "initialization_seconds": 0.25494400039315224
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 4.991888999938965e-07,
+              "item_classes_load_seconds": 9.685754776000977e-08,
+              "engine_seconds_at_start": 8.306694500148296,
+              "engine_seconds_at_ready": 8.609565999358892,
+              "initialization_seconds": 0.3028714992105961
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.977949619293213e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 8.067637298256159,
+              "engine_seconds_at_ready": 8.31680789962411,
+              "initialization_seconds": 0.24917060136795044
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 8.082048900425434,
+              "engine_seconds_at_ready": 8.470246497541666,
+              "initialization_seconds": 0.3881975971162319
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.011441297829151154,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 6.6147473976016045,
+              "engine_seconds_at_ready": 8.041545398533344,
+              "initialization_seconds": 1.4267980009317398
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 6.625504598021507,
+              "engine_seconds_at_ready": 8.05164209753275,
+              "initialization_seconds": 1.426137499511242
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPFemale_C_2",
+              "class": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 6.64057569950819,
+              "engine_seconds_at_ready": 8.082012299448252,
+              "initialization_seconds": 1.4414364993572235
+            }
+          ]
+        },
+        "image": {
+          "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_021454796\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261012_021454796\\outfits.png",
+          "published_image": "final-packaged-Male.02.png",
+          "sha256": "8096d90446300302375d428d4da31de071f55d5f0cdac1add8404a88e36c8b50",
+          "review": "PASS: actual image reviewed; coherent overall clothing fit, no broad collapse. Authored rag openings retained; not an exhaustive animation catalogue."
+        }
+      }
+    ]
+  },
+  "save_restore": {
+    "path": "Saved\\NPCOutfits\\Session_20261012_015312\\user_save_after.json",
+    "sha256": "158bc9867465bdb3890c38c15601cae1f2870f1b99b3f0f582bc57079b168d7d",
+    "receipt": {
+      "Status": "PASS",
+      "Checked": 7,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    }
+  },
+  "save_hashes": [
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\CharacterCreationPresets.sav",
+      "expected_sha256": "5f98f94263ee254c95901fa256d62c2c148743fea337d5dd970717a34330e0c7",
+      "actual_sha256": "5f98f94263ee254c95901fa256d62c2c148743fea337d5dd970717a34330e0c7"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\NPCOutfits_QA_1791739938981675100.sav",
+      "expected_sha256": "62d1cb11897aa69c0695e40fa47ce6f14b91c3632562f26369f6c316313b6eaf",
+      "actual_sha256": "62d1cb11897aa69c0695e40fa47ce6f14b91c3632562f26369f6c316313b6eaf"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\NPCOutfits_QA_1791743419821319800.sav",
+      "expected_sha256": "b2925207d034a95b15aa97dc9d2644b7458c1d3cc666e0c8edbbe39579d8ce45",
+      "actual_sha256": "b2925207d034a95b15aa97dc9d2644b7458c1d3cc666e0c8edbbe39579d8ce45"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\NPCOutfits_QA_1791781723844339600.sav",
+      "expected_sha256": "b033cfb61c2575aa261efdf2c8ad09f42a3eb21c042d5cb3ba83b37ba36b246c",
+      "actual_sha256": "b033cfb61c2575aa261efdf2c8ad09f42a3eb21c042d5cb3ba83b37ba36b246c"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav",
+      "expected_sha256": "926281a55e708a0c25f0417aae8872cd93c181ae5334c540bc7662f45b9a7f88",
+      "actual_sha256": "926281a55e708a0c25f0417aae8872cd93c181ae5334c540bc7662f45b9a7f88"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\SaveMetadata.sav",
+      "expected_sha256": "2b545f36226109490fe8025c3aa9adedbb48e5dbe72544126e79af38e9e04108",
+      "actual_sha256": "2b545f36226109490fe8025c3aa9adedbb48e5dbe72544126e79af38e9e04108"
+    },
+    {
+      "path": "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\test.sav",
+      "expected_sha256": "64fa82f4964d271bf4cc9d70a39c5783f2eb2d2291805a75eba701ff7a564295",
+      "actual_sha256": "64fa82f4964d271bf4cc9d70a39c5783f2eb2d2291805a75eba701ff7a564295"
+    }
+  ],
+  "user_hub_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a",
+  "protection": {
+    "path": "Saved\\NPCOutfits\\Baseline\\after.json",
+    "sha256": "7b09bc571ffd508e5789b09f2833d81913e1ba51e13fa96958d4d1c5bbe03850",
+    "count": 7643,
+    "status": "PASS",
+    "seconds": 27.56,
+    "head": "7d3823d0f5972a65d87b0e95d2e058833c1f7882",
+    "changed": []
+  },
+  "cleanup": {
+    "status": "PASS",
+    "removed_bytes": 4991793153,
+    "retained_package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261012_020734",
+    "after_targets": 0,
+    "plans": [
+      {
+        "path": "Saved\\CleanupEvidence\\20261008\\package-cleanup-plan_20261012_021556268.json",
+        "sha256": "d459f029457f89c1e217bfbb43a840fec688ec4ce03b7448815737f29d83d9cd",
+        "contents": "[\n    {\n        \"Path\":  \"D:\\\\Projects UE5\\\\NoShellForWinter\\\\Saved\\\\BodyPresetsQA\\\\Package_20261012_013142\\\\Cooked\",\n        \"Bytes\":  397248230,\n        \"Files\":  53\n    },\n    {\n        \"Path\":  \"D:\\\\Projects UE5\\\\NoShellForWinter\\\\Saved\\\\BodyPresetsQA\\\\Package_20261012_013142\\\\Staged\",\n        \"Bytes\":  4594544923,\n        \"Files\":  49\n    }\n]"
+      },
+      {
+        "path": "Saved\\CleanupEvidence\\20261008\\package-cleanup-plan_20261012_021609919.json",
+        "sha256": "d459f029457f89c1e217bfbb43a840fec688ec4ce03b7448815737f29d83d9cd",
+        "contents": "[\n    {\n        \"Path\":  \"D:\\\\Projects UE5\\\\NoShellForWinter\\\\Saved\\\\BodyPresetsQA\\\\Package_20261012_013142\\\\Cooked\",\n        \"Bytes\":  397248230,\n        \"Files\":  53\n    },\n    {\n        \"Path\":  \"D:\\\\Projects UE5\\\\NoShellForWinter\\\\Saved\\\\BodyPresetsQA\\\\Package_20261012_013142\\\\Staged\",\n        \"Bytes\":  4594544923,\n        \"Files\":  49\n    }\n]"
+      }
+    ]
+  },
+  "skills": {
+    "status": "PASS",
+    "validated": [
+      ".agents/skills/ef-npc-outfit-workbench",
+      "A:/Skills Codex/ef-clothing-unisex-workbench"
+    ],
+    "validator": "A:/Skills Codex/.system/skill-creator/scripts/quick_validate.py"
+  },
+  "final_editor": {
+    "path": "Saved\\NPCOutfits\\delivery-final-editor.json",
+    "sha256": "c25a8402c05b78c95dcae8616826f348c3e7d91791b1ab164c3ae734fe4bdeb1",
+    "receipt": {
+      "status": "PASS",
+      "project": "D:\\Projects UE5\\NoShellForWinter",
+      "world": "/Game/_Game/Hub/HUB.HUB",
+      "pie_running": false,
+      "dirty_packages": 0,
+      "independent_npc_lod": 0,
+      "garments": [
+        {
+          "mesh": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+          "lod_count": 1,
+          "lod0_vertices": 7767
+        },
+        {
+          "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+          "lod_count": 1,
+          "lod0_vertices": 9081
+        },
+        {
+          "mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+          "lod_count": 1,
+          "lod0_vertices": 2176
+        }
+      ]
+    },
+    "pid": 66960,
+    "mcp": "http://127.0.0.1:8000/mcp",
+    "tool": "EditorToolset.EditorAppToolset.IsPIERunning",
+    "pie_running": false,
+    "daz_launch_guard": "PASS"
+  },
+  "publication": "Recorded by the containing commit and final remote verification; unrelated user HUB modification intentionally excluded."
+}

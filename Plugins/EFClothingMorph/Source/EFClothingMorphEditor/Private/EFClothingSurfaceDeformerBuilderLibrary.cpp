@@ -31,7 +31,7 @@ namespace EFClothingSurfaceDeformerBuilder
 	constexpr TCHAR AssetObjectPath[] = TEXT("/EFClothingMorph/Deformers/DG_EFGarmentSurfaceConstraint.DG_EFGarmentSurfaceConstraint");
 	constexpr TCHAR GraphSchemaMetadataKey[] = TEXT("EFClothingMorph.SurfaceGraphSchema");
 	constexpr TCHAR PrimarySemanticMetadataKey[] = TEXT("EFClothingMorph.PrimaryBindingSemantic");
-	constexpr TCHAR GraphSchemaVersion[] = TEXT("36.1");
+	constexpr TCHAR GraphSchemaVersion[] = TEXT("36.2");
 	constexpr TCHAR PrimarySemantic[] = TEXT("Garment");
 
 	constexpr TCHAR CustomKernelClassPath[] = TEXT("/Script/OptimusCore.OptimusNode_CustomComputeKernel");
@@ -1832,88 +1832,6 @@ KERNEL
 		max(LocalFeatureSizeCm * 0.25f, 0.0f)
 			+ AutomaticWitnessReserveBudgetCm);
 
-    // Validate immutable incidence and the frame-local planes once, before
-    // projection. None of these inputs changes during the six ordered cycles.
-    // The correction cap is applied only after all cycles, so accumulating its
-    // minimum here preserves the solver while shortening each repeated step.
-    [loop]
-    for (int LocalReferenceIndex = 0;
-        LocalReferenceIndex < WitnessRange.y && !InvalidWitnessData;
-        ++LocalReferenceIndex)
-    {
-			int WitnessIndex = WitnessIndicesBuffer[WitnessRange.x + LocalReferenceIndex];
-			if (WitnessIndex < 0 || WitnessIndex >= WitnessCountValue)
-			{
-				InvalidWitnessData = true;
-				break;
-			}
-			int4 GarmentVertices = WitnessGarmentVerticesBuffer[WitnessIndex];
-			float4 GarmentBarycentricsAndClearanceCm =
-				WitnessGarmentBarycentricsAndClearanceCmBuffer[WitnessIndex];
-			int4 BodyVertices = WitnessBodyVerticesBuffer[WitnessIndex];
-			float4 BodyBarycentricsAndMaximumCorrectionCm =
-				WitnessBodyBarycentricsAndMaximumCorrectionCmBuffer[WitnessIndex];
-			if (any(GarmentVertices.xyz < 0)
-				|| any((uint3)GarmentVertices.xyz >= (uint)BindingVertexCount)
-				|| any(BodyVertices.xyz < 0)
-				|| any((uint3)BodyVertices.xyz >= BodyVertexCount)
-				|| !all(isfinite(GarmentBarycentricsAndClearanceCm))
-				|| !all(isfinite(BodyBarycentricsAndMaximumCorrectionCm)))
-			{
-				InvalidWitnessData = true;
-				break;
-			}
-			// The authored witness budget and local topology feature size both bound
-			// this vertex. A small triangle can no longer receive the old fixed
-			// 0.35cm differential push that visually tore dense DAZ garments.
-			MaximumWitnessCorrectionCm = min(
-				MaximumWitnessCorrectionCm,
-				max(BodyBarycentricsAndMaximumCorrectionCm.w, 0.0f)
-					+ AutomaticWitnessReserveBudgetCm);
-			float GarmentBarycentricSum = dot(
-				GarmentBarycentricsAndClearanceCm.xyz,
-				float3(1.0f, 1.0f, 1.0f));
-			float BodyBarycentricSum = dot(
-				BodyBarycentricsAndMaximumCorrectionCm.xyz,
-				float3(1.0f, 1.0f, 1.0f));
-			if (abs(GarmentBarycentricSum) <= 1.0e-8f
-				|| abs(BodyBarycentricSum) <= 1.0e-8f)
-			{
-				InvalidWitnessData = true;
-				break;
-			}
-			float3 GarmentBarycentrics =
-				GarmentBarycentricsAndClearanceCm.xyz / GarmentBarycentricSum;
-			float IncidenceWeight = GarmentVertices.x == (int)Index
-				? GarmentBarycentrics.x
-				: (GarmentVertices.y == (int)Index
-					? GarmentBarycentrics.y
-					: (GarmentVertices.z == (int)Index ? GarmentBarycentrics.z : 0.0f));
-			if (IncidenceWeight <= 1.0e-6f)
-			{
-				InvalidWitnessData = true;
-				break;
-			}
-
-            // The bounded resource stores sixteen float4 planes per garment
-            // vertex. Denser bindings retain the complete original evaluator.
-            float4 Plane;
-            [branch]
-            if (WitnessCountValue <= BindingVertexCount * 16)
-            {
-                Plane = ReadPreparedWitnessPlane((uint)WitnessIndex);
-            }
-            else
-            {
-                Plane = EF_EvaluateWitnessPlane(WitnessIndex);
-            }
-            if (Plane.w < 0.0f || !all(isfinite(Plane)))
-            {
-                InvalidWitnessData = true;
-                break;
-            }
-    }
-
 )EFHLSL") + TEXT(R"EFHLSL(
 	// Solve every incident face/edge constraint as a small convex half-space
 	// problem local to this render vertex. Requiring every participating corner
@@ -1936,6 +1854,65 @@ KERNEL
 			++LocalReferenceIndex)
 		{
 			int WitnessIndex = WitnessIndicesBuffer[WitnessRange.x + LocalReferenceIndex];
+            // Validate each immutable incidence before its first use, and
+            // accumulate the cap during the first ordered projection cycle.
+            // The cap is consumed only after all cycles. Invalid data discards
+            // every partial correction, preserving the conservative fallback.
+            if (ProjectionIteration == 0)
+            {
+				if (WitnessIndex < 0 || WitnessIndex >= WitnessCountValue)
+				{
+					InvalidWitnessData = true;
+					break;
+				}
+				int4 GarmentVertices = WitnessGarmentVerticesBuffer[WitnessIndex];
+				float4 GarmentBarycentricsAndClearanceCm =
+					WitnessGarmentBarycentricsAndClearanceCmBuffer[WitnessIndex];
+				int4 BodyVertices = WitnessBodyVerticesBuffer[WitnessIndex];
+				float4 BodyBarycentricsAndMaximumCorrectionCm =
+					WitnessBodyBarycentricsAndMaximumCorrectionCmBuffer[WitnessIndex];
+				if (any(GarmentVertices.xyz < 0)
+					|| any((uint3)GarmentVertices.xyz >= (uint)BindingVertexCount)
+					|| any(BodyVertices.xyz < 0)
+					|| any((uint3)BodyVertices.xyz >= BodyVertexCount)
+					|| !all(isfinite(GarmentBarycentricsAndClearanceCm))
+					|| !all(isfinite(BodyBarycentricsAndMaximumCorrectionCm)))
+				{
+					InvalidWitnessData = true;
+					break;
+				}
+				// The authored witness budget and local topology feature size both bound
+				// this vertex. A small triangle can no longer receive the old fixed
+				// 0.35cm differential push that visually tore dense DAZ garments.
+				MaximumWitnessCorrectionCm = min(
+					MaximumWitnessCorrectionCm,
+					max(BodyBarycentricsAndMaximumCorrectionCm.w, 0.0f)
+						+ AutomaticWitnessReserveBudgetCm);
+				float GarmentBarycentricSum = dot(
+					GarmentBarycentricsAndClearanceCm.xyz,
+					float3(1.0f, 1.0f, 1.0f));
+				float BodyBarycentricSum = dot(
+					BodyBarycentricsAndMaximumCorrectionCm.xyz,
+					float3(1.0f, 1.0f, 1.0f));
+				if (abs(GarmentBarycentricSum) <= 1.0e-8f
+					|| abs(BodyBarycentricSum) <= 1.0e-8f)
+				{
+					InvalidWitnessData = true;
+					break;
+				}
+				float3 GarmentBarycentrics =
+					GarmentBarycentricsAndClearanceCm.xyz / GarmentBarycentricSum;
+				float IncidenceWeight = GarmentVertices.x == (int)Index
+					? GarmentBarycentrics.x
+					: (GarmentVertices.y == (int)Index
+						? GarmentBarycentrics.y
+						: (GarmentVertices.z == (int)Index ? GarmentBarycentrics.z : 0.0f));
+				if (IncidenceWeight <= 1.0e-6f)
+				{
+					InvalidWitnessData = true;
+					break;
+				}
+            }
             float4 Plane;
             [branch]
             if (WitnessCountValue <= BindingVertexCount * 16)
@@ -1945,6 +1922,11 @@ KERNEL
             else
             {
                 Plane = EF_EvaluateWitnessPlane(WitnessIndex);
+            }
+            if (ProjectionIteration == 0 && (Plane.w < 0.0f || !all(isfinite(Plane))))
+            {
+                InvalidWitnessData = true;
+                break;
             }
 			float3 WitnessNormal = Plane.xyz;
 			float RequiredPushCm = Plane.w;

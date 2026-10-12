@@ -5,6 +5,12 @@ description: Author and validate NoShellForWinter DAZ NPC outfit presets, shared
 
 # NPC outfit workbench
 
+Delivery decision (2026-10-12): the user accepts current performance and defers
+optimization. Keep original 10/25-NPC numerical budget FAILs; do not reopen
+optimization just to clear them. This acceptance does not waive functional,
+visual or packaged checks. Use `Docs/Migration/NPCOutfitPerformanceFollowup.md`
+for the latest baseline and recommended future investigation when requested.
+
 Start with `noshellforwinter-unreal-mcp` and read-only target context. Read
 `Docs/Migration/NPCOutfits.md` for current measured gates; this skill does not
 certify the outstanding release gates. Source game, vendor plugins, Player and
@@ -205,8 +211,9 @@ background HUB garments; do not label the totals as the fixture alone. New host
 receipts hash the roster, graph and runtime sources before PIE, and comparisons
 reject different configurations. Keep prior FAILs when refining the fixture.
 
-Schema 36.1 prepares bounded frame-local witness planes and validates incidence
-once per receiving vertex before the unchanged six-cycle solver. FullRag reserves
+Schema 36.2 retains bounded frame-local witness planes and fuses incidence
+validation into the first cycle of the unchanged six-cycle solver. Every record
+is still checked each frame; invalid data uses the original fallback. FullRag reserves
 4,870,144 logical plane-buffer bytes per outfit; this is not a measured GPU memory
 total. The 25-NPC frozen budget still fails despite the measured GPU reduction.
 Any shared graph change requires all three bodies, extreme morphs, body swaps,
