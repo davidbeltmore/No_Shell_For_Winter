@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import runpy
 import time
 from pathlib import Path
 import unreal
@@ -22,6 +23,8 @@ parser.add_argument('--immutable-buffers',type=int,choices=[0,1],default=1)
 parser.add_argument('--prepared-binding',type=int,choices=[0,1],default=1)
 parser.add_argument('--inspect-lod',action='store_true',help='One runtime LOD snapshot; diagnostic only')
 parser.add_argument('--lod-transitions',action='store_true',help='Bounded forced LOD 0/1/0/automatic fit checks and images; diagnostic only')
+parser.add_argument('--lod-quality',action='store_true',help='One NPC: extreme morphs, LOD comparison, camera distance and movement; diagnostic only')
+parser.add_argument('--lod-quality-case',choices=['all','distance','movement'],default='all',help='Bounded directed retry of a quality subcase')
 parser.add_argument('--independent-npc-lod',type=int,choices=[0,1],default=0)
 parser.add_argument('--parameter-cache',type=int,choices=[0,1],default=1)
 parser.add_argument('--gc',action='store_true',help='Force native GC after fixture destruction')
@@ -34,10 +37,13 @@ args=parser.parse_args(globals().get('NPC_OUTFIT_ARGS',[]))
 assert not args.selection or not (args.prewarm or args.trace), 'Selection QA is a separate functional fixture'
 assert not args.profile_gpu or (not args.selection and not args.trace), 'Use one GPU diagnostic at a time'
 assert not args.lod_transitions or (args.dressed == 1 and args.independent_npc_lod == 1 and args.capture >= 20 and not args.selection), 'LOD transitions require dressed independent LOD and >=20 seconds capture'
+assert not args.lod_quality or (args.count == 1 and args.dressed == 1 and args.independent_npc_lod == 1 and args.capture >= (45 if args.lod_quality_case=='all' else 15) and not any([args.lod_transitions,args.selection,args.trace,args.profile_gpu,args.functional,args.prewarm])), 'LOD quality requires one dressed NPC, independent LOD, sufficient capture and no other diagnostic/functional fixture'
+assert args.lod_quality or args.lod_quality_case=='all', 'A quality subcase requires --lod-quality'
 assert args.name.replace('_','').replace('-','').isalnum()
 root=Path(unreal.Paths.project_dir()).resolve()
 configuration_paths = [
     'Tools/NPC/Outfits/RunNativePIE.py',
+    'Tools/NPC/Outfits/LodQuality.py',
     'Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset',
     'Content/DazToUnreal/RagShirt/RagShirt.uasset',
     'Content/DazToUnreal/RagPants/RagPants.uasset',
@@ -65,6 +71,7 @@ worlds=unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem)
 assert not editor.is_in_play_in_editor()
 started=time.monotonic()
 state={'issued':False,'warm_ready':not args.prewarm}
+lod_quality=runpy.run_path(str(root/'Tools/NPC/Outfits/LodQuality.py'))['LodQuality'](args.body,out,args.lod_quality_case) if args.lod_quality else None
 perf=unreal.get_default_object(unreal.load_class(None,'/Script/UnrealEd.EditorPerformanceSettings'))
 throttle=perf.get_editor_property('bThrottleCPUWhenNotForeground')
 perf.set_editor_property('bThrottleCPUWhenNotForeground',False)
@@ -74,6 +81,8 @@ prepared_cvar='ef.ClothingMorph.PreparedBinding'
 previous_prepared=unreal.SystemLibrary.get_console_variable_int_value(prepared_cvar)
 lod_cvar='ef.ClothingMorph.IndependentNPCLod'
 previous_lod=unreal.SystemLibrary.get_console_variable_int_value(lod_cvar)
+lod_bias_cvar='r.SkeletalMeshLODBias'
+previous_lod_bias=unreal.SystemLibrary.get_console_variable_int_value(lod_bias_cvar)
 parameter_cvar='ef.ClothingMorph.SkipUnchangedParameters'
 previous_parameters=unreal.SystemLibrary.get_console_variable_int_value(parameter_cvar)
 profile_cvar='ef.ClothingMorph.ProfileInstall'
@@ -83,11 +92,11 @@ previous_admission=unreal.SystemLibrary.get_console_variable_int_value(admission
 gpu_settings={'r.ProfileGPU.ShowUI':0,'r.ProfileGPU.ShowLeafEvents':1,'r.ProfileGPU.UnicodeOutput':0,
               'r.ProfileGPU.TableFormatting':0,'r.ProfileGPU.ThresholdPercent':0}
 previous_gpu={key:unreal.SystemLibrary.get_console_variable_float_value(key) for key in gpu_settings} if args.profile_gpu else {}
-quality_names=['Project.NPCOutfits.UseResidentPrerequisites','sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuality','sg.GlobalIlluminationQuality',
+quality_names=['r.SkeletalMeshLODBias','r.SkeletalMeshLODRadiusScale','Project.NPCOutfits.UseResidentPrerequisites','sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuality','sg.GlobalIlluminationQuality',
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['max_active','immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','lod_transitions','trace','profile_gpu','prewarm','selection','profile_install','gc']}
+native_args={k:v for k,v in vars(args).items() if k not in ['max_active','immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','lod_transitions','lod_quality','lod_quality_case','trace','profile_gpu','prewarm','selection','profile_install','gc']}
 command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 assert not (args.selection and args.gc), 'GC fixture uses the standard outfit command'
 if args.gc: command+=' gc'
@@ -95,6 +104,10 @@ warm_args=dict(native_args,name=args.name+'_warmup',dressed=1,capture=1,function
 warm_command='Project.NPCOutfits.QA '+' '.join(k+'='+str(v) for k,v in warm_args.items())
 
 def done(error=''):
+    if lod_quality and not error and not lod_quality.complete:
+        error='LOD quality sequence did not complete before native fixture teardown'
+    if lod_quality:
+        (out/'lod-quality.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'visual_status':'PENDING','records':lod_quality.records,'last_observation':lod_quality.last_observation,'diagnostic_lod_bias':0,'previous_lod_bias':previous_lod_bias,'case':args.lod_quality_case,'screenshot_mode':'viewport'},indent=2),encoding='utf-8')
     if args.lod_transitions and not error and len(state.get('lod_transitions', [])) != 4:
         error='LOD transition sequence did not complete before native fixture teardown'
     unreal.unregister_slate_post_tick_callback(handle)
@@ -105,12 +118,13 @@ def done(error=''):
     unreal.SystemLibrary.execute_console_command(restore_world,buffer_cvar+' '+str(previous_buffers))
     unreal.SystemLibrary.execute_console_command(restore_world,prepared_cvar+' '+str(previous_prepared))
     unreal.SystemLibrary.execute_console_command(restore_world,lod_cvar+' '+str(previous_lod))
+    if lod_quality: unreal.SystemLibrary.execute_console_command(restore_world,lod_bias_cvar+' '+str(previous_lod_bias))
     unreal.SystemLibrary.execute_console_command(restore_world,parameter_cvar+' '+str(previous_parameters))
     unreal.SystemLibrary.execute_console_command(restore_world,profile_cvar+' '+str(previous_profile))
     unreal.SystemLibrary.execute_console_command(restore_world,admission_cvar+' '+str(previous_admission))
     for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(restore_world,key+' '+str(value))
     unreal.EditorLevelLibrary.editor_end_play()
-    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'lod_transitions_requested':args.lod_transitions,'lod_transitions':state.get('lod_transitions',[]),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'lod_quality_requested':args.lod_quality,'lod_transitions_requested':args.lod_transitions,'lod_transitions':state.get('lod_transitions',[]),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
 
 def check_lod_transitions(world):
     records=state.setdefault('lod_transitions', [])
@@ -157,6 +171,10 @@ def tick(dt):
             unreal.SystemLibrary.execute_console_command(world,buffer_cvar+' '+str(args.immutable_buffers))
             unreal.SystemLibrary.execute_console_command(world,prepared_cvar+' '+str(args.prepared_binding))
             unreal.SystemLibrary.execute_console_command(world,lod_cvar+' '+str(args.independent_npc_lod))
+            # A positive global bias intentionally keeps a two-LOD garment at
+            # LOD1 even near the camera. Isolate distance selection in this
+            # visual-only fixture, then restore the exact user's setting.
+            if lod_quality: unreal.SystemLibrary.execute_console_command(world,lod_bias_cvar+' 0')
             unreal.SystemLibrary.execute_console_command(world,parameter_cvar+' '+str(args.parameter_cache))
             unreal.SystemLibrary.execute_console_command(world,profile_cvar+' '+str(int(args.profile_install)))
             unreal.SystemLibrary.execute_console_command(world,admission_cvar+' '+str(args.max_active))
@@ -176,6 +194,8 @@ def tick(dt):
             return
         if args.lod_transitions and world and state['issued']:
             check_lod_transitions(world)
+        if lod_quality and world and state['issued']:
+            lod_quality.tick(world)
         if args.inspect_lod and world and state['issued'] and not state.get('lod_snapshot'):
             pawns=[p for p in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.Pawn)
                    if any(str(t).startswith('EF.AppearanceId.OutfitQA.') for t in p.tags)]

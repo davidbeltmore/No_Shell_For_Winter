@@ -50,10 +50,17 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 
 These gates describe the default-policy implementation through `0eef8827`,
 including the fresh packaged validation below. The opt-in independent-LOD
-candidate remains experimental: its performance gates fail and its full LOD1
-morph/near-far visual and active-LOD packaged gates remain PENDING. Its generated
+candidate remains experimental: its performance and extreme-morph visual gates
+fail; its active-LOD packaged gate remains PENDING. Its generated
 assets are cooked in the current package, but the packaged functional runs use
 the default disabled independent-LOD policy.
+
+The latest diagnostic-only phase adds explicit LOD0/LOD1 extreme-morph, camera
+distance and locomotion image comparisons. All three bodies pass mechanical
+readiness/coverage/movement checks, but both male bodies show additional pants
+surface artifacts in LOD1. See the final quality section and
+`Evidence/NPCOutfits/lod-quality.json`; no production enabling or wider witness
+spacing is justified by those results.
 
 | Gate | Status | Evidence |
 |---|---|---|
@@ -1027,3 +1034,74 @@ comparison PASS, 7,643 files unchanged in 7.560 s. All seven real save files mat
 the last restored snapshot; HUB retains its existing user hash. Unreal is reopened
 through the protected launcher. The branch still preserves the unrelated HUB
 worktree change.
+
+
+## Independent LOD quality diagnostics (2026-10-12)
+
+Runtime/assets remain at `4454c683` (runtime implementation `0eef8827`). This
+phase changes only the Python diagnostic host, measurement rejection and reusable
+instructions. Candidate geometry remains 99%, reduced witness spacing 0.75 cm,
+independent NPC LOD disabled by default. No new build/cook/package or steady
+performance result is claimed. The retained validated default-policy package is
+still `Saved/BodyPresetsQA/Package_20261012_001912`.
+
+`RunNativePIE --lod-quality --count 1 --capture 45 --independent-npc-lod 1`
+uses one disposable native outfit pawn and its original animation setup. Eight
+stages compare initial and extreme-morph LOD0, the same extreme morphs in LOD1,
+side/back LOD1, automatic far/near and physical locomotion with LOD1. The host
+requires all stages before native teardown and keeps visual status separate from
+its mechanical PASS. `Measure.py` rejects these receipts as diagnostic; the
+rejection itself was checked against a completed receipt.
+
+Evidence: `Evidence/NPCOutfits/lod-quality.json`, including source hashes,
+receipts, 27 reviewed image records, twelve published images and six retained
+fixture failures. Raw receipts/images remain in `Saved/NPCOutfits/Native`.
+
+| Case | Host / native / mechanics | Motion XY | Visual result |
+|---|---|---:|---|
+| `lod_quality_male01_04` | PASS, 50.593 s, eight stages | 294.793 cm | FAIL: additional light flecks/lines across LOD1 pants thighs and moving knee |
+| `lod_quality_female01_02` | PASS, 53.438 s, eight stages | 196.236 cm | PENDING: front, side and movement coherent; small back-seam slits need a matched LOD0 back comparator |
+| `lod_quality_male02_01` | PASS, 52.532 s, eight stages | 197.848 cm | FAIL: additional light flecks/lines across LOD1 pants thighs, including locomotion |
+| `lod_distance_viewport_male01_02` | PASS, 23.406 s, three stages | N/A | PASS for broad far/near coverage in these snapshots; replaces an occluded far view |
+
+Every completed case has zero pending work after destruction and completed GC.
+The three automatic far observations select LOD1 for all three garments; near
+observations select LOD0 for all three. Body coverage assertions remain valid
+throughout (Female material section, male leader-owned hidden bones). These
+assertions do not prove the final rendered surface has no penetration. The
+cause of the additional pants flecks is PENDING: do not label this a fixed
+solver, geometry or shading problem without a directed comparison.
+
+Fixture corrections retained as evidence:
+
+- Global `r.SkeletalMeshLODBias=2` intentionally kept a two-LOD garment at LOD1
+  near the camera. The visual diagnostic now sets it to zero temporarily, then
+  restores the exact original value. Performance quality records now also include
+  skeletal LOD bias and radius scale. MCP confirmed bias 2 and independent NPC
+  LOD 0 after the final run.
+- The original 1000 cm high-resolution far images showed missing garment regions.
+  A native-viewport run from LOD0 remained at LOD0 at that distance. The final
+  fixture uses `Shot` at the actual viewport size and a 2000 cm diagonal far
+  camera, selecting LOD1 and avoiding player occlusion. Because both capture
+  mode and distance changed, this does not establish the cause of the earlier
+  high-resolution anomaly. Keep that issue PENDING.
+- Native crowd pawns can have no controller. Walking mode alone left them still;
+  diagnostics confirmed no controller and `run_physics_with_no_controller=false`.
+  The moving-fit phase enables that flag only on its disposable pawn. Actual
+  velocity and relative pelvis/feet positions are recorded. This is physical
+  locomotion/animation evidence, not a replacement for native pursuit validation.
+- Earlier unsupported Python movement accessor and incomplete sequences remain
+  FAIL receipts. Directed `--lod-quality-case distance|movement --capture 15`
+  retries avoid repeating unrelated stages when correcting a fixture issue.
+
+No further witness-density reduction was made. The candidate remains disabled
+and visually rejected for the male extreme cases. Resolving that quality loss,
+the existing 10/25-NPC budget failures and active-LOD packaged validation remain
+required before completion.
+
+SaveGuard session `Session_20261012_003721` restored the seven pre-existing saves
+after editor closure (only `ProjectIntimacy.sav` needed replacement). Protected
+comparison passed for all 7,643 files in 8.21 s. User HUB SHA-256 remains
+`c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a`;
+its unrelated Git change is preserved. Editor reopened through the guarded Daz
+launch wrapper. No package cleanup was necessary in this phase.

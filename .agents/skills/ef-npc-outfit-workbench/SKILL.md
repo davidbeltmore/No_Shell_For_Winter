@@ -239,6 +239,26 @@ for a short diagnostic; `Measure.py` rejects diagnostic snapshots as acceptance.
 Halving geometry with 0.75 cm sampling increased measured witness cost. Keeping
 99% geometry reduced GPU cost, but neither candidate meets the full budget.
 
+`RunNativePIE --lod-quality --count 1 --capture 45 --independent-npc-lod 1`
+adds a diagnostic sequence on one disposable native pawn: source pose, matched
+extreme-morph LOD0/LOD1 fronts, LOD1 side/back, automatic far/near, and locomotion.
+Set `--body` and `--archetype` for each representative body. For a specific failed
+fixture condition, `--lod-quality-case distance|movement --capture 15` avoids
+repeating the whole sequence. Require native/host plus `lod-quality.json`; its
+mechanical PASS is separate from the deliberately PENDING visual result.
+Review every image before recording a visual verdict. `Measure.py` rejects
+these moving-camera receipts as performance acceptance.
+
+The diagnostic temporarily sets `r.SkeletalMeshLODBias=0` and restores the exact
+prior value. The current quality setting is 2, which clamps a two-LOD garment
+to LOD1 regardless of distance; do not mistake that policy for a failed distance
+transition. Capture the actual viewport with `Shot`, avoiding high-resolution
+render views around a LOD boundary. Record radius scale and bias in comparisons.
+The far camera is diagonal to avoid occlusion by the player. Native crowd pawns
+can lack controllers: enable `run_physics_with_no_controller` only on that
+disposable pawn for physical locomotion, while retaining its animation setup.
+This verifies moving fit, not AI pursuit or production controller behavior.
+
 Native fixture version 3 waits for screenshot processing to finish before steady
 capture starts. Readiness retains its original spawn-relative timestamp. Require
 the completion flag, matching renderer-threading fields and equal fixture versions
