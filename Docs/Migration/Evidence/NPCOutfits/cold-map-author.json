@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "map": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart",
+  "game_mode": "/Game/_Game/QA/BP_NPCOutfitColdGameMode.BP_NPCOutfitColdGameMode_C",
+  "default_pawn": "/Script/Engine.DefaultPawn",
+  "player_controller": "/Script/Engine.PlayerController",
+  "hud": "/Script/Engine.HUD",
+  "npc_class": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C",
+  "tags": [
+    "EF.BodyVariation",
+    "EF.NPC.SkillGuy",
+    "EF.AppearanceId.ColdOutfitProbe"
+  ],
+  "blueprint_compile": "PASS"
+}

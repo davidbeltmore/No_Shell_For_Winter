@@ -187,3 +187,36 @@ revalidation. The native 150 s / host 180 s bounds belong to the existing logic 
 Use the protected build/launch wrappers. Preserve user-saved HUB changes separately
 from outfit commits. Complete Editor/Game, Blueprint, representative PIE/visual,
 cook and packaged gates before declaring the persistent goal complete.
+
+For CPU attribution, run `RunNativePIE --trace --prewarm --count 25 --capture 12`
+with a fresh name, then `python Tools/NPC/Outfits/ExportCPUTrace.py NAME`. The
+exporter selects six seconds before a two-second teardown margin; inspect that
+window if the fixture has an unusually long teardown. Its scope is all scene
+garments, including map NPCs. Nested inclusive times must not be added together.
+UE 5.8's statistics exporter includes GPU queues even with `-threads=GameThread`;
+the compact summary therefore selects only named, owned CPU scopes. These short
+traces are diagnostic and cannot satisfy the 30-second acceptance gate.
+
+`--parameter-cache 0|1` controls exact live GPU-byte comparisons before the native
+scalar/transform setters. Every live input is still evaluated each frame. First
+use goes through the native setter, mismatches go through it again, and detach
+clears validation. The host restores the prior CVar and records the option;
+`Measure.py` rejects pairs with different settings. Validate morph changes, body
+replacement and teardown when modifying this optimization.
+
+The isolated initial-load map is `/Game/_Game/QA/NPCOutfitColdStart`, authored
+once through `AuthorColdMap.py`. Preserve inherited NPC tags: replacing the tag
+array removes `EF.BodyVariation` and prevents the placed probe from initializing.
+Its owned game-mode copy retains ACF world services but uses DefaultPawn,
+PlayerController and HUD from Engine; the production controller/HUD require a
+player character and produce Blueprint errors with DefaultPawn. Never patch the
+source game mode to implement this fixture.
+
+Cook it with `Package-BodyPresets58.ps1 -AdditionalMap /Game/_Game/QA/NPCOutfitColdStart`.
+Use `ValidatePackaged.ps1 -Map /Game/_Game/QA/NPCOutfitColdStart -RequireColdItems`
+to require one placed initial NPC with a nonresident definition and three
+nonresident garment classes, followed by Ready. The QA group is separate and
+does not prove cold resources. The wrapper rejects any logged Error, preserves
+the loading trace, and still requires GC, empty pending work and normal exit.
+This does not establish OS disk-cache state or automatically prove nonresident
+binding payloads; inspect the loading trace for those assets.

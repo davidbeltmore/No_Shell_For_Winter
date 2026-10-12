@@ -66,11 +66,11 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | Performance 1 | PASS | Schema-36.1 matched prepared 30-second pair; 0.078 ms added CPU, 0.311 ms GPU |
 | Performance 10/25 | FAIL | Frozen budget exceeded; details below |
 | Performance 50 | PENDING | Diagnostic measured, no acceptance claim |
-| Cold loading | PENDING | Preparation passes are not cold packaged loading |
+| Cold loading | PASS | Isolated packaged initial NPC: definition, three garment classes and binding streaming path initially nonresident; no OS disk-cache claim |
 | All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
-| Cook and packaged QA | PASS | Schema 36.1, three bodies/archetypes, equip/unequip, GC, zero pending, exit 0 and reviewed images |
+| Cook and packaged QA | PASS | Exact parameter comparison revision, three bodies/archetypes plus isolated cold map, equip/unequip, GC, zero pending, exit 0 and reviewed images |
 | Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
-| Skills and GitHub publication | PASS | Skills validate; fitting checkpoint 864ddd08 pushed to origin/feature/efclothing-v4-multicloth |
+| Skills and GitHub publication | PENDING | Skills validate; new parameter/cold-load revision awaiting publication; earlier checkpoint 864ddd08 is published |
 
 ## Work preservation
 
@@ -502,3 +502,107 @@ uses native MCP `EditorToolset.EditorAppToolset.IsPIERunning=false` and a fresh
 read-only inspection with no dirty packages. The project and global clothing
 skills both pass `quick_validate.py`. `Evidence/NPCOutfits/final-state-planes.json`
 records the protected snapshot, user-save restoration and retained package.
+
+### Exact live parameter comparison (2026-10-11, after the user pause)
+
+CPU scopes separate morph reads, native parameter writes, deformer enqueue and
+immutable-provider proxy copying. The matched 25-NPC diagnostic traces include
+map actors: 111 garment submissions/frame in both captures. Native parameter
+writes cost 2.517 ms/frame with the optimization disabled and 0.622 enabled;
+whole clothing component ticks fall from 5.857 to 3.847 ms/frame. These nested
+scope times are attribution, not incremental crowd acceptance. Raw traces,
+selected time windows and frame counts are in `Evidence/NPCOutfits/parameters-cpu.json`.
+
+The producer now skips a scalar or transform setter only when its current GPU
+bytes match the requested value exactly. First use must succeed through the
+native setter; mismatches still use it; detach clears identifier validation.
+Transforms use the same public Optimus matrix conversion as the native setter.
+No morph input, animation update, surface pass, precision or frequency is removed.
+`ef.ClothingMorph.SkipUnchangedParameters=0` retains all native writes. The PIE
+host records/restores this option and acceptance rejects mismatched settings.
+
+| Count | Added CPU ms | Added GPU ms | Added p95 ms | Warm ready s | Result |
+|---|---:|---:|---:|---:|---|
+| 10 | 2.184 | 2.683 | 2.734 | 1.619 | FAIL: CPU |
+| 25 | 6.601 | 6.902 | 7.284 | 4.167 | FAIL: all four limits |
+
+Both matched 30-second prepared pairs leave zero pending outfit initialization.
+Spawn peaks are 534.108 and 1,319.979 ms. Source hashes, raw receipt hashes and
+whole-process physical memory are in `performance-parameters-{10,25}.json`.
+The frozen budget remains unchanged; the CPU improvement does not certify 25 NPCs.
+
+Editor build passes in 59.091 s, Game build in 54.896 s. The shared three-body
+regression passes in 61.953 s, including seven Blueprint compilations, extreme
+morphs, body swaps, movement and coverage transitions. All three images were
+reviewed (`parameters-visual.json` and accompanying images). Single-NPC native
+equip/remove/reinitialize/GC also passes (`parameters_single_01`). Cook and
+packaged validation for this revision are PENDING while its new package is built.
+
+The first diagnostic preparation after reopening failed before fitting: outfit
+definition callbacks had not completed by the existing 20-second deadline. The
+log reported 136 asynchronous packages pending. Exact starvation cause remains
+PENDING; the failure is retained at `cpu_parameters_0_01_warmup/runtime.json`.
+After a successful single-NPC resource preparation, both diagnostic modes pass.
+This does not erase the initial-load failure or increase its timeout.
+
+An owned minimal map `/Game/_Game/QA/NPCOutfitColdStart` now contains one placed
+SkillGuy and an owned game-mode copy with a generic DefaultPawn. It preserves
+native ACF services and the inherited `EF.BodyVariation`/archetype tags. The first
+generic-game-mode attempt lacked those conditions and is withdrawn; its nominal
+native fixture PASS is not a valid initial-load gate. Corrected map preflight
+`cold_map_preflight_03` passes the native outfit assertions and records the placed
+NPC Ready separately from the QA group, but its inherited player controller/HUD
+produce Blueprint errors with DefaultPawn. The scene gate is FAIL until those
+test-only dependencies are corrected. It is not cold-load evidence.
+
+`Package-BodyPresets58.ps1 -AdditionalMap /Game/_Game/QA/NPCOutfitColdStart`
+cooks the additional map alongside HUB. `ValidatePackaged.ps1 -Map ...
+-RequireColdItems` requires exactly one initial NPC with a nonresident definition
+and all three garment classes nonresident at request, followed by Ready. It also
+retains a loading trace. This does not measure OS disk-cache coldness. This new
+packaged initial-load gate is PENDING until the process receipt satisfies it.
+
+The cold fixture's owned mode now also uses generic Engine PlayerController and
+HUD classes. Corrected preflight `cold_map_preflight_04` passes its native checks
+and reports the placed NPC Ready without the prior Blueprint errors. Remaining
+end-PIE LogUtils errors came from requesting the editor world before end-play
+completed; the host now restores CVars through its still-live game world before
+requesting end-play. The first cook candidate (`Package_20261011_211159`, 234.722 s)
+predates the controller/HUD correction and is not the final validation artifact.
+
+### Validated parameter package and isolated initial resources
+
+Fitting code commit `8bbc72b1`. Final artifact:
+`Saved/BodyPresetsQA/Package_20261011_212026` (cook PASS, 240.676 s bounded host).
+Four fresh processes pass with zero logged Errors, explicit GC, zero pending
+initializations and exit 0: HUB SkillGuy/Male.01, MeleeEnemy/Female.01,
+Zombie/Male.02, and the isolated initial-loading map. All four images were
+reviewed. Receipts, exact paths/hashes and images are in
+`Evidence/NPCOutfits/packaged-parameters.json`.
+
+The isolated map-owned NPC requested an initially nonresident definition and
+three nonresident garment classes. Definition callback: 0.037594 s; item-class
+callback: 0.040368 s; complete outfit initialization: 0.471596 s. Initialization
+began at engine-relative 5.990279 s and reached Ready at 6.461874 s. These are
+separate from the subsequently spawned functional QA group and from warmed
+crowd measurements. The full process completed in 16.469 s.
+
+All three slots log V5 payload streaming before the functional group starts.
+The recorded `RequestV5BindingLoad` source returns immediately for resolved
+objects; its handle is created only after `ResolveObject` fails. The streaming
+log requires that handle, establishing the initially nonresident binding path.
+This is source-correlated evidence, not per-binding latency or OS cold-disk
+measurement. The loading trace is retained with the raw process logs.
+
+Retention dry-run then apply removes 9,983,283,731 bytes from the previous validated
+package and the superseded first candidate's Cooked/Staged directories. Their
+receipts and logs remain; the latest pointer retains only `Package_20261011_212026`.
+Protection passes again for all 7,643 files (58.450 s), and four user saves were
+restored before packaging. User HUB SHA256 remains
+`C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
+
+The isolated initial-resource gate is now PASS. Remaining gaps are the frozen
+10/25 performance failures, the retained cold editor burst timeout under an
+asynchronous loading backlog, and the historical first female visual anomaly's
+unestablished cause. Current representative visual and packaged checks pass;
+those observations do not erase the earlier failures. The persistent goal stays ACTIVE.

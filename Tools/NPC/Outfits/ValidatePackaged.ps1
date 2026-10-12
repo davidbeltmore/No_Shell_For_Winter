@@ -4,7 +4,9 @@ param(
     [ValidatePattern('^[A-Za-z0-9_.]+$')][string]$Body='Male.01',
     [ValidatePattern('^[A-Za-z0-9_]+$')][string]$Archetype='SkillGuy',
     [ValidateRange(1,25)][int]$Count=3,
-    [int]$Seed=731
+    [int]$Seed=731,
+    [ValidatePattern('^/Game/[A-Za-z0-9_/]+$')][string]$Map='/Game/_Game/Hub/HUB',
+    [switch]$RequireColdItems
 )
 $ErrorActionPreference='Stop'
 $exe=Join-Path $StagedRoot 'NoShellForWinter\Binaries\Win64\NoShellForWinter.exe'
@@ -15,9 +17,13 @@ $out=Join-Path $ProjectRoot ('Saved\NPCOutfits\Packaged\'+$name)
 [void][IO.Directory]::CreateDirectory($out)
 $userDir=Join-Path $out 'UserData'
 $command="Project.NPCOutfits.QA count=$Count body=$Body archetype=$Archetype seed=$Seed capture=3 functional=1 timeout=120 loading=fresh_process name=$name gc quit"
-$arguments='/Game/_Game/Hub/HUB -windowed -ResX=1600 -ResY=1000 -nosound -unattended -csvNoProcessingThread -csvCaptureFrames=16000 -ExecCmds="ef.ClothingMorph.ProfileInstall 1" -csvExecCmds="90:'+$command+'" -UserDir="'+$userDir+'" -ABSLOG="'+(Join-Path $out 'game.log')+'"'
+$arguments=$Map+' -windowed -ResX=1600 -ResY=1000 -nosound -unattended -csvNoProcessingThread -csvCaptureFrames=16000 -ExecCmds="ef.ClothingMorph.ProfileInstall 1" -csvExecCmds="90:'+$command+'" -UserDir="'+$userDir+'" -ABSLOG="'+(Join-Path $out 'game.log')+'"'
+if ($RequireColdItems) { $arguments += ' -trace=loadtime -tracefile="'+(Join-Path $out 'loading.utrace')+'"' }
 $started=Get-Date
 $result=@{status='PENDING';reason='';command=$command;body=$Body;archetype=$Archetype;count=$Count;limit_seconds=180;scope='Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.'}
+$result.map=$Map
+$result.require_cold_items=[bool]$RequireColdItems
+if ($RequireColdItems) { $result.scope='Isolated map initial NPC: definition and three garment classes must be nonresident at request. OS disk caches are not controlled. Native QA group remains a separate functional check.' }
 $process=$null
 try {
     $process=Start-Process -FilePath $exe -ArgumentList $arguments -WindowStyle Hidden -PassThru
@@ -43,10 +49,16 @@ try {
     $result.prepared_reuses=@(Select-String -LiteralPath $logPath -Pattern 'ClothingInstall PreparedBindingReuse').Count
     $image=Join-Path $receipts[0].DirectoryName 'outfits.png'
     $result.screenshot=$image
-    if ($process.ExitCode -ne 0 -or $runtime.status -ne 'PASS' -or !$runtime.garbage_collection_completed -or $runtime.pending_after_destroy -ne 0 -or $errors.Count -or !(Test-Path -LiteralPath $image)) {
+    if ($process.ExitCode -ne 0 -or $runtime.status -ne 'PASS' -or !$runtime.garbage_collection_completed -or $runtime.pending_after_destroy -ne 0 -or $errors.Count -or $allErrors.Count -or !(Test-Path -LiteralPath $image)) {
         throw 'Runtime, GC, teardown, process exit, feature logs or screenshot gate failed.'
     }
     if ($Count -gt 1 -and $result.prepared_reuses -eq 0) { throw 'No prepared binding reuse observed in the multi-NPC package fixture.' }
+    if ($RequireColdItems) {
+        $initial=@($runtime.initial_world_outfits)
+        if ($initial.Count -ne 1 -or $initial[0].state -ne 'EProjectNPCOutfitState::Ready' -or $initial[0].definition_resident_at_request -or $initial[0].item_classes_requested -ne 3 -or $initial[0].item_classes_resident_at_request -ne 0) {
+            throw 'Isolated initial NPC did not prove Ready with a nonresident definition and three nonresident garment classes.'
+        }
+    }
     $result.status='PASS'
 } catch {
     $result.status='FAIL';$result.reason=$_.Exception.Message
