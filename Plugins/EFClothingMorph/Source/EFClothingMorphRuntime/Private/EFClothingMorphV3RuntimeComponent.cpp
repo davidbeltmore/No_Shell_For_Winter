@@ -16,6 +16,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/SecureHash.h"
 #include "OptimusDeformer.h"
@@ -30,6 +31,9 @@
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogEFClothingMorphV3, Log, All);
+
+static TAutoConsoleVariable<int32> CVarIndependentNPCLod(TEXT("ef.ClothingMorph.IndependentNPCLod"),0,
+	TEXT("Allow opted-in NPC garments with generated LODs to select their own screen-size LOD; restores the prior component policy on release."));
 
 namespace EFClothingMorphV3RuntimePrivate
 {
@@ -1122,6 +1126,16 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 				continue;
 			}
 			ObservedGarments.Add(GarmentComponent);
+			const APawn* OwnerPawn=Cast<APawn>(GetOwner());
+			const bool bIndependentLOD=OwnerPawn && !OwnerPawn->IsPlayerControlled() && SourceMesh->GetLODNum()>1 && CVarIndependentNPCLod.GetValueOnGameThread()!=0;
+			if(bIndependentLOD)
+			{
+				if(!PreviousLeaderLODPolicy.Contains(GarmentComponent)) PreviousLeaderLODPolicy.Add(GarmentComponent,{bool(GarmentComponent->bIgnoreLeaderPoseComponentLOD),bool(GarmentComponent->bSyncAttachParentLOD)});
+				GarmentComponent->bIgnoreLeaderPoseComponentLOD=true;
+				GarmentComponent->bSyncAttachParentLOD=false;
+			}
+			else if(const auto* Previous=PreviousLeaderLODPolicy.Find(GarmentComponent))
+			{ GarmentComponent->bIgnoreLeaderPoseComponentLOD=Previous->IgnoreLeader;GarmentComponent->bSyncAttachParentLOD=Previous->SyncParent;PreviousLeaderLODPolicy.Remove(GarmentComponent); }
 
 			// V5 publishes one soft payload record per explicitly requested garment
 			// LOD. Current content is LOD0, but selecting from the component state
@@ -1329,6 +1343,11 @@ void UEFClothingMorphV3RuntimeComponent::ReconcileGarments()
 		}
 	}
 	EvictUnusedV5BindingPayloads();
+	for(auto It=PreviousLeaderLODPolicy.CreateIterator();It;++It) if(!It.Key().IsValid() || !ObservedGarments.Contains(It.Key()))
+	{
+		if(It.Key().IsValid()) {It.Key()->bIgnoreLeaderPoseComponentLOD=It.Value().IgnoreLeader;It.Key()->bSyncAttachParentLOD=It.Value().SyncParent;}
+		It.RemoveCurrent();
+	}
 }
 
 void UEFClothingMorphV3RuntimeComponent::EvictUnusedV5BindingPayloads()
@@ -1926,6 +1945,8 @@ void UEFClothingMorphV3RuntimeComponent::ReleaseGarment(
 
 void UEFClothingMorphV3RuntimeComponent::ReleaseAllGarments()
 {
+	for(const auto& Pair:PreviousLeaderLODPolicy) if(Pair.Key.IsValid()) {Pair.Key->bIgnoreLeaderPoseComponentLOD=Pair.Value.IgnoreLeader;Pair.Key->bSyncAttachParentLOD=Pair.Value.SyncParent;}
+	PreviousLeaderLODPolicy.Reset();
 	for (TPair<TWeakObjectPtr<USkeletalMeshComponent>, FManagedGarmentState>& Pair : ManagedGarments)
 	{
 		ReleaseGarment(Pair.Key.Get(), Pair.Value);

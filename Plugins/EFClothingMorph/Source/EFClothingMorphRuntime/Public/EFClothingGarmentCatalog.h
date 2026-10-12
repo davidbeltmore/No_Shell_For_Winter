@@ -229,6 +229,10 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 	UPROPERTY()
 	bool bFailClosedOnMissingLOD = true;
 
+	/** LOD0 always retains the established 0.5 cm sampling policy. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Advanced LOD", meta = (ClampMin = "0.5", ClampMax = "1.0", Units = "cm", ToolTip = "Maximum spacing between collision samples on garment LOD1 and higher. Requires recompilation and visual validation. LOD0 is unchanged."))
+	float ReducedLODMaximumWitnessSpacingCm = 0.5f;
+
 	/** Returns the visual-only body sections that this clothing hides in gameplay. */
 	TArray<FName> GetBodySectionsToHideInGameplay() const
 	{
@@ -337,7 +341,7 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 		}
 
 		const TArray<FName> EffectiveExcludedSections = GetEffectiveBodySectionsToExclude();
-		const FString Canonical = FString::Printf(
+		FString Canonical = FString::Printf(
 			TEXT("Backend=%d|Fit=%d|NativeSkinProfile=%s|Coverage=%s|BodySections=%s|ExcludedBones=%s|ExcludedMorphs=%s|MinMultiplier=%.6f|Fabric=%.6f|MaxCorrection=%.6f|LowerGuardEnabled=%d|LowerGuardMorphs=%s|LowerGuardClearance=%.6f"),
 			static_cast<int32>(Backend),
 			static_cast<int32>(FitPolicy),
@@ -352,6 +356,11 @@ struct EFCLOTHINGMORPHRUNTIME_API FEFClothingGarmentRow : public FTableRowBase
 			LowerBodyMorphGuard.bEnabled ? 1 : 0,
 			*CanonicalNames(LowerBodyMorphGuard.ExactBodyMorphNames),
 			LowerBodyMorphGuard.MaximumClearanceCm);
+		// Preserve existing fingerprints when the established policy is used.
+		if (ReducedLODMaximumWitnessSpacingCm != 0.5f)
+		{
+			Canonical += FString::Printf(TEXT("|ReducedLODWitnessSpacingV1=%.9g"), ReducedLODMaximumWitnessSpacingCm);
+		}
 		return FMD5::HashAnsiString(*(ReferenceBodySurface.IsNull() ? Canonical : Canonical + TEXT("|UnisexReferenceV2=") + ReferenceBodySurface.ToSoftObjectPath().ToString()));
 	}
 };

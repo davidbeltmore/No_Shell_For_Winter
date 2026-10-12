@@ -18,6 +18,11 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingNativeMeshAuthoringLibrary final
 	GENERATED_BODY()
 
 public:
+	/** Adds/rebuilds only generated LOD1. Preserves imported LOD0; the caller owns backup and saving. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Native Authoring")
+	static bool GenerateReducedGarmentLOD(UEFClothingMorphDirectorPolicy* Director, FName GarmentId,
+		float TriangleRatio, float ScreenSize, FString& OutReport);
+
 	/** Reduce a transient copy and estimate pre-exclusion witness work. Never saves or edits the source mesh. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Native Authoring")
 	static bool InspectReducedGarmentLOD(

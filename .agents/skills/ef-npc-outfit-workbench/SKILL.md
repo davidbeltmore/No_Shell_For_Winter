@@ -187,6 +187,25 @@ alternative spacings do not change the compiler. At 50% geometry and 0.5 cm,
 shirt/pants estimates still exceed 256 references per vertex and all three exceed
 the Vertex*16 plane capacity. Do not raise bounds or truncate constraints to pass.
 
+The current runtime LOD candidate is experimental and disabled by default. See
+the final section of `Docs/Migration/NPCOutfits.md` before `AuthorGarmentLOD` or
+`CompileGarmentLOD`. Saving a Director policy schedules deferred compilation;
+wait for that live work before another dependent action. The authoring host uses
+a bounded 120-second MCP cleanup wait inside its 150-second outer limit. Preserve
+timeouts as FAILs and inspect native completion instead of repeating authoring.
+`InspectWitnessCounts` certifies the nine FullRag/body reduced bindings against
+the unchanged incidence and plane-capacity bounds; it cannot certify visual fit.
+`RunNativePIE --independent-npc-lod 1 --inspect-lod` captures actual component LODs
+for a short diagnostic; `Measure.py` rejects diagnostic snapshots as acceptance.
+Halving geometry with 0.75 cm sampling increased measured witness cost. Keeping
+99% geometry reduced GPU cost, but neither candidate meets the full budget.
+
+Native fixture version 3 waits for screenshot processing to finish before steady
+capture starts. Readiness retains its original spawn-relative timestamp. Require
+the completion flag, matching renderer-threading fields and equal fixture versions
+for paired comparisons. Do not mix prior version-2 samples or claim that a near-
+zero render-time counter proves the render thread is disabled.
+
 `LogicQA --mode ai` retries only pursuit/spacing, using the current single authored
 navigation volume to place the existing 1200 cm corridor. The old fixed arena can
 fall outside a user-edited HUB. This wrapper never moves, rebuilds or saves bounds.

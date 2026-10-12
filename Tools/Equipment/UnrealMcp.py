@@ -4,7 +4,10 @@ import urllib.request
 
 
 class Client:
-    def __init__(self):
+    def __init__(self, request_timeout=45):
+        if not 0 < request_timeout <= 120:
+            raise ValueError('MCP request timeout must be within (0, 120] seconds')
+        self.request_timeout = request_timeout
         self.session = None
         self.sequence = 0
         self.request('initialize', {'protocolVersion': '2025-11-25', 'capabilities': {},
@@ -21,7 +24,7 @@ class Client:
         if self.session:
             headers['Mcp-Session-Id'] = self.session
         request = urllib.request.Request('http://127.0.0.1:8000/mcp', json.dumps(body).encode(), headers)
-        with urllib.request.urlopen(request, timeout=45) as response:
+        with urllib.request.urlopen(request, timeout=self.request_timeout) as response:
             self.session = response.headers.get('Mcp-Session-Id', self.session)
             if 'text/event-stream' in response.headers.get('Content-Type', ''):
                 for line in response:

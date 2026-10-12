@@ -30,6 +30,7 @@
 #include "Misc/Parse.h"
 #include "RHI.h"
 #include "RenderTimer.h"
+#include "RenderingThread.h"
 #include "DynamicRHI.h"
 #include "CoreGlobals.h"
 #include "Serialization/JsonSerializer.h"
@@ -50,6 +51,8 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
     FString Directory, Body, Archetype=TEXT("SkillGuy"), Loading=TEXT("warm"), Name=TEXT("run");
     int32 Count=1, Seed=731, Stage=0;
     bool bDressed=true, bQuit=false, bFunctional=false, bCollectGarbage=false;
+    bool bScreenshotProcessed=false, bMeasurementStarted=false;
+    FDelegateHandle ScreenshotProcessedHandle;
     double Started=FPlatformTime::Seconds(), ReadyStart=0, CaptureStart=0, Due=0, Peak=0, ReadyTime=0;
     float CaptureSeconds=30, Timeout=120;
     TArray<TArray<FGuid>> BeforeIds;
@@ -67,6 +70,7 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
     }
     bool Finish(bool Passed, const FString& Reason)
     {
+        FScreenshotRequest::OnScreenshotRequestProcessed().Remove(ScreenshotProcessedHandle);
         // Observe map-owned initializations separately from the prepared fixture.
         // A fresh process can still have resident dependencies; report that fact
         // instead of calling every packaged request a cold resource load.
@@ -200,14 +204,33 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
                 for (const auto& Item:Weak->FindComponentByClass<UACFEquipmentComponent>()->GetInventory()) Ids.Add(Item.GetItemGuid());
                 BeforeIds.Add(Ids);
             }
-            ReadyTime=Now-ReadyStart; CaptureStart=Now;
+            ReadyTime=Now-ReadyStart;
+            Report->SetBoolField(TEXT("threaded_rendering"), GIsThreadedRendering);
+            Report->SetBoolField(TEXT("threaded_rendering_requested"), GUseThreadedRendering);
+            Report->SetBoolField(TEXT("rhi_separate_thread"), IsRunningRHIInSeparateThread());
             Report->SetNumberField(TEXT("spawn_peak_ms"),Peak);
             IFileManager::Get().MakeDirectory(*Directory,true);
+            if (FScreenshotRequest::IsScreenshotRequested()) return Finish(false,TEXT("Another screenshot request is active"));
+            ScreenshotProcessedHandle = FScreenshotRequest::OnScreenshotRequestProcessed().AddSPLambda(
+                this, [this]() { bScreenshotProcessed=true; });
             FScreenshotRequest::RequestScreenshot(Directory/TEXT("outfits.png"),false,false);
             Stage=3; return true;
         }
         if (Stage==3)
         {
+            if (!bScreenshotProcessed) return true;
+            if (!bMeasurementStarted)
+            {
+                // The request may stall rendering/readback. Start on the next
+                // tick after its completion, keeping readiness timing separate.
+                FScreenshotRequest::OnScreenshotRequestProcessed().Remove(ScreenshotProcessedHandle);
+                ScreenshotProcessedHandle.Reset();
+                CaptureStart=Now;
+                bMeasurementStarted=true;
+                Report->SetNumberField(TEXT("ready_to_capture_seconds"),Now-ReadyStart-ReadyTime);
+                Report->SetBoolField(TEXT("screenshot_processed_before_capture"),true);
+                return true;
+            }
             double SurfaceMs=0, ReconcileMs=0;
             for (auto P:Pawns) if (P.IsValid()) if (auto* Clothing=P->FindComponentByClass<UEFClothingMorphV3RuntimeComponent>())
             { SurfaceMs+=Clothing->GetLastSurfacePassMilliseconds(); ReconcileMs+=Clothing->GetLastReconcileMilliseconds(); }
@@ -279,7 +302,7 @@ FAutoConsoleCommandWithWorldAndArgs OutfitQACommand(TEXT("Project.NPCOutfits.QA"
         for (TCHAR Ch:QA->Name) if (!FChar::IsAlnum(Ch) && Ch!=TEXT('_') && Ch!=TEXT('-')) return;
         QA->Directory=FPaths::ProjectSavedDir()/TEXT("NPCOutfits/Native")/QA->Name;
         QA->Report->SetNumberField(TEXT("count"),QA->Count); QA->Report->SetNumberField(TEXT("seed"),QA->Seed);
-        QA->Report->SetNumberField(TEXT("fixture_version"),2);
+        QA->Report->SetNumberField(TEXT("fixture_version"),3);
         QA->Report->SetStringField(TEXT("body"),QA->Body); QA->Report->SetStringField(TEXT("archetype"),QA->Archetype);
         QA->Report->SetBoolField(TEXT("dressed"),QA->bDressed); QA->Report->SetStringField(TEXT("loading"),QA->Loading);
         FVector2D Size; if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(Size);

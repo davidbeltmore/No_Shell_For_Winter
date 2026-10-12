@@ -29,12 +29,18 @@ result = {'status': 'PENDING', 'budget': {'cpu_increment_ms': 2, 'gpu_increment_
 try:
     assert left.get('fixture_version',1)==right.get('fixture_version',1), 'Unmatched initialization fixture version'
     result['fixture_version']=right.get('fixture_version',1)
+    if result['fixture_version'] >= 3:
+        assert all(row.get('screenshot_processed_before_capture') for row in [left,right]), 'Screenshot completion must precede steady capture'
+        for key in ['threaded_rendering','threaded_rendering_requested','rhi_separate_thread']:
+            assert key in left and key in right and left[key]==right[key], 'Missing or unmatched renderer threading: '+key
     hosts=[json.loads(path.with_name('host.json').read_text(encoding='utf-8-sig')) for path in [args.undressed,args.dressed]]
     assert all(h.get('status')=='PASS' for h in hosts), 'PIE host did not pass'
     assert hosts[0].get('quality') and hosts[0]['quality']==hosts[1].get('quality'), 'Missing or unmatched actual quality settings'
     assert hosts[0].get('immutable_buffers')==hosts[1].get('immutable_buffers'), 'Unmatched provider configuration'
     assert hosts[0].get('prepared_binding',0)==hosts[1].get('prepared_binding',0), 'Unmatched binding preparation configuration'
     assert hosts[0].get('parameter_cache',0)==hosts[1].get('parameter_cache',0), 'Unmatched parameter update configuration'
+    assert hosts[0].get('independent_npc_lod',0)==hosts[1].get('independent_npc_lod',0), 'Unmatched NPC LOD configuration'
+    assert not any(h.get('inspect_lod') for h in hosts), 'LOD inspection is diagnostic only'
     assert hosts[0].get('configuration_hashes') == hosts[1].get('configuration_hashes'), 'Unmatched roster, graph or runtime source configuration'
     result['configuration_hashes'] = hosts[1].get('configuration_hashes')
     assert not any(h.get(key,False) for h in hosts for key in ['profile_install','profile_gpu','trace']), 'Diagnostic logging/profiling is not an acceptance capture'

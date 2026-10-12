@@ -12,7 +12,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]
 parser = argparse.ArgumentParser()
-parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA', 'ProbeGarmentLOD'])
+parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA', 'ProbeGarmentLOD', 'AuthorGarmentLOD', 'CompileGarmentLOD', 'InspectWitnessCounts'])
 parser.add_argument('--host-timeout', type=float, default=150)
 args, remaining = parser.parse_known_args()
 out = root/'Saved/NPCOutfits/Invocations'/str(time.time_ns())
@@ -24,7 +24,12 @@ launcher.write_text(f"NPC_OUTFIT_ARGS = {remaining!r}\nexec(compile(open({str(sc
 start = time.monotonic()
 with (out/'host.log').open('w', encoding='utf-8') as log:
     try:
-        result = subprocess.run([sys.executable, str(root/'Tools/InnerState/RunEditorPython58.py'), str(launcher)],
+        command = [sys.executable, str(root/'Tools/InnerState/RunEditorPython58.py'), str(launcher)]
+        if args.action == 'AuthorGarmentLOD':
+            # Saving the Director schedules its compiler after Python returns;
+            # restoring the transient Python setting waits behind that work.
+            command += ['--mcp-timeout', '120']
+        result = subprocess.run(command,
                                 cwd=root, stdout=log, stderr=subprocess.STDOUT, timeout=args.host_timeout)
         status = 'PASS' if result.returncode == 0 else 'FAIL'
         reason = 'Editor invocation returned; inspect action receipt' if status == 'PASS' else 'See host.log'

@@ -9768,11 +9768,14 @@ namespace EFClothingFitCompilerPrivate
 			}
 		}
 		const FMeshDescription* MeshDescription = Mesh->GetMeshDescription(LODIndex);
-		if (!MeshDescription)
+		if (!MeshDescription && (LODIndex==0 || !Mesh->GetLODInfo(LODIndex)->bHasBeenSimplified
+			|| (!SkinWeightProfileName.IsNone() && SkinWeightProfileName!=FSkeletalMeshAttributesShared::DefaultSkinWeightProfileName)))
 		{
 			OutError = FString::Printf(TEXT("%s LOD %d has no MeshDescription for skin-similarity classification."), *Mesh->GetPathName(), LODIndex);
 			return false;
 		}
+		if (MeshDescription)
+		{
 		const FSkeletalMeshAttributesShared MeshAttributes(*MeshDescription);
 		const FSkinWeightsVertexAttributesConstRef SkinWeights =
 			MeshAttributes.GetVertexSkinWeights(SkinWeightProfileName);
@@ -9814,6 +9817,37 @@ namespace EFClothingFitCompilerPrivate
 				OutError = FString::Printf(TEXT("%s LOD %d render vertex %d has no skin influences."), *Mesh->GetPathName(), LODIndex, RenderVertexIndex);
 				return false;
 			}
+		}
+		}
+		else
+		{
+			// Unreal's generated LODs retain render/import topology but no imported
+			// MeshDescription. Classify their actual reduced weights; never index
+			// LOD0 weights using a reduced vertex or a section-local bone index.
+			const FSkinWeightVertexBuffer& Weights=RenderLOD.SkinWeightVertexBuffer;
+			if(Weights.GetNumVertices()!=static_cast<uint32>(RenderVertexCount))
+			{ OutError=TEXT("Generated LOD skin-weight/render vertex count mismatch.");return false; }
+			TBitArray<> Assigned(false,RenderVertexCount);
+			for(const auto& Section:RenderLOD.RenderSections)
+			{
+				const uint64 End=uint64(Section.BaseVertexIndex)+Section.NumVertices;
+				if(End>uint64(RenderVertexCount)) {OutError=TEXT("Generated LOD has an invalid skin section range.");return false;}
+				for(uint32 Vertex=Section.BaseVertexIndex;Vertex<End;++Vertex)
+				{
+					if(Assigned[Vertex]) {OutError=TEXT("Generated LOD has overlapping skin sections.");return false;}
+					Assigned[Vertex]=true;
+					for(uint32 Influence=0;Influence<Weights.GetMaxBoneInfluences();++Influence)
+					{
+						const uint16 RawWeight=Weights.GetBoneWeight(Vertex,Influence);if(!RawWeight) continue;
+						const uint32 LocalBone=Weights.GetBoneIndex(Vertex,Influence);
+						if(!Section.BoneMap.IsValidIndex(LocalBone) || !Mesh->GetRefSkeleton().IsValidIndex(Section.BoneMap[LocalBone]))
+						{OutError=TEXT("Generated LOD references an invalid section/skeleton bone.");return false;}
+						OutLOD.SkinWeights[Vertex].FindOrAdd(Section.BoneMap[LocalBone])+=static_cast<float>(RawWeight)/65535.0f;
+					}
+				}
+			}
+			for(int32 Vertex=0;Vertex<RenderVertexCount;++Vertex) if(!Assigned[Vertex] || OutLOD.SkinWeights[Vertex].IsEmpty())
+			{OutError=TEXT("Generated LOD has unclassified skin vertices.");return false;}
 		}
 
 		RenderLOD.MultiSizeIndexContainer.GetIndexBuffer(OutLOD.Indices);
@@ -11571,7 +11605,14 @@ namespace EFClothingFitCompilerPrivate
 
 		// Adaptive edge/interior witnesses close the vertex-only loophole. A
 		// triangle whose spacing would exceed 0.5cm receives a barycentric grid.
-		constexpr double MaximumWitnessSpacingCm = 0.5;
+		const double MaximumWitnessSpacingCm = GarmentLOD.Topology.LODIndex > 0
+			? CatalogRow.ReducedLODMaximumWitnessSpacingCm : 0.5;
+		if (!FMath::IsFinite(MaximumWitnessSpacingCm)
+			|| MaximumWitnessSpacingCm < 0.5 || MaximumWitnessSpacingCm > 1.0)
+		{
+			OutError = TEXT("Invalid reduced LOD witness spacing.");
+			return false;
+		}
 		constexpr int32 MaximumWitnessSubdivisions = 32;
 		for (int32 GarmentDynamicTriangleID : GarmentLOD.Mesh.TriangleIndicesItr())
 		{

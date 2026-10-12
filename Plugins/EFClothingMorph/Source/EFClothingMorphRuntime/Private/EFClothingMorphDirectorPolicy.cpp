@@ -96,6 +96,12 @@ bool FEFClothingGarmentRow::ValidateClothingForUse(FString& OutError) const
 		return false;
 	}
 	FString LowerBodyGuardError;
+	if (!FMath::IsFinite(ReducedLODMaximumWitnessSpacingCm)
+		|| ReducedLODMaximumWitnessSpacingCm < 0.5f || ReducedLODMaximumWitnessSpacingCm > 1.0f)
+	{
+		OutError = TEXT("Reduced LOD witness spacing must be within [0.5, 1.0] cm.");
+		return false;
+	}
 	if (!LowerBodyMorphGuard.Validate(LowerBodyGuardError))
 	{
 		OutError = LowerBodyGuardError;

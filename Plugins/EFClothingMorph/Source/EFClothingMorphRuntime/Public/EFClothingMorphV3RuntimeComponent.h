@@ -276,6 +276,9 @@ private:
 	TMap<FSoftObjectPath, double> V5BindingRetryAfterSeconds;
 	TMap<FSoftObjectPath, int32> V5BindingFailureCounts;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FManagedGarmentState> ManagedGarments;
+	/** Component-only NPC LOD policy, restored independently of producer/LOD transitions. */
+	struct FPreviousLODPolicy { bool IgnoreLeader=false; bool SyncParent=true; };
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FPreviousLODPolicy> PreviousLeaderLODPolicy;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> ClearanceOverridesCm;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, float> InflateOverridesCm;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TMap<int32, FBodyMaterialCoverageState>> BodyMaterialCoverage;

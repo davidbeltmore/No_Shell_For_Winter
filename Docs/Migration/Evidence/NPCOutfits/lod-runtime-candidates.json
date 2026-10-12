@@ -1,0 +1,869 @@
+{
+  "status": "FAIL",
+  "scope": "Experimental LOD candidates; not accepted or packaged. Published runtime remains unchanged in the retained package.",
+  "parent_commit": "9838df51",
+  "candidates": [
+    {
+      "name": "half_geometry",
+      "triangle_ratio": 0.5,
+      "witness_spacing_cm": 0.75,
+      "authoring": {
+        "status": "PASS",
+        "apply": true,
+        "ratio": 0.5,
+        "screen_size": 0.3,
+        "witness_spacing_cm": 0.75,
+        "rows": [
+          {
+            "garment": "RagShirt",
+            "mesh": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+            "before_vertices": [
+              7767
+            ],
+            "result": "PASS: generated LOD1 ratio=0.500 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              7767,
+              4024
+            ],
+            "saved": true
+          },
+          {
+            "garment": "RagPants",
+            "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+            "before_vertices": [
+              9081
+            ],
+            "result": "PASS: generated LOD1 ratio=0.500 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              9081,
+              4655
+            ],
+            "saved": true
+          },
+          {
+            "garment": "RagFootWraps",
+            "mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+            "before_vertices": [
+              2176
+            ],
+            "result": "PASS: generated LOD1 ratio=0.500 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              2176,
+              1209
+            ],
+            "saved": true
+          }
+        ],
+        "seconds": 2.4530000000013388,
+        "director_saved": true
+      },
+      "comparison": {
+        "status": "FAIL",
+        "budget": {
+          "cpu_increment_ms": 2,
+          "gpu_increment_ms": 3,
+          "frame_p95_increment_ms": 4,
+          "warm_ready_seconds": 2
+        },
+        "sources": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_candidate_01_25_bare\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_candidate_01_25_dressed\\runtime.json"
+        ],
+        "reasons": [
+          "cpu_increment_ms exceeds frozen budget",
+          "gpu_increment_ms exceeds frozen budget",
+          "frame_p95_increment_ms exceeds frozen budget",
+          "warm_ready_seconds exceeds frozen budget"
+        ],
+        "fixture_version": 2,
+        "configuration_hashes": {
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "783dcf15eb8c5ca0596709665f093c3f9d6e978eb79153b65b4b15b146cfd1f8",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "b3f09cdd2d89bddbc62c057d97e12cefe43d57b93dcc00dfdd5128672918ae2d",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "27c5cc04610cc275ae39b51bf9244fb02ab2a68adfa4a9dff3233af0405a13a7",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "717855d4b5f983b89a372fd7066660e12712cd14163d4932b5588e086297dac3",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "3c8a27a1f8292162552ba9c1775c6a7ac85bde690dafa3c2377089882421bc94",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "147c4aa0e70d8c846a1b8671c6f148c8c109963c81e4e6da9615acad22d8311b"
+        },
+        "prewarm_receipts": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_candidate_01_25_bare_warmup\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_candidate_01_25_dressed_warmup\\runtime.json"
+        ],
+        "count": 25,
+        "loading": "warm",
+        "measurements": {
+          "cpu_increment_ms": 6.269117624889148,
+          "gpu_increment_ms": 8.973596958383732,
+          "frame_p95_increment_ms": 5.109798431396484,
+          "dressed_frame_p95_ms": 42.553001403808594,
+          "baseline_frame_p95_ms": 37.44320297241211,
+          "spawn_peak_ms": 1278.8487672805786,
+          "warm_ready_seconds": 6.084689199924469,
+          "pending_after_destroy": 0
+        },
+        "acceptance_applies": true
+      },
+      "gpu_diagnostic": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "7cf6acf2ca3107c62f498dcd1d3c629d46211a567a8856174e99b4fbaea63fa2",
+        "retained_frame_sha256": "b6e9d83a79a7fbb7f1edf2e219916a8fb1b3b63ef46f572cf345bf1c24d190c0",
+        "frame": "[2026.10.12-03.50.25:409][453]LogRHI: Display: GPU Profile for Frame 4530 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 111,
+            "total_ms": 0.07,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 111,
+            "total_ms": 1.27,
+            "max_ms": 0.17
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 111,
+            "total_ms": 1.12,
+            "max_ms": 0.02
+          },
+          "EF_GarmentWitness": {
+            "count": 111,
+            "total_ms": 9.28,
+            "max_ms": 0.12
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 111,
+            "total_ms": 0.07,
+            "max_ms": 0.01
+          }
+        }
+      },
+      "authoring_host_note": "Authoring completed; deferred compiler blocked the bridge cleanup beyond its original 45-second HTTP limit. That invocation remains FAIL; subsequent binding validation and runtime hosts passed.",
+      "image": {
+        "path": "Docs\\Migration\\Evidence\\NPCOutfits\\lod-half_geometry-25.png",
+        "sha256": "e5888304d0d11088a3cf3231d398a948e87d1e2b083c90a54740e8b536144553",
+        "review": "Coherent clothing at the fixture camera; partial occlusion/cropping. Does not certify extreme morphs or near/far transitions."
+      }
+    },
+    {
+      "name": "dense_geometry",
+      "triangle_ratio": 0.99,
+      "witness_spacing_cm": 0.75,
+      "authoring": {
+        "status": "PASS",
+        "apply": true,
+        "ratio": 0.99,
+        "screen_size": 0.3,
+        "witness_spacing_cm": 0.75,
+        "rows": [
+          {
+            "garment": "RagShirt",
+            "mesh": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+            "before_vertices": [
+              7767,
+              4024
+            ],
+            "result": "PASS: generated LOD1 ratio=0.990 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              7767,
+              7692
+            ],
+            "saved": true
+          },
+          {
+            "garment": "RagPants",
+            "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+            "before_vertices": [
+              9081,
+              4655
+            ],
+            "result": "PASS: generated LOD1 ratio=0.990 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              9081,
+              8992
+            ],
+            "saved": true
+          },
+          {
+            "garment": "RagFootWraps",
+            "mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+            "before_vertices": [
+              2176,
+              1209
+            ],
+            "result": "PASS: generated LOD1 ratio=0.990 screen=0.300; serialized LOD0, morph names and skeleton unchanged; not saved.",
+            "after_vertices": [
+              2176,
+              2156
+            ],
+            "saved": true
+          }
+        ],
+        "seconds": 3.0940000000045984,
+        "director_saved": true
+      },
+      "comparison": {
+        "status": "FAIL",
+        "budget": {
+          "cpu_increment_ms": 2,
+          "gpu_increment_ms": 3,
+          "frame_p95_increment_ms": 4,
+          "warm_ready_seconds": 2
+        },
+        "sources": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_01_25_bare\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_01_25_dressed\\runtime.json"
+        ],
+        "reasons": [
+          "cpu_increment_ms exceeds frozen budget",
+          "gpu_increment_ms exceeds frozen budget",
+          "frame_p95_increment_ms exceeds frozen budget",
+          "warm_ready_seconds exceeds frozen budget"
+        ],
+        "fixture_version": 2,
+        "configuration_hashes": {
+          "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+          "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+          "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+          "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "717855d4b5f983b89a372fd7066660e12712cd14163d4932b5588e086297dac3",
+          "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+          "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "3c8a27a1f8292162552ba9c1775c6a7ac85bde690dafa3c2377089882421bc94",
+          "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+          "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "147c4aa0e70d8c846a1b8671c6f148c8c109963c81e4e6da9615acad22d8311b"
+        },
+        "prewarm_receipts": [
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_01_25_bare_warmup\\runtime.json",
+          "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_01_25_dressed_warmup\\runtime.json"
+        ],
+        "count": 25,
+        "loading": "warm",
+        "measurements": {
+          "cpu_increment_ms": 6.898692798410366,
+          "gpu_increment_ms": 4.791950987163888,
+          "frame_p95_increment_ms": 8.177898406982422,
+          "dressed_frame_p95_ms": 43.86249923706055,
+          "baseline_frame_p95_ms": 35.684600830078125,
+          "spawn_peak_ms": 1296.1279153823853,
+          "warm_ready_seconds": 6.1843534000217915,
+          "pending_after_destroy": 0
+        },
+        "acceptance_applies": true
+      },
+      "gpu_diagnostic": {
+        "status": "PASS",
+        "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+        "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+        "source_sha256": "9002fcd5d4f69c46a9b7cf9515860eec454e82c40dd6314fa3cfd37eba9e4564",
+        "retained_frame_sha256": "fea5f4a47a64dd69a650ce5252ef99a7aa03ae0bc0497a0eaec2b1003c616f88",
+        "frame": "[2026.10.12-03.57.30:870][985]LogRHI: Display: GPU Profile for Frame 6130 - Graphics pipeline 0 - GPU 0",
+        "kernels": {
+          "EF_GarmentSurfaceBase": {
+            "count": 111,
+            "total_ms": 0.05,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionA": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_GarmentShapeCohesionB": {
+            "count": 111,
+            "total_ms": 1.11,
+            "max_ms": 0.01
+          },
+          "EF_PrepareWitnessPlanes": {
+            "count": 111,
+            "total_ms": 1.28,
+            "max_ms": 0.17
+          },
+          "EF_GarmentWitness": {
+            "count": 111,
+            "total_ms": 3.09,
+            "max_ms": 0.05
+          },
+          "EF_GarmentSeamAndTangentFinalize": {
+            "count": 111,
+            "total_ms": 0.15,
+            "max_ms": 0.01
+          }
+        }
+      },
+      "authoring_host_note": "Authoring completed; deferred compiler blocked the bridge cleanup beyond its original 45-second HTTP limit. That invocation remains FAIL; subsequent binding validation and runtime hosts passed.",
+      "image": {
+        "path": "Docs\\Migration\\Evidence\\NPCOutfits\\lod-dense_geometry-25.png",
+        "sha256": "21e436865887de34d77ed71909bf5fe33b215f43abc83ae27e83c3153441b52a",
+        "review": "Coherent clothing at the fixture camera; partial occlusion/cropping. Does not certify extreme morphs or near/far transitions."
+      }
+    }
+  ],
+  "gpu_lod0_control": {
+    "status": "PASS",
+    "scope": "Last graphics GPU 0 frame; includes background HUB garments. Rounded 0.01 ms event times; diagnostic only, not crowd acceptance.",
+    "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\Logs\\NoShellForWinter.log",
+    "source_sha256": "b8f0427ac147946aad60a9e43841e2aa53c65d2156ef3202aca5aa2703f982c1",
+    "retained_frame_sha256": "f55ba1b6fed16e03f7860b1d35acc092ed922c3cbfe024dd9d8070e65181d04c",
+    "frame": "[2026.10.12-03.52.46:509][138]LogRHI: Display: GPU Profile for Frame 5215 - Graphics pipeline 0 - GPU 0",
+    "kernels": {
+      "EF_GarmentSurfaceBase": {
+        "count": 111,
+        "total_ms": 0.09,
+        "max_ms": 0.01
+      },
+      "EF_GarmentShapeCohesionA": {
+        "count": 111,
+        "total_ms": 1.3,
+        "max_ms": 0.19
+      },
+      "EF_GarmentShapeCohesionB": {
+        "count": 111,
+        "total_ms": 1.11,
+        "max_ms": 0.01
+      },
+      "EF_PrepareWitnessPlanes": {
+        "count": 111,
+        "total_ms": 1.21,
+        "max_ms": 0.02
+      },
+      "EF_GarmentWitness": {
+        "count": 111,
+        "total_ms": 5.85,
+        "max_ms": 0.08
+      },
+      "EF_GarmentSeamAndTangentFinalize": {
+        "count": 111,
+        "total_ms": 0.17,
+        "max_ms": 0.01
+      }
+    }
+  },
+  "witness_audits": [
+    {
+      "path": "Saved\\NPCOutfits\\GarmentLOD\\witness-counts-1791776677357950300.json",
+      "report": {
+        "status": "PASS",
+        "seconds": 4.51600000000326,
+        "expected_reduced_bindings": 9,
+        "rows": [
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_DD64200C4273FDEA30C2ECB3E533AD54.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_DD64200C4273FDEA30C2ECB3E533AD54",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_DD64200C4273FDEA30C2ECB3E533AD54.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_DD64200C4273FDEA30C2ECB3E533AD54",
+            "lod": 1,
+            "vertices": 1209,
+            "witnesses": 10745,
+            "max_incidence": 98,
+            "mean_incidence": 19.032258064516128,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_A391D8F74210E96688026C89570EFE8F.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_A391D8F74210E96688026C89570EFE8F",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_A391D8F74210E96688026C89570EFE8F.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_A391D8F74210E96688026C89570EFE8F",
+            "lod": 1,
+            "vertices": 1209,
+            "witnesses": 10745,
+            "max_incidence": 98,
+            "mean_incidence": 19.032258064516128,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_2095694345B6D51DF2BCA6A9EA0A075B.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_2095694345B6D51DF2BCA6A9EA0A075B",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_2095694345B6D51DF2BCA6A9EA0A075B.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_2095694345B6D51DF2BCA6A9EA0A075B",
+            "lod": 1,
+            "vertices": 1209,
+            "witnesses": 10745,
+            "max_incidence": 98,
+            "mean_incidence": 19.032258064516128,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_B95159C24F51F82A5460A1979070C218.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_B95159C24F51F82A5460A1979070C218",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 102273,
+            "max_incidence": 64,
+            "mean_incidence": 23.974562272877435,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_B95159C24F51F82A5460A1979070C218.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_B95159C24F51F82A5460A1979070C218",
+            "lod": 1,
+            "vertices": 4655,
+            "witnesses": 51822,
+            "max_incidence": 158,
+            "mean_incidence": 24.043179377013963,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_916FDA604C5FD9DC467512BA869BA0E5.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_916FDA604C5FD9DC467512BA869BA0E5",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 104775,
+            "max_incidence": 73,
+            "mean_incidence": 24.558969276511398,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_916FDA604C5FD9DC467512BA869BA0E5.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_916FDA604C5FD9DC467512BA869BA0E5",
+            "lod": 1,
+            "vertices": 4655,
+            "witnesses": 53100,
+            "max_incidence": 158,
+            "mean_incidence": 24.638668098818474,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_1D536C8641EB826FF8941088ECC97861.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_1D536C8641EB826FF8941088ECC97861",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 104775,
+            "max_incidence": 73,
+            "mean_incidence": 24.558969276511398,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_1D536C8641EB826FF8941088ECC97861.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_1D536C8641EB826FF8941088ECC97861",
+            "lod": 1,
+            "vertices": 4655,
+            "witnesses": 53100,
+            "max_incidence": 158,
+            "mean_incidence": 24.638668098818474,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_B82BE5CF4BA68F867C018EBA56589EDC.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_B82BE5CF4BA68F867C018EBA56589EDC",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_B82BE5CF4BA68F867C018EBA56589EDC.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_B82BE5CF4BA68F867C018EBA56589EDC",
+            "lod": 1,
+            "vertices": 4024,
+            "witnesses": 42933,
+            "max_incidence": 133,
+            "mean_incidence": 22.954025844930417,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_EA62D96D4D06ADA5D0C28EA86DD0B4C9.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_EA62D96D4D06ADA5D0C28EA86DD0B4C9",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_EA62D96D4D06ADA5D0C28EA86DD0B4C9.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_EA62D96D4D06ADA5D0C28EA86DD0B4C9",
+            "lod": 1,
+            "vertices": 4024,
+            "witnesses": 42933,
+            "max_incidence": 133,
+            "mean_incidence": 22.954025844930417,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_459BB22B42DCCCB8E2528EA54EA9EF14.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_459BB22B42DCCCB8E2528EA54EA9EF14",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_459BB22B42DCCCB8E2528EA54EA9EF14.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_459BB22B42DCCCB8E2528EA54EA9EF14",
+            "lod": 1,
+            "vertices": 4024,
+            "witnesses": 42933,
+            "max_incidence": 133,
+            "mean_incidence": 22.954025844930417,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          }
+        ]
+      }
+    },
+    {
+      "path": "Saved\\NPCOutfits\\GarmentLOD\\witness-counts-1791777416749326800.json",
+      "report": {
+        "status": "PASS",
+        "seconds": 4.35899999999674,
+        "expected_reduced_bindings": 9,
+        "rows": [
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_0E99097F489655C06913B7A8426B4A63.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_0E99097F489655C06913B7A8426B4A63",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_0E99097F489655C06913B7A8426B4A63.DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_0E99097F489655C06913B7A8426B4A63",
+            "lod": 1,
+            "vertices": 2156,
+            "witnesses": 11322,
+            "max_incidence": 33,
+            "mean_incidence": 10.582096474953618,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_138990F244EA5173417E9D8D247B39B7.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_138990F244EA5173417E9D8D247B39B7",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_138990F244EA5173417E9D8D247B39B7.DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_138990F244EA5173417E9D8D247B39B7",
+            "lod": 1,
+            "vertices": 2156,
+            "witnesses": 11322,
+            "max_incidence": 33,
+            "mean_incidence": 10.582096474953618,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_E23DB94845BF8DCDC230F4B1F8F691C4.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_E23DB94845BF8DCDC230F4B1F8F691C4",
+            "lod": 0,
+            "vertices": 2176,
+            "witnesses": 22076,
+            "max_incidence": 45,
+            "mean_incidence": 21.501838235294116,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_E23DB94845BF8DCDC230F4B1F8F691C4.DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_E23DB94845BF8DCDC230F4B1F8F691C4",
+            "lod": 1,
+            "vertices": 2156,
+            "witnesses": 11322,
+            "max_incidence": 33,
+            "mean_incidence": 10.582096474953618,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_176F173648EF797CEA93A096F0CBD6E3.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_176F173648EF797CEA93A096F0CBD6E3",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 102273,
+            "max_incidence": 64,
+            "mean_incidence": 23.974562272877435,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_176F173648EF797CEA93A096F0CBD6E3.DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_176F173648EF797CEA93A096F0CBD6E3",
+            "lod": 1,
+            "vertices": 8992,
+            "witnesses": 50481,
+            "max_incidence": 43,
+            "mean_incidence": 11.336076512455517,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6CE1747A4A99307D2725E1A08BC823D4.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6CE1747A4A99307D2725E1A08BC823D4",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 104775,
+            "max_incidence": 73,
+            "mean_incidence": 24.558969276511398,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6CE1747A4A99307D2725E1A08BC823D4.DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6CE1747A4A99307D2725E1A08BC823D4",
+            "lod": 1,
+            "vertices": 8992,
+            "witnesses": 51885,
+            "max_incidence": 43,
+            "mean_incidence": 11.655026690391459,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_FBCCF194434C5B92C1A7D8BA5ADB11C8.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_FBCCF194434C5B92C1A7D8BA5ADB11C8",
+            "lod": 0,
+            "vertices": 9081,
+            "witnesses": 104775,
+            "max_incidence": 73,
+            "mean_incidence": 24.558969276511398,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_FBCCF194434C5B92C1A7D8BA5ADB11C8.DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_FBCCF194434C5B92C1A7D8BA5ADB11C8",
+            "lod": 1,
+            "vertices": 8992,
+            "witnesses": 51885,
+            "max_incidence": 43,
+            "mean_incidence": 11.655026690391459,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_9C7D10464419DB8A6C3EA69844509434.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_9C7D10464419DB8A6C3EA69844509434",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_9C7D10464419DB8A6C3EA69844509434.DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_9C7D10464419DB8A6C3EA69844509434",
+            "lod": 1,
+            "vertices": 7692,
+            "witnesses": 44011,
+            "max_incidence": 37,
+            "mean_incidence": 11.5600624024961,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_7BC093934E9E85D647711196D48273DF.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_7BC093934E9E85D647711196D48273DF",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_7BC093934E9E85D647711196D48273DF.DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_7BC093934E9E85D647711196D48273DF",
+            "lod": 1,
+            "vertices": 7692,
+            "witnesses": 44011,
+            "max_incidence": 37,
+            "mean_incidence": 11.5600624024961,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_ABBEEE1A4179DD3C896F96A71409472F.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_ABBEEE1A4179DD3C896F96A71409472F",
+            "lod": 0,
+            "vertices": 7767,
+            "witnesses": 86217,
+            "max_incidence": 68,
+            "mean_incidence": 23.564696794129006,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          },
+          {
+            "binding": "/EFClothingMorph/_Internal/Compiled/V4/DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_ABBEEE1A4179DD3C896F96A71409472F.DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_ABBEEE1A4179DD3C896F96A71409472F",
+            "lod": 1,
+            "vertices": 7692,
+            "witnesses": 44011,
+            "max_incidence": 37,
+            "mean_incidence": 11.5600624024961,
+            "within_incidence_bound": true,
+            "within_plane_capacity": true
+          }
+        ]
+      }
+    }
+  ],
+  "build": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 42.751,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+    ]
+  },
+  "native_test_report": "Saved/Migration/EFClothingMorphV51/NativeAutomation_NPCOutfitLODCandidate_01/Report/index.json",
+  "native_test": {
+    "status": "PASS",
+    "tests": 1,
+    "seconds": 70.6
+  },
+  "threading_investigation": "Fresh editor fixture lod_fresh_thread_state_01 confirms threaded rendering and separate RHI thread are true; render_ms still averages 0.0012 ms. Near-zero counter does not establish single-threaded rendering.",
+  "corrected_capture_comparison": {
+    "status": "FAIL",
+    "budget": {
+      "cpu_increment_ms": 2,
+      "gpu_increment_ms": 3,
+      "frame_p95_increment_ms": 4,
+      "warm_ready_seconds": 2
+    },
+    "sources": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_v3_01_25_bare\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_v3_01_25_dressed\\runtime.json"
+    ],
+    "reasons": [
+      "cpu_increment_ms exceeds frozen budget",
+      "gpu_increment_ms exceeds frozen budget",
+      "warm_ready_seconds exceeds frozen budget"
+    ],
+    "fixture_version": 3,
+    "configuration_hashes": {
+      "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+      "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+      "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+      "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "717855d4b5f983b89a372fd7066660e12712cd14163d4932b5588e086297dac3",
+      "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+      "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "3c8a27a1f8292162552ba9c1775c6a7ac85bde690dafa3c2377089882421bc94",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "9e9c2ee852e3464a2efe1b67670f5826dc580a05e9d050331dacdfb5b69f0032",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9c52618b8ceba7fc71d9c6bf148d63a8a8771ccf7ddd598dd1bf397a249b26a1"
+    },
+    "prewarm_receipts": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_v3_01_25_bare_warmup\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_lod_dense_v3_01_25_dressed_warmup\\runtime.json"
+    ],
+    "count": 25,
+    "loading": "warm",
+    "measurements": {
+      "cpu_increment_ms": 3.028909082475586,
+      "gpu_increment_ms": 4.845206442141402,
+      "frame_p95_increment_ms": 3.670398712158203,
+      "dressed_frame_p95_ms": 41.17729949951172,
+      "baseline_frame_p95_ms": 37.506900787353516,
+      "spawn_peak_ms": 1314.8220777511597,
+      "warm_ready_seconds": 6.184630099684,
+      "pending_after_destroy": 0
+    },
+    "acceptance_applies": true
+  },
+  "capture_boundary_build": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 15.969,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+    ]
+  },
+  "capture_boundary_observations": [
+    {
+      "dressed": false,
+      "fixture_version": 3,
+      "screenshot_processed_before_capture": true,
+      "ready_to_capture_seconds": 0.28592120110988617,
+      "threaded_rendering": true,
+      "threaded_rendering_requested": true,
+      "rhi_separate_thread": true,
+      "pending_after_destroy": 0
+    },
+    {
+      "dressed": true,
+      "fixture_version": 3,
+      "screenshot_processed_before_capture": true,
+      "ready_to_capture_seconds": 0.2634604014456272,
+      "threaded_rendering": true,
+      "threaded_rendering_requested": true,
+      "rhi_separate_thread": true,
+      "pending_after_destroy": 0
+    }
+  ],
+  "game_build": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 59.664,
+    "limit_seconds": 600,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+    ]
+  },
+  "protection": {
+    "seconds": 7.32,
+    "head": "9838df5139d4bba7935fbe0e96e2b741c30576ce",
+    "changed": [],
+    "status": "PASS"
+  },
+  "protected_count": 7643,
+  "final_preservation": {
+    "saves": 6,
+    "status": "PASS",
+    "user_hub_sha256": "C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A"
+  }
+}

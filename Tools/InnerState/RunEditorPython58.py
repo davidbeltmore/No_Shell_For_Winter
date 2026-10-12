@@ -21,11 +21,13 @@ import remote_execution
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('script', type=Path)
+    parser.add_argument('--mcp-timeout', type=float, default=45,
+                        help='Bounded MCP response wait, including cleanup after deferred editor work (maximum 120 s)')
     args = parser.parse_args()
     script = args.script.resolve(strict=True)
     if not script.is_relative_to(ROOT) or script.suffix != '.py':
         raise SystemExit('Only an existing .py inside the writable target is allowed.')
-    client = Client()
+    client = Client(request_timeout=args.mcp_timeout)
     ts = 'editor_toolset.toolsets.object.ObjectTools'
     client.describe(ts)
     ref = {'refPath': '/Script/PythonScriptPlugin.Default__PythonScriptPluginSettings'}

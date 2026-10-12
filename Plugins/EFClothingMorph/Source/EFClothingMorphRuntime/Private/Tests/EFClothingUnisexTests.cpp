@@ -72,6 +72,22 @@ bool FEFClothingUnisexVariantsTest::RunTest(const FString& Parameters)
 	const auto Uncovered = Director->BuildBodyVariants();
 	TestTrue(TEXT("Geometry exclusions alone do not hide anatomy"), Uncovered[1].BodyBoneBranchesToHide.IsEmpty());
 	TestEqual(TEXT("Coverage toggle does not recompile fitting"), Uncovered[1].BuildCompileFingerprint(), Variants[1].BuildCompileFingerprint());
+	Director->Garments[0].ReducedLODMaximumWitnessSpacingCm = 0.75f;
+	const auto ReducedLODVariants = Director->BuildBodyVariants();
+	for (int32 Index = 0; Index < ReducedLODVariants.Num(); ++Index)
+	{
+		TestEqual(TEXT("LOD sampling policy reaches every registered body"),
+			ReducedLODVariants[Index].ReducedLODMaximumWitnessSpacingCm, 0.75f);
+		TestNotEqual(TEXT("Changing LOD sampling invalidates compiled bindings"),
+			ReducedLODVariants[Index].BuildCompileFingerprint(), Uncovered[Index].BuildCompileFingerprint());
+	}
+	FString PolicyError;
+	TestTrue(TEXT("Candidate reduced LOD policy is valid"), Director->Garments[0].ValidateClothingForUse(PolicyError));
+	Director->Garments[0].ReducedLODMaximumWitnessSpacingCm = 1.01f;
+	TestFalse(TEXT("Unsupported sampling density is rejected"), Director->Garments[0].ValidateClothingForUse(PolicyError));
+	Director->Garments[0].ReducedLODMaximumWitnessSpacingCm = 0.5f;
+	TestEqual(TEXT("Restoring original density restores existing binding identity"),
+		Director->Garments[0].BuildCompileFingerprint(), Row.BuildCompileFingerprint());
 	return true;
 }
 #endif

@@ -48,6 +48,11 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 
 ## Gates
 
+These gates describe the published baseline through `9838df51`. The opt-in
+LOD candidates described at the end are experimental: their performance gates
+fail, and their full visual/cook/package gates remain PENDING. The retained
+package contains the previous validated runtime, not these candidates.
+
 | Gate | Status | Evidence |
 |---|---|---|
 | Target/editor/clean initial branch | PASS | MCP and initial Git/process inspection above |
@@ -747,3 +752,98 @@ saves and the user HUB hash are unchanged. MCP confirms PIE is stopped. Compact
 evidence: `Evidence/NPCOutfits/lod-feasibility.json`. Runtime and content remain
 at the previously packaged revision; no new cook or performance pass is claimed.
 The frozen crowd failures and historical visual anomaly remain open.
+
+### Runtime LOD candidates: bounded tests, not accepted
+
+The editor-only feasibility result justified testing an explicitly disabled-by-
+default NPC LOD policy (`ef.ClothingMorph.IndependentNPCLod=0`). It restores prior
+leader/parent LOD flags on release, keeps player-controlled pawns on the existing
+policy, and does not change solver iteration or incidence limits. Generated LODs
+use their actual reduced skin weights with section-local bone indices translated
+through the section bone map. LOD0 sampling stays 0.5 cm. A Director row setting
+controls only LOD1+ witness spacing; its original 0.5 cm value preserves existing
+fingerprints, while a changed value invalidates all affected body variants.
+
+Editor build passes in 42.751 s. The extended native body-variant contract passes
+in 70.6 s, including policy propagation, fingerprint invalidation/restoration and
+rejection of out-of-range sampling. Authoring backs up the three garments,
+Director and associated generated outputs. The native operation verifies LOD0
+serialization, skeleton and morph names before saving. First backup:
+`Saved/NPCOutfits/GarmentLOD/1791776577225473800/Backups` (27 files).
+
+At 50% triangles and 0.75 cm spacing, all nine reduced body/garment bindings pass
+the unchanged 256-reference and Vertex*16 plane bounds; maximum incidence is 158.
+The three-Male.01 functional run passes with nine visible garments observed at
+LOD1, equip/unequip, GC and zero pending work. Its image is coherent. Nevertheless,
+the 25-NPC prepared 30-second pair fails. A subsequent same-editor GPU diagnostic
+observes all 75 fixture garments at LOD1: witness work is 9.28 ms for all 111 scene
+garments versus 5.85 ms in the LOD0 control. These rounded one-frame totals are
+diagnostic, not acceptance measurements or proof of the underlying solver cause.
+
+A second candidate retains 99% of triangles while keeping 0.75 cm sampling, to
+separate geometry simplification from sampling reduction. All nine reduced
+bindings again meet both bounds. The GPU diagnostic observes 75 fixture garments
+at LOD1 and 3.09 ms witness work for the scene. The full pair reduces incremental
+GPU time but still fails every frozen threshold:
+
+| Candidate | CPU increment | GPU increment | p95 increment | Prepared readiness |
+|---|---:|---:|---:|---:|
+| 50% geometry / 0.75 cm | 6.269 ms | 8.974 ms | 5.110 ms | 6.085 s |
+| 99% geometry / 0.75 cm | 6.899 ms | 4.792 ms | 8.178 ms | 6.184 s |
+
+Both use matching configurations, the original camera, 30-second captures and
+explicit preparation; teardown leaves zero pending work. Both actual 25-NPC
+images were reviewed and are coherent at that distance, with occlusion/cropping
+limitations. They do not certify extreme morphs or near/far transitions.
+Evidence: `Evidence/NPCOutfits/lod-runtime-candidates.json` and its two images.
+
+Saving the Director schedules its compiler after the authoring script returns.
+Both authoring actions passed, but the host's original 45-second MCP cleanup wait
+expired behind this deferred work. Those host FAIL receipts remain intact. The
+compiler subsequently completed; explicit V4 validation/V5 publication reused all
+18 fresh bindings, and independent witness audits passed. The bridge now accepts
+an optional bounded MCP timeout (default still 45 s); this authoring action uses
+120 s within its 150-second outer bound. A timeout never permits restarting work
+without checking the live editor and compiler first.
+
+The new captures report almost zero render-thread time, unlike earlier captures.
+This is an observation, not proof that rendering became single-threaded. The
+engine's Slate presentation path updates this statistic. A read-only OS thread
+name query was unavailable. Explicit render/RHI threading flags were added to the
+native fixture; their Editor build passes in 17.806 s. A fresh editor observation
+is pending before drawing further CPU conclusions. All six session saves were
+checked/restored with the editor closed; only ProjectIntimacy required restoration.
+
+The fresh three-NPC observation `lod_fresh_thread_state_01` passes in 15.812 s:
+threaded rendering, requested threaded rendering and a separate RHI thread are
+all true. Render-time samples still average about 0.0012 ms. The single-threaded
+rendering hypothesis is therefore unsupported; restarting did not repair that
+counter. No acceptance result was changed on this basis.
+
+Source review also found that fixture version 2 requested its screenshot at the
+same instant it started steady-state capture, including the screenshot's CPU
+readback/processing stall in the samples. Version 3 waits for Unreal's screenshot-
+processed event, then starts measurement on a later tick. It preserves the
+original readiness timestamp and reports screenshot-to-capture separation. The
+original 30-second and frozen performance thresholds remain unchanged. The
+comparison tool rejects mixed fixture versions and, for version 3, requires
+completed screenshots plus matching explicit renderer-threading observations.
+The first build found a shared-pointer callback signature mismatch; the corrected
+Editor build passes in 15.969 s. Version-3 runtime measurements follow below.
+
+The version-3 prepared 25-NPC pair completes with all screenshot-completion and
+threading checks satisfied. Screenshot-to-capture separation is 0.286 s bare /
+0.263 s dressed. The frozen result is still FAIL: CPU increment 3.029 ms, GPU
+4.845 ms, p95 increment 3.670 ms (this individual threshold passes), readiness
+6.185 s, zero pending after teardown. The actual dressed image is coherent at the
+fixture camera; see `Evidence/NPCOutfits/lod-dense-v3-25.png`. A fresh editor and
+fixture correction changed between versions, so the CPU delta difference is not
+attributed entirely to the screenshot fix. Full quality/transition and packaged
+acceptance of this candidate remain PENDING. No failed threshold was relaxed.
+
+Checkpoint: Development Game build passes in 59.664 s with Daz receipt/descriptor
+restoration. The final protected comparison passes: 7,643 files unchanged in
+7.320 s. All six saves from `Session_20261011_231705` and the user HUB hash are
+preserved after closing the editor; the editor is reopened through the protected
+launcher. The outfit skill validates. The candidate remains opt-in and no new
+package supersedes the validated `Package_20261011_214531` artifact.

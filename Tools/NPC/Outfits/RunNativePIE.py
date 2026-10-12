@@ -19,6 +19,8 @@ parser.add_argument('--timeout',type=float,default=120)
 parser.add_argument('--name',default='native_'+str(time.time_ns()))
 parser.add_argument('--immutable-buffers',type=int,choices=[0,1],default=1)
 parser.add_argument('--prepared-binding',type=int,choices=[0,1],default=1)
+parser.add_argument('--inspect-lod',action='store_true',help='One runtime LOD snapshot; diagnostic only')
+parser.add_argument('--independent-npc-lod',type=int,choices=[0,1],default=0)
 parser.add_argument('--parameter-cache',type=int,choices=[0,1],default=1)
 parser.add_argument('--gc',action='store_true',help='Force native GC after fixture destruction')
 parser.add_argument('--trace',action='store_true',help='Diagnostic CPU/GPU trace after fixture outfits are ready')
@@ -32,6 +34,11 @@ assert not args.profile_gpu or (not args.selection and not args.trace), 'Use one
 assert args.name.replace('_','').replace('-','').isalnum()
 root=Path(unreal.Paths.project_dir()).resolve()
 configuration_paths = [
+    'Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset',
+    'Content/DazToUnreal/RagShirt/RagShirt.uasset',
+    'Content/DazToUnreal/RagPants/RagPants.uasset',
+    'Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset',
+    'Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp',
     'Content/_Game/Characters/Data/DA_NPCRoster.uasset',
     'Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset',
     'Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp',
@@ -61,6 +68,8 @@ buffer_cvar='ef.ClothingMorph.ImmutableBindingBuffers'
 previous_buffers=unreal.SystemLibrary.get_console_variable_int_value(buffer_cvar)
 prepared_cvar='ef.ClothingMorph.PreparedBinding'
 previous_prepared=unreal.SystemLibrary.get_console_variable_int_value(prepared_cvar)
+lod_cvar='ef.ClothingMorph.IndependentNPCLod'
+previous_lod=unreal.SystemLibrary.get_console_variable_int_value(lod_cvar)
 parameter_cvar='ef.ClothingMorph.SkipUnchangedParameters'
 previous_parameters=unreal.SystemLibrary.get_console_variable_int_value(parameter_cvar)
 profile_cvar='ef.ClothingMorph.ProfileInstall'
@@ -72,7 +81,7 @@ quality_names=['sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuali
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','trace','profile_gpu','prewarm','selection','profile_install','gc']}
+native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','trace','profile_gpu','prewarm','selection','profile_install','gc']}
 command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 assert not (args.selection and args.gc), 'GC fixture uses the standard outfit command'
 if args.gc: command+=' gc'
@@ -87,11 +96,12 @@ def done(error=''):
     perf.set_editor_property('bThrottleCPUWhenNotForeground',throttle)
     unreal.SystemLibrary.execute_console_command(restore_world,buffer_cvar+' '+str(previous_buffers))
     unreal.SystemLibrary.execute_console_command(restore_world,prepared_cvar+' '+str(previous_prepared))
+    unreal.SystemLibrary.execute_console_command(restore_world,lod_cvar+' '+str(previous_lod))
     unreal.SystemLibrary.execute_console_command(restore_world,parameter_cvar+' '+str(previous_parameters))
     unreal.SystemLibrary.execute_console_command(restore_world,profile_cvar+' '+str(previous_profile))
     for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(restore_world,key+' '+str(value))
     unreal.EditorLevelLibrary.editor_end_play()
-    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
 
 def tick(dt):
     try:
@@ -101,6 +111,7 @@ def tick(dt):
             state['issued']=True
             unreal.SystemLibrary.execute_console_command(world,buffer_cvar+' '+str(args.immutable_buffers))
             unreal.SystemLibrary.execute_console_command(world,prepared_cvar+' '+str(args.prepared_binding))
+            unreal.SystemLibrary.execute_console_command(world,lod_cvar+' '+str(args.independent_npc_lod))
             unreal.SystemLibrary.execute_console_command(world,parameter_cvar+' '+str(args.parameter_cache))
             unreal.SystemLibrary.execute_console_command(world,profile_cvar+' '+str(int(args.profile_install)))
             unreal.SystemLibrary.execute_console_command(world,warm_command if args.prewarm else command)
@@ -117,6 +128,21 @@ def tick(dt):
             result=json.loads(receipt.read_text(encoding='utf-8-sig'))
             done('' if result['status']=='PASS' else result.get('reason','Native FAIL'))
             return
+        if args.inspect_lod and world and state['issued'] and not state.get('lod_snapshot'):
+            pawns=[p for p in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.Pawn)
+                   if any(str(t).startswith('EF.AppearanceId.OutfitQA.') for t in p.tags)]
+            if len(pawns)==args.count and all(p.get_component_by_class(unreal.ProjectNPCOutfitComponent).state==unreal.ProjectNPCOutfitState.READY for p in pawns):
+                if 'lod_ready_at' not in state: state['lod_ready_at']=time.monotonic()
+                if time.monotonic()-state['lod_ready_at']>=1:
+                    state['lod_snapshot']=[]
+                    for pawn in pawns:
+                        for mesh in pawn.get_components_by_class(unreal.SkeletalMeshComponent):
+                            asset=mesh.get_editor_property('skeletal_mesh_asset')
+                            if asset and asset.get_name() in ['RagShirt','RagPants','RagFootWraps']:
+                                state['lod_snapshot'].append({'actor':pawn.get_name(),'mesh':asset.get_path_name(),
+                                    'lod':mesh.get_predicted_lod_level(),'visible':mesh.is_visible(),
+                                    'ignore_leader_lod':mesh.get_editor_property('bIgnoreLeaderPoseComponentLOD'),
+                                    'sync_parent_lod':mesh.get_editor_property('bSyncAttachParentLOD')})
         if (args.trace or args.profile_gpu) and world and state['issued'] and not state.get('diagnostic_started'):
             pawns=[p for p in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.Pawn)
                    if any(str(t).startswith('EF.AppearanceId.OutfitQA.') for t in p.tags)]

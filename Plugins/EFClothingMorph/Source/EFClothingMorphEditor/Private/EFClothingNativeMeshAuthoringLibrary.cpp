@@ -17,6 +17,7 @@
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
 #include "SkeletalMeshEditorSubsystem.h"
+#include "ScopedTransaction.h"
 #include "Serialization/BufferArchive.h"
 #include "Serialization/JsonSerializer.h"
 #include "Dom/JsonObject.h"
@@ -499,4 +500,49 @@ bool UEFClothingNativeMeshAuthoringLibrary::InspectReducedGarmentLOD(
 	Result->SetNumberField(TEXT("seconds"), FPlatformTime::Seconds() - Started);
 	FJsonSerializer::Serialize(Result, TJsonWriterFactory<>::Create(&OutReport));
 	return bValid;
+}
+
+bool UEFClothingNativeMeshAuthoringLibrary::GenerateReducedGarmentLOD(
+	UEFClothingMorphDirectorPolicy* Director,FName GarmentId,float TriangleRatio,float ScreenSize,FString& OutReport)
+{
+	using namespace EFClothingNativeMeshAuthoringPrivate;
+	FResolvedGarment Garment;
+	if(!ResolveGarment(Director,GarmentId,Garment,OutReport)) return false;
+	auto* Mesh=Garment.Mesh;
+	if(!FMath::IsFinite(TriangleRatio) || TriangleRatio<0.1f || TriangleRatio>=1 ||
+		!FMath::IsFinite(ScreenSize) || ScreenSize<=0 || ScreenSize>=1 || !GEditor || GEditor->PlayWorld)
+	{ OutReport=TEXT("Invalid reduction/screen ratio, or PIE is active.");return false; }
+	for(const auto& Body:Director->Bodies) if(Body.BodySurface.ToSoftObjectPath()==FSoftObjectPath(Mesh))
+	{ OutReport=TEXT("Registered bodies are read-only.");return false; }
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	if(Mesh->GetNumSourceModels()>2 || (Mesh->GetNumSourceModels()==2 && !Mesh->GetLODInfo(1)->bHasBeenSimplified))
+	{ OutReport=TEXT("Preserve authored/imported LODs; this action only manages generated LOD1.");return false; }
+	FMeshDescription* BaseDescription=Mesh->GetMeshDescription(0);
+	if(!BaseDescription) { OutReport=TEXT("Imported LOD0 mesh description is unavailable.");return false; }
+	FBufferArchive Before;BaseDescription->Serialize(Before);
+	TArray<FName> MorphsBefore;CollectMorphNames(Mesh,MorphsBefore);
+	const auto* SkeletonBefore=Mesh->GetSkeleton();
+	const FSkeletalMeshLODInfo BaseInfo=*Mesh->GetLODInfo(0);
+	const FScopedTransaction Transaction(NSLOCTEXT("EFClothing", "ReducedGarmentLOD", "Generate clothing LOD1"));
+	Mesh->Modify();
+	if(Mesh->GetNumSourceModels()==1) static_cast<FSkeletalMeshLODInfo&>(Mesh->AddSourceModel(true))=BaseInfo;
+	auto& LOD=*Mesh->GetLODInfo(1);
+	LOD.ReductionSettings.BaseLOD=0;
+	LOD.ReductionSettings.NumOfTrianglesPercentage=TriangleRatio;
+	LOD.ReductionSettings.TerminationCriterion=SMTC_NumOfTriangles;
+	LOD.ReductionSettings.bLockEdges=true;
+	LOD.ReductionSettings.bRemapMorphTargets=true;
+	LOD.ReductionSettings.bEnforceBoneBoundaries=true;
+	LOD.ScreenSize.Default=ScreenSize;
+	LOD.LODHysteresis=0.03f;
+	LOD.bAllowMeshDeformer=true;
+	const bool Generated=USkeletalMeshEditorSubsystem::RegenerateLOD(Mesh,2,false,false);
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	FBufferArchive After;if(auto* Description=Mesh->GetMeshDescription(0)) Description->Serialize(After);
+	TArray<FName> MorphsAfter;CollectMorphNames(Mesh,MorphsAfter);
+	if(!Generated || Before!=After || MorphsBefore!=MorphsAfter || Mesh->GetSkeleton()!=SkeletonBefore)
+	{ OutReport=TEXT("LOD generation failed or an imported LOD0/morph/skeleton invariant changed; do not save, restore the scoped backup.");return false; }
+	Mesh->MarkPackageDirty();
+	OutReport=FString::Printf(TEXT("PASS: generated LOD1 ratio=%.3f screen=%.3f; serialized LOD0, morph names and skeleton unchanged; not saved."),TriangleRatio,ScreenSize);
+	return true;
 }
