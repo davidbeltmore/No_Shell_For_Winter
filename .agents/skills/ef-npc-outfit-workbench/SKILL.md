@@ -57,6 +57,12 @@ post-load objects retain the asynchronous path; no synchronous load is added.
 The lifecycle fixture explicitly tests destruction both before resident equip
 and while an async callback is pending, restoring the CVar afterward. Do not
 replace async cancellation coverage with a generic Pending/Loading assertion.
+The resident prerequisite path has also passed a fresh cooked-process check on
+the isolated cold-item map: the initial NPC begins with a nonresident definition
+and three nonresident classes, then reaches Ready. Three representative bodies
+pass packaged native equip/unequip, reinitialization, GC and normal exit. These
+default-LOD functional runs do not certify the opt-in LOD1 quality/performance
+candidate; see the migration document for the retained package and exact scope.
 
 `FProjectNPCAppearanceRecord` retains outfit ID/version and the shared native
 inventory serialization envelope under the existing identity. A versioned record

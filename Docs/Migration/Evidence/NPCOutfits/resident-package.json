@@ -1,0 +1,564 @@
+{
+  "runtime_commit": "0eef8827",
+  "package": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261012_001912",
+  "cook": {
+    "scope": "HUB body presets and clothing",
+    "reused_cook": false,
+    "elapsed_seconds": 259.6258118,
+    "exit_code": 0
+  },
+  "bounded_cook": {
+    "status": "PASS",
+    "exit_code": 0,
+    "seconds": 260.012,
+    "limit_seconds": 900,
+    "command": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "Tools/BodyPresets/Package-BodyPresets58.ps1",
+      "-AdditionalMap",
+      "/Game/_Game/QA/NPCOutfitColdStart"
+    ]
+  },
+  "freshness": {
+    "fresh": true,
+    "enabled_row_count": 18,
+    "valid_binding_count": 18,
+    "draft_row_count": 0,
+    "invalid_row_count": 0,
+    "stale_row_count": 0,
+    "report": "V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+    "manifest_valid": true,
+    "status": "PASS",
+    "seconds": 1.14
+  },
+  "staged_binary_sha256": "37d52b7022e8dc33a3adb50e980c7baa14b522d1d377d7d280d9bed35307a5e9",
+  "scope": "Default policy: independent NPC LOD disabled, four active initializations, resident prerequisite reuse enabled. Three-second functional captures, not a steady performance comparison.",
+  "cases": [
+    {
+      "status": "PASS",
+      "body": "Male.01",
+      "archetype": "SkillGuy",
+      "count": 3,
+      "map": "/Game/_Game/QA/NPCOutfitColdStart",
+      "seconds": 20.4753371,
+      "exit_code": 0,
+      "all_error_count": 0,
+      "prepared_reuses": 6,
+      "require_cold_items": true,
+      "process": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_002418151\\process.json",
+      "process_sha256": "65f2a02395815b4e5e605bdc8d8a6f7a2872110ca115f0e1bcdcbc33e429eb35",
+      "image": "resident-package-0-Male.01.png",
+      "image_sha256": "29ca0a435bfd147a310832ce2a2388a926227debfc8ca0778005e0f0b7425ac0",
+      "visual_review": "PASS for coherent visible clothing at the fixture camera; crowd occlusion/cropping and ordinary morphs limit scope",
+      "runtime": {
+        "status": "PASS",
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ],
+        "outfit_ready_seconds": 0.8007532991468906,
+        "max_active_initializations": 4,
+        "fixture_initializations": [
+          {
+            "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480956",
+            "spawn_to_admission_seconds": 0.2995612993836403,
+            "initialization_seconds": 0.4961625002324581,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480894",
+            "spawn_to_admission_seconds": 0.3064678981900215,
+            "initialization_seconds": 0.4892478995025158,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480832",
+            "spawn_to_admission_seconds": 0.29359079897403717,
+            "initialization_seconds": 0.502139400690794,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          }
+        ]
+      },
+      "initial_world_outfits": [
+        {
+          "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_0",
+          "class": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C",
+          "outfit": "FullRag",
+          "state": "EProjectNPCOutfitState::Ready",
+          "restored": false,
+          "definition_resident_at_request": false,
+          "item_classes_requested": 3,
+          "item_classes_resident_at_request": 0,
+          "definition_load_seconds": 0.013749897480010986,
+          "item_classes_load_seconds": 0.01840449869632721,
+          "engine_seconds_at_start": 9.053076799958944,
+          "engine_seconds_at_ready": 9.976514499634504,
+          "initialization_seconds": 0.9234375990927219
+        }
+      ]
+    },
+    {
+      "status": "PASS",
+      "body": "Male.01",
+      "archetype": "SkillGuy",
+      "count": 25,
+      "map": "/Game/_Game/Hub/HUB",
+      "seconds": 22.1617154,
+      "exit_code": 0,
+      "all_error_count": 0,
+      "prepared_reuses": 102,
+      "require_cold_items": false,
+      "process": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_002438726\\process.json",
+      "process_sha256": "c82ac8b8fe3407ee3120d0f7831b9195fc3b36950822eb49cc24b14c52aeedd7",
+      "image": "resident-package-1-Male.01.png",
+      "image_sha256": "904f137846a115f2c0d05c9c0c9403c5eda5903d00b223a71b08d641e1324330",
+      "visual_review": "PASS for coherent visible clothing at the fixture camera; crowd occlusion/cropping and ordinary morphs limit scope",
+      "runtime": {
+        "status": "PASS",
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ],
+        "outfit_ready_seconds": 3.6316973976790905,
+        "max_active_initializations": 4,
+        "fixture_initializations": [
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147478012",
+            "spawn_to_admission_seconds": 2.55247899889946,
+            "initialization_seconds": 0.1757592000067234,
+            "definition_load_seconds": 5.029141902923584e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477950",
+            "spawn_to_admission_seconds": 2.594132799655199,
+            "initialization_seconds": 0.17365210130810738,
+            "definition_load_seconds": 8.009374141693115e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477888",
+            "spawn_to_admission_seconds": 2.40670770034194,
+            "initialization_seconds": 0.18741369992494583,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477826",
+            "spawn_to_admission_seconds": 3.4397372975945473,
+            "initialization_seconds": 0.17663370072841644,
+            "definition_load_seconds": 3.986060619354248e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477764",
+            "spawn_to_admission_seconds": 3.0396875999867916,
+            "initialization_seconds": 0.19579669833183289,
+            "definition_load_seconds": 4.991888999938965e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477702",
+            "spawn_to_admission_seconds": 3.2355104982852936,
+            "initialization_seconds": 0.20421089977025986,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477640",
+            "spawn_to_admission_seconds": 3.0732378996908665,
+            "initialization_seconds": 0.16223439946770668,
+            "definition_load_seconds": 6.966292858123779e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477578",
+            "spawn_to_admission_seconds": 2.891424000263214,
+            "initialization_seconds": 0.1817989982664585,
+            "definition_load_seconds": 1.300126314163208e-06,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477516",
+            "spawn_to_admission_seconds": 2.7282461002469063,
+            "initialization_seconds": 0.18270709738135338,
+            "definition_load_seconds": 7.972121238708496e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477454",
+            "spawn_to_admission_seconds": 2.671156197786331,
+            "initialization_seconds": 0.177350003272295,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477392",
+            "spawn_to_admission_seconds": 2.5341654010117054,
+            "initialization_seconds": 0.17502069845795631,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477330",
+            "spawn_to_admission_seconds": 2.4915231987833977,
+            "initialization_seconds": 0.17960359901189804,
+            "definition_load_seconds": 1.0989606380462646e-06,
+            "item_classes_load_seconds": 9.685754776000977e-08,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477268",
+            "spawn_to_admission_seconds": 2.364462997764349,
+            "initialization_seconds": 0.1879977025091648,
+            "definition_load_seconds": 9.015202522277832e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477206",
+            "spawn_to_admission_seconds": 2.34684019908309,
+            "initialization_seconds": 0.18730739876627922,
+            "definition_load_seconds": 4.991888999938965e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477144",
+            "spawn_to_admission_seconds": 2.3301053009927273,
+            "initialization_seconds": 0.1613960973918438,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477082",
+            "spawn_to_admission_seconds": 3.3759547993540764,
+            "initialization_seconds": 0.18401600047945976,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147477020",
+            "spawn_to_admission_seconds": 3.3360937982797623,
+            "initialization_seconds": 0.20641079917550087,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476958",
+            "spawn_to_admission_seconds": 3.2768310979008675,
+            "initialization_seconds": 0.20516769960522652,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476896",
+            "spawn_to_admission_seconds": 3.172624498605728,
+            "initialization_seconds": 0.16344299912452698,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476834",
+            "spawn_to_admission_seconds": 3.134961199015379,
+            "initialization_seconds": 0.2011145018041134,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476772",
+            "spawn_to_admission_seconds": 2.9562868997454643,
+            "initialization_seconds": 0.21632760018110275,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476710",
+            "spawn_to_admission_seconds": 2.9109682999551296,
+            "initialization_seconds": 0.22395550087094307,
+            "definition_load_seconds": 7.003545761108398e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476648",
+            "spawn_to_admission_seconds": 2.848542097955942,
+            "initialization_seconds": 0.19112370163202286,
+            "definition_load_seconds": 7.972121238708496e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476586",
+            "spawn_to_admission_seconds": 2.7677931003272533,
+            "initialization_seconds": 0.18847589939832687,
+            "definition_load_seconds": 4.991888999938965e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_2147476524",
+            "spawn_to_admission_seconds": 2.709206398576498,
+            "initialization_seconds": 0.18220699951052666,
+            "definition_load_seconds": 5.997717380523682e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          }
+        ]
+      }
+    },
+    {
+      "status": "PASS",
+      "body": "Female.01",
+      "archetype": "MeleeEnemy",
+      "count": 3,
+      "map": "/Game/_Game/Hub/HUB",
+      "seconds": 18.1148109,
+      "exit_code": 0,
+      "all_error_count": 0,
+      "prepared_reuses": 36,
+      "require_cold_items": false,
+      "process": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_002500919\\process.json",
+      "process_sha256": "f567d49c6fd2b4ec9389f3a6230919c453c438bb35659134c18cf6ead51a6b1c",
+      "image": "resident-package-2-Female.01.png",
+      "image_sha256": "f48b00a266749b712f0e8b007fb561b73729632b7fc5d8409528ad4841400091",
+      "visual_review": "PASS for coherent visible clothing at the fixture camera; crowd occlusion/cropping and ordinary morphs limit scope",
+      "runtime": {
+        "status": "PASS",
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ],
+        "outfit_ready_seconds": 0.4642686992883682,
+        "max_active_initializations": 4,
+        "fixture_initializations": [
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147478012",
+            "spawn_to_admission_seconds": 0.2843855991959572,
+            "initialization_seconds": 0.14206860214471817,
+            "definition_load_seconds": 9.015202522277832e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147477944",
+            "spawn_to_admission_seconds": 0.3081968016922474,
+            "initialization_seconds": 0.13313369825482368,
+            "definition_load_seconds": 1.1026859283447266e-06,
+            "item_classes_load_seconds": 9.685754776000977e-08,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147477876",
+            "spawn_to_admission_seconds": 0.3208435997366905,
+            "initialization_seconds": 0.13640569895505905,
+            "definition_load_seconds": 8.009374141693115e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          }
+        ]
+      }
+    },
+    {
+      "status": "PASS",
+      "body": "Male.02",
+      "archetype": "Zombie",
+      "count": 3,
+      "map": "/Game/_Game/Hub/HUB",
+      "seconds": 18.107546499999998,
+      "exit_code": 0,
+      "all_error_count": 0,
+      "prepared_reuses": 36,
+      "require_cold_items": false,
+      "process": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_002519076\\process.json",
+      "process_sha256": "8f7f3b05cc8f167979d7a5f472165ef73eed29732dc8cd7d788073bf6aa4433e",
+      "image": "resident-package-3-Male.02.png",
+      "image_sha256": "82e43350e26119e4cf6fa65595071b4ffeca5c21a4c9b66ced017f6a0034b659",
+      "visual_review": "PASS for coherent visible clothing at the fixture camera; crowd occlusion/cropping and ordinary morphs limit scope",
+      "runtime": {
+        "status": "PASS",
+        "garbage_collection_completed": true,
+        "pending_after_destroy": 0,
+        "checks": [
+          {
+            "name": "Repeated initialization preserves removed shirt",
+            "status": "PASS"
+          },
+          {
+            "name": "Inventory count unchanged",
+            "status": "PASS"
+          }
+        ],
+        "outfit_ready_seconds": 0.47113610059022903,
+        "max_active_initializations": 4,
+        "fixture_initializations": [
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147478012",
+            "spawn_to_admission_seconds": 0.29846780002117157,
+            "initialization_seconds": 0.12492699921131134,
+            "definition_load_seconds": 8.977949619293213e-07,
+            "item_classes_load_seconds": 0,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147477969",
+            "spawn_to_admission_seconds": 0.30824150145053864,
+            "initialization_seconds": 0.1381244994699955,
+            "definition_load_seconds": 4.991888999938965e-07,
+            "item_classes_load_seconds": 1.0058283805847168e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          },
+          {
+            "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147477926",
+            "spawn_to_admission_seconds": 0.3195655010640621,
+            "initialization_seconds": 0.14248650148510933,
+            "definition_load_seconds": 1.0021030902862549e-06,
+            "item_classes_load_seconds": 5.997717380523682e-07,
+            "definition_resident_at_request": true,
+            "item_classes_requested": 3,
+            "item_classes_resident_at_request": 3
+          }
+        ]
+      }
+    }
+  ],
+  "protection": {
+    "seconds": 7.56,
+    "head": "0eef8827769b8895b7600d7fcd7dadbf359afe4a",
+    "changed": [],
+    "status": "PASS",
+    "count": 7643
+  },
+  "real_save_games": {
+    "status": "PASS",
+    "checked": 7,
+    "basis": "Session_20261012_001152/user_save_before.json"
+  },
+  "user_hub_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a",
+  "cleanup": {
+    "retained": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261012_001912",
+    "previous": "D:\\Projects UE5\\NoShellForWinter\\Saved\\BodyPresetsQA\\Package_20261011_214531",
+    "removed_bytes": 4991595889,
+    "dry_run": "Saved/CleanupEvidence/20261008/package-cleanup-plan_20261012_002637470.json",
+    "after_dry_run_targets": 0,
+    "scope": "Only old Cooked/Staged; receipts/logs/backups retained"
+  }
+}

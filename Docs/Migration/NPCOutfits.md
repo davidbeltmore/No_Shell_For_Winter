@@ -48,10 +48,12 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 
 ## Gates
 
-These gates describe the published baseline through `9838df51`. The opt-in
-LOD candidates described at the end are experimental: their performance gates
-fail, and their full visual/cook/package gates remain PENDING. The retained
-package contains the previous validated runtime, not these candidates.
+These gates describe the default-policy implementation through `0eef8827`,
+including the fresh packaged validation below. The opt-in independent-LOD
+candidate remains experimental: its performance gates fail and its full LOD1
+morph/near-far visual and active-LOD packaged gates remain PENDING. Its generated
+assets are cooked in the current package, but the packaged functional runs use
+the default disabled independent-LOD policy.
 
 | Gate | Status | Evidence |
 |---|---|---|
@@ -979,3 +981,49 @@ All prior saves are restored after each PIE editor session (six before the disk
 save fixture, seven retained thereafter), and HUB keeps the recorded user hash.
 The editor is reopened; admission default four and independent LOD default zero
 remain unchanged. No new 30-second acceptance PASS is claimed.
+
+## Fresh packaged validation of resident prerequisites (2026-10-12)
+
+Runtime snapshot `0eef8827` is cooked into
+`Saved/BodyPresetsQA/Package_20261012_001912`. The live pre-cook catalog has 18
+enabled/valid bindings, zero stale/invalid/draft rows and a valid V5 manifest.
+Cook/package PASS in 260.012 s including the bounded host (900 s limit). The
+staged native executable exactly matches `Binaries/Win64/NoShellForWinter.exe`,
+SHA256 `37d52b7022e8dc33a3adb50e980c7baa14b522d1d377d7d280d9bed35307a5e9`.
+
+Four fresh isolated-user-directory processes pass functional equipment removal,
+saved-intent reinitialization, explicit GC, zero pending work, zero logged Errors
+and normal exit code zero. All four actual images were reviewed and show coherent
+visible clothing at the fixture cameras. Crowded/occluded surfaces and extreme
+morphs are not certified by those images. The effective active limit is four;
+independent NPC LOD remains disabled and resident prerequisite reuse enabled.
+
+| Process | Scope | Total process seconds |
+|---|---|---:|
+| `outfit_Male_01_20261012_002418151` | Isolated cold-item map + 3 Male.01 SkillGuy NPCs | 20.475337 |
+| `outfit_Male_01_20261012_002438726` | HUB, 25 Male.01 SkillGuy NPCs | 22.161715 |
+| `outfit_Female_01_20261012_002500919` | HUB, 3 Female.01 MeleeEnemy NPCs | 18.114811 |
+| `outfit_Male_02_20261012_002519076` | HUB, 3 Male.02 Zombie NPCs | 18.107547 |
+
+The isolated map's single initial NPC proves the async branch remains intact:
+definition nonresident, 3 requested / 0 resident garment classes, definition
+callback 0.013750 s, item-class callback 0.018404 s, initialization 0.923438 s.
+Its engine-relative start/readiness are 9.053077/9.976514 s. These observations
+do not control OS disk caches. The separate 25-NPC HUB fixture reports 3.631697 s
+readiness, but its fresh-process three-second functional capture is neither a
+prepared 30-second pair nor evidence that the frozen crowd budget passes.
+
+Compact receipts, executable/image hashes, all native functional checks and
+reviewed images are in `Evidence/NPCOutfits/resident-package.json`. The runtime
+ownership/cold-load packaged gate for the resident prerequisite change is now
+PASS. Full active LOD1 quality/package acceptance and the crowd performance
+budget remain unresolved. No earlier FAIL has been reclassified.
+
+Retention: the current package is now the latest validated artifact. After the
+required dry run, the owned cleanup wrapper removed only the preceding
+`Package_20261011_214531/{Cooked,Staged}`: 4,991,595,889 bytes. Its logs/receipts
+and all backups remain. A second dry run finds zero old output targets. Protected
+comparison PASS, 7,643 files unchanged in 7.560 s. All seven real save files match
+the last restored snapshot; HUB retains its existing user hash. Unreal is reopened
+through the protected launcher. The branch still preserves the unrelated HUB
+worktree change.
