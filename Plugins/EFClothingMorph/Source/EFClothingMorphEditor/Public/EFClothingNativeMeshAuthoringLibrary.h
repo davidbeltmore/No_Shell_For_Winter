@@ -18,6 +18,14 @@ class EFCLOTHINGMORPHEDITOR_API UEFClothingNativeMeshAuthoringLibrary final
 	GENERATED_BODY()
 
 public:
+	/** Reduce a transient copy and estimate pre-exclusion witness work. Never saves or edits the source mesh. */
+	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Native Authoring")
+	static bool InspectReducedGarmentLOD(
+		UEFClothingMorphDirectorPolicy* Director,
+		FName GarmentId,
+		float TriangleRatio,
+		FString& OutReport);
+
 	/** Opens the authoritative garment in Unreal's native Skeletal Mesh Editor. */
 	UFUNCTION(BlueprintCallable, Category = "EF Clothing Morph V3|Native Authoring")
 	static bool OpenEditableMesh(

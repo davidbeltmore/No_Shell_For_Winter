@@ -12,7 +12,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]
 parser = argparse.ArgumentParser()
-parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA'])
+parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA', 'ProbeGarmentLOD'])
 parser.add_argument('--host-timeout', type=float, default=150)
 args, remaining = parser.parse_known_args()
 out = root/'Saved/NPCOutfits/Invocations'/str(time.time_ns())

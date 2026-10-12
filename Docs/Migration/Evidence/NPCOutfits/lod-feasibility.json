@@ -1,0 +1,477 @@
+{
+  "status": "PASS",
+  "rows": [
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+      "garment": "RagShirt",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.5,
+      "lod0": {
+        "vertices": 7767,
+        "triangles": 14849,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 86217,
+            "maximum_incidence_upper_bound": 68,
+            "mean_incidence_upper_bound": 23.564696794129006,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 44099,
+            "maximum_incidence_upper_bound": 37,
+            "mean_incidence_upper_bound": 11.46852066434917,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 35147,
+            "maximum_incidence_upper_bound": 16,
+            "mean_incidence_upper_bound": 9.655465430668212,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 4024,
+        "triangles": 7423,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 83383,
+            "maximum_incidence_upper_bound": 287,
+            "mean_incidence_upper_bound": 47.135188866799204,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 42933,
+            "maximum_incidence_upper_bound": 133,
+            "mean_incidence_upper_bound": 22.954025844930417,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 28450,
+            "maximum_incidence_upper_bound": 81,
+            "mean_incidence_upper_bound": 14.87027833001988,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.612626101821661
+    },
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+      "garment": "RagShirt",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.25,
+      "lod0": {
+        "vertices": 7767,
+        "triangles": 14849,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 86217,
+            "maximum_incidence_upper_bound": 68,
+            "mean_incidence_upper_bound": 23.564696794129006,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 44099,
+            "maximum_incidence_upper_bound": 37,
+            "mean_incidence_upper_bound": 11.46852066434917,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 35147,
+            "maximum_incidence_upper_bound": 16,
+            "mean_incidence_upper_bound": 9.655465430668212,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 2156,
+        "triangles": 3711,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 80485,
+            "maximum_incidence_upper_bound": 462,
+            "mean_incidence_upper_bound": 90.05705009276438,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 41435,
+            "maximum_incidence_upper_bound": 210,
+            "mean_incidence_upper_bound": 43.87569573283859,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 26196,
+            "maximum_incidence_upper_bound": 132,
+            "mean_incidence_upper_bound": 26.72031539888683,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.6847266033291817
+    },
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+      "garment": "RagPants",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.5,
+      "lod0": {
+        "vertices": 9081,
+        "triangles": 17316,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 104775,
+            "maximum_incidence_upper_bound": 73,
+            "mean_incidence_upper_bound": 24.558969276511398,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 51894,
+            "maximum_incidence_upper_bound": 35,
+            "mean_incidence_upper_bound": 11.53617443012884,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 42960,
+            "maximum_incidence_upper_bound": 20,
+            "mean_incidence_upper_bound": 9.957053187974893,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 4655,
+        "triangles": 8656,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 103322,
+            "maximum_incidence_upper_bound": 333,
+            "mean_incidence_upper_bound": 50.70225563909774,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 53100,
+            "maximum_incidence_upper_bound": 158,
+            "mean_incidence_upper_bound": 24.638668098818474,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 34994,
+            "maximum_incidence_upper_bound": 96,
+            "mean_incidence_upper_bound": 15.77593984962406,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.6675818972289562
+    },
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+      "garment": "RagPants",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.25,
+      "lod0": {
+        "vertices": 9081,
+        "triangles": 17316,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 104775,
+            "maximum_incidence_upper_bound": 73,
+            "mean_incidence_upper_bound": 24.558969276511398,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 51894,
+            "maximum_incidence_upper_bound": 35,
+            "mean_incidence_upper_bound": 11.53617443012884,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 42960,
+            "maximum_incidence_upper_bound": 20,
+            "mean_incidence_upper_bound": 9.957053187974893,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 2455,
+        "triangles": 4328,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 108865,
+            "maximum_incidence_upper_bound": 885,
+            "mean_incidence_upper_bound": 108.44847250509164,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 55574,
+            "maximum_incidence_upper_bound": 429,
+            "mean_incidence_upper_bound": 52.428513238289206,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 35088,
+            "maximum_incidence_upper_bound": 252,
+            "mean_incidence_upper_bound": 31.853767820773932,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.7666096985340118
+    },
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+      "garment": "RagFootWraps",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.5,
+      "lod0": {
+        "vertices": 2176,
+        "triangles": 3864,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 22076,
+            "maximum_incidence_upper_bound": 45,
+            "mean_incidence_upper_bound": 21.501838235294116,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 11298,
+            "maximum_incidence_upper_bound": 20,
+            "mean_incidence_upper_bound": 10.462775735294118,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 9092,
+            "maximum_incidence_upper_bound": 18,
+            "mean_incidence_upper_bound": 8.931066176470589,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 1209,
+        "triangles": 1930,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 20631,
+            "maximum_incidence_upper_bound": 193,
+            "mean_incidence_upper_bound": 38.578163771712155,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 10745,
+            "maximum_incidence_upper_bound": 98,
+            "mean_incidence_upper_bound": 19.032258064516128,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 7002,
+            "maximum_incidence_upper_bound": 63,
+            "mean_incidence_upper_bound": 12.146401985111662,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.1279672011733055
+    },
+    {
+      "status": "PASS",
+      "source": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+      "garment": "RagFootWraps",
+      "scope": "Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change.",
+      "triangle_ratio": 0.25,
+      "lod0": {
+        "vertices": 2176,
+        "triangles": 3864,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 22076,
+            "maximum_incidence_upper_bound": 45,
+            "mean_incidence_upper_bound": 21.501838235294116,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 11298,
+            "maximum_incidence_upper_bound": 20,
+            "mean_incidence_upper_bound": 10.462775735294118,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 9092,
+            "maximum_incidence_upper_bound": 18,
+            "mean_incidence_upper_bound": 8.931066176470589,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "lod1": {
+        "vertices": 726,
+        "triangles": 964,
+        "spacing_estimates": [
+          {
+            "spacing_cm": 0.5,
+            "witness_count_upper_bound": 20916,
+            "maximum_incidence_upper_bound": 502,
+            "mean_incidence_upper_bound": 69.23553719008264,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": false
+          },
+          {
+            "spacing_cm": 0.75,
+            "witness_count_upper_bound": 10827,
+            "maximum_incidence_upper_bound": 243,
+            "mean_incidence_upper_bound": 33.90909090909091,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          },
+          {
+            "spacing_cm": 1,
+            "witness_count_upper_bound": 6803,
+            "maximum_incidence_upper_bound": 142,
+            "mean_incidence_upper_bound": 20.512396694214875,
+            "triangles_over_subdivision_limit": 0,
+            "fits_vertex_times_16_plane_capacity": true
+          }
+        ]
+      },
+      "source_description_unchanged": true,
+      "saved_assets": false,
+      "seconds": 0.15131499990820885
+    }
+  ],
+  "saved_assets": false,
+  "limit_seconds": 120,
+  "source_packages_before": {
+    "Content\\DazToUnreal\\RagShirt\\RagShirt.uasset": "b294ed8c6ae5cd94aa0a4dc3efc3a7a9f29b74a6d0a38ec1b43b320491e367a5",
+    "Content\\DazToUnreal\\RagPants\\RagPants.uasset": "8dc72211b4fdd9a93a0e16f493276967a0eae5a18cb414509bb5a6c5e6439e59",
+    "Content\\DazToUnreal\\RagFootWraps\\RagFootWraps.uasset": "faea4434912c92d494ab9bd958307133c47ed7e7b08b3544f3ee6de9df22123c"
+  },
+  "helper_sha256": "9ea73a284ebd91af11b3d3dc19fa52c1f72886b17e42a74837e47fdb184cca44",
+  "source_packages_after": {
+    "Content\\DazToUnreal\\RagShirt\\RagShirt.uasset": "b294ed8c6ae5cd94aa0a4dc3efc3a7a9f29b74a6d0a38ec1b43b320491e367a5",
+    "Content\\DazToUnreal\\RagPants\\RagPants.uasset": "8dc72211b4fdd9a93a0e16f493276967a0eae5a18cb414509bb5a6c5e6439e59",
+    "Content\\DazToUnreal\\RagFootWraps\\RagFootWraps.uasset": "faea4434912c92d494ab9bd958307133c47ed7e7b08b3544f3ee6de9df22123c"
+  },
+  "dirty_packages_after": [],
+  "seconds": 3.0319999999992433,
+  "evidence": {
+    "source_receipt": "Saved\\NPCOutfits\\LODProbe\\1791775744650260100\\result.json",
+    "parent_commit": "d701a51fe0f20f05c2597aa42ce3b644d491845f",
+    "build": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 60.76,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "invocation": {
+      "status": "PASS",
+      "seconds": 6.111955300002592,
+      "reason": "Editor invocation returned; inspect action receipt",
+      "action": "ProbeGarmentLOD",
+      "arguments": []
+    },
+    "protected_comparison": {
+      "seconds": 7.36,
+      "head": "d701a51fe0f20f05c2597aa42ce3b644d491845f",
+      "changed": [],
+      "status": "PASS"
+    },
+    "protected_count": 7643,
+    "preserved_saves": 6,
+    "user_hub_sha256": "C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A",
+    "live_pie_running_after": false,
+    "game_package": "Saved/BodyPresetsQA/Package_20261011_214531",
+    "runtime_changed": false
+  }
+}

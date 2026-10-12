@@ -28,6 +28,8 @@ public class EFClothingMorphEditor : ModuleRules
 			"DynamicMesh",
 			"GeometryAlgorithms",
 			"SkeletalMeshDescription",
+			"SkeletalMeshEditor",
+			"Json",
 			"AnimationCore",
 			"GameplayTags",
 			"MeshDescription",

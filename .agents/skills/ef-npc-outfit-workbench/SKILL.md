@@ -177,6 +177,16 @@ did not detect that runtime incompatibility. Preserve its failed receipt; origin
 garments/bindings were restored. Any future LOD work must certify runtime incidence
 and examine morph/animation transitions as well as render vertex counts.
 
+Before authoring another LOD, run `Run.py ProbeGarmentLOD --ratios 0.5,0.25`
+in an idle saved editor. It duplicates source garments into the transient package,
+reduces only those copies and estimates witness work at 0.5/0.75/1.0 cm spacing.
+Require its fresh `Saved/NPCOutfits/LODProbe/.../result.json`, unchanged source
+hashes and no dirty packages. PASS means the probe completed, not that a binding,
+visual quality or crowd budget passed. Estimates precede body-specific exclusions;
+alternative spacings do not change the compiler. At 50% geometry and 0.5 cm,
+shirt/pants estimates still exceed 256 references per vertex and all three exceed
+the Vertex*16 plane capacity. Do not raise bounds or truncate constraints to pass.
+
 `LogicQA --mode ai` retries only pursuit/spacing, using the current single authored
 navigation volume to place the existing 1200 cm corridor. The old fixed arena can
 fall outside a user-edited HUB. This wrapper never moves, rebuilds or saves bounds.

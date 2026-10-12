@@ -15,8 +15,76 @@
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "UDynamicMesh.h"
 #include "UObject/Package.h"
+#include "UObject/StrongObjectPtr.h"
+#include "SkeletalMeshEditorSubsystem.h"
+#include "Serialization/BufferArchive.h"
+#include "Serialization/JsonSerializer.h"
+#include "Dom/JsonObject.h"
+#include "MeshDescription.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Rendering/SkeletalMeshLODRenderData.h"
+#include "HAL/PlatformTime.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEFClothingNativeMeshAuthoring, Log, All);
+
+namespace
+{
+	TSharedRef<FJsonObject> EstimateWitnessWork(const FSkeletalMeshLODRenderData& LOD)
+	{
+		auto Result = MakeShared<FJsonObject>();
+		TArray<uint32> Indices;
+		LOD.MultiSizeIndexContainer.GetIndexBuffer(Indices);
+		const int32 Vertices = LOD.GetNumVertices();
+		if (Vertices <= 0 || Indices.IsEmpty() || Indices.Num() % 3 != 0
+			|| Indices.ContainsByPredicate([Vertices](uint32 Index) { return Index >= uint32(Vertices); }))
+		{
+			Result->SetStringField(TEXT("error"), TEXT("Invalid render topology in transient probe."));
+			return Result;
+		}
+		Result->SetNumberField(TEXT("vertices"), Vertices);
+		Result->SetNumberField(TEXT("triangles"), Indices.Num() / 3);
+		TArray<TSharedPtr<FJsonValue>> SpacingRows;
+		for (const double Spacing : {0.5, 0.75, 1.0})
+		{
+			TArray<int64> Incidence;
+			Incidence.Init(0, Vertices);
+			int64 Witnesses = 0;
+			int32 OverSubdivisionLimit = 0;
+			for (int32 I = 0; I + 2 < Indices.Num(); I += 3)
+			{
+				const FVector3d A(LOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I]));
+				const FVector3d B(LOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I + 1]));
+				const FVector3d C(LOD.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I + 2]));
+				const double Edge = FMath::Max3((B - A).Length(), (C - B).Length(), (A - C).Length());
+				if (A.ContainsNaN() || B.ContainsNaN() || C.ContainsNaN() || !FMath::IsFinite(Edge)
+					|| Edge / Spacing > 4096.0)
+				{
+					Result->SetStringField(TEXT("error"), TEXT("Invalid or unsupported edge length in transient probe."));
+					return Result;
+				}
+				const int64 N = FMath::Max<int64>(1, FMath::CeilToInt64(Edge / Spacing));
+				OverSubdivisionLimit += N > 32 ? 1 : 0;
+				// The compiler's barycentric grid excludes corners; a vertex only
+				// references samples with a positive weight for that vertex.
+				Witnesses += N == 1 ? 1 : (N + 1) * (N + 2) / 2 - 3;
+				const int64 References = N == 1 ? 1 : N * (N + 1) / 2 - 1;
+				for (int32 Corner = 0; Corner < 3; ++Corner) Incidence[Indices[I + Corner]] += References;
+			}
+			int64 Maximum = 0, Total = 0;
+			for (const int64 Count : Incidence) { Maximum = FMath::Max(Maximum, Count); Total += Count; }
+			auto Row = MakeShared<FJsonObject>();
+			Row->SetNumberField(TEXT("spacing_cm"), Spacing);
+			Row->SetNumberField(TEXT("witness_count_upper_bound"), Witnesses);
+			Row->SetNumberField(TEXT("maximum_incidence_upper_bound"), Maximum);
+			Row->SetNumberField(TEXT("mean_incidence_upper_bound"), Vertices ? double(Total) / Vertices : 0);
+			Row->SetNumberField(TEXT("triangles_over_subdivision_limit"), OverSubdivisionLimit);
+			Row->SetBoolField(TEXT("fits_vertex_times_16_plane_capacity"), Witnesses <= int64(Vertices) * 16);
+			SpacingRows.Add(MakeShared<FJsonValueObject>(Row));
+		}
+		Result->SetArrayField(TEXT("spacing_estimates"), SpacingRows);
+		return Result;
+	}
+}
 
 namespace EFClothingNativeMeshAuthoringPrivate
 {
@@ -358,4 +426,77 @@ bool UEFClothingNativeMeshAuthoringLibrary::CreateShellOnEditableMesh(
 	FResolvedGarment Garment;
 	return ResolveGarment(Director, GarmentId, Garment, OutReport)
 		&& ApplyGeometryOperation(Garment, true, OutReport);
+}
+
+bool UEFClothingNativeMeshAuthoringLibrary::InspectReducedGarmentLOD(
+	UEFClothingMorphDirectorPolicy* Director, FName GarmentId, float TriangleRatio, FString& OutReport)
+{
+	using namespace EFClothingNativeMeshAuthoringPrivate;
+	FResolvedGarment Garment;
+	if (!ResolveGarment(Director, GarmentId, Garment, OutReport)) return false;
+	if (!GEditor || GEditor->PlayWorld || !FMath::IsFinite(TriangleRatio)
+		|| TriangleRatio < 0.1f || TriangleRatio >= 1.0f)
+	{
+		OutReport = TEXT("LOD probe requires an idle editor and a triangle ratio in [0.1, 1).");
+		return false;
+	}
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	auto* Source = Garment.Mesh;
+	auto* Description = Source->GetMeshDescription(0);
+	if (!Description || Source->GetNumSourceModels() != 1)
+	{
+		OutReport = TEXT("LOD probe expects a single imported LOD; existing authored LODs are not replaced.");
+		return false;
+	}
+	const double Started = FPlatformTime::Seconds();
+	const bool bSourceDirty = Source->GetOutermost()->IsDirty();
+	FBufferArchive Before;
+	Description->Serialize(Before);
+	TStrongObjectPtr<USkeletalMesh> Probe(DuplicateObject<USkeletalMesh>(Source, GetTransientPackage(),
+		MakeUniqueObjectName(GetTransientPackage(), USkeletalMesh::StaticClass(), TEXT("EFClothingLODProbe"))));
+	if (!Probe.IsValid()) { OutReport = TEXT("Could not duplicate the transient probe mesh."); return false; }
+	Probe->ClearFlags(RF_Public | RF_Standalone);
+	Probe->SetFlags(RF_Transient);
+	const FSkeletalMeshLODInfo BaseInfo = *Probe->GetLODInfo(0);
+	static_cast<FSkeletalMeshLODInfo&>(Probe->AddSourceModel(true)) = BaseInfo;
+	auto& Info = *Probe->GetLODInfo(1);
+	Info.ReductionSettings.BaseLOD = 0;
+	Info.ReductionSettings.NumOfTrianglesPercentage = TriangleRatio;
+	Info.ReductionSettings.TerminationCriterion = SMTC_NumOfTriangles;
+	Info.ReductionSettings.bLockEdges = true;
+	Info.ReductionSettings.bRemapMorphTargets = true;
+	Info.ReductionSettings.bEnforceBoneBoundaries = true;
+	Info.bAllowMeshDeformer = true;
+	const bool bGenerated = USkeletalMeshEditorSubsystem::RegenerateLOD(Probe.Get(), 2, false, false);
+	FAssetCompilingManager::Get().FinishAllCompilation();
+	FBufferArchive After;
+	if (auto* Current = Source->GetMeshDescription(0)) Current->Serialize(After);
+	if (!bGenerated || Before != After || Source->GetNumSourceModels() != 1
+		|| Source->GetOutermost()->IsDirty() != bSourceDirty)
+	{
+		OutReport = TEXT("Transient LOD generation failed or a source invariant changed; no asset was saved.");
+		return false;
+	}
+	const auto* RenderData = Probe->GetResourceForRendering();
+	if (!RenderData || RenderData->LODRenderData.Num() != 2)
+	{
+		OutReport = TEXT("Transient probe did not produce two render LODs.");
+		return false;
+	}
+	auto Base = EstimateWitnessWork(RenderData->LODRenderData[0]);
+	auto Reduced = EstimateWitnessWork(RenderData->LODRenderData[1]);
+	auto Result = MakeShared<FJsonObject>();
+	const bool bValid = !Base->HasField(TEXT("error")) && !Reduced->HasField(TEXT("error"));
+	Result->SetStringField(TEXT("status"), bValid ? TEXT("PASS") : TEXT("FAIL"));
+	Result->SetStringField(TEXT("source"), Source->GetPathName());
+	Result->SetStringField(TEXT("garment"), GarmentId.ToString());
+	Result->SetStringField(TEXT("scope"), TEXT("Transient geometry only. Witness estimates precede body/PreserveUpstream exclusions; no binding certification or runtime capacity claim. Alternative spacings are estimates, not a compiler policy change."));
+	Result->SetNumberField(TEXT("triangle_ratio"), TriangleRatio);
+	Result->SetObjectField(TEXT("lod0"), Base);
+	Result->SetObjectField(TEXT("lod1"), Reduced);
+	Result->SetBoolField(TEXT("source_description_unchanged"), true);
+	Result->SetBoolField(TEXT("saved_assets"), false);
+	Result->SetNumberField(TEXT("seconds"), FPlatformTime::Seconds() - Started);
+	FJsonSerializer::Serialize(Result, TJsonWriterFactory<>::Create(&OutReport));
+	return bValid;
 }

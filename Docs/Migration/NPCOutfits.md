@@ -708,3 +708,42 @@ Evidence and images: `Evidence/NPCOutfits/frame-pacing.json`. This diagnostic do
 not reproduce or explain the historical anomaly; that issue remains PENDING.
 No new crowd performance acceptance result is claimed. The last validated game
 package remains `Package_20261011_214531` because runtime/content are unchanged.
+
+### Transient LOD feasibility probe
+
+At parent snapshot `d701a51f`, an editor-only native helper duplicates each source
+garment into `/Engine/Transient`, uses native skeletal reduction on the copy, and
+checks source LOD0 serialization, LOD count and package dirtiness afterward.
+`Run.py ProbeGarmentLOD --ratios 0.5,0.25` also compares source file hashes.
+It saves no assets and runs no PIE. Editor build passes in 60.760 s; all six
+reductions finish in 3.032 s. Receipt:
+`Saved/NPCOutfits/LODProbe/1791775744650260100/result.json`.
+
+These are analytic upper bounds before body/PreserveUpstream exclusions, not
+compiled bindings or frame-time measurements. Each cell below is witness count /
+maximum references on one vertex. The current compiler uses 0.5 cm spacing.
+
+| Garment | Triangle fraction | Vertices | 0.5 cm | 0.75 cm | 1.0 cm |
+|---|---:|---:|---:|---:|---:|
+| Shirt | 50% | 4,024 | 83,383 / 287 | 42,933 / 133 | 28,450 / 81 |
+| Shirt | 25% | 2,156 | 80,485 / 462 | 41,435 / 210 | 26,196 / 132 |
+| Pants | 50% | 4,655 | 103,322 / 333 | 53,100 / 158 | 34,994 / 96 |
+| Pants | 25% | 2,455 | 108,865 / 885 | 55,574 / 429 | 35,088 / 252 |
+| Foot wraps | 50% | 1,209 | 20,631 / 193 | 10,745 / 98 | 7,002 / 63 |
+| Foot wraps | 25% | 726 | 20,916 / 502 | 10,827 / 243 | 6,803 / 142 |
+
+Geometry reduction alone does not provide a viable bounded candidate at current
+sampling density: all six estimates exceed the Vertex*16 plane capacity, and
+five exceed the 256-reference limit. This does not certify rejection for every
+body-specific binding, but rules out assuming a universal safe reduction.
+50% geometry with 0.75 cm sampling fits both numerical bounds in all three
+estimates; 25% with 1.0 cm does too, with pants close to the incidence bound.
+These are candidates for future distance-quality work, not production changes.
+Neither alternative sampling density is implemented. No runtime cap is raised,
+no witness is truncated and the player/near geometry remains unchanged.
+
+Protected comparison passes: 7,643 unchanged files in 7.360 s; all six backed-up
+saves and the user HUB hash are unchanged. MCP confirms PIE is stopped. Compact
+evidence: `Evidence/NPCOutfits/lod-feasibility.json`. Runtime and content remain
+at the previously packaged revision; no new cook or performance pass is claimed.
+The frozen crowd failures and historical visual anomaly remain open.
