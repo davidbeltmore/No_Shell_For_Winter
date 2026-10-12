@@ -676,3 +676,35 @@ Protected comparison passes again: 7,643 files, zero changes, 34.620 s. User HUB
 still hashes to `C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
 The last package's two removed directories are confirmed absent; its receipts
 remain, and the latest-package pointer resolves to the validated 214531 artifact.
+
+### Controlled frame-pacing diagnostic for the historical visual anomaly
+
+Runtime remains published commit `70ba613f`; this follow-up changes only Python
+QA and documentation. Source inspection confirms that body-mesh change events
+release old garment state and the reconciliation watchdog independently compares
+the body's current mesh with its recorded asset. No duplicate recovery mechanism
+or speculative runtime correction was introduced.
+
+`Run.py ClothingRegression --bodies Female.01,Male.01,Male.02 --max-fps 8`
+now supports a bounded pacing diagnostic. The first attempt applied the cap
+throughout preparation and failed a fixed overlap readiness assertion in
+16.969 s, before producing any image (`1791774146576038700`). That mixes loading
+latency with pose behavior and is retained as a failed fixture execution.
+The corrected tool prepares at the original frame cap, checks garment Ready,
+then applies the requested cap during extreme-morph movement and screenshot
+capture. It restores the cap after each case and on final exit. The original
+120-second total bound is unchanged.
+
+Corrected execution `1791774273708138500` passes in 62.422 s, including the seven
+shared Blueprint compiles, coverage transitions, three extreme-morph cases and
+movement. All three actual images are coherent. Three game-thread snapshots
+record the requested cap at 8, mesh/leader/AnimInstance identities and finite
+named bone positions/visibility at screenshot request. These observations are
+not same-frame GPU vertex readbacks. Live MCP confirms `t.MaxFPS=0` afterward.
+The host now restores CVars through the live game world before requesting
+EndPIE, avoiding the previous editor-world query during asynchronous teardown.
+
+Evidence and images: `Evidence/NPCOutfits/frame-pacing.json`. This diagnostic does
+not reproduce or explain the historical anomaly; that issue remains PENDING.
+No new crowd performance acceptance result is claimed. The last validated game
+package remains `Package_20261011_214531` because runtime/content are unchanged.

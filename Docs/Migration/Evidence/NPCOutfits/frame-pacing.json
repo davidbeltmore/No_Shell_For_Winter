@@ -1,0 +1,1368 @@
+{
+  "status": "PASS",
+  "scope": "Controlled 8 FPS movement/capture after clothing readiness. Diagnostic only; not a performance acceptance run.",
+  "runtime_commit": "70ba613f",
+  "tool_snapshot": {
+    "Tools\\NPC\\Outfits\\ClothingRegression.py": "366c302dd215bfa9dd40ad8e6bab912d41461a2eb5f4fe4dfeec4c42da4fadf1",
+    "Tools\\ClothingMorphV5\\Validate-UnisexPIE58.py": "f459195515cf62c5c53bb1afb844b1188af9b22372854dad35e7f0c81c395bc0"
+  },
+  "source": "Saved\\NPCOutfits\\ClothingRegression\\1791774273708138500\\result.json",
+  "sha256": "56ece5552e2378ea9af23f3671406419ca14a8e3e3694233d7f66318342bb00c",
+  "seconds": 62.42200000000594,
+  "timeout_seconds": 120.0,
+  "blueprint_compile": "PASS",
+  "checks": [
+    {
+      "gender": "Female",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "morphs": {
+        "Breasts Large": 1.85,
+        "Body Voluptuous": 1.0
+      },
+      "preset_id": "Female.01",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.200cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.350cm,lowerGuardVerts=4289]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm)."
+    },
+    {
+      "gender": "Female",
+      "moving_morph_distance_cm": 225.46587127033524,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "morphs": {
+        "Body Heavy": 1.0,
+        "Proportion Chest Size": 0.5
+      },
+      "preset_id": "Male.01",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+    },
+    {
+      "gender": "Male",
+      "moving_morph_distance_cm": 225.46521458847394,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "morphs": {
+        "Body Heavy": 1.0,
+        "Proportion Chest Size": 0.5
+      },
+      "preset_id": "Male.02",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+    },
+    {
+      "gender": "Male",
+      "moving_morph_distance_cm": 225.46521214852987,
+      "status": "PASS"
+    }
+  ],
+  "peak_slate_tick_ms_by_phase": {
+    "load": 125.0,
+    "play": 125.0,
+    "player": 125.0,
+    "equip": 48.450201749801636,
+    "overlap_equip": 23.08870106935501,
+    "overlap_prepare": 94.46480125188828,
+    "overlap_two": 25.473598390817642,
+    "overlap_one": 26.305299252271652,
+    "overlap_zero": 25.995101779699326,
+    "morph_equip": 125.0,
+    "morph_ready": 125.0,
+    "morph_movement": 125.0,
+    "morph_capture": 123.54300171136856,
+    "morph_done": 125.0
+  },
+  "pose_diagnostics": [
+    {
+      "preset_id": "Female.01",
+      "phase": "morph_capture",
+      "script_seconds": 42.75,
+      "world_seconds": 38.45249305665493,
+      "actual_max_fps": 8.0,
+      "runtime_summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.200cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.350cm,lowerGuardVerts=4289]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm).",
+      "meshes": [
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "asset": "/Game/DazToUnreal/Female/Female.Female",
+          "visible": false,
+          "leader": null,
+          "animation": "/Game/FullSample/Animations/AnimBPs/ACF_MMHumanoid_ABP.ACF_MMHumanoid_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SkeletalMesh",
+          "asset": "/Game/DazToUnreal/Female/Female.Female",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": "/Game/FullSample/GASP/ACF_GenericRetarget_ABP.ACF_GenericRetarget_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Legs",
+          "asset": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                256.07864646105986,
+                -5.020277324189541,
+                75.83143972844529
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                255.61976049919292,
+                -5.3613918238339355,
+                72.81177902433255
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Legs",
+          "asset": "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty.UnderWearPanty",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Chest",
+          "asset": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                256.07864646105986,
+                -5.020277324189541,
+                75.83143972844529
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                255.61976049919292,
+                -5.3613918238339355,
+                72.81177902433255
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Torso",
+          "asset": "/Game/DazToUnreal/UnderWearBra/UnderWearBra.UnderWearBra",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                247.4650568631648,
+                -3.72474824189346,
+                83.45247046608064
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                254.36022900329579,
+                -2.2512709902260393,
+                144.08099565069023
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                276.2833302584083,
+                -26.04456473185494,
+                89.75381752201908
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                240.4838361018896,
+                24.704197925200166,
+                78.50490633637563
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                203.620077348279,
+                -7.806956948954614,
+                14.045495572392838
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                291.59392773286254,
+                8.68405847809678,
+                13.089388847351067
+              ],
+              "hidden": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "preset_id": "Male.01",
+      "phase": "morph_capture",
+      "script_seconds": 52.3440000000046,
+      "world_seconds": 46.82474208623171,
+      "actual_max_fps": 8.0,
+      "runtime_summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm).",
+      "meshes": [
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "asset": "/Game/DazToUnreal/Male/Male.Male",
+          "visible": false,
+          "leader": null,
+          "animation": "/Game/FullSample/Animations/AnimBPs/ACF_MMHumanoid_ABP.ACF_MMHumanoid_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                523.6032937389355,
+                -4.664387148971608,
+                72.11968616031054
+              ],
+              "hidden": true
+            },
+            "scrotum": {
+              "world_cm": [
+                523.1620420146936,
+                -4.999122458238591,
+                69.14721853662346
+              ],
+              "hidden": true
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SkeletalMesh",
+          "asset": "/Game/DazToUnreal/Male/Male.Male",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": "/Game/FullSample/GASP/ACF_GenericRetarget_ABP.ACF_GenericRetarget_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                523.6032937389355,
+                -4.664387148971608,
+                72.11968616031054
+              ],
+              "hidden": true
+            },
+            "scrotum": {
+              "world_cm": [
+                523.1620420146936,
+                -4.999122458238591,
+                69.14721853662346
+              ],
+              "hidden": true
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Legs",
+          "asset": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                523.6032937389355,
+                -4.664387148971608,
+                72.11968616031054
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                523.1620420146936,
+                -4.999122458238591,
+                69.14721853662346
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Legs",
+          "asset": "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty.UnderWearPanty",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Chest",
+          "asset": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                523.6032937389355,
+                -4.664387148971608,
+                72.11968616031054
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                523.1620420146936,
+                -4.999122458238591,
+                69.14721853662346
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Torso",
+          "asset": "/Game/DazToUnreal/UnderWearBra/UnderWearBra.UnderWearBra",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                515.2791180942301,
+                -3.5251777229952843,
+                78.50322192924675
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                522.426507244503,
+                -1.992243621943891,
+                140.03739937457172
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                543.4642891148242,
+                -26.2853319643038,
+                86.16172674580443
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                508.4817104304219,
+                25.31851345832386,
+                75.10983060027763
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                471.75436019471977,
+                -7.919811295266591,
+                14.641348738870128
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                559.2859987238083,
+                8.720956363137837,
+                13.08936157822611
+              ],
+              "hidden": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "preset_id": "Male.02",
+      "phase": "morph_capture",
+      "script_seconds": 60.359000000004016,
+      "world_seconds": 54.779526110738516,
+      "actual_max_fps": 8.0,
+      "runtime_summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm).",
+      "meshes": [
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "asset": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "visible": false,
+          "leader": null,
+          "animation": "/Game/FullSample/Animations/AnimBPs/ACF_MMHumanoid_ABP.ACF_MMHumanoid_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                791.822264444316,
+                -4.85205016819736,
+                76.25711764989407
+              ],
+              "hidden": true
+            },
+            "scrotum": {
+              "world_cm": [
+                791.3610850384664,
+                -5.194867259648795,
+                73.22235747024537
+              ],
+              "hidden": true
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.SkeletalMesh",
+          "asset": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": "/Game/FullSample/GASP/ACF_GenericRetarget_ABP.ACF_GenericRetarget_ABP_C",
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                791.822264444316,
+                -4.85205016819736,
+                76.25711764989407
+              ],
+              "hidden": true
+            },
+            "scrotum": {
+              "world_cm": [
+                791.3610850384664,
+                -5.194867259648795,
+                73.22235747024537
+              ],
+              "hidden": true
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Legs",
+          "asset": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                791.822264444316,
+                -4.85205016819736,
+                76.25711764989407
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                791.3610850384664,
+                -5.194867259648795,
+                73.22235747024537
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Legs",
+          "asset": "/Game/DazToUnreal/UnderWearPanty/UnderWearPanty.UnderWearPanty",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Armor.Chest",
+          "asset": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            },
+            "shaft_01": {
+              "world_cm": [
+                791.822264444316,
+                -4.85205016819736,
+                76.25711764989407
+              ],
+              "hidden": false
+            },
+            "scrotum": {
+              "world_cm": [
+                791.3610850384664,
+                -5.194867259648795,
+                73.22235747024537
+              ],
+              "hidden": false
+            }
+          }
+        },
+        {
+          "component": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.ItemSlot.Underwear.Torso",
+          "asset": "/Game/DazToUnreal/UnderWearBra/UnderWearBra.UnderWearBra",
+          "visible": true,
+          "leader": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.BP_TSChar_C_0.CharacterMesh0",
+          "animation": null,
+          "bones": {
+            "pelvis": {
+              "world_cm": [
+                783.3178295418317,
+                -3.701409608137853,
+                82.70879711695257
+              ],
+              "hidden": false
+            },
+            "head": {
+              "world_cm": [
+                790.549705279931,
+                -2.150276473129105,
+                145.03614697396213
+              ],
+              "hidden": false
+            },
+            "hand_l": {
+              "world_cm": [
+                812.6418212510806,
+                -26.970828829663116,
+                89.87406821980102
+              ],
+              "hidden": false
+            },
+            "hand_r": {
+              "world_cm": [
+                776.3844637515201,
+                25.95317293623718,
+                78.37398278239868
+              ],
+              "hidden": false
+            },
+            "foot_l": {
+              "world_cm": [
+                739.4898179919527,
+                -7.857471140817829,
+                14.219306755507624
+              ],
+              "hidden": false
+            },
+            "foot_r": {
+              "world_cm": [
+                827.4478666785599,
+                8.685074391054656,
+                13.089363485574708
+              ],
+              "hidden": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pose_scope": "Game-thread bones, visible flags, mesh assets, leader links and AnimInstance classes at screenshot request; not same-frame GPU geometry.",
+  "images": [
+    {
+      "body": "Female.01",
+      "image": "frame-pacing-8fps-Female.01.png",
+      "visual_review": "PASS: coherent silhouette, limbs and fitted garments at the captured phase. No claim that the historical anomaly is fixed."
+    },
+    {
+      "body": "Male.01",
+      "image": "frame-pacing-8fps-Male.01.png",
+      "visual_review": "PASS: coherent silhouette, limbs and fitted garments at the captured phase. No claim that the historical anomaly is fixed."
+    },
+    {
+      "body": "Male.02",
+      "image": "frame-pacing-8fps-Male.02.png",
+      "visual_review": "PASS: coherent silhouette, limbs and fitted garments at the captured phase. No claim that the historical anomaly is fixed."
+    }
+  ],
+  "max_fps_after": 0,
+  "withdrawn_first_attempt": {
+    "path": "Saved\\NPCOutfits\\ClothingRegression\\1791774146576038700\\result.json",
+    "sha256": "8ba5476ac3ebd1504c7c710c9b50bd0abdf64769be2759653ee98ffe7ce38cb4",
+    "status": "FAIL",
+    "seconds": 16.9690000000046,
+    "error": "Traceback (most recent call last):\n  File \"D:\\Projects UE5\\NoShellForWinter\\Tools\\ClothingMorphV5\\Validate-UnisexPIE58.py\", line 335, in tick\n    assert 'READY' in str(S['runtime'].get_garment_runtime_state(S['overlap_component'])).upper()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+    "reason": "Capping resource preparation too conflated async-load latency with animation. It failed the fixed overlap readiness assertion before any capture. Corrected test applies the cap only after Ready; total timeout unchanged."
+  },
+  "historical_anomaly": "PENDING: not reproduced, cause unestablished. Preserve the original failed image."
+}

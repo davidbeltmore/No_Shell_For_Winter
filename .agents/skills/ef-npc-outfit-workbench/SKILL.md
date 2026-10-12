@@ -230,3 +230,13 @@ Do not diagnose a missing definition callback as a fitting or GPU failure. Check
 the surrounding async-loading backlog and actual project streaming settings;
 do not silently increase deadlines or global loading budgets. A first-PIE startup
 run after a fresh editor launch is separate from a prepared performance pair.
+
+`Run.py ClothingRegression --bodies Female.01,Male.01,Male.02 --max-fps 8`
+is a frame-pacing diagnostic: preparation uses the original cap, then the chosen
+cap applies only after garment Ready during morph movement and screenshots.
+It records mesh/leader/AnimInstance identities and named bone positions/visibility
+on the game thread at screenshot request. These are not GPU readbacks or proof
+of exact screenshot-frame geometry. The cap and background throttle are restored
+before EndPIE, including failure exits. Capping the entire preparation previously
+failed the fixed overlap readiness assertion before producing any image; retain
+that failure rather than treating it as evidence of a visual deformation.

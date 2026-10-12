@@ -13,10 +13,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--bodies', default='Female.01,Male.01')
 parser.add_argument('--timeout', type=float, default=120)
 parser.add_argument('--immutable-buffers', type=int, choices=[0, 1], default=1)
+parser.add_argument('--max-fps', type=float, default=None,
+                    help='Optional frame-pacing diagnostic (0 uncapped); records pose snapshots and restores the prior cap.')
 args = parser.parse_args(globals().get('NPC_OUTFIT_ARGS', []))
 root = Path(unreal.Paths.project_dir()).resolve()
 bodies = args.bodies.split(',')
 assert bodies and 0 < args.timeout <= 120
+assert args.max_fps is None or 0 <= args.max_fps <= 240
 out = root/'Saved/NPCOutfits/ClothingRegression'/str(time.time_ns())
 options = {
     'EF_UNISEX_OUTPUT_DIR': str(out),
@@ -26,6 +29,8 @@ options = {
     'EF_UNISEX_TIMEOUT': str(args.timeout),
     'EF_UNISEX_IMMUTABLE_BUFFERS': str(args.immutable_buffers),
 }
+if args.max_fps is not None:
+    options['EF_UNISEX_MAX_FPS'] = str(args.max_fps)
 previous = {key: os.environ.get(key) for key in options}
 try:
     os.environ.update(options)

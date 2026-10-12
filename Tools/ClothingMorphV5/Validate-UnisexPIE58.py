@@ -24,6 +24,10 @@ BODY_CASES = os.environ.get('EF_UNISEX_BODY_PRESETS', 'Female.01,Male.01,Female.
 TIMEOUT = float(os.environ.get('EF_UNISEX_TIMEOUT', '480'))
 KEEP_EDITOR = os.environ.get('EF_UNISEX_KEEP_EDITOR') == '1'
 EXTENDED_ONLY = os.environ.get('EF_UNISEX_EXTENDED_ONLY') == '1'
+DIAGNOSTIC_MAX_FPS = os.environ.get('EF_UNISEX_MAX_FPS')
+PREVIOUS_MAX_FPS = unreal.SystemLibrary.get_console_variable_float_value('t.MaxFPS')
+if DIAGNOSTIC_MAX_FPS is not None:
+    assert 0 <= float(DIAGNOSTIC_MAX_FPS) <= 240
 BUFFER_CVAR = 'ef.ClothingMorph.ImmutableBindingBuffers'
 PREVIOUS_BUFFERS = unreal.SystemLibrary.get_console_variable_int_value(BUFFER_CVAR)
 if 'EF_UNISEX_IMMUTABLE_BUFFERS' in os.environ:
@@ -43,6 +47,8 @@ ITEMS = [
 S = {'phase': 'load', 'start': time.monotonic(), 'due': 0, 'index': 0, 'gender_index': 0,
      'report': {'status': 'PENDING', 'checks': [], 'screenshots': [], 'saved_assets': False}}
 S['report']['immutable_buffers'] = unreal.SystemLibrary.get_console_variable_int_value(BUFFER_CVAR)
+S['report']['diagnostic_max_fps'] = None if DIAGNOSTIC_MAX_FPS is None else float(DIAGNOSTIC_MAX_FPS)
+S['report']['diagnostic_max_fps_scope'] = 'After garment readiness, during morph movement/capture only; resource preparation uses the original cap.'
 (OUT/'result.json').write_text(json.dumps(S['report']), encoding='utf-8')
 
 
@@ -91,6 +97,34 @@ def assert_coverage(hidden):
             assert owner.is_bone_hidden_by_name(bone) == hidden, bone+' coverage ownership'
 
 
+def capture_pose_diagnostic():
+    # Game-thread state at screenshot request, not a claim of same-frame GPU
+    # geometry. Preserve enough context to distinguish pose/mesh/leader changes
+    # from a surface-pass fault if another intermittent image is observed.
+    meshes = []
+    for mesh in S['player'].get_components_by_class(unreal.SkeletalMeshComponent):
+        asset = mesh.get_skeletal_mesh_asset()
+        if not asset:
+            continue
+        leader = prop(mesh, 'leader_pose_component')
+        animation = mesh.get_anim_instance()
+        bones = {}
+        for name in ('pelvis', 'head', 'hand_l', 'hand_r', 'foot_l', 'foot_r', 'shaft_01', 'scrotum'):
+            if mesh.get_bone_index(name) >= 0:
+                position = mesh.get_socket_location(name)
+                bones[name] = {'world_cm': [position.x, position.y, position.z],
+                               'hidden': mesh.is_bone_hidden_by_name(name)}
+        meshes.append({'component': mesh.get_path_name(), 'asset': asset.get_path_name(),
+                       'visible': mesh.is_visible(), 'leader': leader.get_path_name() if leader else None,
+                       'animation': animation.get_class().get_path_name() if animation else None,
+                       'bones': bones})
+    S['report'].setdefault('pose_diagnostics', []).append({
+        'preset_id': S['preset_id'], 'phase': S['phase'], 'script_seconds': time.monotonic()-S['start'],
+        'world_seconds': unreal.GameplayStatics.get_time_seconds(ED.get_game_world()),
+        'actual_max_fps': unreal.SystemLibrary.get_console_variable_float_value('t.MaxFPS'),
+        'runtime_summary': S['runtime'].get_debug_summary(), 'meshes': meshes})
+
+
 def transition(phase, delay=1):
     S['phase'], S['due'] = phase, time.monotonic()+delay
     (OUT/'progress.txt').write_text(f'{phase} garment={S["index"]} gender={S["gender_index"]}')
@@ -105,9 +139,13 @@ def finish(error=None):
         S['report']['error'] = error
     (OUT/'result.json').write_text(json.dumps(S['report'], indent=2), encoding='utf-8')
     unreal.unregister_slate_post_tick_callback(S['callback'])
-    unreal.EditorLevelLibrary.editor_end_play()
     PERFORMANCE.set_editor_property('bThrottleCPUWhenNotForeground', PREVIOUS_THROTTLE)
-    unreal.SystemLibrary.execute_console_command(ED.get_editor_world(), BUFFER_CVAR+' '+str(PREVIOUS_BUFFERS))
+    restore_world = ED.get_game_world() if LE.is_in_play_in_editor() else ED.get_editor_world()
+    unreal.SystemLibrary.execute_console_command(restore_world, BUFFER_CVAR+' '+str(PREVIOUS_BUFFERS))
+    if DIAGNOSTIC_MAX_FPS is not None:
+        unreal.SystemLibrary.execute_console_command(restore_world, 't.MaxFPS '+str(PREVIOUS_MAX_FPS))
+    if LE.is_in_play_in_editor():
+        unreal.EditorLevelLibrary.editor_end_play()
     if not KEEP_EDITOR:
         unreal.SystemLibrary.quit_editor()
 
@@ -345,6 +383,8 @@ def tick(dt):
             S['report']['checks'].append({'gender': S['gender'], 'morphs': S['morph_weights'],
                                          'preset_id': S['preset_id'],
                                          'state': 'Ready', 'summary': S['runtime'].get_debug_summary()})
+            if DIAGNOSTIC_MAX_FPS is not None:
+                unreal.SystemLibrary.execute_console_command(ED.get_game_world(), 't.MaxFPS '+DIAGNOSTIC_MAX_FPS)
             S['move_started'] = time.monotonic()
             S['move_origin'] = S['player'].get_actor_location()
             S['move_direction'] = S['player'].get_actor_forward_vector()
@@ -363,6 +403,8 @@ def tick(dt):
                 unreal.MathLibrary.find_look_at_rotation(camera_location,location), False, True)
             transition('morph_capture', 0)
         elif phase == 'morph_capture':
+            if DIAGNOSTIC_MAX_FPS is not None:
+                capture_pose_diagnostic()
             path = OUT/f'morph_extreme_{S["preset_id"]}.png'
             if path.exists():
                 path.unlink()
@@ -372,6 +414,8 @@ def tick(dt):
             transition('morph_done', 2)
         elif phase == 'morph_done':
             assert S['capture_path'].exists()
+            if DIAGNOSTIC_MAX_FPS is not None:
+                unreal.SystemLibrary.execute_console_command(ED.get_game_world(), 't.MaxFPS '+str(PREVIOUS_MAX_FPS))
             for item in list(prop(S['equipment'].get_current_equipment(), 'equipped_items')):
                 unequip(prop(item, 'item_guid'))
             S['morph_gender'] += 1
