@@ -70,7 +70,7 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 | All eligible roster audit | PASS | 40 configured, 0 unconfigured, 0 failed variants; all 40 Blueprints compile; representative rollout below |
 | Cook and packaged QA | PASS | Exact parameter comparison revision, three bodies/archetypes plus isolated cold map, equip/unequip, GC, zero pending, exit 0 and reviewed images |
 | Protection and save preservation | PASS | 7,643 unchanged after package; four original saves unchanged; user HUB hash preserved |
-| Skills and GitHub publication | PENDING | Skills validate; new parameter/cold-load revision awaiting publication; earlier checkpoint 864ddd08 is published |
+| Skills and GitHub publication | PASS | Skills validate; exact parameter comparison and isolated packaged loading published in 8bbc72b1 and 74b38d95 |
 
 ## Work preservation
 
@@ -606,3 +606,13 @@ The isolated initial-resource gate is now PASS. Remaining gaps are the frozen
 asynchronous loading backlog, and the historical first female visual anomaly's
 unestablished cause. Current representative visual and packaged checks pass;
 those observations do not erase the earlier failures. The persistent goal stays ACTIVE.
+
+Publication checkpoint: `8bbc72b1` and `74b38d95` are pushed to
+`origin/feature/efclothing-v4-multicloth`, including the two new QA assets in LFS.
+The protected launch wrapper reopened the target editor (PID 57336); live MCP
+reports PIE false and the fresh read-only inspection reports no dirty packages
+(`Saved/NPCOutfits/Invocations/1791772435349939900/host.json`). Project outfit
+skill validation, Python compilation and Git whitespace checks pass. The only
+uncommitted asset is the user's previously saved HUB; it remains excluded from
+outfit commits. Further performance work remains necessary, with no new
+acceptance claim or adjustment to the frozen budget.
