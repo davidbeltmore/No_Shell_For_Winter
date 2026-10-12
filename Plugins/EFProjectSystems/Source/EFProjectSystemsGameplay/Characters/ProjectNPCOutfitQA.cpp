@@ -205,6 +205,24 @@ struct FOutfitQA : TSharedFromThis<FOutfitQA>
                 BeforeIds.Add(Ids);
             }
             ReadyTime=Now-ReadyStart;
+            TArray<TSharedPtr<FJsonValue>> InitializationRows;
+            for (auto P : Pawns) if (P.IsValid()) if (const auto* Outfit=P->FindComponentByClass<UProjectNPCOutfitComponent>())
+            {
+                auto Row=MakeShared<FJsonObject>();
+                Row->SetStringField(TEXT("actor"),P->GetPathName());
+                Row->SetNumberField(TEXT("spawn_to_admission_seconds"),Outfit->EngineSecondsAtStart-(ReadyStart-GStartTime));
+                Row->SetNumberField(TEXT("initialization_seconds"),Outfit->ReadySeconds);
+                Row->SetNumberField(TEXT("definition_load_seconds"),Outfit->DefinitionLoadSeconds);
+                Row->SetNumberField(TEXT("item_classes_load_seconds"),Outfit->ItemClassesLoadSeconds);
+                Row->SetBoolField(TEXT("definition_resident_at_request"),Outfit->bDefinitionResidentAtRequest);
+                Row->SetNumberField(TEXT("item_classes_requested"),Outfit->ItemClassesRequested);
+                Row->SetNumberField(TEXT("item_classes_resident_at_request"),Outfit->ItemClassesResidentAtRequest);
+                InitializationRows.Add(MakeShared<FJsonValueObject>(Row));
+            }
+            Report->SetArrayField(TEXT("fixture_initializations"),InitializationRows);
+            Report->SetStringField(TEXT("admission_timing_scope"),TEXT("Since group spawn started; includes body appearance resolution and queue wait. Initialization includes streaming, scheduling, equipment and render submission."));
+            if (auto* Limit=IConsoleManager::Get().FindConsoleVariable(TEXT("Project.NPCOutfits.MaxActiveInitializations")))
+                Report->SetNumberField(TEXT("max_active_initializations"),FMath::Clamp(Limit->GetInt(),1,16));
             Report->SetBoolField(TEXT("threaded_rendering"), GIsThreadedRendering);
             Report->SetBoolField(TEXT("threaded_rendering_requested"), GUseThreadedRendering);
             Report->SetBoolField(TEXT("rhi_separate_thread"), IsRunningRHIInSeparateThread());

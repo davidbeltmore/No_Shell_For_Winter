@@ -1,0 +1,472 @@
+{
+  "baseline_commit": "247abf98",
+  "scope": "Bounded admission/readiness diagnostics and resident prerequisite optimization",
+  "frozen_readiness_budget_seconds": 2,
+  "readiness_gate": "FAIL",
+  "new_runtime_cold_package_gate": "PENDING",
+  "default_active_limit": 4,
+  "admissions_per_frame": 1,
+  "cases": [
+    {
+      "limit": 4,
+      "name": "admission_4_01",
+      "ready_seconds": 5.749282896518707,
+      "peak_fixture_initializing": 4,
+      "spawn_peak_ms": 1243.6765432357788,
+      "pending_after_destroy": 0,
+      "host_seconds": 33.89100000000326,
+      "body_initialization_seconds": 1.462908498942852,
+      "all_prerequisites_resident": true,
+      "spawn_to_admission_seconds": {
+        "min": 1.5336367972195148,
+        "max": 5.242318097501993,
+        "mean": 3.169819098562002
+      },
+      "initialization_seconds": {
+        "min": 0.48720329999923706,
+        "max": 0.7309733033180237,
+        "mean": 0.6181609879434109
+      },
+      "definition_load_seconds": {
+        "min": 0.001355499029159546,
+        "max": 0.03818199783563614,
+        "mean": 0.018540356159210205
+      },
+      "item_classes_load_seconds": {
+        "min": 0.035395700484514236,
+        "max": 0.0938807986676693,
+        "mean": 0.05868389993906021
+      },
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "source": "Saved\\NPCOutfits\\Native\\admission_4_01",
+      "runtime_sha256": "64700cf4711ec0b393987cc94f4f7d29c13ca8741629c886ad837df70cf16041",
+      "host_sha256": "946a55111c8398aa7e230d3cd11d35376b756095de1b471392208033e389a513",
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "d558db0bc2a2e895abd02399653fc743cb2087c5b6768cf2a877010f6288c730",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "native_checks": [],
+      "readiness_budget_met": false
+    },
+    {
+      "limit": 8,
+      "name": "admission_8_01",
+      "ready_seconds": 4.715523798018694,
+      "peak_fixture_initializing": 8,
+      "spawn_peak_ms": 1316.543698310852,
+      "pending_after_destroy": 0,
+      "host_seconds": 23.625,
+      "body_initialization_seconds": 1.540013998746872,
+      "all_prerequisites_resident": true,
+      "spawn_to_admission_seconds": {
+        "min": 1.59138960018754,
+        "max": 4.0230253003537655,
+        "mean": 2.671743618994951
+      },
+      "initialization_seconds": {
+        "min": 0.5901627987623215,
+        "max": 0.934748999774456,
+        "mean": 0.8606737720966339
+      },
+      "definition_load_seconds": {
+        "min": 0.0012893006205558777,
+        "max": 0.08564940094947815,
+        "mean": 0.06098384350538254
+      },
+      "item_classes_load_seconds": {
+        "min": 0.036872297525405884,
+        "max": 0.12953269854187965,
+        "mean": 0.10386839598417281
+      },
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "source": "Saved\\NPCOutfits\\Native\\admission_8_01",
+      "runtime_sha256": "8e84d04e8c03b1bab82c65682cc004f6d26b5377a8d4773a517ad687a7809228",
+      "host_sha256": "6e42478c71874f065393e0101b40bc90d7f6d3b5c8db0da1d1c96c8bbbd6c808",
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "d558db0bc2a2e895abd02399653fc743cb2087c5b6768cf2a877010f6288c730",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "native_checks": [],
+      "readiness_budget_met": false
+    },
+    {
+      "limit": 16,
+      "name": "admission_16_01",
+      "ready_seconds": 4.6274672001600266,
+      "peak_fixture_initializing": 8,
+      "spawn_peak_ms": 1263.5961771011353,
+      "pending_after_destroy": 0,
+      "host_seconds": 23.06300000000192,
+      "body_initialization_seconds": 1.4805595986545086,
+      "all_prerequisites_resident": true,
+      "spawn_to_admission_seconds": {
+        "min": 1.5380378998816013,
+        "max": 3.928847700357437,
+        "mean": 2.6120368883013727
+      },
+      "initialization_seconds": {
+        "min": 0.6013287007808685,
+        "max": 0.9208432994782925,
+        "mean": 0.847452944368124
+      },
+      "definition_load_seconds": {
+        "min": 0.0011279992759227753,
+        "max": 0.07744190096855164,
+        "mean": 0.05976821169257164
+      },
+      "item_classes_load_seconds": {
+        "min": 0.03481080010533333,
+        "max": 0.11938709765672684,
+        "mean": 0.10240274801850319
+      },
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "source": "Saved\\NPCOutfits\\Native\\admission_16_01",
+      "runtime_sha256": "d81925376616439479a09c29bcbccbb6957885f491722cd695e0128f61ea560a",
+      "host_sha256": "5429ccd96f731b3ecdc6eac757dd6e6390562fe2fe7015abe038b4fa8dee325e",
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "d558db0bc2a2e895abd02399653fc743cb2087c5b6768cf2a877010f6288c730",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "7e2284b3bb8e6f340f7d421b6356a084e779ba370c992af1db693f86077728b5",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "native_checks": [],
+      "readiness_budget_met": false
+    },
+    {
+      "limit": 4,
+      "name": "resident_4_01",
+      "ready_seconds": 5.528685200959444,
+      "peak_fixture_initializing": 4,
+      "spawn_peak_ms": 1274.9937772750854,
+      "pending_after_destroy": 0,
+      "host_seconds": 31.187999999994645,
+      "body_initialization_seconds": 1.4996008984744549,
+      "all_prerequisites_resident": true,
+      "spawn_to_admission_seconds": {
+        "min": 1.5582341998815536,
+        "max": 5.083437699824572,
+        "mean": 3.1227581472694874
+      },
+      "initialization_seconds": {
+        "min": 0.4336048997938633,
+        "max": 0.6919929012656212,
+        "mean": 0.5880904045701026
+      },
+      "definition_load_seconds": {
+        "min": 1.5012919902801514e-06,
+        "max": 2.902001142501831e-06,
+        "mean": 2.024620771408081e-06
+      },
+      "item_classes_load_seconds": {
+        "min": 0,
+        "max": 1.0058283805847168e-07,
+        "mean": 5.1856040954589843e-08
+      },
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "source": "Saved\\NPCOutfits\\Native\\resident_4_01",
+      "runtime_sha256": "fc11e3ef38ffa07fdbc62074a65bd55570f797645de4853a3e9fd534c4a39eba",
+      "host_sha256": "75479aeb817db29c6f890f627b25cc3586e7d7b96a7cc8e87e2ad7c96db9f3a6",
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "d558db0bc2a2e895abd02399653fc743cb2087c5b6768cf2a877010f6288c730",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "75e5e9359eba73eb0ce44055a79462b97b461f4ff114e172badca4ceced61f6c",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "native_checks": [],
+      "readiness_budget_met": false
+    },
+    {
+      "limit": 8,
+      "name": "resident_8_01",
+      "ready_seconds": 4.667102701961994,
+      "peak_fixture_initializing": 7,
+      "spawn_peak_ms": 1286.9069576263428,
+      "pending_after_destroy": 0,
+      "host_seconds": 23.375,
+      "body_initialization_seconds": 1.4999543018639088,
+      "all_prerequisites_resident": true,
+      "spawn_to_admission_seconds": {
+        "min": 1.5547619014978409,
+        "max": 4.084159400314093,
+        "mean": 2.704740600287914
+      },
+      "initialization_seconds": {
+        "min": 0.5578267984092236,
+        "max": 0.8588357977569103,
+        "mean": 0.765527719706297
+      },
+      "definition_load_seconds": {
+        "min": 1.6987323760986328e-06,
+        "max": 2.7008354663848877e-06,
+        "mean": 2.060234546661377e-06
+      },
+      "item_classes_load_seconds": {
+        "min": 0,
+        "max": 1.0058283805847168e-07,
+        "mean": 3.218650817871094e-08
+      },
+      "host_status": "PASS",
+      "native_status": "PASS",
+      "source": "Saved\\NPCOutfits\\Native\\resident_8_01",
+      "runtime_sha256": "66b55cfe268b4cedb56efab8806d292257bd028cd0b18c4a3d2755fac7d4ad66",
+      "host_sha256": "48ce7bcef455bc0d1d924e1b8ff4cf8710d114d3228b8e56dbaadd07c903f139",
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "d558db0bc2a2e895abd02399653fc743cb2087c5b6768cf2a877010f6288c730",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "75e5e9359eba73eb0ce44055a79462b97b461f4ff114e172badca4ceced61f6c",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "native_checks": [],
+      "readiness_budget_met": false
+    }
+  ],
+  "lifecycle": {
+    "1791781669807199400": {
+      "status": "FAIL",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\Projects UE5\\NoShellForWinter\\Tools\\NPC\\Outfits\\LifecycleQA.py\", line 99, in tick\n    check('Destroy while async outfit load is pending',outfit.state==unreal.ProjectNPCOutfitState.LOADING)\n  File \"D:\\Projects UE5\\NoShellForWinter\\Tools\\NPC\\Outfits\\LifecycleQA.py\", line 28, in check\n    if not condition: raise AssertionError(name)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Destroy while async outfit load is pending\n",
+      "seconds": 7.186999999998079,
+      "checks": [
+        {
+          "name": "Unequip before native removal",
+          "status": "PASS"
+        },
+        {
+          "name": "Native inventory removed shirt",
+          "status": "PASS"
+        },
+        {
+          "name": "Unequip before native removal",
+          "status": "PASS"
+        },
+        {
+          "name": "Native inventory removed shirt",
+          "status": "PASS"
+        },
+        {
+          "name": "Removed item stays removed with exact remaining GUIDs after recreate",
+          "status": "PASS"
+        },
+        {
+          "name": "Appearance body survives recreate",
+          "status": "PASS"
+        },
+        {
+          "name": "Destroy while async outfit load is pending",
+          "status": "FAIL"
+        }
+      ],
+      "path": "Saved/NPCOutfits/Lifecycle/1791781669807199400/runtime.json",
+      "sha256": "74d1a15e374dfb41809de51beb4615665680060f9926535aadfa2c43bccae742",
+      "pending": null,
+      "resident_cancel_state": null,
+      "async_cancel_state": null
+    },
+    "1791781983217733500": {
+      "status": "PASS",
+      "reason": "",
+      "seconds": 18.297000000005937,
+      "checks": [
+        {
+          "name": "Unequip before native removal",
+          "status": "PASS"
+        },
+        {
+          "name": "Native inventory removed shirt",
+          "status": "PASS"
+        },
+        {
+          "name": "Unequip before native removal",
+          "status": "PASS"
+        },
+        {
+          "name": "Native inventory removed shirt",
+          "status": "PASS"
+        },
+        {
+          "name": "Removed item stays removed with exact remaining GUIDs after recreate",
+          "status": "PASS"
+        },
+        {
+          "name": "Appearance body survives recreate",
+          "status": "PASS"
+        },
+        {
+          "name": "Destroy with resident prerequisites before equip",
+          "status": "PASS"
+        },
+        {
+          "name": "Queue drained after destruction",
+          "status": "PASS"
+        },
+        {
+          "name": "Destroy while async outfit load is pending",
+          "status": "PASS"
+        },
+        {
+          "name": "Queue drained after destruction",
+          "status": "PASS"
+        }
+      ],
+      "path": "Saved/NPCOutfits/Lifecycle/1791781983217733500/runtime.json",
+      "sha256": "5640a1d8811d3d65fcc3d2c47e2f2e915d65b48e5bfef3868d06c2615e8c788a",
+      "pending": 0,
+      "resident_cancel_state": "<ProjectNPCOutfitState.PENDING: 0>",
+      "async_cancel_state": "<ProjectNPCOutfitState.LOADING: 1>"
+    }
+  },
+  "disk_save": {
+    "status": "PASS",
+    "reason": "",
+    "seconds": 7.297000000005937,
+    "path": "Saved/NPCOutfits/Save/1791781723844339600/runtime.json",
+    "sha256": "b9db5bb5eebed92c93aefb876a649c0a0f6f451d5ce6b455aca0a8221790d331"
+  },
+  "builds": {
+    "outfits-editor-admission-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 46.943,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "outfits-editor-resident-prerequisites-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 33.328,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "outfits-editor-resident-cancel-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 14.312,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterEditor58.ps1"
+      ]
+    },
+    "outfits-game-resident-01": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 55.707,
+      "limit_seconds": 600,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/Migration/Build-NoShellForWinterGame58.ps1"
+      ]
+    }
+  },
+  "protection": {
+    "seconds": 8.14,
+    "head": "247abf9805e08aaa7c74b96c5c0a375501e6b726",
+    "changed": [],
+    "status": "PASS",
+    "count": 7643
+  },
+  "saves": {
+    "Session_20261011_235827": {
+      "Status": "PASS",
+      "Checked": 6,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    },
+    "Session_20261012_000448": {
+      "Status": "PASS",
+      "Checked": 6,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav",
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\SaveMetadata.sav"
+      ]
+    },
+    "Session_20261012_001152": {
+      "Status": "PASS",
+      "Checked": 7,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    }
+  },
+  "user_hub_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a",
+  "visual": {
+    "path": "Saved/NPCOutfits/Native/resident_4_01/outfits.png",
+    "sha256": "5c5e7e3a889b3fe74f73f6e000d82066277c13e70a2b88db6097526c53091160",
+    "review": "Coherent visible clothing at the 25-NPC fixture camera; occlusion/cropping prevents inspecting every surface. Not extreme-LOD quality certification."
+  }
+}

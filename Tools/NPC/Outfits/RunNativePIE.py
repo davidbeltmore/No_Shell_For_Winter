@@ -8,6 +8,7 @@ import unreal
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--count',type=int,default=1)
+parser.add_argument('--max-active',type=int,choices=[4,8,16],default=4)
 parser.add_argument('--body',default='Male.01')
 parser.add_argument('--archetype',default='SkillGuy')
 parser.add_argument('--dressed',type=int,choices=[0,1],default=1)
@@ -77,14 +78,16 @@ parameter_cvar='ef.ClothingMorph.SkipUnchangedParameters'
 previous_parameters=unreal.SystemLibrary.get_console_variable_int_value(parameter_cvar)
 profile_cvar='ef.ClothingMorph.ProfileInstall'
 previous_profile=unreal.SystemLibrary.get_console_variable_int_value(profile_cvar)
+admission_cvar='Project.NPCOutfits.MaxActiveInitializations'
+previous_admission=unreal.SystemLibrary.get_console_variable_int_value(admission_cvar)
 gpu_settings={'r.ProfileGPU.ShowUI':0,'r.ProfileGPU.ShowLeafEvents':1,'r.ProfileGPU.UnicodeOutput':0,
               'r.ProfileGPU.TableFormatting':0,'r.ProfileGPU.ThresholdPercent':0}
 previous_gpu={key:unreal.SystemLibrary.get_console_variable_float_value(key) for key in gpu_settings} if args.profile_gpu else {}
-quality_names=['sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuality','sg.GlobalIlluminationQuality',
+quality_names=['Project.NPCOutfits.UseResidentPrerequisites','sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuality','sg.GlobalIlluminationQuality',
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','lod_transitions','trace','profile_gpu','prewarm','selection','profile_install','gc']}
+native_args={k:v for k,v in vars(args).items() if k not in ['max_active','immutable_buffers','prepared_binding','parameter_cache','independent_npc_lod','inspect_lod','lod_transitions','trace','profile_gpu','prewarm','selection','profile_install','gc']}
 command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 assert not (args.selection and args.gc), 'GC fixture uses the standard outfit command'
 if args.gc: command+=' gc'
@@ -104,6 +107,7 @@ def done(error=''):
     unreal.SystemLibrary.execute_console_command(restore_world,lod_cvar+' '+str(previous_lod))
     unreal.SystemLibrary.execute_console_command(restore_world,parameter_cvar+' '+str(previous_parameters))
     unreal.SystemLibrary.execute_console_command(restore_world,profile_cvar+' '+str(previous_profile))
+    unreal.SystemLibrary.execute_console_command(restore_world,admission_cvar+' '+str(previous_admission))
     for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(restore_world,key+' '+str(value))
     unreal.EditorLevelLibrary.editor_end_play()
     (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'independent_npc_lod':args.independent_npc_lod,'inspect_lod':args.inspect_lod,'lod_snapshot':state.get('lod_snapshot'),'lod_transitions_requested':args.lod_transitions,'lod_transitions':state.get('lod_transitions',[]),'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
@@ -155,6 +159,7 @@ def tick(dt):
             unreal.SystemLibrary.execute_console_command(world,lod_cvar+' '+str(args.independent_npc_lod))
             unreal.SystemLibrary.execute_console_command(world,parameter_cvar+' '+str(args.parameter_cache))
             unreal.SystemLibrary.execute_console_command(world,profile_cvar+' '+str(int(args.profile_install)))
+            unreal.SystemLibrary.execute_console_command(world,admission_cvar+' '+str(args.max_active))
             unreal.SystemLibrary.execute_console_command(world,warm_command if args.prewarm else command)
         if args.prewarm and not state['warm_ready']:
             if warm_receipt.exists():

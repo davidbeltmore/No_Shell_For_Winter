@@ -37,9 +37,26 @@ protected body assets remain read-only.
 ## Ordering, persistence and cancellation
 
 The existing appearance subsystem queues outfits after body/morph application.
-Native equipment readiness and ALS idle precede mutation. The world queue admits
-one owner/frame and four initializing outfits. This is an initial admission bound,
+Native equipment readiness and ALS idle precede mutation. The world queue defaults
+to one owner/frame and four initializing outfits. This is an initial admission bound,
 not proof of a global binding-load budget or supported crowd size.
+
+`Project.NPCOutfits.MaxActiveInitializations` is clamped to 1..16 and defaults to
+four. `RunNativePIE`/`Sweep.py --max-active 4|8|16` records the effective limit and
+restores the previous value. Comparisons reject different limits. Inspect
+`fixture_initializations`: spawn-to-admission includes body initialization plus
+queue wait; per-owner initialization includes all later scheduling/render work.
+Prepared 25-NPC diagnostics showed diminishing benefit above eight; do not infer
+that a higher cap alone meets the fixed two-second group budget.
+
+Fully loaded resident definitions and item classes can proceed without async
+completion scheduling. Definition ownership plus transient `ResidentItemClasses`
+pins protect them until Ready, failure, restart or EndPlay. Unloaded or pending
+post-load objects retain the asynchronous path; no synchronous load is added.
+`Project.NPCOutfits.UseResidentPrerequisites=0` preserves that path for diagnostics.
+The lifecycle fixture explicitly tests destruction both before resident equip
+and while an async callback is pending, restoring the CVar afterward. Do not
+replace async cancellation coverage with a generic Pending/Loading assertion.
 
 `FProjectNPCAppearanceRecord` retains outfit ID/version and the shared native
 inventory serialization envelope under the existing identity. A versioned record

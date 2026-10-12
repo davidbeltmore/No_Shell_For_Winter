@@ -13,9 +13,16 @@
 #include "Engine/SkeletalMesh.h"
 #include "GameFramework/Pawn.h"
 #include "HAL/PlatformTime.h"
+#include "HAL/IConsoleManager.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "CoreGlobals.h"
+
+namespace
+{
+TAutoConsoleVariable<int32> CVarResidentPrerequisites(TEXT("Project.NPCOutfits.UseResidentPrerequisites"), 1,
+    TEXT("Use fully resident definition/item classes without delayed load callbacks. Zero retains the async path for diagnostics."));
+}
 
 UProjectNPCOutfitComponent::UProjectNPCOutfitComponent() { PrimaryComponentTick.bCanEverTick = false; }
 
@@ -29,6 +36,7 @@ void UProjectNPCOutfitComponent::Fail(const FString& Reason)
         Load && Load->HasLoadCompleted(), Load && Load->WasCanceled(), LoadedCount, RequestedCount);
     State = EProjectNPCOutfitState::Failed;
     if (Load) Load->CancelHandle(); Load.Reset();
+    ResidentItemClasses.Reset();
     UE_LOG(LogTemp, Error, TEXT("NPCOutfits FAIL %s: %s"), *GetNameSafe(GetOwner()), *Failure);
 }
 
@@ -40,6 +48,7 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
     if (Saved && ObservedRestoreSerial == Saved->RestoreSerial && State == EProjectNPCOutfitState::Ready) return;
     ObservedRestoreSerial = Saved ? Saved->RestoreSerial : -1;
     if (Load) Load->CancelHandle(); Load.Reset();
+    ResidentItemClasses.Reset();
     Started = FPlatformTime::Seconds(); Failure.Reset(); State = EProjectNPCOutfitState::Pending;
     EngineSecondsAtStart = Started - GStartTime;
     EngineSecondsAtReady = DefinitionLoadSeconds = ItemClassesLoadSeconds = -1;
@@ -76,7 +85,7 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
     State = EProjectNPCOutfitState::Loading;
     bDefinitionResidentAtRequest = Selected.ResolveObject() != nullptr;
     const double DefinitionRequestedAt = FPlatformTime::Seconds();
-    Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Selected, FStreamableDelegate::CreateWeakLambda(this, [this, Selected, DefinitionRequestedAt]
+    auto DefinitionReady = [this, Selected, DefinitionRequestedAt]()
     {
         DefinitionLoadSeconds = FPlatformTime::Seconds() - DefinitionRequestedAt;
         Definition = Cast<UProjectNPCOutfit>(Selected.ResolveObject());
@@ -86,18 +95,44 @@ void UProjectNPCOutfitComponent::Start(const TArray<FProjectNPCOutfitChoice>& Ch
         TArray<FSoftObjectPath> Paths;
         for (const auto& Row : Definition->Items) Paths.AddUnique(Row.Item.ToSoftObjectPath());
         ItemClassesRequested = Paths.Num();
-        for (const auto& Path : Paths) ItemClassesResidentAtRequest += Path.ResolveObject() != nullptr ? 1 : 0;
+        for (const auto& Path : Paths)
+        {
+            UObject* Object = Path.ResolveObject();
+            ItemClassesResidentAtRequest += Object != nullptr ? 1 : 0;
+            if (auto* Class = Cast<UClass>(Object); IsValid(Class)
+                && !Class->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects))
+                ResidentItemClasses.Add(Class);
+        }
         const double ClassesRequestedAt = FPlatformTime::Seconds();
+        if (CVarResidentPrerequisites.GetValueOnGameThread() != 0 && ResidentItemClasses.Num() == Paths.Num())
+        {
+            ItemClassesLoadSeconds = FPlatformTime::Seconds() - ClassesRequestedAt;
+            State = EProjectNPCOutfitState::Pending;
+            return;
+        }
         Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Paths, FStreamableDelegate::CreateWeakLambda(this, [this, ClassesRequestedAt]
         {
             ItemClassesLoadSeconds = FPlatformTime::Seconds() - ClassesRequestedAt;
             if (State == EProjectNPCOutfitState::Loading) State = EProjectNPCOutfitState::Pending;
         }), FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.ItemClasses"));
-    }), FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.Definition"));
+    };
+    UObject* ResidentDefinition = Selected.ResolveObject();
+    if (CVarResidentPrerequisites.GetValueOnGameThread() != 0 && IsValid(ResidentDefinition)
+        && !ResidentDefinition->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects))
+    {
+        DefinitionReady();
+    }
+    else
+    {
+        Load = UAssetManager::GetStreamableManager().RequestAsyncLoad(Selected,
+            FStreamableDelegate::CreateWeakLambda(this, MoveTemp(DefinitionReady)),
+            FStreamableManager::AsyncLoadHighPriority, false, false, TEXT("NPCOutfit.Definition"));
+    }
     // These admitted owners already have a presentation deadline. Match the
     // clothing binding priority instead of queuing their prerequisites behind
-    // background loads. The subsystem still admits one owner/frame, at most four
-    // active; no synchronous flush or deadline extension is introduced.
+    // background loads. Fully resident prerequisites need no delayed callback.
+    // The subsystem still bounds admission; no synchronous load, flush or
+    // deadline extension is introduced.
 }
 
 void UProjectNPCOutfitComponent::Apply()
@@ -193,6 +228,7 @@ void UProjectNPCOutfitComponent::Advance()
     State = EProjectNPCOutfitState::Ready; ReadySeconds = FPlatformTime::Seconds() - Started;
     EngineSecondsAtReady = FPlatformTime::Seconds() - GStartTime;
     Load.Reset();
+    ResidentItemClasses.Reset();
 }
 
 void UProjectNPCOutfitComponent::InventoryChanged()
@@ -219,6 +255,7 @@ void UProjectNPCOutfitComponent::CaptureInventory()
 void UProjectNPCOutfitComponent::EndPlay(EEndPlayReason::Type Reason)
 {
     if (Load) Load->CancelHandle(); Load.Reset();
+    ResidentItemClasses.Reset();
     if (Coordinator) Coordinator->OnStateChanged.RemoveDynamic(this, &UProjectNPCOutfitComponent::InventoryChanged);
     // Do not recapture after native ACF teardown has destroyed equipment.
     Super::EndPlay(Reason);

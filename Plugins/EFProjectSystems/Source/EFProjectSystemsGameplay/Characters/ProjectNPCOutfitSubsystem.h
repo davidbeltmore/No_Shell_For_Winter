@@ -8,7 +8,7 @@ class UProjectNPCRoster;
 class UProjectNPCOutfitComponent;
 struct FStreamableHandle;
 
-/** Shared admission queue: up to four initializing outfits, at most one new pawn per frame. */
+/** Shared admission queue: bounded active outfits (default four), at most one new pawn per frame. */
 UCLASS()
 class EFPROJECTSYSTEMSGAMEPLAY_API UProjectNPCOutfitSubsystem : public UTickableWorldSubsystem
 {

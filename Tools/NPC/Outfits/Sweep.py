@@ -18,6 +18,7 @@ parser.add_argument('--prefix',required=True)
 parser.add_argument('--body',default='Male.01')
 parser.add_argument('--archetype',default='SkillGuy')
 parser.add_argument('--seed',type=int,default=731)
+parser.add_argument('--max-active',type=int,choices=[4,8,16],default=4)
 parser.add_argument('--independent-npc-lod',type=int,choices=[0,1],default=0)
 args=parser.parse_args()
 assert args.prefix.replace('_','').replace('-','').isalnum()
@@ -30,7 +31,7 @@ for count in args.counts:
         command=[sys.executable,str(root/'Tools/NPC/Outfits/Run.py'),'RunNativePIE',
                  '--count',str(count),'--dressed',str(dressed),'--name',name,'--prewarm',
                  '--body',args.body,'--archetype',args.archetype,'--seed',str(args.seed),
-                 '--independent-npc-lod',str(args.independent_npc_lod)]
+                 '--independent-npc-lod',str(args.independent_npc_lod),'--max-active',str(args.max_active)]
         start=time.monotonic()
         subprocess.run(command,cwd=root,timeout=150,check=True)
         while not (out/'host.json').exists() and time.monotonic()-start<155: time.sleep(1)

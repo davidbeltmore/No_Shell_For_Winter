@@ -7,6 +7,13 @@
 #include "HAL/PlatformTime.h"
 #include "ALSLoadAndSaveSubsystem.h"
 #include "Engine/GameInstance.h"
+#include "HAL/IConsoleManager.h"
+
+namespace
+{
+TAutoConsoleVariable<int32> CVarOutfitMaxActive(TEXT("Project.NPCOutfits.MaxActiveInitializations"), 4,
+    TEXT("Maximum initializing NPC outfits per world, clamped to 1..16. Admission remains one owner per frame."));
+}
 
 void UProjectNPCOutfitSubsystem::AppearanceReady(APawn* Pawn)
 {
@@ -40,7 +47,8 @@ void UProjectNPCOutfitSubsystem::Tick(float DeltaTime)
         if (Component) Component->Advance();
         if (!Component || Component->State == EProjectNPCOutfitState::Ready || Component->State == EProjectNPCOutfitState::Failed) Active.RemoveAtSwap(I);
     }
-    if (!Roster || Pending.IsEmpty() || Active.Num() >= 4) return;
+    const int32 MaxActive = FMath::Clamp(CVarOutfitMaxActive.GetValueOnGameThread(), 1, 16);
+    if (!Roster || Pending.IsEmpty() || Active.Num() >= MaxActive) return;
     APawn* Pawn = Pending[0].Get(); Pending.RemoveAt(0);
     if (!IsValid(Pawn) || Pawn->IsActorBeingDestroyed()) return;
     auto* Component = Pawn->FindComponentByClass<UProjectNPCOutfitComponent>();

@@ -38,6 +38,8 @@ public:
     virtual void EndPlay(EEndPlayReason::Type Reason) override;
 private:
     UPROPERTY(Transient) TObjectPtr<UProjectNPCOutfit> Definition;
+    // Pin resident prerequisites until native inventory owns them or initialization ends.
+    UPROPERTY(Transient) TArray<TObjectPtr<UClass>> ResidentItemClasses;
     UPROPERTY(Transient) TObjectPtr<UACFEquipmentComponent> Equipment;
     UPROPERTY(Transient) TObjectPtr<UEFEquipmentCoordinatorComponent> Coordinator;
     TSharedPtr<FStreamableHandle> Load;

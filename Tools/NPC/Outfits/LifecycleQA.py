@@ -21,6 +21,8 @@ state={'stage':'spawn','checks':[],'busy':False}
 pawns=[]
 perf=unreal.get_default_object(unreal.load_class(None,'/Script/UnrealEd.EditorPerformanceSettings'))
 throttle=perf.get_editor_property('bThrottleCPUWhenNotForeground')
+resident_cvar='Project.NPCOutfits.UseResidentPrerequisites'
+previous_resident=unreal.SystemLibrary.get_console_variable_int_value(resident_cvar)
 perf.set_editor_property('bThrottleCPUWhenNotForeground',False)
 
 def check(name,condition):
@@ -50,6 +52,7 @@ def snapshot(pawn):
 
 def done(error=''):
     unreal.unregister_slate_post_tick_callback(handle)
+    unreal.SystemLibrary.execute_console_command(worlds.get_game_world(),resident_cvar+' '+str(previous_resident))
     state.update(status='FAIL' if error else 'PASS',reason=error,seconds=time.monotonic()-started)
     (out/'runtime.json').write_text(json.dumps(state,indent=2),encoding='utf-8')
     unreal.EditorLevelLibrary.editor_end_play()
@@ -63,6 +66,7 @@ def tick(dt):
         world=worlds.get_game_world()
         if not world or not unreal.GameplayStatics.get_player_pawn(world,0): return
         if state['stage']=='spawn':
+            unreal.SystemLibrary.execute_console_command(world,resident_cvar+' 1')
             pawns.extend([spawn(world,g,i) for i,g in enumerate(['Male','Female'])])
             state['stage']='remove'; return
         if state['stage']=='remove':
@@ -93,20 +97,26 @@ def tick(dt):
             check('Appearance body survives recreate',state['body_before']==[str(p.get_component_by_class(unreal.EFCharacterCustomizationComponent).get_body_preset_id()) for p in pawns])
             pawns.append(spawn(world,'Male',2))
             state['stage']='cancel'; return
-        if state['stage']=='cancel':
+        if state['stage'] in ['cancel','cancel_async']:
             outfit=pawns[-1].get_component_by_class(unreal.ProjectNPCOutfitComponent)
             if not outfit: return
-            check('Destroy while async outfit load is pending',outfit.state==unreal.ProjectNPCOutfitState.LOADING)
-            state['cancel_state']=str(outfit.state)
+            resident=state['stage']=='cancel'
+            expected=unreal.ProjectNPCOutfitState.PENDING if resident else unreal.ProjectNPCOutfitState.LOADING
+            check('Destroy with resident prerequisites before equip' if resident else 'Destroy while async outfit load is pending',outfit.state==expected)
+            state['resident_cancel_state' if resident else 'async_cancel_state']=str(outfit.state)
             for pawn in pawns: pawn.destroy_actor()
             pawns.clear()
             state['destroyed_at']=time.monotonic()
-            state['stage']='drain'; return
-        if state['stage']=='drain':
+            state['stage']='drain_resident' if resident else 'drain'; return
+        if state['stage'] in ['drain_resident','drain']:
             if time.monotonic()-state['destroyed_at']<1: return
             subsystem=next(o for o in unreal.ObjectIterator(unreal.ProjectNPCOutfitSubsystem) if o.get_outer()==world)
             state['pending_after_destroy']=subsystem.get_pending_count()
             check('Queue drained after destruction',state['pending_after_destroy']==0)
+            if state['stage']=='drain_resident':
+                unreal.SystemLibrary.execute_console_command(world,resident_cvar+' 0')
+                pawns.append(spawn(world,'Male',3))
+                state['stage']='cancel_async'; return
             done()
     except Exception: done(traceback.format_exc())
     finally: state['busy']=False

@@ -912,3 +912,70 @@ files. All six saves are restored after each editor session (`233006`, `233831`,
 `C484678ECD4A21407B59AE07268E84ADE022B5FF33BD8AE0CD93078CA669E78A`.
 The outfit skill validates, Python tools compile, and the diff whitespace check
 passes. The editor is reopened through the protected launcher.
+
+## Admission and resident prerequisite diagnosis (2026-10-12)
+
+The fixture now records each measured NPC's spawn-to-admission time, subsequent
+initialization duration, definition/class callback timing and actual residency.
+Spawn-to-admission includes body resolution; it is not pure queue wait. The
+effective active limit is recorded natively and matched by `Measure.py`.
+`Project.NPCOutfits.MaxActiveInitializations` is clamped to 1..16; production
+default remains four, with one admission per frame. The host restores the prior
+CVar. This permits a bounded diagnosis rather than changing acceptance criteria.
+
+Five prepared 25-NPC diagnostics use three-second captures, explicit GC and
+zero pending work. These are readiness observations, not steady FPS acceptance:
+
+| Path / active limit | Group ready (s) | Peak initializing fixture NPCs | Mean per-NPC initialization (s) | Body initialization (s) |
+|---|---:|---:|---:|---:|
+| Async / 4 | 5.749283 | 4 | 0.618161 | 1.462908 |
+| Async / 8 | 4.715524 | 8 | 0.860674 | 1.540014 |
+| Async / 16 | 4.627467 | 8 | 0.847453 | 1.480560 |
+| Resident / 4 | 5.528685 | 4 | 0.588090 | 1.499601 |
+| Resident / 8 | 4.667103 | 7 | 0.765528 | 1.499954 |
+
+Sources: `Saved/NPCOutfits/{admission,resident}-diagnostic-01.json`, individual
+native/host receipts `admission_{4,8,16}_01` and `resident_{4,8}_01`. All 25
+definitions and class sets were already resident in each measured group.
+Increasing the active limit above eight gave little additional benefit; the
+default is not raised. Body initialization already consumes roughly 1.5 s of
+the unchanged two-second group budget. Last admission occurs 3.93--5.24 s after
+spawn in the original async cases. Admission and later preparation remain the
+dominant startup work. None of these observations establishes a statistical
+performance gain or passes the crowd budget.
+
+`UProjectNPCOutfitComponent::Start` now uses fully resident prerequisites without
+waiting for another async completion callback. Objects still needing load,
+post-load or post-load-subobject processing retain the original async path.
+The definition remains a UPROPERTY; the new transient `ResidentItemClasses`
+array pins resolved classes until Ready, failure, restart or EndPlay. No global
+cache, synchronous load or admission/deadline increase is introduced. The new
+`Project.NPCOutfits.UseResidentPrerequisites=0` switch retains the async path for
+diagnostics and its effective value is part of capture configuration.
+
+The original lifecycle fixture `Lifecycle/1791781669807199400` failed because it
+required Loading even with fully resident assets. Its six preceding removal,
+exact-GUID restoration and body checks passed. Preserve that FAIL. The updated
+fixture separately requires Pending before resident equip and Loading for the
+forced async path, destroys in each state and verifies queue drainage. It
+restores the diagnostic CVar on completion or failure. This extends cancellation
+coverage rather than accepting either state under the old async-only assertion.
+
+Disk save/restore `Save/1791781723844339600` passes in 7.297 s. Editor builds pass
+in 46.943 s (admission instrumentation), 33.328 s (resident path) and 14.312 s
+(diagnostic switch); Development Game passes in 55.707 s with protected Daz
+descriptor/receipt restoration. The protected comparison passes in 8.140 s,
+7,643 unchanged files. The new runtime has not yet been cooked or validated in a
+fresh packaged cold-load process; that ownership/load gate remains PENDING.
+
+Updated lifecycle `Lifecycle/1791781983217733500` passes all ten checks in
+18.297 s: resident cancellation observes Pending, async cancellation observes
+Loading, and both queues drain to zero. Compact configuration hashes, timings,
+the retained failed fixture and successful checks are in
+`Evidence/NPCOutfits/admission-resident.json`. The actual `resident_4_01`
+25-NPC screenshot was reviewed: visible clothing is coherent, with normal
+fixture occlusion/cropping; it does not certify every garment surface.
+All prior saves are restored after each PIE editor session (six before the disk
+save fixture, seven retained thereafter), and HUB keeps the recorded user hash.
+The editor is reopened; admission default four and independent LOD default zero
+remain unchanged. No new 30-second acceptance PASS is claimed.

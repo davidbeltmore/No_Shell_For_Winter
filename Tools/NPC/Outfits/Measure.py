@@ -29,6 +29,8 @@ result = {'status': 'PENDING', 'budget': {'cpu_increment_ms': 2, 'gpu_increment_
 try:
     assert left.get('fixture_version',1)==right.get('fixture_version',1), 'Unmatched initialization fixture version'
     result['fixture_version']=right.get('fixture_version',1)
+    assert left.get('max_active_initializations',4)==right.get('max_active_initializations',4), 'Unmatched admission limit'
+    result['max_active_initializations']=right.get('max_active_initializations',4)
     if result['fixture_version'] >= 3:
         assert all(row.get('screenshot_processed_before_capture') for row in [left,right]), 'Screenshot completion must precede steady capture'
         for key in ['threaded_rendering','threaded_rendering_requested','rhi_separate_thread']:
