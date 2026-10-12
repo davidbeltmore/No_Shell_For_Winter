@@ -11,11 +11,12 @@ parser.add_argument('--garments',default='RagShirt,RagPants,RagFootWraps')
 parser.add_argument('--ratio',type=float,default=.5)
 parser.add_argument('--screen-size',type=float,default=.3)
 parser.add_argument('--witness-spacing',type=float,default=.75)
+parser.add_argument('--sampling-only',action='store_true',help='Change sampling on existing LOD1 without regenerating or saving garment geometry')
 parser.add_argument('--apply',action='store_true')
 args=parser.parse_args(globals().get('NPC_OUTFIT_ARGS',[]))
 root=Path(unreal.Paths.project_dir()).resolve()
 out=root/'Saved/NPCOutfits/GarmentLOD'/str(time.time_ns());out.mkdir(parents=True)
-started=time.monotonic();report={'status':'PENDING','apply':args.apply,'ratio':args.ratio,'screen_size':args.screen_size,'witness_spacing_cm':args.witness_spacing,'rows':[],'backups':[]}
+started=time.monotonic();report={'status':'PENDING','apply':args.apply,'sampling_only':args.sampling_only,'ratio':None if args.sampling_only else args.ratio,'screen_size':None if args.sampling_only else args.screen_size,'witness_spacing_cm':args.witness_spacing,'rows':[],'backups':[]}
 def write():
     report['seconds']=time.monotonic()-started
     (out/'author.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
@@ -32,7 +33,13 @@ try:
     for row in rows:
         mesh=row.source_garment
         if not isinstance(mesh,unreal.SkeletalMesh): mesh=unreal.load_asset(str(mesh))
-        report['rows'].append({'garment':str(row.garment_id),'mesh':mesh.get_path_name(),'before_vertices':[sub.get_num_verts(mesh,i) for i in range(sub.get_lod_count(mesh))]})
+        package=mesh.get_path_name().split('.')[0]
+        assert package.startswith('/Game/')
+        source=root/'Content'/(package[len('/Game/'):]+'.uasset')
+        assert not args.sampling_only or sub.get_lod_count(mesh)==2, 'Sampling-only requires existing LOD0 and LOD1'
+        report['rows'].append({'garment':str(row.garment_id),'mesh':mesh.get_path_name(),'before_vertices':[sub.get_num_verts(mesh,i) for i in range(sub.get_lod_count(mesh))],
+                              'before_source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+                              'before_witness_spacing_cm':row.get_editor_property('reduced_lod_maximum_witness_spacing_cm')})
     if args.apply:
         # Back up exact source packages and related generated artifacts once;
         # these backups are rollback evidence, not another authoring catalog.
@@ -52,6 +59,14 @@ try:
         write()
         for item in report['rows']:
             if time.monotonic()-started>120: raise TimeoutError('120 s authoring ceiling before next garment')
+            if args.sampling_only:
+                package=item['mesh'].split('.')[0]
+                source=root/'Content'/(package[len('/Game/'):]+'.uasset')
+                item['after_source_sha256']=hashlib.sha256(source.read_bytes()).hexdigest()
+                assert item['before_source_sha256']==item['after_source_sha256'], 'Garment source changed during sampling-only authoring'
+                item['after_vertices']=item['before_vertices']
+                item['saved']=False
+                continue
             result=unreal.EFClothingNativeMeshAuthoringLibrary.generate_reduced_garment_lod(director,item['garment'],args.ratio,args.screen_size)
             # bool-success plus OutReport follows the local binding's tuple return.
             item['result']=str(result)

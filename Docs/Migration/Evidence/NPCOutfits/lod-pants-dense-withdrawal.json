@@ -1,0 +1,3059 @@
+{
+  "status": "FAIL",
+  "reason": "25-NPC budget fails all four limits. LOD experiment withdrawn following user report that earlier LOD work broke animation/gameplay; no active-LOD package validation will be pursued.",
+  "snapshot": "1d33d2fa1da3a25d22a146687064f7774aa2dcef",
+  "candidate": {
+    "geometry_ratio": 0.99,
+    "pants_spacing_cm": 0.5,
+    "other_spacing_cm": 0.75,
+    "independent_npc_lod_default": 0
+  },
+  "author": {
+    "status": "PASS",
+    "apply": true,
+    "sampling_only": true,
+    "ratio": null,
+    "screen_size": null,
+    "witness_spacing_cm": 0.5,
+    "rows": [
+      {
+        "garment": "RagPants",
+        "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+        "before_vertices": [
+          9081,
+          8992
+        ],
+        "before_source_sha256": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "before_witness_spacing_cm": 0.75,
+        "after_source_sha256": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "after_vertices": [
+          9081,
+          8992
+        ],
+        "saved": false
+      }
+    ],
+    "backups": [
+      {
+        "path": "Content\\_Game\\Data\\EFClothingMorph\\DA_EFClothingMorphDirector.uasset",
+        "sha256": "fcc7e145e305657b576b441588a1d37a34601ebafb3c706dd43da5d9e3c4ad51"
+      },
+      {
+        "path": "Content\\DazToUnreal\\RagPants\\RagPants.uasset",
+        "sha256": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "7112f2b6d1c02315885470e71eda93b9f215405e66261100fa407758ae23bdc9"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V3\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "64faca548c540618e61bdbc72da3627555bea5c2e1293ebf779ff2333732a8f6"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "2454419b324e233ec674ab910be8a630acd88e76bca21a6aae0fa312b971ecb7"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_176F173648EF797CEA93A096F0CBD6E3.uasset",
+        "sha256": "08f065fcd08df2b759d8b8684a11b496cc8f4bc02a8e107fac4e3b7c00f4eda9"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_6CE1747A4A99307D2725E1A08BC823D4.uasset",
+        "sha256": "a84400414901b5bc9b27f0a555e5e5ec451d86a69bc60f278b4c7ca6cc630cb4"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_FBCCF194434C5B92C1A7D8BA5ADB11C8.uasset",
+        "sha256": "66ee74be1e71403bdab3a0a0dc9383c605e528af6bbad9d52c83cb2ea84e5c11"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "8e65cf640abddc5720450aed73240d3248557917493e9404c47713e9f1e9dab2"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingSystemManifest.uasset",
+        "sha256": "faadbb2fd050dc1dd12adf4b1078d958b4490c18b709a01b53e9fdea3d4a5f68"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants.uasset",
+        "sha256": "058a7eb7160c2fc13cbfba774b671599368bb6e339389f37cdf8066f7f28bd69"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_18b57db069578ab5d79af64c743f465b.uasset",
+        "sha256": "ab9c39e38a9c7a99956b35c5a3944cc7a13defceba3e66d656d19b6d9d66ae16"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset",
+        "sha256": "6b7e1099328d29d0458dcb3ed7a28b458e12eb8c133b208547278391324361c0"
+      }
+    ],
+    "seconds": 0.4379999999946449,
+    "director_saved": true
+  },
+  "compile": {
+    "status": "PASS",
+    "compile": "V4 PASS | enabled=18 ready=18 reused=18 published=18 drafts=0 failed=0 registry=/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry | V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+    "rows": [
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding."
+    ],
+    "sync": "PASS: EF Clothing Morph V5.1 single-table sync was already current: bodies=3 garments=18 LOD bindings=27 created=0 updated=0 saved=0 drafts=0 migrated-rows=0 lower-body-guards=0.",
+    "seconds": 2.7810000000026776
+  },
+  "cases": [
+    {
+      "name": "lod_pants_dense_male01_01",
+      "mechanical_status": "PASS",
+      "seconds": 57.21899999999732,
+      "pending_after_destroy": 0,
+      "garbage_collection_completed": true,
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "0791bb952d3e3748e871000b3bf21c74af392a4be532632019e19869686ef86b",
+        "Tools/NPC/Outfits/LodQuality.py": "20a857b1f2559cfb44872800c5fcb88420f84769333a20888d3677dfe1621b2a",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "records": [
+        {
+          "phase": "spawn_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 0.0,
+            "Proportion Chest Size": 0.0
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 1.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.2068216076877434,
+              2.657623549015281,
+              -3.5475149406916984
+            ],
+            "foot_l": [
+              -9.840075210526493,
+              18.68760970884614,
+              -78.58811235427856
+            ],
+            "foot_r": [
+              19.430386056732686,
+              -12.919138812238298,
+              -78.63837575912473
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\spawn_front_lod0.png",
+          "sha256": "f681ca39f58f9535f0820ab9b97b433376840550e1f02ffb1b1cbe43449cf696",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "Coherent garment silhouette; texture is still blurry at the initial one-second settle. This is not proof of texture readiness."
+        },
+        {
+          "phase": "extreme_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.7601478206513548,
+              1.7919891233186405,
+              -3.5512197722053713
+            ],
+            "foot_l": [
+              -9.809352754050678,
+              18.73290792125817,
+              -78.62623357772827
+            ],
+            "foot_r": [
+              19.488282448880454,
+              -12.922811900392862,
+              -78.68064165115356
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\extreme_front_lod0.png",
+          "sha256": "ee2481fbde5e647f74ea2e4aa1e514076c156f87d255e1c8789efd78eac665d2",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_front_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.015999999995984,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              1.979146766708027,
+              3.701642100030875,
+              -3.3001035806675247
+            ],
+            "foot_l": [
+              -9.877019350158434,
+              18.714490992090546,
+              -78.45606184005742
+            ],
+            "foot_r": [
+              19.32984401736735,
+              -12.979422461524333,
+              -78.32564210891724
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\extreme_front_lod1.png",
+          "sha256": "8a9a4ec6916bc789000cc1d5001e6cd7728bd0a1b92cc0fc7442015b5d78ef93",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_male01_01_extreme_front_lod1.png"
+        },
+        {
+          "phase": "extreme_side_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.4468783944773804,
+              2.0833147422762863,
+              -3.5674813408407147
+            ],
+            "foot_l": [
+              -9.820489668473783,
+              18.728920736684387,
+              -78.59552621841429
+            ],
+            "foot_r": [
+              19.43236646208925,
+              -12.94531884751109,
+              -78.57852411270144
+            ]
+          },
+          "camera": [
+            1200.0,
+            -279.9999999999999,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\extreme_side_lod1.png",
+          "sha256": "2b5ce022b8ac146c4f0122fa5433b95776a213f1e91a167feea34855fb4687f5",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_back_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.3548855133542475,
+              2.923899816110121,
+              -3.596592500326011
+            ],
+            "foot_l": [
+              -9.813700615457265,
+              18.712954249028613,
+              -78.6462512016297
+            ],
+            "foot_r": [
+              19.419830694593884,
+              -12.924608823327187,
+              -78.59718847274783
+            ]
+          },
+          "camera": [
+            1480.0,
+            -3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\extreme_back_lod1.png",
+          "sha256": "ad80c6d69ac95c1ef7a2d36f73ce88a4c0501f883726c6e3db145041ef820832",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "automatic_far",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.3808165582104266,
+              2.487983836774493,
+              -3.463744674969675
+            ],
+            "foot_l": [
+              -9.840852754097114,
+              18.712203549252358,
+              -78.55017232894897
+            ],
+            "foot_r": [
+              19.415855861475393,
+              -12.949588276798291,
+              -78.52273321151733
+            ]
+          },
+          "camera": [
+            -399.99999999999955,
+            -1199.9999999999993,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\automatic_far.png",
+          "sha256": "486fc9ad13aac209e98021deef32ebbf389a8af42e2050ffea67e0a33f6c0157",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "automatic_near",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.5652086962577414,
+              2.4045327225602358,
+              -3.3276244672650392
+            ],
+            "foot_l": [
+              -9.842235289940845,
+              18.75968967619953,
+              -78.49210500717163
+            ],
+            "foot_r": [
+              19.391403308634153,
+              -12.974612200077686,
+              -78.42601060867312
+            ]
+          },
+          "camera": [
+            1070.0,
+            1.5920408388915588e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\automatic_near.png",
+          "sha256": "ba1a0ee72b7d89f0f319ea080872cba78751858378a00f5472b8cea4726fb086",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "moving_extreme_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male/Male.Male",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACF_SkillGuy_BPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 1.2030000000013388,
+          "movement_xy_cm": 292.0024635560553,
+          "velocity_cm_s": [
+            -275.0,
+            3.367778697655222e-14,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              20.67239109324612,
+              3.1487535297524722,
+              -11.954137473757925
+            ],
+            "foot_l": [
+              68.4692163842783,
+              6.7932713803707685,
+              -72.66900113616659
+            ],
+            "foot_r": [
+              -23.5591485435408,
+              -7.826271533572724,
+              -77.22330793738365
+            ]
+          },
+          "camera": [
+            627.9975364439448,
+            7.005009860983215e-14,
+            99.64999628067017
+          ],
+          "target": [
+            907.9975364439447,
+            3.5759988233706265e-14,
+            89.64999628067017
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\moving_extreme_lod1.png",
+          "sha256": "cdcdf689ba4346d29ffe621f3aab92a33c714febea00b071cb6a065d380ea7c1",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_male01_01_moving_extreme_lod1.png"
+        }
+      ],
+      "receipts": {
+        "host.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\host.json",
+          "sha256": "ea0a093f17f9fd57bf1d36a1d5661370595e1ed7b1827f0b6f7ba53de223ad3d"
+        },
+        "runtime.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\runtime.json",
+          "sha256": "0bbe61c29376f8deefed100fd07049393562c24a1e5e87d495f62efb100f1cdf"
+        },
+        "lod-quality.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male01_01\\lod-quality.json",
+          "sha256": "292c6cac6213b37311a234b29d43d1abb809cee354a050e7a871d2474c4ebba6"
+        }
+      }
+    },
+    {
+      "name": "lod_pants_dense_male02_01",
+      "mechanical_status": "PASS",
+      "seconds": 50.81199999999808,
+      "pending_after_destroy": 0,
+      "garbage_collection_completed": true,
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "0791bb952d3e3748e871000b3bf21c74af392a4be532632019e19869686ef86b",
+        "Tools/NPC/Outfits/LodQuality.py": "20a857b1f2559cfb44872800c5fcb88420f84769333a20888d3677dfe1621b2a",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "records": [
+        {
+          "phase": "spawn_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 0.0,
+            "Proportion Chest Size": 0.0
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 1.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              15.33987262507253,
+              -0.04967471884382135,
+              -8.330982060924725
+            ],
+            "foot_l": [
+              -7.4765401858508085,
+              21.38320562867787,
+              -83.72051468464156
+            ],
+            "foot_r": [
+              25.855603167341542,
+              -21.67760316495862,
+              -83.79280299173352
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\spawn_front_lod0.png",
+          "sha256": "a614def849dc27c14ffa15c3e33572a1e26011719efe092e41e3aeed9a1aa074",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              15.778614565584576,
+              -0.049674718843819576,
+              -9.758499730289259
+            ],
+            "foot_l": [
+              -7.5740386397617385,
+              21.390044721513057,
+              -83.83457661822749
+            ],
+            "foot_r": [
+              25.895379861523452,
+              -21.712177466087812,
+              -83.93027032230984
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\extreme_front_lod0.png",
+          "sha256": "17606bf87b3c1de32f0da4706db787b1858e6680bdc11bdc138aed98ec31494a",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_front_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              16.844618748470566,
+              -0.04967471884382135,
+              -13.22689691345704
+            ],
+            "foot_l": [
+              -7.777431015247885,
+              21.407526256455952,
+              -84.04917120735627
+            ],
+            "foot_r": [
+              26.007761040289097,
+              -21.790482626040895,
+              -84.25767387923275
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\extreme_front_lod1.png",
+          "sha256": "5e2a45ab0ab537dad788d5e823ad80f70f9d3a8829947dd1da7ce886508016b9",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_male02_01_extreme_front_lod1.png"
+        },
+        {
+          "phase": "extreme_side_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              17.04286679562074,
+              -0.04967471884382135,
+              -13.876274576758988
+            ],
+            "foot_l": [
+              -7.813271278874026,
+              21.411163659111864,
+              -84.08455669996786
+            ],
+            "foot_r": [
+              26.024054474539525,
+              -21.799960347439814,
+              -84.29031954892471
+            ]
+          },
+          "camera": [
+            1200.0,
+            -279.9999999999999,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\extreme_side_lod1.png",
+          "sha256": "987fee51d5a4d97a5a2a06cb4e64e4ab8771494248ab9462c65fa32a40ac68ac",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_back_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              15.991557370822647,
+              -0.04967471884382313,
+              -10.456255555424377
+            ],
+            "foot_l": [
+              -7.618989532028991,
+              21.3929412029786,
+              -83.88129607456173
+            ],
+            "foot_r": [
+              25.915605070438232,
+              -21.72810887287843,
+              -84.00487326805029
+            ]
+          },
+          "camera": [
+            1480.0,
+            -3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\extreme_back_lod1.png",
+          "sha256": "410c99b83e3d2d118a3987f2da023f53a41bad4777cc542f2a58afa7ffd83fd9",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "automatic_far",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.01600000000326,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              15.314120156520403,
+              -0.04967472237795434,
+              -8.24719606430881
+            ],
+            "foot_l": [
+              -7.470938923956965,
+              21.382605156483706,
+              -83.71139666425046
+            ],
+            "foot_r": [
+              25.854452879661494,
+              -21.675775446462207,
+              -83.78621521830586
+            ]
+          },
+          "camera": [
+            -399.99999999999955,
+            -1199.9999999999993,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\automatic_far.png",
+          "sha256": "c3d92f8e1b4946998fce8015415cfc1209e3bbec74b633d7a4a50d0b458ccc90",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "automatic_near",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 4.01600000000326,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              15.980785557634817,
+              -0.04967471884382135,
+              -10.421998547651128
+            ],
+            "foot_l": [
+              -7.616076164985088,
+              21.392456156596435,
+              -83.87939263282225
+            ],
+            "foot_r": [
+              25.914985223379972,
+              -21.727639407104522,
+              -84.00098528999986
+            ]
+          },
+          "camera": [
+            1070.0,
+            1.5920408388915588e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\automatic_near.png",
+          "sha256": "84dbb7ea180f92da107921cfadad2d8f29e8ee36c1adebe47a60f1227cddae55",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "moving_extreme_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Male2/Male2.Male2",
+          "body_lod": 0,
+          "morphs": {
+            "Body Heavy": 1.0,
+            "Proportion Chest Size": 0.5
+          },
+          "coverage": {
+            "owner": "/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFZombieBPMale_C_0.CharacterMesh0",
+            "bones_hidden": {
+              "shaft_01": true,
+              "scrotum": true
+            }
+          },
+          "seconds": 1.2030000000013388,
+          "movement_xy_cm": 196.1946819088348,
+          "velocity_cm_s": [
+            -175.0,
+            2.1431318985078613e-14,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              9.717273186008356,
+              -0.5814469687771879,
+              -13.17911551420788
+            ],
+            "foot_l": [
+              2.394192438745904,
+              16.44968540978405,
+              -83.68472668189717
+            ],
+            "foot_r": [
+              28.172731339244365,
+              -14.015857121894665,
+              -74.34906151592159
+            ]
+          },
+          "camera": [
+            723.8053180911653,
+            5.831702929706476e-14,
+            99.64999628067017
+          ],
+          "target": [
+            1003.8053180911652,
+            2.402691892093887e-14,
+            89.64999628067017
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\moving_extreme_lod1.png",
+          "sha256": "3bae8686a84dab1a215da8b167070c36ce5e00c3f2248280b892437b0ea55de9",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_male02_01_moving_extreme_lod1.png"
+        }
+      ],
+      "receipts": {
+        "host.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\host.json",
+          "sha256": "550ad2bc79d131089af895cb0d4144eadddc02e81dbb7148436487fbdf4cb67c"
+        },
+        "runtime.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\runtime.json",
+          "sha256": "f826b50a55519ba3e3538c100b458329ff1dc6221d32772dc277244d01856191"
+        },
+        "lod-quality.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_male02_01\\lod-quality.json",
+          "sha256": "a9017f039692820d67533064a310053f0b37a1ef6d0ca5adb97ad5ade1623f8b"
+        }
+      }
+    },
+    {
+      "name": "lod_pants_dense_female01_01",
+      "mechanical_status": "PASS",
+      "seconds": 51.51600000000326,
+      "pending_after_destroy": 0,
+      "garbage_collection_completed": true,
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+        "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "records": [
+        {
+          "phase": "spawn_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 0.0,
+            "Body Voluptuous": 0.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 1.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.0898412512701725,
+              3.91689587702712,
+              1.5242407238528983
+            ],
+            "foot_l": [
+              -11.203085599325505,
+              19.349713319239065,
+              -78.64466428756717
+            ],
+            "foot_r": [
+              18.3018285589651,
+              -11.112805069148202,
+              -78.50740957260135
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\spawn_front_lod0.png",
+          "sha256": "35392aa074ffb1937288b0b1ea891e9a6a5dd92ca532a64b707d430ba08c0ff9",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_front_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.183549648676035,
+              2.954944637121385,
+              1.7258043762280693
+            ],
+            "foot_l": [
+              -11.240580373130797,
+              19.376599312945256,
+              -78.4626774787903
+            ],
+            "foot_r": [
+              18.318856379403314,
+              -11.160707353426226,
+              -78.43699121475221
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\extreme_front_lod0.png",
+          "sha256": "8ff6be9dc1d91223464bb90ffaa154cb818a6401d20924fd5e34fa41fc13017c",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_front_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.01600000000326,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.3454966932320076,
+              2.8438200731855208,
+              1.5745076593159695
+            ],
+            "foot_l": [
+              -11.205398725201348,
+              19.377125246022153,
+              -78.59885072708133
+            ],
+            "foot_r": [
+              18.33870552090616,
+              -11.125784942898285,
+              -78.54980802536014
+            ]
+          },
+          "camera": [
+            920.0000000000001,
+            3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\extreme_front_lod1.png",
+          "sha256": "7f7b78e74c460839121a58c6f8580dd5642e74443dc80e6599014fb5f4a5f889",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_female01_01_extreme_front_lod1.png"
+        },
+        {
+          "phase": "extreme_side_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.022330189101922,
+              3.1758083115926765,
+              1.4896891466206625
+            ],
+            "foot_l": [
+              -11.223175022009173,
+              19.33022130379593,
+              -78.6042704582215
+            ],
+            "foot_r": [
+              18.347752419804465,
+              -11.114481601426899,
+              -78.59966993331915
+            ]
+          },
+          "camera": [
+            1200.0,
+            -279.9999999999999,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\extreme_side_lod1.png",
+          "sha256": "ecd6d19da3e0e49d577441b6e6eacf237e6b094101145f0da644ee9c75b7367c",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "extreme_back_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.363898305875864,
+              2.6754234171662628,
+              1.6343132097049846
+            ],
+            "foot_l": [
+              -11.2084613490847,
+              19.37589834189769,
+              -78.57589101791383
+            ],
+            "foot_r": [
+              18.384820915116507,
+              -11.128741237206501,
+              -78.58883619308477
+            ]
+          },
+          "camera": [
+            1480.0,
+            -3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\extreme_back_lod1.png",
+          "sha256": "afccfd95147d2ef3bf00bcce8f1414be67865a89e22a52736588a550fe5e635b",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "Two small skin-colored marks below waist also appear in matched LOD0; no new LOD1 back regression established. Fine contact and authored-hole attribution are not certified."
+        },
+        {
+          "phase": "automatic_far",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              1.7404107941063103,
+              4.069061478598071,
+              1.7694943320596224
+            ],
+            "foot_l": [
+              -11.267656414960129,
+              19.341073263024747,
+              -78.44473981857305
+            ],
+            "foot_r": [
+              18.252388035408785,
+              -11.161316005410068,
+              -78.32556772232059
+            ]
+          },
+          "camera": [
+            -399.99999999999955,
+            -1199.9999999999993,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\automatic_far.png",
+          "sha256": "64ce5ab2e661d8e91ea9949c6740cb3e86dc82239d9b02ec231ebe48b9f56e0f",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "automatic_near",
+          "forced_lod": 0,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.325657047888626,
+              2.401868469714414,
+              1.522544420656132
+            ],
+            "foot_l": [
+              -11.198484725492563,
+              19.374409437144784,
+              -78.60797357559207
+            ],
+            "foot_r": [
+              18.37275752431333,
+              -11.112595508647946,
+              -78.62846136093144
+            ]
+          },
+          "camera": [
+            1070.0,
+            1.5920408388915588e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\automatic_near.png",
+          "sha256": "70d4baba6bcbd76bf4bc8bda8f850ed17bced7678310e9915c5604dcf608133d",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification."
+        },
+        {
+          "phase": "moving_extreme_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 1.2030000000013388,
+          "movement_xy_cm": 193.9463739182604,
+          "velocity_cm_s": [
+            -175.0,
+            2.1431318985078752e-14,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.92469836287205,
+              -2.973996209264096,
+              0.3601985825623757
+            ],
+            "foot_l": [
+              -19.83581752455325,
+              9.20871027299297,
+              -77.49762102961546
+            ],
+            "foot_r": [
+              24.136561946525944,
+              -4.5360102628332335,
+              -78.40226688981059
+            ]
+          },
+          "camera": [
+            726.0536260817397,
+            5.804169097864926e-14,
+            99.64999628067017
+          ],
+          "target": [
+            1006.0536260817396,
+            2.3751580602523382e-14,
+            89.64999628067017
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\moving_extreme_lod1.png",
+          "sha256": "10d3aaa129fb7db2ac848be09fca1df93b8f7e49a7dd6e1c9d4cc0cbe36f6741",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "No additional broad deformation or coverage loss observed in this bounded snapshot; not general animation or gameplay certification.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_female01_01_moving_extreme_lod1.png"
+        }
+      ],
+      "receipts": {
+        "host.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\host.json",
+          "sha256": "2a82d3856ecf11649a69c7bab85398811cde5c0071e60c824f4dda8917a31d96"
+        },
+        "runtime.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\runtime.json",
+          "sha256": "bee4b48777852ff85bb0c0f1f16613919bda6bef8c35241b2ced1ac82c90aeac"
+        },
+        "lod-quality.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female01_01\\lod-quality.json",
+          "sha256": "31ab0911384b3b5ca395af70f315a70e35aebd627ea93bc989b3d4c667fdab94"
+        }
+      }
+    },
+    {
+      "name": "lod_pants_dense_female_back_01",
+      "mechanical_status": "PASS",
+      "seconds": 21.656000000002678,
+      "pending_after_destroy": 0,
+      "garbage_collection_completed": true,
+      "configuration_hashes": {
+        "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+        "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+        "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8",
+        "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+        "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+        "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+        "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+        "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+      },
+      "records": [
+        {
+          "phase": "extreme_back_lod0",
+          "forced_lod": 1,
+          "actual_lods": {
+            "RagShirt": 0,
+            "RagPants": 0,
+            "RagFootWraps": 0
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.014999999999418,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.0752435692036215,
+              3.071159309194487,
+              1.4825675524812425
+            ],
+            "foot_l": [
+              -11.441454426251994,
+              19.442298470698425,
+              -78.60853052139285
+            ],
+            "foot_r": [
+              18.347730319092307,
+              -11.11277370800784,
+              -78.59966993331912
+            ]
+          },
+          "camera": [
+            1480.0,
+            -3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female_back_01\\extreme_back_lod0.png",
+          "sha256": "c3a201408f87a8155fcd06f9f30a8e4ba84775ff37d90c9f1fae0417e11d45bd",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "Two small skin-colored marks below waist also appear in matched LOD0; no new LOD1 back regression established. Fine contact and authored-hole attribution are not certified.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_female_back_01_extreme_back_lod0.png"
+        },
+        {
+          "phase": "extreme_back_lod1",
+          "forced_lod": 2,
+          "actual_lods": {
+            "RagShirt": 1,
+            "RagPants": 1,
+            "RagFootWraps": 1
+          },
+          "body": "/Game/DazToUnreal/Female/Female.Female",
+          "body_lod": 0,
+          "morphs": {
+            "Breasts Large": 1.850000023841858,
+            "Body Voluptuous": 1.0
+          },
+          "coverage": {
+            "material": "Genesis9_GP_Torso",
+            "hidden": true
+          },
+          "seconds": 4.0,
+          "movement_xy_cm": 0.0,
+          "velocity_cm_s": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relative_bones_cm": {
+            "pelvis": [
+              2.174743650650953,
+              3.0465283959572984,
+              1.6810776632740527
+            ],
+            "foot_l": [
+              -11.438481149128165,
+              19.492970124247456,
+              -78.5357441902161
+            ],
+            "foot_r": [
+              18.36152756025581,
+              -11.142436140830124,
+              -78.51583051681521
+            ]
+          },
+          "camera": [
+            1480.0,
+            -3.4290110376125886e-14,
+            124.6499981880188
+          ],
+          "target": [
+            1200.0,
+            0.0,
+            114.6499981880188
+          ],
+          "image": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female_back_01\\extreme_back_lod1.png",
+          "sha256": "8687d0e8e075fe13f7e9f078653f3aadcc7ed53e0de6b7174478c062edfaef6f",
+          "image_reviewed": true,
+          "visual_status": "PASS",
+          "review": "Two small skin-colored marks below waist also appear in matched LOD0; no new LOD1 back regression established. Fine contact and authored-hole attribution are not certified.",
+          "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\lod_pants_dense_female_back_01_extreme_back_lod1.png"
+        }
+      ],
+      "receipts": {
+        "host.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female_back_01\\host.json",
+          "sha256": "406c512fdbc162b2858351630f3b07df931efc102afaee365bb9c1a3bb4425c8"
+        },
+        "runtime.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female_back_01\\runtime.json",
+          "sha256": "018baec82e8d206521668db2c71ade8a72c85f161f2d3cce194048ac361c08ba"
+        },
+        "lod-quality.json": {
+          "path": "Saved\\NPCOutfits\\Native\\lod_pants_dense_female_back_01\\lod-quality.json",
+          "sha256": "b6c1ea357c284c459e5d3413b57cd0f93f0d0605451812985bd575181d84e44e"
+        }
+      }
+    }
+  ],
+  "performance": {
+    "status": "FAIL",
+    "budget": {
+      "cpu_increment_ms": 2,
+      "gpu_increment_ms": 3,
+      "frame_p95_increment_ms": 4,
+      "warm_ready_seconds": 2
+    },
+    "sources": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_pants_dense_01_25_bare\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_pants_dense_01_25_dressed\\runtime.json"
+    ],
+    "reasons": [
+      "cpu_increment_ms exceeds frozen budget",
+      "gpu_increment_ms exceeds frozen budget",
+      "frame_p95_increment_ms exceeds frozen budget",
+      "warm_ready_seconds exceeds frozen budget"
+    ],
+    "fixture_version": 3,
+    "max_active_initializations": 4,
+    "configuration_hashes": {
+      "Tools/NPC/Outfits/RunNativePIE.py": "40fdb4bc65845d6b3918946a2e1de489de990eb81d9e256c7676949985e4e8e7",
+      "Tools/NPC/Outfits/LodQuality.py": "c3dda0bbe30850db8db10ba1eb66917e891e45df0cd115333e80cd40883368ca",
+      "Content/_Game/Data/EFClothingMorph/DA_EFClothingMorphDirector.uasset": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8",
+      "Content/DazToUnreal/RagShirt/RagShirt.uasset": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+      "Content/DazToUnreal/RagPants/RagPants.uasset": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+      "Content/DazToUnreal/RagFootWraps/RagFootWraps.uasset": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingMorphV3RuntimeComponent.cpp": "63c4ab33e082090b136b645d4558bbce3f5d1f16c1b8bc3837f57dc1d7762550",
+      "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+      "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "2db42e348b738b23f64776f799162983c28b943fb67ec9d50a1492885fcb47bd",
+      "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "a7472710a8e8d4212e0c20b34f3d92986405d24839022138216eeb07c52416eb",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "d99f10857a1c3a367c5d333d810c43e6f939cab74540dc2b1e3db248fca82e7d",
+      "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "9fe5478362ffbf45a36c38b2e8e6414649146b6ca30b6dd57e8b1fbc6d1977ab"
+    },
+    "prewarm_receipts": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_pants_dense_01_25_bare_warmup\\runtime.json",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_pants_dense_01_25_dressed_warmup\\runtime.json"
+    ],
+    "count": 25,
+    "loading": "warm",
+    "measurements": {
+      "cpu_increment_ms": 5.869795917611622,
+      "gpu_increment_ms": 5.58351569593915,
+      "frame_p95_increment_ms": 6.620903015136719,
+      "dressed_frame_p95_ms": 41.5161018371582,
+      "baseline_frame_p95_ms": 34.895198822021484,
+      "spawn_peak_ms": 1290.927767753601,
+      "warm_ready_seconds": 5.259603500366211,
+      "pending_after_destroy": 0
+    },
+    "acceptance_applies": true
+  },
+  "limitations": [
+    "Additional male pants flecks from the .75 cm candidate were not apparent after the .5 cm correction in the reviewed images. This does not certify broader gameplay.",
+    "Female back marks are also visible in LOD0. Exact surface cause remains unproven.",
+    "Historical failures are retained; this candidate is not enabled or accepted."
+  ],
+  "withdrawal_status": "PASS",
+  "withdrawal": {
+    "status": "PASS",
+    "apply": true,
+    "rows": [
+      {
+        "garment": "RagShirt",
+        "mesh": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+        "before": {
+          "vertices": [
+            7767,
+            7692
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "before_sha256": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055",
+        "after": {
+          "vertices": [
+            7767
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "saved": true
+      },
+      {
+        "garment": "RagPants",
+        "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+        "before": {
+          "vertices": [
+            9081,
+            8992
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "before_sha256": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a",
+        "after": {
+          "vertices": [
+            9081
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "saved": true
+      },
+      {
+        "garment": "RagFootWraps",
+        "mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+        "before": {
+          "vertices": [
+            2176,
+            2156
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "before_sha256": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b",
+        "after": {
+          "vertices": [
+            2176
+          ],
+          "skeleton": "/Game/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.SK_UEFN_Mannequin",
+          "morphs": []
+        },
+        "saved": true
+      }
+    ],
+    "backups": [
+      {
+        "path": "Content\\DazToUnreal\\RagShirt\\RagShirt.uasset",
+        "sha256": "1f7dd61ee2470e709649529285ea800d1ab985bc6e0579d58c010869a84ba055"
+      },
+      {
+        "path": "Content\\DazToUnreal\\RagPants\\RagPants.uasset",
+        "sha256": "172c487cb6906a2133381b90788623617696655c802d9af8265f1cdce02f437a"
+      },
+      {
+        "path": "Content\\DazToUnreal\\RagFootWraps\\RagFootWraps.uasset",
+        "sha256": "6ec991df2205bfef2403d7f169398265d5874cd1ab5bcf3a5e8f580b07274e0b"
+      },
+      {
+        "path": "Content\\_Game\\Data\\EFClothingMorph\\DA_EFClothingMorphDirector.uasset",
+        "sha256": "ab879bda4d3767db6c8fd8f84910ff79db91da5ce6eaaa768c726f914e3eaba8"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V26\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "7112f2b6d1c02315885470e71eda93b9f215405e66261100fa407758ae23bdc9"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V3\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "64faca548c540618e61bdbc72da3627555bea5c2e1293ebf779ff2333732a8f6"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "e3a37e43b0603b0696b375b040005f1713a1ec2739ef792744d245c35cb989c8"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps_E9EB42AD_Female_1FCC5E1D_EFV4Surface_0E99097F489655C06913B7A8426B4A63.uasset",
+        "sha256": "4ed6313b8a26e5d5e3a5534486c605e28334b06ab82039b72f89c6655d15e09c"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps__Body_18b57db069578ab5d79af64c743f465b_E9EB42AD_Male2_F04E08FE_EFV4Surface_138990F244EA5173417E9D8D247B39B7.uasset",
+        "sha256": "adfad3e74e043c08820944bb2fde91a8c579cbf9a2ea3a1a9ddaaa458a63514c"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagFootWraps__Body_b6521f6ed0a418dc5bd8281bff95cd40_E9EB42AD_Male_DEE4BC74_EFV4Surface_E23DB94845BF8DCDC230F4B1F8F691C4.uasset",
+        "sha256": "ad0400c5c8dd00ac9bf1801338980568a3580e6a587156954602bec96c86ee40"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants_CAD628E6_Female_1FCC5E1D_EFV4Surface_830259CD4562EFD32C025DAD0942D612.uasset",
+        "sha256": "c72f3386d80df72dc7319ac068b34f8c49835235f25265f513953d3ffda5ae6d"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_18b57db069578ab5d79af64c743f465b_CAD628E6_Male2_F04E08FE_EFV4Surface_12EDE2974566844B6E7AD38A728209D6.uasset",
+        "sha256": "19deada5adb9d7a4f9aae8d77ac6cceb5b1c96b7e59d4a9e6307b7198be021e4"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagPants__Body_b6521f6ed0a418dc5bd8281bff95cd40_CAD628E6_Male_DEE4BC74_EFV4Surface_20BED46347E57B0B647848B144984E54.uasset",
+        "sha256": "fab0a092fb10742bbe2413da134123d02f0f9440c2e2b5837520fca14403a4d6"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt_2ADD3BF9_Female_1FCC5E1D_EFV4Surface_9C7D10464419DB8A6C3EA69844509434.uasset",
+        "sha256": "23b4358900b4171769836697fc5d4cbc68767e3998f1d83d8c367343db96cdba"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt__Body_18b57db069578ab5d79af64c743f465b_2ADD3BF9_Male2_F04E08FE_EFV4Surface_7BC093934E9E85D647711196D48273DF.uasset",
+        "sha256": "06337c33c9325a52acc617e1eeab74bfe9eabad301db196d0229050d5bec2153"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V4\\DA_RagShirt__Body_b6521f6ed0a418dc5bd8281bff95cd40_2ADD3BF9_Male_DEE4BC74_EFV4Surface_ABBEEE1A4179DD3C896F96A71409472F.uasset",
+        "sha256": "b40376ecb20caa4f503d552fd57810613f13bf87b6edf2105ce23c67df99aa0f"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingFitRegistry.uasset",
+        "sha256": "f0a923a7e9c07fccd694b1edf56fe4eb402b82c6858c4a0b0cd75678c3aaee70"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\DA_EFClothingSystemManifest.uasset",
+        "sha256": "faadbb2fd050dc1dd12adf4b1078d958b4490c18b709a01b53e9fdea3d4a5f68"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps.uasset",
+        "sha256": "9a0bbf2cb91c7e9572edc19b83ccb373ca636ddea7badfae3e0f9d43dbf05a0d"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps_Body_18b57db069578ab5d79af64c743f465b.uasset",
+        "sha256": "ca246e49287dab0dc4c16ebcab08813a82b641a8c50f166e948b92202b2742f1"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagFootWraps_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset",
+        "sha256": "370be895c22deb84b975927f8d10fb66937933baa75e13c9d4e493d67e0a2278"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants.uasset",
+        "sha256": "058a7eb7160c2fc13cbfba774b671599368bb6e339389f37cdf8066f7f28bd69"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_18b57db069578ab5d79af64c743f465b.uasset",
+        "sha256": "ab9c39e38a9c7a99956b35c5a3944cc7a13defceba3e66d656d19b6d9d66ae16"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagPants_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset",
+        "sha256": "6b7e1099328d29d0458dcb3ed7a28b458e12eb8c133b208547278391324361c0"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt.uasset",
+        "sha256": "f0f864030a58ddb63777983bf8533dc7768e27ae11619531aeafc6fd4102ac3e"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt_Body_18b57db069578ab5d79af64c743f465b.uasset",
+        "sha256": "3d98f05bd71ae61e7ca16ed3f680f05d453b1bd16e0177fff05a6238bfc00897"
+      },
+      {
+        "path": "Plugins\\EFClothingMorph\\Content\\_Internal\\Compiled\\V5\\Garments\\DA_EFGarment_RagShirt_Body_b6521f6ed0a418dc5bd8281bff95cd40.uasset",
+        "sha256": "14a730d79fb99b125982de7274453838ce36f6a82baa907f7dc6cef5f882a1ff"
+      }
+    ],
+    "seconds": 1.937999999994645,
+    "director_saved": true
+  },
+  "withdrawal_compile": {
+    "status": "PASS",
+    "compile": "V4 PASS | enabled=18 ready=18 reused=18 published=18 drafts=0 failed=0 registry=/EFClothingMorph/_Internal/Compiled/V4/DA_EFClothingFitRegistry.DA_EFClothingFitRegistry | V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+    "rows": [
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding.",
+      "READY: reused the exact fresh binding."
+    ],
+    "sync": "PASS: EF Clothing Morph V5.1 single-table sync was already current: bodies=3 garments=18 LOD bindings=18 created=0 updated=0 saved=0 drafts=0 migrated-rows=0 lower-body-guards=0.",
+    "seconds": 2.936999999998079
+  },
+  "pre_cook_freshness": {
+    "fresh": true,
+    "enabled_row_count": 18,
+    "valid_binding_count": 18,
+    "draft_row_count": 0,
+    "invalid_row_count": 0,
+    "stale_row_count": 0,
+    "report": "V4 FRESH | enabled=18 valid=18 drafts=0 invalid=0 stale=0 registry=18",
+    "manifest_valid": true,
+    "status": "PASS",
+    "seconds": 1.281
+  },
+  "single_lod_shared_regression": {
+    "status": "PASS",
+    "checks": [
+      {
+        "gender": "Female",
+        "coverage_owners": 2,
+        "status": "PASS"
+      },
+      {
+        "gender": "Female",
+        "coverage_owners": 1,
+        "status": "PASS"
+      },
+      {
+        "gender": "Female",
+        "coverage_owners": 0,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 2,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 1,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 0,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 2,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 1,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "coverage_owners": 0,
+        "status": "PASS"
+      },
+      {
+        "gender": "Female",
+        "morphs": {
+          "Breasts Large": 1.85,
+          "Body Voluptuous": 1.0
+        },
+        "preset_id": "Female.01",
+        "state": "Ready",
+        "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.200cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.350cm,lowerGuardVerts=4289]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm)."
+      },
+      {
+        "gender": "Female",
+        "moving_morph_distance_cm": 239.37324384718244,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "morphs": {
+          "Body Heavy": 1.0,
+          "Proportion Chest Size": 0.5
+        },
+        "preset_id": "Male.01",
+        "state": "Ready",
+        "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+      },
+      {
+        "gender": "Male",
+        "moving_morph_distance_cm": 238.97285018817374,
+        "status": "PASS"
+      },
+      {
+        "gender": "Male",
+        "morphs": {
+          "Body Heavy": 1.0,
+          "Proportion Chest Size": 0.5
+        },
+        "preset_id": "Male.02",
+        "state": "Ready",
+        "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+      },
+      {
+        "gender": "Male",
+        "moving_morph_distance_cm": 238.82490311689247,
+        "status": "PASS"
+      }
+    ],
+    "screenshots": [
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Female.01.png",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Male.01.png",
+      "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Male.02.png"
+    ],
+    "saved_assets": false,
+    "immutable_buffers": 1,
+    "diagnostic_max_fps": null,
+    "diagnostic_max_fps_scope": "After garment readiness, during morph movement/capture only; resource preparation uses the original cap.",
+    "peak_tick_ms_by_phase": {
+      "load": 125.0,
+      "play": 125.0,
+      "player": 125.0,
+      "equip": 62.04169988632202,
+      "overlap_equip": 24.465400725603104,
+      "overlap_prepare": 125.0,
+      "overlap_two": 125.0,
+      "overlap_one": 125.0,
+      "overlap_zero": 37.69709914922714,
+      "morph_equip": 26.633698493242264,
+      "morph_ready": 125.0,
+      "morph_movement": 43.73059794306755,
+      "morph_capture": 21.938800811767578,
+      "morph_done": 125.0
+    },
+    "blueprint_compile": "PASS",
+    "seconds": 64.31299999999464,
+    "timeout_seconds": 120.0,
+    "source_receipt": "Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\result.json",
+    "source_sha256": "b960e38838fed1437f3a7e83f396b60fc50e28add71f7e5b62428ba736832d94",
+    "reviewed_images": [
+      {
+        "image": "Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Female.01.png",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_morph_extreme_Female.01.png",
+        "sha256": "2048d505cfdcc0181ee9a2f6abbe5ad58baf2abe023e591de2cb369e551867ce",
+        "visual_status": "PASS",
+        "scope": "Coherent overall fit in the actual three-body movement snapshots; no broad deformation/collapse. Not a full animation catalogue."
+      },
+      {
+        "image": "Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Male.01.png",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_morph_extreme_Male.01.png",
+        "sha256": "92f07047871e5cef8258af2afcef778a5b01ae3c4fa2078e95f2e2361e59dc7b",
+        "visual_status": "PASS",
+        "scope": "Coherent overall fit in the actual three-body movement snapshots; no broad deformation/collapse. Not a full animation catalogue."
+      },
+      {
+        "image": "Saved\\NPCOutfits\\ClothingRegression\\1791786482149868800\\morph_extreme_Male.02.png",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_morph_extreme_Male.02.png",
+        "sha256": "7776e8bc64a73948af03371fa506fc0c974c3a79d6f943cdb18e2a4e17f2e2ae",
+        "visual_status": "PASS",
+        "scope": "Coherent overall fit in the actual three-body movement snapshots; no broad deformation/collapse. Not a full animation catalogue."
+      }
+    ]
+  },
+  "single_lod_ai": {
+    "status": "PASS",
+    "diagnostic_native_status": null,
+    "seconds": 24.68800000000192,
+    "reason": "",
+    "command": "Project.NPCLogic.QA ai arena_x=1920.000 arena_y=-3232.500",
+    "native_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Logic\\1791786620471900700\\runtime.txt",
+    "native_text": "fixture=normal_AI real_E_input authored_HUB_nav_volume ACF_spawner_controller_contract\nspawn=/Game/_Game/Characters/Male/ACFMeleeEnemyBPMale.ACFMeleeEnemyBPMale_C controller=ACF_NPCController_BP_C_7\nenemy=ACFMeleeEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=206.2 advance_cm=206.2 state=AIState.Combat seconds=2.82\ntarget=BP_TSChar_C_0\nBehavior tree: ACFBT\n  0. Selector [Selector]\n  16. Run Behavior [RunBehavior: ACFCombatBT]\nBehavior tree: ACFCombatBT\n  0. Selector [Selector]\n  21. Selector [Selector]\n  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_0(task)\n tasks=ACFCombatBT::Move To[22]\nBlackboard (asset: ACFAIBB)\n  CombatState: Chase Target\n  ComboCounter: 0\n  CommandDuration: 0.500000\n  GroupLeadDistance: 0.000000\n  GroupLeader: None\n  HomeDistance: 206.229340\n  Paused: false\n  SelfActor: ACFMeleeEnemyBPMale_C_0\n  TargetActor: BP_TSChar_C_0\n  TargetActorDistance: 1032.513306\n  TargetLocation: X=3120.000 Y=-3232.500 Z=89.650\n  TargetLocationDistance: 340282346638528859811704183484516925440.000000\n\npath_following=3\npostpone_paths=0\nmove_task=AITask_MoveTo_578 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFMeleeEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_578 (Behavior)\nclaimed_resources=Move \nknown_task=AITask_MoveTo_578 state=3 required=Move Logic  claimed=Move \nspawn=/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C controller=ACF_NPCController_BP_C_8\nenemy=ACFMeleeEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=203.5 advance_cm=203.5 state=AIState.Combat seconds=2.24\ntarget=BP_TSChar_C_0\nBehavior tree: ACFBT\n  0. Selector [Selector]\n  16. Run Behavior [RunBehavior: ACFCombatBT]\nBehavior tree: ACFCombatBT\n  0. Selector [Selector]\n  21. Selector [Selector]\n  22. Move To [MoveTo: TargetActor], move target: BP_TSChar_C_0(task)\n tasks=ACFCombatBT::Move To[22]\nBlackboard (asset: ACFAIBB)\n  CombatState: Chase Target\n  ComboCounter: 0\n  CommandDuration: 0.500000\n  GroupLeadDistance: 0.000000\n  GroupLeader: None\n  HomeDistance: 0.000000\n  Paused: false\n  SelfActor: ACFMeleeEnemyBPFemale_C_0\n  TargetActor: BP_TSChar_C_0\n  TargetActorDistance: 948.287598\n  TargetLocation: X=3120.000 Y=-3232.500 Z=89.650\n  TargetLocationDistance: 340282346638528859811704183484516925440.000000\n\npath_following=3\npostpone_paths=0\nmove_task=AITask_MoveTo_626 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_626 (Behavior)\nclaimed_resources=Move \nknown_task=AITask_MoveTo_626 state=3 required=Move Logic  claimed=Move \nspawn=/Game/_Game/Characters/Male/ACFGunEnemyBPMale.ACFGunEnemyBPMale_C controller=ACFRangedAIControllerBP_C_0\nranged_attack_state=observed stimulus=player_approaches_200cm\nenemy=ACFGunEnemyBPMale_C brain=1 target_player=1 path=1 moved_cm=152.1 advance_cm=-151.4 state=AIState.Combat seconds=1.85\ntarget=BP_TSChar_C_0\nBehavior tree: ACFBT\n  0. Selector [Selector]\n  16. Run Behavior [RunBehavior: ACFCombatBT]\nBehavior tree: ACFCombatBT\n  0. Selector [Selector]\n  24. Simple Parallel [SimpleParallel: finish with main task]\n  26. Selector [Selector]\n  BTTask_ExecuteAction\n tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])\nBlackboard (asset: ACFAIBB)\n  CombatState: Flee Away\n  ComboCounter: 0\n  CommandDuration: 2.500000\n  GroupLeadDistance: 0.000000\n  GroupLeader: None\n  HomeDistance: 0.000000\n  Paused: false\n  SelfActor: ACFGunEnemyBPMale_C_0\n  TargetActor: BP_TSChar_C_0\n  TargetActorDistance: 253.160416\n  TargetLocation: X=3120.000 Y=-3232.500 Z=89.650\n  TargetLocationDistance: 340282346638528859811704183484516925440.000000\n\npath_following=3\npostpone_paths=0\nmove_task=AITask_MoveTo_658 state=4 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_658 (Behavior)\nmove_task=AITask_MoveTo_689 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPMale_C_0.Actions Manager debug=AITask_MoveTo_689 (None)\nclaimed_resources=Move \nknown_task=AITask_MoveTo_689 state=3 required=Move  claimed=Move \nspawn=/Game/_Game/Characters/Female/ACFGunEnemyBPFemale.ACFGunEnemyBPFemale_C controller=ACFRangedAIControllerBP_C_1\nranged_attack_state=observed stimulus=player_approaches_200cm\nenemy=ACFGunEnemyBPFemale_C brain=1 target_player=1 path=1 moved_cm=151.3 advance_cm=-151.3 state=AIState.Combat seconds=1.64\ntarget=BP_TSChar_C_0\nBehavior tree: ACFBT\n  0. Selector [Selector]\n  16. Run Behavior [RunBehavior: ACFCombatBT]\nBehavior tree: ACFCombatBT\n  0. Selector [Selector]\n  24. Simple Parallel [SimpleParallel: finish with main task]\n  26. Selector [Selector]\n  BTTask_ExecuteAction\n tasks=None (ACFCombatBT::BTTask_FleeFromTarget[25])\nBlackboard (asset: ACFAIBB)\n  CombatState: Ranged Attacks\n  ComboCounter: 0\n  CommandDuration: 4.000000\n  GroupLeadDistance: 0.000000\n  GroupLeader: None\n  HomeDistance: 0.000000\n  Paused: false\n  SelfActor: ACFGunEnemyBPFemale_C_0\n  TargetActor: BP_TSChar_C_0\n  TargetActorDistance: 289.854645\n  TargetLocation: X=3120.000 Y=-3232.500 Z=89.650\n  TargetLocationDistance: 340282346638528859811704183484516925440.000000\n\npath_following=3\npostpone_paths=0\nmove_task=AITask_MoveTo_692 state=4 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_692 (Behavior)\nmove_task=AITask_MoveTo_697 state=3 component=/Game/_Game/Hub/UEDPIE_0_HUB.HUB:PersistentLevel.ACFGunEnemyBPFemale_C_0.Actions Manager debug=AITask_MoveTo_697 (None)\nclaimed_resources=Move \nknown_task=AITask_MoveTo_697 state=3 required=Move  claimed=Move \nstatus=PASS reason=2 melee pursuit and 2 ranged spacing samples elapsed_seconds=22.661\n"
+  },
+  "protected": {
+    "seconds": 33.28,
+    "head": "1d33d2fa1da3a25d22a146687064f7774aa2dcef",
+    "changed": [],
+    "status": "PASS",
+    "count": 7643
+  },
+  "save_restores": [
+    {
+      "Status": "PASS",
+      "Checked": 7,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    },
+    {
+      "Status": "PASS",
+      "Checked": 7,
+      "Restored": [
+        "D:\\Projects UE5\\NoShellForWinter\\Saved\\SaveGames\\ProjectIntimacy.sav"
+      ]
+    }
+  ],
+  "single_lod_package_status": "PASS",
+  "user_hub_sha256": "c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a",
+  "single_lod_package": {
+    "status": "PASS",
+    "package": "Saved\\BodyPresetsQA\\Package_20261012_013142",
+    "cook": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 218.235,
+      "limit_seconds": 900,
+      "command": [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "Tools/BodyPresets/Package-BodyPresets58.ps1",
+        "-AdditionalMap",
+        "/Game/_Game/QA/NPCOutfitColdStart"
+      ]
+    },
+    "cases": [
+      {
+        "count": 3,
+        "body": "Male.01",
+        "archetype": "SkillGuy",
+        "require_cold_items": true,
+        "prepared_reuses": 6,
+        "exit_code": 0,
+        "scope": "Isolated map initial NPC: definition and three garment classes must be nonresident at request. OS disk caches are not controlled. Native QA group remains a separate functional check.",
+        "seconds": 20.5115336,
+        "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_013611542\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261012_013611542\\runtime.json",
+        "limit_seconds": 180,
+        "reason": "",
+        "feature_errors": [
+          null
+        ],
+        "command": "Project.NPCOutfits.QA count=3 body=Male.01 archetype=SkillGuy seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Male_01_20261012_013611542 gc quit",
+        "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_013611542\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_01_20261012_013611542\\outfits.png",
+        "map": "/Game/_Game/QA/NPCOutfitColdStart",
+        "status": "PASS",
+        "all_error_count": 0,
+        "runtime": {
+          "count": 3,
+          "seed": 731,
+          "fixture_version": 3,
+          "body": "Male.01",
+          "archetype": "SkillGuy",
+          "dressed": true,
+          "loading": "fresh_process",
+          "resolution": "X=1600.000 Y=1000.000",
+          "quality": "Current session settings; pair must use identical launch/cvars",
+          "camera": "X=300.000 Y=180.000 Z=510.000 -> X=1200.000 Y=180.000 Z=160.000",
+          "body_initialization_seconds": 0.2507713995873928,
+          "fixture_initializations": [
+            {
+              "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480956",
+              "spawn_to_admission_seconds": 0.2630948983132839,
+              "initialization_seconds": 0.4411256015300751,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480894",
+              "spawn_to_admission_seconds": 0.270635399967432,
+              "initialization_seconds": 0.4335756003856659,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_2147480832",
+              "spawn_to_admission_seconds": 0.25557979941368103,
+              "initialization_seconds": 0.4486499987542629,
+              "definition_load_seconds": 7.972121238708496e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            }
+          ],
+          "admission_timing_scope": "Since group spawn started; includes body appearance resolution and queue wait. Initialization includes streaming, scheduling, equipment and render submission.",
+          "max_active_initializations": 4,
+          "threaded_rendering": true,
+          "threaded_rendering_requested": true,
+          "rhi_separate_thread": true,
+          "ready_to_capture_seconds": 0.21828370168805122,
+          "screenshot_processed_before_capture": true,
+          "seconds": 3.0069422982633114,
+          "outfit_ready_seconds": 0.7085977979004383,
+          "physical_used_bytes": 1646346240,
+          "garbage_collection_completed": true,
+          "pending_after_destroy": 0,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/QA/NPCOutfitColdStart.NPCOutfitColdStart:PersistentLevel.ACF_SkillGuy_BPMale_C_0",
+              "class": "/Game/_Game/Characters/Male/ACF_SkillGuy_BPMale.ACF_SkillGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 0,
+              "definition_load_seconds": 0.015630099922418594,
+              "item_classes_load_seconds": 0.01835310086607933,
+              "engine_seconds_at_start": 8.012353897094727,
+              "engine_seconds_at_ready": 8.783539399504662,
+              "initialization_seconds": 0.7711854018270969
+            }
+          ],
+          "initial_loading_scope": "Map-owned initializations, separate from the QA group. Engine-relative timestamps include startup/queue dependencies; async durations include scheduling. Residency observations are not OS disk-cache measurements.",
+          "status": "PASS",
+          "reason": "Bounded outfit fixture completed; visual review separate",
+          "elapsed_seconds": 6.992106199264526,
+          "checks": [
+            {
+              "name": "Repeated initialization preserves removed shirt",
+              "status": "PASS"
+            },
+            {
+              "name": "Inventory count unchanged",
+              "status": "PASS"
+            }
+          ]
+        },
+        "name": "outfit_Male_01_20261012_013611542",
+        "observed_garment_lods": [
+          0
+        ],
+        "process_receipt": "Saved\\NPCOutfits\\Packaged\\outfit_Male_01_20261012_013611542\\process.json",
+        "process_sha256": "5c6c15f9a5f4205852a77eadc6f4fa5390a005f16d39da57dcdf9906062908a9",
+        "native_sha256": "de851bedc99b7f7dec3e3da9bc0d04ffaced58021b9717dce6e69769cc61fac6",
+        "log_sha256": "ca88493f3889435e79067a83f516afa050f8038abddf3c9eda2ea7b4f3a17ca7",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_outfit_Male_01_20261012_013611542.png",
+        "image_sha256": "bd2570628af6295f9ff9b57ee600c7b721802a0604800baca4d7fcf50ba8c40f",
+        "visual_status": "PASS",
+        "visual_scope": "Actual image reviewed: three fixture NPCs with coherent FullRag silhouette; native Zombie pose retained. Distant fine surfaces and broad gameplay are not certified by one snapshot."
+      },
+      {
+        "count": 3,
+        "body": "Female.01",
+        "archetype": "MeleeEnemy",
+        "require_cold_items": false,
+        "prepared_reuses": 36,
+        "exit_code": 0,
+        "scope": "Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.",
+        "seconds": 16.2257698,
+        "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_013632512\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261012_013632512\\runtime.json",
+        "limit_seconds": 180,
+        "reason": "",
+        "feature_errors": [
+          null
+        ],
+        "command": "Project.NPCOutfits.QA count=3 body=Female.01 archetype=MeleeEnemy seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Female_01_20261012_013632512 gc quit",
+        "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_013632512\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Female_01_20261012_013632512\\outfits.png",
+        "map": "/Game/_Game/Hub/HUB",
+        "status": "PASS",
+        "all_error_count": 0,
+        "runtime": {
+          "count": 3,
+          "seed": 731,
+          "fixture_version": 3,
+          "body": "Female.01",
+          "archetype": "MeleeEnemy",
+          "dressed": true,
+          "loading": "fresh_process",
+          "resolution": "X=1600.000 Y=1000.000",
+          "quality": "Current session settings; pair must use identical launch/cvars",
+          "camera": "X=300.000 Y=180.000 Z=449.650 -> X=1200.000 Y=180.000 Z=99.650",
+          "body_initialization_seconds": 0.2080204002559185,
+          "fixture_initializations": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147478012",
+              "spawn_to_admission_seconds": 0.2174520008265972,
+              "initialization_seconds": 0.11643590033054352,
+              "definition_load_seconds": 4.991888999938965e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147477944",
+              "spawn_to_admission_seconds": 0.22836320102214813,
+              "initialization_seconds": 0.12288570031523705,
+              "definition_load_seconds": 4.991888999938965e-07,
+              "item_classes_load_seconds": 0,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_2147477876",
+              "spawn_to_admission_seconds": 0.24077850207686424,
+              "initialization_seconds": 0.12001539766788483,
+              "definition_load_seconds": 1.3969838619232178e-06,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            }
+          ],
+          "admission_timing_scope": "Since group spawn started; includes body appearance resolution and queue wait. Initialization includes streaming, scheduling, equipment and render submission.",
+          "max_active_initializations": 4,
+          "threaded_rendering": true,
+          "threaded_rendering_requested": true,
+          "rhi_separate_thread": true,
+          "ready_to_capture_seconds": 0.18889030069112778,
+          "screenshot_processed_before_capture": true,
+          "seconds": 3.0021442994475365,
+          "outfit_ready_seconds": 0.3715736009180546,
+          "physical_used_bytes": 1835053056,
+          "garbage_collection_completed": true,
+          "pending_after_destroy": 0,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 3.986060619354248e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.598360698670149,
+              "engine_seconds_at_ready": 7.69582200050354,
+              "initialization_seconds": 0.09746130183339119
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.022112101316452026,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 5.917703401297331,
+              "engine_seconds_at_ready": 7.1599663980305195,
+              "initialization_seconds": 1.2422629967331886
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.160012301057577,
+              "engine_seconds_at_ready": 7.683319099247456,
+              "initialization_seconds": 0.5233067981898785
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_2",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 7.3696894980967045,
+              "engine_seconds_at_ready": 7.6366822980344296,
+              "initialization_seconds": 0.26699279993772507
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_3",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.502198498696089,
+              "engine_seconds_at_ready": 7.636674698442221,
+              "initialization_seconds": 0.13447609916329384
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeCompanionBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.174098700284958,
+              "engine_seconds_at_ready": 7.360367201268673,
+              "initialization_seconds": 0.18626850098371506
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 1.0021030902862549e-06,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 7.3604233004152775,
+              "engine_seconds_at_ready": 7.598313599824905,
+              "initialization_seconds": 0.23789029940962791
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.183956701308489,
+              "engine_seconds_at_ready": 7.369650200009346,
+              "initialization_seconds": 0.1856933981180191
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 1.5981495380401611e-06,
+              "item_classes_load_seconds": 9.685754776000977e-08,
+              "engine_seconds_at_start": 7.197499997913837,
+              "engine_seconds_at_ready": 7.5021692998707294,
+              "initialization_seconds": 0.30466920137405396
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.010317999869585037,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.9295135997235775,
+              "engine_seconds_at_ready": 7.159954998642206,
+              "initialization_seconds": 1.2304413989186287
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 9.98377799987793e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.939223200082779,
+              "engine_seconds_at_ready": 7.159949000924826,
+              "initialization_seconds": 1.2207257002592087
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPFemale_C_2",
+              "class": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.029141902923584e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.95001919940114,
+              "engine_seconds_at_ready": 7.174072500318289,
+              "initialization_seconds": 1.2240533009171486
+            }
+          ],
+          "initial_loading_scope": "Map-owned initializations, separate from the QA group. Engine-relative timestamps include startup/queue dependencies; async durations include scheduling. Residency observations are not OS disk-cache measurements.",
+          "status": "PASS",
+          "reason": "Bounded outfit fixture completed; visual review separate",
+          "elapsed_seconds": 6.635671202093363,
+          "checks": [
+            {
+              "name": "Repeated initialization preserves removed shirt",
+              "status": "PASS"
+            },
+            {
+              "name": "Inventory count unchanged",
+              "status": "PASS"
+            }
+          ]
+        },
+        "name": "outfit_Female_01_20261012_013632512",
+        "observed_garment_lods": [
+          0
+        ],
+        "process_receipt": "Saved\\NPCOutfits\\Packaged\\outfit_Female_01_20261012_013632512\\process.json",
+        "process_sha256": "0234c84c6a7c004a29fd277ae4d0aa775df594b6c71d5e9d458fe8b25e13e07d",
+        "native_sha256": "eca62f7787a214c2b4a07132914512b442714a5850c77039b45d86a54cad1477",
+        "log_sha256": "cc49ee1f36afe995f796100c46c3eb87cd64062dfcbf39b92a0056d5622a74e8",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_outfit_Female_01_20261012_013632512.png",
+        "image_sha256": "a6a84a5c78ba98c07d3a5228f7f4740c6e716ae0b674a5aee302f2f26ea6d763",
+        "visual_status": "PASS",
+        "visual_scope": "Actual image reviewed: three fixture NPCs with coherent FullRag silhouette; native Zombie pose retained. Distant fine surfaces and broad gameplay are not certified by one snapshot."
+      },
+      {
+        "count": 3,
+        "body": "Male.02",
+        "archetype": "Zombie",
+        "require_cold_items": false,
+        "prepared_reuses": 36,
+        "exit_code": 0,
+        "scope": "Fresh packaged process, real equip/unequip, reinitialization, explicit GC and normal shutdown. HUB may preload shared clothes; not an isolated cold-resource benchmark.",
+        "seconds": 18.254184,
+        "runtime_receipt": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_013649150\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261012_013649150\\runtime.json",
+        "limit_seconds": 180,
+        "reason": "",
+        "feature_errors": [
+          null
+        ],
+        "command": "Project.NPCOutfits.QA count=3 body=Male.02 archetype=Zombie seed=731 capture=3 functional=1 timeout=120 loading=fresh_process name=outfit_Male_02_20261012_013649150 gc quit",
+        "screenshot": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_013649150\\UserData\\Saved\\NPCOutfits\\Native\\outfit_Male_02_20261012_013649150\\outfits.png",
+        "map": "/Game/_Game/Hub/HUB",
+        "status": "PASS",
+        "all_error_count": 0,
+        "runtime": {
+          "count": 3,
+          "seed": 731,
+          "fixture_version": 3,
+          "body": "Male.02",
+          "archetype": "Zombie",
+          "dressed": true,
+          "loading": "fresh_process",
+          "resolution": "X=1600.000 Y=1000.000",
+          "quality": "Current session settings; pair must use identical launch/cvars",
+          "camera": "X=300.000 Y=180.000 Z=449.650 -> X=1200.000 Y=180.000 Z=99.650",
+          "body_initialization_seconds": 0.1758481003344059,
+          "fixture_initializations": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147478012",
+              "spawn_to_admission_seconds": 0.18472879752516747,
+              "initialization_seconds": 0.11666310206055641,
+              "definition_load_seconds": 9.015202522277832e-07,
+              "item_classes_load_seconds": 0,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147477969",
+              "spawn_to_admission_seconds": 0.19502149894833565,
+              "initialization_seconds": 0.12880539894104004,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_2147477926",
+              "spawn_to_admission_seconds": 0.21129930019378662,
+              "initialization_seconds": 0.12901419773697853,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 0,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3
+            }
+          ],
+          "admission_timing_scope": "Since group spawn started; includes body appearance resolution and queue wait. Initialization includes streaming, scheduling, equipment and render submission.",
+          "max_active_initializations": 4,
+          "threaded_rendering": true,
+          "threaded_rendering_requested": true,
+          "rhi_separate_thread": true,
+          "ready_to_capture_seconds": 0.19570429995656013,
+          "screenshot_processed_before_capture": true,
+          "seconds": 3.0021011009812355,
+          "outfit_ready_seconds": 0.3503620997071266,
+          "physical_used_bytes": 1832620032,
+          "garbage_collection_completed": true,
+          "pending_after_destroy": 0,
+          "initial_world_outfits": [
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeEnemyBPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFMeleeEnemyBPFemale.ACFMeleeEnemyBPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.404250998049974,
+              "engine_seconds_at_ready": 7.516279298812151,
+              "initialization_seconds": 0.11202830076217651
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFZombieBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFZombieBPMale.ACFZombieBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.0243694968521595,
+              "item_classes_load_seconds": 1.0058283805847168e-07,
+              "engine_seconds_at_start": 5.6010929979383945,
+              "engine_seconds_at_ready": 6.947425398975611,
+              "initialization_seconds": 1.3463324010372162
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.972121238708496e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.9474736005067825,
+              "engine_seconds_at_ready": 7.503064896911383,
+              "initialization_seconds": 0.5555912964046001
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_2",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.15681079775095,
+              "engine_seconds_at_ready": 7.454340197145939,
+              "initialization_seconds": 0.297529399394989
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFDummyEnemyBPMale_C_3",
+              "class": "/Game/_Game/Characters/Male/ACFDummyEnemyBPMale.ACFDummyEnemyBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.972121238708496e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.293182797729969,
+              "engine_seconds_at_ready": 7.454330898821354,
+              "initialization_seconds": 0.1611481010913849
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFMeleeCompanionBPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACFMeleeCompanionBPMale.ACFMeleeCompanionBPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.957367200404406,
+              "engine_seconds_at_ready": 7.142960999161005,
+              "initialization_seconds": 0.18559369817376137
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACF_LevelingGuy_BPFemale.ACF_LevelingGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 8.009374141693115e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 7.143020998686552,
+              "engine_seconds_at_ready": 7.40417530015111,
+              "initialization_seconds": 0.26115430146455765
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACFGuy_BPFemale_C_1",
+              "class": "/Game/_Game/Characters/Female/ACFGuy_BPFemale.ACFGuy_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 5.997717380523682e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.968579597771168,
+              "engine_seconds_at_ready": 7.156776797026396,
+              "initialization_seconds": 0.18819710239768028
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_LevelingGuy_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_LevelingGuy_BPMale.ACF_LevelingGuy_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 7.003545761108398e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 6.984261199831963,
+              "engine_seconds_at_ready": 7.2931527979671955,
+              "initialization_seconds": 0.3088915981352329
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BP_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": false,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 0.013247799128293991,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.612217999994755,
+              "engine_seconds_at_ready": 6.947408400475979,
+              "initialization_seconds": 1.335190400481224
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPMale_C_1",
+              "class": "/Game/_Game/Characters/Male/ACF_Vendor_BPMale.ACF_Vendor_BPMale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 1.0021030902862549e-06,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.624836400151253,
+              "engine_seconds_at_ready": 6.947401598095894,
+              "initialization_seconds": 1.322564996778965
+            },
+            {
+              "actor": "/Game/_Game/Hub/HUB.HUB:PersistentLevel.ACF_Vendor_BPFemale_C_2",
+              "class": "/Game/_Game/Characters/Female/ACF_Vendor_BPFemale.ACF_Vendor_BPFemale_C",
+              "outfit": "FullRag",
+              "state": "EProjectNPCOutfitState::Ready",
+              "restored": false,
+              "definition_resident_at_request": true,
+              "item_classes_requested": 3,
+              "item_classes_resident_at_request": 3,
+              "definition_load_seconds": 4.991888999938965e-07,
+              "item_classes_load_seconds": 0,
+              "engine_seconds_at_start": 5.6386855989694595,
+              "engine_seconds_at_ready": 6.957343898713589,
+              "initialization_seconds": 1.3186581991612911
+            }
+          ],
+          "initial_loading_scope": "Map-owned initializations, separate from the QA group. Engine-relative timestamps include startup/queue dependencies; async durations include scheduling. Residency observations are not OS disk-cache measurements.",
+          "status": "PASS",
+          "reason": "Bounded outfit fixture completed; visual review separate",
+          "elapsed_seconds": 6.607198398560286,
+          "checks": [
+            {
+              "name": "Repeated initialization preserves removed shirt",
+              "status": "PASS"
+            },
+            {
+              "name": "Inventory count unchanged",
+              "status": "PASS"
+            }
+          ]
+        },
+        "name": "outfit_Male_02_20261012_013649150",
+        "observed_garment_lods": [
+          0
+        ],
+        "process_receipt": "Saved\\NPCOutfits\\Packaged\\outfit_Male_02_20261012_013649150\\process.json",
+        "process_sha256": "5f531c7b5f765fb615412dac030e5c8ea3a4387b83808a1d346b2dc530efc75f",
+        "native_sha256": "8790dd8f447e1501afbd9f81919abf965950767b4005103cd3491c309291dab7",
+        "log_sha256": "86d2e46e2b88a5b12944e7989f56eae79260d317755ff64a01831c5ed089bd51",
+        "published_image": "Docs\\Migration\\Evidence\\NPCOutfits\\single_lod_outfit_Male_02_20261012_013649150.png",
+        "image_sha256": "3c8f12b3e53bc75d5c18e8149edf8375e885092a7898246db8b55407763218ce",
+        "visual_status": "PASS",
+        "visual_scope": "Actual image reviewed: three fixture NPCs with coherent FullRag silhouette; native Zombie pose retained. Distant fine surfaces and broad gameplay are not certified by one snapshot."
+      }
+    ],
+    "scope": "Single original garment LOD, default runtime policy. Fresh process functional tests, GC and exit; separate from warmed crowd performance acceptance.",
+    "executable_sha256": "37d52b7022e8dc33a3adb50e980c7baa14b522d1d377d7d280d9bed35307a5e9"
+  },
+  "cleanup": {
+    "status": "PASS",
+    "removed_bytes": 10001773350,
+    "retained_package": "Saved\\BodyPresetsQA\\Package_20261012_013142",
+    "remaining_old_output_targets": 0,
+    "dry_run": "Saved/CleanupEvidence/20261008/package-cleanup-plan_20261012_013740467.json",
+    "scope": "Only Cooked/Staged of Package_20261012_001912 and Package_20261012_011949. Logs and rollback backups retained."
+  },
+  "final_editor": {
+    "status": "PASS",
+    "project": "D:\\Projects UE5\\NoShellForWinter",
+    "world": "/Game/_Game/Hub/HUB.HUB",
+    "pie_running": false,
+    "dirty_packages": 0,
+    "independent_npc_lod": 0,
+    "garments": [
+      {
+        "mesh": "/Game/DazToUnreal/RagShirt/RagShirt.RagShirt",
+        "lod_count": 1,
+        "lod0_vertices": 7767
+      },
+      {
+        "mesh": "/Game/DazToUnreal/RagPants/RagPants.RagPants",
+        "lod_count": 1,
+        "lod0_vertices": 9081
+      },
+      {
+        "mesh": "/Game/DazToUnreal/RagFootWraps/RagFootWraps.RagFootWraps",
+        "lod_count": 1,
+        "lod0_vertices": 2176
+      }
+    ],
+    "inspection_retry": {
+      "initial_status": "FAIL",
+      "reason": "PowerShell UTF8 BOM rejected by native Python exec before executing any line",
+      "correction": "Rewrite the diagnostic script as UTF8 without BOM",
+      "retry_status": "PASS",
+      "asset_mutations": false
+    }
+  }
+}

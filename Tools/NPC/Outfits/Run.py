@@ -12,7 +12,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]
 parser = argparse.ArgumentParser()
-parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA', 'ProbeGarmentLOD', 'AuthorGarmentLOD', 'CompileGarmentLOD', 'InspectWitnessCounts'])
+parser.add_argument('action', choices=['Inspect', 'Author', 'Audit', 'RunPIE', 'RunNativePIE', 'SaveQA', 'LifecycleQA', 'ClothingRegression', 'LogicQA', 'ProbeGarmentLOD', 'AuthorGarmentLOD', 'WithdrawGarmentLOD', 'CompileGarmentLOD', 'InspectWitnessCounts'])
 parser.add_argument('--host-timeout', type=float, default=150)
 args, remaining = parser.parse_known_args()
 out = root/'Saved/NPCOutfits/Invocations'/str(time.time_ns())
@@ -25,7 +25,7 @@ start = time.monotonic()
 with (out/'host.log').open('w', encoding='utf-8') as log:
     try:
         command = [sys.executable, str(root/'Tools/InnerState/RunEditorPython58.py'), str(launcher)]
-        if args.action == 'AuthorGarmentLOD':
+        if args.action in ['AuthorGarmentLOD', 'WithdrawGarmentLOD']:
             # Saving the Director schedules its compiler after Python returns;
             # restoring the transient Python setting waits behind that work.
             command += ['--mcp-timeout', '120']

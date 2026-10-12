@@ -23,6 +23,9 @@ class LodQuality:
             self.phases = tuple(p for p in self.phases if p[0] in ('spawn_front_lod0', 'automatic_far', 'automatic_near'))
         elif case == 'movement':
             self.phases = tuple(p for p in self.phases if p[0] in ('spawn_front_lod0', 'moving_extreme_lod1'))
+        elif case == 'back':
+            self.phases = (('extreme_back_lod0', 1, 'back', True),
+                           ('extreme_back_lod1', 2, 'back', True))
         catalog = unreal.load_asset('/Game/_Game/Data/CharacterCreation/DA_BodyPresets')
         definition = next(r for r in catalog.bodies if str(r.preset_id) == body_id)
         self.body_path = definition.mesh.get_path_name()

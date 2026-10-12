@@ -1,5 +1,11 @@
 # NPC outfits
 
+Current direction (2026-10-12): the user reports that earlier LOD work broke
+animation and gameplay. The independent garment LOD experiment is withdrawn;
+do not pursue LOD-based optimization or enable it for this task. FullRag's
+generated LOD1 has been removed through Unreal Editor, retaining the original
+single LOD. See the withdrawal section at the end for current validation.
+
 ## Scope and frozen acceptance budget (2026-10-11)
 
 Target: `D:/Projects UE5/NoShellForWinter`; source remains read-only. Initial
@@ -48,19 +54,12 @@ The loaded settings confirm `bEnableForNonPlayerPawns=false`,
 
 ## Gates
 
-These gates describe the default-policy implementation through `0eef8827`,
-including the fresh packaged validation below. The opt-in independent-LOD
-candidate remains experimental: its performance and extreme-morph visual gates
-fail; its active-LOD packaged gate remains PENDING. Its generated
-assets are cooked in the current package, but the packaged functional runs use
-the default disabled independent-LOD policy.
-
-The latest diagnostic-only phase adds explicit LOD0/LOD1 extreme-morph, camera
-distance and locomotion image comparisons. All three bodies pass mechanical
-readiness/coverage/movement checks, but both male bodies show additional pants
-surface artifacts in LOD1. See the final quality section and
-`Evidence/NPCOutfits/lod-quality.json`; no production enabling or wider witness
-spacing is justified by those results.
+These historical gates describe the default-policy implementation through
+`0eef8827`, including the fresh packaged validation below. Later LOD experiments
+and their failed measurements remain recorded for traceability. They are now
+withdrawn rather than candidates for production acceptance. The crowd budget
+remains FAIL; retiring LOD does not change that verdict. Current single-LOD
+asset validation is recorded in the final withdrawal section.
 
 | Gate | Status | Evidence |
 |---|---|---|
@@ -1105,3 +1104,93 @@ comparison passed for all 7,643 files in 8.21 s. User HUB SHA-256 remains
 `c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a`;
 its unrelated Git change is preserved. Editor reopened through the guarded Daz
 launch wrapper. No package cleanup was necessary in this phase.
+
+
+## LOD experiment withdrawal after user steering (2026-10-12)
+
+The user reports that the previous LOD approach broke animation and gameplay.
+The current task will not use LOD changes to meet its performance target. The
+independent policy was never enabled by default and remains zero. Its dormant
+diagnostic code is retained; FullRag now has only the original LOD0, so the
+policy has no generated lower LOD to select on these garments.
+
+Before this steering arrived, the pants-only 0.5 cm sampling correction retained
+99% geometry and completed 26 reviewed diagnostic snapshots. The extra male
+pants flecks were no longer apparent. Female back marks also appear in the
+matched LOD0 view. These narrow comparisons do not certify general gameplay.
+The matched warmed 25-NPC pair still FAILS: CPU +5.869796 ms, GPU +5.583516 ms,
+frame p95 +6.620903 ms, readiness 5.259604 s. Raw 30-second pairs and all failed
+criteria are retained in `Evidence/NPCOutfits/lod-pants-dense-withdrawal.json`.
+
+The already-running candidate cook completed in 246.721 s under its 900 s
+ceiling (`Saved/BodyPresetsQA/Package_20261012_011949`). It is not validated or
+accepted. No active-LOD packaged test was run. The latest validated pointer was
+returned to the prior validated package pending the single-LOD replacement.
+
+`WithdrawGarmentLOD --apply` used native `SkeletalMeshEditorSubsystem.remove_lods`
+on LOD1 only. Receipt: `Saved/NPCOutfits/GarmentLOD/withdraw_1791786379773135200/withdraw.json`.
+Each exact input package hash was checked before mutation, then current packages
+were backed up. Native removal/saving took 1.938 s; the invocation completed in
+60.438 s including deferred compilation. Shirt/pants/footwrap LOD0 vertex counts
+remain 7,767 / 9,081 / 2,176, with unchanged skeleton and morph-name lists. These
+meshes have no authored morph targets; body morph adaptation remains the shared
+surface fitter. No body, AnimBlueprint, animation asset or character LOD setting
+was edited. The Director's unused reduced sampling settings return to 0.5 cm.
+
+Fresh publication after removal passes 18 enabled/valid bindings and 18 V5 LOD
+bindings (previously 27), with no stale/invalid/draft rows. Receipt:
+`Saved/NPCOutfits/GarmentLOD/compile_1791786474508015300/compile.json`.
+Single-LOD PIE, gameplay, package and final protection receipts follow below;
+those gates remain PENDING until explicitly recorded. CPU and loading work may
+continue without altering LOD selection or reducing animation updates.
+
+Single-LOD shared regression PASS in 64.313 s (120 s ceiling): 15 checks,
+Blueprint compile PASS, body swaps, coverage ownership and morph movement.
+All three actual screenshots were reviewed: coherent overall fit without broad
+collapse. Raw receipt: `Saved/NPCOutfits/ClothingRegression/1791786482149868800/result.json`.
+Native pursuit/spacing PASS: two melee and two ranged cases, 22.661 s native /
+24.688 s host. It uses the existing authored navigation volume and native ACF
+controllers, without changing or saving HUB navigation. Evidence:
+`Saved/NPCOutfits/Logic/1791786620471900700/runtime.json` and `runtime.txt`.
+
+Both SaveGuard sessions (`Session_20261012_010646`, `Session_20261012_012758`)
+restored all seven pre-existing saves after their editor closures. Only
+`ProjectIntimacy.sav` needed replacement. Protected comparison PASS: 7,643
+files unchanged; user HUB SHA remains
+`c484678ecd4a21407b59ae07268e84ade022b5ff33bd8ae0cd93078ca669e78a`.
+No C++ or shader source changed in this withdrawal; existing validated
+Editor/Game builds are reused. Asset cook and packaged verification are fresh.
+
+The single-LOD replacement package is now validated and retained at
+`Saved/BodyPresetsQA/Package_20261012_013142`. Fresh cook/package PASS in
+218.235 s (900 s limit). All three fresh packaged processes PASS real equipment
+removal, preserved intent on reinitialization, GC, zero pending work, zero
+logged Errors and normal exit. Their three actual images were reviewed.
+
+| Process | Scope | Seconds |
+|---|---|---:|
+| `outfit_Male_01_20261012_013611542` | Isolated cold-item map, 3 SkillGuy | 20.511534 |
+| `outfit_Female_01_20261012_013632512` | HUB, 3 MeleeEnemy | 16.225770 |
+| `outfit_Male_02_20261012_013649150` | HUB, 3 Zombie | 18.254184 |
+
+Every observed garment installation in these logs uses LOD0. The isolated
+initial NPC starts with a nonresident definition and three nonresident item
+classes and reaches Ready in 0.771185 s; OS disk caches are not controlled.
+This short fresh-process result does not satisfy the two-second warmed crowd
+budget. The staged executable matches the existing validated Game binary:
+`37d52b7022e8dc33a3adb50e980c7baa14b522d1d377d7d280d9bed35307a5e9`.
+
+After the required dry run, package cleanup removed exactly 10,001,773,350 bytes
+from only `Package_20261012_001912/{Cooked,Staged}` and the withdrawn candidate
+`Package_20261012_011949/{Cooked,Staged}`. Logs, receipts, saves and backups remain.
+The next dry run finds zero old output targets. All compact evidence is in
+`Evidence/NPCOutfits/lod-pants-dense-withdrawal.json`; earlier visual and budget
+FAILs remain intact.
+
+Unreal reopened with both required Daz plugins enabled (PID 56888). Fresh MCP
+read-only checks confirm no PIE and independent NPC LOD zero. Final live asset
+inspection confirms one LOD per FullRag mesh, the original vertex counts and
+no dirty packages. User HUB work is preserved separately from outfit commits.
+The LOD withdrawal is validated; the persistent goal remains active because
+the frozen 10/25-NPC performance budget still fails. Further optimization must
+preserve existing LOD selection and native animation/gameplay behavior.

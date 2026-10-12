@@ -10,6 +10,17 @@ Start with `noshellforwinter-unreal-mcp` and read-only target context. Read
 certify the outstanding release gates. Source game, vendor plugins, Player and
 protected body assets remain read-only.
 
+Current user direction (2026-10-12): prior LOD changes caused broken animations
+and gameplay. The independent garment LOD experiment has been withdrawn from
+this task, including generated FullRag LOD1 data. Keep the original character
+and garment LOD behavior. Do not enable independent NPC LOD or restart reduction
+experiments without a new explicit user request. The diagnostic commands below
+remain historical reproduction tools, not the current optimization workflow.
+`WithdrawGarmentLOD` is the bounded, hash-guarded editor rollback tool for the
+specific three experimental meshes; inspect first, then `--apply`. It removes
+only generated LOD1, preserves LOD0 vertex counts, morph names and skeleton,
+and keeps scoped package backups. Publish fresh bindings afterward.
+
 ## Authoring and ownership
 
 - `Tools/NPC/Outfits/Definitions.json` maps stable outfit IDs to owned DataAssets
@@ -226,9 +237,10 @@ alternative spacings do not change the compiler. At 50% geometry and 0.5 cm,
 shirt/pants estimates still exceed 256 references per vertex and all three exceed
 the Vertex*16 plane capacity. Do not raise bounds or truncate constraints to pass.
 
-The current runtime LOD candidate is experimental and disabled by default. See
-the final section of `Docs/Migration/NPCOutfits.md` before `AuthorGarmentLOD` or
-`CompileGarmentLOD`. Saving a Director policy schedules deferred compilation;
+The runtime LOD experiment is withdrawn. Its historical authoring procedures
+are retained for evidence; see the current user direction above before considering
+`AuthorGarmentLOD`. `CompileGarmentLOD` also republishes the single-LOD catalog
+after withdrawal. Saving a Director policy schedules deferred compilation;
 wait for that live work before another dependent action. The authoring host uses
 a bounded 120-second MCP cleanup wait inside its 150-second outer limit. Preserve
 timeouts as FAILs and inspect native completion instead of repeating authoring.
