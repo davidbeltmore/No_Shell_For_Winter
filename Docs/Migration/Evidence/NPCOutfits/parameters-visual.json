@@ -1,0 +1,123 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "gender": "Female",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 2,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 1,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "coverage_owners": 0,
+      "status": "PASS"
+    },
+    {
+      "gender": "Female",
+      "morphs": {
+        "Breasts Large": 1.85,
+        "Body Voluptuous": 1.0
+      },
+      "preset_id": "Female.01",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.200cm,lowerGuardVerts=4650]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=1.000,lowerReserve=0.350cm,lowerGuardVerts=4289]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Legs (skin gap 0.060 cm, surface volume 0.000 cm)."
+    },
+    {
+      "gender": "Female",
+      "moving_morph_distance_cm": 237.08578738778505,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "morphs": {
+        "Body Heavy": 1.0,
+        "Proportion Chest Size": 0.5
+      },
+      "preset_id": "Male.01",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+    },
+    {
+      "gender": "Male",
+      "moving_morph_distance_cm": 237.79105437205155,
+      "status": "PASS"
+    },
+    {
+      "gender": "Male",
+      "morphs": {
+        "Body Heavy": 1.0,
+        "Proportion Chest Size": 0.5
+      },
+      "preset_id": "Male.02",
+      "state": "Ready",
+      "summary": "EFClothingMorphV5 state=Ready registry=V5Streamable managed=4 ready=4 warming=0 passthrough=0 issues=0 | ItemSlot.Armor.Chest:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Armor.Legs:Ready[gLOD=0,bLOD=0,clear=0.060cm,stack=0.060cm,inflate=0.000cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Legs:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0]; ItemSlot.Underwear.Torso:Ready[gLOD=0,bLOD=0,clear=0.000cm,stack=0.000cm,inflate=0.200cm,morphActivity=1.000,lowerMorph=0.000,lowerReserve=0.000cm,lowerGuardVerts=0] |  | V4 clothing surface guard is Ready for ItemSlot.Armor.Chest (skin gap 0.060 cm, surface volume 0.200 cm)."
+    },
+    {
+      "gender": "Male",
+      "moving_morph_distance_cm": 215.12511415557162,
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791770380924612800\\morph_extreme_Female.01.png",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791770380924612800\\morph_extreme_Male.01.png",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791770380924612800\\morph_extreme_Male.02.png"
+  ],
+  "saved_assets": false,
+  "immutable_buffers": 1,
+  "peak_tick_ms_by_phase": {
+    "load": 125.0,
+    "play": 125.0,
+    "player": 125.0,
+    "equip": 52.859798073768616,
+    "overlap_equip": 23.649800568819046,
+    "overlap_prepare": 104.7419011592865,
+    "overlap_two": 29.629599303007126,
+    "overlap_one": 26.914097368717194,
+    "overlap_zero": 31.85420110821724,
+    "morph_equip": 33.560000360012054,
+    "morph_ready": 125.0,
+    "morph_movement": 54.47610095143318,
+    "morph_capture": 125.0,
+    "morph_done": 125.0
+  },
+  "blueprint_compile": "PASS",
+  "seconds": 61.95300000000134,
+  "timeout_seconds": 120.0,
+  "source": "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\ClothingRegression\\1791770380924612800\\result.json",
+  "image_review": "PASS: three images reviewed; representative extreme morphs and movement remain coherent. Historical first-female anomaly remains separately unresolved."
+}

@@ -34,6 +34,7 @@ try:
     assert hosts[0].get('quality') and hosts[0]['quality']==hosts[1].get('quality'), 'Missing or unmatched actual quality settings'
     assert hosts[0].get('immutable_buffers')==hosts[1].get('immutable_buffers'), 'Unmatched provider configuration'
     assert hosts[0].get('prepared_binding',0)==hosts[1].get('prepared_binding',0), 'Unmatched binding preparation configuration'
+    assert hosts[0].get('parameter_cache',0)==hosts[1].get('parameter_cache',0), 'Unmatched parameter update configuration'
     assert hosts[0].get('configuration_hashes') == hosts[1].get('configuration_hashes'), 'Unmatched roster, graph or runtime source configuration'
     result['configuration_hashes'] = hosts[1].get('configuration_hashes')
     assert not any(h.get(key,False) for h in hosts for key in ['profile_install','profile_gpu','trace']), 'Diagnostic logging/profiling is not an acceptance capture'

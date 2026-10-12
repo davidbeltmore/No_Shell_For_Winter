@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "gate": "Targeted CPU optimization only; crowd acceptance and current package validation are separate.",
+  "before": {
+    "status": "DIAGNOSTIC",
+    "name": "cpu_parameters_0_02",
+    "trace_sha256": "73b33cad7fc4c56643f39aedfdab3145f6c330184ddd4108d21f56881a9895f1",
+    "start_seconds": 375.74166,
+    "end_seconds": 381.677542,
+    "frames": 143,
+    "tail_margin_seconds": 2,
+    "scope": "All scene garments, including map NPCs; nested inclusive times are not additive.",
+    "exporter_caveat": "UE 5.8 statistics CSV includes GPU queues despite CPU thread filter.",
+    "scopes": {
+      "EFClothingRuntime": {
+        "count": 5434,
+        "inclusive_ms_per_frame": 5.85741958041958,
+        "exclusive_ms_per_frame": 0.5777972027972028
+      },
+      "EFClothing_SurfaceSubmission": {
+        "count": 15873,
+        "inclusive_ms_per_frame": 5.279622377622378,
+        "exclusive_ms_per_frame": 0.4262797202797203
+      },
+      "EFClothing_SetSurfaceParameters": {
+        "count": 15873,
+        "inclusive_ms_per_frame": 2.5174825174825175,
+        "exclusive_ms_per_frame": 2.5174825174825175
+      },
+      "EFClothing_EnqueueDeformerWork": {
+        "count": 15873,
+        "inclusive_ms_per_frame": 2.281909090909091,
+        "exclusive_ms_per_frame": 1.9500839160839163
+      },
+      "EFClothing_CopyGraphParameters": {
+        "count": 15873,
+        "inclusive_ms_per_frame": 0.3318251748251748,
+        "exclusive_ms_per_frame": 0.3318251748251748
+      },
+      "EFClothing_ReadMorphActivity": {
+        "count": 15873,
+        "inclusive_ms_per_frame": 0.05395104895104895,
+        "exclusive_ms_per_frame": 0.05395104895104895
+      }
+    }
+  },
+  "after": {
+    "status": "DIAGNOSTIC",
+    "name": "cpu_parameters_1_02",
+    "trace_sha256": "9715b3be414775c719cce51602181c4eb3c1328d7834c0e86a60f8419049922d",
+    "start_seconds": 419.989724,
+    "end_seconds": 425.930183,
+    "frames": 156,
+    "tail_margin_seconds": 2,
+    "scope": "All scene garments, including map NPCs; nested inclusive times are not additive.",
+    "exporter_caveat": "UE 5.8 statistics CSV includes GPU queues despite CPU thread filter.",
+    "scopes": {
+      "EFClothingRuntime": {
+        "count": 5928,
+        "inclusive_ms_per_frame": 3.8468205128205124,
+        "exclusive_ms_per_frame": 0.5375705128205128
+      },
+      "EFClothing_SurfaceSubmission": {
+        "count": 17316,
+        "inclusive_ms_per_frame": 3.3092500000000005,
+        "exclusive_ms_per_frame": 0.3810897435897436
+      },
+      "EFClothing_EnqueueDeformerWork": {
+        "count": 17316,
+        "inclusive_ms_per_frame": 2.258948717948718,
+        "exclusive_ms_per_frame": 1.9351602564102564
+      },
+      "EFClothing_SetSurfaceParameters": {
+        "count": 17316,
+        "inclusive_ms_per_frame": 0.6221474358974359,
+        "exclusive_ms_per_frame": 0.6221474358974359
+      },
+      "EFClothing_CopyGraphParameters": {
+        "count": 17316,
+        "inclusive_ms_per_frame": 0.3237884615384616,
+        "exclusive_ms_per_frame": 0.3237884615384616
+      },
+      "EFClothing_ReadMorphActivity": {
+        "count": 17316,
+        "inclusive_ms_per_frame": 0.04705769230769231,
+        "exclusive_ms_per_frame": 0.04705769230769231
+      }
+    }
+  },
+  "scope": "25 fixture NPCs plus map NPCs; 111 garment submissions per frame in both traces.",
+  "validation": "Native getters compare exact live GPU bytes after successful native setter; no stale input cache, frequency reduction or tolerance change.",
+  "fresh_start_failure": {
+    "status": "FAIL",
+    "host": "Saved/NPCOutfits/Native/cpu_parameters_0_01/host.json",
+    "reason": "Definition callback had not completed before the existing 20-second timeout; loading backlog observed, exact starvation cause unresolved."
+  },
+  "preparation": "Single-NPC functional/GC fixture parameters_single_01 passed before the successful 25-NPC A/B traces."
+}

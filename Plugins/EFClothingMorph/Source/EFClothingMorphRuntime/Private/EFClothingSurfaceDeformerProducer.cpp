@@ -10,6 +10,7 @@
 #include "OptimusDeformer.h"
 #include "OptimusDeformerDynamicInstanceManager.h"
 #include "OptimusDeformerInstance.h"
+#include "OptimusHelpers.h"
 #include "RenderingThread.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/SkeletalMeshRenderData.h"
@@ -17,11 +18,14 @@
 #include "SkeletalRenderPublic.h"
 #include "Templates/Atomic.h"
 #include "HAL/IConsoleManager.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 namespace
 {
 TAutoConsoleVariable<int32> CVarProfileClothingInstall(TEXT("ef.ClothingMorph.ProfileInstall"),0,
     TEXT("Log bounded installation stages for targeted clothing startup diagnosis."));
+TAutoConsoleVariable<int32> CVarSkipUnchangedParameters(TEXT("ef.ClothingMorph.SkipUnchangedParameters"),1,
+    TEXT("Skip native parameter conversion only when the live GPU bytes already match exactly. 0 uses every native setter."));
 struct FClothingInstallProfile
 {
     const TCHAR* Stage;
@@ -550,6 +554,7 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	const float MaximumCorrectionOverrideCm,
 	FString& OutFailureReason)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(EFClothing_SurfaceSubmission);
 	check(IsInGameThread());
 	OutFailureReason.Reset();
 
@@ -755,34 +760,37 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	float BodyMorphActivity = bTransportReferenceShape ? 1.0f : 0.0f;
 	float BreastMorphActivity = 0.0f;
 	float LowerBodyMorphActivity = 0.0f;
-	for (const TPair<FName, float>& MorphCurve : Body->GetMorphTargetCurves())
 	{
-		if (!FMath::IsFinite(MorphCurve.Value))
+		TRACE_CPUPROFILER_EVENT_SCOPE(EFClothing_ReadMorphActivity);
+		for (const TPair<FName, float>& MorphCurve : Body->GetMorphTargetCurves())
 		{
-			LastBodyMorphActivity = 0.0f;
-			LastBreastMorphActivity = 0.0f;
-			LastLowerBodyMorphActivity = 0.0f;
-			OutFailureReason = FString::Printf(
-				TEXT("Body morph %s has a non-finite weight; the clothing surface pass was rejected fail-closed."),
-				*MorphCurve.Key.ToString());
-			return false;
-		}
-		BodyMorphActivity = FMath::Max(
-			BodyMorphActivity,
-			FMath::Abs(MorphCurve.Value));
-		if (IsBreastAffectingMorphName(MorphCurve.Key))
-		{
-			BreastMorphActivity = FMath::Max(
-				BreastMorphActivity,
+			if (!FMath::IsFinite(MorphCurve.Value))
+			{
+				LastBodyMorphActivity = 0.0f;
+				LastBreastMorphActivity = 0.0f;
+				LastLowerBodyMorphActivity = 0.0f;
+				OutFailureReason = FString::Printf(
+					TEXT("Body morph %s has a non-finite weight; the clothing surface pass was rejected fail-closed."),
+					*MorphCurve.Key.ToString());
+				return false;
+			}
+			BodyMorphActivity = FMath::Max(
+				BodyMorphActivity,
 				FMath::Abs(MorphCurve.Value));
-		}
-		if (LowerBodyMorphGuardExactBodyMorphNames.Contains(MorphCurve.Key))
-		{
-			// Lower-body fitting is expansion-only. Negative corrective/JCM values
-			// must never pull a garment farther into the body.
-			LowerBodyMorphActivity = FMath::Max(
-				LowerBodyMorphActivity,
-				FMath::Max(MorphCurve.Value, 0.0f));
+			if (IsBreastAffectingMorphName(MorphCurve.Key))
+			{
+				BreastMorphActivity = FMath::Max(
+					BreastMorphActivity,
+					FMath::Abs(MorphCurve.Value));
+			}
+			if (LowerBodyMorphGuardExactBodyMorphNames.Contains(MorphCurve.Key))
+			{
+				// Lower-body fitting is expansion-only. Negative corrective/JCM values
+				// must never pull a garment farther into the body.
+				LowerBodyMorphActivity = FMath::Max(
+					LowerBodyMorphActivity,
+					FMath::Max(MorphCurve.Value, 0.0f));
+			}
 		}
 	}
 	LastBodyMorphActivity = FMath::Clamp(BodyMorphActivity, 0.0f, 1.0f);
@@ -791,54 +799,87 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 		? FMath::Clamp(LowerBodyMorphActivity, 0.0f, 1.0f)
 		: 0.0f;
 
-	const bool bParametersAccepted =
-		Instance->SetTransformVariable(
-			EFClothingSurfaceGraphContract::BodyToGarmentTransform,
-			BodyToGarment)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::GlobalClearanceOffsetCm,
-			FMath::Clamp(
-				FMath::IsFinite(GlobalClearanceOffsetCm) ? GlobalClearanceOffsetCm : 0.0f,
-				0.0f,
-				EFClothingMorphV4::MaximumRuntimeClearanceCm))
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::GarmentClearanceOffsetCm,
-			FMath::Clamp(
-				FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f,
-				0.0f,
-				EFClothingMorphV4::MaximumRuntimeClearanceCm))
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::GarmentInflateCm,
-			FMath::Clamp(
-				FMath::IsFinite(GarmentInflateCm)
-					? GarmentInflateCm
-					: 0.0f,
-				0.0f,
-				EFClothingMorphV4::MaximumRuntimeInflateCm))
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
-			FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::MaximumAutomaticBodyShapeTravelCm,
-			EFClothingMorphV4::MaximumAutomaticBodyShapeTravelCm)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::BodyMorphActivity,
-			LastBodyMorphActivity)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::BreastMorphActivity,
-			LastBreastMorphActivity)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::UnderBreastClearanceMaxCm,
-			EFClothingMorphV4::MaximumAutomaticUnderBreastClearanceCm)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::LowerBodyMorphActivity,
-			LastLowerBodyMorphActivity)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::LowerBodyMorphClearanceMaxCm,
-			LowerBodyMorphGuardMaximumClearanceCm)
-		&& Instance->SetFloatVariable(
-			EFClothingSurfaceGraphContract::DeltaTimeSeconds,
-			FMath::Max(FMath::IsFinite(DeltaTimeSeconds) ? DeltaTimeSeconds : 0.0f, 0.0f));
+	bool bParametersAccepted;
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(EFClothing_SetSurfaceParameters);
+		const bool bSkipUnchanged = CVarSkipUnchangedParameters.GetValueOnGameThread() != 0;
+		const auto SetScalar = [this, Instance, bSkipUnchanged](FName Name, float Value)
+		{
+			// GetShaderValue assumes the identifier exists. Never read it until the
+			// native setter has succeeded for this instance. Detach clears validation.
+			const FOptimusValueIdentifier Id{EOptimusValueType::Variable, Name};
+			if (bSkipUnchanged && ValidatedScalarParameters.Contains(Name))
+			{
+				const auto& Shader = Instance->GetShaderValue(Id).ShaderValue;
+				if (Shader.Num() == sizeof(Value)
+					&& FMemory::Memcmp(Shader.GetData(), &Value, sizeof(Value)) == 0) return true;
+			}
+			if (!Instance->SetFloatVariable(Name, Value)) return false;
+			ValidatedScalarParameters.Add(Name);
+			return true;
+		};
+		const auto SetTransform = [this, Instance, bSkipUnchanged](FName Name, const FTransform& Value)
+		{
+			if (bSkipUnchanged && bValidatedTransformParameter)
+			{
+				const FMatrix44f Matrix = Optimus::ConvertFTransformToFMatrix44f(Value);
+				const auto& Shader = Instance->GetShaderValue({EOptimusValueType::Variable, Name}).ShaderValue;
+				if (Shader.Num() == sizeof(Matrix)
+					&& FMemory::Memcmp(Shader.GetData(), &Matrix, sizeof(Matrix)) == 0) return true;
+			}
+			if (!Instance->SetTransformVariable(Name, Value)) return false;
+			bValidatedTransformParameter = true;
+			return true;
+		};
+		bParametersAccepted =
+			SetTransform(
+				EFClothingSurfaceGraphContract::BodyToGarmentTransform,
+				BodyToGarment)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::GlobalClearanceOffsetCm,
+				FMath::Clamp(
+					FMath::IsFinite(GlobalClearanceOffsetCm) ? GlobalClearanceOffsetCm : 0.0f,
+					0.0f,
+					EFClothingMorphV4::MaximumRuntimeClearanceCm))
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::GarmentClearanceOffsetCm,
+				FMath::Clamp(
+					FMath::IsFinite(GarmentClearanceOffsetCm) ? GarmentClearanceOffsetCm : 0.0f,
+					0.0f,
+					EFClothingMorphV4::MaximumRuntimeClearanceCm))
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::GarmentInflateCm,
+				FMath::Clamp(
+					FMath::IsFinite(GarmentInflateCm)
+						? GarmentInflateCm
+						: 0.0f,
+					0.0f,
+					EFClothingMorphV4::MaximumRuntimeInflateCm))
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::MaximumCorrectionOverrideCm,
+				FMath::IsFinite(MaximumCorrectionOverrideCm) ? MaximumCorrectionOverrideCm : -1.0f)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::MaximumAutomaticBodyShapeTravelCm,
+				EFClothingMorphV4::MaximumAutomaticBodyShapeTravelCm)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::BodyMorphActivity,
+				LastBodyMorphActivity)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::BreastMorphActivity,
+				LastBreastMorphActivity)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::UnderBreastClearanceMaxCm,
+				EFClothingMorphV4::MaximumAutomaticUnderBreastClearanceCm)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::LowerBodyMorphActivity,
+				LastLowerBodyMorphActivity)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::LowerBodyMorphClearanceMaxCm,
+				LowerBodyMorphGuardMaximumClearanceCm)
+			&& SetScalar(
+				EFClothingSurfaceGraphContract::DeltaTimeSeconds,
+				FMath::Max(FMath::IsFinite(DeltaTimeSeconds) ? DeltaTimeSeconds : 0.0f, 0.0f));
+	}
 	if (!bParametersAccepted)
 	{
 		OutFailureReason = TEXT("Surface graph is missing one or more EF runtime scalar variables.");
@@ -872,7 +913,10 @@ bool UEFClothingSurfaceDeformerProducer::EnqueueSurfacePass(
 	// UOptimusDeformerInstance narrows the override to protected, while the base
 	// contract intentionally exposes EnqueueWork for composition.
 	UMeshDeformerInstance* MeshDeformerInstance = Instance;
-	MeshDeformerInstance->EnqueueWork(Desc);
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(EFClothing_EnqueueDeformerWork);
+		MeshDeformerInstance->EnqueueWork(Desc);
+	}
 	ENQUEUE_RENDER_COMMAND(EFClothingMarkSurfaceEnqueueStage)(
 		[Telemetry, SubmissionOrdinal](FRHICommandListImmediate& RHICmdList)
 		{
@@ -986,6 +1030,8 @@ void UEFClothingSurfaceDeformerProducer::Detach()
 	LastBodyMorphActivity = 0.0f;
 	LastBreastMorphActivity = 0.0f;
 	LastLowerBodyMorphActivity = 0.0f;
+	ValidatedScalarParameters.Reset();
+	bValidatedTransformParameter = false;
 	LowerBodyMorphGuardExactBodyMorphNames.Reset();
 	LowerBodyMorphGuardMaximumClearanceCm = 0.0f;
 	LowerBodyMorphGuardVertexCount = 0;

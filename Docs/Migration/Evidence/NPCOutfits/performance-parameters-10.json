@@ -1,0 +1,52 @@
+{
+  "status": "FAIL",
+  "budget": {
+    "cpu_increment_ms": 2,
+    "gpu_increment_ms": 3,
+    "frame_p95_increment_ms": 4,
+    "warm_ready_seconds": 2
+  },
+  "sources": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_bare\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_dressed\\runtime.json"
+  ],
+  "reasons": [
+    "cpu_increment_ms exceeds frozen budget"
+  ],
+  "fixture_version": 2,
+  "configuration_hashes": {
+    "Content/_Game/Characters/Data/DA_NPCRoster.uasset": "e90af32dc15e138d674be95c01d95ed45dd14c79d72eaffa9468c424918d8734",
+    "Plugins/EFClothingMorph/Content/Deformers/DG_EFGarmentSurfaceConstraint.uasset": "e827307f795dfa1e55514d8aab6505983a10ce20457c779c759227f817d00098",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingSurfaceDeformerProducer.cpp": "3c8a27a1f8292162552ba9c1775c6a7ac85bde690dafa3c2377089882421bc94",
+    "Plugins/EFClothingMorph/Source/EFClothingMorphRuntime/Private/EFClothingImmutableGraphProvider.cpp": "c4750ba3e06c8624db9e028faaafcd86b415df7c927e35db22f22db4dfc34f4d",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitSubsystem.cpp": "762384198393f2704121ce5a6f6d61ce58dee0f73cbf95bb0af0597efc44026b",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitComponent.cpp": "8ab32dd27637771b9a83503328d6498b04eee2848252cda4fa932aaf57bf0f28",
+    "Plugins/EFProjectSystems/Source/EFProjectSystemsGameplay/Characters/ProjectNPCOutfitQA.cpp": "147c4aa0e70d8c846a1b8671c6f148c8c109963c81e4e6da9615acad22d8311b"
+  },
+  "prewarm_receipts": [
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_bare_warmup\\runtime.json",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_dressed_warmup\\runtime.json"
+  ],
+  "count": 10,
+  "loading": "warm",
+  "measurements": {
+    "cpu_increment_ms": 2.1839699967053576,
+    "gpu_increment_ms": 2.682612926185035,
+    "frame_p95_increment_ms": 2.734203338623047,
+    "dressed_frame_p95_ms": 30.54220199584961,
+    "baseline_frame_p95_ms": 27.807998657226562,
+    "spawn_peak_ms": 534.1079831123352,
+    "warm_ready_seconds": 1.6192051991820335,
+    "pending_after_destroy": 0
+  },
+  "acceptance_applies": true,
+  "raw_sha256": {
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_bare\\runtime.json": "045fa3762994143c8f9e140277508e2326b518a71a6525bf857196d5a27fedb0",
+    "D:\\Projects UE5\\NoShellForWinter\\Saved\\NPCOutfits\\Native\\perf_parameters_01_10_dressed\\runtime.json": "867c327ed34a1fd12460438966fe6f0994ec409ed963377b8d4358d1cbe7d1c2"
+  },
+  "memory": {
+    "bare": 11080368128,
+    "dressed": 11084984320
+  },
+  "memory_scope": "Whole-process physical memory, not isolated GPU residency."
+}

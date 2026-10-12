@@ -19,6 +19,7 @@ parser.add_argument('--timeout',type=float,default=120)
 parser.add_argument('--name',default='native_'+str(time.time_ns()))
 parser.add_argument('--immutable-buffers',type=int,choices=[0,1],default=1)
 parser.add_argument('--prepared-binding',type=int,choices=[0,1],default=1)
+parser.add_argument('--parameter-cache',type=int,choices=[0,1],default=1)
 parser.add_argument('--gc',action='store_true',help='Force native GC after fixture destruction')
 parser.add_argument('--trace',action='store_true',help='Diagnostic CPU/GPU trace after fixture outfits are ready')
 parser.add_argument('--profile-gpu',action='store_true',help='One detailed GPU frame after readiness; diagnostic only')
@@ -60,6 +61,8 @@ buffer_cvar='ef.ClothingMorph.ImmutableBindingBuffers'
 previous_buffers=unreal.SystemLibrary.get_console_variable_int_value(buffer_cvar)
 prepared_cvar='ef.ClothingMorph.PreparedBinding'
 previous_prepared=unreal.SystemLibrary.get_console_variable_int_value(prepared_cvar)
+parameter_cvar='ef.ClothingMorph.SkipUnchangedParameters'
+previous_parameters=unreal.SystemLibrary.get_console_variable_int_value(parameter_cvar)
 profile_cvar='ef.ClothingMorph.ProfileInstall'
 previous_profile=unreal.SystemLibrary.get_console_variable_int_value(profile_cvar)
 gpu_settings={'r.ProfileGPU.ShowUI':0,'r.ProfileGPU.ShowLeafEvents':1,'r.ProfileGPU.UnicodeOutput':0,
@@ -69,7 +72,7 @@ quality_names=['sg.ViewDistanceQuality','sg.AntiAliasingQuality','sg.ShadowQuali
                'sg.ReflectionQuality','sg.PostProcessQuality','sg.TextureQuality','sg.EffectsQuality',
                'sg.FoliageQuality','sg.ShadingQuality','r.ScreenPercentage','r.VSync','t.MaxFPS']
 quality={name:unreal.SystemLibrary.get_console_variable_float_value(name) for name in quality_names}
-native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','trace','profile_gpu','prewarm','selection','profile_install','gc']}
+native_args={k:v for k,v in vars(args).items() if k not in ['immutable_buffers','prepared_binding','parameter_cache','trace','profile_gpu','prewarm','selection','profile_install','gc']}
 command=('Project.NPCOutfits.SelectionQA ' if args.selection else 'Project.NPCOutfits.QA ')+' '.join(k+'='+str(v) for k,v in native_args.items())
 assert not (args.selection and args.gc), 'GC fixture uses the standard outfit command'
 if args.gc: command+=' gc'
@@ -78,15 +81,17 @@ warm_command='Project.NPCOutfits.QA '+' '.join(k+'='+str(v) for k,v in warm_args
 
 def done(error=''):
     unreal.unregister_slate_post_tick_callback(handle)
+    restore_world=worlds.get_game_world()
     if state.get('trace_started'):
-        unreal.SystemLibrary.execute_console_command(worlds.get_game_world(),'Trace.Stop')
-    unreal.EditorLevelLibrary.editor_end_play()
+        unreal.SystemLibrary.execute_console_command(restore_world,'Trace.Stop')
     perf.set_editor_property('bThrottleCPUWhenNotForeground',throttle)
-    unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),buffer_cvar+' '+str(previous_buffers))
-    unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),prepared_cvar+' '+str(previous_prepared))
-    unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),profile_cvar+' '+str(previous_profile))
-    for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(worlds.get_editor_world(),key+' '+str(value))
-    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
+    unreal.SystemLibrary.execute_console_command(restore_world,buffer_cvar+' '+str(previous_buffers))
+    unreal.SystemLibrary.execute_console_command(restore_world,prepared_cvar+' '+str(previous_prepared))
+    unreal.SystemLibrary.execute_console_command(restore_world,parameter_cvar+' '+str(previous_parameters))
+    unreal.SystemLibrary.execute_console_command(restore_world,profile_cvar+' '+str(previous_profile))
+    for key,value in previous_gpu.items(): unreal.SystemLibrary.execute_console_command(restore_world,key+' '+str(value))
+    unreal.EditorLevelLibrary.editor_end_play()
+    (out/'host.json').write_text(json.dumps({'status':'FAIL' if error else 'PASS','reason':error,'seconds':time.monotonic()-started,'command':command,'immutable_buffers':args.immutable_buffers,'prepared_binding':args.prepared_binding,'parameter_cache':args.parameter_cache,'profile_install':args.profile_install,'profile_gpu':args.profile_gpu,'trace':args.trace,'quality':quality,'configuration_hashes':configuration_hashes,'prewarm_receipt':str(warm_receipt) if args.prewarm else None},indent=2),encoding='utf-8')
 
 def tick(dt):
     try:
@@ -96,6 +101,7 @@ def tick(dt):
             state['issued']=True
             unreal.SystemLibrary.execute_console_command(world,buffer_cvar+' '+str(args.immutable_buffers))
             unreal.SystemLibrary.execute_console_command(world,prepared_cvar+' '+str(args.prepared_binding))
+            unreal.SystemLibrary.execute_console_command(world,parameter_cvar+' '+str(args.parameter_cache))
             unreal.SystemLibrary.execute_console_command(world,profile_cvar+' '+str(int(args.profile_install)))
             unreal.SystemLibrary.execute_console_command(world,warm_command if args.prewarm else command)
         if args.prewarm and not state['warm_ready']:

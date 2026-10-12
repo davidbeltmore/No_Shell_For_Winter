@@ -109,6 +109,9 @@ private:
 	float LastBodyMorphActivity = 0.0f;
 	float LastBreastMorphActivity = 0.0f;
 	float LastLowerBodyMorphActivity = 0.0f;
+	// Only populated after the native setter has validated this live instance.
+	TSet<FName> ValidatedScalarParameters;
+	bool bValidatedTransformParameter = false;
 	TSet<FName> LowerBodyMorphGuardExactBodyMorphNames;
 	float LowerBodyMorphGuardMaximumClearanceCm = 0.0f;
 	int32 LowerBodyMorphGuardVertexCount = 0;

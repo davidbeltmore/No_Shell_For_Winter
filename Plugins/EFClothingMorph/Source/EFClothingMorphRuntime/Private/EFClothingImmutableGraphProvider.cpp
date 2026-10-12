@@ -3,6 +3,7 @@
 #include "OptimusDeformer.h"
 #include "ComputeFramework/ComputeGraph.h"
 #include "HAL/IConsoleManager.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Misc/SecureHash.h"
 #include "OptimusDataTypeRegistry.h"
 #include "OptimusDeformerInstance.h"
@@ -369,6 +370,7 @@ void UEFClothingImmutableGraphProvider::RememberPrepared(UOptimusDeformerInstanc
 
 FComputeDataProviderRenderProxy* UEFClothingImmutableGraphProvider::GetRenderProxy()
 {
+    TRACE_CPUPROFILER_EVENT_SCOPE(EFClothing_CopyGraphParameters);
     auto* Proxy = new FImmutableProxy;
     if (!Instance.IsValid() || !Buffers) return Proxy;
     Proxy->Parameters.SetNumZeroed(ParameterBytes);
